@@ -13,6 +13,7 @@
 .phpunit.result.cache
 
 docker-compose.override.yml
+vite.config.js
 
 Homestead.json
 Homestead.yaml

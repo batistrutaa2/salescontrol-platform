@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class Comercial extends Controller
 {
@@ -37,7 +39,6 @@ class Comercial extends Controller
 
   protected function structureBoardData($contacts)
   {
-    // Mapeando status
     $status = $this->tabulacoesRepository->getTabulationsCompanie(Auth::user()->empresa_id);
 
     $boardData = [];
@@ -48,7 +49,7 @@ class Comercial extends Controller
         return $contact->id == $tabulation['id'];
       })->map(function ($contact) {
         return [
-          'id' => 'contact-' . $contact->idContato,
+          'id' =>  $contact->idContato,
           'title' => $contact->nome_cliente,
           'comments' => (string) $contact->qt_comentarios,
           'badge-text' => 'TBD',
@@ -59,12 +60,44 @@ class Comercial extends Controller
       })->values()->toArray();
 
       $boardData[] = [
-        'id' => 'board-' . Helpers::normalizeStatusName($tabulation['descricao']),
+        'id' =>  Helpers::normalizeStatusName($tabulation['id']),
         'title' => $tabulation['descricao'],
         'item' => $items
       ];
     }
 
     return $boardData;
+  }
+
+  public function changeStatusLead(Request $request)
+  {
+    $validator = Validator::make($request->all(), [
+      'contato_id' => 'required|integer',
+      'tabulacao_id' => 'required|integer',
+    ]);
+
+    if ($validator->fails()) {
+      return response()->json(['success' => false, 'message' => 'Invalid data'], 400);
+    }
+
+    $saveStatus = $this->repositoryContatosCorretoresRepository->changeStatusLead($request->all());
+
+    if ($saveStatus) {
+      return response()->json(
+        [
+          'error' => false,
+          'message' => 'Status Atualizado com sucesso'
+        ],
+        200
+      );
+    } else {
+      return response()->json(
+        [
+          'error' => true,
+          'message' => 'Erro ao Atualizar Status'
+        ],
+        501
+      );
+    }
   }
 }

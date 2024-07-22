@@ -67,4 +67,21 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         ->get();
     }
   }
+
+
+  public function changeStatusLead($data): bool
+  {
+    try {
+      $card = $this->model->where('contato_id', $data['contato_id'])->first();
+
+      if ($card) {
+        $card->tabulacao_id = $data['tabulacao_id'];
+        return $card->save();
+      } else {
+        return false;
+      }
+    } catch (\Throwable $th) {
+      dd($th->getMessage());
+    }
+  }
 }

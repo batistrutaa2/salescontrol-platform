@@ -183,6 +183,35 @@
     itemAddOptions: {
       enabled: false
     },
+
+    dropEl: function (el, target, source, sibling) {
+      const contato_id = el.dataset.eid;
+      const tabulacao_id = target.parentElement.dataset.id;
+
+      fetch('/changeStatusLead/kanban/changeStatusLead', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+          contato_id: contato_id,
+          tabulacao_id: tabulacao_id
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            console.log('Atualização bem-sucedida');
+          } else {
+            console.error('Erro ao atualizar');
+          }
+        })
+        .catch(error => {
+          console.error('Erro na requisição:', error);
+        });
+    },
+
     click: function (el) {
       let element = el;
       let title = element.getAttribute('data-eid')
