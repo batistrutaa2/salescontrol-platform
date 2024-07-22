@@ -1,0 +1,3 @@
+**/*.*
+!resources/assets/vendor/js/*.js
+!resources/views/content/*.php

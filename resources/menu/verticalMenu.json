@@ -1,0 +1,82 @@
+{
+  "menu": [
+    {
+      "url": "/dashboard",
+      "name": "Home",
+      "icon": "menu-icon tf-icons ri-home-smile-line",
+      "slug": "pages-home",
+      "rules": [
+        "VENDEDOR",
+        "ADMINISTRATIVO",
+        "BACKOFFICE",
+        "DEVELOPER"
+      ]
+    },
+    {
+      "menuHeader": "Gerenciar Usuarios"
+    },
+    {
+      "url": "/usuarios",
+      "name": "Cadastro de usuarios",
+      "icon": "menu-icon tf-icons ri-user-line",
+      "slug": "pages-usuarios",
+      "rules": [
+        "ADMINISTRATIVO",
+        "BACKOFFICE",
+        "DEVELOPER"
+      ]
+    },
+    {
+      "menuHeader": "Comercial"
+    },
+    {
+      "url": "/comercial/kanban",
+      "name": "Gerenciar Clientes",
+      "icon": "menu-icon tf-icons ri-user-line",
+      "slug": "clientes-comercial",
+      "rules": [
+        "ADMINISTRATIVO",
+        "VENDEDOR",
+        "DEVELOPER",
+        "BACKOFFICE"
+      ]
+    },
+    {
+      "menuHeader": "Manager & Developers"
+    },
+    {
+      "name": "Empresa",
+      "icon": "menu-icon tf-icons ri-home-smile-line",
+      "slug": "dashboard",
+      "rules": [
+        "DEVELOPER"
+      ],
+      "submenu": [
+        {
+          "url": "/empresas",
+          "name": "Cadastro de empresas",
+          "slug": "pages-empresas"
+        }
+      ]
+    },
+    {
+      "menuHeader": "Gerenciar Mailing"
+    },
+    {
+      "name": "Mailing",
+      "icon": "menu-icon tf-icons ri-home-smile-line",
+      "slug": "dashboard",
+      "rules": [
+        "DEVELOPER",
+        "ADMINISTRATIVO"
+      ],
+      "submenu": [
+        {
+          "url": "/mailing/importar",
+          "name": "Importa Mailing",
+          "slug": "pages-mailing-importar"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Providers;
+
+use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use App\Repositories\Contracts\ContatosRepositoryInterface;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Vite;
+use App\Repositories\Contracts\EmpresaRepositoryInterface;
+use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Eloquent\ContatosCorretoresRepository;
+use App\Repositories\Eloquent\ContatosRepository;
+use App\Repositories\Eloquent\EmpresaRepository;
+use App\Repositories\Eloquent\TabulacoesRepository;
+use App\Repositories\Eloquent\UsuariosRepository;
+
+class AppServiceProvider extends ServiceProvider
+{
+  /**
+   * Register any application services.
+   */
+  public function register(): void
+  {
+    $this->app->bind(EmpresaRepositoryInterface::class, EmpresaRepository::class);
+    $this->app->bind(UsuariosRepositoryInterface::class, UsuariosRepository::class);
+    $this->app->bind(ContatosRepositoryInterface::class, ContatosRepository::class);
+    $this->app->bind(ContatosCorretoresRepositoryInterface::class, ContatosCorretoresRepository::class);
+    $this->app->bind(TabulacoesRepositoryInterface::class, TabulacoesRepository::class);
+  }
+
+  /**
+   * Bootstrap any application services.
+   */
+  public function boot(): void
+  {
+    Vite::useStyleTagAttributes(function (?string $src, string $url, ?array $chunk, ?array $manifest) {
+      if ($src !== null) {
+        return [
+          'class' => preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?core)-?.*/i", $src) ? 'template-customizer-core-css' : (preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?theme)-?.*/i", $src) ? 'template-customizer-theme-css' : '')
+        ];
+      }
+      return [];
+    });
+  }
+}

@@ -1,0 +1,149 @@
+[
+  {
+    "id": "board-in-progress",
+    "title": "PROSPECÇÃO",
+    "item": [
+      {
+        "id": "in-progress-1",
+        "title": "Research FAQ page UX",
+        "comments": "12",
+        "badge-text": "UX",
+        "badge": "success",
+        "due-date": "5 April",
+        "attachments": "1",
+        "members": [
+          "John",
+          "Bruce",
+          "Clark"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "board-in-review",
+    "title": "REUNIÃO",
+    "item": [
+      {
+        "id": "in-review-1",
+        "title": "Review completed Apps",
+        "comments": "17",
+        "badge-text": "Info",
+        "badge": "info",
+        "due-date": "8 April",
+        "attachments": "8",
+        "members": [
+          "Laurel",
+          "Harley"
+        ]
+      },
+      {
+        "id": "in-review-2",
+        "title": "Find new images for pages",
+        "comments": "18",
+        "badge-text": "Images",
+        "image": "21.png",
+        "badge": "warning",
+        "due-date": "2 April",
+        "attachments": "10",
+        "members": [
+          "Dianna",
+          "Jordan",
+          "Vinnie",
+          "Lasa"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "board-done",
+    "title": "NEGOCIAÇÃO",
+    "item": [
+      {
+        "id": "done-1",
+        "title": "Forms & Tables section",
+        "comments": "4",
+        "badge-text": "App",
+        "badge": "secondary",
+        "due-date": "7 April",
+        "attachments": "1",
+        "members": [
+          "Kara",
+          "Nyssa",
+          "Darcey"
+        ]
+      },
+      {
+        "id": "done-2",
+        "title": "Completed Charts & Maps",
+        "comments": "21",
+        "badge-text": "Charts & Maps",
+        "badge": "primary",
+        "due-date": "7 April",
+        "attachments": "6",
+        "members": [
+          "Sarah"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "live",
+    "title": "DOCUMENTO",
+    "item": [
+      {
+        "id": "live",
+        "title": "Food delivery ios app",
+        "image": "21.png",
+        "comments": "8",
+        "badge-text": "IOS App",
+        "badge": "success",
+        "due-date": "8 March",
+        "attachments": "2",
+        "members": [
+          "Daisy",
+          "Darcey"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "live",
+    "title": "NEGOCIO FECHADO",
+    "item": [
+      {
+        "id": "live",
+        "title": "Food delivery ios app",
+        "image": "21.png",
+        "comments": "8",
+        "badge-text": "IOS App",
+        "badge": "success",
+        "due-date": "8 March",
+        "attachments": "2",
+        "members": [
+          "Daisy",
+          "Darcey"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "live",
+    "title": "NEGOCIO NÃO FECHADO",
+    "item": [
+      {
+        "id": "live",
+        "title": "Food delivery ios app",
+        "image": "21.png",
+        "comments": "8",
+        "badge-text": "IOS App",
+        "badge": "success",
+        "due-date": "8 March",
+        "attachments": "2",
+        "members": [
+          "Daisy",
+          "Darcey"
+        ]
+      }
+    ]
+  }
+]
