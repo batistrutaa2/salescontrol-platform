@@ -3,7 +3,7 @@
 @section('title', 'Kanban - Apps')
 
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/jkanban/jkanban.scss', 'resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/quill/typography.scss', 'resources/assets/vendor/libs/quill/katex.scss', 'resources/assets/vendor/libs/quill/editor.scss'])
+    @vite(['resources/assets/vendor/libs/jkanban/jkanban.scss', 'resources/assets/vendor/libs/toastr/toastr.scss', 'resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/quill/typography.scss', 'resources/assets/vendor/libs/quill/katex.scss', 'resources/assets/vendor/libs/quill/editor.scss'])
 @endsection
 
 @section('page-style')
@@ -11,7 +11,7 @@
 @endsection
 
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js', 'resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/jkanban/jkanban.js', 'resources/assets/vendor/libs/quill/katex.js', 'resources/assets/vendor/libs/quill/quill.js'])
+    @vite(['resources/assets/vendor/libs/toastr/toastr.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js', 'resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/jkanban/jkanban.js', 'resources/assets/vendor/libs/quill/katex.js', 'resources/assets/vendor/libs/quill/quill.js'])
 @endsection
 
 @section('page-script')
@@ -65,42 +65,63 @@
                         <form>
                             <div class="form-floating form-floating-outline mb-5">
                                 <input type="text" id="title" class="form-control" placeholder="Enter Title" />
-                                <label for="title">Title</label>
+                                <label for="title">Nome Completo</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="due-date" class="form-control" placeholder="Enter Due Date" />
-                                <label for="due-date">Due Date</label>
+                                <input type="text" id="data_nascimento" class="form-control" placeholder="11/10/1997" />
+                                <label for="title">Data de Nascimento</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <select class="select2 select2-label form-select" id="label">
-                                    <option data-color="bg-label-success" value="UX">UX</option>
-                                    <option data-color="bg-label-warning" value="Images">
-                                        Images
+                                <input type="text" id="cpf" class="form-control" placeholder="476.338.528.36" />
+                                <label for="title">CPF / CNPJ</label>
+                            </div>
+                            <div class="form-floating form-floating-outline mb-5">
+                                <input type="email" id="email" class="form-control"
+                                    placeholder="corretor@corretor.com.br" />
+                                <label for="title">E-mail</label>
+                            </div>
+                            <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" id="plano" class="form-control" placeholder="TOP NACIONAL" />
+                                <label for="title">Plano Atual</label>
+                            </div>
+                            <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" id="entidade" class="form-control" placeholder="SULAMERICA" />
+                                <label for="title">Entidade</label>
+                            </div>
+                            <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" id="telefone1" class="form-control" placeholder="(11) 99020-5484" />
+                                <label for="title">Telefone Principal</label>
+                            </div>
+                            <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" id="telefone2" class="form-control" placeholder="(11) 99020-5484" />
+                                <label for="title">Telefone Adicional</label>
+                            </div>
+                            <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" id="telefone3" class="form-control" placeholder="(11) 99020-5484" />
+                                <label for="title">Telefone Adicional</label>
+                            </div>
+                            <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" id="valor_plano_atual" class="form-control" placeholder="R$ 197,84" />
+                                <label for="title">Valor do plano atual</label>
+                            </div>
+
+                            <div class="form-floating form-floating-outline mb-5">
+                                <select class="select2  form-select" id="label">
+                                    <option data-color="bg-label-danger" value="QUENTE">
+                                        QUENTE
                                     </option>
-                                    <option data-color="bg-label-secondary" value="App">App</option>
-                                    <option data-color="bg-label-danger" value="Code Review">
-                                        Code Review
+                                    <option data-color="bg-label-warning" value="QUENTE">
+                                        MORNO
                                     </option>
-                                    <option data-color="bg-label-info" value="Info">
-                                        Info
-                                    </option Task <option data-color="bg-label-primary" value="Charts & Maps">
-                                    Charts & Maps
+                                    <option data-color="bg-label-info" value="FRIO">
+                                        FRIO
                                     </option>
                                 </select>
                                 <label for="label"> label</label>
                             </div>
-                            <div class="mb-5">
-                                <label class="form-label">Assigned</label>
-                                <div class="assigned d-flex flex-wrap"></div>
-                            </div>
-                            <div class="mb-5">
-                                <label class="form-label" for="attachments">Attachments</label>
-                                <div>
-                                    <input type="file" class="form-control" id="attachments" />
-                                </div>
-                            </div>
-                            <div class="mb-5">
-                                <label class="form-label">Comment</label>
+
+                            <div class="mb-8">
+                                <label class="form-label">OBSERVAÇÃO</label>
                                 <div class="comment-editor"></div>
                                 <div class="d-flex justify-content-end">
                                     <div class="comment-toolbar">
@@ -108,8 +129,6 @@
                                             <button class="ql-bold"></button>
                                             <button class="ql-italic"></button>
                                             <button class="ql-underline"></button>
-                                            <button class="ql-link"></button>
-                                            <button class="ql-image"></button>
                                         </span>
                                     </div>
                                 </div>
@@ -117,10 +136,10 @@
                             <div class="mb-5">
                                 <div class="d-flex flex-wrap">
                                     <button type="button" class="btn btn-primary me-4" data-bs-dismiss="offcanvas">
-                                        Update
+                                        Atualizar
                                     </button>
                                     <button type="button" class="btn btn-outline-danger" data-bs-dismiss="offcanvas">
-                                        Delete
+                                        Fechar
                                     </button>
                                 </div>
                             </div>
@@ -135,126 +154,6 @@
                             <div class="media-body ms-1">
                                 <p class="mb-0">Jordan Left the board.</p>
                                 <small class="text-muted">Today 11:00 AM</small>
-                            </div>
-                        </div>
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <img src="{{ asset('assets/img/avatars/6.png') }}" alt="Avatar"
-                                    class="rounded-circle" />
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Dianna mentioned <span class="text-primary">@bruce</span> in a comment.
-                                </p>
-                                <small class="text-muted">Today 10:20 AM</small>
-                            </div>
-                        </div>
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <img src="{{ asset('assets/img/avatars/2.png') }}" alt="Avatar"
-                                    class="rounded-circle" />
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Martian added mopd
-                                    Charts & Maps task to the done board.</p>
-                                <small class="text-muted">Today 10:00 AM</small>
-                            </div>
-                        </div>
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <img src="{{ asset('assets/img/avatars/1.png') }}" alt="Avatar"
-                                    class="rounded-circle" />
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Barry Commented on pp
-                                    review task.</p>
-                                <small class="text-muted">Today 8:32 AM</small>
-                            </div>
-                        </div>
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <span class="avatar-initial bg-label-dark rounded-circle">BW</span>
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Bruce was assigpd
-                                    task of code review.</p>
-                                <small class="text-muted">Today 8:30 PM</small>
-                            </div>
-                        </div>
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <span class="avatar-initial bg-label-danger rounded-circle">CK</span>
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Clark assigned taskpX
-                                    Research to <span class="text-primary">@martian</span></p>
-                                <small class="text-muted">Today 8:00 AM</small>
-                            </div>
-                        </div>
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <img src="{{ asset('assets/img/avatars/4.png') }}" alt="Avatar"
-                                    class="rounded-circle" />
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Ray Added mopd
-                                    <span class="text-heading">Forms & Tables</span> task
-                                    from in progress to done.
-                                </p>
-                                <small class="text-muted">Today 7:45 AM</small>
-                            </div>
-                        </div>
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <img src="{{ asset('assets/img/avatars/1.png') }}" alt="Avatar"
-                                    class="rounded-circle" />
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Barry Complete all pe
-                                    tasks assigned to him.</p>
-                                <small class="text-muted">Today 7:17 AM</small>
-                            </div>
-                        </div>
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <span class="avatar-initial bg-label-success rounded-circle">HJ</span>
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Jordan added taskpo
-                                    update new images.</p>
-                                <small class="text-muted">Today 7:00 AM</small>
-                            </div>
-                        </div>
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <img src="{{ asset('assets/img/avatars/6.png') }}" alt="Avatar"
-                                    class="rounded-circle" />
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Dianna moved tpk
-                                    <span class="fw-medium text-heading">FAQ UX</span> from in
-                                    progress to done board.
-                                </p>
-                                <small class="text-muted">Today 7:00 AM</small>
-                            </div>
-                        </div>
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <span class="avatar-initial bg-label-danger rounded-circle">CK</span>
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Clark added new bopd
-                                    with name <span class="fw-medium text-heading">Done</span></p>
-                                <small class="text-muted">Yesterday 3:00 PM</small>
-                            </div>
-                        </div>
-                        <div class="media d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <span class="avatar-initial bg-label-dark rounded-circle">BW</span>
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Bruce added new tpk
-                                    in progress board.</p>
-                                <small class="text-muted">Yesterday 12:00 PM</small>
                             </div>
                         </div>
                     </div>

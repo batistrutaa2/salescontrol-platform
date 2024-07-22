@@ -86,7 +86,7 @@ class Comercial extends Controller
       return response()->json(
         [
           'error' => false,
-          'message' => 'Status Atualizado com sucesso'
+          'message' => 'Status atualizado com sucesso.'
         ],
         200
       );
@@ -94,7 +94,7 @@ class Comercial extends Controller
       return response()->json(
         [
           'error' => true,
-          'message' => 'Erro ao Atualizar Status'
+          'message' => 'Erro ao atualizar status.'
         ],
         501
       );

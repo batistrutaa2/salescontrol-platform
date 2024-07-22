@@ -201,10 +201,10 @@
       })
         .then(response => response.json())
         .then(data => {
-          if (data.success) {
-            console.log('Atualização bem-sucedida');
+          if (!data.error) {
+            toastr.success(data.message, 'Concluido');
           } else {
-            console.error('Erro ao atualizar');
+            toastr.error(data.message, 'Erro');
           }
         })
         .catch(error => {
