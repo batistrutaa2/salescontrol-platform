@@ -78,11 +78,6 @@
     return (
       "<div class='dropdown'>" +
       "<i class='dropdown-toggle ri-more-2-line ri-20px cursor-pointer' id='board-dropdown' data-bs-toggle='dropdown' aria-haspopup='true' aria-expanded='false'></i>" +
-      "<div class='dropdown-menu dropdown-menu-end' aria-labelledby='board-dropdown'>" +
-      "<a class='dropdown-item delete-board' href='javascript:void(0)'> <i class='ri-delete-bin-7-line'></i> <span class='align-middle'>Delete</span></a>" +
-      "<a class='dropdown-item' href='javascript:void(0)'><i class='ri-edit-2-line'></i> <span class='align-middle'>Rename</span></a>" +
-      "<a class='dropdown-item' href='javascript:void(0)'><i class='ri-archive-line'></i> <span class='align-middle'>Archive</span></a>" +
-      '</div>' +
       '</div>'
     );
   }
@@ -92,9 +87,7 @@
       "<div class='dropdown kanban-tasks-item-dropdown'>" +
       "<i class='dropdown-toggle ri-more-2-line ri-20px text-muted' id='kanban-tasks-item-dropdown' data-bs-toggle='dropdown' aria-haspopup='true' aria-expanded='false'></i>" +
       "<div class='dropdown-menu dropdown-menu-end' aria-labelledby='kanban-tasks-item-dropdown'>" +
-      "<a class='dropdown-item' href='javascript:void(0)'>Copy task link</a>" +
-      "<a class='dropdown-item' href='javascript:void(0)'>Duplicate task</a>" +
-      "<a class='dropdown-item delete-task' href='javascript:void(0)'>Delete</a>" +
+      "<a class='dropdown-item' href='javascript:void(0)'>Abrir Cliente</a>" +
       '</div>' +
       '</div>'
     );
@@ -155,18 +148,11 @@
   function renderFooter(attachments, comments, assigned, members) {
     return (
       "<div class='d-flex justify-content-between align-items-center flex-wrap mt-2'>" +
-      "<div> <span class='align-middle me-4'><i class='ri-attachment-2 ri-20px me-1'></i>" +
-      "<span class='attachments'>" +
-      attachments +
-      '</span>' +
       "</span> <span class='align-middle'><i class='ri-wechat-line ri-20px me-1'></i>" +
       '<span> ' +
       comments +
       ' </span>' +
       '</span></div>' +
-      "<div class='avatar-group d-flex align-items-center assigned-avatar'>" +
-      renderAvatar(assigned, true, 'xs', null, members) +
-      '</div>' +
       '</div>'
     );
   }
@@ -214,100 +200,39 @@
 
     click: function (el) {
       let element = el;
-      let title = element.getAttribute('data-eid')
-          ? element.querySelector('.kanban-text').textContent
-          : element.textContent,
-        date = element.getAttribute('data-due-date'),
-        dateObj = new Date(),
-        year = dateObj.getFullYear(),
-        dateToUse = date
-          ? date + ', ' + year
-          : dateObj.getDate() + ' ' + dateObj.toLocaleString('en', { month: 'long' }) + ', ' + year,
-        label = element.getAttribute('data-badge-text'),
-        avatars = element.getAttribute('data-assigned');
-
-      // Show kanban offcanvas
-      kanbanOffcanvas.show();
+      let nomeCliente = element.getAttribute('data-nome_cliente');
+      let datanascimento = element.getAttribute('data-data_nascimento');
+      let cpf = element.getAttribute('data-cpf');
+      let plano = element.getAttribute('data-plano');
+      let categoria = element.getAttribute('data-categoria');
+      let entidade = element.getAttribute('data-entidade');
+      let telefone1 = element.getAttribute('data-telefone1');
+      let telefone2 = element.getAttribute('data-telefone2');
+      let telefone3 = element.getAttribute('data-telefone3');
+      let email = element.getAttribute('data-email');
+      let valorPlano = element.getAttribute('data-valor');
 
       // To get data on sidebar
-      kanbanSidebar.querySelector('#title').value = title;
-      kanbanSidebar.querySelector('#due-date').nextSibling.value = dateToUse;
+      kanbanSidebar.querySelector('#title').value = nomeCliente;
+      kanbanSidebar.querySelector('#data_nascimento').value = datanascimento;
+      kanbanSidebar.querySelector('#cpf').value = cpf;
+      kanbanSidebar.querySelector('#email').value = email;
+      kanbanSidebar.querySelector('#plano').value = plano;
+      kanbanSidebar.querySelector('#entidade').value = entidade;
+      kanbanSidebar.querySelector('#cartergoria').value = categoria;
+      kanbanSidebar.querySelector('#telefone1').value = telefone1;
+      kanbanSidebar.querySelector('#telefone2').value = telefone2;
+      kanbanSidebar.querySelector('#telefone3').value = telefone3;
+      kanbanSidebar.querySelector('#telefone3').value = telefone3;
+      kanbanSidebar.querySelector('#valor_plano_atual').value = valorPlano;
 
       // ! Using jQuery method to get sidebar due to select2 dependency
       $('.kanban-update-item-sidebar').find(select2).val(label).trigger('change');
 
-      // Remove & Update assigned
-      kanbanSidebar.querySelector('.assigned').innerHTML = '';
-      kanbanSidebar
-        .querySelector('.assigned')
-        .insertAdjacentHTML(
-          'afterbegin',
-          renderAvatar(avatars, false, 'sm', '2', el.getAttribute('data-members')) +
-            "<div class='avatar avatar-sm ms-2'>" +
-            "<span class='avatar-initial rounded-circle bg-label-secondary'><i class='ri-add-line'></i></span>" +
-            '</div>'
-        );
+      kanbanOffcanvas.show();
     },
 
-    buttonClick: function (el, boardId) {
-      const addNew = document.createElement('form');
-      addNew.setAttribute('class', 'new-item-form');
-      addNew.innerHTML =
-        '<div class="mb-4">' +
-        '<textarea class="form-control add-new-item" rows="2" placeholder="Add Content" autofocus required></textarea>' +
-        '</div>' +
-        '<div class="mb-4">' +
-        '<button type="submit" class="btn btn-primary btn-sm me-4">Add</button>' +
-        '<button type="button" class="btn btn-outline-secondary btn-sm cancel-add-item">Cancel</button>' +
-        '</div>';
-      kanban.addForm(boardId, addNew);
-
-      addNew.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const currentBoard = [].slice.call(
-          document.querySelectorAll('.kanban-board[data-id=' + boardId + '] .kanban-item')
-        );
-        kanban.addElement(boardId, {
-          title: "<span class='kanban-text'>" + e.target[0].value + '</span>',
-          id: boardId + '-' + currentBoard.length + 1
-        });
-
-        // add dropdown in new boards
-        const kanbanText = [].slice.call(
-          document.querySelectorAll('.kanban-board[data-id=' + boardId + '] .kanban-text')
-        );
-        kanbanText.forEach(function (e) {
-          e.insertAdjacentHTML('beforebegin', renderDropdown());
-        });
-
-        // prevent sidebar to open onclick dropdown buttons of new tasks
-        const newTaskDropdown = [].slice.call(document.querySelectorAll('.kanban-item .kanban-tasks-item-dropdown'));
-        if (newTaskDropdown) {
-          newTaskDropdown.forEach(function (e) {
-            e.addEventListener('click', function (el) {
-              el.stopPropagation();
-            });
-          });
-        }
-
-        // delete tasks for new boards
-        const deleteTask = [].slice.call(
-          document.querySelectorAll('.kanban-board[data-id=' + boardId + '] .delete-task')
-        );
-        deleteTask.forEach(function (e) {
-          e.addEventListener('click', function () {
-            const id = this.closest('.kanban-item').getAttribute('data-eid');
-            kanban.removeElement(id);
-          });
-        });
-        addNew.remove();
-      });
-
-      // Remove form on clicking cancel button
-      addNew.querySelector('.cancel-add-item').addEventListener('click', function (e) {
-        addNew.remove();
-      });
-    }
+    buttonClick: function (el, boardId) {}
   });
 
   // Kanban Wrapper scrollbar

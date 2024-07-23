@@ -89,6 +89,10 @@
                                 <label for="title">Entidade</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" id="cartergoria" class="form-control" placeholder="MEDIA" />
+                                <label for="title">Cartegoria</label>
+                            </div>
+                            <div class="form-floating form-floating-outline mb-5">
                                 <input type="text" id="telefone1" class="form-control" placeholder="(11) 99020-5484" />
                                 <label for="title">Telefone Principal</label>
                             </div>
@@ -101,7 +105,8 @@
                                 <label for="title">Telefone Adicional</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="valor_plano_atual" class="form-control" placeholder="R$ 197,84" />
+                                <input type="text" id="valor_plano_atual" class="form-control"
+                                    placeholder="R$ 197,84" />
                                 <label for="title">Valor do plano atual</label>
                             </div>
 
@@ -121,7 +126,7 @@
                             </div>
 
                             <div class="mb-8">
-                                <label class="form-label">OBSERVAÇÃO</label>
+                                <label class="form-label">ANOTAÇÕES</label>
                                 <div class="comment-editor"></div>
                                 <div class="d-flex justify-content-end">
                                     <div class="comment-toolbar">

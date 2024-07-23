@@ -25,6 +25,17 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'tabulacoes.descricao as title',
         'contatos.id as idContato',
         'contatos.nome_cliente',
+        'contatos.data_nascimento',
+        'contatos.cpf',
+        'contatos.plano',
+        'contatos.categoria',
+        'contatos.entidade',
+        'contatos.telefone1',
+        'contatos.telefone2',
+        'contatos.telefone3',
+        'contatos.email',
+        'contatos.idades',
+        'contatos.valor_plano_atual',
         DB::raw('COUNT(comentarios.id) as qt_comentarios')
       )
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
@@ -41,6 +52,17 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'tabulacoes.descricao as title',
         'contatos.id as idContato',
         'contatos.nome_cliente',
+        'contatos.data_nascimento',
+        'contatos.cpf',
+        'contatos.plano',
+        'contatos.categoria',
+        'contatos.entidade',
+        'contatos.telefone1',
+        'contatos.telefone2',
+        'contatos.telefone3',
+        'contatos.email',
+        'contatos.idades',
+        'contatos.valor_plano_atual',
         DB::raw('COUNT(comentarios.id) as qt_comentarios')
       )
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
@@ -55,6 +77,17 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'tabulacoes.descricao as title',
         'contatos.id as idContato',
         'contatos.nome_cliente',
+        'contatos.data_nascimento',
+        'contatos.cpf',
+        'contatos.plano',
+        'contatos.categoria',
+        'contatos.entidade',
+        'contatos.telefone1',
+        'contatos.telefone2',
+        'contatos.telefone3',
+        'contatos.email',
+        'contatos.idades',
+        'contatos.valor_plano_atual',
         DB::raw('COUNT(comentarios.id) as qt_comentarios')
       )
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
