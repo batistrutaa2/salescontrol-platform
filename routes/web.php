@@ -46,4 +46,5 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/kanban', [Comercial::class, 'index'])->name('comercial.kanban');
   Route::get('/comercial/getClientComercial', [Comercial::class, 'getClientComercial'])->name('comercial.getClientComercial');
   Route::post('/changeStatusLead/kanban/changeStatusLead', [Comercial::class, 'changeStatusLead'])->name('comercial.changeStatusLead');
+  Route::post('/comercial/saveNoteMailing', [Comercial::class, 'saveNoteMailing'])->name('comercial.saveNoteMailing');
 });

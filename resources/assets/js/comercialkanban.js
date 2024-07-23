@@ -68,10 +68,39 @@
       modules: {
         toolbar: '.comment-toolbar'
       },
-      placeholder: 'Write a Comment... ',
+      placeholder: 'Escreva sua anotação aqui. ',
       theme: 'snow'
     });
   }
+
+  document.getElementById('form-client').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const commentEditor = document.querySelector('.comment-editor');
+    let quillContent = '';
+    if (commentEditor) {
+      const quill = Quill.find(commentEditor); // Obtém a instância do Quill associada ao editor
+      quillContent = quill.root.innerHTML;
+    }
+    // Adiciona o conteúdo do Quill ao FormData
+    const formData = new FormData(this);
+    formData.append('comments', quillContent);
+
+    const data = {};
+    formData.forEach((value, key) => (data[key] = value));
+
+    console.log(data);
+
+    // Envia os dados com fetch (se necessário)
+    // fetch(this.action, {
+    //   method: this.method,
+    //   body: formData
+    // })
+    //   .then(response => response.json())
+    //   .then(result => {
+    //     console.log(result);
+    //   });
+  });
 
   // Render board dropdown
   function renderBoardDropdown() {
@@ -164,6 +193,7 @@
 
     click: function (el) {
       let element = el;
+      let idMailing = element.getAttribute('data-eid');
       let nomeCliente = element.getAttribute('data-nome_cliente');
       let datanascimento = element.getAttribute('data-data_nascimento');
       let cpf = element.getAttribute('data-cpf');
@@ -177,7 +207,7 @@
       let valorPlano = element.getAttribute('data-valor');
       let temperatura = element.getAttribute('data-temperatura');
 
-      // To get data on sidebar
+      kanbanSidebar.querySelector('#id_mailing').value = idMailing;
       kanbanSidebar.querySelector('#title').value = nomeCliente;
       kanbanSidebar.querySelector('#data_nascimento').value = datanascimento;
       kanbanSidebar.querySelector('#cpf').value = cpf;
@@ -191,7 +221,6 @@
       kanbanSidebar.querySelector('#telefone3').value = telefone3;
       kanbanSidebar.querySelector('#valor_plano_atual').value = valorPlano;
 
-      // ! Using jQuery method to get sidebar due to select2 dependency
       $('.kanban-update-item-sidebar').find(select2).val(temperatura).trigger('change');
 
       kanbanOffcanvas.show();

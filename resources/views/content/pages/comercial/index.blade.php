@@ -62,8 +62,9 @@
                 <div class="tab-content px-0 pb-0 pt-4">
                     <!-- Update item/tasks -->
                     <div class="tab-pane fade show active" id="tab-update" role="tabpanel">
-                        <form>
+                        <form method="POST" id="form-client" action="">
                             <div class="form-floating form-floating-outline mb-5">
+                                <input type="hidden" value="" id="id_mailing" name="id_mailing">
                                 <input type="text" id="title" class="form-control" placeholder="Enter Title"
                                     disabled />
                                 <label for="title">Nome Completo</label>
@@ -98,24 +99,27 @@
                                 <label for="title">Cartegoria</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone1" class="form-control" placeholder="(11) 99020-5484" />
+                                <input type="text" id="telefone1" class="form-control" placeholder="(11) 99020-5484"
+                                    name="telefone1" />
                                 <label for="title">Telefone Principal</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone2" class="form-control" placeholder="(11) 99020-5484" />
+                                <input type="text" id="telefone2" class="form-control" placeholder="(11) 99020-5484"
+                                    name="telefone2" />
                                 <label for="title">Telefone Adicional</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone3" class="form-control" placeholder="(11) 99020-5484" />
+                                <input type="text" id="telefone3" class="form-control" placeholder="(11) 99020-5484"
+                                    name="telefone3" />
                                 <label for="title">Telefone Adicional</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="valor_plano_atual" class="form-control" placeholder="R$ 197,84"
-                                    disabled />
+                                <input type="text" id="valor_plano_atual" class="form-control"
+                                    placeholder="R$ 197,84" disabled />
                                 <label for="title">Valor do plano atual</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <select class="select2  form-select" id="label">
+                                <select class="select2  form-select" id="label" name="temperatura">
                                     <option data-color="bg-label-danger" value="QUENTE">
                                         QUENTE
                                     </option>
@@ -144,7 +148,7 @@
                             </div>
                             <div class="mb-5">
                                 <div class="d-flex flex-wrap">
-                                    <button type="button" class="btn btn-primary me-4" data-bs-dismiss="offcanvas">
+                                    <button type="submit" class="btn btn-primary me-4 " data-bs-dismiss="offcanvas">
                                         Atualizar
                                     </button>
                                     <button type="button" class="btn btn-outline-danger" data-bs-dismiss="offcanvas">
