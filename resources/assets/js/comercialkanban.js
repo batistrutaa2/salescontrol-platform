@@ -89,17 +89,14 @@
     const data = {};
     formData.forEach((value, key) => (data[key] = value));
 
-    console.log(data);
-
-    // Envia os dados com fetch (se necessário)
-    // fetch(this.action, {
-    //   method: this.method,
-    //   body: formData
-    // })
-    //   .then(response => response.json())
-    //   .then(result => {
-    //     console.log(result);
-    //   });
+    fetch(this.action, {
+      method: this.method,
+      body: formData
+    })
+      .then(response => response.json())
+      .then(result => {
+        console.log(result);
+      });
   });
 
   // Render board dropdown

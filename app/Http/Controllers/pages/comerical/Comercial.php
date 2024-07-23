@@ -5,8 +5,11 @@ namespace App\Http\Controllers\pages\comerical;
 use App\Helpers\Helpers;
 use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
+use App\Repositories\Eloquent\ContatosRepository;
+use App\UseCases\ComercialUseCase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -15,13 +18,19 @@ class Comercial extends Controller
 {
   protected ContatosCorretoresRepository  $repositoryContatosCorretoresRepository;
   protected TabulacoesRepositoryInterface  $tabulacoesRepository;
+  protected ContatosRepository  $contatosRepository;
+  protected ComercialUseCase  $comercialUseCase;
 
   public function __construct(
     ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
-    TabulacoesRepositoryInterface $TabulacoesRepositoryInterface
+    TabulacoesRepositoryInterface $TabulacoesRepositoryInterface,
+    ContatosRepositoryInterface $contatosRepositoryInterface
   ) {
     $this->repositoryContatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
     $this->tabulacoesRepository = $TabulacoesRepositoryInterface;
+    $this->contatosRepository = $contatosRepositoryInterface;
+
+    $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface);
   }
 
   public function index()
@@ -110,5 +119,19 @@ class Comercial extends Controller
         501
       );
     }
+  }
+
+
+  public function saveNoteMailing(Request $request)
+  {
+    $validator = Validator::make($request->all(), [
+      'id_mailing' => 'required|integer'
+    ]);
+
+    if ($validator->fails()) {
+      return response()->json(['error' => true, 'message' => 'Erro ao efetuar salvar informações. contate nosso suporte.'], 501);
+    }
+
+    return $this->comercialUseCase->saveDataInfo($request->id_mailing, $request->telefone1, $request->telefone2, $request->telefone3, $request->comments);
   }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use Illuminate\Support\ServiceProvider;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\Vite;
 use App\Repositories\Contracts\EmpresaRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Eloquent\ComentariosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\EmpresaRepository;
@@ -27,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     $this->app->bind(ContatosRepositoryInterface::class, ContatosRepository::class);
     $this->app->bind(ContatosCorretoresRepositoryInterface::class, ContatosCorretoresRepository::class);
     $this->app->bind(TabulacoesRepositoryInterface::class, TabulacoesRepository::class);
+    $this->app->bind(ComentariosRepositoryInterface::class, ComentariosRepository::class);
   }
 
   /**

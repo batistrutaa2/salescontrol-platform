@@ -62,7 +62,8 @@
                 <div class="tab-content px-0 pb-0 pt-4">
                     <!-- Update item/tasks -->
                     <div class="tab-pane fade show active" id="tab-update" role="tabpanel">
-                        <form method="POST" id="form-client" action="">
+                        <form method="POST" id="form-client" action="{{ route('comercial.saveNoteMailing') }}">
+                            @csrf
                             <div class="form-floating form-floating-outline mb-5">
                                 <input type="hidden" value="" id="id_mailing" name="id_mailing">
                                 <input type="text" id="title" class="form-control" placeholder="Enter Title"
