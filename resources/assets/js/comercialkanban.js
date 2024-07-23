@@ -76,15 +76,22 @@
   document.getElementById('form-client').addEventListener('submit', function (event) {
     event.preventDefault();
 
+    let finalContent = null;
     const commentEditor = document.querySelector('.comment-editor');
-    let quillContent = '';
+
     if (commentEditor) {
-      const quill = Quill.find(commentEditor); // Obtém a instância do Quill associada ao editor
-      quillContent = quill.root.innerHTML;
+      const quill = Quill.find(commentEditor);
+      const quillContent = quill.root.innerHTML;
+      const tempElement = document.createElement('div');
+      tempElement.innerHTML = quillContent;
+      const textContent = tempElement.textContent || tempElement.innerText || '';
+      const trimmedText = textContent.trim();
+      const isEmpty = trimmedText === '';
+      finalContent = isEmpty ? null : quillContent;
     }
-    // Adiciona o conteúdo do Quill ao FormData
+
     const formData = new FormData(this);
-    formData.append('comments', quillContent);
+    formData.append('comments', finalContent);
 
     const data = {};
     formData.forEach((value, key) => (data[key] = value));
@@ -94,8 +101,16 @@
       body: formData
     })
       .then(response => response.json())
-      .then(result => {
-        console.log(result);
+      .then(async result => {
+        if (!result.error) {
+          toastr.success(result.message, 'Concluido');
+        } else {
+          toastr.error(result.message, 'Erro');
+        }
+      })
+      .catch(error => {
+        toastr.error(error, 'Erro');
+        console.error('Error:', error);
       });
   });
 
@@ -146,6 +161,7 @@
       '</div>'
     );
   }
+
   // Init kanban
   const kanban = new jKanban({
     element: '.kanban-wrapper',
@@ -225,6 +241,31 @@
 
     buttonClick: function (el, boardId) {}
   });
+
+  function clearKanban() {
+    // Remove todos os quadros e itens
+    kanban.options.boards.forEach(board => {
+      // Remove todos os itens do quadro
+      board.item.forEach(item => {
+        kanban.removeElement(item.id); // Remove cada item
+      });
+
+      // Remove o quadro
+      kanban.removeBoard(board.id); // Remove o quadro
+    });
+  }
+
+  function redrawKanban(newBoards) {
+    kanban.addBoards(newBoards);
+
+    newBoards.forEach(board => {
+      if (board.items) {
+        board.items.forEach(item => {
+          kanban.addElement(board.id, item);
+        });
+      }
+    });
+  }
 
   // Kanban Wrapper scrollbar
   if (kanbanWrapper) {

@@ -117,7 +117,20 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         return false;
       }
     } catch (\Throwable $th) {
-      dd($th->getMessage());
+      return false;
+    }
+  }
+
+
+  public function updateLeadTemperature($idMailing, $temperatura)
+  {
+    try {
+      $contactRelationship = $this->model->where('contato_id', $idMailing)->first();
+      $contactRelationship->temperatura = $temperatura;
+      return $contactRelationship->save();
+    } catch (\Throwable $th) {
+      dd("caiu aq");
+      return false;
     }
   }
 }

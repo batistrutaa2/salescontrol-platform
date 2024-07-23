@@ -4,11 +4,14 @@ namespace App\Http\Controllers\pages\comerical;
 
 use App\Helpers\Helpers;
 use App\Http\Controllers\Controller;
+use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Eloquent\ComentariosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\ContatosRepository;
+use App\Repositories\Eloquent\TabulacoesRepository;
 use App\UseCases\ComercialUseCase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,20 +20,28 @@ use Illuminate\Support\Facades\Validator;
 class Comercial extends Controller
 {
   protected ContatosCorretoresRepository  $repositoryContatosCorretoresRepository;
-  protected TabulacoesRepositoryInterface  $tabulacoesRepository;
+  protected TabulacoesRepository  $tabulacoesRepository;
   protected ContatosRepository  $contatosRepository;
+  protected ComentariosRepository  $comentariosRepository;
+
   protected ComercialUseCase  $comercialUseCase;
+
+
 
   public function __construct(
     ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
     TabulacoesRepositoryInterface $TabulacoesRepositoryInterface,
-    ContatosRepositoryInterface $contatosRepositoryInterface
+    ContatosRepositoryInterface $contatosRepositoryInterface,
+    ComentariosRepositoryInterface $comentariosRepositoryInterface
   ) {
+    //Repositories
     $this->repositoryContatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
     $this->tabulacoesRepository = $TabulacoesRepositoryInterface;
     $this->contatosRepository = $contatosRepositoryInterface;
+    $this->comentariosRepository = $comentariosRepositoryInterface;
 
-    $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface);
+    //UseCases
+    $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface);
   }
 
   public function index()
@@ -132,6 +143,13 @@ class Comercial extends Controller
       return response()->json(['error' => true, 'message' => 'Erro ao efetuar salvar informações. contate nosso suporte.'], 501);
     }
 
-    return $this->comercialUseCase->saveDataInfo($request->id_mailing, $request->telefone1, $request->telefone2, $request->telefone3, $request->comments);
+    return $this->comercialUseCase->saveDataInfo(
+      $request->id_mailing,
+      $request->telefone1,
+      $request->telefone2,
+      $request->telefone3,
+      $request->comments,
+      $request->temperatura
+    );
   }
 }

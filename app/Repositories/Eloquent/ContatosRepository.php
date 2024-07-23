@@ -28,10 +28,12 @@ class ContatosRepository implements ContatosRepositoryInterface
 
   public function all()
   {
+    return $this->model->all();
   }
 
   public function find($id)
   {
+    return $this->model->where('id', $id)->first();
   }
 
   public function searchForCpfsFound(array $cpfs)
@@ -50,5 +52,21 @@ class ContatosRepository implements ContatosRepositoryInterface
     });
 
     return $result->toArray();
+  }
+
+
+
+  public function updateContact($idMailing, $telefone1, $telefone2, $telefone3)
+  {
+    try {
+      $contact = $this->find($idMailing);
+      $contact->telefone1 = $telefone1;
+      $contact->telefone2 = $telefone2;
+      $contact->telefone3 = $telefone3;
+      return $contact->save();
+    } catch (\Throwable $th) {
+      dd("caiu aq");
+      return false;
+    }
   }
 }
