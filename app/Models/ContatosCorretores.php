@@ -20,6 +20,7 @@ class ContatosCorretores extends Model
     'contato_id',
     'user_id',
     'tabulacao_id',
+    'temperatura',
     'created_at',
     'updated_at'
   ];

@@ -52,8 +52,8 @@ class Comercial extends Controller
           'id' =>  $contact->idContato,
           'title' => $contact->nome_cliente,
           'comments' => (string) $contact->qt_comentarios,
-          'badge-text' => 'QUENTE',
-          'badge' => 'danger',
+          'badge-text' => $contact->temperatura,
+          'badge' => $this->getColorText($contact->temperatura),
           'attachments' => '',
           'nome_cliente' =>  $contact->nome_cliente,
           'data_nascimento' =>  $contact->data_nascimento,
@@ -65,6 +65,7 @@ class Comercial extends Controller
           'telefone2' =>  $contact->telefone2,
           'telefone3' =>  $contact->telefone3,
           'email' =>  $contact->email,
+          'temperatura' => $contact->temperatura,
           'valor' =>  $contact->valor_plano_atual,
         ];
       })->values()->toArray();

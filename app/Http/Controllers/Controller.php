@@ -22,4 +22,16 @@ abstract class Controller
       ]);
     }
   }
+
+  protected function getColorText($status)
+  {
+
+    if ($status === "FRIO") {
+      return 'info';
+    } elseif($status === "MORNO") {
+      return 'warning';
+    } else {
+      return 'danger';
+    }
+  }
 }

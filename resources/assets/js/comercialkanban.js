@@ -108,42 +108,6 @@
     );
   }
 
-  // Render avatar
-  function renderAvatar(images, pullUp, size, margin, members) {
-    var $transition = pullUp ? ' pull-up' : '',
-      $size = size ? 'avatar-' + size + '' : '',
-      member = members == undefined ? ' ' : members.split(',');
-
-    return images == undefined
-      ? ' '
-      : images
-          .split(',')
-          .map(function (img, index, arr) {
-            var $margin = margin && index !== arr.length - 1 ? ' me-' + margin + '' : '';
-
-            return (
-              "<div class='avatar " +
-              $size +
-              $margin +
-              "'" +
-              "data-bs-toggle='tooltip' data-bs-placement='top'" +
-              "title='" +
-              member[index] +
-              "'" +
-              '>' +
-              "<img src='" +
-              assetsPath +
-              'img/avatars/' +
-              img +
-              "' alt='Avatar' class='rounded-circle " +
-              $transition +
-              "'>" +
-              '</div>'
-            );
-          })
-          .join(' ');
-  }
-
   // Render footer
   function renderFooter(attachments, comments, assigned, members) {
     return (
@@ -211,6 +175,7 @@
       let telefone3 = element.getAttribute('data-telefone3');
       let email = element.getAttribute('data-email');
       let valorPlano = element.getAttribute('data-valor');
+      let temperatura = element.getAttribute('data-temperatura');
 
       // To get data on sidebar
       kanbanSidebar.querySelector('#title').value = nomeCliente;
@@ -227,7 +192,7 @@
       kanbanSidebar.querySelector('#valor_plano_atual').value = valorPlano;
 
       // ! Using jQuery method to get sidebar due to select2 dependency
-      $('.kanban-update-item-sidebar').find(select2).val(label).trigger('change');
+      $('.kanban-update-item-sidebar').find(select2).val(temperatura).trigger('change');
 
       kanbanOffcanvas.show();
     },

@@ -64,32 +64,37 @@
                     <div class="tab-pane fade show active" id="tab-update" role="tabpanel">
                         <form>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="title" class="form-control" placeholder="Enter Title" />
+                                <input type="text" id="title" class="form-control" placeholder="Enter Title"
+                                    disabled />
                                 <label for="title">Nome Completo</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="data_nascimento" class="form-control" placeholder="11/10/1997" />
+                                <input type="text" id="data_nascimento" class="form-control" placeholder="11/10/1997"
+                                    disabled />
                                 <label for="title">Data de Nascimento</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="cpf" class="form-control" placeholder="476.338.528.36" />
+                                <input type="text" id="cpf" class="form-control" placeholder="476.338.528.36"
+                                    disabled />
                                 <label for="title">CPF / CNPJ</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
                                 <input type="email" id="email" class="form-control"
-                                    placeholder="corretor@corretor.com.br" />
+                                    placeholder="corretor@corretor.com.br" disabled />
                                 <label for="title">E-mail</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="plano" class="form-control" placeholder="TOP NACIONAL" />
+                                <input type="text" id="plano" class="form-control" placeholder="TOP NACIONAL"
+                                    disabled />
                                 <label for="title">Plano Atual</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="entidade" class="form-control" placeholder="SULAMERICA" />
+                                <input type="text" id="entidade" class="form-control" placeholder="SULAMERICA"
+                                    disabled />
                                 <label for="title">Entidade</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="cartergoria" class="form-control" placeholder="MEDIA" />
+                                <input type="text" id="cartergoria" class="form-control" placeholder="MEDIA" disabled />
                                 <label for="title">Cartegoria</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
@@ -105,17 +110,16 @@
                                 <label for="title">Telefone Adicional</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="valor_plano_atual" class="form-control"
-                                    placeholder="R$ 197,84" />
+                                <input type="text" id="valor_plano_atual" class="form-control" placeholder="R$ 197,84"
+                                    disabled />
                                 <label for="title">Valor do plano atual</label>
                             </div>
-
                             <div class="form-floating form-floating-outline mb-5">
                                 <select class="select2  form-select" id="label">
                                     <option data-color="bg-label-danger" value="QUENTE">
                                         QUENTE
                                     </option>
-                                    <option data-color="bg-label-warning" value="QUENTE">
+                                    <option data-color="bg-label-warning" value="MORNO">
                                         MORNO
                                     </option>
                                     <option data-color="bg-label-info" value="FRIO">
