@@ -214,7 +214,7 @@
       }
 
       let comentariosArray = await query.json();
-      renderNotes(comentariosArray);
+
       let nomeCliente = element.getAttribute('data-nome_cliente');
       let datanascimento = element.getAttribute('data-data_nascimento');
       let cpf = element.getAttribute('data-cpf');
@@ -243,24 +243,31 @@
       kanbanSidebar.querySelector('#valor_plano_atual').value = valorPlano;
 
       $('.kanban-update-item-sidebar').find(select2).val(temperatura).trigger('change');
-
+      renderNotes(comentariosArray, temperatura);
       kanbanOffcanvas.show();
     },
 
     buttonClick: function (el, boardId) {}
   });
 
-  function renderNotes(notes) {
+  function renderNotes(notes, temperatura) {
     const container = document.getElementById('notes-container');
     container.innerHTML = '';
-
+    console.log(temperatura);
     notes.forEach(note => {
       const noteElement = document.createElement('div');
       noteElement.className = 'media mb-4 d-flex align-items-center';
 
       const avatar = document.createElement('div');
       avatar.className = 'avatar me-3 flex-shrink-0';
-      avatar.innerHTML = '<span class="avatar-initial bg-label-success rounded-circle">HJ</span>';
+
+      if (temperatura === 'FRIO') {
+        avatar.innerHTML = '<span class="avatar-initial bg-label-info rounded-circle">obs</span>';
+      } else if (temperatura === 'QUENTE') {
+        avatar.innerHTML = '<span class="avatar-initial bg-label-danger rounded-circle">obs</span>';
+      } else {
+        avatar.innerHTML = '<span class="avatar-initial bg-label-warning rounded-circle">obs</span>';
+      }
 
       const mediaBody = document.createElement('div');
       mediaBody.className = 'media-body ms-1';
