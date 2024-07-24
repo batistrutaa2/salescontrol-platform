@@ -129,7 +129,6 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       $contactRelationship->temperatura = $temperatura;
       return $contactRelationship->save();
     } catch (\Throwable $th) {
-      dd("caiu aq");
       return false;
     }
   }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\pages\comerical;
 
+use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
@@ -151,5 +152,12 @@ class Comercial extends Controller
       $request->comments,
       $request->temperatura
     );
+  }
+
+
+  public function getCommentsLead($id_mailing)
+  {
+    $comments = $this->comentariosRepository->getCommentsMailing($id_mailing);
+    return response()->json($comments);
   }
 }

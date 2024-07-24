@@ -104,6 +104,7 @@
       .then(async result => {
         if (!result.error) {
           toastr.success(result.message, 'Concluido');
+          location.reload();
         } else {
           toastr.error(result.message, 'Erro');
         }
@@ -204,9 +205,16 @@
         });
     },
 
-    click: function (el) {
+    click: async function (el) {
       let element = el;
       let idMailing = element.getAttribute('data-eid');
+      const query = await fetch(`/comercial/getCommentsLead/${idMailing}`);
+      if (!query.ok) {
+        console.error('error', query);
+      }
+
+      let comentariosArray = await query.json();
+      renderNotes(comentariosArray);
       let nomeCliente = element.getAttribute('data-nome_cliente');
       let datanascimento = element.getAttribute('data-data_nascimento');
       let cpf = element.getAttribute('data-cpf');
@@ -242,28 +250,29 @@
     buttonClick: function (el, boardId) {}
   });
 
-  function clearKanban() {
-    // Remove todos os quadros e itens
-    kanban.options.boards.forEach(board => {
-      // Remove todos os itens do quadro
-      board.item.forEach(item => {
-        kanban.removeElement(item.id); // Remove cada item
-      });
+  function renderNotes(notes) {
+    const container = document.getElementById('notes-container');
+    container.innerHTML = '';
 
-      // Remove o quadro
-      kanban.removeBoard(board.id); // Remove o quadro
-    });
-  }
+    notes.forEach(note => {
+      const noteElement = document.createElement('div');
+      noteElement.className = 'media mb-4 d-flex align-items-center';
 
-  function redrawKanban(newBoards) {
-    kanban.addBoards(newBoards);
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar me-3 flex-shrink-0';
+      avatar.innerHTML = '<span class="avatar-initial bg-label-success rounded-circle">HJ</span>';
 
-    newBoards.forEach(board => {
-      if (board.items) {
-        board.items.forEach(item => {
-          kanban.addElement(board.id, item);
-        });
-      }
+      const mediaBody = document.createElement('div');
+      mediaBody.className = 'media-body ms-1';
+      mediaBody.innerHTML = `
+            <p class="mb-0">${note.anotacao}</p>
+            <small class="text-muted">${note.created_at}</small>
+        `;
+
+      noteElement.appendChild(avatar);
+      noteElement.appendChild(mediaBody);
+
+      container.appendChild(noteElement);
     });
   }
 

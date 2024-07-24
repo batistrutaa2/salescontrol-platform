@@ -29,4 +29,9 @@ class ComentariosRepository implements ComentariosRepositoryInterface
       return false;
     }
   }
+
+  public function getCommentsMailing($contato_id)
+  {
+    return $this->model->where('contato_id', $contato_id)->orderBy('created_at', 'desc')->get();
+  }
 }

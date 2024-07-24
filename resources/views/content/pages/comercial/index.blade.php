@@ -161,14 +161,8 @@
                     </div>
                     <!-- Activities -->
                     <div class="tab-pane fade text-heading" id="tab-activity" role="tabpanel">
-                        <div class="media mb-4 d-flex align-items-center">
-                            <div class="avatar me-3 flex-shrink-0">
-                                <span class="avatar-initial bg-label-success rounded-circle">HJ</span>
-                            </div>
-                            <div class="media-body ms-1">
-                                <p class="mb-0">Jordan Left the board.</p>
-                                <small class="text-muted">Today 11:00 AM</small>
-                            </div>
+                        <div id="notes-container">
+                            <!-- As anotações serão inseridas aqui -->
                         </div>
                     </div>
                 </div>
