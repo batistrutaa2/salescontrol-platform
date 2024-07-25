@@ -48,4 +48,5 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/changeStatusLead/kanban/changeStatusLead', [Comercial::class, 'changeStatusLead'])->name('comercial.changeStatusLead');
   Route::post('/comercial/saveNoteMailing', [Comercial::class, 'saveNoteMailing'])->name('comercial.saveNoteMailing');
   Route::get('/comercial/getCommentsLead/{id_mailing}', [Comercial::class, 'getCommentsLead'])->name('comercial.getCommentsLead');
+  Route::get('/comercial/openClient/{id_mailing}', [Comercial::class, 'openClient'])->name('comercial.openClient');
 });

@@ -124,18 +124,20 @@
     );
   }
   // Render item dropdown
-  function renderDropdown() {
+  function renderDropdown(idMailing) {
     return (
       "<div class='dropdown kanban-tasks-item-dropdown'>" +
       "<i class='dropdown-toggle ri-more-2-line ri-20px text-muted' id='kanban-tasks-item-dropdown' data-bs-toggle='dropdown' aria-haspopup='true' aria-expanded='false'></i>" +
       "<div class='dropdown-menu dropdown-menu-end' aria-labelledby='kanban-tasks-item-dropdown'>" +
-      "<a class='dropdown-item' href='javascript:void(0)'>Abrir Cliente</a>" +
+      "<a class='dropdown-item' href='/comercial/openClient/" +
+      idMailing +
+      "'>Abrir Cliente</a>" +
       '</div>' +
       '</div>'
     );
   }
   // Render header
-  function renderHeader(color, text) {
+  function renderHeader(color, text, idMailing) {
     return (
       "<div class='d-flex justify-content-between flex-wrap align-items-center mb-2'>" +
       "<div class='item-badges d-flex'> " +
@@ -145,7 +147,7 @@
       text +
       '</div>' +
       '</div>' +
-      renderDropdown() +
+      renderDropdown(idMailing) +
       '</div>'
     );
   }
@@ -253,7 +255,7 @@
   function renderNotes(notes, temperatura) {
     const container = document.getElementById('notes-container');
     container.innerHTML = '';
-    console.log(temperatura);
+
     notes.forEach(note => {
       const noteElement = document.createElement('div');
       noteElement.className = 'media mb-4 d-flex align-items-center';
@@ -295,6 +297,8 @@
   // Render custom items
   if (kanbanItem) {
     kanbanItem.forEach(function (el) {
+      let elementCard = el;
+      let idMailing = elementCard.getAttribute('data-eid');
       const element = "<span class='kanban-text'>" + el.textContent + '</span>';
       let img = '';
       if (el.getAttribute('data-image') !== null) {
@@ -309,7 +313,7 @@
       if (el.getAttribute('data-badge') !== undefined && el.getAttribute('data-badge-text') !== undefined) {
         el.insertAdjacentHTML(
           'afterbegin',
-          renderHeader(el.getAttribute('data-badge'), el.getAttribute('data-badge-text')) + img + element
+          renderHeader(el.getAttribute('data-badge'), el.getAttribute('data-badge-text'), idMailing) + img + element
         );
       }
       if (

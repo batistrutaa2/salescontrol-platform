@@ -160,4 +160,11 @@ class Comercial extends Controller
     $comments = $this->comentariosRepository->getCommentsMailing($id_mailing);
     return response()->json($comments);
   }
+
+
+  public function openClient($id_mailing)
+  {
+
+    return view('content.pages.comercial.openClient');
+  }
 }
