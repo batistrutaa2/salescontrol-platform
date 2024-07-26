@@ -51,9 +51,24 @@
                         <div class="card-body">
                             <input type="hidden" name="id" value="{{ $client->id }}">
                             <div class="form-floating form-floating-outline mb-5">
+                                <label for="ecommerce-product-name">Status Atual</label>
+                                <select class="select2  form-select" id="label" name="tabulacao_id"
+                                    {{ $editingPermission == false ? 'disabled' : '' }} value="{{ $client->nome_cliente }}">
+                                    @foreach ($tabulations as $tabulation)
+                                        <option value="{{ $tabulation->id }}"
+                                            {{ $tabulation->id == $client->tabulacao_id ? 'selected' : '' }}>
+                                            {{ $tabulation->descricao }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+
+                            <div class="form-floating form-floating-outline mb-5">
                                 <input type="text" class="form-control" id="ecommerce-product-name"
-                                    {{ $editingPermission == false ? 'disabled' : '' }} value="{{ $client->nome_cliente }}"
-                                    placeholder="Nome Cliente" name="nome_cliente" aria-label="Product title">
+                                    {{ $editingPermission == false ? 'disabled' : '' }}
+                                    value="{{ $client->nome_cliente }}" placeholder="Nome Cliente" name="nome_cliente"
+                                    aria-label="Product title">
                                 <label for="ecommerce-product-name">Nome Completo</label>
                             </div>
 
@@ -62,8 +77,9 @@
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
                                         <input type="email" class="form-control" id="ecommerce-product-sku"
-                                            {{ $editingPermission == false ? 'disabled' : '' }} value="{{ $client->email }}"
-                                            placeholder="admin@admin.com.br" name="email" aria-label="Email Cliente">
+                                            {{ $editingPermission == false ? 'disabled' : '' }}
+                                            value="{{ $client->email }}" placeholder="admin@admin.com.br" name="email"
+                                            aria-label="Email Cliente">
                                         <label for="ecommerce-product-sku">E-mail</label>
                                     </div>
                                 </div>
@@ -71,8 +87,9 @@
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
                                         <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                            {{ $editingPermission == false ? 'disabled' : '' }} value="{{ $client->cpf }}"
-                                            placeholder="154.548.545/54" name="cpf" aria-label="Product barcode">
+                                            {{ $editingPermission == false ? 'disabled' : '' }}
+                                            value="{{ $client->cpf }}" placeholder="154.548.545/54" name="cpf"
+                                            aria-label="Product barcode">
                                         <label for="ecommerce-product-name">CPF / CNPJ</label>
                                     </div>
                                 </div>

@@ -158,13 +158,13 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
     return $client[0];
   }
 
-  public function updateTemperature(string $temperature, string $idMailing)
+  public function updateTemperatureAndTabulation(string $temperature, string $idMailing, string $tabulacao_id)
   {
     try {
       $searchRegister = [
         'contato_id' => $idMailing
       ];
-      $this->model::updateOrCreate($searchRegister, ['temperatura' => $temperature]);
+      $this->model::updateOrCreate($searchRegister, ['temperatura' => $temperature, 'tabulation_id' => $tabulacao_id]);
       return true;
     } catch (\Throwable $th) {
       return false;

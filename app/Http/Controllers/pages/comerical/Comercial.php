@@ -164,6 +164,8 @@ class Comercial extends Controller
   {
     $clientInfo = $this->repositoryContatosCorretoresRepository->getClientInfo($id_mailing);
     $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
+    $tabulations = $this->tabulacoesRepository->getTabulationsCompanie(Auth::user()->empresa_id);
+
     $permiteEdition = false;
     if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
       $permiteEdition = true;
@@ -172,7 +174,8 @@ class Comercial extends Controller
     return view('content.pages.comercial.openClient', [
       'client' => $clientInfo,
       'comments' => $commentsMailing,
-      'editingPermission' => $permiteEdition
+      'editingPermission' => $permiteEdition,
+      'tabulations' => $tabulations
     ]);
   }
 
@@ -180,7 +183,7 @@ class Comercial extends Controller
   {
     try {
       $updateClient =  $this->contatosRepository->updateOrCreate($request->all());
-      $updatetemperature =  $this->repositoryContatosCorretoresRepository->updatetemperature($request->temperatura, $request->id);
+      $updatetemperature =  $this->repositoryContatosCorretoresRepository->updatetemperature($request->temperatura, $request->id, $request->tabulacao_id);
 
       if ($updateClient && $updatetemperature) {
         return redirect()->back()->with('status', 'success')->with('message', 'Dados atualizados com sucesso.');
