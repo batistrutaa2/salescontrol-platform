@@ -34,4 +34,20 @@ class ComentariosRepository implements ComentariosRepositoryInterface
   {
     return $this->model->where('contato_id', $contato_id)->orderBy('created_at', 'desc')->get();
   }
+
+  public function getCommentsMailingAll($contato_id)
+  {
+    $comentarios = $this->model->leftJoin('users', 'users.id', '=', 'comentarios.user_id')
+      ->leftJoin('user_roles', 'users.user_role_id', '=', 'user_roles.id')
+      ->where('comentarios.contato_id', $contato_id)
+      ->select(
+        'comentarios.anotacao',
+        'comentarios.created_at',
+        'users.name',
+        'user_roles.tipo_usuario'
+      )
+      ->get();
+
+    return $comentarios;
+  }
 }

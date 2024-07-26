@@ -68,7 +68,7 @@
       modules: {
         toolbar: '.comment-toolbar'
       },
-      placeholder: 'Escreva sua anotação aqui. ',
+      placeholder: 'Atualize sua negociação..',
       theme: 'snow'
     });
   }

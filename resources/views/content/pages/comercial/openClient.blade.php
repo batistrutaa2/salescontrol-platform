@@ -22,7 +22,7 @@
             class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-6 gap-4 gap-md-0">
 
             <div class="d-flex flex-column justify-content-center">
-                <h4 class="mb-1">Cliente : Aqui sera o nome do cliente</h4>
+                <h4 class="mb-1">Cliente : {{ $client->nome_cliente }}</h4>
             </div>
         </div>
 
@@ -38,7 +38,8 @@
                     <div class="card-body">
                         <div class="form-floating form-floating-outline mb-5">
                             <input type="text" class="form-control" id="ecommerce-product-name"
-                                placeholder="Product title" name="nome_cliente" aria-label="Product title">
+                                value="{{ $client->nome_cliente }}" placeholder="Product title" name="nome_cliente"
+                                aria-label="Product title">
                             <label for="ecommerce-product-name">Nome Completo</label>
                         </div>
 
@@ -47,15 +48,27 @@
                             <div class="col">
                                 <div class="form-floating form-floating-outline">
                                     <input type="email" class="form-control" id="ecommerce-product-sku"
-                                        placeholder="admin@admin.com.br" name="email" aria-label="Email Cliente">
+                                        value="{{ $client->email }}" placeholder="admin@admin.com.br" name="email"
+                                        aria-label="Email Cliente">
                                     <label for="ecommerce-product-sku">E-mail</label>
                                 </div>
                             </div>
+
                             <div class="col">
                                 <div class="form-floating form-floating-outline">
                                     <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        placeholder="154.548.545/54" name="cpf" aria-label="Product barcode">
+                                        value="{{ $client->cpf }}" placeholder="154.548.545/54" name="cpf"
+                                        aria-label="Product barcode">
                                     <label for="ecommerce-product-name">CPF / CNPJ</label>
+                                </div>
+                            </div>
+
+                            <div class="col">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                        value="{{ $client->data_nascimento }}" placeholder="11/10/1997"
+                                        name="data_nascimento" aria-label="Product barcode">
+                                    <label for="ecommerce-product-name">Data de nascimento</label>
                                 </div>
                             </div>
 
@@ -71,30 +84,30 @@
                                         FRIO
                                     </option>
                                 </select>
-
                             </div>
-
-
                         </div>
                         <div class="row gx-5 mb-5">
                             <div class="col">
                                 <div class="form-floating form-floating-outline">
                                     <input type="text" class="form-control" id="ecommerce-product-sku"
-                                        placeholder="Top nacional" name="plano" aria-label="Email Cliente">
+                                        value="{{ $client->plano }}" placeholder="Top nacional" name="plano"
+                                        aria-label="Email Cliente">
                                     <label for="ecommerce-product-sku">Plano Atual</label>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-floating form-floating-outline">
                                     <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        placeholder="Black infinity" name="cartegoria" aria-label="Product barcode">
+                                        value="{{ $client->categoria }}" placeholder="Black infinity" name="cartegoria"
+                                        aria-label="Product barcode">
                                     <label for="ecommerce-product-name">Cartegoria</label>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-floating form-floating-outline">
                                     <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        placeholder="Sulamerica" name="entidade" aria-label="Product barcode">
+                                        value="{{ $client->entidade }}" placeholder="Sulamerica" name="entidade"
+                                        aria-label="Product barcode">
                                     <label for="ecommerce-product-name">Entidade</label>
                                 </div>
                             </div>
@@ -103,28 +116,32 @@
                             <div class="col">
                                 <div class="form-floating form-floating-outline">
                                     <input type="text" class="form-control" id="ecommerce-product-sku"
-                                        placeholder="(99) 95844-1559" name="telefone1" aria-label="Email Cliente">
+                                        value="{{ $client->telefone1 }}" placeholder="(99) 95844-1559" name="telefone1"
+                                        aria-label="Email Cliente">
                                     <label for="ecommerce-product-sku">Telefone Principal</label>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-floating form-floating-outline">
                                     <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        placeholder="(99) 95844-1559" name="telefone2" aria-label="Product barcode">
+                                        value="{{ $client->telefone2 }}" placeholder="(99) 95844-1559" name="telefone2"
+                                        aria-label="Product barcode">
                                     <label for="ecommerce-product-name">Telefone Comercial</label>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-floating form-floating-outline">
                                     <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        placeholder="(99) 95844-1559" name="telefone3" aria-label="Product barcode">
+                                        value="{{ $client->telefone3 }}" placeholder="(99) 95844-1559" name="telefone3"
+                                        aria-label="Product barcode">
                                     <label for="ecommerce-product-name">Telefone Adicional</label>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-floating form-floating-outline">
                                     <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        placeholder="R$ 1080.10" name="telefone3" aria-label="Product barcode">
+                                        value="{{ $client->valor_plano_atual }}" placeholder="R$ 1080.10"
+                                        name="valor_plano_atual" aria-label="Product barcode">
                                     <label for="ecommerce-product-name">Valor Atual Investido</label>
                                 </div>
                             </div>
@@ -152,8 +169,6 @@
                                             <button class="ql-underline"></button>
                                             <button class="ql-list" value="ordered"></button>
                                             <button class="ql-list" value="bullet"></button>
-                                            <button class="ql-link"></button>
-                                            <button class="ql-image"></button>
                                         </span>
                                     </div>
                                 </div>
@@ -182,18 +197,42 @@
                                 <h5 class="card-title m-0">Ultimas atividades</h5>
                             </div>
                             <div class="card-body mt-3">
-                                <ul class="timeline pb-0 mb-0">
-                                    <li class="timeline-item timeline-item-transparent border-primary">
-                                        <span class="timeline-point timeline-point-primary"></span>
-                                        <div class="timeline-event">
-                                            <div class="timeline-header mb-1">
-                                                <h6 class="mb-0">Order was placed (Order ID: #32543)</h6>
-                                                <small class="text-muted">Tuesday 11:29 AM</small>
-                                            </div>
-                                            <p class="mt-1 mb-3">Your order has been placed successfully</p>
-                                        </div>
-                                    </li>
-                                </ul>
+                                @foreach ($comments as $comment)
+                                    @if ($comment->tipo_usuario === 'DEVELOPER' || $comment->tipo_usuario === 'ADMIN')
+                                        <ul class="timeline pb-0 mb-0">
+                                            <li class="timeline-item timeline-item-transparent border-primary">
+                                                <span class="timeline-point timeline-point-primary"></span>
+                                                <div class="timeline-event">
+                                                    <div class="timeline-header mb-1">
+                                                        <h6 class="mb-0">Feito por: ({{ $comment->name }})
+                                                            <span
+                                                                class="badge bg-label-success">{{ $comment->tipo_usuario }}</span>
+                                                        </h6>
+                                                        <small class="text-muted">{!! $comment->created_at !!}</small>
+                                                    </div>
+                                                    <p class="mt-1 mb-3"> {!! $comment->anotacao !!}</p>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    @else
+                                        <ul class="timeline pb-0 mb-0">
+                                            <li class="timeline-item timeline-item-transparent border-primary">
+                                                <span class="timeline-point timeline-point-primary"></span>
+                                                <div class="timeline-event">
+                                                    <div class="timeline-header mb-1">
+                                                        <h6 class="mb-0">Feito por: ({{ $comment->name }})
+                                                            <span
+                                                                class="badge bg-label-primary">{{ $comment->tipo_usuario }}</span>
+                                                            <p class=""></p>
+                                                        </h6>
+                                                        <small class="text-muted">{!! $comment->created_at !!}</small>
+                                                    </div>
+                                                    <p class="mt-1 mb-3"> {!! $comment->anotacao !!}</p>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    @endif
+                                @endforeach
                             </div>
                         </div>
                     </div>

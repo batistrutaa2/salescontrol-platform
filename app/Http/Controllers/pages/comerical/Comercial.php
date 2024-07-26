@@ -164,7 +164,12 @@ class Comercial extends Controller
 
   public function openClient($id_mailing)
   {
+    $clientInfo = $this->repositoryContatosCorretoresRepository->getClientInfo($id_mailing);
+    $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
 
-    return view('content.pages.comercial.openClient');
+    return view('content.pages.comercial.openClient', [
+      'client' => $clientInfo,
+      'comments' => $commentsMailing
+    ]);
   }
 }

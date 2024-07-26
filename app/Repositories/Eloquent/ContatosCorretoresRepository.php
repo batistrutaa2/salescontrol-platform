@@ -132,4 +132,28 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       return false;
     }
   }
+
+  public function getClientInfo($idMailing)
+  {
+
+    $client = $this->model->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
+      ->where('contatos_corretores.contato_id', $idMailing)
+      ->select(
+        'contatos.nome_cliente',
+        'contatos.email',
+        'contatos.cpf',
+        'contatos.data_nascimento',
+        'contatos_corretores.temperatura',
+        'contatos.plano',
+        'contatos.categoria',
+        'contatos.entidade',
+        'contatos.telefone1',
+        'contatos.telefone2',
+        'contatos.telefone3',
+        'contatos.valor_plano_atual'
+      )
+      ->get();
+
+    return $client[0];
+  }
 }

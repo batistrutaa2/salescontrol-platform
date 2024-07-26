@@ -31,22 +31,6 @@
     });
   }
 
-  var toolbarOptions = [
-    ['bold', 'italic', 'underline'], // opções de texto
-    ['blockquote', 'code-block'], // opções de bloco
-    [{ header: 1 }, { header: 2 }], // cabeçalhos
-    [{ list: 'ordered' }, { list: 'bullet' }], // listas
-    [{ script: 'sub' }, { script: 'super' }], // sobrescrito/subscrito
-    [{ indent: '-1' }, { indent: '+1' }], // indentação
-    [{ direction: 'rtl' }], // direção do texto
-    [{ size: ['small', false, 'large', 'huge'] }], // tamanhos de fonte
-    [{ header: [1, 2, 3, 4, 5, 6, false] }],
-    [{ color: [] }, { background: [] }], // cor do texto e fundo
-    [{ font: [] }],
-    [{ align: [] }],
-    ['clean'] // botão de limpar formatação
-  ];
-
   const commentEditor = document.querySelector('.comment-editor');
 
   if (commentEditor) {
