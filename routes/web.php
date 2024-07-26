@@ -49,4 +49,5 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/saveNoteMailing', [Comercial::class, 'saveNoteMailing'])->name('comercial.saveNoteMailing');
   Route::get('/comercial/getCommentsLead/{id_mailing}', [Comercial::class, 'getCommentsLead'])->name('comercial.getCommentsLead');
   Route::get('/comercial/openClient/{id_mailing}', [Comercial::class, 'openClient'])->name('comercial.openClient');
+  Route::post('/comercial/updateClient', [Comercial::class, 'updateClient'])->name('comercial.updateClient');
 });

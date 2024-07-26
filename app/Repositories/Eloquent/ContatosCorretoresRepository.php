@@ -139,6 +139,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
     $client = $this->model->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
       ->where('contatos_corretores.contato_id', $idMailing)
       ->select(
+        'contatos.id',
         'contatos.nome_cliente',
         'contatos.email',
         'contatos.cpf',
@@ -155,5 +156,18 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       ->get();
 
     return $client[0];
+  }
+
+  public function updateTemperature(string $temperature, string $idMailing)
+  {
+    try {
+      $searchRegister = [
+        'contato_id' => $idMailing
+      ];
+      $this->model::updateOrCreate($searchRegister, ['temperatura' => $temperature]);
+      return true;
+    } catch (\Throwable $th) {
+      return false;
+    }
   }
 }

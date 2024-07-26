@@ -16,7 +16,15 @@
 
 @section('content')
     <div class="app-ecommerce">
-
+        @if (session('status') == 'success')
+            <div class="alert alert-success">
+                {{ session('message') }}
+            </div>
+        @elseif(session('status') == 'error')
+            <div class="alert alert-danger">
+                {{ session('message') }}
+            </div>
+        @endif
         <!-- Add Product -->
         <div
             class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-6 gap-4 gap-md-0">
@@ -27,7 +35,6 @@
         </div>
 
         <div class="row">
-
             <!-- First column-->
             <div class="col-12 col-lg-8">
                 <!-- Product Information -->
@@ -35,121 +42,134 @@
                     <div class="card-header">
                         <h5 class="card-tile mb-0">Informações Pessoais</h5>
                     </div>
-                    <div class="card-body">
-                        <div class="form-floating form-floating-outline mb-5">
-                            <input type="text" class="form-control" id="ecommerce-product-name"
-                                value="{{ $client->nome_cliente }}" placeholder="Product title" name="nome_cliente"
-                                aria-label="Product title">
-                            <label for="ecommerce-product-name">Nome Completo</label>
-                        </div>
-
-
-                        <div class="row gx-5 mb-5">
-                            <div class="col">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="email" class="form-control" id="ecommerce-product-sku"
-                                        value="{{ $client->email }}" placeholder="admin@admin.com.br" name="email"
-                                        aria-label="Email Cliente">
-                                    <label for="ecommerce-product-sku">E-mail</label>
-                                </div>
+                    <form method="POST" action="{{ route('comercial.updateClient') }}">
+                        @csrf
+                        <div class="card-body">
+                            <input type="hidden" name="id" value="{{ $client->id }}">
+                            <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" class="form-control" id="ecommerce-product-name"
+                                    {{ $editingPermission == false ? 'disabled' : '' }} value="{{ $client->nome_cliente }}"
+                                    placeholder="Nome Cliente" name="nome_cliente" aria-label="Product title">
+                                <label for="ecommerce-product-name">Nome Completo</label>
                             </div>
 
-                            <div class="col">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        value="{{ $client->cpf }}" placeholder="154.548.545/54" name="cpf"
-                                        aria-label="Product barcode">
-                                    <label for="ecommerce-product-name">CPF / CNPJ</label>
-                                </div>
-                            </div>
 
-                            <div class="col">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        value="{{ $client->data_nascimento }}" placeholder="11/10/1997"
-                                        name="data_nascimento" aria-label="Product barcode">
-                                    <label for="ecommerce-product-name">Data de nascimento</label>
+                            <div class="row gx-5 mb-5">
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="email" class="form-control" id="ecommerce-product-sku"
+                                            {{ $editingPermission == false ? 'disabled' : '' }} value="{{ $client->email }}"
+                                            placeholder="admin@admin.com.br" name="email" aria-label="Email Cliente">
+                                        <label for="ecommerce-product-sku">E-mail</label>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="col">
-                                <select class="select2  form-select" id="label" name="temperatura">
-                                    <option data-color="bg-label-danger" value="QUENTE">
-                                        QUENTE
-                                    </option>
-                                    <option data-color="bg-label-warning" value="MORNO">
-                                        MORNO
-                                    </option>
-                                    <option data-color="bg-label-info" value="FRIO">
-                                        FRIO
-                                    </option>
-                                </select>
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                            {{ $editingPermission == false ? 'disabled' : '' }} value="{{ $client->cpf }}"
+                                            placeholder="154.548.545/54" name="cpf" aria-label="Product barcode">
+                                        <label for="ecommerce-product-name">CPF / CNPJ</label>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                            {{ $editingPermission == false ? 'disabled' : '' }}
+                                            value="{{ $client->data_nascimento }}" placeholder="11/10/1997"
+                                            name="data_nascimento" aria-label="Product barcode">
+                                        <label for="ecommerce-product-name">Data de nascimento</label>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <select class="select2  form-select" id="label" name="temperatura">
+                                        <option data-color="bg-label-danger" value="QUENTE"
+                                            {{ $client->temperatura == 'QUENTE' ? 'selected' : '' }}>
+                                            QUENTE
+                                        </option>
+                                        <option data-color="bg-label-warning" value="MORNO"
+                                            {{ $client->temperatura == 'MORNO' ? 'selected' : '' }}>
+                                            MORNO
+                                        </option>
+                                        <option data-color="bg-label-info" value="FRIO"
+                                            {{ $client->temperatura == 'FRIO' ? 'selected' : '' }}>
+                                            FRIO
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row gx-5 mb-5">
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="ecommerce-product-sku"
+                                            {{ $editingPermission == false ? 'disabled' : '' }}
+                                            value="{{ $client->plano }}" placeholder="Top nacional" name="plano"
+                                            aria-label="Email Cliente">
+                                        <label for="ecommerce-product-sku">Plano Atual</label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                            {{ $editingPermission == false ? 'disabled' : '' }}
+                                            value="{{ $client->categoria }}" placeholder="Black infinity" name="cartegoria"
+                                            aria-label="Product barcode">
+                                        <label for="ecommerce-product-name">Cartegoria</label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                            {{ $editingPermission == false ? 'disabled' : '' }}
+                                            value="{{ $client->entidade }}" placeholder="Sulamerica" name="entidade"
+                                            aria-label="Product barcode">
+                                        <label for="ecommerce-product-name">Entidade</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row gx-5 mb-5">
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="ecommerce-product-sku"
+                                            value="{{ $client->telefone1 }}" placeholder="(99) 95844-1559"
+                                            name="telefone1" aria-label="Email Cliente">
+                                        <label for="ecommerce-product-sku">Telefone Principal</label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                            value="{{ $client->telefone2 }}" placeholder="(99) 95844-1559"
+                                            name="telefone2" aria-label="Product barcode">
+                                        <label for="ecommerce-product-name">Telefone Comercial</label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                            value="{{ $client->telefone3 }}" placeholder="(99) 95844-1559"
+                                            name="telefone3" aria-label="Product barcode">
+                                        <label for="ecommerce-product-name">Telefone Adicional</label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+
+                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                            {{ $editingPermission == false ? 'disabled' : '' }}
+                                            value="{{ $client->valor_plano_atual }}" placeholder="R$ 1080.10"
+                                            name="valor_plano_atual" aria-label="Product barcode">
+                                        <label for="ecommerce-product-name">Valor Atual Investido</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-success   btn--twitter">Atualizar informações</button>
                             </div>
                         </div>
-                        <div class="row gx-5 mb-5">
-                            <div class="col">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control" id="ecommerce-product-sku"
-                                        value="{{ $client->plano }}" placeholder="Top nacional" name="plano"
-                                        aria-label="Email Cliente">
-                                    <label for="ecommerce-product-sku">Plano Atual</label>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        value="{{ $client->categoria }}" placeholder="Black infinity" name="cartegoria"
-                                        aria-label="Product barcode">
-                                    <label for="ecommerce-product-name">Cartegoria</label>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        value="{{ $client->entidade }}" placeholder="Sulamerica" name="entidade"
-                                        aria-label="Product barcode">
-                                    <label for="ecommerce-product-name">Entidade</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row gx-5 mb-5">
-                            <div class="col">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control" id="ecommerce-product-sku"
-                                        value="{{ $client->telefone1 }}" placeholder="(99) 95844-1559" name="telefone1"
-                                        aria-label="Email Cliente">
-                                    <label for="ecommerce-product-sku">Telefone Principal</label>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        value="{{ $client->telefone2 }}" placeholder="(99) 95844-1559" name="telefone2"
-                                        aria-label="Product barcode">
-                                    <label for="ecommerce-product-name">Telefone Comercial</label>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        value="{{ $client->telefone3 }}" placeholder="(99) 95844-1559" name="telefone3"
-                                        aria-label="Product barcode">
-                                    <label for="ecommerce-product-name">Telefone Adicional</label>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                        value="{{ $client->valor_plano_atual }}" placeholder="R$ 1080.10"
-                                        name="valor_plano_atual" aria-label="Product barcode">
-                                    <label for="ecommerce-product-name">Valor Atual Investido</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <button class="btn btn-success   btn--twitter">Atualizar informações</button>
-                        </div>
-                    </div>
+                    </form>
 
                 </div>
                 <!-- /Product Information -->

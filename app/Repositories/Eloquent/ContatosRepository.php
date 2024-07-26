@@ -2,8 +2,10 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\UserRole;
 use App\Models\Contatos;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
+use Illuminate\Support\Facades\Auth;
 
 class ContatosRepository implements ContatosRepositoryInterface
 {
@@ -65,7 +67,40 @@ class ContatosRepository implements ContatosRepositoryInterface
       $contact->telefone3 = $telefone3;
       return $contact->save();
     } catch (\Throwable $th) {
-      dd("caiu aq");
+      return false;
+    }
+  }
+
+
+  public function updateOrCreate(array $data)
+  {
+    try {
+      $serchClient = ["id" => $data['id']];
+
+      if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
+        $dataClient = [
+          'nome_cliente' => $data['nome_cliente'],
+          'email' => $data['email'],
+          'cpf' => $data['cpf'],
+          'data_nascimento' => $data['data_nascimento'],
+          'plano' => $data['plano'],
+          'cartegoria' => $data['cartegoria'],
+          'entidade' => $data['entidade'],
+          'telefone1' => $data['telefone1'],
+          'telefone2' => $data['telefone2'],
+          'telefone3' => $data['telefone3'],
+          'valor_plano_atual' => $data['valor_plano_atual']
+        ];
+      } else {
+        $dataClient = [
+          'telefone1' => $data['telefone1'],
+          'telefone2' => $data['telefone2'],
+          'telefone3' => $data['telefone3'],
+        ];
+      }
+      $this->model::updateOrCreate($serchClient, $dataClient);
+      return true;
+    } catch (\Throwable $th) {
       return false;
     }
   }

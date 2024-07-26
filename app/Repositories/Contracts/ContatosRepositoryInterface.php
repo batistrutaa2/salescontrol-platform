@@ -9,4 +9,5 @@ interface ContatosRepositoryInterface
   public function find($id);
   public function searchForCpfsFound(array $cpfs);
   public function updateContact($idMailing, $telefone1, $telefone2, $telefone3);
+  public function updateOrCreate(array $data);
 }

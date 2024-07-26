@@ -27,8 +27,6 @@ class Comercial extends Controller
 
   protected ComercialUseCase  $comercialUseCase;
 
-
-
   public function __construct(
     ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
     TabulacoesRepositoryInterface $TabulacoesRepositoryInterface,
@@ -166,10 +164,31 @@ class Comercial extends Controller
   {
     $clientInfo = $this->repositoryContatosCorretoresRepository->getClientInfo($id_mailing);
     $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
+    $permiteEdition = false;
+    if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
+      $permiteEdition = true;
+    }
 
     return view('content.pages.comercial.openClient', [
       'client' => $clientInfo,
-      'comments' => $commentsMailing
+      'comments' => $commentsMailing,
+      'editingPermission' => $permiteEdition
     ]);
+  }
+
+  public function updateClient(Request $request)
+  {
+    try {
+      $updateClient =  $this->contatosRepository->updateOrCreate($request->all());
+      $updatetemperature =  $this->repositoryContatosCorretoresRepository->updatetemperature($request->temperatura, $request->id);
+
+      if ($updateClient && $updatetemperature) {
+        return redirect()->back()->with('status', 'success')->with('message', 'Dados atualizados com sucesso.');
+      } else {
+        return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar status.');
+      }
+    } catch (\Throwable $th) {
+      return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar status.');
+    }
   }
 }
