@@ -26,6 +26,7 @@ class ComentariosRepository implements ComentariosRepositoryInterface
       $commentModel->anotacao = $comment;
       return $commentModel->save();
     } catch (\Throwable $th) {
+      dd($th);
       return false;
     }
   }
@@ -46,6 +47,7 @@ class ComentariosRepository implements ComentariosRepositoryInterface
         'users.name',
         'user_roles.tipo_usuario'
       )
+      ->orderBy('comentarios.created_at', 'desc')
       ->get();
 
     return $comentarios;

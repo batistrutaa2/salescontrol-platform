@@ -175,7 +175,7 @@ class Comercial extends Controller
       'client' => $clientInfo,
       'comments' => $commentsMailing,
       'editingPermission' => $permiteEdition,
-      'tabulations' => $tabulations
+      'tabulations' => $tabulations,
     ]);
   }
 
@@ -183,7 +183,7 @@ class Comercial extends Controller
   {
     try {
       $updateClient =  $this->contatosRepository->updateOrCreate($request->all());
-      $updatetemperature =  $this->repositoryContatosCorretoresRepository->updatetemperature($request->temperatura, $request->id, $request->tabulacao_id);
+      $updatetemperature =  $this->repositoryContatosCorretoresRepository->updateTemperatureAndTabulation($request->temperatura, $request->id, $request->tabulacao_id);
 
       if ($updateClient && $updatetemperature) {
         return redirect()->back()->with('status', 'success')->with('message', 'Dados atualizados com sucesso.');
@@ -192,6 +192,35 @@ class Comercial extends Controller
       }
     } catch (\Throwable $th) {
       return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar status.');
+    }
+  }
+
+
+  public function saveComment(Request $request)
+  {
+    $saveComment = $this->comentariosRepository->createComment(
+      Auth::user()->empresa_id,
+      Auth::user()->id,
+      $request->anotacao,
+      $request->id_mailing
+    );
+
+    if ($saveComment) {
+      return response()->json(
+        [
+          'error' => false,
+          'message' => 'Comentario feito com sucesso.'
+        ],
+        200
+      );
+    } else {
+      return response()->json(
+        [
+          'error' => true,
+          'message' => 'Erro ao salvar comentario'
+        ],
+        501
+      );
     }
   }
 }

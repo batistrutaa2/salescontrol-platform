@@ -3,7 +3,7 @@
  */
 'use strict';
 
-//Javascript to handle the e-commerce product add page
+// Javascript to handle the e-commerce product add page
 
 (function () {
   select2 = $('.select2');
@@ -31,10 +31,11 @@
     });
   }
 
-  const commentEditor = document.querySelector('.comment-editor');
+  const commentEditorElement = document.querySelector('.comment-editor');
+  let quill;
 
-  if (commentEditor) {
-    new Quill(commentEditor, {
+  if (commentEditorElement) {
+    quill = new Quill(commentEditorElement, {
       modules: {
         toolbar: '.comment-toolbar'
       },
@@ -42,6 +43,36 @@
       theme: 'snow'
     });
   }
+
+  document.getElementById('saveComment').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const editorContent = quill ? quill.root.innerHTML.trim() : '';
+    if (editorContent === '' || editorContent === '<p><br></p>') {
+      return;
+    }
+
+    const form = event.target;
+    const formData = new FormData(form);
+    formData.append('anotacao', editorContent);
+
+    fetch(form.action, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+      },
+      body: formData
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (!data.error) {
+          window.location.reload();
+        } else {
+          alert('erro ao salvar comentario');
+        }
+      })
+      .catch(error => {});
+  });
 })();
 
 $(function () {});

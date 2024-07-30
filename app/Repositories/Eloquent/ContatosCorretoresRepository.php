@@ -164,7 +164,8 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       $searchRegister = [
         'contato_id' => $idMailing
       ];
-      $this->model::updateOrCreate($searchRegister, ['temperatura' => $temperature, 'tabulation_id' => $tabulacao_id]);
+
+      $this->model::updateOrCreate($searchRegister, ['temperatura' => $temperature, 'tabulacao_id' => $tabulacao_id]);
       return true;
     } catch (\Throwable $th) {
       return false;
