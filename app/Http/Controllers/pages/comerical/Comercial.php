@@ -234,4 +234,10 @@ class Comercial extends Controller
       );
     }
   }
+
+
+  public function remarketing()
+  {
+    return view('content.pages.comercial.remarketing');
+  }
 }

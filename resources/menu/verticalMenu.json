@@ -42,6 +42,16 @@
       ]
     },
     {
+      "url": "/comercial/remarketing",
+      "name": "Fila Remarketing",
+      "icon": "menu-icon tf-icons ri-user-line",
+      "slug": "comercial-remarketing",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER"
+      ]
+    },
+    {
       "menuHeader": "Manager & Developers"
     },
     {
