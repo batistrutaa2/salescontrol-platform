@@ -9,10 +9,12 @@ use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Eloquent\ComentariosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
+use App\Repositories\Eloquent\UsuariosRepository;
 use App\UseCases\ComercialUseCase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +26,7 @@ class Comercial extends Controller
   protected TabulacoesRepository  $tabulacoesRepository;
   protected ContatosRepository  $contatosRepository;
   protected ComentariosRepository  $comentariosRepository;
+  protected UsuariosRepository  $usuariosRepository;
 
   protected ComercialUseCase  $comercialUseCase;
 
@@ -31,13 +34,15 @@ class Comercial extends Controller
     ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
     TabulacoesRepositoryInterface $TabulacoesRepositoryInterface,
     ContatosRepositoryInterface $contatosRepositoryInterface,
-    ComentariosRepositoryInterface $comentariosRepositoryInterface
+    ComentariosRepositoryInterface $comentariosRepositoryInterface,
+    UsuariosRepositoryInterface $usuariosRepositoryInterface
   ) {
     //Repositories
     $this->repositoryContatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
     $this->tabulacoesRepository = $TabulacoesRepositoryInterface;
     $this->contatosRepository = $contatosRepositoryInterface;
     $this->comentariosRepository = $comentariosRepositoryInterface;
+    $this->usuariosRepository = $usuariosRepositoryInterface;
 
     //UseCases
     $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface);
@@ -45,7 +50,12 @@ class Comercial extends Controller
 
   public function index()
   {
-    return view('content.pages.comercial.index');
+    $vendedores = $this->usuariosRepository->getUsersFilterType(Auth::user()->empresa_id, UserRole::VENDEDOR);
+
+    return view('content.pages.comercial.index', [
+      'vendedores' => $vendedores,
+      'typeUserLogeed' => Auth::user()->role->tipo_usuario
+    ]);
   }
 
   public function getClientComercial()
@@ -86,6 +96,7 @@ class Comercial extends Controller
           'email' =>  $contact->email,
           'temperatura' => $contact->temperatura,
           'valor' =>  $contact->valor_plano_atual,
+          'user-id' => $contact->user_id
         ];
       })->values()->toArray();
 

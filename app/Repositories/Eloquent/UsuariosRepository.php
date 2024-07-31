@@ -61,4 +61,9 @@ class UsuariosRepository implements UsuariosRepositoryInterface
       return false;
     }
   }
+
+  public function getUsersFilterType($empresa_id, $rule)
+  {
+    return $this->model->select('id', 'name')->where('empresa_id', $empresa_id)->where('user_role_id', $rule)->get();
+  }
 }

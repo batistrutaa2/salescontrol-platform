@@ -19,7 +19,10 @@
 @endsection
 
 @section('content')
-    <div class="app-kanban">
+
+
+
+    <div class="app-kanban mt-5">
         <!-- Add new board -->
         <div class="row">
             <div class="col-12">
@@ -35,8 +38,33 @@
             </div>
         </div>
 
+        <div class="container mb-5">
+            <div class="d-flex justify-content-between">
+                <div class="form-floating form-floating-outline flex-fill me-2">
+                    <input type="text" id="kanban-search" class="form-control" placeholder="Pesquisar cliente.." />
+                    <label for="kanban-search-1">Pesquisar cliente..</label>
+                </div>
+                @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER')
+                    <div class="form-floating form-floating-outline flex-fill ms-2">
+
+                        <select class=" form-select" id="user-filter" name="temperatura">
+                            <option value="">
+                                Selecione o corretor
+                            </option>
+                            @foreach ($vendedores as $vendedor)
+                                <option value="{{ $vendedor->id }}">
+                                    {{ $vendedor->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <label for="label"> Vendedores</label>
+                    </div>
+                @endif
+            </div>
+        </div>
+
         <!-- Kanban Wrapper -->
-        <div class="kanban-wrapper"></div>
+        <div class="kanban-wrapper mt-5"></div>
 
         <!-- Edit Task/Task & Activities -->
         <div class="offcanvas offcanvas-end kanban-update-item-sidebar">

@@ -285,6 +285,52 @@
     });
   }
 
+  function filterKanbanItems(searchTerm) {
+    const items = document.querySelectorAll('.kanban-item');
+    items.forEach(item => {
+      const itemTitle = item.textContent.toLowerCase();
+      if (itemTitle.includes(searchTerm.toLowerCase())) {
+        item.style.display = 'block'; // Exibe o item se corresponder ao termo de pesquisa
+      } else {
+        item.style.display = 'none'; // Oculta o item se não corresponder
+      }
+    });
+  }
+
+  function filterKanbanItems(searchTerm, userId) {
+    const items = document.querySelectorAll('.kanban-item');
+    items.forEach(item => {
+      const itemTitle = item.textContent.toLowerCase();
+      const itemUserId = item.getAttribute('data-user-id');
+      const matchesSearch = itemTitle.includes(searchTerm.toLowerCase());
+      const matchesUserId = userId === '' || itemUserId === userId;
+      if (matchesSearch && matchesUserId) {
+        item.style.display = 'block';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  }
+
+  const searchInput = document.getElementById('kanban-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      const searchTerm = this.value;
+      const userId = document.getElementById('user-filter') ? document.getElementById('user-filter').value : '';
+      filterKanbanItems(searchTerm, userId);
+    });
+  }
+
+  // Verifica se o select de filtro de usuário existe antes de adicionar o evento
+  const userFilterSelect = document.getElementById('user-filter');
+  if (userFilterSelect) {
+    userFilterSelect.addEventListener('change', function () {
+      const searchTerm = document.getElementById('kanban-search') ? document.getElementById('kanban-search').value : '';
+      const userId = this.value;
+      filterKanbanItems(searchTerm, userId);
+    });
+  }
+
   // Kanban Wrapper scrollbar
   if (kanbanWrapper) {
     new PerfectScrollbar(kanbanWrapper);
