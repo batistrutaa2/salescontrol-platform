@@ -68,7 +68,7 @@ class Comercial extends Controller
 
   protected function structureBoardData($contacts)
   {
-    $status = $this->tabulacoesRepository->getTabulationsCompanie(Auth::user()->empresa_id);
+    $status = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
 
     $boardData = [];
 
@@ -175,7 +175,7 @@ class Comercial extends Controller
   {
     $clientInfo = $this->repositoryContatosCorretoresRepository->getClientInfo($id_mailing);
     $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
-    $tabulations = $this->tabulacoesRepository->getTabulationsCompanie(Auth::user()->empresa_id);
+    $tabulations = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
 
     $permiteEdition = false;
     if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {

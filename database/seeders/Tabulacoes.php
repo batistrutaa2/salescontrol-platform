@@ -21,6 +21,7 @@ class Tabulacoes extends Seeder
       ['id' => 4, 'empresa_id' => 1, 'descricao' => 'DOCUMENTO', 'tipo_tabulacao' => 'C', 'efetivo' => 'Y', 'ordem_kanban' => 'D', 'status' => 'Y', 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime],
       ['id' => 5, 'empresa_id' => 1, 'descricao' => 'NEGOCIO FECHADO', 'tipo_tabulacao' => 'C', 'efetivo' => 'Y', 'ordem_kanban' => 'E', 'status' => 'Y', 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime],
       ['id' => 6, 'empresa_id' => 1, 'descricao' => 'NEGOCIO NAO FECHADO', 'tipo_tabulacao' => 'C', 'efetivo' => 'Y', 'ordem_kanban' => 'F', 'status' => 'Y', 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime],
+      ['id' => 7, 'empresa_id' => 1, 'descricao' => 'REMARKETING', 'tipo_tabulacao' => 'A', 'efetivo' => 'N', 'ordem_kanban' => 'G', 'status' => 'Y', 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime],
     ]);
   }
 }

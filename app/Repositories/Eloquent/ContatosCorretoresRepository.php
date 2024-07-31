@@ -114,7 +114,13 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       $card = $this->model->where('contato_id', $data['contato_id'])->first();
 
       if ($card) {
-        $card->tabulacao_id = $data['tabulacao_id'];
+        // enviando pra fila de remarketing
+        if ($data['tabulacao_id'] == 6) {
+          $card->tabulacao_id = 10;
+          $card->user_id = null;
+        } else {
+          $card->tabulacao_id = $data['tabulacao_id'];
+        }
         return $card->save();
       } else {
         return false;

@@ -165,6 +165,31 @@
     );
   }
 
+  function sendRequestApichangeStatusLead(contato_id, tabulacao_id) {
+    fetch('/changeStatusLead/kanban/changeStatusLead', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      },
+      body: JSON.stringify({
+        contato_id: contato_id,
+        tabulacao_id: tabulacao_id
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (!data.error) {
+          toastr.success(data.message, 'Concluido');
+        } else {
+          toastr.error(data.message, 'Erro');
+        }
+      })
+      .catch(error => {
+        console.error('Erro na requisição:', error);
+      });
+  }
+
   // Init kanban
   const kanban = new jKanban({
     element: '.kanban-wrapper',
@@ -183,28 +208,49 @@
       const contato_id = el.dataset.eid;
       const tabulacao_id = target.parentElement.dataset.id;
 
-      fetch('/changeStatusLead/kanban/changeStatusLead', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({
-          contato_id: contato_id,
-          tabulacao_id: tabulacao_id
-        })
-      })
-        .then(response => response.json())
-        .then(data => {
-          if (!data.error) {
-            toastr.success(data.message, 'Concluido');
-          } else {
-            toastr.error(data.message, 'Erro');
+      if (tabulacao_id == 6) {
+        Swal.fire({
+          title: 'Tem Certeza?',
+          text: 'Esse cliente será descartado da sua lista de clientes!',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sim, descartar!',
+          customClass: {
+            confirmButton: 'btn btn-primary me-3 waves-effect waves-light',
+            cancelButton: 'btn btn-outline-secondary waves-effect'
+          },
+          buttonsStyling: false
+        }).then(function (result) {
+          if (result.value) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Concluido!',
+              text: 'Contato Descartado com sucesso!',
+              customClass: {
+                confirmButton: 'btn btn-success waves-effect'
+              }
+            }).then(function name(params) {
+              sendRequestApichangeStatusLead(contato_id, tabulacao_id);
+              el.style.display = 'none';
+            });
+          } else if (result.dismiss === Swal.DismissReason.cancel) {
+            Swal.fire({
+              title: 'Cancelado',
+              text: 'Contato mantido na lista de clientes',
+              icon: 'error',
+              customClass: {
+                confirmButton: 'btn btn-primary waves-effect'
+              }
+            }).then(function name(result) {
+              if (result.value) {
+                location.reload();
+              }
+            });
           }
-        })
-        .catch(error => {
-          console.error('Erro na requisição:', error);
         });
+      } else {
+        sendRequestApichangeStatusLead(contato_id, tabulacao_id);
+      }
     },
 
     click: async function (el) {
@@ -282,18 +328,6 @@
       noteElement.appendChild(mediaBody);
 
       container.appendChild(noteElement);
-    });
-  }
-
-  function filterKanbanItems(searchTerm) {
-    const items = document.querySelectorAll('.kanban-item');
-    items.forEach(item => {
-      const itemTitle = item.textContent.toLowerCase();
-      if (itemTitle.includes(searchTerm.toLowerCase())) {
-        item.style.display = 'block'; // Exibe o item se corresponder ao termo de pesquisa
-      } else {
-        item.style.display = 'none'; // Oculta o item se não corresponder
-      }
     });
   }
 
