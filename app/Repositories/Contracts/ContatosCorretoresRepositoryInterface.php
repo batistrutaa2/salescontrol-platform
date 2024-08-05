@@ -11,4 +11,5 @@ interface ContatosCorretoresRepositoryInterface
   public function updateLeadTemperature($idMailing, $temperatura);
   public function getClientInfo($idMailing);
   public function updateTemperatureAndTabulation(string $temperatura, string $idMailing, string $tabulacao_id);
+  public function getRemarketingLeads(string $empresa_id);
 }

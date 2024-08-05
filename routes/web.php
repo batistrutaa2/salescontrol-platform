@@ -52,4 +52,7 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/updateClient', [Comercial::class, 'updateClient'])->name('comercial.updateClient');
   Route::post('/comercial/saveComment', [Comercial::class, 'saveComment'])->name('comercial.saveComment');
   Route::get('/comercial/remarketing', [Comercial::class, 'remarketing'])->name('comercial.remarketing');
+  Route::get('/comercial/getRemarketingLeads', [Comercial::class, 'getRemarketingLeads'])->name('comercial.getRemarketingLeads');
+  Route::get('/comercial/abrir-remarketing/{idMailing}', [Comercial::class, 'openLeadRemarketing'])->name('comercial.openLeadRemarketing');
+  Route::post('/comercial/transferContact', [Comercial::class, 'transferContact'])->name('comercial.transferContact');
 });

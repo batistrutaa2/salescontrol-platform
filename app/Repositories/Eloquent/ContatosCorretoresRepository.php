@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Models\ContatosCorretores;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
@@ -179,5 +180,16 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
     } catch (\Throwable $th) {
       return false;
     }
+  }
+
+  public function getRemarketingLeads(string $empresa_id)
+  {
+    $results = $this->model::leftJoin('contatos as b', 'contatos_corretores.contato_id', '=', 'b.id')
+      ->select('b.id', 'b.nome_cliente', 'b.email', 'b.telefone1', 'contatos_corretores.updated_at')
+      ->where('contatos_corretores.empresa_id', $empresa_id)
+      ->where('contatos_corretores.tabulacao_id', Tabulations::REMARKETING)
+      ->get();
+
+    return $results;
   }
 }

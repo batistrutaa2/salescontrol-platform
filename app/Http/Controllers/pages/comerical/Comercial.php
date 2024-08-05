@@ -16,6 +16,7 @@ use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\UsuariosRepository;
 use App\UseCases\ComercialUseCase;
+use Dotenv\Util\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -239,5 +240,30 @@ class Comercial extends Controller
   public function remarketing()
   {
     return view('content.pages.comercial.remarketing');
+  }
+
+
+  public function getRemarketingLeads()
+  {
+    $contatos = $this->repositoryContatosCorretoresRepository->getRemarketingLeads(Auth::user()->empresa_id);
+    return response()->json($contatos);
+  }
+
+  public function openLeadRemarketing(string $id_mailing)
+  {
+    $comments = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
+    $contact = $this->contatosRepository->find($id_mailing);
+    $user = $this->usuariosRepository->usersAccordingToPermission(Auth::user()->role->id, Auth::user()->empresa_id, Auth::user()->id);
+
+    return view('content.pages.comercial.openRemarketing', [
+      'comments' => $comments,
+      'client' => $contact,
+      'users' => $user
+    ]);
+  }
+
+  public function transferContact(Request $request)
+  {
+    dd($request->all());
   }
 }

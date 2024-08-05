@@ -10,6 +10,7 @@ class Tabulations
   const DOCUMENTO = 4;
   const NEGOCIO_FECHADO = 5;
   const NEGOCIO_NAO_FECHADO = 6;
+  const REMARKETING = 10;
 
 
 
@@ -20,6 +21,7 @@ class Tabulations
     self::DOCUMENTO => 4,
     self::NEGOCIO_FECHADO => 5,
     self::NEGOCIO_NAO_FECHADO => 6,
+    self::REMARKETING => 10,
   ];
 
   public static function getUserRoleID(string $role): string
