@@ -273,9 +273,9 @@ class Comercial extends Controller
   }
 
 
-  public function getCommentsLegacy(string $cpf, string $telefone1, string $telefone2, string $telefone3)
+  public function getCommentsLegacy(string $cpf)
   {
-    $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy($cpf,  $telefone1,  $telefone2,  $telefone3);
+    $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy($cpf);
     return response()->json($commentsLegacy);
   }
 }

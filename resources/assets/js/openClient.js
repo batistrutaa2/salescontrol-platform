@@ -45,32 +45,57 @@
   }
 
   document.getElementById('js-importContatos').addEventListener('click', function () {
-    var cpf = document.getElementById('cpf');
-    var telefone1 = document.getElementById('telefone1');
-    var telefone2 = document.getElementById('telefone2');
-    var telefone3 = document.getElementById('telefone3');
+    var cpf = document.getElementById('cpf').value;
+    console.log(cpf);
 
-    fetch(
-      '/comercial/getCommentsLegacy/' +
-        cpf.value +
-        '/' +
-        telefone1.value +
-        '/' +
-        telefone2.value +
-        '/' +
-        telefone3.value,
-      {
-        method: 'GET'
-      }
-    )
+    fetch('/comercial/getCommentsLegacy/' + cpf, {
+      method: 'GET'
+    })
       .then(response => response.json())
       .then(data => {
-        console.log(data);
+        data.forEach(item => {
+          updateTimeline(data);
+        });
       })
       .catch(error => {
         console.error('Erro:', error);
       });
   });
+
+  function updateTimeline(newData) {
+    const timelineList = document.getElementById('timeline-list');
+    timelineList.innerHTML = '';
+    newData.forEach(item => {
+      const timelineItem = createTimelineItem(item);
+      timelineList.appendChild(timelineItem);
+    });
+  }
+
+  function truncate(text, limit) {
+    if (text && text.length > limit) {
+      return text.substring(0, limit) + '...';
+    }
+    return text || '';
+  }
+
+  function createTimelineItem(item) {
+    const li = document.createElement('li');
+    li.className = 'timeline-item timeline-item-transparent border-primary';
+    li.innerHTML = `
+        <span class="timeline-point timeline-point-primary"></span>
+        <div class="timeline-event">
+            <div class="timeline-header mb-1">
+                <h6 class="mb-0">Feito por:${truncate(item.nome_autor, 10)}
+                    <span class="badge bg-label-success">Sistema legado</span>
+                </h6>
+              <small class="text-muted">${item.created_at || 'Data não disponível'}</small>
+            </div>
+            <p class="mt-1 mb-3">${item.anotacao || 'Nenhuma anotação'}</p>
+        </div>
+    `;
+
+    return li;
+  }
 
   document.getElementById('saveComment').addEventListener('submit', function (event) {
     event.preventDefault();

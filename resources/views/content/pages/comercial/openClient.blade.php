@@ -46,8 +46,12 @@
 
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Informações Pessoais</h5>
-                        <button class="btn btn--twitter btn-primary ms-auto js-importContatos"
-                            id="js-importContatos">Importar Comentários (legado)</button>
+
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#modalcomments" id="js-importContatos">
+                            Importar Comentários (legado)
+                        </button>
+
                     </div>
                     <form method="POST" action="{{ route('comercial.updateClient') }}">
                         @csrf
@@ -138,8 +142,8 @@
                                     <div class="form-floating form-floating-outline">
                                         <input type="text" class="form-control" id="ecommerce-product-barcode"
                                             {{ $editingPermission == false ? 'disabled' : '' }}
-                                            value="{{ $client->categoria }}" placeholder="Black infinity" name="cartegoria"
-                                            aria-label="Product barcode">
+                                            value="{{ $client->categoria }}" placeholder="Black infinity"
+                                            name="cartegoria" aria-label="Product barcode">
                                         <label for="ecommerce-product-name">Cartegoria</label>
                                     </div>
                                 </div>
@@ -287,6 +291,33 @@
             </div>
         </div>
     </div>
+
+    <div class="modal-onboarding modal fade animate__animated" id="modalcomments" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content text-center">
+                <div class="modal-header border-0">
+                    <a class="text-muted close-label" href="javascript:void(0);" data-bs-dismiss="modal">Anotações
+                        Sistema (LEGADO)</a>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                    </button>
+                </div>
+                <div class="modal-body onboarding-horizontal p-0">
+                    <div class="card col-10 p-5 m-5">
+                        <div class="card-body mt-3">
+                            <ul class="timeline pb-0 mb-0" id="timeline-list">
+
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary">Importar comentarios</button>
+                </div>
+            </div>
+        </div>
     </div>
+
+
 
 @endsection
