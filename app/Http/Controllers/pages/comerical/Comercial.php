@@ -5,11 +5,13 @@ namespace App\Http\Controllers\pages\comerical;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Http\Controllers\Controller;
+use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ComentariosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\ContatosRepository;
@@ -28,6 +30,7 @@ class Comercial extends Controller
   protected ContatosRepository  $contatosRepository;
   protected ComentariosRepository  $comentariosRepository;
   protected UsuariosRepository  $usuariosRepository;
+  protected ComentariosLegadosRepository  $comentariosLegadosRepository;
 
   protected ComercialUseCase  $comercialUseCase;
 
@@ -36,7 +39,8 @@ class Comercial extends Controller
     TabulacoesRepositoryInterface $TabulacoesRepositoryInterface,
     ContatosRepositoryInterface $contatosRepositoryInterface,
     ComentariosRepositoryInterface $comentariosRepositoryInterface,
-    UsuariosRepositoryInterface $usuariosRepositoryInterface
+    UsuariosRepositoryInterface $usuariosRepositoryInterface,
+    ComentariosLegadosRepositoryInterface $comentariosLegadosRepositoryInterface
   ) {
     //Repositories
     $this->repositoryContatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
@@ -44,6 +48,7 @@ class Comercial extends Controller
     $this->contatosRepository = $contatosRepositoryInterface;
     $this->comentariosRepository = $comentariosRepositoryInterface;
     $this->usuariosRepository = $usuariosRepositoryInterface;
+    $this->comentariosLegadosRepository = $comentariosLegadosRepositoryInterface;
 
     //UseCases
     $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface);
@@ -265,5 +270,12 @@ class Comercial extends Controller
   public function transferContact(Request $request)
   {
     dd($request->all());
+  }
+
+
+  public function getCommentsLegacy(string $cpf, string $telefone1, string $telefone2, string $telefone3)
+  {
+    $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy($cpf,  $telefone1,  $telefone2,  $telefone3);
+    return response()->json($commentsLegacy);
   }
 }

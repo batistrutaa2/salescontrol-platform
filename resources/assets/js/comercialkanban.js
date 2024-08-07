@@ -129,7 +129,7 @@
       "<div class='dropdown kanban-tasks-item-dropdown'>" +
       "<i class='dropdown-toggle ri-more-2-line ri-20px text-muted' id='kanban-tasks-item-dropdown' data-bs-toggle='dropdown' aria-haspopup='true' aria-expanded='false'></i>" +
       "<div class='dropdown-menu dropdown-menu-end' aria-labelledby='kanban-tasks-item-dropdown'>" +
-      "<a class='dropdown-item' href='/comercial/openClient/" +
+      "<a class='dropdown-item' href='/comercial/abrir-cliente/" +
       idMailing +
       "'>Abrir Cliente</a>" +
       '</div>' +

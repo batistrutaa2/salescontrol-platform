@@ -48,11 +48,12 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/changeStatusLead/kanban/changeStatusLead', [Comercial::class, 'changeStatusLead'])->name('comercial.changeStatusLead');
   Route::post('/comercial/saveNoteMailing', [Comercial::class, 'saveNoteMailing'])->name('comercial.saveNoteMailing');
   Route::get('/comercial/getCommentsLead/{id_mailing}', [Comercial::class, 'getCommentsLead'])->name('comercial.getCommentsLead');
-  Route::get('/comercial/openClient/{id_mailing}', [Comercial::class, 'openClient'])->name('comercial.openClient');
+  Route::get('/comercial/abrir-cliente/{id_mailing}', [Comercial::class, 'openClient'])->name('comercial.openClient');
   Route::post('/comercial/updateClient', [Comercial::class, 'updateClient'])->name('comercial.updateClient');
   Route::post('/comercial/saveComment', [Comercial::class, 'saveComment'])->name('comercial.saveComment');
   Route::get('/comercial/remarketing', [Comercial::class, 'remarketing'])->name('comercial.remarketing');
   Route::get('/comercial/getRemarketingLeads', [Comercial::class, 'getRemarketingLeads'])->name('comercial.getRemarketingLeads');
   Route::get('/comercial/abrir-remarketing/{idMailing}', [Comercial::class, 'openLeadRemarketing'])->name('comercial.openLeadRemarketing');
   Route::post('/comercial/transferContact', [Comercial::class, 'transferContact'])->name('comercial.transferContact');
+  Route::get('/comercial/getCommentsLegacy/{idMailing}/{cpf}/{telefone1?}/{telefone2?}/{telefone3?}', [Comercial::class, 'getCommentsLegacy'])->name('comercial.getCommentsLegacy');
 });

@@ -43,8 +43,11 @@
             <div class="col-12 col-lg-8">
                 <!-- Product Information -->
                 <div class="card mb-6">
-                    <div class="card-header">
-                        <h5 class="card-tile mb-0">Informações Pessoais</h5>
+
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Informações Pessoais</h5>
+                        <button class="btn btn--twitter btn-primary ms-auto js-importContatos"
+                            id="js-importContatos">Importar Comentários (legado)</button>
                     </div>
                     <form method="POST" action="{{ route('comercial.updateClient') }}">
                         @csrf
@@ -86,7 +89,7 @@
 
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                        <input type="text" class="form-control" id="cpf"
                                             {{ $editingPermission == false ? 'disabled' : '' }}
                                             value="{{ $client->cpf }}" placeholder="154.548.545/54" name="cpf"
                                             aria-label="Product barcode">
@@ -153,7 +156,7 @@
                             <div class="row gx-5 mb-5">
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control" id="ecommerce-product-sku"
+                                        <input type="text" class="form-control" id="telefone1"
                                             value="{{ $client->telefone1 }}" placeholder="(99) 95844-1559"
                                             name="telefone1" aria-label="Email Cliente">
                                         <label for="ecommerce-product-sku">Telefone Principal</label>
@@ -161,7 +164,7 @@
                                 </div>
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                        <input type="text" class="form-control" id="telefone2"
                                             value="{{ $client->telefone2 }}" placeholder="(99) 95844-1559"
                                             name="telefone2" aria-label="Product barcode">
                                         <label for="ecommerce-product-name">Telefone Comercial</label>
@@ -169,7 +172,7 @@
                                 </div>
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                        <input type="text" class="form-control" id="telefone3"
                                             value="{{ $client->telefone3 }}" placeholder="(99) 95844-1559"
                                             name="telefone3" aria-label="Product barcode">
                                         <label for="ecommerce-product-name">Telefone Adicional</label>

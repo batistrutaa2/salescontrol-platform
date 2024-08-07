@@ -44,6 +44,34 @@
     });
   }
 
+  document.getElementById('js-importContatos').addEventListener('click', function () {
+    var cpf = document.getElementById('cpf');
+    var telefone1 = document.getElementById('telefone1');
+    var telefone2 = document.getElementById('telefone2');
+    var telefone3 = document.getElementById('telefone3');
+
+    fetch(
+      '/comercial/getCommentsLegacy/' +
+        cpf.value +
+        '/' +
+        telefone1.value +
+        '/' +
+        telefone2.value +
+        '/' +
+        telefone3.value,
+      {
+        method: 'GET'
+      }
+    )
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+      });
+  });
+
   document.getElementById('saveComment').addEventListener('submit', function (event) {
     event.preventDefault();
 
