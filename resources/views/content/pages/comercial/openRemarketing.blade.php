@@ -270,12 +270,11 @@
                                 <select class="select2  form-select" id="label" name="user_id" value="">
                                     @foreach ($users as $user)
                                         <option value="{{ $user->id }}">
-                                            {{ $user->name }}
+                                            {{ strtoupper($user->name) }}
                                         </option>
                                     @endforeach
                                 </select>
                             </div>
-
                             <div>
                                 <button class="btn btn-danger   btn--twitter mt-5">Transferir contato</button>
                             </div>
