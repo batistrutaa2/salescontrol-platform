@@ -45,7 +45,6 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
-        ->where('contatos_corretores.user_id', 1)
         ->where('contatos_corretores.empresa_id', $empresa_id)
         ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at')
         ->orderBy('contatos.created_at', 'desc')
