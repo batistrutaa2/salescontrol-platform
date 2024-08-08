@@ -46,13 +46,14 @@ class MailingUseCase
         $importedContacts = $this->contatosRepository->getNewlyImportedBase($uniqueIdBase);
 
         $newRelationship = collect();
-        
+
         foreach ($importedContacts as $contato) {
           $newRelationship->push([
             'empresa_id' => $contato->empresa_id,
             'contato_id' => $contato->id,
             'user_id' => $request->id_user,
             'tabulacao_id' => Tabulations::PROSPECCAO,
+            'temperatura' => "FRIO",
             'created_at' => now(),
             'updated_at' => now(),
           ]);

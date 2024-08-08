@@ -46,8 +46,6 @@
 
   document.getElementById('js-importContatos').addEventListener('click', function () {
     var cpf = document.getElementById('cpf').value;
-    console.log(cpf);
-
     fetch('/comercial/getCommentsLegacy/' + cpf, {
       method: 'GET'
     })

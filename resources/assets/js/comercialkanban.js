@@ -137,14 +137,21 @@
     );
   }
   // Render header
-  function renderHeader(color, text, idMailing) {
+  function renderHeader(color, text, idMailing, colorTime, messageTime) {
     return (
       "<div class='d-flex justify-content-between flex-wrap align-items-center mb-2'>" +
-      "<div class='item-badges d-flex'> " +
+      "<div class='item-badges d-flex'>" +
       "<div class='badge rounded-pill bg-label-" +
       color +
       "'> " +
       text +
+      '</div>' +
+      '</div>' +
+      "<div class='item-badges d-flex'>" +
+      "<div class='badge rounded-pill bg-label-" +
+      colorTime +
+      "'> " +
+      messageTime +
       '</div>' +
       '</div>' +
       renderDropdown(idMailing) +
@@ -378,6 +385,8 @@
   if (kanbanItem) {
     kanbanItem.forEach(function (el) {
       let elementCard = el;
+      let colorTime = '';
+      let messageTime = '';
       let idMailing = elementCard.getAttribute('data-eid');
       const element = "<span class='kanban-text'>" + el.textContent + '</span>';
       let img = '';
@@ -389,11 +398,28 @@
           el.getAttribute('data-image') +
           "'>";
       }
+
+      if (el.getAttribute('data-time_expired') == 'false') {
+        colorTime = 'success';
+        messageTime = 'Dentro do prazo';
+      } else {
+        colorTime = 'danger';
+        messageTime = 'Fora do prazo';
+      }
+
       el.textContent = '';
       if (el.getAttribute('data-badge') !== undefined && el.getAttribute('data-badge-text') !== undefined) {
         el.insertAdjacentHTML(
           'afterbegin',
-          renderHeader(el.getAttribute('data-badge'), el.getAttribute('data-badge-text'), idMailing) + img + element
+          renderHeader(
+            el.getAttribute('data-badge'),
+            el.getAttribute('data-badge-text'),
+            idMailing,
+            colorTime,
+            messageTime
+          ) +
+            img +
+            element
         );
       }
       if (

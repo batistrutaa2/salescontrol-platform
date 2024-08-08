@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\pages\comerical;
 
+use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Http\Controllers\Controller;
@@ -22,6 +23,7 @@ use Dotenv\Util\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class Comercial extends Controller
 {
@@ -82,7 +84,7 @@ class Comercial extends Controller
 
       $items = $contacts->filter(function ($contact) use ($tabulation) {
         return $contact->id == $tabulation['id'];
-      })->map(function ($contact) {
+      })->map(function ($contact) use ($tabulation) {
         return [
           'id' =>  $contact->idContato,
           'title' => $contact->nome_cliente,
@@ -102,7 +104,8 @@ class Comercial extends Controller
           'email' =>  $contact->email,
           'temperatura' => $contact->temperatura,
           'valor' =>  $contact->valor_plano_atual,
-          'user-id' => $contact->user_id
+          'user-id' => $contact->user_id,
+          'time_expired' => $this->arriveExpirationTime($contact->updated_at, $tabulation['id'])
         ];
       })->values()->toArray();
 
@@ -114,6 +117,23 @@ class Comercial extends Controller
     }
 
     return $boardData;
+  }
+
+  public function arriveExpirationTime(string $dataTime, string $tabulationId)
+  {
+    $dataUpdateLead = Carbon::createFromFormat('d/m/Y H:i:s', $dataTime)->startOfDay();
+    $dataCurrent = Carbon::now()->startOfDay();
+    $differenceInDays = (int) $dataUpdateLead->diffInDays($dataCurrent);
+
+    if ($tabulationId == Tabulations::PROSPECCAO) {
+      return $differenceInDays > 5;
+    } elseif ($tabulationId == Tabulations::REUNIÃO) {
+      return $differenceInDays > 5;
+    } elseif ($tabulationId == Tabulations::NEGOCIAÇÃO) {
+      return $differenceInDays > 15;
+    } else {
+      return false;
+    }
   }
 
   public function changeStatusLead(Request $request)

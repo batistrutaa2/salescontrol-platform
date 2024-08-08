@@ -46,7 +46,6 @@
                 </div>
                 @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER')
                     <div class="form-floating form-floating-outline flex-fill ms-2">
-
                         <select class=" form-select" id="user-filter" name="temperatura">
                             <option value="">
                                 Selecione o corretor

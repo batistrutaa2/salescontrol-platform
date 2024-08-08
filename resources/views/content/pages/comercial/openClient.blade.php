@@ -49,7 +49,7 @@
 
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                             data-bs-target="#modalcomments" id="js-importContatos">
-                            Importar Comentários (legado)
+                            Visualizar Anotações (legado)
                         </button>
 
                     </div>
@@ -312,12 +312,8 @@
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Importar comentarios</button>
                 </div>
             </div>
         </div>
     </div>
-
-
-
 @endsection

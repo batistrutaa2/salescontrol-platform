@@ -44,7 +44,6 @@ class Mailing extends Controller
 
   public function importaMailing(Request $request)
   {
-
     try {
       $validator = Validator::make($request->all(), $this->rulesUpload);
       if ($validator->fails()) {
