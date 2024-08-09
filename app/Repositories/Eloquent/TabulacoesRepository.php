@@ -17,6 +17,6 @@ class TabulacoesRepository implements TabulacoesRepositoryInterface
 
   public function getTabulationsCompanieCommercial($empresa_id)
   {
-    return $this->model->select(['id', 'descricao'])->where('empresa_id', $empresa_id)->where('status', 'Y')->where('tipo_tabulacao', 'C')->get();
+    return $this->model->select(['id', 'descricao', 'ordem_kanban'])->where('empresa_id', $empresa_id)->where('status', 'Y')->where('tipo_tabulacao', 'C')->get();
   }
 }

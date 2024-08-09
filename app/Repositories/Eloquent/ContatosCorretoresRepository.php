@@ -6,6 +6,7 @@ use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Models\ContatosCorretores;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterface
@@ -53,6 +54,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       return $this->model::select(
         'tabulacoes.id',
         'tabulacoes.descricao as title',
+        'tabulacoes.ordem_kanban',
         'contatos.id as idContato',
         'contatos.nome_cliente',
         'contatos.data_nascimento',
@@ -74,7 +76,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
-        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at')
+        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban')
         ->orderBy('contatos.created_at', 'desc')
         ->get();
     } elseif ($rulerUser == UserRole::VENDEDOR) {
@@ -102,7 +104,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
-        ->where('contatos_corretores.user_id', auth()->user()->id)
+        ->where('contatos_corretores.user_id', Auth::user()->id)
         ->where('contatos_corretores.empresa_id', $empresa_id)
         ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at')
         ->orderBy('contatos.created_at', 'desc')
@@ -194,4 +196,9 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
 
     return $results;
   }
+
+  public function getTabulationId($idMailing) {
+    return $this->model->select('tabulacao_id')->where('contato_id', $idMailing)->first();
+  }
+
 }

@@ -63,7 +63,7 @@
                                     {{ $editingPermission == false ? 'disabled' : '' }} value="{{ $client->nome_cliente }}">
                                     @foreach ($tabulations as $tabulation)
                                         <option value="{{ $tabulation->id }}"
-                                            {{ $tabulation->id == $client->tabulacao_id ? 'selected' : '' }}>
+                                            {{ $tabulation->id == $tabulationCurrent ? 'selected' : '' }}>
                                             {{ $tabulation->descricao }}
                                         </option>
                                     @endforeach

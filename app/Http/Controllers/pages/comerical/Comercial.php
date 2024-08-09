@@ -68,7 +68,7 @@ class Comercial extends Controller
 
   public function getClientComercial()
   {
-    $contacts = $this->repositoryContatosCorretoresRepository->getClientComercial(auth()->user()->user_role_id, auth()->user()->empresa_id);
+    $contacts = $this->repositoryContatosCorretoresRepository->getClientComercial(Auth::user()->user_role_id, Auth::user()->empresa_id);
     $structuredData = $this->structureBoardData($contacts);
 
     return response()->json($structuredData);
@@ -80,11 +80,13 @@ class Comercial extends Controller
 
     $boardData = [];
 
+
     foreach ($status as $tabulation) {
 
       $items = $contacts->filter(function ($contact) use ($tabulation) {
         return $contact->id == $tabulation['id'];
       })->map(function ($contact) use ($tabulation) {
+
         return [
           'id' =>  $contact->idContato,
           'title' => $contact->nome_cliente,
@@ -106,15 +108,21 @@ class Comercial extends Controller
           'valor' =>  $contact->valor_plano_atual,
           'user-id' => $contact->user_id,
           'time_expired' => $this->arriveExpirationTime($contact->updated_at, $tabulation['id'])
+
         ];
       })->values()->toArray();
 
       $boardData[] = [
         'id' =>  Helpers::normalizeStatusName($tabulation['id']),
         'title' => $tabulation['descricao'],
+        'order' => $tabulation['ordem_kanban'],
         'item' => $items
       ];
     }
+
+    usort($boardData, function ($a, $b) {
+      return strcmp($a['order'], $b['order']);
+    });
 
     return $boardData;
   }
@@ -202,6 +210,7 @@ class Comercial extends Controller
     $clientInfo = $this->repositoryContatosCorretoresRepository->getClientInfo($id_mailing);
     $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
     $tabulations = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
+    $tabulationCurrent = $this->repositoryContatosCorretoresRepository->getTabulationId($id_mailing);
 
     $permiteEdition = false;
     if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
@@ -213,6 +222,7 @@ class Comercial extends Controller
       'comments' => $commentsMailing,
       'editingPermission' => $permiteEdition,
       'tabulations' => $tabulations,
+      'tabulationCurrent' => $tabulationCurrent->tabulacao_id
     ]);
   }
 
