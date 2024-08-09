@@ -6,6 +6,38 @@
 // Javascript to handle the e-commerce product add page
 
 (function () {
+  const inputcpf = document.querySelector('#cpf');
+  new Cleave(inputcpf, {
+    delimiters: ['.', '.', '-'],
+    blocks: [3, 3, 3, 2],
+    uppercase: true
+  });
+
+  const telefones = document.querySelectorAll('.mask-telefone');
+  telefones.forEach(mask => {
+    new Cleave(mask, {
+      delimiters: ['(', ') ', '-', ''],
+      blocks: [0, 2, 5, 4],
+      numericOnly: true
+    });
+  });
+
+  const inputValorPlano = document.getElementById('valor_plano_atual');
+
+  if (inputValorPlano) {
+    let valorPlano = parseFloat(inputValorPlano.value);
+
+    if (!isNaN(valorPlano)) {
+      // Formata o valor para moeda brasileira
+      let valorFormatado = new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(valorPlano);
+
+      inputValorPlano.value = valorFormatado;
+    }
+  }
+
   select2 = $('.select2');
   if (select2.length) {
     function renderLabels(option) {
@@ -91,7 +123,6 @@
             <p class="mt-1 mb-3">${item.anotacao || 'Nenhuma anotação'}</p>
         </div>
     `;
-
     return li;
   }
 

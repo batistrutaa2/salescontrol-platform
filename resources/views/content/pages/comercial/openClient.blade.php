@@ -7,7 +7,7 @@
 @endsection
 
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/quill/katex.js', 'resources/assets/vendor/libs/quill/quill.js', 'resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/dropzone/dropzone.js', 'resources/assets/vendor/libs/jquery-repeater/jquery-repeater.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js', 'resources/assets/vendor/libs/tagify/tagify.js'])
+    @vite(['resources/assets/vendor/libs/quill/katex.js', 'resources/assets/vendor/libs/quill/quill.js', 'resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/dropzone/dropzone.js', 'resources/assets/vendor/libs/jquery-repeater/jquery-repeater.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js', 'resources/assets/vendor/libs/tagify/tagify.js', 'resources/assets/vendor/libs/cleavejs/cleave.js', 'resources/assets/vendor/libs/cleavejs/cleave-phone.js'])
 @endsection
 
 @section('page-script')
@@ -160,7 +160,7 @@
                             <div class="row gx-5 mb-5">
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control" id="telefone1"
+                                        <input type="text" class="form-control mask-telefone" id="telefone1"
                                             value="{{ $client->telefone1 }}" placeholder="(99) 95844-1559"
                                             name="telefone1" aria-label="Email Cliente">
                                         <label for="ecommerce-product-sku">Telefone Principal</label>
@@ -168,7 +168,7 @@
                                 </div>
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control" id="telefone2"
+                                        <input type="text" class="form-control mask-telefone" id="telefone2"
                                             value="{{ $client->telefone2 }}" placeholder="(99) 95844-1559"
                                             name="telefone2" aria-label="Product barcode">
                                         <label for="ecommerce-product-name">Telefone Comercial</label>
@@ -176,7 +176,7 @@
                                 </div>
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control" id="telefone3"
+                                        <input type="text" class="form-control mask-telefone" id="telefone3"
                                             value="{{ $client->telefone3 }}" placeholder="(99) 95844-1559"
                                             name="telefone3" aria-label="Product barcode">
                                         <label for="ecommerce-product-name">Telefone Adicional</label>
@@ -186,7 +186,7 @@
                                     <div class="form-floating form-floating-outline">
 
                                         <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                            {{ $editingPermission == false ? 'disabled' : '' }}
+                                            {{ $editingPermission == false ? 'disabled' : '' }} id="valor_plano_atual"
                                             value="{{ $client->valor_plano_atual }}" placeholder="R$ 1080.10"
                                             name="valor_plano_atual" aria-label="Product barcode">
                                         <label for="ecommerce-product-name">Valor Atual Investido</label>

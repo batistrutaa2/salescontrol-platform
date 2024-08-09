@@ -3,6 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\UserRole;
+use App\Helpers\Helpers;
 use App\Models\Contatos;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
@@ -18,9 +19,7 @@ class ContatosRepository implements ContatosRepositoryInterface
   }
 
 
-  public function create(array $data)
-  {
-  }
+  public function create(array $data) {}
 
   public function getNewlyImportedBase($idBase)
   {
@@ -62,10 +61,9 @@ class ContatosRepository implements ContatosRepositoryInterface
   {
     try {
       $contact = $this->find($idMailing);
-      $contact->telefone1 = $telefone1;
-      $contact->telefone2 = $telefone2;
-      $contact->telefone3 = $telefone3;
-      return $contact->save();
+      $contact->telefone1 =  Helpers::cleanSpecialCharacters($telefone1);
+      $contact->telefone2 =  Helpers::cleanSpecialCharacters($telefone2);
+      $contact->telefone3 =  Helpers::cleanSpecialCharacters($telefone3);
     } catch (\Throwable $th) {
       return false;
     }
@@ -76,26 +74,25 @@ class ContatosRepository implements ContatosRepositoryInterface
   {
     try {
       $serchClient = ["id" => $data['id']];
-
       if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
         $dataClient = [
           'nome_cliente' => $data['nome_cliente'],
           'email' => $data['email'],
-          'cpf' => $data['cpf'],
+          'cpf' => Helpers::cleanSpecialCharacters($data['cpf']),
           'data_nascimento' => $data['data_nascimento'],
           'plano' => $data['plano'],
           'cartegoria' => $data['cartegoria'],
           'entidade' => $data['entidade'],
-          'telefone1' => $data['telefone1'],
-          'telefone2' => $data['telefone2'],
-          'telefone3' => $data['telefone3'],
+          'telefone1' => Helpers::cleanSpecialCharacters($data['telefone1']),
+          'telefone2' => Helpers::cleanSpecialCharacters($data['telefone2']),
+          'telefone3' => Helpers::cleanSpecialCharacters($data['telefone3']),
           'valor_plano_atual' => $data['valor_plano_atual']
         ];
       } else {
         $dataClient = [
-          'telefone1' => $data['telefone1'],
-          'telefone2' => $data['telefone2'],
-          'telefone3' => $data['telefone3'],
+          'telefone1' => Helpers::cleanSpecialCharacters($data['telefone1']),
+          'telefone2' => Helpers::cleanSpecialCharacters($data['telefone2']),
+          'telefone3' => Helpers::cleanSpecialCharacters($data['telefone3']),
         ];
       }
       $this->model::updateOrCreate($serchClient, $dataClient);
