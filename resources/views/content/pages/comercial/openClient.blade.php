@@ -184,12 +184,22 @@
                                 </div>
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
-
-                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                        <input type="text" class="form-control monetary-field"
+                                            id="ecommerce-product-barcode"
                                             {{ $editingPermission == false ? 'disabled' : '' }} id="valor_plano_atual"
-                                            value="{{ $client->valor_plano_atual }}" placeholder="R$ 1080.10"
-                                            name="valor_plano_atual" aria-label="Product barcode">
+                                            value="{{ number_format($client->valor_plano_atual, 2, ',', '.') }}"
+                                            placeholder="R$ 1080.10" name="valor_plano_atual"
+                                            aria-label="Product barcode">
                                         <label for="ecommerce-product-name">Valor Atual Investido</label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control monetary-field" id="valor_negociacao"
+                                            {{ $editingPermission == false ? 'disabled' : '' }}
+                                            value="{{ number_format($client->valor_negociacao, 2, ',', '.') }}"
+                                            placeholder="R$ 0,00" name="valor_negociacao" aria-label="Valor Negociacao">
+                                        <label for="valor_negociacao">Valor Negociação</label>
                                     </div>
                                 </div>
                             </div>

@@ -26,6 +26,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'tabulacoes.id',
         'tabulacoes.descricao as title',
         'contatos.id as idContato',
+        'tabulacoes.ordem_kanban',
         'contatos.nome_cliente',
         'contatos.data_nascimento',
         'contatos.cpf',
@@ -38,16 +39,18 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.email',
         'contatos.idades',
         'contatos.valor_plano_atual',
+        'contatos.valor_negociacao',
         'contatos_corretores.temperatura',
         'contatos_corretores.user_id',
         'contatos_corretores.updated_at',
+        'contatos_corretores.created_at',
         DB::raw('COUNT(comentarios.id) as qt_comentarios')
       )
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
         ->where('contatos_corretores.empresa_id', $empresa_id)
-        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at')
+        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at',  'tabulacoes.ordem_kanban', 'contatos_corretores.created_at')
         ->orderBy('contatos.created_at', 'desc')
         ->get();
     } elseif ($rulerUser == UserRole::DEVELOPER) {
@@ -68,21 +71,24 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.email',
         'contatos.idades',
         'contatos.valor_plano_atual',
+        'contatos.valor_negociacao',
         'contatos_corretores.temperatura',
         'contatos_corretores.user_id',
         'contatos_corretores.updated_at',
+        'contatos_corretores.created_at',
         DB::raw('COUNT(comentarios.id) as qt_comentarios')
       )
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
-        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban')
+        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at')
         ->orderBy('contatos.created_at', 'desc')
         ->get();
     } elseif ($rulerUser == UserRole::VENDEDOR) {
       return $this->model::select(
         'tabulacoes.id',
         'tabulacoes.descricao as title',
+        'tabulacoes.ordem_kanban',
         'contatos.id as idContato',
         'contatos.nome_cliente',
         'contatos.data_nascimento',
@@ -96,9 +102,11 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.email',
         'contatos.idades',
         'contatos.valor_plano_atual',
+        'contatos.valor_negociacao',
         'contatos_corretores.temperatura',
         'contatos_corretores.user_id',
         'contatos_corretores.updated_at',
+        'contatos_corretores.created_at',
         DB::raw('COUNT(comentarios.id) as qt_comentarios')
       )
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
@@ -106,7 +114,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
         ->where('contatos_corretores.user_id', Auth::user()->id)
         ->where('contatos_corretores.empresa_id', $empresa_id)
-        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at')
+        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at')
         ->orderBy('contatos.created_at', 'desc')
         ->get();
     }
@@ -165,7 +173,8 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.telefone1',
         'contatos.telefone2',
         'contatos.telefone3',
-        'contatos.valor_plano_atual'
+        'contatos.valor_plano_atual',
+        'contatos.valor_negociacao'
       )
       ->get();
 
@@ -197,8 +206,8 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
     return $results;
   }
 
-  public function getTabulationId($idMailing) {
+  public function getTabulationId($idMailing)
+  {
     return $this->model->select('tabulacao_id')->where('contato_id', $idMailing)->first();
   }
-
 }

@@ -57,13 +57,15 @@ class ContatosRepository implements ContatosRepositoryInterface
 
 
 
-  public function updateContact($idMailing, $telefone1, $telefone2, $telefone3)
+  public function updateContact($idMailing, $telefone1, $telefone2, $telefone3, $negotiationValue)
   {
     try {
       $contact = $this->find($idMailing);
       $contact->telefone1 =  Helpers::cleanSpecialCharacters($telefone1);
       $contact->telefone2 =  Helpers::cleanSpecialCharacters($telefone2);
       $contact->telefone3 =  Helpers::cleanSpecialCharacters($telefone3);
+      $contact->valor_negociacao = Helpers::formatCurrencyToDecimal($negotiationValue);
+      $contact->save();
     } catch (\Throwable $th) {
       return false;
     }
@@ -86,13 +88,15 @@ class ContatosRepository implements ContatosRepositoryInterface
           'telefone1' => Helpers::cleanSpecialCharacters($data['telefone1']),
           'telefone2' => Helpers::cleanSpecialCharacters($data['telefone2']),
           'telefone3' => Helpers::cleanSpecialCharacters($data['telefone3']),
-          'valor_plano_atual' => $data['valor_plano_atual']
+          'valor_plano_atual' => Helpers::formatCurrencyToDecimal($data['valor_plano_atual']),
+          'valor_negociacao' => Helpers::formatCurrencyToDecimal($data['valor_negociacao'])
         ];
       } else {
         $dataClient = [
           'telefone1' => Helpers::cleanSpecialCharacters($data['telefone1']),
           'telefone2' => Helpers::cleanSpecialCharacters($data['telefone2']),
           'telefone3' => Helpers::cleanSpecialCharacters($data['telefone3']),
+          'valor_negociacao' => Helpers::formatCurrencyToDecimal($data['valor_negociacao'])
         ];
       }
       $this->model::updateOrCreate($serchClient, $dataClient);

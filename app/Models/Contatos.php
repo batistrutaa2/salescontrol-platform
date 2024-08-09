@@ -31,6 +31,7 @@ class Contatos extends Model
     'email',
     'idades',
     'valor_plano_atual',
+    'valor_negociacao',
     'created_at',
     'updated_at'
   ];

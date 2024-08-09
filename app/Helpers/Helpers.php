@@ -252,4 +252,30 @@ class Helpers
 
     return trim($string, '-');
   }
+
+  /**
+   * @param $value
+   * @return string
+   */
+  public static function moneyForRealSaveBank($value): string
+  {
+    $value = str_replace('.', '', $value);
+    $value = str_replace('$', '', $value);
+    $value = str_replace('R', '', $value);
+    $value = str_replace(' ', '', $value);
+    return str_replace(',', '.', $value);
+  }
+
+
+  public static function formatCurrencyToDecimal($value)
+  {
+    // Remove o símbolo de R$ e qualquer outro caractere não numérico, exceto o ponto e a vírgula
+    $cleanedValue = preg_replace('/[^0-9,]/', '', $value);
+
+    // Substitui a vírgula por ponto, se necessário
+    $decimalValue = str_replace(',', '.', $cleanedValue);
+
+    // Converte para float ou decimal
+    return (float) $decimalValue;
+  }
 }

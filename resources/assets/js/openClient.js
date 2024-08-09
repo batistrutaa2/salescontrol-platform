@@ -22,21 +22,19 @@
     });
   });
 
-  const inputValorPlano = document.getElementById('valor_plano_atual');
-
-  if (inputValorPlano) {
-    let valorPlano = parseFloat(inputValorPlano.value);
-
-    if (!isNaN(valorPlano)) {
-      // Formata o valor para moeda brasileira
-      let valorFormatado = new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-      }).format(valorPlano);
-
-      inputValorPlano.value = valorFormatado;
-    }
-  }
+  const monetaryFields = document.querySelectorAll('.monetary-field');
+  monetaryFields.forEach(function (field) {
+    const rawValue = parseFloat(field.value); // Obtém o valor como número
+    field.value = rawValue.toFixed(2); // Define o valor com 2 casas decimais
+    new Cleave(field, {
+      numeral: true,
+      numeralThousandsGroupStyle: 'thousand',
+      numeralDecimalMark: ',',
+      delimiter: '.',
+      prefix: 'R$ ',
+      numeralDecimalScale: 2
+    });
+  });
 
   select2 = $('.select2');
   if (select2.length) {

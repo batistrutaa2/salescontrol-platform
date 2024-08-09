@@ -40,7 +40,7 @@ class ContatosImport implements ToModel, SkipsEmptyRows,  WithHeadingRow, WithSt
       'data_nascimento' => $row['data_de_nascimento'],
       'cpf' =>  Helpers::cleanSpecialCharacters($row['cpf']),
       'plano' => $row['plano'],
-      'categoria' => $row['cartegoria'], // Corrigi 'cartegoria' para 'categoria'
+      'categoria' => $row['cartegoria'],
       'entidade' => $row['entidade'],
       'telefone1' => Helpers::cleanSpecialCharacters($row['contato_1']),
       'telefone2' => Helpers::cleanSpecialCharacters($row['contato_2']),
@@ -48,6 +48,7 @@ class ContatosImport implements ToModel, SkipsEmptyRows,  WithHeadingRow, WithSt
       'email' => $row['email'],
       'idades' => $row['idades'],
       'valor_plano_atual' => $row['valor'],
+      'valor_negociacao' => 0,
     ]);
   }
 

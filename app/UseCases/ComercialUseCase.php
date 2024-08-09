@@ -2,6 +2,7 @@
 
 namespace App\UseCases;
 
+use App\Helpers\Helpers;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
@@ -29,12 +30,11 @@ class ComercialUseCase
   }
 
 
-  public function saveDataInfo(string $idMailing, string $telefone1, string $telefone2, string $telefone3, string $comment, string $temperature)
+  public function saveDataInfo(string $idMailing, string $telefone1, string $telefone2, string $telefone3, string $comment, string $temperature, $negotiationValue)
   {
     DB::beginTransaction();
     try {
-
-      $this->contatosRepository->updateContact($idMailing, $telefone1, $telefone2, $telefone3);
+      $this->contatosRepository->updateContact($idMailing, $telefone1, $telefone2, $telefone3, $negotiationValue);
       $this->contatosCorretoresRepository->updateLeadTemperature($idMailing, $temperature);
       if ($comment !== "null") {
         $this->comentariosRepository->createComment(Auth::user()->empresa_id, Auth::user()->id, $comment, $idMailing);

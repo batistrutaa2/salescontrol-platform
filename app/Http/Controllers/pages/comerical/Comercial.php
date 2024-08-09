@@ -106,8 +106,9 @@ class Comercial extends Controller
           'email' =>  $contact->email,
           'temperatura' => $contact->temperatura,
           'valor' =>  $contact->valor_plano_atual,
+          'valor_negociacao' =>  $contact->valor_negociacao,
           'user-id' => $contact->user_id,
-          'time_expired' => $this->arriveExpirationTime($contact->updated_at, $tabulation['id'])
+          'time_expired' => $this->arriveExpirationTime($contact->updated_at, $tabulation['id'], $contact->created_at)
 
         ];
       })->values()->toArray();
@@ -127,18 +128,22 @@ class Comercial extends Controller
     return $boardData;
   }
 
-  public function arriveExpirationTime(string $dataTime, string $tabulationId)
+  public function arriveExpirationTime(string $dateTimeUpdate, string $tabulationId, string $dateTimeCreated)
   {
-    $dataUpdateLead = Carbon::createFromFormat('d/m/Y H:i:s', $dataTime)->startOfDay();
+    $dataCreatedLead = Carbon::createFromFormat('d/m/Y H:i:s', $dateTimeCreated)->startOfDay();
+    $dataUpdateLead = Carbon::createFromFormat('d/m/Y H:i:s', $dateTimeUpdate)->startOfDay();
     $dataCurrent = Carbon::now()->startOfDay();
-    $differenceInDays = (int) $dataUpdateLead->diffInDays($dataCurrent);
+
+    $differenceInDaysCreated = (int) $dataCreatedLead->diffInDays($dataCurrent);
+    $differenceInDaysUpdate = (int) $dataUpdateLead->diffInDays($dataCurrent);
+
 
     if ($tabulationId == Tabulations::PROSPECCAO) {
-      return $differenceInDays > 5;
-    } elseif ($tabulationId == Tabulations::REUNIÃO) {
-      return $differenceInDays > 5;
+      return $differenceInDaysCreated > 5;
     } elseif ($tabulationId == Tabulations::NEGOCIAÇÃO) {
-      return $differenceInDays > 15;
+      return $differenceInDaysCreated > 10;
+    } elseif ($tabulationId == Tabulations::DOCUMENTO) {
+      return $differenceInDaysUpdate > 15;
     } else {
       return false;
     }
@@ -179,6 +184,7 @@ class Comercial extends Controller
 
   public function saveNoteMailing(Request $request)
   {
+
     $validator = Validator::make($request->all(), [
       'id_mailing' => 'required|integer'
     ]);
@@ -193,7 +199,8 @@ class Comercial extends Controller
       $request->telefone2,
       $request->telefone3,
       $request->comments,
-      $request->temperatura
+      $request->temperatura,
+      $request->valor_negociacao
     );
   }
 

@@ -14,8 +14,7 @@
     kanbanAddBoardBtn = document.querySelector('.kanban-add-board-btn'),
     datePicker = document.querySelector('#due-date'),
     select2 = $('.select2'),
-    maskcpf = document.querySelector('.mask-cpf');
-  assetsPath = document.querySelector('html').getAttribute('data-assets-path');
+    assetsPath = document.querySelector('html').getAttribute('data-assets-path');
 
   // Init kanban Offcanvas
   const kanbanOffcanvas = new bootstrap.Offcanvas(kanbanSidebar);
@@ -280,12 +279,22 @@
       let telefone3 = element.getAttribute('data-telefone3');
       let email = element.getAttribute('data-email');
       let valorPlano = element.getAttribute('data-valor');
+      let valorNegociacao = element.getAttribute('data-valor_negociacao');
       let temperatura = element.getAttribute('data-temperatura');
 
-      let valorFormatado = new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(parseFloat(valorPlano));
+      const monetaryFields = document.querySelectorAll('.monetary-field');
+      monetaryFields.forEach(function (field) {
+        const rawValue = parseFloat(field.value); // Obtém o valor como número
+        field.value = rawValue.toFixed(2); // Define o valor com 2 casas decimais
+        new Cleave(field, {
+          numeral: true,
+          numeralThousandsGroupStyle: 'thousand',
+          numeralDecimalMark: ',',
+          delimiter: '.',
+          prefix: 'R$ ',
+          numeralDecimalScale: 2
+        });
+      });
 
       kanbanSidebar.querySelector('#id_mailing').value = idMailing;
       kanbanSidebar.querySelector('#title').value = nomeCliente;
@@ -299,17 +308,18 @@
       kanbanSidebar.querySelector('#telefone2').value = telefone2;
       kanbanSidebar.querySelector('#telefone3').value = telefone3;
       kanbanSidebar.querySelector('#telefone3').value = telefone3;
-      kanbanSidebar.querySelector('#valor_plano_atual').value = valorFormatado;
+      kanbanSidebar.querySelector('#valor_plano_atual').value = valorPlano;
+      kanbanSidebar.querySelector('#valor_negociacao').value = valorNegociacao;
 
       const inputcpf = kanbanSidebar.querySelector('#cpf');
       const telefones = kanbanSidebar.querySelectorAll('.mask-telefone');
       telefones.forEach(mask => {
         new Cleave(mask, {
-            delimiters: ['(', ') ', '-', ''],
-            blocks: [0, 2, 5, 4],
-            numericOnly: true
+          delimiters: ['(', ') ', '-', ''],
+          blocks: [0, 2, 5, 4],
+          numericOnly: true
         });
-    });
+      });
 
       new Cleave(inputcpf, {
         delimiters: ['.', '.', '-'],
@@ -324,6 +334,7 @@
 
     buttonClick: function (el, boardId) {}
   });
+
 
   function renderNotes(notes, temperatura) {
     const container = document.getElementById('notes-container');

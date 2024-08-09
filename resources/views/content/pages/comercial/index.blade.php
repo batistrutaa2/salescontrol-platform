@@ -127,24 +127,29 @@
                                 <label for="title">Cartegoria</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone1" class="form-control mask-telefone" placeholder="(11) 99020-5484"
-                                    name="telefone1" />
+                                <input type="text" id="telefone1" class="form-control mask-telefone"
+                                    placeholder="(11) 99020-5484" name="telefone1" />
                                 <label for="title">Telefone Principal</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone2" class="form-control mask-telefone" placeholder="(11) 99020-5484"
-                                    name="telefone2" />
+                                <input type="text" id="telefone2" class="form-control mask-telefone"
+                                    placeholder="(11) 99020-5484" name="telefone2" />
                                 <label for="title">Telefone Adicional</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone3" class="form-control mask-telefone" placeholder="(11) 99020-5484"
-                                    name="telefone3" />
+                                <input type="text" id="telefone3" class="form-control mask-telefone"
+                                    placeholder="(11) 99020-5484" name="telefone3" />
                                 <label for="title">Telefone Adicional</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="valor_plano_atual" class="form-control"
+                                <input type="text" id="valor_plano_atual" class="form-control monetary-field"
                                     placeholder="R$ 197,84" disabled />
                                 <label for="title">Valor do plano atual</label>
+                            </div>
+                            <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" id="valor_negociacao" class="form-control monetary-field"
+                                    placeholder="R$ 197,84" name="valor_negociacao" />
+                                <label for="title">valor da negociação</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
                                 <select class="select2  form-select" id="label" name="temperatura">
