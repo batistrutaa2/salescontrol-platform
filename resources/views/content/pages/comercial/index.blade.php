@@ -1,6 +1,6 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'Kanban - Apps')
+@section('title', 'Lista de Clientes - Kanban')
 
 @section('vendor-style')
     @vite(['resources/assets/vendor/libs/animate-css/animate.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/libs/jkanban/jkanban.scss', 'resources/assets/vendor/libs/toastr/toastr.scss', 'resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/quill/typography.scss', 'resources/assets/vendor/libs/quill/katex.scss', 'resources/assets/vendor/libs/quill/editor.scss'])
@@ -11,7 +11,7 @@
 @endsection
 
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/sweetalert2/sweetalert2.js', 'resources/assets/vendor/libs/toastr/toastr.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js', 'resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/jkanban/jkanban.js', 'resources/assets/vendor/libs/quill/katex.js', 'resources/assets/vendor/libs/quill/quill.js'])
+    @vite(['resources/assets/vendor/libs/sweetalert2/sweetalert2.js', 'resources/assets/vendor/libs/toastr/toastr.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js', 'resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/jkanban/jkanban.js', 'resources/assets/vendor/libs/quill/katex.js', 'resources/assets/vendor/libs/quill/quill.js', 'resources/assets/vendor/libs/cleavejs/cleave.js', 'resources/assets/vendor/libs/cleavejs/cleave-phone.js'])
 @endsection
 
 @section('page-script')
@@ -103,8 +103,8 @@
                                 <label for="title">Data de Nascimento</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="cpf" class="form-control" placeholder="476.338.528.36"
-                                    disabled />
+                                <input type="text" id="cpf" class="form-control mask-cpf"
+                                    placeholder="476.338.528.36" disabled />
                                 <label for="title">CPF / CNPJ</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
@@ -127,17 +127,17 @@
                                 <label for="title">Cartegoria</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone1" class="form-control" placeholder="(11) 99020-5484"
+                                <input type="text" id="telefone1" class="form-control mask-telefone" placeholder="(11) 99020-5484"
                                     name="telefone1" />
                                 <label for="title">Telefone Principal</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone2" class="form-control" placeholder="(11) 99020-5484"
+                                <input type="text" id="telefone2" class="form-control mask-telefone" placeholder="(11) 99020-5484"
                                     name="telefone2" />
                                 <label for="title">Telefone Adicional</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone3" class="form-control" placeholder="(11) 99020-5484"
+                                <input type="text" id="telefone3" class="form-control mask-telefone" placeholder="(11) 99020-5484"
                                     name="telefone3" />
                                 <label for="title">Telefone Adicional</label>
                             </div>
