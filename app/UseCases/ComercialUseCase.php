@@ -30,7 +30,7 @@ class ComercialUseCase
   }
 
 
-  public function saveDataInfo(string $idMailing, string $telefone1, string $telefone2, string $telefone3, string $comment, string $temperature, $negotiationValue)
+  public function saveDataInfo($idMailing,  $telefone1,  $telefone2,  $telefone3,  $comment,  $temperature, $negotiationValue)
   {
     DB::beginTransaction();
     try {

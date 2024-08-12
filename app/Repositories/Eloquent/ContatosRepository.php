@@ -61,9 +61,9 @@ class ContatosRepository implements ContatosRepositoryInterface
   {
     try {
       $contact = $this->find($idMailing);
-      $contact->telefone1 =  Helpers::cleanSpecialCharacters($telefone1);
-      $contact->telefone2 =  Helpers::cleanSpecialCharacters($telefone2);
-      $contact->telefone3 =  Helpers::cleanSpecialCharacters($telefone3);
+      $contact->telefone1 =  Helpers::cleanSpecialCharacters($telefone1) ?? "";
+      $contact->telefone2 =  Helpers::cleanSpecialCharacters($telefone2) ?? "";
+      $contact->telefone3 =  Helpers::cleanSpecialCharacters($telefone3) ?? "";
       $contact->valor_negociacao = Helpers::formatCurrencyToDecimal($negotiationValue);
       $contact->save();
     } catch (\Throwable $th) {
