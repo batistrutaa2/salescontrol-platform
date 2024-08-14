@@ -6,11 +6,30 @@
 // Javascript to handle the e-commerce product add page
 
 (function () {
-  const inputcpf = document.querySelector('#cpf');
-  new Cleave(inputcpf, {
-    delimiters: ['.', '.', '-'],
-    blocks: [3, 3, 3, 2],
-    uppercase: true
+  const inputCpf = document.querySelector('#cpf');
+
+  function applyMaskBasedOnLength(value) {
+    const cleanValue = value.replace(/[.-]/g, '');
+    if (cleanValue.length > 11) {
+      return {
+        delimiters: ['.', '.', '/', '-'],
+        blocks: [2, 3, 3, 4, 2]
+      };
+    } else {
+      return {
+        delimiters: ['.', '.', '-'],
+        blocks: [3, 3, 3, 2]
+      };
+    }
+  }
+
+  let cleave = new Cleave(inputCpf, applyMaskBasedOnLength(inputCpf.value));
+
+  inputCpf.addEventListener('input', function () {
+    const currentMask = applyMaskBasedOnLength(inputCpf.value);
+
+    cleave.destroy();
+    cleave = new Cleave(inputCpf, currentMask);
   });
 
   const telefones = document.querySelectorAll('.mask-telefone');
@@ -23,9 +42,10 @@
   });
 
   const monetaryFields = document.querySelectorAll('.monetary-field');
+
   monetaryFields.forEach(function (field) {
-    const rawValue = parseFloat(field.value); // Obtém o valor como número
-    field.value = rawValue.toFixed(2); // Define o valor com 2 casas decimais
+    let rawValue = field.value;
+    rawValue = rawValue.replace('.', ',');
     new Cleave(field, {
       numeral: true,
       numeralThousandsGroupStyle: 'thousand',

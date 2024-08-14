@@ -182,9 +182,26 @@ class Comercial extends Controller
   }
 
 
+
+  public function updateClient(Request $request)
+  {
+    try {
+      $updateClient =  $this->contatosRepository->updateOrCreate($request->all());
+      $updatetemperature =  $this->repositoryContatosCorretoresRepository->updateTemperatureAndTabulation($request->temperatura, $request->id, $request->tabulacao_id);
+
+      if ($updateClient && $updatetemperature) {
+        return redirect()->back()->with('status', 'success')->with('message', 'Dados atualizados com sucesso.');
+      } else {
+        return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar status.');
+      }
+    } catch (\Throwable $th) {
+      return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar status.');
+    }
+  }
+
+
   public function saveNoteMailing(Request $request)
   {
-
     $validator = Validator::make($request->all(), [
       'id_mailing' => 'required|integer'
     ]);
@@ -233,21 +250,7 @@ class Comercial extends Controller
     ]);
   }
 
-  public function updateClient(Request $request)
-  {
-    try {
-      $updateClient =  $this->contatosRepository->updateOrCreate($request->all());
-      $updatetemperature =  $this->repositoryContatosCorretoresRepository->updateTemperatureAndTabulation($request->temperatura, $request->id, $request->tabulacao_id);
 
-      if ($updateClient && $updatetemperature) {
-        return redirect()->back()->with('status', 'success')->with('message', 'Dados atualizados com sucesso.');
-      } else {
-        return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar status.');
-      }
-    } catch (\Throwable $th) {
-      return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar status.');
-    }
-  }
 
 
   public function saveComment(Request $request)

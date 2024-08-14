@@ -268,6 +268,16 @@
 
       let comentariosArray = await query.json();
 
+      function numberFormat(number, decimals = 2, decPoint = ',', thousandsSep = '.') {
+        if (isNaN(number)) {
+          return '0' + decPoint + '00';
+        }
+        let fixedNumber = Number(number).toFixed(decimals);
+        let [integerPart, decimalPart] = fixedNumber.split('.');
+        integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSep);
+        return integerPart + decPoint + decimalPart;
+      }
+
       let nomeCliente = element.getAttribute('data-nome_cliente');
       let datanascimento = element.getAttribute('data-data_nascimento');
       let cpf = element.getAttribute('data-cpf');
@@ -282,20 +292,6 @@
       let valorNegociacao = element.getAttribute('data-valor_negociacao');
       let temperatura = element.getAttribute('data-temperatura');
 
-      const monetaryFields = document.querySelectorAll('.monetary-field');
-      monetaryFields.forEach(function (field) {
-        const rawValue = parseFloat(field.value); // Obtém o valor como número
-        field.value = rawValue.toFixed(2); // Define o valor com 2 casas decimais
-        new Cleave(field, {
-          numeral: true,
-          numeralThousandsGroupStyle: 'thousand',
-          numeralDecimalMark: ',',
-          delimiter: '.',
-          prefix: 'R$ ',
-          numeralDecimalScale: 2
-        });
-      });
-
       kanbanSidebar.querySelector('#id_mailing').value = idMailing;
       kanbanSidebar.querySelector('#title').value = nomeCliente;
       kanbanSidebar.querySelector('#data_nascimento').value = datanascimento;
@@ -308,10 +304,20 @@
       kanbanSidebar.querySelector('#telefone2').value = telefone2;
       kanbanSidebar.querySelector('#telefone3').value = telefone3;
       kanbanSidebar.querySelector('#telefone3').value = telefone3;
-      kanbanSidebar.querySelector('#valor_plano_atual').value = valorPlano;
-      kanbanSidebar.querySelector('#valor_negociacao').value = valorNegociacao;
+      kanbanSidebar.querySelector('#valor_plano_atual').value = numberFormat(valorPlano);
+      kanbanSidebar.querySelector('#valor_negociacao').value = numberFormat(valorNegociacao);
 
       const inputcpf = kanbanSidebar.querySelector('#cpf');
+
+      let cleave = new Cleave(inputcpf, applyMaskBasedOnLength(inputcpf.value));
+
+      inputcpf.addEventListener('input', function () {
+        const currentMask = applyMaskBasedOnLength(inputCpf.value);
+
+        cleave.destroy();
+        cleave = new Cleave(inputCpf, currentMask);
+      });
+
       const telefones = kanbanSidebar.querySelectorAll('.mask-telefone');
       telefones.forEach(mask => {
         new Cleave(mask, {
@@ -321,10 +327,34 @@
         });
       });
 
-      new Cleave(inputcpf, {
-        delimiters: ['.', '.', '-'],
-        blocks: [3, 3, 3, 2],
-        uppercase: true
+      function applyMaskBasedOnLength(value) {
+        const cleanValue = value.replace(/[.-]/g, '');
+        if (cleanValue.length > 11) {
+          return {
+            delimiters: ['.', '.', '/', '-'],
+            blocks: [2, 3, 3, 4, 2]
+          };
+        } else {
+          return {
+            delimiters: ['.', '.', '-'],
+            blocks: [3, 3, 3, 2]
+          };
+        }
+      }
+
+      const monetaryFields = document.querySelectorAll('.monetary-field');
+
+      monetaryFields.forEach(function (field) {
+        let rawValue = field.value;
+        rawValue = rawValue.replace('.', ',');
+        new Cleave(field, {
+          numeral: true,
+          numeralThousandsGroupStyle: 'thousand',
+          numeralDecimalMark: ',',
+          delimiter: '.',
+          prefix: 'R$ ',
+          numeralDecimalScale: 2
+        });
       });
 
       $('.kanban-update-item-sidebar').find(select2).val(temperatura).trigger('change');
@@ -334,7 +364,6 @@
 
     buttonClick: function (el, boardId) {}
   });
-
 
   function renderNotes(notes, temperatura) {
     const container = document.getElementById('notes-container');
