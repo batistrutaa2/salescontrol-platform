@@ -9,6 +9,7 @@ use App\Models\ContatosCorretores;
 use App\Repositories\Eloquent\ContatosRepository;
 use Database\Seeders\Tabulacoes;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 
 class MailingUseCase
@@ -26,7 +27,7 @@ class MailingUseCase
     try {
       $uniqueIdBase = Helpers::generateUniqueId();
 
-      $rows = Excel::toArray(new ContatosImport(auth()->user()->id, auth()->user()->empresa_id, $request->base, $uniqueIdBase), $request->file('file'));
+      $rows = Excel::toArray(new ContatosImport(Auth::user()->id, Auth::user()->empresa_id, $request->base, $uniqueIdBase), $request->file('file'));
       foreach ($rows[0] as $row) {
         $cpfs[] = Helpers::cleanSpecialCharacters($row['cpf']);
       }
@@ -41,7 +42,7 @@ class MailingUseCase
         ]);
       } else {
 
-        Excel::import(new ContatosImport(auth()->user()->id, auth()->user()->empresa_id, $request->base, $uniqueIdBase),  $request->file('file'));
+        Excel::import(new ContatosImport(Auth::user()->id, Auth::user()->empresa_id, $request->base, $uniqueIdBase),  $request->file('file'));
 
         $importedContacts = $this->contatosRepository->getNewlyImportedBase($uniqueIdBase);
 

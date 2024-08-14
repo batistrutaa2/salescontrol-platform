@@ -312,7 +312,7 @@ class Comercial extends Controller
 
   public function getCommentsLegacy(string $cpf)
   {
-    $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy($cpf);
+    $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy(Helpers::cleanSpecialCharacters($cpf));
     return response()->json($commentsLegacy);
   }
 }
