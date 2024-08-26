@@ -158,6 +158,18 @@
   }
 
   // Render footer
+  function renderFooterAdmin(nameUser) {
+    return (
+      "<div class='d-flex justify-content-between align-items-center flex-wrap mt-2'>" +
+      "</span> <span class='align-middle'><i class='ri-user-line ri-20px me-1 text-primary'></i>" +
+      '<span> ' +
+      nameUser +
+      ' </span>' +
+      '</span></div>' +
+      '</div>'
+    );
+  }
+
   function renderFooter(attachments, comments, assigned, members) {
     return (
       "<div class='d-flex justify-content-between align-items-center flex-wrap mt-2'>" +
@@ -291,6 +303,7 @@
       let valorPlano = element.getAttribute('data-valor');
       let valorNegociacao = element.getAttribute('data-valor_negociacao');
       let temperatura = element.getAttribute('data-temperatura');
+      let idades = element.getAttribute('data-idades');
 
       kanbanSidebar.querySelector('#id_mailing').value = idMailing;
       kanbanSidebar.querySelector('#title').value = nomeCliente;
@@ -300,6 +313,7 @@
       kanbanSidebar.querySelector('#plano').value = plano;
       kanbanSidebar.querySelector('#entidade').value = entidade;
       kanbanSidebar.querySelector('#cartergoria').value = categoria;
+      kanbanSidebar.querySelector('#idades').value = idades;
       kanbanSidebar.querySelector('#telefone1').value = telefone1;
       kanbanSidebar.querySelector('#telefone2').value = telefone2;
       kanbanSidebar.querySelector('#telefone3').value = telefone3;
@@ -482,11 +496,10 @@
             element
         );
       }
-      if (
-        el.getAttribute('data-comments') !== undefined ||
-        el.getAttribute('data-due-date') !== undefined ||
-        el.getAttribute('data-assigned') !== undefined
-      ) {
+
+      if (el.getAttribute('data-show-name-card') == 'true') {
+        el.insertAdjacentHTML('beforeend', renderFooterAdmin(limitUserName(el.getAttribute('data-user-name'))));
+      } else {
         el.insertAdjacentHTML(
           'beforeend',
           renderFooter(
@@ -498,6 +511,17 @@
         );
       }
     });
+  }
+
+  function limitUserName(userName) {
+    // Verifica se a string tem mais de 10 caracteres
+    if (userName.length > 15) {
+      // Retorna os primeiros 10 caracteres e concatena com "..."
+      return userName.substring(0, 15) + '...';
+    } else {
+      // Retorna a string original se tiver 10 ou menos caracteres
+      return userName;
+    }
   }
 
   // To initialize tooltips for rendered items

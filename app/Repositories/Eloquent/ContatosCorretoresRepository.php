@@ -44,13 +44,15 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos_corretores.user_id',
         'contatos_corretores.updated_at',
         'contatos_corretores.created_at',
+        'users.name as nameVendedor',
         DB::raw('COUNT(comentarios.id) as qt_comentarios')
       )
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
+        ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
         ->where('contatos_corretores.empresa_id', $empresa_id)
-        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at',  'tabulacoes.ordem_kanban', 'contatos_corretores.created_at')
+        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at',  'tabulacoes.ordem_kanban', 'contatos_corretores.created_at', 'nameVendedor')
         ->orderBy('contatos.created_at', 'desc')
         ->get();
     } elseif ($rulerUser == UserRole::DEVELOPER) {
@@ -76,12 +78,14 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos_corretores.user_id',
         'contatos_corretores.updated_at',
         'contatos_corretores.created_at',
+        'users.name as nameVendedor',
         DB::raw('COUNT(comentarios.id) as qt_comentarios')
       )
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
-        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at')
+        ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at', 'nameVendedor')
         ->orderBy('contatos.created_at', 'desc')
         ->get();
     } elseif ($rulerUser == UserRole::VENDEDOR) {
@@ -107,14 +111,16 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos_corretores.user_id',
         'contatos_corretores.updated_at',
         'contatos_corretores.created_at',
+        'users.name as nameVendedor',
         DB::raw('COUNT(comentarios.id) as qt_comentarios')
       )
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
+        ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
         ->where('contatos_corretores.user_id', Auth::user()->id)
         ->where('contatos_corretores.empresa_id', $empresa_id)
-        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at')
+        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at', 'nameVendedor')
         ->orderBy('contatos.created_at', 'desc')
         ->get();
     }

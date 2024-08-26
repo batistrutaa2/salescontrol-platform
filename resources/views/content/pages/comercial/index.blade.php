@@ -127,6 +127,11 @@
                                 <label for="title">Cartegoria</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
+                                <input type="text" id="idades" class="form-control" placeholder="MEDIA"
+                                    disabled />
+                                <label for="title">Idades</label>
+                            </div>
+                            <div class="form-floating form-floating-outline mb-5">
                                 <input type="text" id="telefone1" class="form-control mask-telefone"
                                     placeholder="(11) 99020-5484" name="telefone1" />
                                 <label for="title">Telefone Principal</label>

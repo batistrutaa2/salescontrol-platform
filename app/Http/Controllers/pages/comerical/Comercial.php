@@ -80,12 +80,13 @@ class Comercial extends Controller
 
     $boardData = [];
 
-
     foreach ($status as $tabulation) {
 
       $items = $contacts->filter(function ($contact) use ($tabulation) {
         return $contact->id == $tabulation['id'];
       })->map(function ($contact) use ($tabulation) {
+
+        $typeUser =  $this->showNameUserCard($this->usuariosRepository->getTypeUser(Auth::user()->id));
 
         return [
           'id' =>  $contact->idContato,
@@ -104,12 +105,14 @@ class Comercial extends Controller
           'telefone2' =>  $contact->telefone2,
           'telefone3' =>  $contact->telefone3,
           'email' =>  $contact->email,
+          'idades' =>  $contact->idades,
           'temperatura' => $contact->temperatura,
           'valor' =>  $contact->valor_plano_atual,
           'valor_negociacao' =>  $contact->valor_negociacao,
           'user-id' => $contact->user_id,
+          'user-name' => $contact->nameVendedor,
+          'show-name-card' => $typeUser,
           'time_expired' => $this->arriveExpirationTime($contact->updated_at, $tabulation['id'], $contact->created_at)
-
         ];
       })->values()->toArray();
 
@@ -126,6 +129,14 @@ class Comercial extends Controller
     });
 
     return $boardData;
+  }
+
+  private function showNameUserCard($typeUser): bool
+  {
+    if ($typeUser->user_role_id == UserRole::ADMINISTRATIVO || $typeUser->user_role_id == UserRole::BACKOFFICE) {
+      return true;
+    }
+    return false;
   }
 
   public function arriveExpirationTime(string $dateTimeUpdate, string $tabulationId, string $dateTimeCreated)

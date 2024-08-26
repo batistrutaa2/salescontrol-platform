@@ -8,5 +8,6 @@ interface UsuariosRepositoryInterface
   public function  create(array $data);
   public function  all();
   public function  getUserByCompany($id);
-  public function getUsersFilterType($empresa_id, $rule);
+  public function  getUsersFilterType($empresa_id, $rule);
+  public function  getTypeUser($id);
 }

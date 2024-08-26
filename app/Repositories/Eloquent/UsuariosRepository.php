@@ -66,4 +66,9 @@ class UsuariosRepository implements UsuariosRepositoryInterface
   {
     return $this->model->select('id', 'name')->where('empresa_id', $empresa_id)->where('user_role_id', $rule)->get();
   }
+
+  public function getTypeUser($id)
+  {
+    return $this->model->select('user_role_id')->where('id', $id)->first();
+  }
 }
