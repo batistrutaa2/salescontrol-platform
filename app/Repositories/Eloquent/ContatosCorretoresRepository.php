@@ -173,6 +173,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.telefone1',
         'contatos.telefone2',
         'contatos.telefone3',
+        'contatos.idades',
         'contatos.valor_plano_atual',
         'contatos.valor_negociacao'
       )

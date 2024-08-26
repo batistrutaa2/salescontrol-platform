@@ -154,6 +154,15 @@
                                         <label for="ecommerce-product-name">Entidade</label>
                                     </div>
                                 </div>
+                                <div class="col">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="ecommerce-product-barcode"
+                                            {{ $editingPermission == false ? 'disabled' : '' }}
+                                            value="{{ $client->idades }}" placeholder="Sulamerica" name="idades"
+                                            aria-label="Product barcode">
+                                        <label for="ecommerce-product-name">idades</label>
+                                    </div>
+                                </div>
                             </div>
                             <div class="row gx-5 mb-5">
                                 <div class="col">
