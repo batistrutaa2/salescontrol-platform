@@ -53,7 +53,7 @@ class MailingUseCase
             'empresa_id' => $contato->empresa_id,
             'contato_id' => $contato->id,
             'user_id' => $request->id_user,
-            'tabulacao_id' => Tabulations::PROSPECCAO,
+            'tabulacao_id' => $request->tabulacao,
             'temperatura' => "FRIO",
             'created_at' => now(),
             'updated_at' => now(),

@@ -43,6 +43,16 @@
                         </select>
                         <label for="tipo_user">Selecione um Corretor</label>
                     </div>
+
+                    <div class="form-floating form-floating-outline mb-5">
+                        <select id="tipo_user" class="form-select" name="tabulacao" required>
+                            <option value="">Selecione a Tabulação</option>
+                            @foreach ($tabulacoes as $tabulacao)
+                                <option value="{{ $tabulacao->id }}">{{ strtoupper($tabulacao->descricao) }}</option>
+                            @endforeach
+                        </select>
+                        <label for="tipo_user">Selecione a Tabulação</label>
+                    </div>
                 </form>
 
                 <div class="row">

@@ -25,18 +25,15 @@ Route::middleware(['auth'])->group(function () {
   /** PAGINA INICIAL */
   Route::get('dashboard', [HomePage::class, 'index'])->name('home.dashboard');
 
-
   /** CADASTRO DE EMPRESAS */
   Route::get('/empresas', [Empresa::class, 'index'])->name('empresa.empresa');
   Route::get('/empresas/getAllCompanies', [Empresa::class, 'getAllCompanies'])->name('empresa.getAllCompanies');
   Route::post('/empresas/createCompanies', [Empresa::class, 'createCompanies'])->name('empresa.createCompanies');
 
-
   /** CADASTRO DE USUARIOS */
   Route::get('/usuarios', [Usuarios::class, 'index'])->name('usuarios.index');
   Route::post('/usuarios/createUser', [Usuarios::class, 'createUser'])->name('usuarios.createUser');
   Route::get('/usuarios/getUsers', [Usuarios::class, 'getUsers'])->name('usuarios.getUsers');
-
 
   /** MAILING */
   Route::get('/mailing/importar', [Mailing::class, 'index'])->name('mailing.importMailing');
@@ -57,4 +54,5 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/transferContact', [Comercial::class, 'transferContact'])->name('comercial.transferContact');
   Route::get('/comercial/getCommentsLegacy/{cpf}', [Comercial::class, 'getCommentsLegacy'])->name('comercial.getCommentsLegacy');
   Route::post('/comercial/saveCommentsLegacy', [Comercial::class, 'saveCommentsLegacy'])->name('comercial.saveCommentsLegacy');
+
 });

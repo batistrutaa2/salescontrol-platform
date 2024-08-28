@@ -5,7 +5,9 @@ namespace App\Http\Controllers\pages\mailing;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
+use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Eloquent\TabulacoesRepository;
 use App\UseCases\MailingUseCase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +17,7 @@ class Mailing extends Controller
 {
 
   protected UsuariosRepositoryInterface $usuarioRepository;
+  protected TabulacoesRepository $tabulacoesRepository;
   protected MailingUseCase $mailingUseCase;
   private $rulesUpload = [
     'file' => 'required|string',
@@ -25,20 +28,24 @@ class Mailing extends Controller
 
   public function __construct(
     UsuariosRepositoryInterface $usuariosRepositoryInterface,
-    ContatosRepositoryInterface $contatosRepositoryInterface
+    ContatosRepositoryInterface $contatosRepositoryInterface,
+    TabulacoesRepositoryInterface $tabulacoesRepositoryInterface
   ) {
 
     $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
 
     $this->usuarioRepository = $usuariosRepositoryInterface;
+    $this->tabulacoesRepository = $tabulacoesRepositoryInterface;
   }
 
 
   public function index()
   {
     $users = Auth::user()->role->id == UserRole::DEVELOPER ? $this->usuarioRepository->all() : $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
+    $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
     return view('content.pages.mailing.importMailing', [
-      'users' => $users
+      'users' => $users,
+      'tabulacoes' => $tabulacoes
     ]);
   }
 

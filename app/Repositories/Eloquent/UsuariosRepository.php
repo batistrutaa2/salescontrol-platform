@@ -25,7 +25,7 @@ class UsuariosRepository implements UsuariosRepositoryInterface
 
   public function getUserByCompany($id)
   {
-    return $this->model->where('empresa_id', $id)->get();
+    return $this->model->where('empresa_id', $id)->whereNotIn('user_role_id', [UserRole::BACKOFFICE, UserRole::ADMINISTRATIVO, UserRole::BACKOFFICE])->get();
   }
 
   public function usersAccordingToPermission(string $rule, string $idCompany, string $idUser)
