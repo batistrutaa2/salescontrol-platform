@@ -24,6 +24,7 @@ class VendasRepository implements VendasRepositoryInterface
   public function  create(array $data)
   {
     try {
+      DB::beginTransaction();
       $this->model->create([
         'empresa_id' => Auth::user()->empresa_id,
         'user_id' => Auth::user()->id,
@@ -39,12 +40,14 @@ class VendasRepository implements VendasRepositoryInterface
         'valor_contrato' => Helpers::converterParaDecimal($data['valor_contrato']),
         'obs_contrato' => $data['obs_contrato'],
       ]);
+      DB::commit();
       return true;
     } catch (Exception $ex) {
-      dd($ex->getMessage());
+      DB::rollBack();
       return false;
     }
   }
+
   public function  all() {}
 
   public function vendasDoMesAnoAtual()

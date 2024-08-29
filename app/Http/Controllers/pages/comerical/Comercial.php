@@ -352,7 +352,7 @@ class Comercial extends Controller
         return redirect()->route('sale.listSale')->with('status', 'error')->with('message', 'Falha ao atualizar status.');
       }
     } catch (\Throwable $th) {
-      return redirect()->route('sale.listSale')->with('status', 'error')->with('message', 'Falha ao Cadastrar Venda');
+      return redirect()->back()->with('status', 'error')->with('message', 'Falha ao Cadastrar Venda');
     }
   }
 }

@@ -130,10 +130,9 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
   public function changeStatusLead($data): bool
   {
     try {
+      DB::beginTransaction();
       $card = $this->model->where('contato_id', $data['contato_id'])->first();
-
       if ($card) {
-        // enviando pra fila de remarketing
         if ($data['tabulacao_id'] == Tabulations::NEGOCIO_NAO_FECHADO) {
           $card->tabulacao_id = Tabulations::REMARKETING;
           $card->user_id = null;
@@ -141,10 +140,13 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
           $card->tabulacao_id = $data['tabulacao_id'];
         }
         return $card->save();
+        DB::commit();
       } else {
+        DB::rollBack();
         return false;
       }
     } catch (\Throwable $th) {
+      DB::rollBack();
       return false;
     }
   }
