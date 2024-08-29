@@ -338,7 +338,7 @@ class Comercial extends Controller
   {
     try {
       $saveSale = $this->vendasRepository->create($request->all());
-      
+
       $arrayData = [
         'contato_id' => $request->contato_id,
         'tabulacao_id' => Tabulations::VENDA
@@ -347,12 +347,12 @@ class Comercial extends Controller
       $updateStatusContact = $this->repositoryContatosCorretores->changeStatusLead($arrayData);
 
       if ($saveSale && $updateStatusContact) {
-        return redirect()->back()->with('status', 'success')->with('message', 'Venda Cadastrada com sucesso');
+        return redirect()->route('sale.listSale')->with('status', 'success')->with('message', 'Venda Cadastrada com sucesso');
       } else {
-        return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar status.');
+        return redirect()->route('sale.listSale')->with('status', 'error')->with('message', 'Falha ao atualizar status.');
       }
     } catch (\Throwable $th) {
-      return redirect()->back()->with('status', 'error')->with('message', 'Falha ao Cadastrar Venda');
+      return redirect()->route('sale.listSale')->with('status', 'error')->with('message', 'Falha ao Cadastrar Venda');
     }
   }
 }

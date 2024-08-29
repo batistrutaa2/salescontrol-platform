@@ -2,11 +2,14 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Models\Vendas;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class VendasRepository implements VendasRepositoryInterface
 {
@@ -43,4 +46,29 @@ class VendasRepository implements VendasRepositoryInterface
     }
   }
   public function  all() {}
+
+  public function vendasDoMesAnoAtual()
+  {
+    $currentMonth = Carbon::now()->month;
+    $currentYear = Carbon::now()->year;
+
+    if (Auth::user()->user_role_id == UserRole::VENDEDOR) {
+      return DB::table('vendas as a')
+        ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
+        ->select('a.id', 'a.nome_contrato', 'a.email', 'a.valor_contrato', 'a.data_vigencia', 'b.tabulacao_id as status', 'a.created_at')
+        ->where('a.user_id', Auth::user()->id)
+        ->where('a.empresa_id', Auth::user()->empresa_id)
+        ->whereMonth('a.data_vigencia', $currentMonth)
+        ->whereYear('a.data_vigencia', $currentYear)
+        ->get();
+    } else {
+      return DB::table('vendas as a')
+        ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
+        ->select('a.id', 'a.nome_contrato', 'a.email', 'a.valor_contrato', 'a.data_vigencia', 'b.tabulacao_id as status', 'a.created_at')
+        ->where('a.empresa_id', Auth::user()->empresa_id)
+        ->whereMonth('a.data_vigencia', $currentMonth)
+        ->whereYear('a.data_vigencia', $currentYear)
+        ->get();
+    }
+  }
 }

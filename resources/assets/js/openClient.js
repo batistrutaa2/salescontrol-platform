@@ -6,6 +6,7 @@
 // Javascript to handle the e-commerce product add page
 
 (function () {
+  setupcomponentesCreateSale();
   const inputCpf = document.querySelector('#cpf');
 
   function applyMaskBasedOnLength(value) {
@@ -172,6 +173,80 @@
         }
       })
       .catch(error => {});
+  });
+
+  function setupcomponentesCreateSale() {
+    let inputcpf = document.getElementById('cpf_cnpj');
+
+    let cleave = new Cleave(inputcpf, applyMaskBasedOnLength(inputcpf.value));
+
+    inputcpf.addEventListener('input', function () {
+      const currentMask = applyMaskBasedOnLength(inputcpf.value);
+
+      cleave.destroy();
+      cleave = new Cleave(inputcpf, currentMask);
+    });
+
+    const telefones = document.querySelectorAll('.mask-telefone');
+    telefones.forEach(mask => {
+      new Cleave(mask, {
+        delimiters: ['(', ') ', '-', ''],
+        blocks: [0, 2, 5, 4],
+        numericOnly: true
+      });
+    });
+
+    const monetaryFields = document.querySelectorAll('.monetary-field');
+
+    monetaryFields.forEach(function (field) {
+      let rawValue = field.value;
+      rawValue = rawValue.replace('.', ',');
+      new Cleave(field, {
+        numeral: true,
+        numeralThousandsGroupStyle: 'thousand',
+        numeralDecimalMark: ',',
+        delimiter: '.',
+        prefix: 'R$ ',
+        numeralDecimalScale: 2
+      });
+    });
+  }
+
+  function showModalCadastroVenda() {
+    var myModal = new bootstrap.Modal(document.getElementById('addNewAddress'));
+    myModal.show();
+  }
+
+  const selectElement = document.getElementById('label');
+  const oldValue = selectElement.value;
+
+  selectElement.addEventListener('focus', function () {
+    oldValue = selectElement.value;
+  });
+
+  selectElement.addEventListener('change', function (event) {
+    const selectedValue = event.target.value;
+    if (selectedValue == 5) {
+      Swal.fire({
+        title: '🎉 Parabéns Pela Venda.',
+        text: 'Agora é importante emitir o contrato com as informações pessoais do cliente.',
+        icon: 'sucess',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, Cadastrar!',
+        customClass: {
+          confirmButton: 'btn btn-primary me-3 waves-effect waves-light',
+          cancelButton: 'btn btn-outline-secondary waves-effect'
+        },
+        buttonsStyling: false
+      }).then(function (result) {
+        if (result.value) {
+          showModalCadastroVenda();
+        } else {
+          selectElement.value = oldValue;
+          selectElement.dispatchEvent(new Event('change'));
+        }
+      });
+    }
   });
 })();
 

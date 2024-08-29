@@ -6,4 +6,5 @@ interface VendasRepositoryInterface
 {
   public function  create(array $data);
   public function  all();
+  public function vendasDoMesAnoAtual();
 }
