@@ -139,8 +139,9 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         } else {
           $card->tabulacao_id = $data['tabulacao_id'];
         }
-        return $card->save();
+        $save = $card->save();
         DB::commit();
+        return  $save;
       } else {
         DB::rollBack();
         return false;

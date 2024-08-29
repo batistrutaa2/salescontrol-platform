@@ -21,8 +21,8 @@ $(function () {
     productAdd = baseUrl + 'app/ecommerce/product/add',
     statusObj = {
       16: { title: 'VENDA', class: 'bg-label-primary' },
-      17: { title: 'IMPLANTADO', class: 'bg-label-success' },
-      18: { title: 'ESTORNADO', class: 'bg-label-danger' }
+      17: { title: 'ESTORNADO', class: 'bg-label-danger' },
+      18: { title: 'IMPLANTADO', class: 'bg-label-sucess' }
     };
 
   if (dt_product_table.length) {
@@ -140,11 +140,11 @@ $(function () {
       },
       initComplete: function () {
         this.api()
-          .columns(6)
+          .columns(5)
           .every(function () {
             var column = this;
             var select = $(
-              '<select id="ProductStatus" class="form-select text-capitalize"><option value="">Selecione um Status</option></select>'
+              '<select id="ProductStatus" class="form-select text-capitalize"><option value="">TODOS</option></select>'
             )
               .appendTo('.product_status')
               .on('change', function () {

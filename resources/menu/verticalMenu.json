@@ -20,8 +20,6 @@
       "icon": "menu-icon tf-icons ri-user-line",
       "slug": "pages-usuarios",
       "rules": [
-        "ADMINISTRATIVO",
-        "BACKOFFICE",
         "DEVELOPER"
       ]
     },
@@ -31,8 +29,6 @@
       "icon": "menu-icon tf-icons ri-briefcase-line",
       "slug": "pages-usuarios",
       "rules": [
-        "ADMINISTRATIVO",
-        "BACKOFFICE",
         "DEVELOPER"
       ]
     },

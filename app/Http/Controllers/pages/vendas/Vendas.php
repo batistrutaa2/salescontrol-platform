@@ -19,7 +19,19 @@ class Vendas extends Controller
 
   public function index()
   {
-    return view('content.pages.vendas.index');
+    $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual();
+    $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual();
+    $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual();
+    $percentualConversaoMes = $this->repositoryVendas->conversaoMensal();
+    $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes();
+
+    return view('content.pages.vendas.index', [
+      'vendasCadastradasMes' => $vendasCadastradasMes,
+      'vendasImplantadasMes' => $vendasImplantadasMes,
+      'vendasEstornadasMes' => $vendasEstornadasMes,
+      'percentualConversaoMes' => $percentualConversaoMes,
+      'totalContatosMes' => $totalContatosMes
+    ]);
   }
 
 
