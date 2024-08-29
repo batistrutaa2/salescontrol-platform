@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth as AuthFacades;
@@ -18,7 +19,12 @@ class Auth extends Controller
 
       if (AuthFacades::attempt($credentials)) {
         $request->session()->regenerate();
-        return redirect()->intended('dashboard');
+
+        if (AuthFacades::user()->user_role_id == UserRole::VENDEDOR) {
+          return redirect()->intended('comercial/kanban');
+        } else {
+          return redirect()->intended('dashboard');
+        }
       }
 
       return back()->withErrors([
