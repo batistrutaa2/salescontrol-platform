@@ -278,4 +278,32 @@ class Helpers
     // Converte para float ou decimal
     return (float) $decimalValue;
   }
+
+
+  /**
+   * Converte uma string de valor monetário para um número decimal.
+   *
+   * @param string|null $valor O valor em formato monetário.
+   * @return float O valor convertido para decimal.
+   */
+  public static function converterParaDecimal($valor)
+  {
+    // Verifica se o valor é nulo ou vazio e retorna 0
+    if (is_null($valor) || trim($valor) === '' || $valor === 'R$ 0') {
+      return 0;
+    }
+
+    // Remove o prefixo 'R$' e outros caracteres não numéricos
+    $valor = str_replace(['R$', '.', ','], ['', '', '.'], $valor);
+
+    // Verifica se a string é um número válido
+    if (!is_numeric($valor)) {
+      return 0;
+    }
+
+    // Converte o valor para float e formata para 2 casas decimais
+    $valorDecimal = number_format((float)$valor, 2, '.', '');
+
+    return $valorDecimal;
+  }
 }

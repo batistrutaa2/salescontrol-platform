@@ -32,7 +32,7 @@
     {
       "url": "/comercial/kanban",
       "name": "Gerenciar Clientes",
-      "icon": "menu-icon tf-icons ri-user-line",
+      "icon": "menu-icon tf-icons ri-group-line",
       "slug": "clientes-comercial",
       "rules": [
         "ADMINISTRATIVO",
@@ -42,9 +42,20 @@
       ]
     },
     {
+      "url": "/vendas/lista-vendas",
+      "name": "Vendas",
+      "icon": "menu-icon tf-icons ri-bar-chart-2-line",
+      "slug": "clientes-vendas",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "BACKOFFICE"
+      ]
+    },
+    {
       "url": "/comercial/remarketing",
       "name": "Fila Remarketing",
-      "icon": "menu-icon tf-icons ri-user-line",
+      "icon": "menu-icon tf-icons ri-arrow-turn-back-line",
       "slug": "comercial-remarketing",
       "rules": [
         "ADMINISTRATIVO",

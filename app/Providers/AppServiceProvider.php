@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Vite;
 use App\Repositories\Contracts\EmpresaRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ComentariosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
@@ -18,6 +19,7 @@ use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\EmpresaRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\UsuariosRepository;
+use App\Repositories\Eloquent\VendasRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -33,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
     $this->app->bind(TabulacoesRepositoryInterface::class, TabulacoesRepository::class);
     $this->app->bind(ComentariosRepositoryInterface::class, ComentariosRepository::class);
     $this->app->bind(ComentariosLegadosRepositoryInterface::class, ComentariosLegadosRepository::class);
+    $this->app->bind(VendasRepositoryInterface::class, VendasRepository::class);
   }
 
   /**

@@ -134,8 +134,8 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
 
       if ($card) {
         // enviando pra fila de remarketing
-        if ($data['tabulacao_id'] == 6) {
-          $card->tabulacao_id = 10;
+        if ($data['tabulacao_id'] == Tabulations::NEGOCIO_NAO_FECHADO) {
+          $card->tabulacao_id = Tabulations::REMARKETING;
           $card->user_id = null;
         } else {
           $card->tabulacao_id = $data['tabulacao_id'];

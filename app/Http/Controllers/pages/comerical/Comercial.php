@@ -12,14 +12,15 @@ use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ComentariosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\UsuariosRepository;
+use App\Repositories\Eloquent\VendasRepository;
 use App\UseCases\ComercialUseCase;
-use Dotenv\Util\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -27,11 +28,12 @@ use Carbon\Carbon;
 
 class Comercial extends Controller
 {
-  protected ContatosCorretoresRepository  $repositoryContatosCorretoresRepository;
+  protected ContatosCorretoresRepository  $repositoryContatosCorretores;
   protected TabulacoesRepository  $tabulacoesRepository;
   protected ContatosRepository  $contatosRepository;
   protected ComentariosRepository  $comentariosRepository;
   protected UsuariosRepository  $usuariosRepository;
+  protected VendasRepository  $vendasRepository;
   protected ComentariosLegadosRepository  $comentariosLegadosRepository;
 
   protected ComercialUseCase  $comercialUseCase;
@@ -42,15 +44,17 @@ class Comercial extends Controller
     ContatosRepositoryInterface $contatosRepositoryInterface,
     ComentariosRepositoryInterface $comentariosRepositoryInterface,
     UsuariosRepositoryInterface $usuariosRepositoryInterface,
-    ComentariosLegadosRepositoryInterface $comentariosLegadosRepositoryInterface
+    ComentariosLegadosRepositoryInterface $comentariosLegadosRepositoryInterface,
+    VendasRepositoryInterface $vendasRepositoryInterface
   ) {
     //Repositories
-    $this->repositoryContatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
+    $this->repositoryContatosCorretores = $contatosCorretoresRepositoryInterface;
     $this->tabulacoesRepository = $TabulacoesRepositoryInterface;
     $this->contatosRepository = $contatosRepositoryInterface;
     $this->comentariosRepository = $comentariosRepositoryInterface;
     $this->usuariosRepository = $usuariosRepositoryInterface;
     $this->comentariosLegadosRepository = $comentariosLegadosRepositoryInterface;
+    $this->vendasRepository = $vendasRepositoryInterface;
 
     //UseCases
     $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface);
@@ -68,7 +72,7 @@ class Comercial extends Controller
 
   public function getClientComercial()
   {
-    $contacts = $this->repositoryContatosCorretoresRepository->getClientComercial(Auth::user()->user_role_id, Auth::user()->empresa_id);
+    $contacts = $this->repositoryContatosCorretores->getClientComercial(Auth::user()->user_role_id, Auth::user()->empresa_id);
     $structuredData = $this->structureBoardData($contacts);
 
     return response()->json($structuredData);
@@ -171,7 +175,7 @@ class Comercial extends Controller
       return response()->json(['success' => false, 'message' => 'Invalid data'], 400);
     }
 
-    $saveStatus = $this->repositoryContatosCorretoresRepository->changeStatusLead($request->all());
+    $saveStatus = $this->repositoryContatosCorretores->changeStatusLead($request->all());
 
     if ($saveStatus) {
       return response()->json(
@@ -198,7 +202,7 @@ class Comercial extends Controller
   {
     try {
       $updateClient =  $this->contatosRepository->updateOrCreate($request->all());
-      $updatetemperature =  $this->repositoryContatosCorretoresRepository->updateTemperatureAndTabulation($request->temperatura, $request->id, $request->tabulacao_id);
+      $updatetemperature =  $this->repositoryContatosCorretores->updateTemperatureAndTabulation($request->temperatura, $request->id, $request->tabulacao_id);
 
       if ($updateClient && $updatetemperature) {
         return redirect()->back()->with('status', 'success')->with('message', 'Dados atualizados com sucesso.');
@@ -242,10 +246,10 @@ class Comercial extends Controller
 
   public function openClient($id_mailing)
   {
-    $clientInfo = $this->repositoryContatosCorretoresRepository->getClientInfo($id_mailing);
+    $clientInfo = $this->repositoryContatosCorretores->getClientInfo($id_mailing);
     $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
     $tabulations = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
-    $tabulationCurrent = $this->repositoryContatosCorretoresRepository->getTabulationId($id_mailing);
+    $tabulationCurrent = $this->repositoryContatosCorretores->getTabulationId($id_mailing);
 
     $permiteEdition = false;
     if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
@@ -301,7 +305,7 @@ class Comercial extends Controller
 
   public function getRemarketingLeads()
   {
-    $contatos = $this->repositoryContatosCorretoresRepository->getRemarketingLeads(Auth::user()->empresa_id);
+    $contatos = $this->repositoryContatosCorretores->getRemarketingLeads(Auth::user()->empresa_id);
     return response()->json($contatos);
   }
 
@@ -328,5 +332,27 @@ class Comercial extends Controller
   {
     $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy(Helpers::cleanSpecialCharacters($cpf));
     return response()->json($commentsLegacy);
+  }
+
+  public function createSale(Request $request)
+  {
+    try {
+      $saveSale = $this->vendasRepository->create($request->all());
+      
+      $arrayData = [
+        'contato_id' => $request->contato_id,
+        'tabulacao_id' => Tabulations::VENDA
+      ];
+
+      $updateStatusContact = $this->repositoryContatosCorretores->changeStatusLead($arrayData);
+
+      if ($saveSale && $updateStatusContact) {
+        return redirect()->back()->with('status', 'success')->with('message', 'Venda Cadastrada com sucesso');
+      } else {
+        return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar status.');
+      }
+    } catch (\Throwable $th) {
+      return redirect()->back()->with('status', 'error')->with('message', 'Falha ao Cadastrar Venda');
+    }
   }
 }

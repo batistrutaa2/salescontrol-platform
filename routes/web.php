@@ -8,6 +8,7 @@ use App\Http\Controllers\pages\HomePage;
 use App\Http\Controllers\pages\mailing\Mailing;
 use App\Http\Controllers\pages\manager\Empresa;
 use App\Http\Controllers\pages\manager\Usuarios;
+use App\Http\Controllers\pages\vendas\Vendas;
 
 Route::get('/login', [LoginBasic::class, 'index'])->name('login');
 /**TESTE CELSO */
@@ -54,5 +55,10 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/transferContact', [Comercial::class, 'transferContact'])->name('comercial.transferContact');
   Route::get('/comercial/getCommentsLegacy/{cpf}', [Comercial::class, 'getCommentsLegacy'])->name('comercial.getCommentsLegacy');
   Route::post('/comercial/saveCommentsLegacy', [Comercial::class, 'saveCommentsLegacy'])->name('comercial.saveCommentsLegacy');
+  Route::post('/comercial/criar-venda', [Comercial::class, 'createSale'])->name('comercial.createSale');
 
+
+
+  /** VENDAS */
+  Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');
 });

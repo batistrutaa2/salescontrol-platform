@@ -207,6 +207,66 @@
       });
   }
 
+  function setupcomponentesCreateSale() {
+    let inputcpf = document.getElementById('cpf_cnpj');
+
+    let cleave = new Cleave(inputcpf, applyMaskBasedOnLength(inputcpf.value));
+
+    inputcpf.addEventListener('input', function () {
+      const currentMask = applyMaskBasedOnLength(inputcpf.value);
+
+      cleave.destroy();
+      cleave = new Cleave(inputcpf, currentMask);
+    });
+
+    const telefones = document.querySelectorAll('.mask-telefone');
+    telefones.forEach(mask => {
+      new Cleave(mask, {
+        delimiters: ['(', ') ', '-', ''],
+        blocks: [0, 2, 5, 4],
+        numericOnly: true
+      });
+    });
+
+    const monetaryFields = document.querySelectorAll('.monetary-field');
+
+    monetaryFields.forEach(function (field) {
+      let rawValue = field.value;
+      rawValue = rawValue.replace('.', ',');
+      new Cleave(field, {
+        numeral: true,
+        numeralThousandsGroupStyle: 'thousand',
+        numeralDecimalMark: ',',
+        delimiter: '.',
+        prefix: 'R$ ',
+        numeralDecimalScale: 2
+      });
+    });
+  }
+
+  function applyMaskBasedOnLength(value) {
+    const cleanValue = value.replace(/[.-]/g, '');
+    if (cleanValue.length > 11) {
+      return {
+        delimiters: ['.', '.', '/', '-'],
+        blocks: [2, 3, 3, 4, 2]
+      };
+    } else {
+      return {
+        delimiters: ['.', '.', '-'],
+        blocks: [3, 3, 3, 2]
+      };
+    }
+  }
+
+  function showModalCadastroVenda(contato_id) {
+    setupcomponentesCreateSale();
+    document.getElementById('contato_id').value = contato_id;
+
+    var myModal = new bootstrap.Modal(document.getElementById('addNewAddress'));
+    myModal.show();
+  }
+
   // Init kanban
   const kanban = new jKanban({
     element: '.kanban-wrapper',
@@ -242,7 +302,7 @@
             Swal.fire({
               icon: 'success',
               title: 'Concluido!',
-              text: 'Contato Descartado com sucesso!',
+              text: 'Contato Descartado com sucesso.',
               customClass: {
                 confirmButton: 'btn btn-success waves-effect'
               }
@@ -263,6 +323,23 @@
                 location.reload();
               }
             });
+          }
+        });
+      } else if (tabulacao_id == 5) {
+        Swal.fire({
+          title: '🎉 Parabéns Pela Venda.',
+          text: 'Agora é importante emitir o contrato com as informações pessoais do cliente.',
+          icon: 'sucess',
+          showCancelButton: true,
+          confirmButtonText: 'Sim, Cadastrar!',
+          customClass: {
+            confirmButton: 'btn btn-primary me-3 waves-effect waves-light',
+            cancelButton: 'btn btn-outline-secondary waves-effect'
+          },
+          buttonsStyling: false
+        }).then(function (result) {
+          if (result.value) {
+            showModalCadastroVenda(contato_id);
           }
         });
       } else {
@@ -514,23 +591,18 @@
   }
 
   function limitUserName(userName) {
-    // Verifica se a string tem mais de 10 caracteres
     if (userName.length > 15) {
-      // Retorna os primeiros 10 caracteres e concatena com "..."
       return userName.substring(0, 15) + '...';
     } else {
-      // Retorna a string original se tiver 10 ou menos caracteres
       return userName;
     }
   }
 
-  // To initialize tooltips for rendered items
   const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
   });
 
-  // prevent sidebar to open onclick dropdown buttons of tasks
   const tasksItemDropdown = [].slice.call(document.querySelectorAll('.kanban-tasks-item-dropdown'));
   if (tasksItemDropdown) {
     tasksItemDropdown.forEach(function (e) {
@@ -540,7 +612,6 @@
     });
   }
 
-  // Toggle add new input and actions add-new-btn
   if (kanbanAddBoardBtn) {
     kanbanAddBoardBtn.addEventListener('click', () => {
       kanbanAddNewInput.forEach(el => {
@@ -550,24 +621,20 @@
     });
   }
 
-  // Render add new inline with boards
   if (kanbanContainer) {
     kanbanContainer.appendChild(kanbanAddNewBoard);
   }
 
-  // Makes kanban title editable for rendered boards
   if (kanbanTitleBoard) {
     kanbanTitleBoard.forEach(function (elem) {
       elem.addEventListener('mouseenter', function () {
         this.contentEditable = 'true';
       });
 
-      // Appends delete icon with title
       elem.insertAdjacentHTML('afterend', renderBoardDropdown());
     });
   }
 
-  // To delete Board for rendered boards
   const deleteBoards = [].slice.call(document.querySelectorAll('.delete-board'));
   if (deleteBoards) {
     deleteBoards.forEach(function (elem) {
@@ -578,7 +645,6 @@
     });
   }
 
-  // Delete task for rendered boards
   const deleteTask = [].slice.call(document.querySelectorAll('.delete-task'));
   if (deleteTask) {
     deleteTask.forEach(function (e) {
@@ -589,7 +655,6 @@
     });
   }
 
-  // Cancel btn add new input
   const cancelAddNew = document.querySelector('.kanban-add-board-cancel-btn');
   if (cancelAddNew) {
     cancelAddNew.addEventListener('click', function () {
@@ -599,7 +664,6 @@
     });
   }
 
-  // Add new board
   if (kanbanAddNewBoard) {
     kanbanAddNewBoard.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -613,19 +677,16 @@
         }
       ]);
 
-      // Adds delete board option to new board, delete new boards & updates data-order
       const kanbanBoardLastChild = document.querySelectorAll('.kanban-board:last-child')[0];
       if (kanbanBoardLastChild) {
         const header = kanbanBoardLastChild.querySelector('.kanban-title-board');
         header.insertAdjacentHTML('afterend', renderBoardDropdown());
 
-        // To make newly added boards title editable
         kanbanBoardLastChild.querySelector('.kanban-title-board').addEventListener('mouseenter', function () {
           this.contentEditable = 'true';
         });
       }
 
-      // Add delete event to delete newly added boards
       const deleteNewBoards = kanbanBoardLastChild.querySelector('.delete-board');
       if (deleteNewBoards) {
         deleteNewBoards.addEventListener('click', function () {
@@ -634,26 +695,22 @@
         });
       }
 
-      // Remove current append new add new form
       if (kanbanAddNewInput) {
         kanbanAddNewInput.forEach(el => {
           el.classList.add('d-none');
         });
       }
 
-      // To place inline add new btn after clicking add btn
       if (kanbanContainer) {
         kanbanContainer.appendChild(kanbanAddNewBoard);
       }
     });
   }
 
-  // Clear comment editor on close
   kanbanSidebar.addEventListener('hidden.bs.offcanvas', function () {
     kanbanSidebar.querySelector('.ql-editor').firstElementChild.innerHTML = '';
   });
 
-  // Re-init tooltip when offcanvas opens(Bootstrap bug)
   if (kanbanSidebar) {
     kanbanSidebar.addEventListener('shown.bs.offcanvas', function () {
       const tooltipTriggerList = [].slice.call(kanbanSidebar.querySelectorAll('[data-bs-toggle="tooltip"]'));
