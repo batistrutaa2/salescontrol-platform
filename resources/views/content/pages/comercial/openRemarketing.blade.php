@@ -40,7 +40,7 @@
 
         <div class="row">
             <!-- First column-->
-            <div class="col-12 col-lg-8">
+            <div class="col-12 col-lg-12">
                 <!-- Product Information -->
                 <div class="card mb-6">
                     <div class="card-header">
@@ -157,94 +157,6 @@
                     </form>
 
                 </div>
-                <!-- /Product Information -->
-                <!-- Media -->
-                <div class="card mb-6">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 card-title">Adicionar Comentario</h5>
-                    </div>
-                    <div class="card-body">
-                        <form action="{{ route('comercial.saveComment') }}" method="POST" id="saveComment">
-                            @csrf
-                            <input type="hidden" name="id_mailing" value="{{ $client->id }}">
-                            <div>
-                                <div class="form-control p-0 pt-1">
-                                    <div class="comment-toolbar border-0 border-bottom">
-                                        <div class="d-flex justify-content-start">
-                                            <span class="ql-formats me-0">
-                                                <button class="ql-bold"></button>
-                                                <button class="ql-italic"></button>
-                                                <button class="ql-underline"></button>
-                                                <button class="ql-list" value="ordered"></button>
-                                                <button class="ql-list" value="bullet"></button>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="comment-editor border-0 pb-1" id="ecommerce-category-description">
-                                    </div>
-                                </div>
-                                <div>
-                                    <button class="btn btn-primary mt-5   btn--twitter">Salvar Comentario</button>
-                                </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- /Second column -->
-
-        <!-- Second column -->
-        <div class="col-12 col-lg-4">
-            <!-- Pricing Card -->
-            <div class="card mb-6">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Anotações</h5>
-                </div>
-                <div class="card-body">
-                    <div class="card mb-6">
-                        <div class="card-header">
-                            <h5 class="card-title m-0">Ultimas atividades</h5>
-                        </div>
-                        <div class="card-body mt-3">
-                            @foreach ($comments as $comment)
-                                @if ($comment->tipo_usuario === 'DEVELOPER' || $comment->tipo_usuario === 'ADMIN')
-                                    <ul class="timeline pb-0 mb-0">
-                                        <li class="timeline-item timeline-item-transparent border-primary">
-                                            <span class="timeline-point timeline-point-primary"></span>
-                                            <div class="timeline-event">
-                                                <div class="timeline-header mb-1">
-                                                    <h6 class="mb-0">Feito por: ({{ $comment->name }})
-                                                        <span
-                                                            class="badge bg-label-success">{{ $comment->tipo_usuario }}</span>
-                                                    </h6>
-                                                    <small class="text-muted">{!! $comment->created_at !!}</small>
-                                                </div>
-                                                <p class="mt-1 mb-3"> {!! $comment->anotacao !!}</p>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                @else
-                                    <ul class="timeline pb-0 mb-0">
-                                        <li class="timeline-item timeline-item-transparent border-primary">
-                                            <span class="timeline-point timeline-point-primary"></span>
-                                            <div class="timeline-event">
-                                                <div class="timeline-header mb-1">
-                                                    <h6 class="mb-0">Feito por: ({{ $comment->name }})
-                                                        <span
-                                                            class="badge bg-label-primary">{{ $comment->tipo_usuario }}</span>
-                                                        <p class=""></p>
-                                                    </h6>
-                                                    <small class="text-muted">{!! $comment->created_at !!}</small>
-                                                </div>
-                                                <p class="mt-1 mb-3"> {!! $comment->anotacao !!}</p>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -266,7 +178,7 @@
                         @csrf
                         <div class="col">
                             <div class="form-floating form-floating-outline">
-                                <label for="ecommerce-product-name">Selecionar corretor</label>
+
                                 <select class="select2  form-select" id="label" name="user_id" value="">
                                     @foreach ($users as $user)
                                         <option value="{{ $user->id }}">
@@ -274,6 +186,7 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                <label for="ecommerce-product-name">Selecionar corretor</label>
                             </div>
                             <div>
                                 <button class="btn btn-danger   btn--twitter mt-5">Transferir contato</button>

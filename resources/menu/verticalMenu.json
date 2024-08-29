@@ -2,8 +2,8 @@
   "menu": [
     {
       "url": "/dashboard",
-      "name": "Home",
-      "icon": "menu-icon tf-icons ri-home-smile-line",
+      "name": "Dashboard",
+      "icon": "menu-icon tf-icons ri-pie-chart-2-line",
       "slug": "pages-home",
       "rules": [
         "VENDEDOR",
@@ -13,7 +13,7 @@
       ]
     },
     {
-      "menuHeader": "Gerenciar Usuarios"
+      "menuHeader": "Manager"
     },
     {
       "url": "/usuarios",
@@ -27,7 +27,29 @@
       ]
     },
     {
-      "menuHeader": "Comercial"
+      "url": "/usuarios",
+      "name": "Cadastro de Empresas",
+      "icon": "menu-icon tf-icons ri-briefcase-line",
+      "slug": "pages-usuarios",
+      "rules": [
+        "ADMINISTRATIVO",
+        "BACKOFFICE",
+        "DEVELOPER"
+      ]
+    },
+    {
+      "menuHeader": "Administrativo"
+    },
+    {
+      "url": "/usuarios",
+      "name": "Cadastro de usuarios",
+      "icon": "menu-icon tf-icons ri-user-line",
+      "slug": "pages-usuarios",
+      "rules": [
+        "ADMINISTRATIVO",
+        "BACKOFFICE",
+        "DEVELOPER"
+      ]
     },
     {
       "url": "/comercial/kanban",
@@ -36,7 +58,6 @@
       "slug": "clientes-comercial",
       "rules": [
         "ADMINISTRATIVO",
-        "VENDEDOR",
         "DEVELOPER",
         "BACKOFFICE"
       ]
@@ -63,25 +84,14 @@
       ]
     },
     {
-      "menuHeader": "Manager & Developers"
-    },
-    {
-      "name": "Empresa",
-      "icon": "menu-icon tf-icons ri-home-smile-line",
-      "slug": "dashboard",
+      "url": "/comercial/remarketing",
+      "name": "Agendamentos",
+      "icon": "menu-icon tf-icons ri-time-line",
+      "slug": "comercial-remarketing",
       "rules": [
+        "ADMINISTRATIVO",
         "DEVELOPER"
-      ],
-      "submenu": [
-        {
-          "url": "/empresas",
-          "name": "Cadastro de empresas",
-          "slug": "pages-empresas"
-        }
       ]
-    },
-    {
-      "menuHeader": "Gerenciar Mailing"
     },
     {
       "name": "Mailing",
@@ -97,6 +107,49 @@
           "name": "Importa Mailing",
           "slug": "pages-mailing-importar"
         }
+      ]
+    },
+    {
+      "menuHeader": "Vendedor"
+    },
+    {
+      "url": "/comercial/kanban",
+      "name": "Meus Clientes",
+      "icon": "menu-icon tf-icons ri-group-line",
+      "slug": "clientes-comercial",
+      "rules": [
+        "VENDEDOR",
+        "DEVELOPER"
+      ]
+    },
+    {
+      "url": "/vendas/lista-vendas",
+      "name": "Minhas Vendas",
+      "icon": "menu-icon tf-icons ri-bar-chart-2-line",
+      "slug": "clientes-vendas",
+      "rules": [
+        "VENDEDOR",
+        "DEVELOPER"
+      ]
+    },
+    {
+      "url": "/vendas/lista-vendas",
+      "name": "Agendamentos",
+      "icon": "menu-icon tf-icons ri-time-line",
+      "slug": "clientes-vendas",
+      "rules": [
+        "VENDEDOR",
+        "DEVELOPER"
+      ]
+    },
+    {
+      "url": "/vendas/lista-vendas",
+      "name": "Estornos",
+      "icon": "menu-icon tf-icons ri-corner-up-left-line",
+      "slug": "clientes-vendas",
+      "rules": [
+        "VENDEDOR",
+        "DEVELOPER"
       ]
     }
   ]
