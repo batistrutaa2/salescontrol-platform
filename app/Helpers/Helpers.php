@@ -288,6 +288,7 @@ class Helpers
    */
   public static function converterParaDecimal($valor)
   {
+
     if (is_null($valor) || trim($valor) === '' || $valor === 'R$ 0') {
       return 0;
     }
@@ -307,10 +308,19 @@ class Helpers
   public static function excelDateToPhpDate($serialDate)
   {
     if (is_null($serialDate) || $serialDate === '') {
-      return '';
+      return $serialDate;
     }
 
-    $unixDate = ($serialDate - 25569) * 86400;
-    return date('Y-m-d', $unixDate);
+    if (!is_numeric($serialDate)) {
+      return $serialDate;
+    }
+    $serialDate = floatval($serialDate);
+
+    try {
+      $unixDate = ($serialDate - 25569) * 86400;
+      return date('Y-m-d', $unixDate);
+    } catch (\Exception $e) {
+      return $serialDate;
+    }
   }
 }
