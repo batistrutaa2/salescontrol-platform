@@ -32,7 +32,7 @@
             {{ session('message') }}
         </div>
     @endif
-    
+
     <div class="app-kanban mt-5">
         <!-- Add new board -->
         <div class="row">
@@ -259,7 +259,7 @@
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="form-floating form-floating-outline">
-                                <input type="date" id="data_vigencia" name="data_vigencia" class="form-control"
+                                <input type="date" id="data_vigencia" name="data_vigencia" class="form-control" required
                                     placeholder="29/08/2024" />
                                 <label for="data_vigencia">Data de Vigencia</label>
                             </div>
