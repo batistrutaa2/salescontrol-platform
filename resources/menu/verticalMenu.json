@@ -16,7 +16,7 @@
     },
     {
       "url": "/usuarios",
-      "name": "Cadastro de usuarios",
+      "name": "Cadastro de Usuarios",
       "icon": "menu-icon tf-icons ri-user-line",
       "slug": "pages-usuarios",
       "rules": [
@@ -36,19 +36,8 @@
       "menuHeader": "Administrativo"
     },
     {
-      "url": "/usuarios",
-      "name": "Cadastro de usuarios",
-      "icon": "menu-icon tf-icons ri-user-line",
-      "slug": "pages-usuarios",
-      "rules": [
-        "ADMINISTRATIVO",
-        "BACKOFFICE",
-        "DEVELOPER"
-      ]
-    },
-    {
       "url": "/comercial/kanban",
-      "name": "Gerenciar Clientes",
+      "name": "Kanban Comercial",
       "icon": "menu-icon tf-icons ri-group-line",
       "slug": "clientes-comercial",
       "rules": [
@@ -58,28 +47,7 @@
       ]
     },
     {
-      "url": "/vendas/lista-vendas",
-      "name": "Vendas",
-      "icon": "menu-icon tf-icons ri-bar-chart-2-line",
-      "slug": "clientes-vendas",
-      "rules": [
-        "ADMINISTRATIVO",
-        "DEVELOPER",
-        "BACKOFFICE"
-      ]
-    },
-    {
-      "url": "/comercial/remarketing",
-      "name": "Fila Remarketing",
-      "icon": "menu-icon tf-icons ri-arrow-turn-back-line",
-      "slug": "comercial-remarketing",
-      "rules": [
-        "ADMINISTRATIVO",
-        "DEVELOPER"
-      ]
-    },
-    {
-      "url": "/comercial/remarketing",
+      "url": "#",
       "name": "Agendamentos",
       "icon": "menu-icon tf-icons ri-time-line",
       "slug": "comercial-remarketing",
@@ -89,8 +57,65 @@
       ]
     },
     {
-      "name": "Mailing",
-      "icon": "menu-icon tf-icons ri-home-smile-line",
+      "url": "/comercial/remarketing",
+      "name": "Fila Remarketing",
+      "icon": "menu-icon tf-icons ri-bar-chart-2-line",
+      "slug": "comercial-remarketing",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER"
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "icon": "menu-icon tf-icons ri-user-line",
+      "slug": "dashboard",
+      "rules": [
+        "DEVELOPER",
+        "ADMINISTRATIVO"
+      ],
+      "submenu": [
+        {
+          "url": "/usuarios",
+          "name": "Cadastro de Usuarios",
+          "slug": "pages-mailing-importar"
+        }
+      ]
+    },
+    {
+      "name": "Relatorios",
+      "icon": "menu-icon tf-icons ri-bar-chart-fill",
+      "slug": "dashboard",
+      "rules": [
+        "DEVELOPER",
+        "ADMINISTRATIVO"
+      ],
+      "submenu": [
+        {
+          "url": "/vendas/lista-vendas",
+          "name": "Vendas (Mensal)",
+          "slug": "pages-mailing-importar"
+        },
+        {
+          "url": "#",
+          "name": "Analitico (Vendas)",
+          "slug": "pages-mailing-importar"
+        },
+        {
+          "url": "#",
+          "name": "Analitico (Leads)",
+          "slug": "pages-mailing-importar"
+        },
+        {
+          "url": "#",
+          "name": "Analitico (Corretor)",
+          "slug": "pages-mailing-importar"
+        }
+      ]
+    },
+    {
+      "name": "Leads",
+      "icon": "menu-icon tf-icons ri-contacts-book-line",
       "slug": "dashboard",
       "rules": [
         "DEVELOPER",
@@ -100,6 +125,11 @@
         {
           "url": "/mailing/importar",
           "name": "Importa Mailing",
+          "slug": "pages-mailing-importar"
+        },
+        {
+          "url": "#",
+          "name": "Visualizar Leads",
           "slug": "pages-mailing-importar"
         }
       ]
