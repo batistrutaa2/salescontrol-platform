@@ -83,6 +83,22 @@
       ]
     },
     {
+      "name": "Back-office",
+      "icon": "menu-icon tf-icons ri-presentation-fill",
+      "slug": "dashboard",
+      "rules": [
+        "DEVELOPER",
+        "ADMINISTRATIVO"
+      ],
+      "submenu": [
+        {
+          "url": "#",
+          "name": "Gerenciar Contratos",
+          "slug": "pages-mailing-importar"
+        }
+      ]
+    },
+    {
       "name": "Relatorios",
       "icon": "menu-icon tf-icons ri-bar-chart-fill",
       "slug": "dashboard",
