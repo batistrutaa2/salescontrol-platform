@@ -48,28 +48,42 @@ class Vendas extends Controller
   }
 
 
-  public function monthlySalesFilter($name_user)
+  public function monthlySalesFilter($name_user = null)
   {
-    $user = $this->usuariosRepository->getUserSearchName($name_user);
-    if (is_null($user)) {
+    try {
+
+      if (is_null($name_user)) {
+        $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+        $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+        $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+        $percentualConversaoMes = $this->repositoryVendas->conversaoMensal(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+        $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+      } else {
+        $user = $this->usuariosRepository->getUserSearchName($name_user);
+
+        if (is_null($user)) {
+          return response()->json(["error" => true]);
+        }
+
+        $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
+        $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
+        $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
+        $percentualConversaoMes = $this->repositoryVendas->conversaoMensal($user->id, $user->empresa_id, $user->user_role_id);
+        $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes($user->id, $user->empresa_id, $user->user_role_id);
+      }
+
+      $response = [
+        'vendasCadastradasMes' => $vendasCadastradasMes,
+        'vendasImplantadasMes' => $vendasImplantadasMes,
+        'vendasEstornadasMes' => $vendasEstornadasMes,
+        'percentualConversaoMes' => $percentualConversaoMes,
+        'totalContatosMes' => $totalContatosMes,
+        "error" => false
+      ];
+
+      return response()->json($response);
+    } catch (\Throwable $th) {
       return response()->json(["error" => true]);
     }
-
-    $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
-    $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
-    $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
-    $percentualConversaoMes = $this->repositoryVendas->conversaoMensal($user->id, $user->empresa_id, $user->user_role_id);
-    $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes($user->id, $user->empresa_id, $user->user_role_id);
-
-    $response = [
-      'vendasCadastradasMes' => $vendasCadastradasMes,
-      'vendasImplantadasMes' => $vendasImplantadasMes,
-      'vendasEstornadasMes' => $vendasEstornadasMes,
-      'percentualConversaoMes' => $percentualConversaoMes,
-      'totalContatosMes' => $totalContatosMes,
-      "error" => false
-    ];
-
-    return response()->json($response);
   }
 }

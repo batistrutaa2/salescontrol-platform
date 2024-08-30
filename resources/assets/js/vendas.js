@@ -22,7 +22,7 @@ $(function () {
     statusObj = {
       16: { title: 'VENDA', class: 'bg-label-primary' },
       17: { title: 'ESTORNADO', class: 'bg-label-danger' },
-      18: { title: 'IMPLANTADO', class: 'bg-label-sucess' }
+      18: { title: 'IMPLANTADO', class: 'bg-label-success' }
     };
 
   if (dt_product_table.length) {
@@ -200,17 +200,60 @@ $(function () {
         Accept: 'application/json'
       }
     })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Erro ao buscar dados');
-        }
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
-
+        if (!data.error) {
+          updateDashboard(data);
+        } else {
+          alert('Erro ao pesquisar informações. Contate nosso suporte');
+        }
       })
       .catch(error => {
-
+        console.error('Erro:', error);
       });
   });
+
+  function updateDashboard(data) {
+    const vendasCadastradasElement = document.querySelector('.js--vendasCadastradas');
+    const valorVendido = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2
+    }).format(data.vendasCadastradasMes.valor_vendido);
+
+    vendasCadastradasElement.textContent = valorVendido;
+
+    const quantidadeCadastradaElement = document.querySelector('.js--quantidadeCadastrada');
+    quantidadeCadastradaElement.textContent = data.vendasCadastradasMes.quantidade_vendida + ' Contratos';
+
+    const vendasImplentadasElement = document.querySelector('.js--vendasImplantadas');
+    const valorImplantado = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2
+    }).format(data.vendasImplantadasMes.valor_vendido);
+
+    vendasImplentadasElement.textContent = valorImplantado;
+
+    const quantidadeImplantadaElement = document.querySelector('.js--quantidadeImplantada');
+    quantidadeImplantadaElement.textContent = data.vendasImplantadasMes.quantidade_vendida + ' Contratos';
+
+    const vendasEstornadasElement = document.querySelector('.js--vendasEstornada');
+    const valorEstornado = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2
+    }).format(data.vendasEstornadasMes.valor_estornado);
+
+    vendasEstornadasElement.textContent = valorEstornado;
+
+    const quantidadeEstornoElement = document.querySelector('.js--quantidadeEstornada');
+    quantidadeEstornoElement.textContent = data.vendasEstornadasMes.quantidade_estornada + ' Contratos';
+
+    const conversaoElement = document.querySelector('.js--conversaoMensal');
+    conversaoElement.textContent = '% ' + data.percentualConversaoMes;
+
+    const quantidadeContatos = document.querySelector('.js--quantidadeContatos');
+    quantidadeContatos.textContent = data.totalContatosMes + ' Contratos';
+  }
 });

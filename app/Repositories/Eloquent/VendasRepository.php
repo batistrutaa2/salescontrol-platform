@@ -94,7 +94,7 @@ class VendasRepository implements VendasRepositoryInterface
         )
         ->where('a.user_id', $user_id)
         ->where('a.empresa_id', $empresa_id)
-        ->where('b.tabulacao_id', Tabulations::VENDA)
+        ->whereIn('b.tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO])
         ->whereMonth('a.created_at', $currentMonth)
         ->whereYear('a.created_at', $currentYear)
         ->get();
@@ -111,7 +111,7 @@ class VendasRepository implements VendasRepositoryInterface
           DB::raw('COUNT(a.id) as quantidade_vendida')
         )
         ->where('a.empresa_id', $empresa_id)
-        ->where('b.tabulacao_id', Tabulations::VENDA)
+        ->whereIn('b.tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO])
         ->whereMonth('a.created_at', $currentMonth)
         ->whereYear('a.created_at', $currentYear)
         ->get();

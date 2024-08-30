@@ -38,10 +38,8 @@
                         <div class="d-flex justify-content-between align-items-start card-widget-1 border-end pb-4 pb-sm-0">
                             <div>
                                 <p class="mb-1">Contratos Cadastrados</p>
-                                <h4 class="mb-1">R$
-                                    {{ number_format($vendasCadastradasMes['valor_vendido'], 2, ',', '.') }}</h4>
-                                <p class="mb-0"><span class="me-2">{{ $vendasCadastradasMes['quantidade_vendida'] }}
-                                        Contratos</span></p>
+                                <h4 class="mb-1 js--vendasCadastradas">R$ {{ number_format($vendasCadastradasMes['valor_vendido'], 2, ',', '.') }}</h4>
+                                <p class="mb-0"><span class="me-2 js--quantidadeCadastrada">{{ $vendasCadastradasMes['quantidade_vendida'] }} Contratos</span></p>
                             </div>
                             <div class="avatar me-sm-6">
                                 <span class="avatar-initial rounded bg-label-secondary text-heading">
@@ -55,10 +53,8 @@
                         <div class="d-flex justify-content-between align-items-start card-widget-2 border-end pb-4 pb-sm-0">
                             <div>
                                 <p class="mb-1">Contratos implantados</p>
-                                <h4 class="mb-1">R$
-                                    {{ number_format($vendasImplantadasMes['valor_vendido'], 2, ',', '.') }}</h4>
-                                <p class="mb-0"><span class="me-2">{{ $vendasImplantadasMes['quantidade_vendida'] }}
-                                        Contratos</span></p>
+                                <h4 class="mb-1 js--vendasImplantadas">R$ {{ number_format($vendasImplantadasMes['valor_vendido'], 2, ',', '.') }}</h4>
+                                <p class="mb-0"><span class="me-2 js--quantidadeImplantada">{{ $vendasImplantadasMes['quantidade_vendida'] }} Contratos</span></p>
                             </div>
                             <div class="avatar me-lg-6">
                                 <span class="avatar-initial rounded bg-label-secondary text-heading">
@@ -72,9 +68,8 @@
                         <div class="d-flex justify-content-between align-items-start border-end pb-4 pb-sm-0 card-widget-3">
                             <div>
                                 <p class="mb-1">Estornos</p>
-                                <h4 class="mb-1">R$
-                                    {{ number_format($vendasEstornadasMes['valor_estornado'], 2, ',', '.') }}</h4>
-                                <p class="mb-0">{{ $vendasEstornadasMes['quantidade_estornada'] }} Contratos</p>
+                                <h4 class="mb-1  js--vendasEstornada">R$ {{ number_format($vendasEstornadasMes['valor_estornado'], 2, ',', '.') }}</h4>
+                                <p class="mb-0   js--quantidadeEstornada">{{ $vendasEstornadasMes['quantidade_estornada'] }} Contratos</p>
                             </div>
                             <div class="avatar me-sm-6">
                                 <span class="avatar-initial rounded bg-label-secondary text-heading">
@@ -87,8 +82,8 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <p class="mb-1">Conversão mensal</p>
-                                <h4 class="mb-1">% {{ $percentualConversaoMes }}</h4>
-                                <p class="mb-0"><span class="me-2">{{ $totalContatosMes }} Contratos</span></p>
+                                <h4 class="mb-1 js--conversaoMensal">% {{ $percentualConversaoMes }}</h4>
+                                <p class="mb-0"><span class="me-2 js--quantidadeContatos">{{ $totalContatosMes }} Contratos</span></p>
                             </div>
                             <div class="avatar">
                                 <span class="avatar-initial rounded bg-label-secondary text-heading">
