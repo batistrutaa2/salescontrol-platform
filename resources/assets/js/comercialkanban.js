@@ -382,19 +382,18 @@
       let temperatura = element.getAttribute('data-temperatura');
       let idades = element.getAttribute('data-idades');
 
-      kanbanSidebar.querySelector('#id_mailing').value = idMailing;
-      kanbanSidebar.querySelector('#title').value = nomeCliente;
-      kanbanSidebar.querySelector('#data_nascimento').value = datanascimento;
-      kanbanSidebar.querySelector('#cpf').value = cpf;
-      kanbanSidebar.querySelector('#email').value = email;
-      kanbanSidebar.querySelector('#plano').value = plano;
-      kanbanSidebar.querySelector('#entidade').value = entidade;
-      kanbanSidebar.querySelector('#cartergoria').value = categoria;
-      kanbanSidebar.querySelector('#idades').value = idades;
-      kanbanSidebar.querySelector('#telefone1').value = telefone1;
-      kanbanSidebar.querySelector('#telefone2').value = telefone2;
-      kanbanSidebar.querySelector('#telefone3').value = telefone3;
-      kanbanSidebar.querySelector('#telefone3').value = telefone3;
+      kanbanSidebar.querySelector('#id_mailing').value = idMailing == 'null' ? '' : idMailing;
+      kanbanSidebar.querySelector('#title').value = nomeCliente == 'null' ? '' : nomeCliente;
+      kanbanSidebar.querySelector('#data_nascimento').value = datanascimento == 'null' ? '' : datanascimento;
+      kanbanSidebar.querySelector('#cpf').value = cpf == 'null' ? '' : cpf;
+      kanbanSidebar.querySelector('#email').value = email == 'null' ? '' : email;
+      kanbanSidebar.querySelector('#plano').value = plano == 'null' ? '' : plano;
+      kanbanSidebar.querySelector('#entidade').value = entidade == 'null' ? '' : entidade;
+      kanbanSidebar.querySelector('#cartergoria').value = categoria == 'null' ? '' : categoria;
+      kanbanSidebar.querySelector('#idades').value = idades == 'null' ? '' : idades;
+      kanbanSidebar.querySelector('#telefone1').value = telefone1 == 'null' ? '' : telefone1;
+      kanbanSidebar.querySelector('#telefone2').value = telefone2 == 'null' ? '' : telefone2;
+      kanbanSidebar.querySelector('#telefone3').value = telefone3 == 'null' ? '' : telefone3;
       kanbanSidebar.querySelector('#valor_plano_atual').value = numberFormat(valorPlano);
       kanbanSidebar.querySelector('#valor_negociacao').value = numberFormat(valorNegociacao);
 
