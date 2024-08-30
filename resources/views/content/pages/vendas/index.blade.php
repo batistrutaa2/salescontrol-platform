@@ -1,6 +1,6 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'eCommerce Product List - Apps')
+@section('title', 'Lista de vendas - Mês')
 
 @section('vendor-style')
     @vite(['resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.scss', 'resources/assets/vendor/libs/select2/select2.scss'])
@@ -105,11 +105,13 @@
     <!-- Product List Table -->
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0">Filtro de Status:</h5>
+            <h5 class="mb-0">Filtro:</h5>
             <div class="d-flex justify-content-between align-items-center row pt-4 gap-4 gap-md-0">
                 <div class="col-md-4 product_status"></div>
+                @if (auth()->user()->user_role_id == 2 || auth()->user()->user_role_id == 3 || auth()->user()->user_role_id == 4)
+                    <div class="col-md-4 corretor_filter"></div>
+                @endif
                 <div class="col-md-4 product_category"></div>
-                <div class="col-md-4 product_stock"></div>
             </div>
         </div>
         <div class="card-datatable table-responsive">
@@ -118,6 +120,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Nome Contrato</th>
+                        <th>Vendedor</th>
                         <th>Email</th>
                         <th>Valor Contrato</th>
                         <th>Data Vigencia</th>

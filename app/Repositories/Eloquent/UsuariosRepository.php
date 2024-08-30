@@ -71,4 +71,9 @@ class UsuariosRepository implements UsuariosRepositoryInterface
   {
     return $this->model->select('user_role_id')->where('id', $id)->first();
   }
+
+  public function getUserSearchName($nameUser)
+  {
+    return $this->model::select('id', 'empresa_id', 'user_role_id')->where('name', $nameUser)->first();
+  }
 }

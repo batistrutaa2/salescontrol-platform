@@ -10,4 +10,5 @@ interface UsuariosRepositoryInterface
   public function  getUserByCompany($id);
   public function  getUsersFilterType($empresa_id, $rule);
   public function  getTypeUser($id);
+  public function  getUserSearchName($user_name);
 }

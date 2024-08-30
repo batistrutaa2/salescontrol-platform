@@ -31,6 +31,7 @@ $(function () {
       columns: [
         { data: 'id', title: 'ID' },
         { data: 'nome_contrato', title: 'Nome Contrato' },
+        { data: 'nome_corretor', title: 'Corretor' },
         { data: 'email', title: 'Email' },
         { data: 'valor_contrato', title: 'Valor Contrato' },
         { data: 'data_vigencia', title: 'Data Vigencia' },
@@ -40,7 +41,7 @@ $(function () {
       columnDefs: [
         {
           title: 'Valor Contrato',
-          targets: 3,
+          targets: 4,
           render: function (data, type, full, meta) {
             var valorContrato = full['valor_contrato'];
             var formattedValue = new Intl.NumberFormat('pt-BR', {
@@ -52,7 +53,7 @@ $(function () {
         },
         {
           title: 'Feito em:',
-          targets: 6,
+          targets: 7,
           render: function (data, type, full, meta) {
             var createdAt = new Date(full['created_at']);
             var day = String(createdAt.getDate()).padStart(2, '0');
@@ -67,7 +68,7 @@ $(function () {
         },
         {
           title: 'Data Vigência',
-          targets: 4,
+          targets: 5,
           render: function (data, type, full, meta) {
             var dataVigencia = new Date(full['data_vigencia']);
             return dataVigencia.toLocaleDateString('pt-BR');
@@ -75,7 +76,7 @@ $(function () {
         },
         {
           title: 'Status',
-          targets: 5,
+          targets: 6,
           render: function (data, type, full, meta) {
             var $status = full['status'];
             return (
@@ -140,7 +141,7 @@ $(function () {
       },
       initComplete: function () {
         this.api()
-          .columns(5)
+          .columns(6)
           .every(function () {
             var column = this;
             var select = $(
@@ -160,21 +161,56 @@ $(function () {
                 select.append('<option value="' + statusObj[d].title + '">' + statusObj[d].title + '</option>');
               });
           });
+
+        this.api()
+          .columns(2)
+          .every(function () {
+            var column = this;
+            var select = $(
+              '<select id="CorretorFilter" class="form-select text-capitalize"><option value="">TODOS</option></select>'
+            )
+              .appendTo('.corretor_filter')
+              .on('change', function () {
+                var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                column.search(val ? '^' + val + '$' : '', true, false).draw();
+                $(document).trigger('corretorFilterChanged', [val]);
+              });
+
+            column
+              .data()
+              .unique()
+              .sort()
+              .each(function (d, j) {
+                select.append('<option value="' + d + '">' + d + '</option>');
+              });
+          });
       }
     });
 
     $('.dataTables_length').addClass('my-0');
     $('.dt-action-buttons').addClass('pt-0');
     $('.dt-buttons').addClass('d-flex flex-wrap');
-
-    dt_product_table.on('draw', function () {
-      // Aplicar a máscara de telefone após a tabela ser desenhada
-      $('.telefone-mask').each(function () {
-        new Cleave(this, {
-          phone: true,
-          phoneRegionCode: 'BR'
-        });
-      });
-    });
   }
+
+  $(document).on('corretorFilterChanged', function (event, val) {
+    fetch(`/vendas/filtro-vendas-mes/${encodeURIComponent(val)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      }
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Erro ao buscar dados');
+        }
+        return response.json();
+      })
+      .then(data => {
+
+      })
+      .catch(error => {
+
+      });
+  });
 });
