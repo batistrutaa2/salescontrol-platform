@@ -37,7 +37,7 @@ class ContatosImport implements ToModel, SkipsEmptyRows,  WithHeadingRow, WithSt
       'nome_base' => $this->nome_base,
       'status' => "Y",
       'nome_cliente' => $row['nome'],
-      'data_nascimento' => $row['data_de_nascimento'],
+      'data_nascimento' => Helpers::excelDateToPhpDate($row['data_de_nascimento']),
       'cpf' =>  Helpers::cleanSpecialCharacters($row['cpf']),
       'plano' => $row['plano'],
       'categoria' => $row['cartegoria'],

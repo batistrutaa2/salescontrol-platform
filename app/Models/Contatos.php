@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\Helpers;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
@@ -35,6 +36,14 @@ class Contatos extends Model
     'created_at',
     'updated_at'
   ];
+
+  public function getDataNascimentoAttribute($value)
+  {
+      if (strpos($value, '/') === false && !is_null($value) && $value !== '') {
+          return Helpers::excelDateToPhpDate($value);
+      }
+      return $value;
+  }
 
   public function getCreatedAtAttribute($value)
   {

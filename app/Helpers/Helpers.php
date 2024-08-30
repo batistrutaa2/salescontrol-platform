@@ -288,22 +288,29 @@ class Helpers
    */
   public static function converterParaDecimal($valor)
   {
-    // Verifica se o valor é nulo ou vazio e retorna 0
     if (is_null($valor) || trim($valor) === '' || $valor === 'R$ 0') {
       return 0;
     }
 
-    // Remove o prefixo 'R$' e outros caracteres não numéricos
     $valor = str_replace(['R$', '.', ','], ['', '', '.'], $valor);
 
-    // Verifica se a string é um número válido
     if (!is_numeric($valor)) {
       return 0;
     }
 
-    // Converte o valor para float e formata para 2 casas decimais
     $valorDecimal = number_format((float)$valor, 2, '.', '');
 
     return $valorDecimal;
+  }
+
+
+  public static function excelDateToPhpDate($serialDate)
+  {
+    if (is_null($serialDate) || $serialDate === '') {
+      return '';
+    }
+
+    $unixDate = ($serialDate - 25569) * 86400;
+    return date('Y-m-d', $unixDate);
   }
 }
