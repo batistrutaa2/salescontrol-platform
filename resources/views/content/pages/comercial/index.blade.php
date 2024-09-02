@@ -35,43 +35,49 @@
 
     <div class="app-kanban mt-5">
         <!-- Add new board -->
-        <div class="row">
-            <div class="col-12">
-                <form class="kanban-add-new-board">
-                    <input type="text" class="form-control w-px-250 kanban-add-board-input mb-4 d-none"
-                        placeholder="Add Board Title" id="kanban-add-board-input" required />
-                    <div class="mb-4 kanban-add-board-input d-none">
-                        <button class="btn btn-primary btn-sm me-3">Add</button>
-                        <button type="button"
-                            class="btn btn-outline-secondary btn-sm kanban-add-board-cancel-btn">Cancel</button>
+
+        <div class="row md-12">
+
+            <div class="row">
+                <div class="col-12">
+                    <form class="kanban-add-new-board">
+                        <input type="text" class="form-control w-px-250 kanban-add-board-input mb-4 d-none"
+                            placeholder="Add Board Title" id="kanban-add-board-input" required />
+                        <div class="mb-4 kanban-add-board-input d-none">
+                            <button class="btn btn-primary btn-sm me-3">Add</button>
+                            <button type="button"
+                                class="btn btn-outline-secondary btn-sm kanban-add-board-cancel-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="container mb-5">
+                <div class="d-flex justify-content-between">
+                    <div class="form-floating form-floating-outline flex-fill me-2">
+                        <input type="text" id="kanban-search" class="form-control" placeholder="Pesquisar cliente.." />
+                        <label for="kanban-search-1">Pesquisar cliente..</label>
                     </div>
-                </form>
+                    @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER')
+                        <div class="form-floating form-floating-outline flex-fill ms-2">
+                            <select class=" form-select" id="user-filter" name="temperatura">
+                                <option value="">
+                                    Selecione o corretor
+                                </option>
+                                @foreach ($vendedores as $vendedor)
+                                    <option value="{{ $vendedor->id }}">
+                                        {{ $vendedor->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <label for="label"> Vendedores</label>
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
 
-        <div class="container mb-5">
-            <div class="d-flex justify-content-between">
-                <div class="form-floating form-floating-outline flex-fill me-2">
-                    <input type="text" id="kanban-search" class="form-control" placeholder="Pesquisar cliente.." />
-                    <label for="kanban-search-1">Pesquisar cliente..</label>
-                </div>
-                @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER')
-                    <div class="form-floating form-floating-outline flex-fill ms-2">
-                        <select class=" form-select" id="user-filter" name="temperatura">
-                            <option value="">
-                                Selecione o corretor
-                            </option>
-                            @foreach ($vendedores as $vendedor)
-                                <option value="{{ $vendedor->id }}">
-                                    {{ $vendedor->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <label for="label"> Vendedores</label>
-                    </div>
-                @endif
-            </div>
-        </div>
+
 
         <!-- Kanban Wrapper -->
         <div class="kanban-wrapper mt-5"></div>
@@ -259,8 +265,8 @@
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="form-floating form-floating-outline">
-                                <input type="date" id="data_vigencia" name="data_vigencia" class="form-control" required
-                                    placeholder="29/08/2024" />
+                                <input type="date" id="data_vigencia" name="data_vigencia" class="form-control"
+                                    required placeholder="29/08/2024" />
                                 <label for="data_vigencia">Data de Vigencia</label>
                             </div>
                         </div>

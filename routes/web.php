@@ -38,6 +38,7 @@ Route::middleware(['auth'])->group(function () {
 
   /** MAILING */
   Route::get('/mailing/importar', [Mailing::class, 'index'])->name('mailing.importMailing');
+  Route::get('/mailing/visualizar-leads', [Mailing::class, 'viewLeads'])->name('mailing.viewLeads');
   Route::post('/mailing/importaMailing', [Mailing::class, 'importaMailing'])->name('mailing.uploadBase');
 
   /** COMERCIAL */
@@ -52,10 +53,12 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/remarketing', [Comercial::class, 'remarketing'])->name('comercial.remarketing');
   Route::get('/comercial/getRemarketingLeads', [Comercial::class, 'getRemarketingLeads'])->name('comercial.getRemarketingLeads');
   Route::get('/comercial/abrir-remarketing/{idMailing}', [Comercial::class, 'openLeadRemarketing'])->name('comercial.openLeadRemarketing');
+  Route::get('/comercial/criar-cliente', [Comercial::class, 'createClient'])->name('comercial.createClient');
   Route::post('/comercial/transferContact', [Comercial::class, 'transferContact'])->name('comercial.transferContact');
   Route::get('/comercial/getCommentsLegacy/{cpf}', [Comercial::class, 'getCommentsLegacy'])->name('comercial.getCommentsLegacy');
   Route::post('/comercial/saveCommentsLegacy', [Comercial::class, 'saveCommentsLegacy'])->name('comercial.saveCommentsLegacy');
   Route::post('/comercial/criar-venda', [Comercial::class, 'createSale'])->name('comercial.createSale');
+  Route::post('/comercial/createLead', [Comercial::class, 'createLead'])->name('comercial.createLead');
 
 
   /** VENDAS */

@@ -192,6 +192,16 @@
         "VENDEDOR",
         "DEVELOPER"
       ]
+    },
+    {
+      "url": "/comercial/criar-cliente",
+      "name": "Cadastrar Cliente",
+      "icon": "menu-icon tf-icons ri-contacts-book-line",
+      "slug": "clientes-vendas",
+      "rules": [
+        "VENDEDOR",
+        "DEVELOPER"
+      ]
     }
   ]
 }

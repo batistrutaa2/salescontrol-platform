@@ -72,4 +72,10 @@ class Mailing extends Controller
       ]);
     }
   }
+
+
+  public function viewLeads()
+  {
+    return view('content.pages.mailing.visualizar-leads');
+  }
 }

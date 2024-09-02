@@ -21,6 +21,7 @@ use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\UsuariosRepository;
 use App\Repositories\Eloquent\VendasRepository;
 use App\UseCases\ComercialUseCase;
+use App\UseCases\MailingUseCase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -37,6 +38,7 @@ class Comercial extends Controller
   protected ComentariosLegadosRepository  $comentariosLegadosRepository;
 
   protected ComercialUseCase  $comercialUseCase;
+  protected MailingUseCase  $mailingUseCase;
 
   public function __construct(
     ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
@@ -58,6 +60,7 @@ class Comercial extends Controller
 
     //UseCases
     $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface);
+    $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
   }
 
   public function index()
@@ -353,6 +356,28 @@ class Comercial extends Controller
       }
     } catch (\Throwable $th) {
       return redirect()->back()->with('status', 'error')->with('message', 'Falha ao Cadastrar Venda');
+    }
+  }
+
+
+  public function createClient()
+  {
+    return view('content.pages.mailing.criar-lead');
+  }
+
+
+  public function createLead(Request $request)
+  {
+    $response = $this->mailingUseCase->createLead($request->all());
+
+    if ($response['error']) {
+      return redirect()
+        ->back()
+        ->withInput()
+        ->with('status', $response['status'])
+        ->with('message', $response['message']);
+    } else {
+      return redirect()->route('comercial.kanban')->with('status', 'success')->with('message', $response['message']);
     }
   }
 }

@@ -19,7 +19,10 @@ class ContatosRepository implements ContatosRepositoryInterface
   }
 
 
-  public function create(array $data) {}
+  public function create(array $data)
+  {
+    return $this->model::create($data);
+  }
 
   public function getNewlyImportedBase($idBase)
   {
@@ -39,7 +42,7 @@ class ContatosRepository implements ContatosRepositoryInterface
 
   public function searchForCpfsFound(array $cpfs)
   {
-    $contatos = $this->model->whereIn('cpf', $cpfs)->get();
+    $contatos = $this->model->whereIn('cpf', $cpfs)->where('empresa_id', Auth::user()->empresa_id)->get();
 
     $result = $contatos->map(function ($contato) {
       return [
@@ -53,6 +56,13 @@ class ContatosRepository implements ContatosRepositoryInterface
     });
 
     return $result->toArray();
+  }
+
+  public function searchForCpfFound($cpf)
+  {
+    $contatos = $this->model->where('cpf', $cpf)->where('empresa_id', Auth::user()->empresa_id)->first();
+
+    return $contatos;
   }
 
 
