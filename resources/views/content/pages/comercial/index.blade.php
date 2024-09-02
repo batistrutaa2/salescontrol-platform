@@ -8,6 +8,46 @@
 
 @section('page-style')
     @vite('resources/assets/vendor/scss/pages/app-kanban.scss')
+    <style>
+        .kanban-wrapper {
+            display: inline-flex;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .kanban-board {
+            flex: 1;
+            min-width: 300px;
+            /* Largura mínima para cada coluna */
+            max-width: 300px;
+            /* Largura máxima para cada coluna */
+            overflow-y: auto;
+            /* Adiciona scroll vertical a cada coluna */
+            height: calc(100vh - 200px);
+            /* Ajuste a altura conforme necessário */
+            padding-right: 10px;
+            /* Espaço adicional para evitar que o conteúdo seja ocultado pelo scrollbar */
+            position: relative;
+        }
+
+        /* Estilo para a barra de rolagem vertical */
+        .kanban-board::-webkit-scrollbar {
+            width: 6px;
+            /* Largura da barra de rolagem */
+        }
+
+        .kanban-board::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.2);
+            /* Cor da barra de rolagem */
+            border-radius: 10px;
+            /* Cantos arredondados da barra de rolagem */
+        }
+
+        .kanban-board::-webkit-scrollbar-track {
+            background: transparent;
+            /* Cor de fundo da área de rolagem */
+        }
+    </style>
 @endsection
 
 @section('vendor-script')
@@ -35,52 +75,50 @@
 
     <div class="app-kanban mt-5">
         <!-- Add new board -->
-
-        <div class="row md-12">
-
-            <div class="row">
-                <div class="col-12">
-                    <form class="kanban-add-new-board">
-                        <input type="text" class="form-control w-px-250 kanban-add-board-input mb-4 d-none"
-                            placeholder="Add Board Title" id="kanban-add-board-input" required />
-                        <div class="mb-4 kanban-add-board-input d-none">
-                            <button class="btn btn-primary btn-sm me-3">Add</button>
-                            <button type="button"
-                                class="btn btn-outline-secondary btn-sm kanban-add-board-cancel-btn">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div class="container mb-5">
-                <div class="d-flex justify-content-between">
-                    <div class="form-floating form-floating-outline flex-fill me-2">
-                        <input type="text" id="kanban-search" class="form-control" placeholder="Pesquisar cliente.." />
-                        <label for="kanban-search-1">Pesquisar cliente..</label>
+        <div class="row">
+            <div class="col-12">
+                <form class="kanban-add-new-board">
+                    <input type="text" class="form-control w-px-250 kanban-add-board-input mb-4 d-none"
+                        placeholder="Add Board Title" id="kanban-add-board-input" required />
+                    <div class="mb-4 kanban-add-board-input d-none">
+                        <button class="btn btn-primary btn-sm me-3">Add</button>
+                        <button type="button"
+                            class="btn btn-outline-secondary btn-sm kanban-add-board-cancel-btn">Cancel</button>
                     </div>
-                    @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER')
-                        <div class="form-floating form-floating-outline flex-fill ms-2">
-                            <select class=" form-select" id="user-filter" name="temperatura">
-                                <option value="">
-                                    Selecione o corretor
-                                </option>
-                                @foreach ($vendedores as $vendedor)
-                                    <option value="{{ $vendedor->id }}">
-                                        {{ $vendedor->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <label for="label"> Vendedores</label>
-                        </div>
-                    @endif
-                </div>
+                </form>
             </div>
         </div>
 
-
+        <div class="container mb-5">
+            <div class="d-flex justify-content-between">
+                <div class="form-floating form-floating-outline flex-fill me-2">
+                    <input type="text" id="kanban-search" class="form-control" placeholder="Pesquisar cliente.." />
+                    <label for="kanban-search-1">Pesquisar cliente..</label>
+                </div>
+                @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER')
+                    <div class="form-floating form-floating-outline flex-fill ms-2">
+                        <select class=" form-select" id="user-filter" name="temperatura">
+                            <option value="">
+                                Selecione o corretor
+                            </option>
+                            @foreach ($vendedores as $vendedor)
+                                <option value="{{ $vendedor->id }}">
+                                    {{ $vendedor->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <label for="label"> Vendedores</label>
+                    </div>
+                @endif
+            </div>
+        </div>
 
         <!-- Kanban Wrapper -->
-        <div class="kanban-wrapper mt-5"></div>
+        <div class="container-fluid">
+            <div class="kanban-wrapper mt-5"></div>
+        </div>
+
+
 
         <!-- Edit Task/Task & Activities -->
         <div class="offcanvas offcanvas-end kanban-update-item-sidebar">
