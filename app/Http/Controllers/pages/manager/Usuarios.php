@@ -62,8 +62,7 @@ class Usuarios extends Controller
 
   public function getUsers()
   {
-    return response()->json(
-      $this->usuariosRepository->usersAccordingToPermission(Auth::user()->role->id, Auth::user()->empresa_id, Auth::user()->id)
-    );
+    $vendas = $this->usuariosRepository->usersAccordingToPermission(Auth::user()->role->id, Auth::user()->empresa_id, Auth::user()->id);
+    return response()->json(['data' => $vendas]);
   }
 }

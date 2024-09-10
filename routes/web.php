@@ -39,6 +39,7 @@ Route::middleware(['auth'])->group(function () {
   /** MAILING */
   Route::get('/mailing/importar', [Mailing::class, 'index'])->name('mailing.importMailing');
   Route::get('/mailing/visualizar-leads', [Mailing::class, 'viewLeads'])->name('mailing.viewLeads');
+  Route::get('/mailing/getLeads', [Mailing::class, 'getLeads'])->name('mailing.getLeads');
   Route::post('/mailing/importaMailing', [Mailing::class, 'importaMailing'])->name('mailing.uploadBase');
 
   /** COMERCIAL */

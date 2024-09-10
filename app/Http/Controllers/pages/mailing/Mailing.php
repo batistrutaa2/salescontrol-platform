@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\UseCases\MailingUseCase;
 use Illuminate\Http\Request;
@@ -19,12 +20,11 @@ class Mailing extends Controller
   protected UsuariosRepositoryInterface $usuarioRepository;
   protected TabulacoesRepository $tabulacoesRepository;
   protected MailingUseCase $mailingUseCase;
+  protected ContatosRepository $contatosRepository;
   private $rulesUpload = [
-    'file' => 'required|string',
     'base' => 'required|string',
     'file' => 'required|file',
   ];
-
 
   public function __construct(
     UsuariosRepositoryInterface $usuariosRepositoryInterface,
@@ -34,6 +34,7 @@ class Mailing extends Controller
 
     $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
 
+    $this->contatosRepository = $contatosRepositoryInterface;
     $this->usuarioRepository = $usuariosRepositoryInterface;
     $this->tabulacoesRepository = $tabulacoesRepositoryInterface;
   }
@@ -77,5 +78,11 @@ class Mailing extends Controller
   public function viewLeads()
   {
     return view('content.pages.mailing.visualizar-leads');
+  }
+
+
+  public function getLeads()
+  {
+    return response()->json($this->contatosRepository->getLeads(Auth::user()->empresa_id));
   }
 }

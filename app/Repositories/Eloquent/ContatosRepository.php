@@ -7,6 +7,8 @@ use App\Helpers\Helpers;
 use App\Models\Contatos;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+
 
 class ContatosRepository implements ContatosRepositoryInterface
 {
@@ -71,9 +73,9 @@ class ContatosRepository implements ContatosRepositoryInterface
   {
     try {
       $contact = $this->find($idMailing);
-      $contact->telefone1 =  Helpers::cleanSpecialCharacters($telefone1) ?? "";
-      $contact->telefone2 =  Helpers::cleanSpecialCharacters($telefone2) ?? "";
-      $contact->telefone3 =  Helpers::cleanSpecialCharacters($telefone3) ?? "";
+      $contact->telefone1 = Helpers::cleanSpecialCharacters($telefone1) ?? "";
+      $contact->telefone2 = Helpers::cleanSpecialCharacters($telefone2) ?? "";
+      $contact->telefone3 = Helpers::cleanSpecialCharacters($telefone3) ?? "";
       $contact->valor_negociacao = Helpers::formatCurrencyToDecimal($negotiationValue);
       $contact->save();
     } catch (\Throwable $th) {
@@ -115,5 +117,26 @@ class ContatosRepository implements ContatosRepositoryInterface
     } catch (\Throwable $th) {
       return false;
     }
+  }
+
+  public function getLeads($empresa_id)
+  {
+    return DB::table('contatos as a')
+      ->select(
+        'a.id',
+        'a.nome_base',
+        'd.name as nome_corretor',
+        'a.nome_cliente',
+        'a.cpf',
+        'a.telefone1 as telefone',
+        'a.valor_plano_atual',
+        'c.descricao as status',
+        'a.created_at'
+      )
+      ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.id')
+      ->leftJoin('tabulacoes as c', 'b.tabulacao_id', '=', 'c.id')
+      ->leftJoin('users as d', 'b.user_id', '=', 'd.id')
+      ->where('b.empresa_id', $empresa_id)
+      ->get();
   }
 }

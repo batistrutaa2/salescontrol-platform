@@ -19,8 +19,8 @@
 @endsection
 
 @section('content')
-    <div class="row g-6">
 
+    <div class="row g-6">
         <!-- Ratings -->
         <div class="col-xl-3 col-lg-6 col-sm-6 mt-10">
             <div class="card">
@@ -28,10 +28,9 @@
                     <div class="col-6">
                         <div class="card-body">
                             <div class="card-info">
-                                <h6 class="mb-4 pb-1 text-nowrap">Ratings</h6>
+                                <h6 class="mb-4 pb-1 text-nowrap">Contratos Cadastrados</h6>
                                 <div class="d-flex align-items-center mb-3">
-                                    <h4 class="mb-0 me-2">13k</h4>
-                                    <p class="text-success mb-0">+15.6%</p>
+                                    <h4 class="mb-0 me-2">R$ 25.000,00</h4>
                                 </div>
                                 <div class="badge bg-label-primary rounded-pill">Year of 2021</div>
                             </div>
@@ -56,10 +55,9 @@
                     <div class="col-6">
                         <div class="card-body">
                             <div class="card-info">
-                                <h6 class="mb-4 pb-1 text-nowrap">Sessions</h6>
+                                <h6 class="mb-4 pb-1 text-nowrap">Contratos Implantados</h6>
                                 <div class="d-flex align-items-center mb-3">
-                                    <h4 class="mb-0 me-2">24.5k</h4>
-                                    <p class="text-danger mb-0">-20%</p>
+                                    <h4 class="mb-0 me-2">R$ 25.000,00</h4>
                                 </div>
                                 <div class="badge bg-label-secondary rounded-pill">Last Week</div>
                             </div>
@@ -84,10 +82,9 @@
                     <div class="col-6">
                         <div class="card-body">
                             <div class="card-info">
-                                <h6 class="mb-4 pb-1 text-nowrap">Customers</h6>
+                                <h6 class="mb-4 pb-1 text-nowrap">Contatos importados</h6>
                                 <div class="d-flex align-items-center mb-3">
                                     <h4 class="mb-0 me-2">2,856</h4>
-                                    <p class="text-success mb-0">+59%</p>
                                 </div>
                                 <div class="badge bg-label-info rounded-pill">Daily Customers</div>
                             </div>
@@ -112,10 +109,9 @@
                     <div class="col-6">
                         <div class="card-body">
                             <div class="card-info">
-                                <h6 class="mb-4 pb-1 text-nowrap">Total Orders</h6>
+                                <h6 class="mb-4 pb-1 text-nowrap">Conversão Mensal</h6>
                                 <div class="d-flex align-items-center mb-3">
-                                    <h4 class="mb-0 me-2">42.5k</h4>
-                                    <p class="text-success mb-0">+26%</p>
+                                    <h4 class="mb-0 me-2">16%</h4>
                                 </div>
                                 <div class="badge bg-label-warning rounded-pill">Last Month</div>
                             </div>

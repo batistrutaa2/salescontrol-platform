@@ -19,7 +19,7 @@ class MailingUseCase
 
   public function __construct(ContatosRepository $contatosRepositoryInterface)
   {
-    $this->contatosRepository =  $contatosRepositoryInterface;
+    $this->contatosRepository = $contatosRepositoryInterface;
   }
 
 
@@ -30,7 +30,9 @@ class MailingUseCase
 
       $rows = Excel::toArray(new ContatosImport(Auth::user()->id, Auth::user()->empresa_id, $request->base, $uniqueIdBase), $request->file('file'));
       foreach ($rows[0] as $row) {
-        $cpfs[] = Helpers::cleanSpecialCharacters($row['cpf']);
+        if (!is_null($row['cpf'])) {
+          $cpfs[] = Helpers::cleanSpecialCharacters($row['cpf']);
+        }
       }
 
       $cpfsFound = $this->contatosRepository->searchForCpfsFound($cpfs);
@@ -43,7 +45,7 @@ class MailingUseCase
         ]);
       } else {
 
-        Excel::import(new ContatosImport(Auth::user()->id, Auth::user()->empresa_id, $request->base, $uniqueIdBase),  $request->file('file'));
+        Excel::import(new ContatosImport(Auth::user()->id, Auth::user()->empresa_id, $request->base, $uniqueIdBase), $request->file('file'));
 
         $importedContacts = $this->contatosRepository->getNewlyImportedBase($uniqueIdBase);
 
@@ -96,21 +98,21 @@ class MailingUseCase
       }
 
       $createBase = $this->contatosRepository->create([
-        'id_operacao' =>  $uniqueIdBase,
+        'id_operacao' => $uniqueIdBase,
         'empresa_id' => Auth::user()->empresa_id,
         'user_import_id' => Auth::user()->id,
         'nome_base' => 'BASE_IMPORTACAO_' . Auth::user()->name . '_' . Carbon::now(),
         'nome_cliente' => $data['nome_cliente'],
         'data_nascimento' => $data['nome_cliente'],
-        'cpf' =>  Helpers::cleanSpecialCharacters($data['cpf']),
-        'plano' =>  $data['plano'] ?? "",
-        'categoria' =>  $data['categoria'] ?? "",
-        'entidade' =>  Helpers::cleanSpecialCharacters($data['entidade']) ?? "",
-        'telefone1' =>  Helpers::cleanSpecialCharacters($data['telefone1']) ?? "",
-        'telefone2' =>  Helpers::cleanSpecialCharacters($data['telefone2']) ?? "",
-        'telefone3' =>  Helpers::cleanSpecialCharacters($data['telefone3']) ?? "",
-        'email' =>  $data['email'] ?? "",
-        'idades' =>  $data['idades'] ?? "",
+        'cpf' => Helpers::cleanSpecialCharacters($data['cpf']),
+        'plano' => $data['plano'] ?? "",
+        'categoria' => $data['categoria'] ?? "",
+        'entidade' => Helpers::cleanSpecialCharacters($data['entidade']) ?? "",
+        'telefone1' => Helpers::cleanSpecialCharacters($data['telefone1']) ?? "",
+        'telefone2' => Helpers::cleanSpecialCharacters($data['telefone2']) ?? "",
+        'telefone3' => Helpers::cleanSpecialCharacters($data['telefone3']) ?? "",
+        'email' => $data['email'] ?? "",
+        'idades' => $data['idades'] ?? "",
         'valor_plano_atual' => Helpers::formatCurrencyToDecimal($data['valor_plano_atual']),
       ]);
 
