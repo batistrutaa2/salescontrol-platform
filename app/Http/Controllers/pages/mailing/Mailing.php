@@ -75,9 +75,22 @@ class Mailing extends Controller
   }
 
 
+
+  public function transferContact(Request $request)
+  {
+    dd($request->all());
+  }
+
+
   public function viewLeads()
   {
-    return view('content.pages.mailing.visualizar-leads');
+    $users = $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
+    $tabulations = $this->tabulacoesRepository->getAll(Auth::user()->empresa_id);
+
+    return view('content.pages.mailing.visualizar-leads', [
+      'users' => $users,
+      'tabulations' => $tabulations
+    ]);
   }
 
 

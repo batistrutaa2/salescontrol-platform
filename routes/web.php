@@ -42,6 +42,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/mailing/getLeads', [Mailing::class, 'getLeads'])->name('mailing.getLeads');
   Route::post('/mailing/importaMailing', [Mailing::class, 'importaMailing'])->name('mailing.uploadBase');
 
+
   /** COMERCIAL */
   Route::get('/comercial/kanban', [Comercial::class, 'index'])->name('comercial.kanban');
   Route::get('/comercial/getClientComercial', [Comercial::class, 'getClientComercial'])->name('comercial.getClientComercial');

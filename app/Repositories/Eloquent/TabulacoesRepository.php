@@ -19,4 +19,10 @@ class TabulacoesRepository implements TabulacoesRepositoryInterface
   {
     return $this->model->select(['id', 'descricao', 'ordem_kanban'])->where('empresa_id', $empresa_id)->where('status', 'Y')->where('tipo_tabulacao', 'C')->get();
   }
+
+  public function getAll($empresa_id)
+  {
+    return $this->model->select(['id', 'descricao'])->where('empresa_id', $empresa_id)->where('status', 'Y')->get();
+  }
+
 }

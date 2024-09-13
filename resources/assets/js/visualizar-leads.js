@@ -19,30 +19,7 @@ $(function () {
   }
 
   // Variable declaration for table
-  var dt_product_table = $('.datatables-products'),
-    productAdd = baseUrl + 'app/ecommerce/product/add',
-    statusObj = {
-      1: { title: 'Scheduled', class: 'bg-label-warning' },
-      2: { title: 'Publish', class: 'bg-label-success' },
-      3: { title: 'Inactive', class: 'bg-label-danger' }
-    },
-    categoryObj = {
-      0: { title: 'Household' },
-      1: { title: 'Office' },
-      2: { title: 'Electronics' },
-      3: { title: 'Shoes' },
-      4: { title: 'Accessories' },
-      5: { title: 'Game' }
-    },
-    stockObj = {
-      0: { title: 'Out_of_Stock' },
-      1: { title: 'In_Stock' }
-    },
-    stockFilterValObj = {
-      0: { title: 'Out of Stock' },
-      1: { title: 'In Stock' }
-    };
-
+  var dt_product_table = $('.datatables-products');
   // E-commerce Products datatable
   if (dt_product_table.length) {
     var dt_products = dt_product_table.DataTable({
@@ -132,10 +109,16 @@ $(function () {
           render: function (data, type, full, meta) {
             return (
               '<div class="d-flex align-items-center">' +
-              '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line ri-22px"></i></button>' +
+              '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown">' +
+              '<i class="ri-more-2-line ri-22px"></i></button>' +
               '<div class="dropdown-menu dropdown-menu-end m-0">' +
-              '<a href="javascript:;" class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Editar Usuario</span></a>' +
-              '<a href="javascript:;" class="dropdown-item"><i class="ri-arrow-left-right-fill"></i><span>Transferir Contato</span></a>' +
+              '<a href="/comercial/abrir-cliente/' +
+              data.id +
+              '"class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Editar Usuario</span></a>' +
+              '<button type="button" class="dropdown-item js-transferir-leads" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
+              data.id +
+              '">' +
+              '<i class="ri-arrow-left-right-fill"></i><span>Transferir Contato</span></button>' +
               '</div>' +
               '</div>'
             );
@@ -152,7 +135,10 @@ $(function () {
         '<"col-sm-12 col-md-6"i>' +
         '<"col-sm-12 col-md-6"p>' +
         '>',
-      lengthMenu: [7, 10, 20, 50, 100],
+      lengthMenu: [
+        [10, 25, 50, 100, -1],
+        [10, 25, 50, 100, 'TODOS']
+      ],
       language: {
         sLengthMenu: '_MENU_',
         search: '',
@@ -243,7 +229,9 @@ $(function () {
               .unique()
               .sort()
               .each(function (d, j) {
-                select.append('<option value="' + d + '">' + d + '</option>');
+                if (d != null) {
+                  select.append('<option value="' + d + '">' + d + '</option>');
+                }
               });
           });
 
@@ -271,4 +259,20 @@ $(function () {
       }
     });
   }
+
+  document.addEventListener('click', function (event) {
+    // Verifica se o botão 'Transferir Contato' foi clicado
+    if (event.target.closest('.js-transferir-leads')) {
+      // Obtém o botão que foi clicado
+      var button = event.target.closest('.js-transferir-leads');
+
+      // Obtém o ID do lead a partir do atributo 'data-id'
+      var leadId = button.getAttribute('data-id');
+
+      // Define o valor do input dentro da modal com o ID do lead
+      document.querySelector('#idMailing').value = leadId;
+
+      console.log('ID do lead:', leadId);
+    }
+  });
 });

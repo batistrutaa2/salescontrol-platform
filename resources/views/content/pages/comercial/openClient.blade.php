@@ -69,14 +69,12 @@
                                 </select>
                             </div>
 
-
                             <div class="form-floating form-floating-outline mb-5">
                                 <input type="text" class="form-control" id="ecommerce-product-name"
                                     {{ $editingPermission == false ? 'disabled' : '' }} value="{{ $client->nome_cliente }}"
                                     placeholder="Nome Cliente" name="nome_cliente" aria-label="Product title">
                                 <label for="ecommerce-product-name">Nome Completo</label>
                             </div>
-
 
                             <div class="row gx-5 mb-5">
                                 <div class="col">

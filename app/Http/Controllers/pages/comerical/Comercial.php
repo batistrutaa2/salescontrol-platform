@@ -29,16 +29,16 @@ use Carbon\Carbon;
 
 class Comercial extends Controller
 {
-  protected ContatosCorretoresRepository  $repositoryContatosCorretores;
-  protected TabulacoesRepository  $tabulacoesRepository;
-  protected ContatosRepository  $contatosRepository;
-  protected ComentariosRepository  $comentariosRepository;
-  protected UsuariosRepository  $usuariosRepository;
-  protected VendasRepository  $vendasRepository;
-  protected ComentariosLegadosRepository  $comentariosLegadosRepository;
+  protected ContatosCorretoresRepository $repositoryContatosCorretores;
+  protected TabulacoesRepository $tabulacoesRepository;
+  protected ContatosRepository $contatosRepository;
+  protected ComentariosRepository $comentariosRepository;
+  protected UsuariosRepository $usuariosRepository;
+  protected VendasRepository $vendasRepository;
+  protected ComentariosLegadosRepository $comentariosLegadosRepository;
 
-  protected ComercialUseCase  $comercialUseCase;
-  protected MailingUseCase  $mailingUseCase;
+  protected ComercialUseCase $comercialUseCase;
+  protected MailingUseCase $mailingUseCase;
 
   public function __construct(
     ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
@@ -93,29 +93,29 @@ class Comercial extends Controller
         return $contact->id == $tabulation['id'];
       })->map(function ($contact) use ($tabulation) {
 
-        $typeUser =  $this->showNameUserCard($this->usuariosRepository->getTypeUser(Auth::user()->id));
+        $typeUser = $this->showNameUserCard($this->usuariosRepository->getTypeUser(Auth::user()->id));
 
         return [
-          'id' =>  $contact->idContato,
+          'id' => $contact->idContato,
           'title' => $contact->nome_cliente,
           'comments' => (string) $contact->qt_comentarios,
           'badge-text' => $contact->temperatura,
           'badge' => $this->getColorText($contact->temperatura),
           'attachments' => '',
-          'nome_cliente' =>  $contact->nome_cliente,
-          'data_nascimento' =>  $contact->data_nascimento,
-          'cpf' =>  $contact->cpf,
-          'plano' =>  $contact->plano,
-          'categoria' =>  $contact->categoria,
-          'entidade' =>  $contact->entidade,
-          'telefone1' =>  $contact->telefone1,
-          'telefone2' =>  $contact->telefone2,
-          'telefone3' =>  $contact->telefone3,
-          'email' =>  $contact->email,
-          'idades' =>  $contact->idades,
+          'nome_cliente' => $contact->nome_cliente,
+          'data_nascimento' => $contact->data_nascimento,
+          'cpf' => $contact->cpf,
+          'plano' => $contact->plano,
+          'categoria' => $contact->categoria,
+          'entidade' => $contact->entidade,
+          'telefone1' => $contact->telefone1,
+          'telefone2' => $contact->telefone2,
+          'telefone3' => $contact->telefone3,
+          'email' => $contact->email,
+          'idades' => $contact->idades,
           'temperatura' => $contact->temperatura,
-          'valor' =>  $contact->valor_plano_atual,
-          'valor_negociacao' =>  $contact->valor_negociacao,
+          'valor' => $contact->valor_plano_atual,
+          'valor_negociacao' => $contact->valor_negociacao,
           'user-id' => $contact->user_id,
           'user-name' => $contact->nameVendedor,
           'show-name-card' => $typeUser,
@@ -124,7 +124,7 @@ class Comercial extends Controller
       })->values()->toArray();
 
       $boardData[] = [
-        'id' =>  Helpers::normalizeStatusName($tabulation['id']),
+        'id' => Helpers::normalizeStatusName($tabulation['id']),
         'title' => $tabulation['descricao'],
         'order' => $tabulation['ordem_kanban'],
         'item' => $items
@@ -204,8 +204,8 @@ class Comercial extends Controller
   public function updateClient(Request $request)
   {
     try {
-      $updateClient =  $this->contatosRepository->updateOrCreate($request->all());
-      $updatetemperature =  $this->repositoryContatosCorretores->updateTemperatureAndTabulation($request->temperatura, $request->id, $request->tabulacao_id);
+      $updateClient = $this->contatosRepository->updateOrCreate($request->all());
+      $updatetemperature = $this->repositoryContatosCorretores->updateTemperatureAndTabulation($request->temperatura, $request->id, $request->tabulacao_id);
 
       if ($updateClient && $updatetemperature) {
         return redirect()->back()->with('status', 'success')->with('message', 'Dados atualizados com sucesso.');
@@ -327,7 +327,16 @@ class Comercial extends Controller
 
   public function transferContact(Request $request)
   {
-    dd($request->all());
+    try {
+      $updateLead = $this->repositoryContatosCorretores->transferContact($request->all());
+      if ($updateLead) {
+        return redirect()->back()->with('status', 'success')->with('message', 'Transferencia concluida com sucesso');
+      } else {
+        return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
+      }
+    } catch (\Throwable $th) {
+      return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
+    }
   }
 
 
