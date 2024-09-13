@@ -223,7 +223,52 @@ $(function () {
             }
           ]
         }
-      ]
+      ],
+      initComplete: function () {
+        this.api()
+          .columns(1)
+          .every(function () {
+            var column = this;
+            var select = $(
+              '<select id="corretorFilter" class="form-select text-capitalize"><option value="">TODOS</option></select>'
+            )
+              .appendTo('.product_status')
+              .on('change', function () {
+                var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                column.search(val ? '^' + val + '$' : '', true, false).draw();
+              });
+
+            column
+              .data()
+              .unique()
+              .sort()
+              .each(function (d, j) {
+                select.append('<option value="' + d + '">' + d + '</option>');
+              });
+          });
+
+        this.api()
+          .columns(6)
+          .every(function () {
+            var column = this;
+            var select = $(
+              '<select id="statusFilter" class="form-select text-capitalize"><option value="">TODOS</option></select>'
+            )
+              .appendTo('.product_category')
+              .on('change', function () {
+                var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                column.search(val ? '^' + val + '$' : '', true, false).draw();
+              });
+
+            column
+              .data()
+              .unique()
+              .sort()
+              .each(function (d, j) {
+                select.append('<option value="' + d + '">' + d + '</option>');
+              });
+          });
+      }
     });
   }
 });

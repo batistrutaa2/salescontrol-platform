@@ -21,7 +21,7 @@
     <!-- Product List Table -->
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0">Filtrar</h5>
+            <h5 class="mb-0">Filtrar por: </h5>
             <div class="d-flex justify-content-between align-items-center row pt-4 gap-4 gap-md-0">
                 <div class="col-md-4 product_status"></div>
                 <div class="col-md-4 product_category"></div>
