@@ -83,6 +83,8 @@ class Mailing extends Controller
 
   public function getLeads()
   {
-    return response()->json($this->contatosRepository->getLeads(Auth::user()->empresa_id));
+    $data = $this->contatosRepository->getLeads(Auth::user()->empresa_id);
+    return response()->json(['data' => $data]);
+
   }
 }

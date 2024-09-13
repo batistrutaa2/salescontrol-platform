@@ -33,7 +33,6 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Base</th>
                         <th>Corretor</th>
                         <th>Cliente</th>
                         <th>CPF</th>
