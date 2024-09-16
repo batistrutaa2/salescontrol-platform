@@ -47,7 +47,7 @@ class Comercial extends Controller
     ComentariosRepositoryInterface $comentariosRepositoryInterface,
     UsuariosRepositoryInterface $usuariosRepositoryInterface,
     ComentariosLegadosRepositoryInterface $comentariosLegadosRepositoryInterface,
-    VendasRepositoryInterface $vendasRepositoryInterface
+    VendasRepositoryInterface $vendasRepositoryInterface,
   ) {
     //Repositories
     $this->repositoryContatosCorretores = $contatosCorretoresRepositoryInterface;
@@ -302,7 +302,13 @@ class Comercial extends Controller
 
   public function remarketing()
   {
-    return view('content.pages.comercial.remarketing');
+    $users = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);
+    $tabulations = $this->tabulacoesRepository->getAll(Auth::user()->empresa_id);
+
+    return view('content.pages.comercial.remarketing', [
+      'users' => $users,
+      'tabulations' => $tabulations
+    ]);
   }
 
 

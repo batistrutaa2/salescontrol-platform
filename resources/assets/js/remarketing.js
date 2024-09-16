@@ -86,11 +86,16 @@ $(function () {
           render: function (data, type, full, meta) {
             return (
               '<div class="d-flex align-items-center">' +
-              '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line ri-22px"></i></button>' +
+              '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown">' +
+              '<i class="ri-more-2-line ri-22px"></i></button>' +
               '<div class="dropdown-menu dropdown-menu-end m-0">' +
-              '<a href="/comercial/abrir-remarketing/'+ full.id+'" class="dropdown-item abrir-contato" data-id="' +
+              '<a href="/comercial/abrir-cliente/' +
               full.id +
-              '"><i class="ri-edit-box-line me-2"></i><span>Abrir Contato</span></a>' +
+              '"class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Editar Contato</span></a>' +
+              '<button type="button" class="dropdown-item js-transferir-leads" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
+              full.id +
+              '">' +
+              '<i class="ri-arrow-left-right-fill"></i><span>Transferir Contato</span></button>' +
               '</div>' +
               '</div>'
             );
@@ -289,6 +294,14 @@ $(function () {
     $('.dataTables_filter input').addClass('ms-0');
     $('.dt-buttons').addClass('d-flex flex-wrap');
   }
+
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('.js-transferir-leads')) {
+      var button = event.target.closest('.js-transferir-leads');
+      var leadId = button.getAttribute('data-id');
+      document.querySelector('#idMailing').value = leadId;
+    }
+  });
 });
 
 // Validation & Phone mask

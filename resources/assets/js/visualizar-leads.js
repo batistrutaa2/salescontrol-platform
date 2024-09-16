@@ -261,18 +261,10 @@ $(function () {
   }
 
   document.addEventListener('click', function (event) {
-    // Verifica se o botão 'Transferir Contato' foi clicado
     if (event.target.closest('.js-transferir-leads')) {
-      // Obtém o botão que foi clicado
       var button = event.target.closest('.js-transferir-leads');
-
-      // Obtém o ID do lead a partir do atributo 'data-id'
       var leadId = button.getAttribute('data-id');
-
-      // Define o valor do input dentro da modal com o ID do lead
       document.querySelector('#idMailing').value = leadId;
-
-      console.log('ID do lead:', leadId);
     }
   });
 });
