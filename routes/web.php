@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\Auth;
+use App\Http\Controllers\pages\backoffice\Backoffice;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\comerical\Comercial;
@@ -61,6 +62,12 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/saveCommentsLegacy', [Comercial::class, 'saveCommentsLegacy'])->name('comercial.saveCommentsLegacy');
   Route::post('/comercial/criar-venda', [Comercial::class, 'createSale'])->name('comercial.createSale');
   Route::post('/comercial/createLead', [Comercial::class, 'createLead'])->name('comercial.createLead');
+
+
+
+  /** BACKOFFICE */
+  Route::get(uri: '/back-office/fila-contratos', action: [Backoffice::class, 'index'])->name(name: 'backoffice.index');
+
 
 
   /** VENDAS */

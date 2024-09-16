@@ -92,7 +92,7 @@
       ],
       "submenu": [
         {
-          "url": "#",
+          "url": "/back-office/fila-contratos",
           "name": "Gerenciar Contratos",
           "slug": "pages-mailing-importar"
         }
