@@ -58,7 +58,7 @@ $(function () {
     table = dt_customer_table.DataTable({
       ajax: {
         url: 'usuarios/getUsers',
-        dataSrc: '',
+        dataSrc: 'data',
         complete: function (jqXHR, textStatus) {},
         error: function (jqXHR, textStatus, errorThrown) {}
       },

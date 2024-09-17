@@ -19,7 +19,6 @@
 
     <!-- customers List Table -->
     <div class="card">
-
         <div class="card-datatable table-responsive">
             <table class="datatables-customers table">
                 <thead>
