@@ -15,9 +15,6 @@
 @endsection
 
 @section('content')
-    <!-- Product List Widget -->
-
-
     @if (session('status') == 'success')
         <div class="alert alert-solid-success d-flex align-items-center" role="alert">
             <span class="alert-icon rounded">
