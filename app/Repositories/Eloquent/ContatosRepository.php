@@ -131,7 +131,15 @@ class ContatosRepository implements ContatosRepositoryInterface
         'a.telefone1 as telefone',
         'a.valor_plano_atual',
         'c.descricao as status',
-        'a.created_at'
+        'a.created_at',
+        DB::raw("
+          CASE
+              WHEN b.tabulacao_id = 1 AND DATEDIFF(CURDATE(), DATE(b.created_at)) > 5 THEN 'Fora do Prazo'
+              WHEN b.tabulacao_id = 2 AND DATEDIFF(CURDATE(), DATE(b.created_at)) > 10 THEN 'Fora do Prazo'
+              WHEN b.tabulacao_id = 3 AND DATEDIFF(CURDATE(), DATE(b.updated_at)) > 15 THEN 'Fora do Prazo'
+              ELSE 'Dentro do Prazo'
+          END AS Prazo
+        ")
       )
       ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.id')
       ->leftJoin('tabulacoes as c', 'b.tabulacao_id', '=', 'c.id')

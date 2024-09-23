@@ -32,6 +32,7 @@ $(function () {
         { data: 'telefone', title: 'Telefone' },
         { data: 'valor_plano_atual', title: 'Valor do Plano' },
         { data: 'status', title: 'Status' },
+        { data: 'Prazo', title: 'Prazo' },
         { data: 'created_at', title: 'Criado Em' },
         { data: null, title: 'Ações' }
       ],
@@ -87,7 +88,18 @@ $(function () {
           }
         },
         {
-          targets: 7, // Coluna com data
+          targets: 7, // Coluna com valor
+          render: function (data, type, row) {
+            // Verifica o valor de 'TRATATIVA' e aplica a cor
+            if (data === 'Fora do Prazo') {
+              return '<span style="color: red;">' + data + '</span>';
+            } else {
+              return '<span style="color: green;">' + data + '</span>';
+            }
+          }
+        },
+        {
+          targets: 8, // Coluna com data
           render: function (data, type, row) {
             if (!data) {
               return 'Data não disponível'; // Valor padrão se o dado for null ou undefined

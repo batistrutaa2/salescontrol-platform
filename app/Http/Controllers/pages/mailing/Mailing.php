@@ -39,7 +39,6 @@ class Mailing extends Controller
     $this->tabulacoesRepository = $tabulacoesRepositoryInterface;
   }
 
-
   public function index()
   {
     $users = Auth::user()->role->id == UserRole::DEVELOPER ? $this->usuarioRepository->all() : $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
@@ -74,14 +73,6 @@ class Mailing extends Controller
     }
   }
 
-
-
-  public function transferContact(Request $request)
-  {
-    dd($request->all());
-  }
-
-
   public function viewLeads()
   {
     $users = $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
@@ -98,6 +89,5 @@ class Mailing extends Controller
   {
     $data = $this->contatosRepository->getLeads(Auth::user()->empresa_id);
     return response()->json(['data' => $data]);
-
   }
 }
