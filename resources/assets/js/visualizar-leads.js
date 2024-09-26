@@ -182,7 +182,7 @@ $(function () {
               text: '<i class="ri-file-text-line me-1"></i>CSV',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [1, 2, 3, 4, 5],
+                columns: [1, 2, 3, 4, 5, 7],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     var el = $.parseHTML(inner);
@@ -196,7 +196,7 @@ $(function () {
               text: '<i class="ri-file-excel-line me-1"></i>Excel',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [1, 2, 3, 4, 5],
+                columns: [1, 2, 3, 4, 5, 7],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     var el = $.parseHTML(inner);
@@ -210,7 +210,7 @@ $(function () {
               text: '<i class="ri-file-pdf-line me-1"></i>PDF',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [1, 2, 3, 4, 5],
+                columns: [1, 2, 3, 4, 5, 7],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     var el = $.parseHTML(inner);
