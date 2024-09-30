@@ -11,14 +11,54 @@
 @endsection
 
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/apex-charts/apexcharts.js', 'resources/assets/vendor/libs/swiper/swiper.js'])
+    @vite(['resources/assets/vendor/libs/apex-charts/apexcharts.js', 'resources/assets/vendor/libs/swiper/swiper.js', 'resources/assets/vendor/libs/chartjs/chartjs.js'])
 @endsection
 
 @section('page-script')
-    @vite(['resources/assets/js/cards-statistics.js'])
+    @vite(['resources/assets/js/dashboard.js'])
 @endsection
 
 @section('content')
+
+    <div class="d-flex align-items-center mb-10">
+        <!-- Select para Mês -->
+        <div class="input-group me-3">
+            <select class="form-select" aria-label="Selecionar mês">
+                <option selected>Mês</option>
+                <option value="01">Janeiro</option>
+                <option value="02">Fevereiro</option>
+                <option value="03">Março</option>
+                <option value="04">Abril</option>
+                <option value="05">Maio</option>
+                <option value="06">Junho</option>
+                <option value="07">Julho</option>
+                <option value="08">Agosto</option>
+                <option value="09">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+            </select>
+            <span class="input-group-text">
+                <i class="ri-calendar-2-line"></i>
+            </span>
+        </div>
+
+        <!-- Select para Ano -->
+        <div class="input-group">
+            <select class="form-select" aria-label="Selecionar ano">
+                <option selected>Ano</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+                <option value="2022">2022</option>
+                <option value="2021">2021</option>
+                <option value="2020">2020</option>
+                <!-- Adicione outros anos conforme necessário -->
+            </select>
+            <span class="input-group-text">
+                <i class="ri-calendar-2-line"></i>
+            </span>
+        </div>
+    </div>
 
     <div class="row g-6">
         <!-- Ratings -->
@@ -127,6 +167,20 @@
                 </div>
             </div>
         </div>
+
+
+        <div class="col-xl-12 col-12 mb-6">
+            <div class="card">
+                <div class="card-header header-elements">
+                    <h5 class="card-title mb-0">Latest Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="barChart" class="chartjs" data-height="400"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- /Bar Charts -->
+
         <!--/ Total Orders -->
     </div>
 @endsection
