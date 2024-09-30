@@ -36,13 +36,12 @@ class Usuarios extends Controller
 
   public function index()
   {
-    $companies  = Auth::user()->role->id == UserRole::DEVELOPER ?  $this->empresaRepository->all() :  $this->empresaRepository->find(Auth::user()->empresa_id);
+    $companies = Auth::user()->role->id == UserRole::DEVELOPER ? $this->empresaRepository->all() : $this->empresaRepository->find(Auth::user()->empresa_id);
     return view('content.pages.usuarios', [
       'companies' => $companies,
       'tipo_usuario' => Auth::user()->role->tipo_usuario
     ]);
   }
-
 
 
   public function createUser(Request $request)
@@ -65,4 +64,20 @@ class Usuarios extends Controller
     $vendas = $this->usuariosRepository->usersAccordingToPermission(Auth::user()->role->id, Auth::user()->empresa_id, Auth::user()->id);
     return response()->json(['data' => $vendas]);
   }
+
+
+  public function editUser($idUser)
+  {
+    $user = $this->usuariosRepository->find($idUser);
+    return view('content.pages.editarUsuario', [
+      'user' => $user,
+    ]);
+  }
+
+
+  public function updateUser(Request $request)
+  {
+    return $this->useCaseUsuarios->updateUser($request->all());
+  }
+
 }

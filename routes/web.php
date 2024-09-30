@@ -18,6 +18,11 @@ Route::get('/', function () {
   return redirect()->route('login');
 });
 
+// Route::get('/teste', function () {
+//   $senhya = bcrypt('lkbrokers@2024');
+//   dd($senhya);
+// });
+
 Route::post('/logout', [LoginBasic::class, 'logout'])->name('logout');
 Route::post('autentication', [Auth::class, 'login'])->name('login.autentication');
 
@@ -35,9 +40,10 @@ Route::middleware(['auth'])->group(function () {
 
   /** CADASTRO DE USUARIOS */
   Route::get('/usuarios', [Usuarios::class, 'index'])->name('usuarios.index');
-  Route::post('/usuarios/createUser', [Usuarios::class, 'createUser'])->name('usuarios.createUser');
+  Route::get('/usuarios/editar-usuario/{idUser}', [Usuarios::class, 'editUser'])->name('usuarios.editUser');
   Route::get('/usuarios/getUsers', [Usuarios::class, 'getUsers'])->name('usuarios.getUsers');
-
+  Route::post('/usuarios/createUser', [Usuarios::class, 'createUser'])->name('usuarios.createUser');
+  Route::post('/usuarios/editUser', [Usuarios::class, 'updateUser'])->name('usuarios.updateUser');
   /** MAILING */
   Route::get('/mailing/importar', [Mailing::class, 'index'])->name('mailing.importMailing');
   Route::get('/mailing/visualizar-leads', [Mailing::class, 'viewLeads'])->name('mailing.viewLeads');

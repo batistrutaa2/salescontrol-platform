@@ -76,4 +76,22 @@ class UsuariosRepository implements UsuariosRepositoryInterface
   {
     return $this->model::select('id', 'empresa_id', 'user_role_id')->where('name', $nameUser)->first();
   }
+
+  public function find($id)
+  {
+    return $this->model::find($id);
+  }
+
+  public function editUser($data)
+  {
+    $conditions = ['email' => $data['email']];
+    $values = [
+      'name' => $data['name'],
+      'password' => bcrypt($data['senha']),
+      'ativo' => $data['ativo'],
+    ];
+    $user = $this->model::updateOrCreate($conditions, $values);
+    return $user;
+  }
+
 }

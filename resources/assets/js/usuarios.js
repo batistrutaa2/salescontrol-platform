@@ -119,7 +119,9 @@ $(function () {
               '<div class="d-flex align-items-center">' +
               '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line ri-22px"></i></button>' +
               '<div class="dropdown-menu dropdown-menu-end m-0">' +
-              '<a href="javascript:;" class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Edit</span></a>' +
+              '<a href="usuarios/editar-usuario/' +
+              full['id'] +
+              '" class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Edit</span></a>' +
               '</div>' +
               '</div>'
             );

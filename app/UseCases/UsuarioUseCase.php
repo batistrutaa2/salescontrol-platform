@@ -40,4 +40,25 @@ class UsuarioUseCase
       return response()->json(['success' => false, 'error' => $th->getMessage()], 500);
     }
   }
+
+
+  public function updateUser(array $data)
+  {
+    try {
+      if ($data['senha'] !== $data['senhaConfirma']) {
+        return redirect()->back()->with('status', 'error')->with('message', 'As Credenciais não conferem');
+      }
+
+      $createUser = $this->usuarioRepository->editUser($data);
+      if ($createUser) {
+        return redirect()->route('usuarios.index')->with('status', 'success')->with('message', 'Usuario editado com sucesso');
+      } else {
+        return redirect()->back()->with('status', 'error')->with('message', 'As Credenciais não conferem');
+      }
+
+    } catch (\Throwable $th) {
+      return redirect()->back()->with('status', 'error')->with('message', 'Erro ao atualizar usuario, contate nosso suporte');
+    }
+  }
+
 }
