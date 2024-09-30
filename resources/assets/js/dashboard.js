@@ -193,12 +193,22 @@
 
       // Add new data to the Cadastrados table
       dataCadastrados.forEach(item => {
-        tableContratosCadastrados.row.add([item.nome_contrato, item.valor_contrato]);
+        const totalVendasFormatado = parseFloat(item.valor_contrato).toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL'
+        });
+
+        tableContratosCadastrados.row.add([item.nome_contrato, totalVendasFormatado]);
       });
 
       // Add new data to the Implantados table
       dataImplantados.forEach(item => {
-        tableContratosImplantados.row.add([item.nome_contrato, item.valor_contrato]);
+        const totalVendasFormatado = parseFloat(item.valor_contrato).toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL'
+        });
+
+        tableContratosImplantados.row.add([item.nome_contrato, totalVendasFormatado]);
       });
 
       // Redraw the tables

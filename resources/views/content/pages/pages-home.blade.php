@@ -195,7 +195,7 @@
                                 <thead>
                                     <tr>
                                         <th>Nome Contrato</th>
-                                        <th>Total Vendas</th>
+                                        <th>Valor</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -217,7 +217,7 @@
                                 <thead>
                                     <tr>
                                         <th>Nome Contrato</th>
-                                        <th>Total Vendas</th>
+                                        <th>Valor</th>
                                     </tr>
                                 </thead>
                                 <tbody>
