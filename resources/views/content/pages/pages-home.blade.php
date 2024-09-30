@@ -167,7 +167,7 @@
         </div>
 
 
-        <div class="col-xl-12 col-12 mb-6">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header header-elements">
                     <h5 class="card-title mb-0">Grafico de Vendas</h5>
@@ -177,6 +177,17 @@
                 </div>
             </div>
         </div>
+
+        {{-- <div class="col-6">
+            <div class="card">
+                <div class="card-header header-elements">
+                    <h5 class="card-title mb-0">Leads Importados (Por Vendedor)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="barChart" class="chartjs" data-height="400"></canvas>
+                </div>
+            </div>
+        </div> --}}
         <!-- /Bar Charts -->
 
         <!--/ Total Orders -->

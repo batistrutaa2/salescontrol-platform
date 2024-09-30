@@ -99,7 +99,7 @@
                                         John Doe
                                     @endif
                                 </h6>
-                                <small class="text-muted"> {{ Auth::user()->name }}</small>
+                                <small class="text-muted"> {{ Auth::user()->email }}</small>
                             </div>
                         </div>
                     </a>

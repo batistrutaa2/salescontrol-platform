@@ -20,6 +20,13 @@ class Auth extends Controller
       if (AuthFacades::attempt($credentials)) {
         $request->session()->regenerate();
 
+        if (AuthFacades::user()->ativo === "N") {
+          return back()->withErrors([
+            'email' => 'Esse usuario está desativado, contate seu administrador.',
+          ]);
+        }
+
+
         if (AuthFacades::user()->user_role_id == UserRole::VENDEDOR) {
           return redirect()->intended('comercial/kanban');
         } else {
