@@ -5,7 +5,6 @@ namespace App\Http\Controllers\pages;
 use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\VendasRepositoryInterface;
-use App\Repositories\Eloquent\ContatosRepository;
 use Illuminate\Support\Carbon;
 
 class HomePage extends Controller
@@ -37,6 +36,7 @@ class HomePage extends Controller
     $vendasCadastradasPorVendedor = $this->vendasRepository->quantidadeVendasCadastradasPorVendedor($month, $year, $empresaId);
     $vendasImplantadasPorVendedor = $this->vendasRepository->quantidadeVendasImplantadasVendedor($month, $year, $empresaId);
     $quantidadeContatosImportados = $this->contatosRepository->quantidadeContatosImportadosMes($month, $year, $empresaId);
+    $contatosImportadosMesPorVendedor = $this->contatosRepository->quantidadeContatosImportadosMesPorVendedor($month, $year, $empresaId);
     $conversaoMensal = $this->vendasRepository->conversaoMensalPorData($empresaId, $month, $year);
     $contratosCadastrados = $this->vendasRepository->listaVendasCadastradasMes($month, $year, $empresaId);
     $contratosImplantados = $this->vendasRepository->listaVendasImplantadasMes($month, $year, $empresaId);
@@ -48,6 +48,7 @@ class HomePage extends Controller
       'conversaoMensal' => $conversaoMensal,
       'contratosCadastrados' => $contratosCadastrados,
       'contratosImplantados' => $contratosImplantados,
+      'contatosImportadosMesPorVendedor' => $contatosImportadosMesPorVendedor
     ]);
   }
 

@@ -157,4 +157,18 @@ class ContatosRepository implements ContatosRepositoryInterface
       ->whereMonth('created_at', $month)
       ->count();
   }
+
+  public function quantidadeContatosImportadosMesPorVendedor($month, $year, $empresa_id)
+  {
+    return DB::table('contatos as a')
+      ->leftJoin('contatos_corretores as b', 'a.id', '=', 'b.contato_id')
+      ->leftJoin('users as c', 'c.id', '=', 'b.user_id')
+      ->select('c.name', DB::raw('COUNT(*) as quantidade'))
+      ->whereYear('a.created_at', $year)
+      ->whereMonth('a.created_at', $month)
+      ->where('a.empresa_id', $empresa_id)
+      ->whereNotNull('c.name')
+      ->groupBy('c.name')
+      ->get();
+  }
 }

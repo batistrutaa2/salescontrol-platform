@@ -48,6 +48,9 @@
   const barChartElement = document.getElementById('barChart');
   let barChartVar;
 
+  const importChartElement = document.getElementById('importChart');
+  let importChart;
+
   if (barChartElement) {
     barChartVar = new Chart(barChartElement, {
       type: 'bar',
@@ -105,6 +108,53 @@
       }
     });
 
+    importChart = new Chart(importChartElement, {
+      type: 'bar',
+      data: {
+        labels: [], // Initially empty
+        datasets: [
+          {
+            data: [], // Initially empty
+            backgroundColor: colors.oceanBlue,
+            borderColor: 'transparent',
+            maxBarThickness: 15,
+            borderRadius: { topRight: 15, topLeft: 15 }
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 500 },
+        plugins: {
+          tooltip: {
+            rtl: isRtl,
+            backgroundColor: cardColor,
+            titleColor: headingColor,
+            bodyColor: legendColor,
+            borderWidth: 1,
+            borderColor: borderColor
+          },
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            grid: { color: borderColor, drawBorder: false, borderColor: borderColor },
+            ticks: { color: labelColor, font: { size: '13px' } }
+          },
+          y: {
+            min: 0,
+            grid: { color: borderColor, drawBorder: false, borderColor: borderColor },
+            ticks: {
+              stepSize: 5000,
+              color: labelColor,
+              font: { size: '13px' }
+            }
+          }
+        }
+      }
+    });
+
     // Fetch sales metrics function
     async function fetchSalesMetrics(month, year) {
       const url = `/searchMetrics/${month}/${year}`;
@@ -131,9 +181,13 @@
 
     // Update chart with fetched data
     function updateChart(data) {
-      // Process data
+      // vendas
       const labels = data.vendasCadastradasPorVendedor.map(item => item.name);
       const values = data.vendasCadastradasPorVendedor.map(item => parseFloat(item.total_vendas));
+      // contatos
+      const labelsContatos = data.contatosImportadosMesPorVendedor.map(item => item.name);
+      const valuesContatos = data.contatosImportadosMesPorVendedor.map(item => parseFloat(item.quantidade));
+
       const implantadas = data.vendasImplantadasPorVendedor.map(item => parseFloat(item.total_vendas));
       const quantidadeContatosImportados = data.quantidadeContatosImportados;
 
@@ -160,7 +214,11 @@
       barChartVar.data.labels = labels;
       barChartVar.data.datasets[0].data = values;
 
+      importChart.data.labels = labelsContatos;
+      importChart.data.datasets[0].data = valuesContatos;
+
       barChartVar.update();
+      importChart.update();
     }
 
     // Update metrics based on selected month and year
