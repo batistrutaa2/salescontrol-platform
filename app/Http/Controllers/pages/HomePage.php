@@ -38,12 +38,16 @@ class HomePage extends Controller
     $vendasImplantadasPorVendedor = $this->vendasRepository->quantidadeVendasImplantadasVendedor($month, $year, $empresaId);
     $quantidadeContatosImportados = $this->contatosRepository->quantidadeContatosImportadosMes($month, $year, $empresaId);
     $conversaoMensal = $this->vendasRepository->conversaoMensalPorData($empresaId, $month, $year);
+    $contratosCadastrados = $this->vendasRepository->listaVendasCadastradasMes($month, $year, $empresaId);
+    $contratosImplantados = $this->vendasRepository->listaVendasImplantadasMes($month, $year, $empresaId);
 
     return response()->json([
       'vendasCadastradasPorVendedor' => $vendasCadastradasPorVendedor,
       'vendasImplantadasPorVendedor' => $vendasImplantadasPorVendedor,
       'quantidadeContatosImportados' => $quantidadeContatosImportados,
-      'conversaoMensal' => $conversaoMensal
+      'conversaoMensal' => $conversaoMensal,
+      'contratosCadastrados' => $contratosCadastrados,
+      'contratosImplantados' => $contratosImplantados,
     ]);
   }
 

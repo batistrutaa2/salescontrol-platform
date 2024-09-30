@@ -4,21 +4,26 @@
 'use strict';
 
 (function () {
+  const tableContratosCadastrados = $('#tableContratosCadastrados').DataTable();
+  const tableContratosImplantados = $('#tableContratosImplantados').DataTable();
+
   // Color Variables
-  const purpleColor = '#8c57ff',
-    yellowColor = '#ffe800',
-    cyanColor = '#28dac6',
-    orangeColor = '#FF8132',
-    orangeLightColor = '#ffcf5c',
-    oceanBlueColor = '#299AFF',
-    greyColor = '#4F5D70',
-    greyLightColor = '#EDF1F4',
-    blueColor = '#2B9AFF',
-    blueLightColor = '#84D0FF';
+  const colors = {
+    purple: '#8c57ff',
+    yellow: '#ffe800',
+    cyan: '#28dac6',
+    orange: '#FF8132',
+    orangeLight: '#ffcf5c',
+    oceanBlue: '#299AFF',
+    grey: '#4F5D70',
+    greyLight: '#EDF1F4',
+    blue: '#2B9AFF',
+    blueLight: '#84D0FF'
+  };
 
   let cardColor, headingColor, labelColor, borderColor, legendColor;
 
-  // Definindo as cores com base no estilo
+  // Set colors based on the style
   if (isDarkStyle) {
     cardColor = config.colors_dark.cardColor;
     headingColor = config.colors_dark.headingColor;
@@ -34,41 +39,34 @@
   }
 
   // Set height according to their data-height
-  // --------------------------------------------------------------------
   const chartList = document.querySelectorAll('.chartjs');
-  chartList.forEach(function (chartListItem) {
+  chartList.forEach(chartListItem => {
     chartListItem.height = chartListItem.dataset.height;
   });
 
-  // Bar Chart
-  // --------------------------------------------------------------------
+  // Bar Chart Initialization
   const barChartElement = document.getElementById('barChart');
-  let barChartVar; // Variável para armazenar a instância do gráfico
+  let barChartVar;
 
   if (barChartElement) {
     barChartVar = new Chart(barChartElement, {
       type: 'bar',
       data: {
-        labels: [], // Inicialmente vazio
+        labels: [], // Initially empty
         datasets: [
           {
-            data: [], // Inicialmente vazio
-            backgroundColor: oceanBlueColor,
+            data: [], // Initially empty
+            backgroundColor: colors.oceanBlue,
             borderColor: 'transparent',
             maxBarThickness: 15,
-            borderRadius: {
-              topRight: 15,
-              topLeft: 15
-            }
+            borderRadius: { topRight: 15, topLeft: 15 }
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 500
-        },
+        animation: { duration: 500 },
         plugins: {
           tooltip: {
             rtl: isRtl,
@@ -78,50 +76,36 @@
             borderWidth: 1,
             borderColor: borderColor,
             callbacks: {
-              label: function (tooltipItem) {
-                // Formata o valor como moeda ao exibir no tooltip
-                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tooltipItem.raw);
+              label: tooltipItem => {
+                // Format value as currency for tooltip display
+                return new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL'
+                }).format(tooltipItem.raw);
               }
             }
           },
-          legend: {
-            display: false
-          }
+          legend: { display: false }
         },
-
         scales: {
           x: {
-            grid: {
-              color: borderColor,
-              drawBorder: false,
-              borderColor: borderColor
-            },
-            ticks: {
-              color: labelColor,
-              font: {
-                size: '13px'
-              }
-            }
+            grid: { color: borderColor, drawBorder: false, borderColor: borderColor },
+            ticks: { color: labelColor, font: { size: '13px' } }
           },
           y: {
             min: 0,
-            grid: {
-              color: borderColor,
-              drawBorder: false,
-              borderColor: borderColor
-            },
+            grid: { color: borderColor, drawBorder: false, borderColor: borderColor },
             ticks: {
               stepSize: 5000,
               color: labelColor,
-              font: {
-                size: '13px'
-              }
+              font: { size: '13px' }
             }
           }
         }
       }
     });
 
+    // Fetch sales metrics function
     async function fetchSalesMetrics(month, year) {
       const url = `/searchMetrics/${month}/${year}`;
 
@@ -145,8 +129,9 @@
       }
     }
 
+    // Update chart with fetched data
     function updateChart(data) {
-      // Processa os dados
+      // Process data
       const labels = data.vendasCadastradasPorVendedor.map(item => item.name);
       const values = data.vendasCadastradasPorVendedor.map(item => parseFloat(item.total_vendas));
       const implantadas = data.vendasImplantadasPorVendedor.map(item => parseFloat(item.total_vendas));
@@ -170,46 +155,58 @@
       document.querySelector('.js-quantidadeContatosImportados').textContent = quantidadeContatosImportados;
       document.querySelector('.js-conversao').textContent = `${data.conversaoMensal} %`;
 
+      updateTables(data.contratosCadastrados, data.contratosImplantados);
+
       barChartVar.data.labels = labels;
       barChartVar.data.datasets[0].data = values;
 
       barChartVar.update();
     }
 
-    // Função para atualizar as métricas com base no mês e ano selecionados
+    // Update metrics based on selected month and year
     async function updateMetrics() {
-      // Obtém o mês e o ano selecionados
-      const month = document.getElementById('select-month').value;
-      const year = document.getElementById('select-year').value;
+      const month = document.getElementById('select-month').value || new Date().getMonth() + 1;
+      const year = document.getElementById('select-year').value || new Date().getFullYear();
 
-      // Obtém a data atual
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth() + 1; // getMonth() retorna 0-11, então adicionamos 1
-      const currentYear = currentDate.getFullYear();
-
-      // Se mês ou ano não forem selecionados, usa o mês e ano atuais
-      const finalMonth = month ? month : currentMonth;
-      const finalYear = year ? year : currentYear;
-
-      // Chama a função para buscar os dados com o mês e ano definidos
-      await fetchSalesMetrics(finalMonth, finalYear);
+      await fetchSalesMetrics(month, year);
     }
 
-    // Adiciona eventos de mudança aos selects
+    // Add change events to selects
     document.getElementById('select-month').addEventListener('change', updateMetrics);
     document.getElementById('select-year').addEventListener('change', updateMetrics);
 
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1;
-    const currentYear = currentDate.getFullYear();
-
+    // Set default values for selects on DOMContentLoaded
     document.addEventListener('DOMContentLoaded', () => {
       const monthSelect = document.getElementById('select-month');
       const yearSelect = document.getElementById('select-year');
-      monthSelect.value = currentMonth;
-      yearSelect.value = currentYear;
+      monthSelect.value = new Date().getMonth() + 1;
+      yearSelect.value = new Date().getFullYear();
     });
 
-    fetchSalesMetrics(currentDate.getMonth() + 1, currentDate.getFullYear());
+    // Update tables function
+    function updateTables(dataCadastrados, dataImplantados) {
+      console.log(dataCadastrados, dataImplantados);
+
+      // Clear the tables
+      tableContratosCadastrados.clear();
+      tableContratosImplantados.clear();
+
+      // Add new data to the Cadastrados table
+      dataCadastrados.forEach(item => {
+        tableContratosCadastrados.row.add([item.nome_contrato, item.valor_contrato]);
+      });
+
+      // Add new data to the Implantados table
+      dataImplantados.forEach(item => {
+        tableContratosImplantados.row.add([item.nome_contrato, item.valor_contrato]);
+      });
+
+      // Redraw the tables
+      tableContratosCadastrados.draw();
+      tableContratosImplantados.draw();
+    }
+
+    // Fetch initial sales metrics
+    fetchSalesMetrics(new Date().getMonth() + 1, new Date().getFullYear());
   }
 })();
