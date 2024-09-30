@@ -20,7 +20,12 @@ class Auth extends Controller
       if (AuthFacades::attempt($credentials)) {
         $request->session()->regenerate();
 
-        if (AuthFacades::user()->ativo === "N") {
+        if (AuthFacades::user()->ativo == "N") {
+          AuthFacades::logout();
+
+          $request->session()->invalidate();
+          $request->session()->regenerateToken();
+
           return back()->withErrors([
             'email' => 'Esse usuario está desativado, contate seu administrador.',
           ]);
