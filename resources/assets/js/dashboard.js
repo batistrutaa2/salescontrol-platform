@@ -115,7 +115,7 @@
         datasets: [
           {
             data: [], // Initially empty
-            backgroundColor: colors.oceanBlue,
+            backgroundColor: colors.cyan,
             borderColor: 'transparent',
             maxBarThickness: 15,
             borderRadius: { topRight: 15, topLeft: 15 }
