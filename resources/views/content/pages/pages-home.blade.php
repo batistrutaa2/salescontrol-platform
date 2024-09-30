@@ -23,17 +23,17 @@
     <div class="d-flex align-items-center mb-10">
         <!-- Select para Mês -->
         <div class="input-group me-3">
-            <select class="form-select" aria-label="Selecionar mês">
+            <select class="form-select form-control" aria-label="Selecionar mês" id="select-month">
                 <option selected>Mês</option>
-                <option value="01">Janeiro</option>
-                <option value="02">Fevereiro</option>
-                <option value="03">Março</option>
-                <option value="04">Abril</option>
-                <option value="05">Maio</option>
-                <option value="06">Junho</option>
-                <option value="07">Julho</option>
-                <option value="08">Agosto</option>
-                <option value="09">Setembro</option>
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
                 <option value="10">Outubro</option>
                 <option value="11">Novembro</option>
                 <option value="12">Dezembro</option>
@@ -45,7 +45,7 @@
 
         <!-- Select para Ano -->
         <div class="input-group">
-            <select class="form-select" aria-label="Selecionar ano">
+            <select class="form-select" aria-label="Selecionar ano" id="select-year">
                 <option selected>Ano</option>
                 <option value="2024">2024</option>
                 <option value="2023">2023</option>
@@ -60,6 +60,7 @@
         </div>
     </div>
 
+
     <div class="row g-6">
         <!-- Ratings -->
         <div class="col-xl-3 col-lg-6 col-sm-6 mt-10">
@@ -70,9 +71,9 @@
                             <div class="card-info">
                                 <h6 class="mb-4 pb-1 text-nowrap">Contratos Cadastrados</h6>
                                 <div class="d-flex align-items-center mb-3">
-                                    <h4 class="mb-0 me-2">R$ 25.000,00</h4>
+                                    <h4 class="mb-0 me-2 js-valorCadastrado"></h4>
                                 </div>
-                                <div class="badge bg-label-primary rounded-pill">Year of 2021</div>
+
                             </div>
                         </div>
                     </div>
@@ -97,9 +98,8 @@
                             <div class="card-info">
                                 <h6 class="mb-4 pb-1 text-nowrap">Contratos Implantados</h6>
                                 <div class="d-flex align-items-center mb-3">
-                                    <h4 class="mb-0 me-2">R$ 25.000,00</h4>
+                                    <h4 class="mb-0 me-2 js-implantado"></h4>
                                 </div>
-                                <div class="badge bg-label-secondary rounded-pill">Last Week</div>
                             </div>
                         </div>
                     </div>
@@ -124,9 +124,8 @@
                             <div class="card-info">
                                 <h6 class="mb-4 pb-1 text-nowrap">Contatos importados</h6>
                                 <div class="d-flex align-items-center mb-3">
-                                    <h4 class="mb-0 me-2">2,856</h4>
+                                    <h4 class="mb-0 me-2 js-quantidadeContatosImportados"></h4>
                                 </div>
-                                <div class="badge bg-label-info rounded-pill">Daily Customers</div>
                             </div>
                         </div>
                     </div>
@@ -151,9 +150,8 @@
                             <div class="card-info">
                                 <h6 class="mb-4 pb-1 text-nowrap">Conversão Mensal</h6>
                                 <div class="d-flex align-items-center mb-3">
-                                    <h4 class="mb-0 me-2">16%</h4>
+                                    <h4 class="mb-0 me-2 js-conversao"></h4>
                                 </div>
-                                <div class="badge bg-label-warning rounded-pill">Last Month</div>
                             </div>
                         </div>
                     </div>
@@ -172,7 +170,7 @@
         <div class="col-xl-12 col-12 mb-6">
             <div class="card">
                 <div class="card-header header-elements">
-                    <h5 class="card-title mb-0">Latest Statistics</h5>
+                    <h5 class="card-title mb-0">Grafico de Vendas</h5>
                 </div>
                 <div class="card-body">
                     <canvas id="barChart" class="chartjs" data-height="400"></canvas>

@@ -26,6 +26,7 @@ Route::middleware(['auth'])->group(function () {
 
   /** PAGINA INICIAL */
   Route::get('dashboard', [HomePage::class, 'index'])->name('home.dashboard');
+  Route::get('searchMetrics/{month}/{year}', [HomePage::class, 'searchMetrics'])->name('home.dashboard');
 
   /** CADASTRO DE EMPRESAS */
   Route::get('/empresas', [Empresa::class, 'index'])->name('empresa.empresa');

@@ -147,4 +147,14 @@ class ContatosRepository implements ContatosRepositoryInterface
       ->where('b.empresa_id', $empresa_id)
       ->get();
   }
+
+
+  public function quantidadeContatosImportadosMes($month, $year, $empresa_id)
+  {
+    return $this->model::whereYear('created_at', 2024)
+      ->where('empresa_id', $empresa_id)
+      ->whereYear('created_at', $year)
+      ->whereMonth('created_at', $month)
+      ->count();
+  }
 }
