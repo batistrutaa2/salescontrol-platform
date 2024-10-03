@@ -65,6 +65,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/abrir-remarketing/{idMailing}', [Comercial::class, 'openLeadRemarketing'])->name('comercial.openLeadRemarketing');
   Route::get('/comercial/criar-cliente', [Comercial::class, 'createClient'])->name('comercial.createClient');
   Route::post('/comercial/transferContact', [Comercial::class, 'transferContact'])->name('comercial.transferContact');
+  Route::post('/comercial/transferContactInNulk', [Comercial::class, 'transferContactInNulk'])->name('comercial.transferContactInNulk');
   Route::get('/comercial/getCommentsLegacy/{cpf}', [Comercial::class, 'getCommentsLegacy'])->name('comercial.getCommentsLegacy');
   Route::post('/comercial/saveCommentsLegacy', [Comercial::class, 'saveCommentsLegacy'])->name('comercial.saveCommentsLegacy');
   Route::post('/comercial/criar-venda', [Comercial::class, 'createSale'])->name('comercial.createSale');

@@ -345,6 +345,21 @@ class Comercial extends Controller
     }
   }
 
+  public function transferContactInNulk(Request $request)
+  {
+    try {
+      $updateLead = $this->repositoryContatosCorretores->transferContactInNulk($request->all());
+      if ($updateLead) {
+        return redirect()->back()->with('status', 'success')->with('message', 'Transferencia concluida com sucesso');
+      } else {
+        return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
+      }
+    } catch (\Throwable $th) {
+      dd($th);
+      return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
+    }
+  }
+
 
   public function getCommentsLegacy(string $cpf)
   {

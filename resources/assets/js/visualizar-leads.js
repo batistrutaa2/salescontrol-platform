@@ -25,6 +25,7 @@ $(function () {
     var dt_products = dt_product_table.DataTable({
       ajax: '/mailing/getLeads',
       columns: [
+        { data: 'id', title: '' },
         { data: 'id', title: 'ID' },
         { data: 'nome_corretor', title: 'Corretor' },
         { data: 'nome_cliente', title: 'Cliente' },
@@ -38,7 +39,19 @@ $(function () {
       ],
       columnDefs: [
         {
-          targets: 3,
+          targets: 0,
+          orderable: false,
+          render: function () {
+            return '<input type="checkbox" class="dt-checkboxes form-check-input">';
+          },
+          checkboxes: {
+            selectAllRender: '<input type="checkbox" class="form-check-input">',
+            selectRow: true
+          },
+          responsivePriority: 4
+        },
+        {
+          targets: 4,
           render: function (data, type, full, meta) {
             let value = data.toString().replace(/\D/g, '');
 
@@ -61,7 +74,7 @@ $(function () {
           }
         },
         {
-          targets: 4, // Coluna com telefone
+          targets: 5, // Coluna com telefone
           render: function (data, type, row) {
             let value = data.toString().replace(/\D/g, ''); // Remove caracteres não numéricos
 
@@ -77,7 +90,7 @@ $(function () {
           }
         },
         {
-          targets: 5, // Coluna com valor
+          targets: 6, // Coluna com valor
           render: function (data, type, row) {
             if (data === null || data === undefined || isNaN(parseFloat(data))) {
               return 'R$ 0,00'; // Valor padrão se o dado for null ou não numérico
@@ -88,7 +101,7 @@ $(function () {
           }
         },
         {
-          targets: 7, // Coluna com valor
+          targets: 8, // Coluna com valor
           render: function (data, type, row) {
             // Verifica o valor de 'TRATATIVA' e aplica a cor
             if (data === 'Fora do Prazo') {
@@ -99,7 +112,7 @@ $(function () {
           }
         },
         {
-          targets: 8, // Coluna com data
+          targets: 9, // Coluna com data
           render: function (data, type, row) {
             if (!data) {
               return 'Data não disponível'; // Valor padrão se o dado for null ou undefined
@@ -137,6 +150,10 @@ $(function () {
           }
         }
       ],
+      select: {
+        style: 'multi', // Permitir múltiplas seleções
+        selector: 'td:first-child input[type="checkbox"]'
+      },
       order: [[2, 'asc']],
       dom:
         '<"card-header d-flex border-top rounded-0 flex-wrap py-0 pb-5 pb-md-0"' +
@@ -168,7 +185,7 @@ $(function () {
               text: '<i class="ri-printer-line me-1"></i>Imprimir',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [1, 2, 3, 4, 5, 6, 7],
+                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     var el = $.parseHTML(inner);
@@ -182,7 +199,7 @@ $(function () {
               text: '<i class="ri-file-text-line me-1"></i>CSV',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [1, 2, 3, 4, 5, 6, 7],
+                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     var el = $.parseHTML(inner);
@@ -196,7 +213,7 @@ $(function () {
               text: '<i class="ri-file-excel-line me-1"></i>Excel',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [1, 2, 3, 4, 5, 6, 7],
+                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     var el = $.parseHTML(inner);
@@ -210,7 +227,7 @@ $(function () {
               text: '<i class="ri-file-pdf-line me-1"></i>PDF',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [1, 2, 3, 4, 5, 6, 7],
+                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     var el = $.parseHTML(inner);
@@ -224,7 +241,7 @@ $(function () {
       ],
       initComplete: function () {
         this.api()
-          .columns(1)
+          .columns(2)
           .every(function () {
             var column = this;
             var select = $(
@@ -248,7 +265,7 @@ $(function () {
           });
 
         this.api()
-          .columns(6)
+          .columns(7)
           .every(function () {
             var column = this;
             var select = $(
@@ -271,6 +288,25 @@ $(function () {
       }
     });
   }
+
+  $('#btn-transferir-massa').on('click', function () {
+    var selectedRows = dt_products.rows({ selected: true }).data();
+
+    if (selectedRows.length === 0) {
+      alert('Por favor, selecione pelo menos um item.');
+      $('#modalTransferContacts').modal('hide');
+      return;
+    }
+
+    var selectedLeads = [];
+
+    selectedRows.each(function (data) {
+      selectedLeads.push(data.id);
+    });
+
+    $('#selectedLeadIds').val(selectedLeads.join(','));
+    $('#modalTransferContacts').modal('show');
+  });
 
   document.addEventListener('click', function (event) {
     if (event.target.closest('.js-transferir-leads')) {

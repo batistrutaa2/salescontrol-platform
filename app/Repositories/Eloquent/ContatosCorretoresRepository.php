@@ -234,4 +234,27 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       return false;
     }
   }
+
+
+  public function transferContactInNulk(array $data)
+  {
+    try {
+      DB::beginTransaction();
+      $leadIds = explode(',', $data['selectedLeadIds']);
+      array_map(function ($leadId) use ($data) {
+        $this->model->where('contato_id', $leadId)->update([
+          'user_id' => $data['user_id'],
+          'tabulacao_id' => $data['tabulation_id'],
+          'created_at' => Carbon::now(),
+          'updated_at' => Carbon::now(),
+        ]);
+      }, $leadIds);
+      DB::commit();
+      return true;
+    } catch (\Throwable $th) {
+      dd($th);
+      DB::rollBack();
+      return false;
+    }
+  }
 }
