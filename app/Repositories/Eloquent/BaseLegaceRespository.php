@@ -18,7 +18,7 @@ class BaseLegaceRespository implements BaseLegaceRespositoryInterface
 
   public function getContactsAll()
   {
-    return $this->model::select('records.id', 'brokers.name AS nome_corretor', 'records.nameClient AS nome_cliente', 'records.category', 'records.phone1 AS telefone')
+    return $this->model::select('records.id', 'brokers.name AS nome_corretor', 'records.nameClient AS nome_cliente', 'records.category', 'records.phone1 AS telefone', 'tabulations.description as status')
       ->leftJoin('recordsandbrokers', 'records.id', '=', 'recordsandbrokers.idRecords')
       ->leftJoin('brokers', 'recordsandbrokers.idBroker', '=', 'brokers.id')
       ->leftJoin('tabulations', 'recordsandbrokers.codTabulation', '=', 'tabulations.id')
@@ -41,6 +41,7 @@ class BaseLegaceRespository implements BaseLegaceRespositoryInterface
       ->leftJoin('brokers AS c', 'b.idBrokers', '=', 'c.id')
       ->select('b.*', 'c.name')
       ->where('a.id', $id_mailing)
+      ->orderBy('b.dateCreate', 'desc')
       ->get();
   }
 

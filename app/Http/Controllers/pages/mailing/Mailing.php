@@ -92,6 +92,7 @@ class Mailing extends Controller
   public function viewLeadslegacy()
   {
     $contacts = $this->baseLegaceRespository->getContactsAll();
+
     return view('content.pages.mailing.visualizar-leads-legado', [
       'contatos' => $contacts
     ]);
@@ -110,7 +111,7 @@ class Mailing extends Controller
 
     return response()->json(
       [
-        'contat0' => $infoContact,
+        'contato' => $infoContact,
         'comentarios' => $comments
       ]
     );
