@@ -147,6 +147,11 @@
           "url": "/mailing/visualizar-leads",
           "name": "Visualizar Leads",
           "slug": "pages-mailing-importar"
+        },
+        {
+          "url": "#",
+          "name": "Visualizar Leads - (LEGADO)",
+          "slug": "pages-mailing-importar-legado"
         }
       ]
     },

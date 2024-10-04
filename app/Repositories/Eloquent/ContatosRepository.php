@@ -95,7 +95,7 @@ class ContatosRepository implements ContatosRepositoryInterface
           'cpf' => Helpers::cleanSpecialCharacters($data['cpf']),
           'data_nascimento' => $data['data_nascimento'],
           'plano' => $data['plano'],
-          'cartegoria' => $data['cartegoria'],
+          'categoria' => $data['cartegoria'],
           'entidade' => $data['entidade'],
           'idades' => $data['idades'],
           'telefone1' => Helpers::cleanSpecialCharacters($data['telefone1']),
