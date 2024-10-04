@@ -44,10 +44,13 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/usuarios/getUsers', [Usuarios::class, 'getUsers'])->name('usuarios.getUsers');
   Route::post('/usuarios/createUser', [Usuarios::class, 'createUser'])->name('usuarios.createUser');
   Route::post('/usuarios/editUser', [Usuarios::class, 'updateUser'])->name('usuarios.updateUser');
+
   /** MAILING */
   Route::get('/mailing/importar', [Mailing::class, 'index'])->name('mailing.importMailing');
   Route::get('/mailing/visualizar-leads', [Mailing::class, 'viewLeads'])->name('mailing.viewLeads');
+  Route::get('/mailing/visualizar-leads-legacy', [Mailing::class, 'viewLeadslegacy'])->name('mailing.viewLeadslegacy');
   Route::get('/mailing/getLeads', [Mailing::class, 'getLeads'])->name('mailing.getLeads');
+  Route::get('/mailing/getLeadsLegacy/{idMailing}', [Mailing::class, 'getLeadsLegacy'])->name('mailing.getLeadsLegacy');
   Route::post('/mailing/importaMailing', [Mailing::class, 'importaMailing'])->name('mailing.uploadBase');
 
 

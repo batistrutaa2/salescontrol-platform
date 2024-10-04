@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
+use App\Repositories\Eloquent\BaseLegaceRespository;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Vite;
 use App\Repositories\Contracts\EmpresaRepositoryInterface;
@@ -36,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
     $this->app->bind(ComentariosRepositoryInterface::class, ComentariosRepository::class);
     $this->app->bind(ComentariosLegadosRepositoryInterface::class, ComentariosLegadosRepository::class);
     $this->app->bind(VendasRepositoryInterface::class, VendasRepository::class);
+    $this->app->bind(BaseLegaceRespositoryInterface::class, BaseLegaceRespository::class);
   }
 
   /**

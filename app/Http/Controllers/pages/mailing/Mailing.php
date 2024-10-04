@@ -4,9 +4,11 @@ namespace App\Http\Controllers\pages\mailing;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Eloquent\BaseLegaceRespository;
 use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\UseCases\MailingUseCase;
@@ -16,9 +18,10 @@ use Illuminate\Support\Facades\Validator;
 
 class Mailing extends Controller
 {
-
   protected UsuariosRepositoryInterface $usuarioRepository;
   protected TabulacoesRepository $tabulacoesRepository;
+
+  protected BaseLegaceRespository $baseLegaceRespository;
   protected MailingUseCase $mailingUseCase;
   protected ContatosRepository $contatosRepository;
   private $rulesUpload = [
@@ -29,7 +32,8 @@ class Mailing extends Controller
   public function __construct(
     UsuariosRepositoryInterface $usuariosRepositoryInterface,
     ContatosRepositoryInterface $contatosRepositoryInterface,
-    TabulacoesRepositoryInterface $tabulacoesRepositoryInterface
+    TabulacoesRepositoryInterface $tabulacoesRepositoryInterface,
+    BaseLegaceRespositoryInterface $baseLegaceRespositoryInterface
   ) {
 
     $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
@@ -37,6 +41,7 @@ class Mailing extends Controller
     $this->contatosRepository = $contatosRepositoryInterface;
     $this->usuarioRepository = $usuariosRepositoryInterface;
     $this->tabulacoesRepository = $tabulacoesRepositoryInterface;
+    $this->baseLegaceRespository = $baseLegaceRespositoryInterface;
   }
 
   public function index()
@@ -84,10 +89,30 @@ class Mailing extends Controller
     ]);
   }
 
+  public function viewLeadslegacy()
+  {
+    $contacts = $this->baseLegaceRespository->getContactsAll();
+    return view('content.pages.mailing.visualizar-leads-legado', [
+      'contatos' => $contacts
+    ]);
+  }
 
   public function getLeads()
   {
     $data = $this->contatosRepository->getLeads(Auth::user()->empresa_id);
     return response()->json(['data' => $data]);
+  }
+
+  public function getLeadsLegacy($id_mailing)
+  {
+    $infoContact = $this->baseLegaceRespository->getContacts($id_mailing);
+    $comments = $this->baseLegaceRespository->getCommentsMailing($id_mailing);
+
+    return response()->json(
+      [
+        'contat0' => $infoContact,
+        'comentarios' => $comments
+      ]
+    );
   }
 }
