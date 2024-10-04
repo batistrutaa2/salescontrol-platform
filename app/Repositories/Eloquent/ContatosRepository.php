@@ -112,6 +112,8 @@ class ContatosRepository implements ContatosRepositoryInterface
           'valor_negociacao' => Helpers::formatCurrencyToDecimal($data['valor_negociacao'])
         ];
       }
+
+
       $this->model::updateOrCreate($serchClient, $dataClient);
       return true;
     } catch (\Throwable $th) {
