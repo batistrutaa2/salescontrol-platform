@@ -59,19 +59,23 @@ return [
       ]) : [],
     ],
 
-    'mysql_second' => [
+    'mysql2' => [
       'driver' => 'mysql',
-      'host' => env('DB_SECOND_HOST', '127.0.0.1'),
-      'port' => env('DB_SECOND_PORT', '3306'),
-      'database' => env('DB_SECOND_DATABASE', 'forge'),
-      'username' => env('DB_SECOND_USERNAME', 'forge'),
-      'password' => env('DB_SECOND_PASSWORD', ''),
+      'host' => env('DB_HOST_SECONDARY', '127.0.0.1'),
+      'port' => env('DB_PORT_SECONDARY', '3306'),
+      'database' => env('DB_DATABASE_SECONDARY', 'forge'),
+      'username' => env('DB_USERNAME_SECONDARY', 'forge'),
+      'password' => env('DB_PASSWORD_SECONDARY', ''),
       'unix_socket' => env('DB_SOCKET', ''),
-      'charset' => 'utf8mb4',
-      'collation' => 'utf8mb4_unicode_ci',
+      'charset' => env('DB_CHARSET', 'utf8mb4'),
+      'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
       'prefix' => '',
+      'prefix_indexes' => true,
       'strict' => true,
       'engine' => null,
+      'options' => extension_loaded('pdo_mysql') ? array_filter([
+        PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+      ]) : [],
     ],
 
     'mariadb' => [
