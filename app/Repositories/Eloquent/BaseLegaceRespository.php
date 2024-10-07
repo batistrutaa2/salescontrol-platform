@@ -18,18 +18,17 @@ class BaseLegaceRespository implements BaseLegaceRespositoryInterface
 
   public function getContactsAll()
   {
-    return $this->model::select('records.id', 'brokers.name AS nome_corretor', 'records.nameClient AS nome_cliente', 'records.category', 'records.phone1 AS telefone', 'tabulations.description as status')
+    return DB::connection('mysql2')->table('records')->select('records.id', 'brokers.name AS nome_corretor', 'records.nameClient AS nome_cliente', 'records.category', 'records.phone1 AS telefone', 'tabulations.description as status')
       ->leftJoin('recordsandbrokers', 'records.id', '=', 'recordsandbrokers.idRecords')
       ->leftJoin('brokers', 'recordsandbrokers.idBroker', '=', 'brokers.id')
       ->leftJoin('tabulations', 'recordsandbrokers.codTabulation', '=', 'tabulations.id')
       ->whereNotNull('brokers.name')
       ->get();
-
   }
 
   public function getContacts($id_mailing)
   {
-    return $this->model
+    return DB::connection('mysql2')->table('records')
       ->where('id', $id_mailing)
       ->first();
   }
