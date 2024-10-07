@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\pages;
 
-use Auth;
+
 use App\Enums\UserRole;
 use Illuminate\Support\Carbon;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 
