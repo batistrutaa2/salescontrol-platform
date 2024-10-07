@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\pages;
 
-use App\Http\Controllers\Controller;
-use App\Repositories\Contracts\ContatosRepositoryInterface;
-use App\Repositories\Contracts\VendasRepositoryInterface;
+use Auth;
+use App\Enums\UserRole;
 use Illuminate\Support\Carbon;
+use App\Http\Controllers\Controller;
+use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Repositories\Contracts\ContatosRepositoryInterface;
 
 class HomePage extends Controller
 {
@@ -23,6 +25,11 @@ class HomePage extends Controller
 
   public function index()
   {
+    if (Auth::user()->user_role_id == UserRole::VENDEDOR) {
+      return redirect()->route('comercial.kanban');
+    }
+
+
     return view('content.pages.pages-home');
   }
 
