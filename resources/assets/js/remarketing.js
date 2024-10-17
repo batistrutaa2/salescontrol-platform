@@ -77,7 +77,7 @@ $(function () {
           data: 'telefone1'
         },
         {
-          data: 'categoria'
+          data: 'plano'
         },
         {
           data: 'entidade'
