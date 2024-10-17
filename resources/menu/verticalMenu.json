@@ -152,6 +152,11 @@
           "url": "/mailing/visualizar-leads-legacy",
           "name": "contatos legados - (LEGADO)",
           "slug": "pages-mailing-importar-legado"
+        },
+        {
+          "url": "/comercial/criar-cliente",
+          "name": "Cadastrar Cliente",
+          "slug": "comercial-cadastrar-cliente"
         }
       ]
     },

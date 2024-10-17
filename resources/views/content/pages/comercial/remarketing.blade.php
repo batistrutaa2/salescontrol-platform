@@ -42,7 +42,7 @@
                         <th>NOME</th>
                         <th>EMAIL</th>
                         <th>TELEFONE PRINCIAL</th>
-                        <th>CARTEGORIA</th>
+                        <th>PLANO</th>
                         <th>ENTIDADE</th>
                         <th>ULTIMA ATUALIZAÇÃO</th>
                         <th></th>
