@@ -13,6 +13,7 @@ class Tabulations
   const REMARKETING = 10;
   const VENDA = 16;
   const IMPLANTADO = 18;
+  const SEM_CONTATO = 19;
   const ESTORNO = 17;
 
 
@@ -25,6 +26,7 @@ class Tabulations
     self::NEGOCIO_FECHADO => 5,
     self::NEGOCIO_NAO_FECHADO => 6,
     self::REMARKETING => 10,
+    self::SEM_CONTATO => 19,
     self::VENDA => 16,
     self::IMPLANTADO => 18,
     self::ESTORNO => 17,

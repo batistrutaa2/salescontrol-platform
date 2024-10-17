@@ -381,8 +381,10 @@
       let valorNegociacao = element.getAttribute('data-valor_negociacao');
       let temperatura = element.getAttribute('data-temperatura');
       let idades = element.getAttribute('data-idades');
+      let tabulation_id = element.getAttribute('data-tabulacao-id');
 
       kanbanSidebar.querySelector('#id_mailing').value = idMailing == 'null' ? '' : idMailing;
+      kanbanSidebar.querySelector('#id_tabulacao').value = tabulation_id == 'null' ? '' : tabulation_id;
       kanbanSidebar.querySelector('#title').value = nomeCliente == 'null' ? '' : nomeCliente;
       kanbanSidebar.querySelector('#data_nascimento').value = datanascimento == 'null' ? '' : datanascimento;
       kanbanSidebar.querySelector('#cpf').value = cpf == 'null' ? '' : cpf;

@@ -148,6 +148,7 @@
                             @csrf
                             <div class="form-floating form-floating-outline mb-5">
                                 <input type="hidden" value="" id="id_mailing" name="id_mailing">
+                                <input type="hidden" value="" id="id_tabulacao" name="id_tabulacao">
                                 <input type="text" id="title" class="form-control" placeholder="Enter Title"
                                     disabled />
                                 <label for="title">Nome Completo</label>
