@@ -76,6 +76,12 @@ $(function () {
         {
           data: 'telefone1'
         },
+        {
+          data: 'categoria'
+        },
+        {
+          data: 'entidade'
+        },
         { data: 'updated_at' },
         {
           // Actions
@@ -129,7 +135,7 @@ $(function () {
               text: '<i class="ri-printer-line me-1"></i>Print',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5],
+                columns: [0, 1, 2, 3, 4, 5, 6],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     if (inner.length <= 0) return inner;
@@ -165,7 +171,7 @@ $(function () {
               text: '<i class="ri-file-text-line me-1" ></i>Csv',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5],
+                columns: [0, 1, 2, 3, 4, 5, 6],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     if (inner.length <= 0) return inner;
@@ -188,7 +194,7 @@ $(function () {
               text: '<i class="ri-file-excel-line me-1"></i>Excel',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5],
+                columns: [0, 1, 2, 3, 4, 5, 6],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     if (inner.length <= 0) return inner;
@@ -211,7 +217,7 @@ $(function () {
               text: '<i class="ri-file-pdf-line me-1"></i>Pdf',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5],
+                columns: [0, 1, 2, 3, 4, 5, 6],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     if (inner.length <= 0) return inner;
@@ -234,7 +240,7 @@ $(function () {
               text: '<i class="ri-file-copy-line me-1"></i>Copy',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5],
+                columns: [0, 1, 2, 3, 4, 5, 6],
                 format: {
                   body: function (inner, coldex, rowdex) {
                     if (inner.length <= 0) return inner;
