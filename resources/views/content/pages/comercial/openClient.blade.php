@@ -224,6 +224,7 @@
                         <form action="{{ route('comercial.saveComment') }}" method="POST" id="saveComment">
                             @csrf
                             <input type="hidden" name="id_mailing" value="{{ $client->id }}">
+                            <input type="hidden" value="{{ $tabulationCurrent }}"  name="id_tabulacao">
                             <div>
                                 <div class="form-control p-0 pt-1">
                                     <div class="comment-toolbar border-0 border-bottom">

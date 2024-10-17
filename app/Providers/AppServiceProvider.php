@@ -7,7 +7,9 @@ use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
+use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Eloquent\BaseLegaceRespository;
+use App\Repositories\Eloquent\LeadAtividadeRepository;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Vite;
 use App\Repositories\Contracts\EmpresaRepositoryInterface;
@@ -39,7 +41,8 @@ class AppServiceProvider extends ServiceProvider
     $this->app->bind(ComentariosLegadosRepositoryInterface::class, ComentariosLegadosRepository::class);
     $this->app->bind(VendasRepositoryInterface::class, VendasRepository::class);
     $this->app->bind(BaseLegaceRespositoryInterface::class, BaseLegaceRespository::class);
-  }
+    $this->app->bind(LeadAtividadeRepositoryInterface::class, LeadAtividadeRepository::class);
+  } 
 
   /**
    * Bootstrap any application services.

@@ -10,6 +10,7 @@ use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
+use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Contracts\VendasRepositoryInterface;
@@ -17,6 +18,7 @@ use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ComentariosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\ContatosRepository;
+use App\Repositories\Eloquent\LeadAtividadeRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\UsuariosRepository;
 use App\Repositories\Eloquent\VendasRepository;
@@ -36,7 +38,7 @@ class Comercial extends Controller
   protected UsuariosRepository $usuariosRepository;
   protected VendasRepository $vendasRepository;
   protected ComentariosLegadosRepository $comentariosLegadosRepository;
-
+  protected LeadAtividadeRepository $leadAtividadeRepository;
   protected ComercialUseCase $comercialUseCase;
   protected MailingUseCase $mailingUseCase;
 
@@ -48,6 +50,8 @@ class Comercial extends Controller
     UsuariosRepositoryInterface $usuariosRepositoryInterface,
     ComentariosLegadosRepositoryInterface $comentariosLegadosRepositoryInterface,
     VendasRepositoryInterface $vendasRepositoryInterface,
+    LeadAtividadeRepositoryInterface $leadAtividadeRepositoryInterface
+
   ) {
     //Repositories
     $this->repositoryContatosCorretores = $contatosCorretoresRepositoryInterface;
@@ -57,9 +61,10 @@ class Comercial extends Controller
     $this->usuariosRepository = $usuariosRepositoryInterface;
     $this->comentariosLegadosRepository = $comentariosLegadosRepositoryInterface;
     $this->vendasRepository = $vendasRepositoryInterface;
+    $this->leadAtividadeRepository = $leadAtividadeRepositoryInterface;
 
     //UseCases
-    $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface);
+    $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface, $leadAtividadeRepositoryInterface);
     $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
   }
 
@@ -111,6 +116,7 @@ class Comercial extends Controller
           'telefone1' => $contact->telefone1,
           'telefone2' => $contact->telefone2,
           'telefone3' => $contact->telefone3,
+          'tabulacao-id' => $tabulation['id'],
           'email' => $contact->email,
           'idades' => $contact->idades,
           'temperatura' => $contact->temperatura,
@@ -229,6 +235,7 @@ class Comercial extends Controller
     }
 
     return $this->comercialUseCase->saveDataInfo(
+      $request,
       $request->id_mailing,
       $request->telefone1,
       $request->telefone2,
@@ -269,10 +276,10 @@ class Comercial extends Controller
   }
 
 
-
-
   public function saveComment(Request $request)
   {
+    $this->leadAtividadeRepository->create($request->all());
+
     $saveComment = $this->comentariosRepository->createComment(
       Auth::user()->empresa_id,
       Auth::user()->id,
