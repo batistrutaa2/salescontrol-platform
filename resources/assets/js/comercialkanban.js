@@ -130,18 +130,12 @@
       "<a class='dropdown-item' href='/comercial/abrir-cliente/" +
       idMailing +
       "'>Abrir Cliente</a>" +
-      "<a class='dropdown-item' href='#' data-bs-toggle='modal' data-bs-target='#discardModal' onclick='setDiscardLead(" +
-      idMailing +
-      ")'>Descartar</a>" +
       '</div>' +
       '</div>'
     );
   }
 
   // Função para definir o ID do lead a ser descartado
-  function setDiscardLead(idMailing) {
-    document.getElementById('discardLeadId').value = idMailing;
-  }
 
   // Render header
   function renderHeader(color, text, idMailing, colorTime, messageTime) {
@@ -179,17 +173,34 @@
     );
   }
 
-  function renderFooter(attachments, comments, assigned, members) {
+  function renderFooter(attachments, comments, assigned, members, leadId) {
     return (
       "<div class='d-flex justify-content-between align-items-center flex-wrap mt-2'>" +
-      "</span> <span class='align-middle'><i class='ri-wechat-line ri-20px me-1'></i>" +
+      "<span class='align-middle'>" +
+      "<i class='ri-wechat-line ri-20px me-1'></i>" +
       '<span> ' +
       comments +
       ' </span>' +
-      '</span></div>' +
+      '</span>' +
+      "<span class='ms-auto'>" +
+      "<button type='button' class='btn btn-link p-0 text-danger' " +
+      "data-bs-toggle='modal' " +
+      "data-bs-target='#discardModal' " +
+      "onclick='setLeadId(" +
+      leadId +
+      ")'>" +
+      "<i class='ri-delete-bin-5-fill ri-20px'></i>" +
+      '</button>' +
+      '</span>' +
       '</div>'
     );
   }
+
+  // Definindo a função no escopo global
+  window.setLeadId = function (leadId) {
+    console.log(leadId);
+    document.getElementById('leadIdInput').value = leadId; // Define o ID do lead no campo oculto da modal
+  };
 
   function sendRequestApichangeStatusLead(contato_id, tabulacao_id) {
     fetch('/changeStatusLead/kanban/changeStatusLead', {
@@ -593,7 +604,8 @@
             el.getAttribute('data-attachments'),
             el.getAttribute('data-comments'),
             el.getAttribute('data-assigned'),
-            el.getAttribute('data-members')
+            el.getAttribute('data-members'),
+            el.getAttribute('data-eid')
           )
         );
       }

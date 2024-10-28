@@ -257,4 +257,15 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       return false;
     }
   }
+
+
+  public function sendRemaketing($idLead, $sub_tabulacao_id)
+  {
+    return $this->model::where('contato_id', $idLead)->update(
+      [
+        'sub_tabulacao_id' => $sub_tabulacao_id,
+        'tabulacao_id' => Tabulations::REMARKETING
+      ]
+    );
+  }
 }

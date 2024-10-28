@@ -25,4 +25,14 @@ class TabulacoesRepository implements TabulacoesRepositoryInterface
     return $this->model->select(['id', 'descricao'])->where('empresa_id', $empresa_id)->where('status', 'Y')->get();
   }
 
+
+  public function getSubTabulations($empresa_id)
+  {
+    return $this->model->select(['id', 'descricao'])
+      ->where('empresa_id', $empresa_id)
+      ->where('status', 'Y')
+      ->where('sub_tabulacao', 'S')
+      ->get();
+  }
+
 }

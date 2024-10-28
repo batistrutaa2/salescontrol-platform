@@ -72,9 +72,12 @@ class Comercial extends Controller
   {
     $vendedores = $this->usuariosRepository->getUsersFilterType(Auth::user()->empresa_id, UserRole::VENDEDOR);
 
+    $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
+
     return view('content.pages.comercial.index', [
       'vendedores' => $vendedores,
-      'typeUserLogeed' => Auth::user()->role->tipo_usuario
+      'typeUserLogeed' => Auth::user()->role->tipo_usuario,
+      'subTabulacoes' => $subTabulacoes
     ]);
   }
 
@@ -415,6 +418,18 @@ class Comercial extends Controller
         ->with('message', $response['message']);
     } else {
       return redirect()->route('comercial.kanban')->with('status', 'success')->with('message', $response['message']);
+    }
+  }
+
+
+  public function sendRemaketing(Request $request)
+  {
+    $updateContact = $this->repositoryContatosCorretores->sendRemaketing($request->contato_id, $request->sub_tabulacao_id);
+
+    if ($updateContact) {
+      return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', "Contato descartado com sucesso");
+    } else {
+      return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao descartado com sucesso");
     }
   }
 }

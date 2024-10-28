@@ -7,4 +7,6 @@ interface TabulacoesRepositoryInterface
   public function getTabulationsCompanieCommercial($empresa_id);
 
   public function getAll($empresa_id);
+
+  public function getSubTabulations($empresa_id);
 }
