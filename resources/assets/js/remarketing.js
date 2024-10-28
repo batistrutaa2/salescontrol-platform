@@ -67,10 +67,17 @@ $(function () {
         { data: 'nome_cliente' },
         {
           // User email
-          data: 'email',
+          data: 'motivo_remarketing',
           render: function (data, type, full, meta) {
-            var $email = full['email'];
-            return '<span >' + $email + '</span>';
+            var $motivo = full['motivo_remarketing'];
+
+            if ($motivo == null) {
+              $motivo = 'SEM REGISTRO';
+            } else {
+              $motivo = full['motivo_remarketing'];
+            }
+
+            return '<span >' + $motivo + '</span>';
           }
         },
         {

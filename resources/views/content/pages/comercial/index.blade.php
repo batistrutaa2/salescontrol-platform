@@ -349,11 +349,20 @@
 
                         <div class="col-12 col-md-12">
                             <div class="form-floating form-floating-outline">
+                                <input type="number" id="vidas" name="vidas" class="form-control"
+                                    placeholder="Quantidade de vidas" required />
+                                <label for="obs_contrato">Quantidade de vidas</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-12">
+                            <div class="form-floating form-floating-outline">
                                 <input type="text" id="obs_contrato" name="obs_contrato" class="form-control"
                                     placeholder="Observação de contrato" />
                                 <label for="obs_contrato">Observação de contrato</label>
                             </div>
                         </div>
+
                         <div class="col-12 text-center">
                             <button type="submit" class="btn btn-success me-3 create-sale">Salvar contrato</button>
                             <button type="reset" class="btn btn-outline-secondary" data-bs-dismiss="modal"
@@ -382,7 +391,6 @@
                         <div class="mb-3">
                             <label for="discardReason" class="form-label">Motivo do Descarte</label>
                             <select class="form-select" id="discardReason" name="sub_tabulacao_id" required>
-                                <option>Selecione o motivo</option>
                                 @foreach ($subTabulacoes as $tabulation)
                                     <option value="{{ $tabulation->id }}">{{ $tabulation->descricao }}</option>
                                 @endforeach

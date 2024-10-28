@@ -39,6 +39,7 @@ class VendasRepository implements VendasRepositoryInterface
         'operadora' => strtoupper($data['operadora']),
         'nome_plano' => strtoupper($data['nome_plano']),
         'valor_contrato' => Helpers::converterParaDecimal($data['valor_contrato']),
+        'vidas' => $data['vidas'],
         'obs_contrato' => $data['obs_contrato'],
       ]);
       DB::commit();

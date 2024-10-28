@@ -18,11 +18,6 @@ Route::get('/', function () {
   return redirect()->route('login');
 });
 
-// Route::get('/teste', function () {
-//   $senhya = bcrypt('lkbrokers@2024');
-//   dd($senhya);
-// });
-
 Route::post('/logout', [LoginBasic::class, 'logout'])->name('logout');
 Route::post('autentication', [Auth::class, 'login'])->name('login.autentication');
 

@@ -40,7 +40,7 @@
                     <tr>
                         <th>ID</th>
                         <th>NOME</th>
-                        <th>EMAIL</th>
+                        <th>MOTIVO</th>
                         <th>TELEFONE PRINCIAL</th>
                         <th>PLANO</th>
                         <th>ENTIDADE</th>
