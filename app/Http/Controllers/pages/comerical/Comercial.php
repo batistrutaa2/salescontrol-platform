@@ -128,7 +128,7 @@ class Comercial extends Controller
           'user-id' => $contact->user_id,
           'user-name' => $contact->nameVendedor,
           'show-name-card' => $typeUser,
-          'time_expired' => $this->arriveExpirationTime($contact->updated_at, $tabulation['id'], $contact->created_at)
+          'data_create' => $contact->created_at
         ];
       })->values()->toArray();
 

@@ -138,7 +138,7 @@
   // Função para definir o ID do lead a ser descartado
 
   // Render header
-  function renderHeader(color, text, idMailing, colorTime, messageTime) {
+  function renderHeader(color, text, idMailing, dataInsert, messageTime) {
     return (
       "<div class='d-flex justify-content-between flex-wrap align-items-center mb-2'>" +
       "<div class='item-badges d-flex'>" +
@@ -150,7 +150,7 @@
       '</div>' +
       "<div class='item-badges d-flex'>" +
       "<div class='badge rounded-pill bg-label-" +
-      colorTime +
+      dataInsert +
       "'> " +
       messageTime +
       '</div>' +
@@ -562,22 +562,9 @@
       let idMailing = elementCard.getAttribute('data-eid');
       const element = "<span class='kanban-text'>" + el.textContent + '</span>';
       let img = '';
-      if (el.getAttribute('data-image') !== null) {
-        img =
-          "<img class='img-fluid mb-2 rounded-3' src='" +
-          assetsPath +
-          'img/elements/' +
-          el.getAttribute('data-image') +
-          "'>";
-      }
 
-      if (el.getAttribute('data-time_expired') == 'false') {
-        colorTime = 'success';
-        messageTime = 'Dentro do prazo';
-      } else {
-        colorTime = 'danger';
-        messageTime = 'Fora do prazo';
-      }
+      colorTime = 'secondary';
+      messageTime = el.getAttribute('data-data_create');
 
       el.textContent = '';
       if (el.getAttribute('data-badge') !== undefined && el.getAttribute('data-badge-text') !== undefined) {
@@ -605,7 +592,7 @@
             el.getAttribute('data-comments'),
             el.getAttribute('data-assigned'),
             el.getAttribute('data-members'),
-            el.getAttribute('data-eid')
+            el.getAttribute('data-assigned')
           )
         );
       }
