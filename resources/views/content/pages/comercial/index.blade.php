@@ -349,11 +349,20 @@
 
                         <div class="col-12 col-md-12">
                             <div class="form-floating form-floating-outline">
+                                <input type="number" id="vidas" name="vidas" class="form-control"
+                                    placeholder="Quantidade de vidas" required />
+                                <label for="obs_contrato">Quantidade de vidas</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-12">
+                            <div class="form-floating form-floating-outline">
                                 <input type="text" id="obs_contrato" name="obs_contrato" class="form-control"
                                     placeholder="Observação de contrato" />
                                 <label for="obs_contrato">Observação de contrato</label>
                             </div>
                         </div>
+
                         <div class="col-12 text-center">
                             <button type="submit" class="btn btn-success me-3 create-sale">Salvar contrato</button>
                             <button type="reset" class="btn btn-outline-secondary" data-bs-dismiss="modal"
@@ -365,4 +374,35 @@
         </div>
     </div>
     <!--/ Add New Address Modal -->
+
+    <!-- Modal para descartar lead -->
+    <div class="modal fade" id="discardModal" tabindex="-1" aria-labelledby="discardModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="discardModalLabel">Descartar Lead</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('comercial.sendRemaketing') }}" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <p>Tem certeza de que deseja descartar este lead?</p>
+                        <input type="hidden" id="leadIdInput" name="contato_id" value="">
+                        <div class="mb-3">
+                            <label for="discardReason" class="form-label">Motivo do Descarte</label>
+                            <select class="form-select" id="discardReason" name="sub_tabulacao_id" required>
+                                @foreach ($subTabulacoes as $tabulation)
+                                    <option value="{{ $tabulation->id }}">{{ $tabulation->descricao }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Descartar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection

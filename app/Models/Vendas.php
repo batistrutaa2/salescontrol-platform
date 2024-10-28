@@ -26,6 +26,7 @@ class Vendas extends Model
     'operadora',
     'nome_plano',
     'valor_contrato',
+    'vidas',
     'obs_contrato',
     'created_at',
     'updated_at'

@@ -43,5 +43,4 @@ class BaseLegaceRespository implements BaseLegaceRespositoryInterface
       ->orderBy('b.dateCreate', 'desc')
       ->get();
   }
-
 }

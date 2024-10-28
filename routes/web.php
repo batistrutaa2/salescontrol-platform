@@ -18,11 +18,6 @@ Route::get('/', function () {
   return redirect()->route('login');
 });
 
-// Route::get('/teste', function () {
-//   $senhya = bcrypt('lkbrokers@2024');
-//   dd($senhya);
-// });
-
 Route::post('/logout', [LoginBasic::class, 'logout'])->name('logout');
 Route::post('autentication', [Auth::class, 'login'])->name('login.autentication');
 
@@ -73,10 +68,10 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/saveCommentsLegacy', [Comercial::class, 'saveCommentsLegacy'])->name('comercial.saveCommentsLegacy');
   Route::post('/comercial/criar-venda', [Comercial::class, 'createSale'])->name('comercial.createSale');
   Route::post('/comercial/createLead', [Comercial::class, 'createLead'])->name('comercial.createLead');
+  Route::post('/comercial/sendRemaketing', [Comercial::class, 'sendRemaketing'])->name('comercial.sendRemaketing');
 
   /** BACKOFFICE */
   Route::get(uri: '/back-office/fila-contratos', action: [Backoffice::class, 'index'])->name(name: 'backoffice.index');
-
 
   /** VENDAS */
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');

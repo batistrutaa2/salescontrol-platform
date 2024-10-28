@@ -141,4 +141,9 @@ class MailingUseCase
       ];
     }
   }
+
+  public function sendRemaketing(array $data)
+  {
+        
+  }
 }
