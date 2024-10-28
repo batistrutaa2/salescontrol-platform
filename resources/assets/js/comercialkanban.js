@@ -592,7 +592,7 @@
             el.getAttribute('data-comments'),
             el.getAttribute('data-assigned'),
             el.getAttribute('data-members'),
-            el.getAttribute('data-assigned')
+            el.getAttribute('data-eid')
           )
         );
       }
