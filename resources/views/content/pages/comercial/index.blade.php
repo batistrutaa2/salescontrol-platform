@@ -365,4 +365,36 @@
         </div>
     </div>
     <!--/ Add New Address Modal -->
+
+    <!-- Modal para descartar lead -->
+    <div class="modal fade" id="discardModal" tabindex="-1" aria-labelledby="discardModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="discardModalLabel">Descartar Lead</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza de que deseja descartar este lead?</p>
+                    <input type="hidden" id="discardLeadId" />
+
+                    <!-- Select para motivo do descarte -->
+                    <div class="mb-3">
+                        <label for="discardReason" class="form-label">Motivo do Descarte</label>
+                        <select class="form-select" id="discardReason" required>
+                            <option value="">Selecione o motivo</option>
+                            <option value="DOENÇA PRÉ EXISTENTE">Doença Pré Existente</option>
+                            <option value="NAO TEM INTERESSE">Não Tem Interesse</option>
+                            <option value="PRODUTO FORA DE PERFIL">Produto Fora de Perfil</option>
+                            <option value="CLIENTE NAO ENCONTRADO">Cliente não encontrado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDiscard()">Descartar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection

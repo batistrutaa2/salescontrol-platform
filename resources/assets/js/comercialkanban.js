@@ -130,10 +130,19 @@
       "<a class='dropdown-item' href='/comercial/abrir-cliente/" +
       idMailing +
       "'>Abrir Cliente</a>" +
+      "<a class='dropdown-item' href='#' data-bs-toggle='modal' data-bs-target='#discardModal' onclick='setDiscardLead(" +
+      idMailing +
+      ")'>Descartar</a>" +
       '</div>' +
       '</div>'
     );
   }
+
+  // Função para definir o ID do lead a ser descartado
+  function setDiscardLead(idMailing) {
+    document.getElementById('discardLeadId').value = idMailing;
+  }
+
   // Render header
   function renderHeader(color, text, idMailing, colorTime, messageTime) {
     return (
