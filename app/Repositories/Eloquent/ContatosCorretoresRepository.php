@@ -262,7 +262,6 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       DB::commit();
       return true;
     } catch (\Throwable $th) {
-      dd($th);
       DB::rollBack();
       return false;
     }
