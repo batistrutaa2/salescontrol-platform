@@ -17,7 +17,7 @@
 
 @if ($configData['hasCustomizer'])
 <script type="module">
-    document.addEventListener('DOMContentLoaded', function() {
+    {{-- document.addEventListener('DOMContentLoaded', function() {
         toastr.options = {
             closeButton: true,
             progressBar: true,
@@ -40,7 +40,7 @@
         }
         checkNewAgendamentos();
         setInterval(checkNewAgendamentos, 30000);
-    });
+    }); --}}
 
 
 
