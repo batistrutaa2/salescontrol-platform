@@ -47,10 +47,10 @@
       ]
     },
     {
-      "url": "#",
-      "name": "Agendamentos",
+      "url": "/comercial/agendamentos",
+      "name": "Fila de agendamentos",
       "icon": "menu-icon tf-icons ri-time-line",
-      "slug": "comercial-remarketing",
+      "slug": "comercial-agendamentos",
       "rules": [
         "ADMINISTRATIVO",
         "DEVELOPER"

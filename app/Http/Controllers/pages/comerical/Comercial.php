@@ -457,4 +457,20 @@ class Comercial extends Controller
       return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao Agendar contato");
     }
   }
+
+
+  public function schedules()
+  {
+
+
+    return view('content.pages.comercial.agendamentos');
+  }
+
+  public function getSchedules()
+  {
+    $schedules = $this->agendamentoRepository->getSchedules(Auth::user()->user_role_id);
+    return response()->json([
+      'data' => $schedules
+    ]);
+  }
 }
