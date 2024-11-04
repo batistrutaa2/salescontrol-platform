@@ -461,9 +461,13 @@ class Comercial extends Controller
 
   public function schedules()
   {
+    $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
+    $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
 
-
-    return view('content.pages.comercial.agendamentos');
+    return view('content.pages.comercial.agendamentos', [
+      'subTabulacoes' => $subTabulacoes,
+      'tabulacoes' => $tabulacoes
+    ]);
   }
 
   public function getSchedules()

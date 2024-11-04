@@ -31,7 +31,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.length >= 1) {
-                        toastr.success('Hora de vender, você tem um novo agendamento disponivel..');
+                        toastr.info('Hora de vender, você tem um novo agendamento disponivel..');
                     }
                 })
                 .catch(error => {

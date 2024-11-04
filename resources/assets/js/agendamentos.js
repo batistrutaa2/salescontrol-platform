@@ -41,13 +41,13 @@ $(function () {
           render: function (data, type, full, meta) {
             return `
                   <div class="d-flex">
-                      <button class="btn btn-primary me-1" title="reagendar">
+                      <button class="btn btn-primary me-1" title="reagendar" data-bs-toggle="modal" data-bs-target="#scheduleModal">
                           <i class="ri-add-line"></i>
                       </button>
-                      <button class="btn btn-success me-1" title="marca como visto">
+                      <button class="btn btn-success me-1" title="marca como visto" data-bs-toggle="modal" data-bs-target="#backKanban">
                           <i class="ri-check-line"></i>
                       </button>
-                      <button class="btn btn-danger" title="descartar">
+                      <button class="btn btn-danger" title="descartar" data-bs-toggle="modal" data-bs-target="#discardModal">
                           <i class="ri-delete-bin-5-fill"></i>
                       </button>
                   </div>
