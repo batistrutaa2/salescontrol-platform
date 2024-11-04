@@ -184,10 +184,10 @@
       ]
     },
     {
-      "url": "/vendas/lista-vendas",
+      "url": "/comercial/agendamentos",
       "name": "Agendamentos",
       "icon": "menu-icon tf-icons ri-time-line",
-      "slug": "clientes-vendas",
+      "slug": "clientes-agendamentos",
       "rules": [
         "VENDEDOR",
         "DEVELOPER"
