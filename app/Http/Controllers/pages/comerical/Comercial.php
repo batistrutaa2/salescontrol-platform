@@ -6,6 +6,7 @@ use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Http\Controllers\Controller;
+use App\Repositories\Contracts\AgendamentoRepositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
@@ -14,6 +15,7 @@ use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Repositories\Eloquent\AgendamentoRepository;
 use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ComentariosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
@@ -42,6 +44,8 @@ class Comercial extends Controller
   protected ComercialUseCase $comercialUseCase;
   protected MailingUseCase $mailingUseCase;
 
+  protected AgendamentoRepository $agendamentoRepository;
+
   public function __construct(
     ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
     TabulacoesRepositoryInterface $TabulacoesRepositoryInterface,
@@ -50,7 +54,8 @@ class Comercial extends Controller
     UsuariosRepositoryInterface $usuariosRepositoryInterface,
     ComentariosLegadosRepositoryInterface $comentariosLegadosRepositoryInterface,
     VendasRepositoryInterface $vendasRepositoryInterface,
-    LeadAtividadeRepositoryInterface $leadAtividadeRepositoryInterface
+    LeadAtividadeRepositoryInterface $leadAtividadeRepositoryInterface,
+    AgendamentoRepositoryInterface $agendamentoRepositoryInterface
 
   ) {
     //Repositories
@@ -62,6 +67,7 @@ class Comercial extends Controller
     $this->comentariosLegadosRepository = $comentariosLegadosRepositoryInterface;
     $this->vendasRepository = $vendasRepositoryInterface;
     $this->leadAtividadeRepository = $leadAtividadeRepositoryInterface;
+    $this->agendamentoRepository = $agendamentoRepositoryInterface;
 
     //UseCases
     $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface, $leadAtividadeRepositoryInterface);
@@ -432,6 +438,23 @@ class Comercial extends Controller
       return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', "Contato descartado com sucesso");
     } else {
       return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao descartado com sucesso");
+    }
+  }
+
+  public function sendSchedule(Request $request)
+  {
+    try {
+      $updateContact = $this->repositoryContatosCorretores->sendSchedule($request->contato_id);
+      $sendSchecule = $this->agendamentoRepository->updateOrCreate($request->contato_id, $request->horario_agendamento, $request->observacao);
+
+      if ($updateContact && $sendSchecule) {
+        return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', "Agendamento efetuado com sucesso");
+      } else {
+        return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao salvar agendamento");
+      }
+
+    } catch (\Throwable $th) {
+      return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao Agendar contato");
     }
   }
 }

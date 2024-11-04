@@ -15,4 +15,5 @@ interface ContatosCorretoresRepositoryInterface
   public function getTabulationId($idMailing);
   public function transferContact(array $data);
   public function sendRemaketing($idLead, $sub_tabulacao_id);
+  public function sendSchedule($idLead);
 }

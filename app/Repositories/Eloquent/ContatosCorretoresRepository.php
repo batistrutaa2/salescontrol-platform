@@ -283,4 +283,20 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       return false;
     }
   }
+
+  public function sendSchedule($idLead)
+  {
+    try {
+      $update = $this->model::where('contato_id', $idLead)->update(
+        [
+          'sub_tabulacao_id' => Tabulations::AGENDAMENTO,
+          'tabulacao_id' => Tabulations::AGENDAMENTO
+        ]
+      );
+
+      return $update;
+    } catch (\Throwable $th) {
+      return false;
+    }
+  }
 }

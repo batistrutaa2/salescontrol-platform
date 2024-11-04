@@ -15,7 +15,7 @@ class Tabulations
   const IMPLANTADO = 18;
   const SEM_CONTATO = 19;
   const ESTORNO = 17;
-
+  const AGENDAMENTO = 28;
 
 
   private static array $ids_rules = [
@@ -30,6 +30,7 @@ class Tabulations
     self::VENDA => 16,
     self::IMPLANTADO => 18,
     self::ESTORNO => 17,
+    self::AGENDAMENTO => 28,
   ];
 
   public static function getUserRoleID(string $role): string

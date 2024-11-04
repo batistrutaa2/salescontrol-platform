@@ -69,6 +69,7 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/criar-venda', [Comercial::class, 'createSale'])->name('comercial.createSale');
   Route::post('/comercial/createLead', [Comercial::class, 'createLead'])->name('comercial.createLead');
   Route::post('/comercial/sendRemaketing', [Comercial::class, 'sendRemaketing'])->name('comercial.sendRemaketing');
+  Route::post('/comercial/sendSchedule', [Comercial::class, 'sendSchedule'])->name('comercial.sendSchedule');
 
   /** BACKOFFICE */
   Route::get(uri: '/back-office/fila-contratos', action: [Backoffice::class, 'index'])->name(name: 'backoffice.index');

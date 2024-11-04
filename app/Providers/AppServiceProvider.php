@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\AgendamentoRepositoryInterface;
 use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
+use App\Repositories\Eloquent\AgendamentoRepository;
 use App\Repositories\Eloquent\BaseLegaceRespository;
 use App\Repositories\Eloquent\LeadAtividadeRepository;
 use Illuminate\Support\ServiceProvider;
@@ -42,7 +44,9 @@ class AppServiceProvider extends ServiceProvider
     $this->app->bind(VendasRepositoryInterface::class, VendasRepository::class);
     $this->app->bind(BaseLegaceRespositoryInterface::class, BaseLegaceRespository::class);
     $this->app->bind(LeadAtividadeRepositoryInterface::class, LeadAtividadeRepository::class);
-  } 
+    $this->app->bind(AgendamentoRepositoryInterface::class, AgendamentoRepository::class);
+
+  }
 
   /**
    * Bootstrap any application services.
