@@ -405,4 +405,36 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="sheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sheduleModalLabel">CRIAR AGENDAMENTO</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('comercial.sendSchedule') }}" method="POST">
+                    @csrf
+                    <input type="hidden" id="leadIdInputSchedule" name="contato_id" value="">
+                    <div class="modal-body">
+                        <p>Escolha o horario e o dia do agendamento</p>
+                        <div>
+                            <label for="telefone1">Horario Agendamento</label>
+                            <input type="datetime-local" id="horario_agendamento" name="horario_agendamento"
+                                class="form-control" placeholder="data agendamento" />
+                        </div>
+
+                        <div class="mt-2">
+                            <label for="observacao">Observação de agendamento</label>
+                            <input type="text" id="observacao" name="observacao" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Agendar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection

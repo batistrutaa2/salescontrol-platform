@@ -70,6 +70,13 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/createLead', [Comercial::class, 'createLead'])->name('comercial.createLead');
   Route::post('/comercial/sendRemaketing', [Comercial::class, 'sendRemaketing'])->name('comercial.sendRemaketing');
 
+
+  /** COMERCIAL- AGENDAMENTO */
+  Route::post('/comercial/sendSchedule', [Comercial::class, 'sendSchedule'])->name('comercial.sendSchedule');
+  Route::get('/comercial/agendamentos', [Comercial::class, 'schedules'])->name('comercial.schedules');
+  Route::get('/comercial/getSchedules', [Comercial::class, 'getSchedules'])->name('comercial.getSchedules');
+
+
   /** BACKOFFICE */
   Route::get(uri: '/back-office/fila-contratos', action: [Backoffice::class, 'index'])->name(name: 'backoffice.index');
 
