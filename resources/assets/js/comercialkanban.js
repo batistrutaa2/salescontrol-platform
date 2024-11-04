@@ -184,14 +184,14 @@
       '</span>' +
       "<span class='ms-auto d-flex'>" +
       // Botão para abrir a modal de agendamento
-      "<button type='button' class='btn btn-link text-info p-0 me-2' " +
-      "data-bs-toggle='modal' " +
-      "data-bs-target='#scheduleModal' " +
-      "onclick='setLeadId(" +
-      leadId +
-      ")'>" +
-      "<i class='ri-time-line ri-20px'></i>" +
-      '</button>' +
+      // "<button type='button' class='btn btn-link text-info p-0 me-2' " +
+      // "data-bs-toggle='modal' " +
+      // "data-bs-target='#scheduleModal' " +
+      // "onclick='setLeadId(" +
+      // leadId +
+      // ")'>" +
+      // "<i class='ri-time-line ri-20px'></i>" +
+      // '</button>' +
       // Botão de descarte
       "<button type='button' class='btn btn-link p-0 text-danger' " +
       "data-bs-toggle='modal' " +

@@ -30,48 +30,9 @@
     </div>
 @endif
 
-<!-- ! Not required for layout-without-menu -->
-@if (!isset($navbarHideToggle))
-    <div
-        class="layout-menu-toggle navbar-nav align-items-xl-center me-4 me-xl-0{{ isset($menuHorizontal) ? ' d-xl-none ' : '' }} {{ isset($contentNavbar) ? ' d-xl-none ' : '' }}">
-        <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
-            <i class="ri-menu-fill ri-24px"></i>
-        </a>
-    </div>
-@endif
+
 
 <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
-
-    @if ($configData['hasCustomizer'] == true)
-        <!-- Style Switcher -->
-        <div class="navbar-nav align-items-center">
-            <div class="nav-item dropdown-style-switcher dropdown me-1 me-xl-0">
-                <a class="nav-link btn btn-text-secondary rounded-pill btn-icon dropdown-toggle hide-arrow"
-                    href="javascript:void(0);" data-bs-toggle="dropdown">
-                    <i class='ri-22px'></i>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end dropdown-styles">
-                    <li>
-                        <a class="dropdown-item" href="javascript:void(0);" data-theme="light">
-                            <span class="align-middle"><i class='ri-sun-line ri-22px me-3'></i>Light</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="javascript:void(0);" data-theme="dark">
-                            <span class="align-middle"><i class="ri-moon-clear-line ri-22px me-3"></i>Dark</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="javascript:void(0);" data-theme="system">
-                            <span class="align-middle"><i class="ri-computer-line ri-22px me-3"></i>System</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-        <!--/ Style Switcher -->
-    @endif
-
     <ul class="navbar-nav flex-row align-items-center ms-auto">
         <!-- User -->
         <li class="nav-item navbar-dropdown dropdown-user dropdown">
@@ -141,6 +102,52 @@
         </li>
         <!--/ User -->
     </ul>
+
+
+
+    <!-- Notification -->
+    @if (Auth::user()->user_role_id === 1)
+        <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-4 me-xl-1">
+            <a class="nav-link btn btn-text-secondary rounded-pill btn-icon dropdown-toggle hide-arrow"
+                href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                <i class="ri-notification-2-line ri-22px"></i>
+                @if ($isNotification)
+                    <span
+                        class="position-absolute top-0 start-50 translate-middle-y badge badge-dot bg-danger mt-2 border"></span>
+                @endif
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end py-0">
+                <li class="dropdown-menu-header border-bottom">
+                    <div class="dropdown-header d-flex align-items-center py-3">
+                        <h6 class="mb-0 me-auto">Notificações</h6>
+                    </div>
+                </li>
+                @foreach ($agendamentos as $agendamento)
+                    <li class="dropdown-notifications-list scrollable-container">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item list-group-item-action dropdown-notifications-item">
+                                <a href="{{ route('comercial.schedules') }}"
+                                    class="d-flex text-decoration-none text-reset">
+                                    <div class="flex-grow-1">
+                                        <h6 class="small mb-1">HORA DA VENDA - AGENDAMENTO 🎉</h6>
+                                        <small class="mb-1 d-block text-body">
+                                            O cliente {{ $agendamento->nome_cliente }} está te esperando, entre em
+                                            contato agora mesmo.
+                                        </small>
+                                    </div>
+                                    <div class="flex-shrink-0 dropdown-notifications-actions">
+                                        <span class="badge badge-dot"></span>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                @endforeach
+            </ul>
+        </li>
+    @endif
+
+    <!--/ Notification -->
 </div>
 @if (!isset($navbarDetached))
     </div>

@@ -461,9 +461,13 @@ class Comercial extends Controller
 
   public function schedules()
   {
+    $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
+    $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
 
-
-    return view('content.pages.comercial.agendamentos');
+    return view('content.pages.comercial.agendamentos', [
+      'subTabulacoes' => $subTabulacoes,
+      'tabulacoes' => $tabulacoes
+    ]);
   }
 
   public function getSchedules()
@@ -472,5 +476,11 @@ class Comercial extends Controller
     return response()->json([
       'data' => $schedules
     ]);
+  }
+
+  public function searchPendingAppointments()
+  {
+    $agendamentos = $this->agendamentoRepository->appointmentsDelaystonotify();
+    return response()->json($agendamentos);
   }
 }

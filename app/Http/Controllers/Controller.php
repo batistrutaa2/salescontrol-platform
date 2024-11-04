@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Agendamento;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\View;
 use Illuminate\Validation\ValidationException;
+use App\Repositories\Eloquent\AgendamentoRepository;
 
 
 abstract class Controller
@@ -28,7 +31,7 @@ abstract class Controller
 
     if ($status === "FRIO") {
       return 'info';
-    } elseif($status === "MORNO") {
+    } elseif ($status === "MORNO") {
       return 'warning';
     } else {
       return 'danger';
