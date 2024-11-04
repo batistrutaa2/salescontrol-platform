@@ -43,7 +43,6 @@
                         <th>CORRETOR</th>
                         <th>CLIENTE</th>
                         <th>HORARIO</th>
-                        <th>NOTIFICADO</th>
                         <th>ACOES</th>
                     </tr>
                 </thead>

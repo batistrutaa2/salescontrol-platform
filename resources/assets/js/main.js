@@ -622,9 +622,9 @@ if (typeof $ !== 'undefined') {
           // On typeahead select
           .bind('typeahead:select', function (ev, suggestion) {
             // Open selected page
-           if (suggestion.url !== 'javascript:;') {
-             window.location = baseUrl + suggestion.url;
-           }
+            if (suggestion.url !== 'javascript:;') {
+              window.location = baseUrl + suggestion.url;
+            }
           })
           // On typeahead close
           .bind('typeahead:close', function () {

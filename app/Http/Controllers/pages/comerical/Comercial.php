@@ -473,4 +473,10 @@ class Comercial extends Controller
       'data' => $schedules
     ]);
   }
+
+  public function searchPendingAppointments()
+  {
+    $agendamentos = $this->agendamentoRepository->appointmentsDelaystonotify();
+    return response()->json($agendamentos);
+  }
 }

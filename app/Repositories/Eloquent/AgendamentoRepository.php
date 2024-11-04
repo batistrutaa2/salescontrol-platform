@@ -5,6 +5,8 @@ namespace App\Repositories\Eloquent;
 
 use App\Enums\UserRole;
 use App\Models\Agendamento;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Repositories\Contracts\AgendamentoRepositoryInterface;
 
@@ -43,6 +45,8 @@ class AgendamentoRepository implements AgendamentoRepositoryInterface
   public function getSchedules($rulerUser)
   {
     try {
+
+
       if ($rulerUser == UserRole::ADMINISTRATIVO || $rulerUser == UserRole::DEVELOPER) {
         return $this->model->select('c.id', 'b.name AS nome_corretor', 'c.nome_cliente', 'agendamentos.horario_agendamento', 'agendamentos.notificado')
           ->leftJoin('users AS b', 'b.id', '=', 'agendamentos.user_id')
@@ -61,4 +65,48 @@ class AgendamentoRepository implements AgendamentoRepositoryInterface
       throw $th;
     }
   }
+
+  public function LateAppointments()
+  {
+    try {
+
+      return $this->model->select('agendamentos.contato_id', 'contatos.nome_cliente')
+        ->leftJoin('users', 'agendamentos.user_id', '=', 'users.id')
+        ->leftJoin('contatos', 'agendamentos.contato_id', '=', 'contatos.id')
+        ->where('agendamentos.horario_agendamento', '<', now())
+        ->where('agendamentos.user_id', Auth::user()->id)
+        ->get();
+
+    } catch (\Throwable $th) {
+      throw $th;
+    }
+  }
+
+  public function LateAppointmentsParaNotificar()
+  {
+    try {
+
+      return $this->model->select('agendamentos.contato_id', 'contatos.nome_cliente')
+        ->leftJoin('users', 'agendamentos.user_id', '=', 'users.id')
+        ->leftJoin('contatos', 'agendamentos.contato_id', '=', 'contatos.id')
+        ->where('agendamentos.horario_agendamento', '<', now())
+        ->where('agendamentos.user_id', Auth::user()->id)
+        ->get();
+
+    } catch (\Throwable $th) {
+      throw $th;
+    }
+  }
+
+  public function appointmentsDelaystonotify()
+  {
+    return $this->model->select('agendamentos.contato_id', 'contatos.nome_cliente')
+      ->leftJoin('users', 'agendamentos.user_id', '=', 'users.id')
+      ->leftJoin('contatos', 'agendamentos.contato_id', '=', 'contatos.id')
+      ->where('agendamentos.horario_agendamento', '<', now())
+      ->where('agendamentos.user_id', Auth::user()->id)
+      ->where('agendamentos.notificado', 'N')
+      ->get();
+  }
+
 }

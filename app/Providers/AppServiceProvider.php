@@ -2,30 +2,33 @@
 
 namespace App\Providers;
 
-use App\Repositories\Contracts\AgendamentoRepositoryInterface;
-use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
-use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
-use App\Repositories\Contracts\ComentariosRepositoryInterface;
-use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
-use App\Repositories\Contracts\ContatosRepositoryInterface;
-use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
+use App\Models\Agendamento;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\ServiceProvider;
+use App\Repositories\Eloquent\VendasRepository;
+use App\Repositories\Eloquent\EmpresaRepository;
+use App\Repositories\Eloquent\ContatosRepository;
+use App\Repositories\Eloquent\UsuariosRepository;
+use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\AgendamentoRepository;
 use App\Repositories\Eloquent\BaseLegaceRespository;
-use App\Repositories\Eloquent\LeadAtividadeRepository;
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Vite;
-use App\Repositories\Contracts\EmpresaRepositoryInterface;
-use App\Repositories\Contracts\TabulacoesRepositoryInterface;
-use App\Repositories\Contracts\UsuariosRepositoryInterface;
-use App\Repositories\Contracts\VendasRepositoryInterface;
-use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ComentariosRepository;
+use App\Repositories\Eloquent\LeadAtividadeRepository;
+use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Repositories\Contracts\EmpresaRepositoryInterface;
+use App\Repositories\Contracts\ContatosRepositoryInterface;
+use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
-use App\Repositories\Eloquent\ContatosRepository;
-use App\Repositories\Eloquent\EmpresaRepository;
-use App\Repositories\Eloquent\TabulacoesRepository;
-use App\Repositories\Eloquent\UsuariosRepository;
-use App\Repositories\Eloquent\VendasRepository;
+use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Contracts\AgendamentoRepositoryInterface;
+use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
+use App\Repositories\Contracts\ComentariosRepositoryInterface;
+use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
+use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
+use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -53,6 +56,25 @@ class AppServiceProvider extends ServiceProvider
    */
   public function boot(): void
   {
+    View::composer('*', function ($view) {
+      if (Auth::check()) {
+        $user = Auth::user();
+
+        $modelAgendamento = new Agendamento();
+        $repositoryAgendamento = new AgendamentoRepository($modelAgendamento);
+        $agendamentosAtrasados = $repositoryAgendamento->LateAppointments();
+
+        $quantidade = $agendamentosAtrasados->count();
+
+        $view->with([
+          'agendamentos' => $agendamentosAtrasados,
+          'isNotification' => $quantidade >= 1 ? true : false
+        ]);
+
+      }
+    });
+
+
     Vite::useStyleTagAttributes(function (?string $src, string $url, ?array $chunk, ?array $manifest) {
       if ($src !== null) {
         return [

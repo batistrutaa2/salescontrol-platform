@@ -75,6 +75,7 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/sendSchedule', [Comercial::class, 'sendSchedule'])->name('comercial.sendSchedule');
   Route::get('/comercial/agendamentos', [Comercial::class, 'schedules'])->name('comercial.schedules');
   Route::get('/comercial/getSchedules', [Comercial::class, 'getSchedules'])->name('comercial.getSchedules');
+  Route::get('/comercial/searchPendingAppointments', [Comercial::class, 'searchPendingAppointments'])->name('comercial.searchPendingAppointments');
 
 
   /** BACKOFFICE */

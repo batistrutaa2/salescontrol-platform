@@ -29,7 +29,6 @@ $(function () {
         { data: 'nome_corretor' },
         { data: 'nome_cliente' },
         { data: 'horario_agendamento' },
-        { data: 'notificado' },
         { data: null, title: 'Ações' }
       ],
       columnDefs: [
