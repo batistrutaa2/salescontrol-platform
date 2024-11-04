@@ -51,7 +51,10 @@
                             data-bs-target="#modalcomments" id="js-importContatos">
                             Visualizar Anotações (legado)
                         </button>
-
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#discardModal"
+                            id="js-descartar-cliente">
+                            Descartar contato
+                        </button>
                     </div>
                     <form method="POST" action="{{ route('comercial.updateClient') }}">
                         @csrf
@@ -138,8 +141,8 @@
                                     <div class="form-floating form-floating-outline">
                                         <input type="text" class="form-control" id="ecommerce-product-barcode"
                                             {{ $editingPermission == false ? 'disabled' : '' }}
-                                            value="{{ $client->categoria }}" placeholder="Black infinity" name="cartegoria"
-                                            aria-label="Product barcode">
+                                            value="{{ $client->categoria }}" placeholder="Black infinity"
+                                            name="cartegoria" aria-label="Product barcode">
                                         <label for="ecommerce-product-name">Cartegoria</label>
                                     </div>
                                 </div>
@@ -224,7 +227,7 @@
                         <form action="{{ route('comercial.saveComment') }}" method="POST" id="saveComment">
                             @csrf
                             <input type="hidden" name="id_mailing" value="{{ $client->id }}">
-                            <input type="hidden" value="{{ $tabulationCurrent }}"  name="id_tabulacao">
+                            <input type="hidden" value="{{ $tabulationCurrent }}" name="id_tabulacao">
                             <div>
                                 <div class="form-control p-0 pt-1">
                                     <div class="comment-toolbar border-0 border-bottom">
@@ -428,6 +431,37 @@
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="discardModal" tabindex="-1" aria-labelledby="discardModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="discardModalLabel">Descartar Lead</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('comercial.sendRemaketing') }}" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <p>Tem certeza de que deseja descartar este lead?</p>
+                        <input type="hidden" id="leadIdInput" name="contato_id" value="{{ $client->id }}">
+                        <div class="mb-3">
+                            <label for="discardReason" class="form-label">Motivo do Descarte</label>
+                            <select class="form-select" id="discardReason" name="sub_tabulacao_id" required>
+                                @foreach ($subTabulacoes as $tabulation)
+                                    <option value="{{ $tabulation->id }}">{{ $tabulation->descricao }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Descartar</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

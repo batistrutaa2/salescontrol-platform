@@ -263,6 +263,7 @@ class Comercial extends Controller
     $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
     $tabulations = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
     $tabulationCurrent = $this->repositoryContatosCorretores->getTabulationId($id_mailing);
+    $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
 
     $permiteEdition = false;
     if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
@@ -274,7 +275,8 @@ class Comercial extends Controller
       'comments' => $commentsMailing,
       'editingPermission' => $permiteEdition,
       'tabulations' => $tabulations,
-      'tabulationCurrent' => $tabulationCurrent->tabulacao_id
+      'tabulationCurrent' => $tabulationCurrent->tabulacao_id,
+      'subTabulacoes' => $subTabulacoes
     ]);
   }
 
