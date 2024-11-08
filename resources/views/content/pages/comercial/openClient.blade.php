@@ -419,6 +419,14 @@
 
                         <div class="col-12 col-md-12">
                             <div class="form-floating form-floating-outline">
+                                <input type="number" id="vidas" name="vidas" class="form-control"
+                                    placeholder="Quantidade de vidas" required />
+                                <label for="obs_contrato">Quantidade de vidas</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-12">
+                            <div class="form-floating form-floating-outline">
                                 <input type="text" id="obs_contrato" name="obs_contrato" class="form-control"
                                     placeholder="Observação de contrato" />
                                 <label for="obs_contrato">Observação de contrato</label>
