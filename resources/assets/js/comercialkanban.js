@@ -301,7 +301,11 @@
     gutter: '5px',
     widthBoard: '250px',
     dragItems: true,
-    boards: boards,
+    boards: boards.map(board => {
+      const itemCount = board.item ? board.item.length : 0;
+      board.title = `${board.title} - ${itemCount}`;
+      return board;
+    }),
     dragBoards: true,
     addItemButton: false,
     buttonContent: '+ Criar Cliente',
