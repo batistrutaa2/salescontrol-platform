@@ -41,13 +41,13 @@ $(function () {
           render: function (data, type, full, meta) {
             return `
                   <div class="d-flex">
-                      <button class="btn btn-primary me-1" title="reagendar" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                      <button class="btn btn-primary me-1 reagendar" title="reagendar" data-bs-toggle="modal" data-bs-target="#scheduleModal" id="reagendar">
                           <i class="ri-add-line"></i>
                       </button>
-                      <button class="btn btn-success me-1" title="marca como visto" data-bs-toggle="modal" data-bs-target="#backKanban">
+                      <button class="btn btn-success me-1 visto" title="marca como visto" data-bs-toggle="modal" data-bs-target="#backKanban">
                           <i class="ri-check-line"></i>
                       </button>
-                      <button class="btn btn-danger" title="descartar" data-bs-toggle="modal" data-bs-target="#discardModal">
+                      <button class="btn btn-danger descarte" title="descartar" data-bs-toggle="modal" data-bs-target="#discardModal">
                           <i class="ri-delete-bin-5-fill"></i>
                       </button>
                   </div>
@@ -164,4 +164,22 @@ $(function () {
       ]
     });
   }
+});
+
+$(document).on('click', '.reagendar', function () {
+  var table = $('.datatables-schedules').DataTable();
+  var rowData = table.row($(this).parents('tr')).data();
+  $('#scheduleModal').find('#leadIdInputSchedule').val(rowData.id);
+});
+
+$(document).on('click', '.visto', function () {
+  var table = $('.datatables-schedules').DataTable();
+  var rowData = table.row($(this).parents('tr')).data();
+  $('#backKanban').find('#leadInputVisto').val(rowData.id);
+});
+
+$(document).on('click', '.descarte', function () {
+  var table = $('.datatables-schedules').DataTable();
+  var rowData = table.row($(this).parents('tr')).data();
+  $('#discardModal').find('#leadIdInputDescarte').val(rowData.id);
 });

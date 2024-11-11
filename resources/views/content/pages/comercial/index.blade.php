@@ -421,7 +421,7 @@
                         <div>
                             <label for="telefone1">Horario Agendamento</label>
                             <input type="datetime-local" id="horario_agendamento" name="horario_agendamento"
-                                class="form-control" placeholder="data agendamento" />
+                                class="form-control" placeholder="data agendamento" required />
                         </div>
 
                         <div class="mt-2">

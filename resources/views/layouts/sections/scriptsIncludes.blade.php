@@ -17,14 +17,15 @@
 
 @if ($configData['hasCustomizer'])
 <script type="module">
-    {{-- document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
         toastr.options = {
             closeButton: true,
             progressBar: true,
-            positionClass: "toast-top-right",
-            timeOut: 0, // Define como 0 para não fechar automaticamente
-            extendedTimeOut: 0 // Define como 0 para permanecer até o clique
+            positionClass: "toast-bottom-right",
+            timeOut: 0,
+            extendedTimeOut: 0
         };
+
 
         function checkNewAgendamentos() {
             fetch('/comercial/searchPendingAppointments')
@@ -40,7 +41,7 @@
         }
         checkNewAgendamentos();
         setInterval(checkNewAgendamentos, 30000);
-    }); --}}
+    });
 
 
 

@@ -11,4 +11,6 @@ interface AgendamentoRepositoryInterface
   public function LateAppointments();
 
   public function appointmentsDelaystonotify();
+
+  public function deleteSchedule($id);  
 }
