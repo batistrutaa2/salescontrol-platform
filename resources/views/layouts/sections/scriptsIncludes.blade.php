@@ -17,13 +17,13 @@
 
 @if ($configData['hasCustomizer'])
 <script type="module">
-    {{-- document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
         toastr.options = {
             closeButton: true,
             progressBar: true,
-            positionClass: "toast-top-right",
-            timeOut: 0, // Define como 0 para não fechar automaticamente
-            extendedTimeOut: 0 // Define como 0 para permanecer até o clique
+            positionClass: "toast-bottom-right",
+            timeOut: 8000,
+            extendedTimeOut: 8000
         };
 
         function checkNewAgendamentos() {
@@ -31,7 +31,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.length >= 1) {
-                        toastr.info('Hora de vender, você tem um novo agendamento disponivel..');
+                        toastr.info('Você tem um novo agendamento disponivel..');
                     }
                 })
                 .catch(error => {
@@ -39,8 +39,8 @@
                 });
         }
         checkNewAgendamentos();
-        setInterval(checkNewAgendamentos, 30000);
-    }); --}}
+        setInterval(checkNewAgendamentos, 120000);
+    });
 
 
 

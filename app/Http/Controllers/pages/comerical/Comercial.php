@@ -432,6 +432,7 @@ class Comercial extends Controller
 
   public function sendRemaketing(Request $request)
   {
+    $this->agendamentoRepository->deleteSchedule($request->contato_id);
     $updateContact = $this->repositoryContatosCorretores->sendRemaketing($request->contato_id, $request->sub_tabulacao_id);
 
     if ($updateContact) {
@@ -452,7 +453,6 @@ class Comercial extends Controller
       } else {
         return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao salvar agendamento");
       }
-
     } catch (\Throwable $th) {
       return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao Agendar contato");
     }
@@ -463,6 +463,11 @@ class Comercial extends Controller
   {
     $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
     $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
+
+    $idNegocioFechado = Tabulations::NEGOCIO_FECHADO;
+    $tabulacoes = $tabulacoes->reject(function ($item) use ($idNegocioFechado) {
+      return $item->id === $idNegocioFechado;
+    });
 
     return view('content.pages.comercial.agendamentos', [
       'subTabulacoes' => $subTabulacoes,
@@ -482,5 +487,22 @@ class Comercial extends Controller
   {
     $agendamentos = $this->agendamentoRepository->appointmentsDelaystonotify();
     return response()->json($agendamentos);
+  }
+
+
+  public function backQueue(Request $request)
+  {
+    try {
+      $deleteSchedule = $this->agendamentoRepository->deleteSchedule($request->contato_id);
+      $backQueueLead = $this->repositoryContatosCorretores->changeStatusLead($request->all());
+
+      if ($deleteSchedule && $backQueueLead) {
+        return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', "Status atualizado");
+      } else {
+        return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao enviar para fila, contate nosso suporte.");
+      }
+    } catch (\Throwable $th) {
+      return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar para fila");
+    }
   }
 }

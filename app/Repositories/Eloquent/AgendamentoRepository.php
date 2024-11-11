@@ -32,6 +32,7 @@ class AgendamentoRepository implements AgendamentoRepositoryInterface
           'contato_id' => $contato_id,
           'horario_agendamento' => $horario_agendamento,
           'observacao' => $obs,
+          'notificado' => "N"
         ]
       );
 
@@ -107,6 +108,18 @@ class AgendamentoRepository implements AgendamentoRepositoryInterface
       ->where('agendamentos.user_id', Auth::user()->id)
       ->where('agendamentos.notificado', 'N')
       ->get();
+  }
+
+  public function deleteSchedule($id)
+  {
+    $lead = $this->model::where('contato_id', $id)->first();
+
+    if ($lead) {
+      $lead->delete();
+      return true;
+    }
+
+    return false;
   }
 
 }

@@ -33,7 +33,23 @@
         }
     </style>
 
+
 @section('content')
+
+    @if (session('status') == 'success')
+        <div class="alert alert-solid-success d-flex align-items-center" role="alert">
+            <span class="alert-icon rounded">
+                <i class="ri-checkbox-circle-line ri-22px"></i>
+            </span>
+            {{ session('message') }}
+        </div>
+    @elseif(session('status') == 'error')
+        <div class="alert alert-danger">
+            {{ session('message') }}
+        </div>
+    @endif
+
+
     <div class="card">
         <div class="card-datatable table-responsive text-center">
             <table class="datatables-schedules table ">
@@ -42,7 +58,7 @@
                         <th>ID</th>
                         <th>CORRETOR</th>
                         <th>CLIENTE</th>
-                        <th>HORARIO</th>
+                        <th>HORARIO DO AGENDAMENTO</th>
                         <th>ACOES</th>
                     </tr>
                 </thead>
@@ -66,7 +82,7 @@
                         <div>
                             <label for="telefone1">Horario Agendamento</label>
                             <input type="datetime-local" id="horario_agendamento" name="horario_agendamento"
-                                class="form-control" placeholder="data agendamento" />
+                                class="form-control" placeholder="data agendamento" required />
                         </div>
 
                         <div class="mt-2">
@@ -76,7 +92,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-success">Agendar</button>
+                        <button type="submit" class="btn btn-success">Reagendar</button>
                     </div>
                 </form>
             </div>
@@ -95,7 +111,7 @@
                     @csrf
                     <div class="modal-body">
                         <p>Tem certeza de que deseja descartar este lead?</p>
-                        <input type="hidden" id="leadIdInput" name="contato_id" value="">
+                        <input type="hidden" id="leadIdInputDescarte" name="contato_id" value="">
                         <div class="mb-3">
                             <label for="discardReason" class="form-label">Motivo do Descarte</label>
                             <select class="form-select" id="discardReason" name="sub_tabulacao_id" required>
@@ -121,14 +137,14 @@
                     <h5 class="modal-title" id="discardModalLabel">Voltar para fila</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('comercial.sendRemaketing') }}" method="POST">
+                <form action="{{ route('comercial.backqueue') }}" method="POST">
                     @csrf
                     <div class="modal-body">
-                        <input type="hidden" id="leadIdInput" name="contato_id" value="">
+                        <input type="hidden" id="leadInputVisto" name="contato_id" value="">
                         <div class="mb-3">
                             <label for="discardReason" class="form-label">Motivo do Descarte</label>
-                            <select class="form-select" id="discardReason" name="sub_tabulacao_id" required>
-                                @foreach ($subTabulacoes as $tabulation)
+                            <select class="form-select" id="discardReason" name="tabulacao_id" required>
+                                @foreach ($tabulacoes as $tabulation)
                                     <option value="{{ $tabulation->id }}">{{ $tabulation->descricao }}</option>
                                 @endforeach
                             </select>
@@ -136,7 +152,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-danger">Descartar</button>
+                        <button type="submit" class="btn btn-primary">Enviar para fila</button>
                     </div>
                 </form>
             </div>
