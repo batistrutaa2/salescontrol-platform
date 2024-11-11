@@ -41,6 +41,9 @@ $(function () {
           render: function (data, type, full, meta) {
             return `
                   <div class="d-flex">
+                      <a href="/comercial/abrir-cliente/${data.id}" class="btn btn-secondary me-1" title="Abrir cliente">
+                          <i class="ri-user-line"></i>
+                      </a>
                       <button class="btn btn-primary me-1 reagendar" title="reagendar" data-bs-toggle="modal" data-bs-target="#scheduleModal" id="reagendar">
                           <i class="ri-add-line"></i>
                       </button>

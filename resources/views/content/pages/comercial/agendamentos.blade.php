@@ -58,7 +58,7 @@
                         <th>ID</th>
                         <th>CORRETOR</th>
                         <th>CLIENTE</th>
-                        <th>HORARIO</th>
+                        <th>HORARIO DO AGENDAMENTO</th>
                         <th>ACOES</th>
                     </tr>
                 </thead>

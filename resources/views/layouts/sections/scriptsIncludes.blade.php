@@ -22,17 +22,16 @@
             closeButton: true,
             progressBar: true,
             positionClass: "toast-bottom-right",
-            timeOut: 0,
-            extendedTimeOut: 0
+            timeOut: 8000,
+            extendedTimeOut: 8000
         };
-
 
         function checkNewAgendamentos() {
             fetch('/comercial/searchPendingAppointments')
                 .then(response => response.json())
                 .then(data => {
                     if (data.length >= 1) {
-                        toastr.info('Hora de vender, você tem um novo agendamento disponivel..');
+                        toastr.info('Você tem um novo agendamento disponivel..');
                     }
                 })
                 .catch(error => {
@@ -40,7 +39,7 @@
                 });
         }
         checkNewAgendamentos();
-        setInterval(checkNewAgendamentos, 30000);
+        setInterval(checkNewAgendamentos, 120000);
     });
 
 
