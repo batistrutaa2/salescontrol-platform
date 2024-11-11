@@ -432,6 +432,7 @@ class Comercial extends Controller
 
   public function sendRemaketing(Request $request)
   {
+    $this->agendamentoRepository->deleteSchedule($request->contato_id);
     $updateContact = $this->repositoryContatosCorretores->sendRemaketing($request->contato_id, $request->sub_tabulacao_id);
 
     if ($updateContact) {
@@ -448,13 +449,12 @@ class Comercial extends Controller
       $sendSchecule = $this->agendamentoRepository->updateOrCreate($request->contato_id, $request->horario_agendamento, $request->observacao);
 
       if ($updateContact && $sendSchecule) {
-        return redirect()->back()->with('status', 'success')->with('message', "Agendamento efetuado com sucesso");
+        return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', "Agendamento efetuado com sucesso");
       } else {
-        return redirect()->back()->with('status', 'error')->with('message', "Erro ao salvar agendamento");
+        return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao salvar agendamento");
       }
-
     } catch (\Throwable $th) {
-      return redirect()->back()->with('status', 'error')->with('message', "Erro ao Agendar contato");
+      return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao Agendar contato");
     }
   }
 

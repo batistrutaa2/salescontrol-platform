@@ -55,6 +55,12 @@
                             id="js-descartar-cliente">
                             Descartar contato
                         </button>
+
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                            data-bs-target="#scheduleModal">
+                            <i class="ri-time-line ri-20px">Agendar cliente</i>
+                        </button>
+
                     </div>
                     <form method="POST" action="{{ route('comercial.updateClient') }}">
                         @csrf
@@ -474,4 +480,38 @@
         </div>
     </div>
     <!--/ Add New Address Modal -->
+
+
+
+    <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="sheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sheduleModalLabel">CRIAR AGENDAMENTO</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('comercial.sendSchedule') }}" method="POST">
+                    @csrf
+                    <input type="hidden" id="leadIdInputSchedule" name="contato_id" value="{{ $client->id }}">
+                    <div class="modal-body">
+                        <p>Escolha o horario e o dia do agendamento</p>
+                        <div>
+                            <label for="telefone1">Horario Agendamento</label>
+                            <input type="datetime-local" id="horario_agendamento" name="horario_agendamento"
+                                class="form-control" placeholder="data agendamento" required />
+                        </div>
+
+                        <div class="mt-2">
+                            <label for="observacao">Observação de agendamento</label>
+                            <input type="text" id="observacao" name="observacao" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Agendar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
