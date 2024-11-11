@@ -3,6 +3,43 @@
 @section('title', 'Comericial - Visualizar Cliente')
 
 @section('vendor-style')
+    <style>
+        /* Estilo da barra de rolagem */
+        .card-body::-webkit-scrollbar {
+            width: 8px;
+            /* Largura da barra de rolagem */
+        }
+
+        .card-body::-webkit-scrollbar-thumb {
+            background-color: #6c757d;
+            /* Cor do "thumb" da barra de rolagem */
+            border-radius: 10px;
+            /* Bordas arredondadas para o "thumb" */
+            transition: background-color 0.3s ease;
+            /* Transição suave para a mudança de cor */
+        }
+
+        .card-body::-webkit-scrollbar-thumb:hover {
+            background-color: #495057;
+            /* Cor quando o "thumb" é focado pelo mouse */
+        }
+
+        .card-body::-webkit-scrollbar-track {
+            background-color: #f1f1f1;
+            /* Cor de fundo da trilha da barra de rolagem */
+            border-radius: 10px;
+            /* Bordas arredondadas na trilha */
+            margin: 2px;
+            /* Espaço ao redor da trilha */
+        }
+
+        /* Estilo do canto da barra de rolagem */
+        .card-body::-webkit-scrollbar-corner {
+            background-color: transparent;
+            /* Transparente para o canto onde as barras se encontram */
+        }
+    </style>
+
     @vite(['resources/assets/vendor/libs/quill/typography.scss', 'resources/assets/vendor/libs/quill/katex.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/libs/quill/editor.scss', 'resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/dropzone/dropzone.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/tagify/tagify.scss'])
 @endsection
 
@@ -270,9 +307,9 @@
                 <div class="card-body">
                     <div class="card mb-6">
                         <div class="card-header">
-                            <h5 class="card-title m-0">Ultimas atividades</h5>
+                            <h5 class="card-title m-2">Últimas atividades</h5>
                         </div>
-                        <div class="card-body mt-3">
+                        <div class="card-body mt-5" style="max-height: 300px; overflow-y: auto;">
                             @foreach ($comments as $comment)
                                 @if ($comment->tipo_usuario === 'DEVELOPER' || $comment->tipo_usuario === 'ADMIN')
                                     <ul class="timeline pb-0 mb-0">
@@ -299,7 +336,6 @@
                                                     <h6 class="mb-0">Feito por: ({{ $comment->name }})
                                                         <span
                                                             class="badge bg-label-primary">{{ $comment->tipo_usuario }}</span>
-                                                        <p class=""></p>
                                                     </h6>
                                                     <small class="text-muted">{!! $comment->created_at !!}</small>
                                                 </div>
@@ -312,6 +348,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
