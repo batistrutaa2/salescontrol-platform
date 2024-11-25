@@ -18,6 +18,9 @@ class Comentarios extends Model
     'user_id',
     'contato_id',
     'anotacao',
+    'legado',
+    'visivel',
+    'supervisao',
     'created_at',
     'updated_at',
   ];
