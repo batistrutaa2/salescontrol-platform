@@ -485,6 +485,14 @@ class Comercial extends Controller
 
   public function searchPendingAppointments()
   {
+    if (!request()->ajax()) {
+      if (Auth::user()->user_role_id == UserRole::VENDEDOR) {
+        return redirect()->intended('comercial/kanban');
+      } else {
+        return redirect()->intended('dashboard');
+      }
+    }
+
     $agendamentos = $this->agendamentoRepository->appointmentsDelaystonotify();
     return response()->json($agendamentos);
   }

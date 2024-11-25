@@ -105,7 +105,7 @@ class AgendamentoRepository implements AgendamentoRepositoryInterface
       ->leftJoin('users', 'agendamentos.user_id', '=', 'users.id')
       ->leftJoin('contatos', 'agendamentos.contato_id', '=', 'contatos.id')
       ->where('agendamentos.horario_agendamento', '<', now())
-      ->where('agendamentos.user_id', Auth::user()->id)
+      ->where('agendamentos.user_id', Auth::user()->id ?? "")
       ->where('agendamentos.notificado', 'N')
       ->get();
   }
