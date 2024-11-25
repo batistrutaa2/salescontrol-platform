@@ -48,7 +48,6 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/mailing/getLeadsLegacy/{idMailing}', [Mailing::class, 'getLeadsLegacy'])->name('mailing.getLeadsLegacy');
   Route::post('/mailing/importaMailing', [Mailing::class, 'importaMailing'])->name('mailing.uploadBase');
 
-
   /** COMERCIAL */
   Route::get('/comercial/kanban', [Comercial::class, 'index'])->name('comercial.kanban');
   Route::get('/comercial/getClientComercial', [Comercial::class, 'getClientComercial'])->name('comercial.getClientComercial');
@@ -70,14 +69,12 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/createLead', [Comercial::class, 'createLead'])->name('comercial.createLead');
   Route::post('/comercial/sendRemaketing', [Comercial::class, 'sendRemaketing'])->name('comercial.sendRemaketing');
 
-
   /** COMERCIAL- AGENDAMENTO */
   Route::post('/comercial/sendSchedule', [Comercial::class, 'sendSchedule'])->name('comercial.sendSchedule');
   Route::post('/comercial/voltar-fila', [Comercial::class, 'backQueue'])->name('comercial.backqueue');
   Route::get('/comercial/agendamentos', [Comercial::class, 'schedules'])->name('comercial.schedules');
   Route::get('/comercial/getSchedules', [Comercial::class, 'getSchedules'])->name('comercial.getSchedules');
   Route::get('/comercial/searchPendingAppointments', [Comercial::class, 'searchPendingAppointments'])->name('comercial.searchPendingAppointments');
-
 
   /** BACKOFFICE */
   Route::get(uri: '/back-office/fila-contratos', action: [Backoffice::class, 'index'])->name(name: 'backoffice.index');
