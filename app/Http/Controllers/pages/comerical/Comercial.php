@@ -352,13 +352,15 @@ class Comercial extends Controller
   public function transferContact(Request $request)
   {
     try {
+      $clearComments = $this->comentariosRepository->clearCommentsOne($request->idMailing);
       $updateLead = $this->repositoryContatosCorretores->transferContact($request->all());
-      if ($updateLead) {
+      if ($updateLead && $clearComments) {
         return redirect()->back()->with('status', 'success')->with('message', 'Transferencia concluida com sucesso');
       } else {
         return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
       }
     } catch (\Throwable $th) {
+      dd($th);
       return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
     }
   }
@@ -366,14 +368,14 @@ class Comercial extends Controller
   public function transferContactInNulk(Request $request)
   {
     try {
+      $clearComments = $this->comentariosRepository->clearComments($request->all());
       $updateLead = $this->repositoryContatosCorretores->transferContactInNulk($request->all());
-      if ($updateLead) {
+      if ($updateLead && $clearComments) {
         return redirect()->back()->with('status', 'success')->with('message', 'Transferencia concluida com sucesso');
       } else {
         return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
       }
     } catch (\Throwable $th) {
-      dd($th);
       return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
     }
   }
