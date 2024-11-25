@@ -17,8 +17,6 @@ class ComentariosRepository implements ComentariosRepositoryInterface
     $this->model = $model;
   }
 
-
-
   public function clearComments(array $data)
   {
     try {
@@ -43,7 +41,6 @@ class ComentariosRepository implements ComentariosRepositoryInterface
       ]);
       return true;
     } catch (\Throwable $th) {
-      dd($th);
       return false;
     }
   }
@@ -52,32 +49,60 @@ class ComentariosRepository implements ComentariosRepositoryInterface
   public function createComment($empresa_id, $user_id, $comment, $contato_id)
   {
     try {
+      $supervisao = "N";
+      if (Auth::user()->user_role_id != UserRole::VENDEDOR) {
+        $supervisao = "Y";
+      }
+
       $commentModel = new $this->model;
       $commentModel->empresa_id = $empresa_id;
       $commentModel->user_id = $user_id;
       $commentModel->contato_id = $contato_id;
       $commentModel->anotacao = $comment;
+      $commentModel->supervisao = $supervisao;
       return $commentModel->save();
     } catch (\Throwable $th) {
-      dd($th);
       return false;
     }
   }
 
   public function getCommentsMailing($contato_id)
   {
-    return $this->model->where('contato_id', $contato_id)->orderBy('created_at', 'desc')->get();
+    $user = Auth::user();
+    return $this->model->where('contato_id', $contato_id)
+      ->when($user->user_role_id == UserRole::VENDEDOR, function ($query) use ($user) {
+        $query->where(function ($subQuery) use ($user) {
+          $subQuery->where(function ($q) use ($user) {
+            $q->where('comentarios.visivel', 'Y')
+              ->where('comentarios.user_id', $user->id);
+          })
+            ->orWhere(function ($q) {
+              $q->where('comentarios.supervisao', 'Y')
+                ->where('comentarios.visivel', 'Y');
+            });
+        });
+      })
+      ->orderBy('created_at', 'desc')->get();
   }
 
   public function getCommentsMailingAll($contato_id)
   {
     $user = Auth::user();
+
     $comentarios = $this->model->leftJoin('users', 'users.id', '=', 'comentarios.user_id')
       ->leftJoin('user_roles', 'users.user_role_id', '=', 'user_roles.id')
       ->where('comentarios.contato_id', $contato_id)
       ->when($user->user_role_id == UserRole::VENDEDOR, function ($query) use ($user) {
-        $query->where('comentarios.visivel', "Y");
-        $query->where('comentarios.user_id', $user->id);
+        $query->where(function ($subQuery) use ($user) {
+          $subQuery->where(function ($q) use ($user) {
+            $q->where('comentarios.visivel', 'Y')
+              ->where('comentarios.user_id', $user->id);
+          })
+            ->orWhere(function ($q) {
+              $q->where('comentarios.supervisao', 'Y')
+                ->where('comentarios.visivel', 'Y');
+            });
+        });
       })
       ->select(
         'comentarios.anotacao',
@@ -90,6 +115,7 @@ class ComentariosRepository implements ComentariosRepositoryInterface
 
     return $comentarios;
   }
+
 
 
 

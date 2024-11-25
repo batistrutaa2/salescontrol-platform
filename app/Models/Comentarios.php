@@ -20,6 +20,7 @@ class Comentarios extends Model
     'anotacao',
     'legado',
     'visivel',
+    'supervisao',
     'created_at',
     'updated_at',
   ];
