@@ -21,7 +21,13 @@ class RamaisRepository implements RamaisRepositoryInterface
 
   public function create(array $data)
   {
-
+    try {
+      return $this->model->updateOrCreate([
+        'user_id' => $data['usuario_id']
+      ], $data);
+    } catch (\Throwable $th) {
+      throw $th;
+    }
   }
 
   public function getRamais($typeUser, $empresa_id)

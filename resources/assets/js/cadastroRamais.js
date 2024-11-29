@@ -62,31 +62,7 @@ $(function () {
         complete: function (jqXHR, textStatus) {},
         error: function (jqXHR, textStatus, errorThrown) {}
       },
-      columns: [
-        { data: 'id' },
-        { data: 'name' },
-        { data: 'ramal' },
-        { data: 'created_at' },
-        {
-          // Actions
-          targets: -1,
-          title: 'AÇÕES',
-          searchable: false,
-          orderable: false,
-          render: function (data, type, full, meta) {
-            return (
-              '<div class="d-flex align-items-center">' +
-              '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line ri-22px"></i></button>' +
-              '<div class="dropdown-menu dropdown-menu-end m-0">' +
-              '<a href="usuarios/editar-usuario/' +
-              full['id'] +
-              '" class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Edit</span></a>' +
-              '</div>' +
-              '</div>'
-            );
-          }
-        }
-      ],
+      columns: [{ data: 'id' }, { data: 'name' }, { data: 'ramal' }, { data: 'created_at' }],
       order: [[2, 'desc']],
       dom:
         '<"card-header d-flex rounded-0 flex-wrap py-0 pb-5 pb-md-0"' +
@@ -240,7 +216,7 @@ $(function () {
           ]
         },
         {
-          text: '<i class="ri-add-line ri-16px me-0 me-sm-1_5 align-baseline"></i><span class="d-none d-sm-inline-block">Criar Usuario</span>',
+          text: '<i class="ri-add-line ri-16px me-0 me-sm-1_5 align-baseline"></i><span class="d-none d-sm-inline-block">Cadastrar Ramal</span>',
           className: 'add-new btn btn-primary waves-effect waves-light',
           attr: {
             'data-bs-toggle': 'offcanvas',

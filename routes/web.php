@@ -87,6 +87,7 @@ Route::middleware(['auth'])->group(function () {
 
 
   /** PABX */
-  Route::get('/pabx/cadastro-ramais', [Pabx::class, 'createRamal'])->name('pabx.createRamal');
+  Route::get('/pabx/cadastro-ramais', [Pabx::class, 'index'])->name('index.createRamal');
   Route::get('/pabx/getRamais', [Pabx::class, 'getRamais'])->name('pabx.getRamais');
+  Route::post('/pabx/createramal', [Pabx::class, 'createramal'])->name('pabx.createramal');
 });
