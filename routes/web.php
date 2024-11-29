@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\Auth;
 use App\Http\Controllers\pages\backoffice\Backoffice;
+use App\Http\Controllers\pages\pabx\Pabx;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\comerical\Comercial;
@@ -83,4 +84,9 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');
   Route::get('/vendas/lista-vendas-mes', [Vendas::class, 'salesOfTheMonth'])->name('sale.salesOfTheMonth');
   Route::get('/vendas/filtro-vendas-mes/{nome_corretor?}', [Vendas::class, 'monthlySalesFilter'])->name('sale.monthlySalesFilter');
+
+
+  /** PABX */
+  Route::get('/pabx/cadastro-ramais', [Pabx::class, 'createRamal'])->name('pabx.createRamal');
+  Route::get('/pabx/getRamais', [Pabx::class, 'getRamais'])->name('pabx.getRamais');
 });

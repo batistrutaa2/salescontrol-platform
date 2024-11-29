@@ -99,6 +99,22 @@
       ]
     },
     {
+      "name": "PABX",
+      "icon": "menu-icon tf-icons ri-presentation-fill",
+      "slug": "dashboard",
+      "rules": [
+        "DEVELOPER",
+        "ADMINISTRATIVO"
+      ],
+      "submenu": [
+        {
+          "url": "/pabx/cadastro-ramais",
+          "name": "Cadastro de Ramais",
+          "slug": "pages-pabx-cadastroRamais"
+        }
+      ]
+    },
+    {
       "name": "Relatorios",
       "icon": "menu-icon tf-icons ri-bar-chart-fill",
       "slug": "dashboard",
