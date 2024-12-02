@@ -63,4 +63,10 @@ class RamaisRepository implements RamaisRepositoryInterface
       return $resultados;
     }
   }
+
+
+  public function getRamal($idUser)
+  {
+    return $this->model->where('user_id', $idUser)->first();
+  }
 }

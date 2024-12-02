@@ -41,6 +41,7 @@
     </style>
 
     @vite(['resources/assets/vendor/libs/quill/typography.scss', 'resources/assets/vendor/libs/quill/katex.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/libs/quill/editor.scss', 'resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/dropzone/dropzone.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/tagify/tagify.scss'])
+    @vite(['resources/assets/vendor/js/template-customizer.js', 'resources/assets/vendor/libs/toastr/toastr.js', 'resources/assets/vendor/libs/toastr/toastr.scss'])
 @endsection
 
 @section('vendor-script')
@@ -99,9 +100,10 @@
                         </button>
 
                     </div>
-                    <form method="POST" action="{{ route('comercial.updateClient') }}">
-                        @csrf
-                        <div class="card-body">
+
+                    <div class="card-body">
+                        <form method="POST" action="{{ route('comercial.updateClient') }}">
+                            @csrf
                             <input type="hidden" name="id" value="{{ $client->id }}">
                             <div class="form-floating form-floating-outline mb-5">
                                 <label for="ecommerce-product-name">Status Atual</label>
@@ -253,12 +255,24 @@
                                     </div>
                                 </div>
                             </div>
-                            <div>
-                                <button class="btn btn-success   btn--twitter">Atualizar informações</button>
+                            <div class="d-flex mt-5">
+                                <button class="btn btn-success btn--twitter ms-auto">Atualizar informações</button>
+                            </div>
+                        </form>
+                        <div class="row align-items-center">
+                            <div class="col-3">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="hidden" id="contato_id_pabx" name="contato_id" class="form-control"
+                                        value="{{ $client->id }}" />
+                                    <input type="text" class="form-control  " id="phone_number">
+                                    <label for="phone_number">Digite o telefone que desejar ligar</label>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-success" id="callButton">Ligar</button>
                             </div>
                         </div>
-                    </form>
-
+                    </div>
                 </div>
                 <!-- /Product Information -->
                 <!-- Media -->
