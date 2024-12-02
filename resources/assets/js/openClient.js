@@ -175,6 +175,52 @@
       .catch(error => {});
   });
 
+  document.addEventListener('DOMContentLoaded', function () {
+    const callButton = document.getElementById('callButton'); // Seleciona o botão pelo id
+
+    // Captura o evento de clique no botão
+    callButton.addEventListener('click', function () {
+      makeCall(); // Chama a função makeCall quando o botão for clicado
+    });
+  });
+
+  function makeCall() {
+    // Captura o número do telefone
+    const telefone = document.getElementById('phone_number').value.trim();
+    const contatoId = document.getElementById('contato_id_pabx').value.trim();
+
+    if (!telefone) {
+      alert('Por favor, insira um número de telefone válido.');
+      return;
+    }
+
+    const data = {
+      telefone: telefone,
+      contato_id: contatoId
+    };
+
+    fetch('/pabx/clickToCall', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') // CSRF Token do Laravel
+      },
+      body: JSON.stringify(data)
+    })
+      .then(response => response.json())
+      .then(result => {
+        if (!result.error) {
+          toastr.info(`${result.message}`);
+        } else {
+          toastr.info(`${result.message}`);
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao fazer a chamada:', error);
+        alert('Erro ao enviar a solicitação ao servidor.');
+      });
+  }
+
   function setupcomponentesCreateSale() {
     let inputcpf = document.getElementById('cpf_cnpj');
 

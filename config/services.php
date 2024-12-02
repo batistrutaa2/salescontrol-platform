@@ -1,21 +1,15 @@
 <?php
 
 return [
-
-  /*
-  |--------------------------------------------------------------------------
-  | Third Party Services
-  |--------------------------------------------------------------------------
-  |
-  | This file is for storing the credentials for third party services such
-  | as Mailgun, Postmark, AWS and more. This file provides the de facto
-  | location for this type of information, allowing packages to have
-  | a conventional file to locate the various service credentials.
-  |
-  */
-
   'postmark' => [
     'token' => env('POSTMARK_TOKEN'),
+  ],
+
+  'voip' => [
+    'maisvoip' => [
+      'url' => 'http://painelpabx.maisvoip.com.br:5000/api/v1/clicktocall',
+      'token' => '$2y$10$BfEpiUWL5iCghZtuMKOT2ur1hXA1yfhtAhWobY9jzahuNz.xd2WG2'
+    ],
   ],
 
   'ses' => [

@@ -3,6 +3,10 @@
 namespace App\Providers;
 
 use App\Models\Agendamento;
+use App\Repositories\Contracts\LigacoesRepositoryInterface;
+use App\Repositories\Contracts\RamaisRepositoryInterface;
+use App\Repositories\Eloquent\LigacoesRepository;
+use App\Repositories\Eloquent\RamaisRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
@@ -48,6 +52,8 @@ class AppServiceProvider extends ServiceProvider
     $this->app->bind(BaseLegaceRespositoryInterface::class, BaseLegaceRespository::class);
     $this->app->bind(LeadAtividadeRepositoryInterface::class, LeadAtividadeRepository::class);
     $this->app->bind(AgendamentoRepositoryInterface::class, AgendamentoRepository::class);
+    $this->app->bind(RamaisRepositoryInterface::class, RamaisRepository::class);
+    $this->app->bind(LigacoesRepositoryInterface::class, LigacoesRepository::class);
 
   }
 
