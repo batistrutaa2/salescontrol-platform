@@ -24,7 +24,7 @@
       ]
     },
     {
-      "url": "/usuarios",
+      "url": "/empresas",
       "name": "Cadastro de Empresas",
       "icon": "menu-icon tf-icons ri-briefcase-line",
       "slug": "pages-usuarios",
