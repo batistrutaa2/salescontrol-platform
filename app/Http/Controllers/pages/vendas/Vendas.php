@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\pages\vendas;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\Contracts\UsuariosRepositoryInterface;
-use App\Repositories\Contracts\VendasRepositoryInterface;
-use App\Repositories\Eloquent\UsuariosRepository;
-use App\Repositories\Eloquent\VendasRepository;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use App\Repositories\Eloquent\VendasRepository;
+use App\Repositories\Eloquent\UsuariosRepository;
+use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Repositories\Contracts\UsuariosRepositoryInterface;
 
 class Vendas extends Controller
 {
@@ -85,5 +86,20 @@ class Vendas extends Controller
     } catch (\Throwable $th) {
       return response()->json(["error" => true]);
     }
+  }
+
+  public function analyticalSales()
+  {
+    return view('content.pages.vendas.analyticalSales');
+  }
+
+  public function getSalesAnalytical(Request $request)
+  {
+    $month = $request->query('month');
+    $year = $request->query('year');
+
+    $sales = $this->repositoryVendas->getSalesAnalytical(Auth::user()->empresa_id, $month, $year);
+
+    return response()->json($sales);
   }
 }

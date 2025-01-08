@@ -282,8 +282,6 @@ class VendasRepository implements VendasRepositoryInterface
     return $this->calculoConversao($quantidadeContatosMes, $quantidadeVendasMes);
   }
 
-
-
   private function calculoConversao($quantidadeContatos, $quantidadeVendas)
   {
     if ($quantidadeVendas == 0) {
@@ -364,4 +362,29 @@ class VendasRepository implements VendasRepositoryInterface
       ->where('a.empresa_id', $empresa_id)
       ->get();
   }
+
+  public function getSalesAnalytical($empresa_id, $month, $year)
+  {
+    return DB::table('vendas as a')
+      ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
+      ->select(
+        'a.id',
+        'b.name as corretor',
+        'a.nome_contrato',
+        'a.valor_contrato',
+        'a.created_at as dataCadastro'
+      )
+      ->when($month, function ($query, $month) {
+        return $query->whereMonth('a.created_at', $month);
+      })
+      ->when($year, function ($query, $year) {
+        return $query->whereYear('a.created_at', $year);
+      })
+      ->when($empresa_id, function ($query, $empresa_id) {
+        return $query->where('a.empresa_id', $empresa_id); // Correção aqui
+      })
+      ->orderBy('a.created_at', 'desc')
+      ->get();
+  }
+
 }

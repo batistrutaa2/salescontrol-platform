@@ -17,4 +17,5 @@ interface VendasRepositoryInterface
   public function listaVendasCadastradasMes($month, $year, $empresa_id);
   public function listaVendasImplantadasMes($month, $year, $empresa_id);
   public function conversaoMensalPorData($empresa_id, $month, $year);
+  public function getSalesAnalytical($empresa_id, $month, $year);
 }

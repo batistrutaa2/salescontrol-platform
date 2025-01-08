@@ -24,7 +24,7 @@
       ]
     },
     {
-      "url": "/usuarios",
+      "url": "/empresas",
       "name": "Cadastro de Empresas",
       "icon": "menu-icon tf-icons ri-briefcase-line",
       "slug": "pages-usuarios",
@@ -129,7 +129,7 @@
           "slug": "pages-mailing-importar"
         },
         {
-          "url": "#",
+          "url": "/vendas/analitico",
           "name": "Analitico (Vendas)",
           "slug": "pages-mailing-importar"
         },
