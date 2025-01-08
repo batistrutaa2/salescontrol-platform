@@ -210,49 +210,69 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="row gx-5 mb-5">
-                                <div class="col">
-                                    <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control mask-telefone" id="telefone1"
-                                            value="{{ $client->telefone1 }}" placeholder="(99) 95844-1559"
-                                            name="telefone1" aria-label="Email Cliente">
-                                        <label for="ecommerce-product-sku">Telefone Principal</label>
-                                    </div>
+
+                            <div class="col-6 mt-5">
+                                <div class="input-group">
+                                    <!-- Campo de Telefone Principal -->
+                                    <input type="text" class="form-control mask-telefone" id="telefone1"
+                                        value="{{ $client->telefone1 }}" placeholder="" name="telefone1"
+                                        aria-label="Telefone Principal">
+
+                                    <!-- Botão do WhatsApp com ícone -->
+                                    <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone1) }}"
+                                        target="_blank" class="btn btn-outline-primary" id="button-addon1">
+                                        <i class="ri-whatsapp-line"></i> WhatsApp
+                                    </a>
                                 </div>
-                                <div class="col">
-                                    <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control mask-telefone" id="telefone2"
-                                            value="{{ $client->telefone2 }}" placeholder="(99) 95844-1559"
-                                            name="telefone2" aria-label="Product barcode">
-                                        <label for="ecommerce-product-name">Telefone Comercial</label>
-                                    </div>
+                            </div>
+
+                            <div class="col-6 mt-5">
+                                <div class="input-group">
+                                    <!-- Campo de Telefone Principal -->
+                                    <input type="text" class="form-control mask-telefone" id="telefone2"
+                                        value="{{ $client->telefone2 }}" placeholder="" name="telefone2"
+                                        aria-label="Telefone Principal">
+
+                                    <!-- Botão do WhatsApp com ícone -->
+                                    <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone2) }}"
+                                        target="_blank" class="btn btn-outline-primary" id="button-addon1">
+                                        <i class="ri-whatsapp-line"></i> WhatsApp
+                                    </a>
                                 </div>
-                                <div class="col">
-                                    <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control mask-telefone" id="telefone3"
-                                            value="{{ $client->telefone3 }}" placeholder="(99) 95844-1559"
-                                            name="telefone3" aria-label="Product barcode">
-                                        <label for="ecommerce-product-name">Telefone Adicional</label>
-                                    </div>
+                            </div>
+
+
+                            <div class="col-6 mt-5">
+                                <div class="input-group">
+                                    <!-- Campo de Telefone Principal -->
+                                    <input type="text" class="form-control mask-telefone" id="telefone3"
+                                        value="{{ $client->telefone3 }}" placeholder="" name="telefone3"
+                                        aria-label="Telefone Principal">
+
+                                    <!-- Botão do WhatsApp com ícone -->
+                                    <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone3) }}"
+                                        target="_blank" class="btn btn-outline-primary" id="button-addon1">
+                                        <i class="ri-whatsapp-line"></i> WhatsApp
+                                    </a>
                                 </div>
-                                <div class="col">
-                                    <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control monetary-field"
-                                            id="ecommerce-product-barcode"
-                                            {{ $editingPermission == false ? 'disabled' : '' }} id="valor_plano_atual"
-                                            value="{{ number_format($client->valor_plano_atual, 2, ',', '.') }}"
-                                            placeholder="R$ 1080.10" name="valor_plano_atual"
-                                            aria-label="Product barcode">
-                                        <label for="ecommerce-product-name">Valor Atual Investido</label>
-                                    </div>
+                            </div>
+
+                            <div class="col mt-5">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="text" class="form-control monetary-field"
+                                        id="ecommerce-product-barcode" {{ $editingPermission == false ? 'disabled' : '' }}
+                                        id="valor_plano_atual"
+                                        value="{{ number_format($client->valor_plano_atual, 2, ',', '.') }}"
+                                        placeholder="R$ 1080.10" name="valor_plano_atual" aria-label="Product barcode">
+                                    <label for="ecommerce-product-name">Valor Atual Investido</label>
                                 </div>
-                                <div class="col">
-                                    <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control monetary-field" id="valor_negociacao"
-                                            value="{{ number_format($client->valor_negociacao, 2, ',', '.') }}"
-                                            placeholder="R$ 0,00" name="valor_negociacao" aria-label="Valor Negociacao">
-                                        <label for="valor_negociacao">Valor Negociação</label>
-                                    </div>
+                            </div>
+                            <div class="col mt-4">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="text" class="form-control monetary-field" id="valor_negociacao"
+                                        value="{{ number_format($client->valor_negociacao, 2, ',', '.') }}"
+                                        placeholder="R$ 0,00" name="valor_negociacao" aria-label="Valor Negociacao">
+                                    <label for="valor_negociacao">Valor Negociação</label>
                                 </div>
                             </div>
                             <div class="d-flex mt-5">
