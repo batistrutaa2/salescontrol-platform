@@ -113,17 +113,43 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos_corretores.updated_at',
         'contatos_corretores.created_at',
         'users.name as nameVendedor',
-        DB::raw('COUNT(comentarios.id) as qt_comentarios')
+        DB::raw('COUNT(comentarios_user.id) as qt_comentarios') // Altere o alias para "comentarios_user"
       )
         ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
-        ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
+        ->leftJoin('comentarios as comentarios_user', function ($join) {
+          $join->on('comentarios_user.contato_id', '=', 'contatos.id')
+            ->where('comentarios_user.user_id', Auth::user()->id); // Comentários do usuário logado
+        })
         ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
         ->where('contatos_corretores.user_id', Auth::user()->id)
         ->where('contatos_corretores.empresa_id', $empresa_id)
-        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at', 'nameVendedor')
+        ->groupBy(
+          'tabulacoes.id',
+          'tabulacoes.descricao',
+          'tabulacoes.ordem_kanban',
+          'contatos.id',
+          'contatos.nome_cliente',
+          'contatos.cpf',
+          'contatos.plano',
+          'contatos.categoria',
+          'contatos.entidade',
+          'contatos.telefone1',
+          'contatos.telefone2',
+          'contatos.telefone3',
+          'contatos.email',
+          'contatos.idades',
+          'contatos.valor_plano_atual',
+          'contatos.valor_negociacao',
+          'contatos_corretores.temperatura',
+          'contatos_corretores.user_id',
+          'contatos_corretores.updated_at',
+          'contatos_corretores.created_at',
+          'users.name'
+        )
         ->orderBy('contatos.created_at', 'desc')
         ->get();
+
     }
   }
 
