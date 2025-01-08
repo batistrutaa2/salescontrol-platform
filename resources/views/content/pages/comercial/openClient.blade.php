@@ -211,49 +211,50 @@
                                 </div>
                             </div>
 
-                            <div class="col-6 mt-5">
-                                <div class="input-group">
-                                    <!-- Campo de Telefone Principal -->
-                                    <input type="text" class="form-control mask-telefone" id="telefone1"
-                                        value="{{ $client->telefone1 }}" placeholder="" name="telefone1"
-                                        aria-label="Telefone Principal">
+                            <div class="row gx-5 mb-5">
+                                <div class="col-4 ">
+                                    <div class="input-group">
+                                        <!-- Campo de Telefone Principal -->
+                                        <input type="text" class="form-control mask-telefone" id="telefone1"
+                                            value="{{ $client->telefone1 }}" placeholder="" name="telefone1"
+                                            aria-label="Telefone Principal">
 
-                                    <!-- Botão do WhatsApp com ícone -->
-                                    <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone1) }}"
-                                        target="_blank" class="btn btn-outline-primary" id="button-addon1">
-                                        <i class="ri-whatsapp-line"></i> WhatsApp
-                                    </a>
+                                        <!-- Botão do WhatsApp com ícone -->
+                                        <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone1) }}"
+                                            target="_blank" class="btn btn-outline-primary" id="button-addon1">
+                                            <i class="ri-whatsapp-line"></i>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="col-6 mt-5">
-                                <div class="input-group">
-                                    <!-- Campo de Telefone Principal -->
-                                    <input type="text" class="form-control mask-telefone" id="telefone2"
-                                        value="{{ $client->telefone2 }}" placeholder="" name="telefone2"
-                                        aria-label="Telefone Principal">
+                                <div class="col-4 ">
+                                    <div class="input-group">
+                                        <!-- Campo de Telefone Principal -->
+                                        <input type="text" class="form-control mask-telefone" id="telefone2"
+                                            value="{{ $client->telefone2 }}" placeholder="" name="telefone2"
+                                            aria-label="Telefone Principal">
 
-                                    <!-- Botão do WhatsApp com ícone -->
-                                    <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone2) }}"
-                                        target="_blank" class="btn btn-outline-primary" id="button-addon1">
-                                        <i class="ri-whatsapp-line"></i> WhatsApp
-                                    </a>
+                                        <!-- Botão do WhatsApp com ícone -->
+                                        <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone2) }}"
+                                            target="_blank" class="btn btn-outline-primary" id="button-addon1">
+                                            <i class="ri-whatsapp-line"></i>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
 
+                                <div class="col-4 ">
+                                    <div class="input-group">
+                                        <!-- Campo de Telefone Principal -->
+                                        <input type="text" class="form-control mask-telefone" id="telefone3"
+                                            value="{{ $client->telefone3 }}" placeholder="" name="telefone3"
+                                            aria-label="Telefone Principal">
 
-                            <div class="col-6 mt-5">
-                                <div class="input-group">
-                                    <!-- Campo de Telefone Principal -->
-                                    <input type="text" class="form-control mask-telefone" id="telefone3"
-                                        value="{{ $client->telefone3 }}" placeholder="" name="telefone3"
-                                        aria-label="Telefone Principal">
-
-                                    <!-- Botão do WhatsApp com ícone -->
-                                    <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone3) }}"
-                                        target="_blank" class="btn btn-outline-primary" id="button-addon1">
-                                        <i class="ri-whatsapp-line"></i> WhatsApp
-                                    </a>
+                                        <!-- Botão do WhatsApp com ícone -->
+                                        <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone3) }}"
+                                            target="_blank" class="btn btn-outline-primary" id="button-addon1">
+                                            <i class="ri-whatsapp-line"></i>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
 
