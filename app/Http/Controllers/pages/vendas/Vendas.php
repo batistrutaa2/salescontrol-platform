@@ -86,4 +86,9 @@ class Vendas extends Controller
       return response()->json(["error" => true]);
     }
   }
+
+  public function analyticalSales()
+  {
+    return view('content.pages.vendas.analyticalSales');
+  }
 }

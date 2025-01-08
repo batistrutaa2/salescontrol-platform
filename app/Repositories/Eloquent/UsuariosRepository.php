@@ -48,7 +48,7 @@ class UsuariosRepository implements UsuariosRepositoryInterface
 
   public function create(array $data)
   {
-    try {
+    try { 
       $this->model->create([
         'name' => $data['name'],
         'email' => $data['email'],
