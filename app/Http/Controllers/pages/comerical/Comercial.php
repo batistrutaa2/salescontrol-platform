@@ -2,34 +2,35 @@
 
 namespace App\Http\Controllers\pages\comerical;
 
-use App\Enums\Tabulations;
+use DateTime;
+use Carbon\Carbon;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
-use App\Http\Controllers\Controller;
-use App\Repositories\Contracts\AgendamentoRepositoryInterface;
-use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
-use App\Repositories\Contracts\ComentariosRepositoryInterface;
-use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
-use App\Repositories\Contracts\ContatosRepositoryInterface;
-use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
-use App\Repositories\Contracts\TabulacoesRepositoryInterface;
-use App\Repositories\Contracts\UsuariosRepositoryInterface;
-use App\Repositories\Contracts\VendasRepositoryInterface;
-use App\Repositories\Eloquent\AgendamentoRepository;
-use App\Repositories\Eloquent\ComentariosLegadosRepository;
-use App\Repositories\Eloquent\ComentariosRepository;
-use App\Repositories\Eloquent\ContatosCorretoresRepository;
-use App\Repositories\Eloquent\ContatosRepository;
-use App\Repositories\Eloquent\LeadAtividadeRepository;
-use App\Repositories\Eloquent\TabulacoesRepository;
-use App\Repositories\Eloquent\UsuariosRepository;
-use App\Repositories\Eloquent\VendasRepository;
-use App\UseCases\ComercialUseCase;
-use App\UseCases\MailingUseCase;
+use App\Enums\Tabulations;
 use Illuminate\Http\Request;
+use App\UseCases\MailingUseCase;
+use App\UseCases\ComercialUseCase;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
+use App\Repositories\Eloquent\VendasRepository;
+use App\Repositories\Eloquent\ContatosRepository;
+use App\Repositories\Eloquent\UsuariosRepository;
+use App\Repositories\Eloquent\TabulacoesRepository;
+use App\Repositories\Eloquent\AgendamentoRepository;
+use App\Repositories\Eloquent\ComentariosRepository;
+use App\Repositories\Eloquent\LeadAtividadeRepository;
+use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Repositories\Contracts\ContatosRepositoryInterface;
+use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Eloquent\ComentariosLegadosRepository;
+use App\Repositories\Eloquent\ContatosCorretoresRepository;
+use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Contracts\AgendamentoRepositoryInterface;
+use App\Repositories\Contracts\ComentariosRepositoryInterface;
+use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
+use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
+use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 
 class Comercial extends Controller
 {
@@ -137,6 +138,20 @@ class Comercial extends Controller
           'data_create' => $contact->created_at
         ];
       })->values()->toArray();
+
+      // Ordenar os itens pela data de criação, considerando apenas dia, mês e ano
+      usort($items, function ($a, $b) {
+        // Extrair dia, mês e ano da data e compará-los
+        $dataA = DateTime::createFromFormat('d/m/Y H:i:s', $a['data_create']);
+        $dataB = DateTime::createFromFormat('d/m/Y H:i:s', $b['data_create']);
+
+        // Comparar apenas a data sem a hora (Y-m-d)
+        if ($dataA && $dataB) {
+          return $dataA->format('Y-m-d') <=> $dataB->format('Y-m-d');
+        }
+
+        return 0; // Caso não consiga converter, mantém a ordem original
+      });
 
       $boardData[] = [
         'id' => Helpers::normalizeStatusName($tabulation['id']),
