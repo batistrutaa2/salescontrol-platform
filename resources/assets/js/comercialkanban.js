@@ -304,6 +304,19 @@
     boards: boards.map(board => {
       const itemCount = board.item ? board.item.length : 0;
       board.title = `${board.title} - ${itemCount}`;
+
+      if (board.item && board.item.length > 0) {
+        board.item = board.item.sort((a, b) => {
+          // Convertendo a data_create para o formato 'YYYY-MM-DD' (sem a hora)
+          const dateA = a.data_create.split(' ')[0].split('/').reverse().join('-');
+          const dateB = b.data_create.split(' ')[0].split('/').reverse().join('-');
+
+          // Comparando as datas
+          if (dateA < dateB) return 1; // Ordenação decrescente
+          if (dateA > dateB) return -1;
+          return 0;
+        });
+      }
       return board;
     }),
     dragBoards: true,
