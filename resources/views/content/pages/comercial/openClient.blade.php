@@ -220,7 +220,7 @@
                                             aria-label="Telefone Principal">
 
                                         <!-- Botão do WhatsApp com ícone -->
-                                        <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone1) }}"
+                                        <a href="https://wa.me/{{ preg_replace('/\D/', '', '55' . $client->telefone1) }}"
                                             target="_blank" class="btn btn-outline-primary" id="button-addon1">
                                             <i class="ri-whatsapp-line"></i>
                                         </a>
@@ -235,7 +235,7 @@
                                             aria-label="Telefone Principal">
 
                                         <!-- Botão do WhatsApp com ícone -->
-                                        <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone2) }}"
+                                        <a href="https://wa.me/{{ preg_replace('/\D/', '', '55' . $client->telefone2) }}"
                                             target="_blank" class="btn btn-outline-primary" id="button-addon1">
                                             <i class="ri-whatsapp-line"></i>
                                         </a>
@@ -250,7 +250,7 @@
                                             aria-label="Telefone Principal">
 
                                         <!-- Botão do WhatsApp com ícone -->
-                                        <a href="https://wa.me/{{ preg_replace('/\D/', '', $client->telefone3) }}"
+                                        <a href="https://wa.me/{{ preg_replace('/\D/', '', '55' . $client->telefone3) }}"
                                             target="_blank" class="btn btn-outline-primary" id="button-addon1">
                                             <i class="ri-whatsapp-line"></i>
                                         </a>
