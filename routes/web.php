@@ -79,6 +79,10 @@ Route::middleware(['auth'])->group(function () {
 
   /** BACKOFFICE */
   Route::get(uri: '/back-office/fila-contratos', action: [Backoffice::class, 'index'])->name(name: 'backoffice.index');
+  Route::get(uri: '/back-office/lista-contratos', action: [Backoffice::class, 'listContract'])->name(name: 'backoffice.listContracts');
+  Route::get(uri: '/back-office/abrir-contrato/{idContrato}', action: [Backoffice::class, 'openContract'])->name(name: 'backoffice.openContract');
+  Route::get(uri: '/back-office/lista-vendas-filtro', action: [Backoffice::class, 'listSalesFilter'])->name('backoffice.listSalesFilter');
+
 
   /** VENDAS */
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');
