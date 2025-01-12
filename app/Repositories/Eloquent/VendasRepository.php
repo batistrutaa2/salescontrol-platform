@@ -50,8 +50,50 @@ class VendasRepository implements VendasRepositoryInterface
     }
   }
 
-  public function all()
+  public function find($id)
   {
+    return $this->model::find($id);
+  }
+
+  public function all($empresa_id)
+  {
+    return $this->model::select([
+      'vendas.id',
+      'users.name',
+      'vendas.nome_contrato',
+      'vendas.cpf_cnpj',
+      'vendas.telefone1',
+      'tabulacoes.descricao',
+      'vendas.valor_contrato',
+      'vendas.created_at',
+    ])
+      ->where('vendas.empresa_id', $empresa_id)
+      ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
+      ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+      ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+      ->get();
+
+  }
+
+  public function getSalesFilter($startDate, $endDate, $empresa_id)
+  {
+
+    return $this->model::select([
+      'vendas.id',
+      'users.name',
+      'vendas.nome_contrato',
+      'vendas.cpf_cnpj',
+      'vendas.telefone1',
+      'tabulacoes.descricao',
+      'vendas.valor_contrato',
+      'vendas.created_at',
+    ])
+      ->whereBetween('vendas.created_at', [$startDate, $endDate])
+      ->where('vendas.empresa_id', $empresa_id)
+      ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
+      ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+      ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+      ->get();
   }
 
   public function vendasDoMesAnoAtual($user_id, $empresa_id, $role_user_id)

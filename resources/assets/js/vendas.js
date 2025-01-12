@@ -1,259 +1,82 @@
-/**
- * app-ecommerce-product-list
- */
-
 'use strict';
 
 $(function () {
-  let borderColor, bodyBg, headingColor;
+  const table = $('#contracts_table').DataTable({
+    processing: true,
+    serverSide: true,
+    deferRender: true, // Renderiza os dados apenas quando necessário
+    ajax: {
+      url: '/back-office/lista-vendas-filtro', // Rota para filtrar vendas
+      data: function (d) {
+        d.start_date = $('#start_date').val();
+        d.end_date = $('#end_date').val();
+      }
+    },
+    columns: [
+      { data: 'id', name: 'id' },
+      { data: 'nome_contrato', name: 'nome_contrato' },
+      { data: 'cpf_cnpj', name: 'cpf_cnpj' },
+      { data: 'telefone1', name: 'telefone1' },
+      { data: 'descricao', name: 'descricao' },
+      { data: 'valor_contrato', name: 'valor_contrato', render: $.fn.dataTable.render.number('.', ',', 2, 'R$ ') },
+      {
+        data: 'created_at',
+        name: 'created_at',
+        render: function (data) {
+          const parts = data.split(' '); // Separa a data e a hora
+          const dateParts = parts[0].split('/'); // Separa dia, mês, ano
+          const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${parts[1]}`;
+          const date = new Date(formattedDate);
 
-  if (isDarkStyle) {
-    borderColor = config.colors_dark.borderColor;
-    bodyBg = config.colors_dark.bodyBg;
-    headingColor = config.colors_dark.headingColor;
-  } else {
-    borderColor = config.colors.borderColor;
-    bodyBg = config.colors.bodyBg;
-    headingColor = config.colors.headingColor;
-  }
+          if (isNaN(date.getTime())) {
+            return ''; // Retorna uma string vazia se a data for inválida
+          }
 
-  var dt_product_table = $('.datatables-products'),
-    productAdd = baseUrl + 'app/ecommerce/product/add',
-    statusObj = {
-      16: { title: 'VENDA', class: 'bg-label-primary' },
-      17: { title: 'ESTORNADO', class: 'bg-label-danger' },
-      18: { title: 'IMPLANTADO', class: 'bg-label-success' }
-    };
-
-  if (dt_product_table.length) {
-    var dt_products = dt_product_table.DataTable({
-      ajax: '/vendas/lista-vendas-mes',
-      columns: [
-        { data: 'id', title: 'ID' },
-        { data: 'nome_contrato', title: 'Nome Contrato' },
-        { data: 'nome_corretor', title: 'Corretor' },
-        { data: 'email', title: 'Email' },
-        { data: 'valor_contrato', title: 'Valor Contrato' },
-        { data: 'data_vigencia', title: 'Data Vigencia' },
-        { data: 'status', title: 'Status' },
-        { data: 'created_at', title: 'Feito em:' }
-      ],
-      columnDefs: [
-        {
-          title: 'Valor Contrato',
-          targets: 4,
-          render: function (data, type, full, meta) {
-            var valorContrato = full['valor_contrato'];
-            var formattedValue = new Intl.NumberFormat('pt-BR', {
-              style: 'currency',
-              currency: 'BRL'
-            }).format(valorContrato);
-            return formattedValue;
-          }
-        },
-        {
-          title: 'Feito em:',
-          targets: 7,
-          render: function (data, type, full, meta) {
-            var createdAt = new Date(full['created_at']);
-            var day = String(createdAt.getDate()).padStart(2, '0');
-            var month = String(createdAt.getMonth() + 1).padStart(2, '0');
-            var year = createdAt.getFullYear();
-            var hours = String(createdAt.getHours()).padStart(2, '0');
-            var minutes = String(createdAt.getMinutes()).padStart(2, '0');
-            var seconds = String(createdAt.getSeconds()).padStart(2, '0');
-            var formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-            return formattedDateTime;
-          }
-        },
-        {
-          title: 'Data Vigência',
-          targets: 5,
-          render: function (data, type, full, meta) {
-            var dataVigencia = new Date(full['data_vigencia']);
-            return dataVigencia.toLocaleDateString('pt-BR');
-          }
-        },
-        {
-          title: 'Status',
-          targets: 6,
-          render: function (data, type, full, meta) {
-            var $status = full['status'];
-            return (
-              '<span class="badge rounded-pill ' +
-              statusObj[$status].class +
-              '" text-capitalized>' +
-              statusObj[$status].title +
-              '</span>'
-            );
-          }
-        }
-      ],
-      order: [2, 'asc'],
-      dom:
-        '<"card-header d-flex border-top rounded-0 flex-wrap py-0 pb-5 pb-md-0"' +
-        '<"me-5 ms-n2"f>' +
-        '<"d-flex justify-content-start justify-content-md-end align-items-baseline"<"dt-action-buttons d-flex align-items-start align-items-md-center justify-content-sm-center gap-4"lB>>' +
-        '>t' +
-        '<"row mx-1"' +
-        '<"col-sm-12 col-md-6"i>' +
-        '<"col-sm-12 col-md-6"p>' +
-        '>',
-      lengthMenu: [7, 10, 20, 50, 70, 100],
-      language: {
-        sLengthMenu: '_MENU_',
-        search: '',
-        searchPlaceholder: 'Search',
-        info: 'Displaying _START_ to _END_ of _TOTAL_ entries'
-      },
-      buttons: [
-        // Botões de exportação
-      ],
-      responsive: {
-        details: {
-          display: $.fn.dataTable.Responsive.display.modal({
-            header: function (row) {
-              var data = row.data();
-              return 'Details of ' + data['product_name'];
-            }
-          }),
-          type: 'column',
-          renderer: function (api, rowIdx, columns) {
-            var data = $.map(columns, function (col, i) {
-              return col.title !== ''
-                ? '<tr data-dt-row="' +
-                    col.rowIndex +
-                    '" data-dt-column="' +
-                    col.columnIndex +
-                    '">' +
-                    '<td>' +
-                    col.title +
-                    ':</td>' +
-                    '<td>' +
-                    col.data +
-                    '</td>' +
-                    '</tr>'
-                : '';
-            }).join('');
-            return data ? $('<table class="table"/><tbody />').append(data) : false;
-          }
+          return date.toLocaleDateString('pt-BR');
         }
       },
-      initComplete: function () {
-        this.api()
-          .columns(6)
-          .every(function () {
-            var column = this;
-            var select = $(
-              '<select id="ProductStatus" class="form-select text-capitalize"><option value="">TODOS</option></select>'
-            )
-              .appendTo('.product_status')
-              .on('change', function () {
-                var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                column.search(val ? '^' + val + '$' : '', true, false).draw();
-              });
-
-            column
-              .data()
-              .unique()
-              .sort()
-              .each(function (d, j) {
-                select.append('<option value="' + statusObj[d].title + '">' + statusObj[d].title + '</option>');
-              });
-          });
-
-        this.api()
-          .columns(2)
-          .every(function () {
-            var column = this;
-            var select = $(
-              '<select id="CorretorFilter" class="form-select text-capitalize"><option value="">TODOS</option></select>'
-            )
-              .appendTo('.corretor_filter')
-              .on('change', function () {
-                var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                column.search(val ? '^' + val + '$' : '', true, false).draw();
-                $(document).trigger('corretorFilterChanged', [val]);
-              });
-
-            column
-              .data()
-              .unique()
-              .sort()
-              .each(function (d, j) {
-                select.append('<option value="' + d + '">' + d + '</option>');
-              });
-          });
-      }
-    });
-
-    $('.dataTables_length').addClass('my-0');
-    $('.dt-action-buttons').addClass('pt-0');
-    $('.dt-buttons').addClass('d-flex flex-wrap');
-  }
-
-  $(document).on('corretorFilterChanged', function (event, val) {
-    fetch(`/vendas/filtro-vendas-mes/${encodeURIComponent(val)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (!data.error) {
-          updateDashboard(data);
-        } else {
-          alert('Erro ao pesquisar informações. Contate nosso suporte');
+      {
+        data: null,
+        name: 'actions',
+        orderable: false,
+        searchable: false,
+        render: function (data) {
+          const contractUrl = `/back-office/abrir-contrato/${data.id}`;
+          const deleteButton = `<button class="btn btn-danger btn-sm delete-contract" data-id="${data.id}">Excluir</button>`;
+          return `
+            <div class="d-flex">
+              <a href="${contractUrl}" class="btn btn-primary btn-sm me-2">Acessar</a>
+              ${deleteButton}
+            </div>
+          `;
         }
-      })
-      .catch(error => {
-        console.error('Erro:', error);
-      });
+      }
+    ],
+    responsive: true,
+    lengthMenu: [10, 25, 50],
+    language: {
+      url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json'
+    },
+    dom: 'frtip',
+    searchDelay: 500, // Atraso na pesquisa para evitar chamadas excessivas ao backend
+    stateSave: false // Desabilitar o stateSave durante o carregamento
   });
 
-  function updateDashboard(data) {
-    const vendasCadastradasElement = document.querySelector('.js--vendasCadastradas');
-    const valorVendido = new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2
-    }).format(data.vendasCadastradasMes.valor_vendido);
+  // Filtrar dados ao clicar no botão
+  $('#filter_button').on('click', function () {
+    // Usar requestAnimationFrame para otimizar a alteração do DOM
+    requestAnimationFrame(function () {
+      table.ajax.reload(); // Recarregar os dados da tabela com o filtro de datas
+    });
+  });
 
-    vendasCadastradasElement.textContent = valorVendido;
+  // Limpar filtros e clicar no botão de filtro novamente
+  $('#clear_filter').on('click', function () {
+    $('#start_date').val('');
+    $('#end_date').val('');
 
-    const quantidadeCadastradaElement = document.querySelector('.js--quantidadeCadastrada');
-    quantidadeCadastradaElement.textContent = data.vendasCadastradasMes.quantidade_vendida + ' Contratos';
-
-    const vendasImplentadasElement = document.querySelector('.js--vendasImplantadas');
-    const valorImplantado = new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2
-    }).format(data.vendasImplantadasMes.valor_vendido);
-
-    vendasImplentadasElement.textContent = valorImplantado;
-
-    const quantidadeImplantadaElement = document.querySelector('.js--quantidadeImplantada');
-    quantidadeImplantadaElement.textContent = data.vendasImplantadasMes.quantidade_vendida + ' Contratos';
-
-    const vendasEstornadasElement = document.querySelector('.js--vendasEstornada');
-    const valorEstornado = new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2
-    }).format(data.vendasEstornadasMes.valor_estornado);
-
-    vendasEstornadasElement.textContent = valorEstornado;
-
-    const quantidadeEstornoElement = document.querySelector('.js--quantidadeEstornada');
-    quantidadeEstornoElement.textContent = data.vendasEstornadasMes.quantidade_estornada + ' Contratos';
-
-    const conversaoElement = document.querySelector('.js--conversaoMensal');
-    conversaoElement.textContent = '% ' + data.percentualConversaoMes;
-
-    const quantidadeContatos = document.querySelector('.js--quantidadeContatos');
-    quantidadeContatos.textContent = data.totalContatosMes + ' Contratos';
-  }
+    requestAnimationFrame(function () {
+      table.ajax.reload(); // Recarregar a tabela após limpar os filtros
+    });
+  });
 });

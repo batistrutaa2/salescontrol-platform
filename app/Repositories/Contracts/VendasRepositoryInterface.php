@@ -5,7 +5,9 @@ namespace App\Repositories\Contracts;
 interface VendasRepositoryInterface
 {
   public function create(array $data);
-  public function all();
+  public function all($empresa_id);
+  public function find($id);
+  public function getSalesFilter($startDate, $endDate, $empresa_id);
   public function vendasDoMesAnoAtual($user_id, $empresa_id, $role_user_id);
   public function totalVendasCadastradasAnoMesAtual($user_id, $empresa_id, $role_user_id);
   public function totalVendasImplantadasAnoMesAtual($user_id, $empresa_id, $role_user_id);
