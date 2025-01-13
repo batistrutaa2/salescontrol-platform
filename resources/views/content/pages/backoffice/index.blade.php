@@ -18,6 +18,18 @@
 @endsection
 
 @section('content')
+    @if (session('status') == 'success')
+        <div class="alert alert-solid-success d-flex align-items-center" role="alert">
+            <span class="alert-icon rounded">
+                <i class="ri-checkbox-circle-line ri-22px"></i>
+            </span>
+            {{ session('message') }}
+        </div>
+    @elseif(session('status') == 'error')
+        <div class="alert alert-danger">
+            {{ session('message') }}
+        </div>
+    @endif
 
     <div class="card">
         <div class="card-header">
@@ -39,7 +51,6 @@
             </div>
         </div>
     </div>
-
 
     <!-- Ajax Sourced Server-side -->
     <div class="card mt-5">
