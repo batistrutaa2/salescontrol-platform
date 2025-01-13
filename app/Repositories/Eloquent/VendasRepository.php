@@ -21,7 +21,6 @@ class VendasRepository implements VendasRepositoryInterface
     $this->model = $model;
   }
 
-
   public function create(array $data)
   {
     try {
@@ -449,7 +448,20 @@ class VendasRepository implements VendasRepositoryInterface
 
       return $contract->save();
     } catch (\Throwable $th) {
-      dd($th);
+      return false;
+    }
+  }
+
+  public function delete($id)
+  {
+    try {
+      $contract = $this->model::find($id);
+
+      if ($contract) {
+        return $contract->delete();
+      }
+      return false;
+    } catch (\Throwable $th) {
       return false;
     }
   }

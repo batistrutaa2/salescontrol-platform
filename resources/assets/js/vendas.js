@@ -28,7 +28,24 @@ $(function () {
         { data: 'id' },
         { data: 'name' },
         { data: 'nome_contrato' },
-        { data: 'descricao' },
+        {
+          targets: 4,
+          render: function (data, type, full, meta) {
+            var $role = full['descricao'];
+            var roleBadgeObj = {
+              IMPLANTADO: '<i class="ri-user-line ri-22px text-primary me-2"></i>',
+              VENDA: '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
+              ESTORNO: '<i class="ri-computer-line ri-22px text-danger me-2"></i>',
+              DEVELOPER: '<i class="ri-vip-crown-line ri-22px text-warning me-2"></i>'
+            };
+            return (
+              "<span class='text-truncate d-flex align-items-center text-heading'>" +
+              roleBadgeObj[$role] +
+              $role +
+              '</span>'
+            );
+          }
+        },
         { data: 'valor_contrato', title: 'Valor', render: $.fn.dataTable.render.number('.', ',', 2, 'R$ ') },
         { data: 'created_at' },
 
@@ -46,6 +63,9 @@ $(function () {
               '<a href="/back-office/abrir-contrato/' +
               full['id'] +
               '" class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Ver contrato</span></a>' +
+              '<a href="/back-office/deletar-contrato/' +
+              full['id'] +
+              '" class="dropdown-item"><i class="ri-delete-bin-line me-2"></i><span>Excluir</span></a>' +
               '</div>' +
               '</div>'
             );

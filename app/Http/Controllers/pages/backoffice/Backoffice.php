@@ -72,4 +72,15 @@ class Backoffice extends Controller
     }
   }
 
+
+  public function deleteContract($id)
+  {
+    $deleteContract = $this->vendasRepository->delete($id);
+    if ($deleteContract) {
+      return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Deletado com sucesso");
+    } else {
+      return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao Deletar contrato ,contate nosso suporte");
+    }
+  }
+
 }
