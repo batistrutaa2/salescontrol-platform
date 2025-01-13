@@ -346,7 +346,6 @@
                                 <label for="valor_contrato">$ Valor do Plano</label>
                             </div>
                         </div>
-
                         <div class="col-12 col-md-12">
                             <div class="form-floating form-floating-outline">
                                 <input type="number" id="vidas" name="vidas" class="form-control"

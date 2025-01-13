@@ -429,4 +429,28 @@ class VendasRepository implements VendasRepositoryInterface
       ->get();
   }
 
+  public function updateContract($data)
+  {
+
+    try {
+      $contract = $this->model::find($data['id']);
+
+      $contract->nome_contrato = $data['nome_contrato'];
+      $contract->cpf_cnpj = Helpers::cleanSpecialCharacters($data['cpf_cnpj']);
+      $contract->email = $data['email'];
+      $contract->data_vigencia = $data['data_vigencia'];
+      $contract->telefone1 = Helpers::cleanSpecialCharacters($data['telefone1']);
+      $contract->telefone2 = Helpers::cleanSpecialCharacters($data['telefone2']);
+      $contract->operadora = $data['operadora'];
+      $contract->nome_plano = $data['nome_plano'];
+      $contract->valor_contrato = Helpers::moneyForRealSaveBank($data['valor_contrato']);
+      $contract->vidas = $data['vidas'];
+      $contract->obs_contrato = $data['obs_contrato'];
+
+      return $contract->save();
+    } catch (\Throwable $th) {
+      dd($th);
+      return false;
+    }
+  }
 }

@@ -176,16 +176,14 @@
   });
 
   document.addEventListener('DOMContentLoaded', function () {
-    const callButton = document.getElementById('callButton'); // Seleciona o botão pelo id
+    const callButton = document.getElementById('callButton');
 
-    // Captura o evento de clique no botão
     callButton.addEventListener('click', function () {
-      makeCall(); // Chama a função makeCall quando o botão for clicado
+      makeCall();
     });
   });
 
   function makeCall() {
-    // Captura o número do telefone
     const telefone = document.getElementById('phone_number').value.trim();
     const contatoId = document.getElementById('contato_id_pabx').value.trim();
 
