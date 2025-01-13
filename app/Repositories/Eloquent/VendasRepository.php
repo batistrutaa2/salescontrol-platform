@@ -465,4 +465,10 @@ class VendasRepository implements VendasRepositoryInterface
       return false;
     }
   }
+
+
+  public function checkExistenceSale($id)
+  {
+
+  }
 }
