@@ -124,10 +124,8 @@
                         <button class="btn btn-success btn--twitter ms-auto">Atualizar contrato</button>
                     </div>
                 </form>
-
             </div>
         </div>
     </div>
-
 
 @endsection
