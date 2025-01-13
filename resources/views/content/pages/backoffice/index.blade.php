@@ -1,23 +1,39 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'Backoffice - Contratos')
+@section('title', 'DataTables - Advanced Tables')
 
+<!-- Vendor Styles -->
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.scss', 'resources/assets/vendor/libs/select2/select2.scss'])
+    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss'])
 @endsection
 
+<!-- Vendor Scripts -->
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js', 'resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/cleavejs/cleave.js', 'resources/assets/vendor/libs/cleavejs/cleave-phone.js'])
+    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js'])
 @endsection
 
+<!-- Page Scripts -->
 @section('page-script')
     @vite(['resources/assets/js/vendas.js'])
 @endsection
 
 @section('content')
-    <div class="card mb-6">
+    @if (session('status') == 'success')
+        <div class="alert alert-solid-success d-flex align-items-center" role="alert">
+            <span class="alert-icon rounded">
+                <i class="ri-checkbox-circle-line ri-22px"></i>
+            </span>
+            {{ session('message') }}
+        </div>
+    @elseif(session('status') == 'error')
+        <div class="alert alert-danger">
+            {{ session('message') }}
+        </div>
+    @endif
+
+    <div class="card">
         <div class="card-header">
-            <h5 class="mb-0">Filtros:</h5>
+            <h5 class="mb-0">Filtro:</h5>
             <div class="row pt-4">
                 <div class="col-md-4">
                     <label for="start_date" class="form-label">Data Inicial</label>
@@ -34,14 +50,18 @@
                 </div>
             </div>
         </div>
-        <div class="card-datatable table-responsive">
-            <table id="contracts_table" class="table table-bordered table-striped">
+    </div>
+
+    <!-- Ajax Sourced Server-side -->
+    <div class="card mt-5">
+        <h5 class="card-header">Contratos</h5>
+        <div class="card-datatable text-nowrap">
+            <table class="datatables-ajax table table-bordered">
                 <thead>
                     <tr>
                         <th>ID</th>
+                        <th>Corretor</th>
                         <th>Nome Contrato</th>
-                        <th>CPF/CNPJ</th>
-                        <th>Telefone</th>
                         <th>Status</th>
                         <th>Valor Contrato</th>
                         <th>Data Criação</th>
@@ -51,4 +71,6 @@
             </table>
         </div>
     </div>
+    <!--/ Ajax Sourced Server-side -->
+
 @endsection

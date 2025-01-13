@@ -25,7 +25,7 @@
             </div>
 
             <div class="card-body">
-                <form method="POST" action="">
+                <form method="POST" action="{{ route('backoffice.updateSale') }}">
                     @csrf
                     <input type="hidden" name="id" value="{{ $contract->id }}">
 
@@ -65,25 +65,17 @@
                     <div class="row gx-5 mb-5">
                         <div class="col">
                             <div class="form-floating form-floating-outline">
-                                <input type="text" class="form-control" id="telefone1" value="{{ $contract->telefone1 }}"
-                                    placeholder="Telefone 1" name="telefone1">
+                                <input type="text" class="form-control mask-telefone" id="telefone1"
+                                    value="{{ $contract->telefone1 }}" placeholder="Telefone 1" name="telefone1">
                                 <label for="telefone1">Telefone 1</label>
                             </div>
                         </div>
 
                         <div class="col">
                             <div class="form-floating form-floating-outline">
-                                <input type="text" class="form-control" id="telefone2" value="{{ $contract->telefone2 }}"
-                                    placeholder="Telefone 2" name="telefone2">
+                                <input type="text" class="form-control mask-telefone" id="telefone2"
+                                    value="{{ $contract->telefone2 }}" placeholder="Telefone 2" name="telefone2">
                                 <label for="telefone2">Telefone 2</label>
-                            </div>
-                        </div>
-
-                        <div class="col">
-                            <div class="form-floating form-floating-outline">
-                                <input type="text" class="form-control" id="telefone3" value="{{ $contract->telefone3 }}"
-                                    placeholder="Telefone 3" name="telefone3">
-                                <label for="telefone3">Telefone 3</label>
                             </div>
                         </div>
                     </div>
@@ -115,8 +107,8 @@
 
                     <div class="col mt-4">
                         <div class="form-floating form-floating-outline">
-                            <input type="text" class="form-control" id="nome_plano"
-                                value="{{ $contract->nome_plano }}" placeholder="Nome do Plano" name="nome_plano">
+                            <input type="text" class="form-control" id="nome_plano" value="{{ $contract->nome_plano }}"
+                                placeholder="Nome do Plano" name="nome_plano">
                             <label for="nome_plano">Nome do Plano</label>
                         </div>
                     </div>
@@ -132,10 +124,8 @@
                         <button class="btn btn-success btn--twitter ms-auto">Atualizar contrato</button>
                     </div>
                 </form>
-
             </div>
         </div>
     </div>
-
 
 @endsection
