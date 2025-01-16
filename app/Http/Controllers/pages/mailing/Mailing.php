@@ -26,7 +26,6 @@ class Mailing extends Controller
   protected BaseLegaceRespository $baseLegaceRespository;
   protected MailingUseCase $mailingUseCase;
   protected ContatosRepository $contatosRepository;
-
   protected VendasRepository $vendasRepository;
   private $rulesUpload = [
     'base' => 'required|string',
@@ -47,7 +46,7 @@ class Mailing extends Controller
     $this->usuarioRepository = $usuariosRepositoryInterface;
     $this->tabulacoesRepository = $tabulacoesRepositoryInterface;
     $this->baseLegaceRespository = $baseLegaceRespositoryInterface;
-    $this->vendasRepository - $vendasRepositoryInterface;
+    $this->vendasRepository = $vendasRepositoryInterface;
   }
 
   public function index()
@@ -88,6 +87,13 @@ class Mailing extends Controller
   public function deleteMailing($id)
   {
     $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($id);
+
+    if (!$searchForLaunchedSale) {
+      return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Esse Lead possui venda cadastrada, exclusão cancelada.");
+    }
+
+    // CRIA UM CAMPO DE STATUS PARA DESATIVAR O LEAD.
+
   }
 
   public function viewLeads()

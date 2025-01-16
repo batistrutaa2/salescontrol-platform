@@ -112,10 +112,15 @@
                             <label for="nome_plano">Nome do Plano</label>
                         </div>
                     </div>
-
                     <div class="col mt-4">
                         <div class="form-floating form-floating-outline">
-                            <textarea class="form-control" id="obs_contrato" name="obs_contrato" rows="4">{{ $contract->obs_contrato }}</textarea>
+                            <textarea
+                                class="form-control"
+                                id="obs_contrato"
+                                name="obs_contrato"
+                                rows="10"
+                                style="height: 300px; min-height: 200px;"
+                            >{{ $contract->obs_contrato }}</textarea>
                             <label for="obs_contrato">Observações</label>
                         </div>
                     </div>

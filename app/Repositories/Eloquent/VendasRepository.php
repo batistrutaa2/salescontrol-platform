@@ -469,6 +469,6 @@ class VendasRepository implements VendasRepositoryInterface
 
   public function checkExistenceSale($id)
   {
-
+    return $this->model->where('contato_id', $id)->exists();
   }
 }
