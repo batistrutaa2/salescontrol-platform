@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\pages\relatorios;
 
+use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -14,12 +16,16 @@ class Relatorios extends Controller
 {
   protected LigacoesRepository $ligacoesRepository;
   protected UsuariosRepository $usuariosRepository;
+
+  protected ContatosCorretoresRepository $contatosCorretoresRepository;
   public function __construct(
     LigacoesRepositoryInterface $ligacoesRepositoryInterface,
-    UsuariosRepositoryInterface $usuariosRepositoryInterface
+    UsuariosRepositoryInterface $usuariosRepositoryInterface,
+    ContatosCorretoresRepositoryInterface $ContatosCorretoresRepositoryInterface
   ) {
     $this->ligacoesRepository = $ligacoesRepositoryInterface;
     $this->usuariosRepository = $usuariosRepositoryInterface;
+    $this->contatosCorretoresRepository = $ContatosCorretoresRepositoryInterface;
   }
 
   public function index()
@@ -33,6 +39,12 @@ class Relatorios extends Controller
 
   public function getLigacoes($id_user, $data_inicial, $data_final)
   {
-    $this->ligacoesRepository->getLigacoes($id_user, $data_inicial, $data_final);
+    $ligacoes = $this->ligacoesRepository->getLigacoes($id_user, $data_inicial, $data_final);
+    $filaAtual = $this->contatosCorretoresRepository->getQueueCurrent($id_user);
+
+    return response()->json([
+      'ligacoes' => $ligacoes,
+      'fila' => $filaAtual
+    ]);
   }
 }

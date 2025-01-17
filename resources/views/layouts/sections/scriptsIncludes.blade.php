@@ -25,21 +25,6 @@
             timeOut: 8000,
             extendedTimeOut: 8000
         };
-
-        function checkNewAgendamentos() {
-            fetch('/comercial/searchPendingAppointments')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length >= 1) {
-                        toastr.info('Você tem um novo agendamento disponivel..');
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro ao verificar novos agendamentos:', error);
-                });
-        }
-        checkNewAgendamentos();
-        setInterval(checkNewAgendamentos, 120000);
     });
 
 
