@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\Auth;
 use App\Http\Controllers\pages\backoffice\Backoffice;
 use App\Http\Controllers\pages\pabx\Pabx;
+use App\Http\Controllers\pages\relatorios\Relatorios;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\comerical\Comercial;
@@ -93,7 +94,6 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/vendas/lista-vendas-mes', [Vendas::class, 'salesOfTheMonth'])->name('sale.salesOfTheMonth');
   Route::get('/vendas/analitico', [Vendas::class, 'analyticalSales'])->name('sale.analyticalSales');
   Route::get('/vendas/vendasAnalitico', [Vendas::class, 'getSalesAnalytical'])->name('sale.getSalesAnalytical');
-
   Route::get('/vendas/filtro-vendas-mes/{nome_corretor?}', [Vendas::class, 'monthlySalesFilter'])->name('sale.monthlySalesFilter');
 
 
@@ -102,4 +102,9 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/pabx/getRamais', [Pabx::class, 'getRamais'])->name('pabx.getRamais');
   Route::post('/pabx/createramal', [Pabx::class, 'createramal'])->name('pabx.createramal');
   Route::post('/pabx/clickToCall', [Pabx::class, 'clickToCall'])->name('pabx.clickToCall');
+
+
+  /** RELATORIOS */
+  Route::get('/relatorios/ligacoes', [Relatorios::class, 'index'])->name('pabx.getLigacoes');
+  Route::get('/relatorios/getList/{id_user}/{data_inicial}/{data_final}', [Relatorios::class, 'getLigacoes'])->name('pabx.getLigacoes');
 });
