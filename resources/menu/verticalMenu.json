@@ -134,14 +134,9 @@
           "slug": "pages-mailing-importar"
         },
         {
-          "url": "#",
-          "name": "Analitico (Leads)",
-          "slug": "pages-mailing-importar"
-        },
-        {
-          "url": "#",
-          "name": "Analitico (Corretor)",
-          "slug": "pages-mailing-importar"
+          "url": "/relatorios/ligacoes",
+          "name": "Ligações (Geral)",
+          "slug": "pages-users-ligacoes"
         }
       ]
     },
