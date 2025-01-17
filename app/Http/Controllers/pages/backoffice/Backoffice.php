@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers\pages\backoffice;
 
-use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
-use App\Repositories\Contracts\TabulacoesRepositoryInterface;
-use App\Repositories\Eloquent\ContatosCorretoresRepository;
-use App\Repositories\Eloquent\TabulacoesRepository;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Repositories\Eloquent\VendasRepository;
+use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Repositories\Eloquent\ContatosCorretoresRepository;
+use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use App\Modules\Ranking\Ranking;
 
 class Backoffice extends Controller
 {
@@ -89,6 +90,7 @@ class Backoffice extends Controller
   {
     $sale = $this->vendasRepository->find($request->idSale);
     $updateContract = $this->contatosCorretoresRepository->alterStatusContract($sale->contato_id, $request->tabulacao_id);
+
     if ($updateContract) {
       return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Atualizado");
     } else {
