@@ -12,6 +12,11 @@ return [
     ],
   ],
 
+  'rankingdevendas' => [
+    'token' => "XJ13LDJ1CAZBKD7BE3K73UFMSER945",
+    'url' => "https://integration.rankingdevendas.com.br/v2",
+  ],
+
   'ses' => [
     'key' => env('AWS_ACCESS_KEY_ID'),
     'secret' => env('AWS_SECRET_ACCESS_KEY'),

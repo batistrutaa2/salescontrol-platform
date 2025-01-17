@@ -22,4 +22,5 @@ interface VendasRepositoryInterface
   public function getSalesAnalytical($empresa_id, $month, $year);
   public function updateContract($data);
   public function delete($id);
+  public function checkExistenceSale($id);
 }

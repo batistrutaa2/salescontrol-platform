@@ -70,8 +70,8 @@ class VendasRepository implements VendasRepositoryInterface
       ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
       ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
       ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+      ->orderBy('vendas.id', 'desc')
       ->get();
-
   }
 
   public function getSalesFilter($startDate, $endDate, $empresa_id)
@@ -92,6 +92,7 @@ class VendasRepository implements VendasRepositoryInterface
       ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
       ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
       ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+      ->orderBy('vendas.id', 'desc')
       ->get();
   }
 
@@ -464,5 +465,11 @@ class VendasRepository implements VendasRepositoryInterface
     } catch (\Throwable $th) {
       return false;
     }
+  }
+
+
+  public function checkExistenceSale($id)
+  {
+    return $this->model->where('contato_id', $id)->exists();
   }
 }

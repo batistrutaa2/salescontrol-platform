@@ -6,25 +6,39 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Repositories\Eloquent\VendasRepository;
+use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Repositories\Eloquent\ContatosCorretoresRepository;
+use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use App\Modules\Ranking\Ranking;
 
 class Backoffice extends Controller
 {
   protected VendasRepository $vendasRepository;
+  protected TabulacoesRepository $tabulacoesRepository;
+  protected ContatosCorretoresRepository $contatosCorretoresRepository;
+
 
   public function __construct(
 
     VendasRepositoryInterface $vendasRepositoryInterface,
+    TabulacoesRepositoryInterface $tabulacoesRepositoryInterface,
+    ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface
 
   ) {
-
     $this->vendasRepository = $vendasRepositoryInterface;
+    $this->tabulacoesRepository = $tabulacoesRepositoryInterface;
+    $this->contatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
   }
 
 
   public function index()
   {
-    return view("content.pages.backoffice.index");
+    $tabulations = $this->tabulacoesRepository->getTabulationsBackoffice(Auth::user()->empresa_id);
+    return view("content.pages.backoffice.index", [
+      'tabulacoes' => $tabulations
+    ]);
   }
 
   public function listContract()
@@ -69,6 +83,18 @@ class Backoffice extends Controller
       } else {
         return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
       }
+    }
+  }
+
+  public function alterStatusContract(Request $request)
+  {
+    $sale = $this->vendasRepository->find($request->idSale);
+    $updateContract = $this->contatosCorretoresRepository->alterStatusContract($sale->contato_id, $request->tabulacao_id);
+
+    if ($updateContract) {
+      return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Atualizado");
+    } else {
+      return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
     }
   }
 

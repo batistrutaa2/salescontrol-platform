@@ -16,4 +16,5 @@ interface ContatosCorretoresRepositoryInterface
   public function transferContact(array $data);
   public function sendRemaketing($idLead, $sub_tabulacao_id);
   public function sendSchedule($idLead);
+  public function alterStatusContract($contato_id, $tabulacao_id): bool;
 }

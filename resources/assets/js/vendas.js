@@ -48,7 +48,6 @@ $(function () {
         },
         { data: 'valor_contrato', title: 'Valor', render: $.fn.dataTable.render.number('.', ',', 2, 'R$ ') },
         { data: 'created_at' },
-
         {
           // Actions
           targets: -1,
@@ -63,6 +62,10 @@ $(function () {
               '<a href="/back-office/abrir-contrato/' +
               full['id'] +
               '" class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Ver contrato</span></a>' +
+              '<button type="button" class="dropdown-item js-alterar-status" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
+              full['id'] +
+              '">' +
+              '<i class="ri-arrow-left-right-fill"></i><span> Alterar Status</span></button>' +
               '<a href="/back-office/deletar-contrato/' +
               full['id'] +
               '" class="dropdown-item"><i class="ri-delete-bin-line me-2"></i><span>Excluir</span></a>' +
@@ -71,9 +74,16 @@ $(function () {
             );
           }
         }
-      ]
+      ],
+      order: [[0, 'desc']]
     });
   }
+
+  $(document).on('click', '.js-alterar-status', function () {
+    var contractId = $(this).data('id');
+    $('#modalcomments').modal('show');
+    $('#modalcomments input[name="idSale"]').val(contractId);
+  });
 
   // Ao clicar no botão "Filtrar", aplica o filtro
   $('#filter_button').on('click', function () {
@@ -81,6 +91,7 @@ $(function () {
   });
 
   // Ao clicar no botão "Limpar", limpa os campos de filtro e recarrega a tabela
+
   $('#clear_filter').on('click', function () {
     $('#start_date').val('');
     $('#end_date').val('');

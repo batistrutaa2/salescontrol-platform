@@ -126,7 +126,6 @@ $(function () {
           }
         },
         {
-          // Actions
           targets: -1,
           title: 'AÇÕES',
           searchable: false,
@@ -144,6 +143,9 @@ $(function () {
               data.id +
               '">' +
               '<i class="ri-arrow-left-right-fill"></i><span>Transferir Contato</span></button>' +
+              '<a href="/mailing/excluir-lead/' +
+              full['id'] +
+              '" class="dropdown-item"><i class="ri-delete-bin-line me-2"></i><span>Excluir Lead</span></a>' +
               '</div>' +
               '</div>'
             );

@@ -73,4 +73,38 @@
     </div>
     <!--/ Ajax Sourced Server-side -->
 
+
+    <div class="modal fade" id="modalcomments" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-simple">
+            <div class="modal-content">
+                <div class="modal-body p-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="text-center mb-6">
+                        <h4 class="mb-2">Alterar Status</h4>
+                        <p>Selecione o status atual do contrato</p>
+                    </div>
+                    <form id="transferLead" class="row" action="{{route('backoffice.alterStatusContract')}}" method="POST">
+                        @csrf
+                        <input type="hidden" id="idSale" name="idSale" value="">
+                        <div class="col">
+                            <div class="form-floating form-floating-outline">
+                                <select class="select2  form-select" id="label" name="tabulacao_id">
+                                    <option value="">Selecione o Status</option>
+                                    @foreach ($tabulacoes as $tabulation)
+                                        <option value="{{ $tabulation->id }}">{{ strtoupper($tabulation->descricao) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <label for="ecommerce-product-name">Selecione o status</label>
+                            </div>
+                            <div>
+                                <button class="btn btn-danger   btn--twitter mt-5">Alterar Status</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
 @endsection
