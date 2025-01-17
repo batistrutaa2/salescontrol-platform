@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\pages\backoffice;
 
+use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Eloquent\TabulacoesRepository;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -11,20 +13,25 @@ use App\Repositories\Contracts\VendasRepositoryInterface;
 class Backoffice extends Controller
 {
   protected VendasRepository $vendasRepository;
+  protected TabulacoesRepository $tabulacoesRepository;
 
   public function __construct(
 
     VendasRepositoryInterface $vendasRepositoryInterface,
+    TabulacoesRepositoryInterface $tabulacoesRepositoryInterface
 
   ) {
-
     $this->vendasRepository = $vendasRepositoryInterface;
+    $this->tabulacoesRepository = $tabulacoesRepositoryInterface;
   }
 
 
   public function index()
   {
-    return view("content.pages.backoffice.index");
+    $tabulations = $this->tabulacoesRepository->getTabulationsBackoffice(Auth::user()->empresa_id);
+    return view("content.pages.backoffice.index", [
+      'tabulacoes' => $tabulations
+    ]);
   }
 
   public function listContract()
