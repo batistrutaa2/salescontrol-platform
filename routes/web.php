@@ -84,6 +84,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get(uri: '/back-office/abrir-contrato/{idContrato}', action: [Backoffice::class, 'openContract'])->name(name: 'backoffice.openContract');
   Route::get(uri: '/back-office/lista-vendas-filtro', action: [Backoffice::class, 'listSalesFilter'])->name('backoffice.listSalesFilter');
   Route::post(uri: '/back-office/atualizar-contrato', action: [Backoffice::class, 'updateSale'])->name('backoffice.updateSale');
+  Route::post(uri: '/back-office/alterar-status-contrato', action: [Backoffice::class, 'alterStatusContract'])->name('backoffice.alterStatusContract');
   Route::get(uri: '/back-office/deletar-contrato/{id}', action: [Backoffice::class, 'deleteContract'])->name('backoffice.deleteContract');
 
 

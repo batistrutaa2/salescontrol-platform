@@ -310,6 +310,20 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
     }
   }
 
+  public function alterStatusContract($contato_id, $tabulacao_id): bool
+  {
+    try {
+      $update = $this->model::where('contato_id', $contato_id)->update(
+        [
+          'tabulacao_id' => $tabulacao_id
+        ]
+      );
+      return $update;
+    } catch (\Throwable $th) {
+      return false;
+    }
+  }
+
   public function sendSchedule($idLead)
   {
     try {

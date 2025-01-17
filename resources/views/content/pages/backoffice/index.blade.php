@@ -83,12 +83,12 @@
                         <h4 class="mb-2">Alterar Status</h4>
                         <p>Selecione o status atual do contrato</p>
                     </div>
-                    <form id="transferLead" class="row" action="" method="POST">
+                    <form id="transferLead" class="row" action="{{route('backoffice.alterStatusContract')}}" method="POST">
                         @csrf
                         <input type="hidden" id="idSale" name="idSale" value="">
                         <div class="col">
                             <div class="form-floating form-floating-outline">
-                                <select class="select2  form-select" id="label" name="user_id" value="">
+                                <select class="select2  form-select" id="label" name="tabulacao_id">
                                     <option value="">Selecione o Status</option>
                                     @foreach ($tabulacoes as $tabulation)
                                         <option value="{{ $tabulation->id }}">{{ strtoupper($tabulation->descricao) }}
