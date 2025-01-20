@@ -345,7 +345,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
       return DB::table('contatos_corretores as a')
         ->leftJoin('tabulacoes as b', 'b.id', '=', 'a.tabulacao_id')
         ->select('b.descricao as status', DB::raw('COUNT(*) as total_tabulacoes'))
-        ->where('a.user_id', 14)
+        ->where('a.user_id', $id_user)
         ->whereIn('b.id', [
           Tabulations::PROSPECCAO,
           Tabulations::SEM_CONTATO,
