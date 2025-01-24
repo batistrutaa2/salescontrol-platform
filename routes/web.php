@@ -12,12 +12,29 @@ use App\Http\Controllers\pages\mailing\Mailing;
 use App\Http\Controllers\pages\manager\Empresa;
 use App\Http\Controllers\pages\manager\Usuarios;
 use App\Http\Controllers\pages\vendas\Vendas;
+use Illuminate\Support\Facades\Http;
 
 Route::get('/login', [LoginBasic::class, 'index'])->name('login');
 /**TESTE CELSO */
 
 Route::get('/', function () {
   return redirect()->route('login');
+});
+
+
+Route::get('/teste', function () {
+
+  $response = Http::withHeaders([
+    'User-Agent' => 'insomnia/10.3.0',
+    'Authorization' => '1578RYEHXOUJDXBWMF4W5G7OACJQTU',
+  ])->get('https://integration.rankingdevendas.com.br/v2/users');
+
+  if ($response->successful()) {
+    $data = $response->body();
+    echo $data;
+  } else {
+    echo "Erro: " . $response->status();
+  }
 });
 
 Route::post('/logout', [LoginBasic::class, 'logout'])->name('logout');
