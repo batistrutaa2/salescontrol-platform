@@ -168,6 +168,11 @@
           "url": "/comercial/criar-cliente",
           "name": "Cadastrar Cliente",
           "slug": "comercial-cadastrar-cliente"
+        },
+        {
+          "url": "/comercial/leads-ads",
+          "name": "Leads Anuncio",
+          "slug": "comercial-leads-anuncio"
         }
       ]
     },

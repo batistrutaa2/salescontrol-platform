@@ -134,4 +134,8 @@ class Mailing extends Controller
       ]
     );
   }
+
+  public function contactsAdvertisement() {
+    return view('content.pages.mailing.leads-anuncio');
+  }
 }
