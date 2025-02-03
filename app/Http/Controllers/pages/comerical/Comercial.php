@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\pages\comerical;
 
+use App\Models\RankingVendas;
+use App\Modules\Ranking\Ranking;
 use DateTime;
 use Carbon\Carbon;
 use App\Enums\UserRole;
@@ -44,8 +46,8 @@ class Comercial extends Controller
   protected LeadAtividadeRepository $leadAtividadeRepository;
   protected ComercialUseCase $comercialUseCase;
   protected MailingUseCase $mailingUseCase;
-
   protected AgendamentoRepository $agendamentoRepository;
+  protected Ranking $ranking;
 
   public function __construct(
     ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
@@ -73,6 +75,9 @@ class Comercial extends Controller
     //UseCases
     $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface, $leadAtividadeRepositoryInterface);
     $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
+
+    //raking de vendas
+    $this->ranking = new Ranking();
   }
 
   public function index()
@@ -405,6 +410,16 @@ class Comercial extends Controller
   public function createSale(Request $request)
   {
     try {
+      $dataRankingUser = RankingVendas::where('user_id', 13)->first();
+
+      $raking = $this->ranking->updateUserRanking(
+        $dataRankingUser->_id,
+        Helpers::converterParaDecimal($request->valor_contrato)
+      );
+
+      dd($raking);
+
+
       $saveSale = $this->vendasRepository->create($request->all());
 
       $arrayData = [
@@ -413,6 +428,9 @@ class Comercial extends Controller
       ];
 
       $updateStatusContact = $this->repositoryContatosCorretores->changeStatusLead($arrayData);
+
+
+
 
       if ($saveSale && $updateStatusContact) {
         return redirect()->route('sale.listSale')->with('status', 'success')->with('message', 'Venda Cadastrada com sucesso');

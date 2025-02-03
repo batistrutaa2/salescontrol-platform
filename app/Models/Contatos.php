@@ -34,7 +34,11 @@ class Contatos extends Model
     'valor_plano_atual',
     'valor_negociacao',
     'created_at',
-    'updated_at'
+    'updated_at',
+    'is_ads',
+    'tipo_criativo',
+    'vidas',
+    'plano_ativo'
   ];
 
   public function getDataNascimentoAttribute($value)

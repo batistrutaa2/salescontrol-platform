@@ -1,17 +1,20 @@
 <?php
 
+
 use App\Http\Controllers\Auth\Auth;
-use App\Http\Controllers\pages\backoffice\Backoffice;
-use App\Http\Controllers\pages\pabx\Pabx;
-use App\Http\Controllers\pages\relatorios\Relatorios;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\authentications\LoginBasic;
-use App\Http\Controllers\pages\comerical\Comercial;
+use App\Http\Controllers\api\Contatos;
 use App\Http\Controllers\pages\HomePage;
+use App\Http\Controllers\pages\pabx\Pabx;
+use App\Http\Controllers\pages\vendas\Vendas;
 use App\Http\Controllers\pages\mailing\Mailing;
 use App\Http\Controllers\pages\manager\Empresa;
 use App\Http\Controllers\pages\manager\Usuarios;
-use App\Http\Controllers\pages\vendas\Vendas;
+use App\Http\Controllers\pages\comerical\Comercial;
+use App\Http\Controllers\authentications\LoginBasic;
+use App\Http\Controllers\pages\backoffice\Backoffice;
+use App\Http\Controllers\pages\relatorios\Relatorios;
 
 Route::get('/login', [LoginBasic::class, 'index'])->name('login');
 /**TESTE CELSO */
@@ -19,6 +22,7 @@ Route::get('/login', [LoginBasic::class, 'index'])->name('login');
 Route::get('/', function () {
   return redirect()->route('login');
 });
+
 
 Route::post('/logout', [LoginBasic::class, 'logout'])->name('logout');
 Route::post('autentication', [Auth::class, 'login'])->name('login.autentication');

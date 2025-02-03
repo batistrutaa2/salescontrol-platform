@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Models\Contatos;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
+use Helper;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -173,4 +174,29 @@ class ContatosRepository implements ContatosRepositoryInterface
       ->groupBy('c.name')
       ->get();
   }
+
+  public function importarLeadsAds(array $data)
+  {
+      try {
+          $lead = $this->model::create([
+              'is_ads'        => 'Y',
+              'tipo_criativo' => $data['tipo_criativo'] ?? null,
+              'nome_cliente'  => $data['nome_cliente'] ?? null,
+              'telefone1'     => $data['telefone1'] ?? null,
+              'email'         => $data['email'] ?? null,
+              'plano_ativo'   => $data['plano_ativo'] ?? 'N',
+              'vidas'         => $data['vidas'] ?? null,
+              'idades'        => $data['idades'] ?? null,
+              'user_import_id'=> 1,
+              'id_operacao' => Helpers::generateUniqueId(),
+              'empresa_id' => 2,
+              'created_at'    => now(),
+              'updated_at'    => now(),
+          ]);
+          return response()->json(['message' => 'Lead importado com sucesso!', 'lead' => $lead], 201);
+      } catch (\Throwable $th) {
+          return response()->json(['error' => 'Erro ao importar lead', 'message' => $th->getMessage()], 500);
+      }
+  }
+
 }
