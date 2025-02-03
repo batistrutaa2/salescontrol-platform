@@ -24,7 +24,7 @@ class Contatos extends Controller
         return response()->json([
           'error' => true,
           'message' => "Acesso negado"
-        ], 401 );
+        ], 401);
       }
 
      return $this->contatosRepository->importarLeadsAds($request->all());

@@ -181,8 +181,8 @@ class ContatosRepository implements ContatosRepositoryInterface
           $lead = $this->model::create([
               'is_ads'        => 'Y',
               'tipo_criativo' => $data['tipo_criativo'] ?? null,
-              'nome_cliente'          => $data['nome_cliente'] ?? null,
-              'telefone1'      => $data['telefone1'] ?? null,
+              'nome_cliente'  => $data['nome_cliente'] ?? null,
+              'telefone1'     => $data['telefone1'] ?? null,
               'email'         => $data['email'] ?? null,
               'plano_ativo'   => $data['plano_ativo'] ?? 'N',
               'vidas'         => $data['vidas'] ?? null,
