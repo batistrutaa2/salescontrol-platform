@@ -15,23 +15,29 @@ class Ranking
     $this->token = config('services.rankingdevendas.token');
   }
 
-  public function getUsers()
+  function updateSaleUserRanking($_id, $value)
   {
+
+    $body = [
+      'fieldid' => "678116d3fc9012eaed4ac081",
+      'value' => 20000.00,
+      'set_points' => true,
+    ];
+
+    dd($_id);
     $response = Http::withHeaders([
-      'Authorization' => "Bearer {$this->token}",
-      'Content-Type' => 'application/json',
-    ])->get($this->url . "/users");
+      'Authorization' => "1578RYEHXOUJDXBWMF4W5G7OACJQTU",
+      'Accept' => 'application/json',
+    ])->put($this->url . "team/user/edit/addfield/" . $_id, $body);
 
-    dd($response);
+    if ($response->successful()) {
+      return $response->json();
+    } else {
+      return [
+        'error' => true,
+        'message' => $response->body(),
+      ];
+    }
   }
 
-  public function updateSales()
-  {
-
-  }
-
-  public function execRequest()
-  {
-
-  }
 }

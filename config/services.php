@@ -13,8 +13,8 @@ return [
   ],
 
   'rankingdevendas' => [
-    'token' => "XJ13LDJ1CAZBKD7BE3K73UFMSER945",
-    'url' => "https://integration.rankingdevendas.com.br/v2",
+    'token' => "1578RYEHXOUJDXBWMF4W5G7OACJQTU",
+    'url' => "https://integration.rankingdevendas.com.br/v2/",
   ],
 
   'ses' => [

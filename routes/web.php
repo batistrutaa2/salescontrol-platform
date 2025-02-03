@@ -1,18 +1,20 @@
 <?php
 
+
 use App\Http\Controllers\Auth\Auth;
-use App\Http\Controllers\pages\backoffice\Backoffice;
-use App\Http\Controllers\pages\pabx\Pabx;
-use App\Http\Controllers\pages\relatorios\Relatorios;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\authentications\LoginBasic;
-use App\Http\Controllers\pages\comerical\Comercial;
+use App\Http\Controllers\api\Contatos;
 use App\Http\Controllers\pages\HomePage;
+use App\Http\Controllers\pages\pabx\Pabx;
+use App\Http\Controllers\pages\vendas\Vendas;
 use App\Http\Controllers\pages\mailing\Mailing;
 use App\Http\Controllers\pages\manager\Empresa;
 use App\Http\Controllers\pages\manager\Usuarios;
-use App\Http\Controllers\pages\vendas\Vendas;
-use Illuminate\Support\Facades\Http;
+use App\Http\Controllers\pages\comerical\Comercial;
+use App\Http\Controllers\authentications\LoginBasic;
+use App\Http\Controllers\pages\backoffice\Backoffice;
+use App\Http\Controllers\pages\relatorios\Relatorios;
 
 Route::get('/login', [LoginBasic::class, 'index'])->name('login');
 /**TESTE CELSO */
@@ -21,21 +23,6 @@ Route::get('/', function () {
   return redirect()->route('login');
 });
 
-
-Route::get('/teste', function () {
-
-  $response = Http::withHeaders([
-    'User-Agent' => 'insomnia/10.3.0',
-    'Authorization' => '1578RYEHXOUJDXBWMF4W5G7OACJQTU',
-  ])->get('https://integration.rankingdevendas.com.br/v2/users');
-
-  if ($response->successful()) {
-    $data = $response->body();
-    echo $data;
-  } else {
-    echo "Erro: " . $response->status();
-  }
-});
 
 Route::post('/logout', [LoginBasic::class, 'logout'])->name('logout');
 Route::post('autentication', [Auth::class, 'login'])->name('login.autentication');
