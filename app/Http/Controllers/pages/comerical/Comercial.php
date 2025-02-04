@@ -410,16 +410,6 @@ class Comercial extends Controller
   public function createSale(Request $request)
   {
     try {
-      $dataRankingUser = RankingVendas::where('user_id', 13)->first();
-
-      $raking = $this->ranking->updateUserRanking(
-        $dataRankingUser->_id,
-        Helpers::converterParaDecimal($request->valor_contrato)
-      );
-
-      dd($raking);
-
-
       $saveSale = $this->vendasRepository->create($request->all());
 
       $arrayData = [
@@ -428,8 +418,6 @@ class Comercial extends Controller
       ];
 
       $updateStatusContact = $this->repositoryContatosCorretores->changeStatusLead($arrayData);
-
-
 
 
       if ($saveSale && $updateStatusContact) {
