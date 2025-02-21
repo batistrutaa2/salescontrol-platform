@@ -12,7 +12,10 @@
       ]
     },
     {
-      "menuHeader": "Manager"
+      "menuHeader": "Manager",
+      "rules": [
+        "DEVELOPER"
+      ]
     },
     {
       "url": "/usuarios",
@@ -33,7 +36,12 @@
       ]
     },
     {
-      "menuHeader": "Administrativo"
+      "menuHeader": "Administrativo",
+      "rules": [
+        "ADMINISTRATIVO",
+        "BACKOFFICE",
+        "DEVELOPER"
+      ]
     },
     {
       "url": "/comercial/kanban",
@@ -177,7 +185,11 @@
       ]
     },
     {
-      "menuHeader": "Vendedor"
+      "menuHeader": "Vendedor",
+      "rules": [
+        "VENDEDOR",
+        "DEVELOPER"
+      ]
     },
     {
       "url": "/comercial/kanban",
