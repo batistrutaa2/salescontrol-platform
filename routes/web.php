@@ -2,9 +2,7 @@
 
 
 use App\Http\Controllers\Auth\Auth;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\api\Contatos;
 use App\Http\Controllers\pages\HomePage;
 use App\Http\Controllers\pages\pabx\Pabx;
 use App\Http\Controllers\pages\vendas\Vendas;
