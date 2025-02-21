@@ -91,9 +91,6 @@ class Mailing extends Controller
     if (!$searchForLaunchedSale) {
       return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Esse Lead possui venda cadastrada, exclusão cancelada.");
     }
-
-    // CRIA UM CAMPO DE STATUS PARA DESATIVAR O LEAD.
-
   }
 
   public function viewLeads()
@@ -109,11 +106,15 @@ class Mailing extends Controller
 
   public function viewLeadslegacy()
   {
-    $contacts = $this->baseLegaceRespository->getContactsAll();
 
-    return view('content.pages.mailing.visualizar-leads-legado', [
-      'contatos' => $contacts
-    ]);
+    if (Auth::user()->empresa_id == 2) {
+      $contacts = $this->baseLegaceRespository->getContactsAll();
+      return view('content.pages.mailing.visualizar-leads-legado', [
+        'contatos' => $contacts
+      ]);
+    } else {
+      return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Acesso negado.");
+    }
   }
 
   public function getLeads()
