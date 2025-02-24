@@ -192,10 +192,10 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
 
   public function getClientInfo($idMailing)
   {
-
     $client = $this->model->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
       ->where('contatos_corretores.contato_id', $idMailing)
       ->select(
+        'contatos.empresa_id',
         'contatos.id',
         'contatos.nome_cliente',
         'contatos.email',

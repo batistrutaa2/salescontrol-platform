@@ -286,6 +286,8 @@ class Comercial extends Controller
   public function openClient($id_mailing)
   {
     $clientInfo = $this->repositoryContatosCorretores->getClientInfo($id_mailing);
+
+
     $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
     $tabulations = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
     $tabulationCurrent = $this->repositoryContatosCorretores->getTabulationId($id_mailing);
@@ -296,14 +298,18 @@ class Comercial extends Controller
       $permiteEdition = true;
     }
 
-    return view('content.pages.comercial.openClient', [
-      'client' => $clientInfo,
-      'comments' => $commentsMailing,
-      'editingPermission' => $permiteEdition,
-      'tabulations' => $tabulations,
-      'tabulationCurrent' => $tabulationCurrent->tabulacao_id,
-      'subTabulacoes' => $subTabulacoes
-    ]);
+    if (Auth::user()->empresa_id != $clientInfo->empresa_id){
+      return redirect()->route('comercial.kanban')->with('status', 'error')->with('message', 'Sem permissao de acesso');
+    } else {
+      return view('content.pages.comercial.openClient', [
+        'client' => $clientInfo,
+        'comments' => $commentsMailing,
+        'editingPermission' => $permiteEdition,
+        'tabulations' => $tabulations,
+        'tabulationCurrent' => $tabulationCurrent->tabulacao_id,
+        'subTabulacoes' => $subTabulacoes
+      ]);
+    }
   }
 
 
