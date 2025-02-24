@@ -403,8 +403,13 @@ class Comercial extends Controller
 
   public function getCommentsLegacy(string $cpf)
   {
-    $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy(Helpers::cleanSpecialCharacters($cpf));
-    return response()->json($commentsLegacy);
+    if (Auth::user()->empresa_id === 2) {
+      $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy(Helpers::cleanSpecialCharacters($cpf));
+      return response()->json($commentsLegacy);
+    } else {
+      $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy(Helpers::cleanSpecialCharacters(""));
+      return response()->json($commentsLegacy);
+    }
   }
 
   public function createSale(Request $request)
