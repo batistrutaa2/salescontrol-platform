@@ -22,20 +22,10 @@ services:
             - '.:/var/www/html'
         networks:
             - sail
-<<<<<<< HEAD
-        # Remove o dependência do MySQL
-        # depends_on:
-        #     - mysql
-=======
->>>>>>> 77ab6dd19d38e8df583afa816c409d4f4c3d3326
-
 networks:
     sail:
         driver: bridge
-<<<<<<< HEAD
 
 volumes:
     sail-mysql:
         driver: local
-=======
->>>>>>> 77ab6dd19d38e8df583afa816c409d4f4c3d3326
