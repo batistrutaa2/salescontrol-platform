@@ -233,10 +233,10 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
 
   public function getRemarketingLeads(string $empresa_id)
   {
-    $results = ContatosCorretores::
-      leftJoin('contatos as b', 'contatos_corretores.contato_id', '=', 'b.id')->
-      leftJoin('tabulacoes as c', 'contatos_corretores.sub_tabulacao_id', '=', 'c.id')->
-      select(
+    $results = ContatosCorretores::with(['contato', 'tabulacao', 'subTabulacao'])
+      ->leftJoin('tabulacoes as c', 'contatos_corretores.tabulacao_id', '=', 'c.id')
+      ->leftJoin('contatos as b', 'contatos_corretores.contato_id', '=', 'b.id')
+      ->select(
         'b.id',
         'b.nome_cliente',
         'b.email',
@@ -247,8 +247,8 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'b.entidade'
       )
       ->where('contatos_corretores.empresa_id', $empresa_id)
+      ->where('c.descricao', 'REMARKETING')
       ->get();
-
     return $results;
   }
 

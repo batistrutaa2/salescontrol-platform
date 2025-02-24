@@ -34,4 +34,19 @@ class ContatosCorretores extends Model
   {
     return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
   }
+
+  public function contato()
+  {
+    return $this->belongsTo(Contatos::class, 'contato_id');  // Relacionamento com a tabela contatos
+  }
+
+  public function tabulacao()
+  {
+    return $this->belongsTo(Tabulacoes::class, 'tabulacao_id');  // Relacionamento com a tabela tabulacoes
+  }
+
+  public function subTabulacao()
+  {
+    return $this->belongsTo(Tabulacoes::class, 'sub_tabulacao_id');  // Relacionamento com a sub_tabulacao
+  }
 }
