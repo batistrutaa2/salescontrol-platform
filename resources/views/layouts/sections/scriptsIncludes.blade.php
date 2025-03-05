@@ -17,6 +17,14 @@
 
 @if ($configData['hasCustomizer'])
 <script type="module">
+    document.getElementById('empresaSelect').addEventListener('change', function () {
+        let empresaId = this.value;
+        if (empresaId) {
+            window.location.href = `/manager/changeCompany/${empresaId}`;
+        }
+    });
+
+
     document.addEventListener('DOMContentLoaded', function() {
         toastr.options = {
             closeButton: true,
