@@ -51,7 +51,7 @@ class Mailing extends Controller
 
   public function index()
   {
-    $users = Auth::user()->role->id == UserRole::DEVELOPER ? $this->usuarioRepository->all() : $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
+    $users = $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
     $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
     return view('content.pages.mailing.importMailing', [
       'users' => $users,

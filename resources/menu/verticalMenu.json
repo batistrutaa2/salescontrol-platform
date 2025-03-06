@@ -123,11 +123,6 @@
       ],
       "submenu": [
         {
-          "url": "/vendas/lista-vendas",
-          "name": "Vendas (Mensal)",
-          "slug": "pages-mailing-importar"
-        },
-        {
           "url": "/vendas/analitico",
           "name": "Analitico (Vendas)",
           "slug": "pages-mailing-importar"
