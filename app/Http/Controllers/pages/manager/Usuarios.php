@@ -36,7 +36,7 @@ class Usuarios extends Controller
 
   public function index()
   {
-    $companies = Auth::user()->role->id == UserRole::DEVELOPER ? $this->empresaRepository->all() : $this->empresaRepository->find(Auth::user()->empresa_id);
+    $companies = $this->empresaRepository->find(Auth::user()->empresa_id);
     return view('content.pages.usuarios', [
       'companies' => $companies,
       'tipo_usuario' => Auth::user()->role->tipo_usuario

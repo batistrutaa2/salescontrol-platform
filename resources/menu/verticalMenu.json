@@ -18,15 +18,6 @@
       ]
     },
     {
-      "url": "/usuarios",
-      "name": "Cadastro de Usuarios",
-      "icon": "menu-icon tf-icons ri-user-line",
-      "slug": "pages-usuarios",
-      "rules": [
-        "DEVELOPER"
-      ]
-    },
-    {
       "url": "/empresas",
       "name": "Cadastro de Empresas",
       "icon": "menu-icon tf-icons ri-briefcase-line",

@@ -30,20 +30,12 @@ class UsuariosRepository implements UsuariosRepositoryInterface
 
   public function usersAccordingToPermission(string $rule, string $idCompany, string $idUser)
   {
-    if ($rule == UserRole::DEVELOPER) {
-      return $this->model
-        ->where('users.id', '!=', $idUser)
-        ->join('user_roles', 'users.user_role_id', '=', 'user_roles.id')
-        ->select('users.*', 'user_roles.tipo_usuario')
-        ->get();
-    } else {
-      return $this->model
-        ->where('empresa_id', $idCompany)
-        ->where('users.id', '!=', $idUser)
-        ->join('user_roles', 'users.user_role_id', '=', 'user_roles.id')
-        ->select('users.id', 'users.name', 'users.email', 'user_roles.tipo_usuario', 'users.ativo', 'user_roles.created_at')
-        ->get();
-    }
+    return $this->model
+    ->where('empresa_id', $idCompany)
+    ->where('users.id', '!=', $idUser)
+    ->join('user_roles', 'users.user_role_id', '=', 'user_roles.id')
+    ->select('users.id', 'users.name', 'users.email', 'user_roles.tipo_usuario', 'users.ativo', 'user_roles.created_at')
+    ->get();
   }
 
   public function create(array $data)
