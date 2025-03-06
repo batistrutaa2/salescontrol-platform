@@ -1,8 +1,11 @@
 @php
     use Illuminate\Support\Facades\Auth;
     use Illuminate\Support\Facades\Route;
+        use App\Models\Empresa;
+
     $containerNav = $configData['contentLayout'] === 'compact' ? 'container-xxl' : 'container-fluid';
     $navbarDetached = $navbarDetached ?? '';
+    $empresas = Empresa::all();
 @endphp
 
 <!-- Navbar -->
@@ -34,6 +37,21 @@
 
 <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
     <ul class="navbar-nav flex-row align-items-center ms-auto">
+
+
+        @if (Auth::user()->user_role_id === 4)
+          <li class="nav-item me-3">
+              <select class="form-select" id="empresaSelect">
+                  <option value="">Selecione uma empresa</option>
+                  @foreach ($empresas as $empresa)
+                      <option {{ $empresa->id == Auth::user()->empresa_id ? 'selected' : '' }}   value="{{ $empresa->id }}">{{ $empresa->nome_fantasia }}</option>
+                  @endforeach
+              </select>
+          </li>
+        @endif
+
+
+
         <!-- User -->
         <li class="nav-item navbar-dropdown dropdown-user dropdown">
             <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">

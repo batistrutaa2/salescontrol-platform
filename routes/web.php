@@ -2,6 +2,7 @@
 
 
 use App\Http\Controllers\Auth\Auth;
+use App\Http\Controllers\manager\Manager;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\pages\HomePage;
 use App\Http\Controllers\pages\pabx\Pabx;
@@ -28,9 +29,14 @@ Route::post('autentication', [Auth::class, 'login'])->name('login.autentication'
 
 Route::middleware(['auth'])->group(function () {
 
+  /** MANAGER */
+  Route::get('manager/changeCompany/{companyId}', [Manager::class, 'changeCompany'])->name('manager.changeCompany');
+
+
+
   /** PAGINA INICIAL */
   Route::get('dashboard', [HomePage::class, 'index'])->name('home.dashboard');
-  Route::get('searchMetrics/{month}/{year}', [HomePage::class, 'searchMetrics'])->name('home.dashboard');
+  Route::get('searchMetrics/{month}/{year}', [HomePage::class, 'searchMetrics'])->name('home.searchMetrics');
 
   /** CADASTRO DE EMPRESAS */
   Route::get('/empresas', [Empresa::class, 'index'])->name('empresa.empresa');
