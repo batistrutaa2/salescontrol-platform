@@ -549,11 +549,20 @@ class Comercial extends Controller
   }
 
   public function indexMarketing() {
-      return view("content.pages.comercial.filaMarketing");
+    $users = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);
+    $tabulations = $this->tabulacoesRepository->getAll(Auth::user()->empresa_id);
+      return view("content.pages.comercial.filaMarketing",[
+        'users' => $users,
+        'tabulations' => $tabulations
+    ]);
   }
 
   public function getLeadsmarketing() {
     $leads = $this->contatosRepository->getLeadsmarketing(Auth::user()->empresa_id);
     return response()->json($leads);
+  }
+
+  public function sendLeadMarketing(Request $request) {
+    dd($request->all());
   }
 }

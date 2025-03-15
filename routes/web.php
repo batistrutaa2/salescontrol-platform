@@ -82,6 +82,7 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/sendRemaketing', [Comercial::class, 'sendRemaketing'])->name('comercial.sendRemaketing');
   Route::get('/comercial/marketing', [Comercial::class, 'indexMarketing'])->name('comercial.indexMarketing');
   Route::get('/comercial/getLeadsmarketing', [Comercial::class, 'getLeadsmarketing'])->name('comercial.getLeadsmarketing');
+  Route::post('/comercial/sendLeadMarketing', [Comercial::class, 'sendLeadMarketing'])->name('comercial.sendLeadMarketing');
 
   /** COMERCIAL- AGENDAMENTO */
   Route::post('/comercial/sendSchedule', [Comercial::class, 'sendSchedule'])->name('comercial.sendSchedule');

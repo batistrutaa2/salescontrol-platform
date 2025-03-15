@@ -66,7 +66,12 @@ $(function () {
         { data: 'id' },
         { data: 'nome_cliente'},
         { data: 'email'},
-        {data: 'telefone1'},
+        { data: 'telefone1', render: function(data, type, row) {
+          if (type === 'display') {
+              return data ? data.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3') : '';
+          }
+          return data;
+      }},
         { data: 'created_at' },
         {
           // Actions
@@ -76,20 +81,14 @@ $(function () {
           orderable: false,
           render: function (data, type, full, meta) {
             return (
-              '<div class="d-flex align-items-center">' +
-              '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown">' +
-              '<i class="ri-more-2-line ri-22px"></i></button>' +
-              '<div class="dropdown-menu dropdown-menu-end m-0">' +
-              '<a href="/comercial/abrir-cliente/' +
-              full.id +
-              '"class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Editar Contato</span></a>' +
-              '<button type="button" class="dropdown-item js-transferir-leads" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
-              full.id +
-              '">' +
-              '<i class="ri-arrow-left-right-fill"></i><span>Transferir Contato</span></button>' +
-              '</div>' +
-              '</div>'
-            );
+                '<div class="d-flex align-items-center">' +
+                '<button type="button" class="btn btn-sm btn-primary rounded-pill waves-effect js-enviar-lead" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
+                full.id +
+                '">' +
+                '<span>Enviar Lead</span>' +
+                '</button>' +
+                '</div>'
+                );
           }
         }
       ],
@@ -106,7 +105,7 @@ $(function () {
       language: {
         sLengthMenu: '_MENU_',
         search: '',
-        searchPlaceholder: 'Pesquisar Usuario'
+        searchPlaceholder: 'Pesquisar Lead'
       },
       // Botões com Dropdown
       buttons: [
@@ -287,8 +286,8 @@ $(function () {
   }
 
   document.addEventListener('click', function (event) {
-    if (event.target.closest('.js-transferir-leads')) {
-      var button = event.target.closest('.js-transferir-leads');
+    if (event.target.closest('.js-enviar-lead')) {
+      var button = event.target.closest('.js-enviar-lead');
       var leadId = button.getAttribute('data-id');
       document.querySelector('#idMailing').value = leadId;
     }
