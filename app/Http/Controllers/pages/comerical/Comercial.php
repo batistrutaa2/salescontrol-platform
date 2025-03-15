@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\pages\comerical;
 
+use App\Models\ContatosCorretores;
 use App\Models\RankingVendas;
 use App\Modules\Ranking\Ranking;
 use DateTime;
@@ -140,6 +141,7 @@ class Comercial extends Controller
           'user-id' => $contact->user_id,
           'user-name' => $contact->nameVendedor,
           'show-name-card' => $typeUser,
+          'tipo-lead' => $contact->is_ads === "Y" ? "R" : "A",
           'data_create' => $contact->created_at
         ];
       })->values()->toArray();
@@ -563,6 +565,27 @@ class Comercial extends Controller
   }
 
   public function sendLeadMarketing(Request $request) {
-    dd($request->all());
+    try {
+      $saveLeadBroker =  ContatosCorretores::create([
+        'empresa_id' => Auth::user()->empresa_id,
+        'contato_id' => $request->idMailing,
+        'user_id' =>   $request->user_id,
+        'tabulacao_id' => $request->tabulation_id,
+        'temperatura' => "QUENTE",
+        'created_at' => now(),
+        'updated_at' => now(),
+      ]);
+
+      if ($saveLeadBroker) {
+        return redirect()->back()->with('status', 'success')->with('message', "Lead Enviado com sucesso");
+      } else {
+        return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar lead");
+      }
+
+    } catch (\Throwable $th) {
+
+      dd($th);
+      return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar lead");
+    }
   }
 }

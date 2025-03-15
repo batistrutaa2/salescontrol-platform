@@ -32,6 +32,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         DB::raw("IF(data_nascimento LIKE '%/%', data_nascimento, FROM_UNIXTIME((data_nascimento - 25569) * 86400, '%d/%m/%Y')) as data_nascimento"),
         'contatos.cpf',
         'contatos.plano',
+        'contatos.is_ads',
         'contatos.categoria',
         'contatos.entidade',
         'contatos.telefone1',
@@ -53,7 +54,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
         ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
         ->where('contatos_corretores.empresa_id', $empresa_id)
-        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at', 'nameVendedor')
+        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at', 'nameVendedor', 'contatos.is_ads')
         ->orderBy('contatos.created_at', 'desc')
         ->get();
     } elseif ($rulerUser == UserRole::DEVELOPER) {
@@ -69,6 +70,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.categoria',
         'contatos.entidade',
         'contatos.telefone1',
+        'contatos.is_ads',
         'contatos.telefone2',
         'contatos.telefone3',
         'contatos.email',
@@ -86,7 +88,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
         ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
-        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at', 'nameVendedor')
+        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at', 'nameVendedor', 'contatos.is_ads')
         ->orderBy('contatos.created_at', 'desc')
         ->get();
     } elseif ($rulerUser == UserRole::VENDEDOR) {
@@ -103,6 +105,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.entidade',
         'contatos.telefone1',
         'contatos.telefone2',
+        'contatos.is_ads',
         'contatos.telefone3',
         'contatos.email',
         'contatos.idades',
@@ -124,32 +127,9 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
         ->where('contatos_corretores.user_id', Auth::user()->id)
         ->where('contatos_corretores.empresa_id', $empresa_id)
-        ->groupBy(
-          'tabulacoes.id',
-          'tabulacoes.descricao',
-          'tabulacoes.ordem_kanban',
-          'contatos.id',
-          'contatos.nome_cliente',
-          'contatos.cpf',
-          'contatos.plano',
-          'contatos.categoria',
-          'contatos.entidade',
-          'contatos.telefone1',
-          'contatos.telefone2',
-          'contatos.telefone3',
-          'contatos.email',
-          'contatos.idades',
-          'contatos.valor_plano_atual',
-          'contatos.valor_negociacao',
-          'contatos_corretores.temperatura',
-          'contatos_corretores.user_id',
-          'contatos_corretores.updated_at',
-          'contatos_corretores.created_at',
-          'users.name'
-        )
+        ->groupBy('tabulacoes.id', 'tabulacoes.descricao', 'contatos.id', 'contatos.nome_cliente', 'contatos_corretores.temperatura', 'contatos_corretores.user_id', 'contatos_corretores.updated_at', 'tabulacoes.ordem_kanban', 'contatos_corretores.created_at', 'nameVendedor', 'contatos.is_ads')
         ->orderBy('contatos.created_at', 'desc')
         ->get();
-
     }
   }
 

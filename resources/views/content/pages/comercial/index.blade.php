@@ -95,6 +95,14 @@
                     <input type="text" id="kanban-search" class="form-control" placeholder="Pesquisar cliente.." />
                     <label for="kanban-search-1">Pesquisar cliente..</label>
                 </div>
+                <div class="form-floating form-floating-outline flex-fill ms-2">
+                  <select class=" form-select" id="type-lead" name="tipolead">
+                      <option value="A">Ativo</option>
+                      <option value="R">Receptivo</option>
+                  </select>
+                  <label for="label"> Tipo de lead</label>
+              </div>
+
                 @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER')
                     <div class="form-floating form-floating-outline flex-fill ms-2">
                         <select class=" form-select" id="user-filter" name="temperatura">
