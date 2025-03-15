@@ -15,4 +15,5 @@ interface ContatosRepositoryInterface
   public function quantidadeContatosImportadosMes($month, $year, $empresa_id);
   public function quantidadeContatosImportadosMesPorVendedor($month, $year, $empresa_id);
   public function importarLeadsAds(array $data);
+  public function getLeadsmarketing($empresa_id);
 }

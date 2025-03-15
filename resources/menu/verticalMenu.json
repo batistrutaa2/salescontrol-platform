@@ -66,6 +66,16 @@
       ]
     },
     {
+      "url": "/comercial/marketing",
+      "name": "Novos Formularios",
+      "icon": "menu-icon tf-icons ri-bar-chart-2-line",
+      "slug": "comercial-remarketing",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER"
+      ]
+    },
+    {
       "name": "Usuarios",
       "icon": "menu-icon tf-icons ri-user-line",
       "slug": "dashboard",

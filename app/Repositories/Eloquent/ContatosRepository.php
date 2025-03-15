@@ -199,4 +199,15 @@ class ContatosRepository implements ContatosRepositoryInterface
       }
   }
 
+
+  public function getLeadsmarketing($empresa_id) {
+    return $this->model::leftJoin('contatos_corretores as b', function ($join) use($empresa_id) {
+      $join->on('b.contato_id', '=', 'contatos.id')
+           ->where('b.empresa_id', '=', $empresa_id);
+    })
+    ->where('contatos.is_ads', 'Y')
+    ->whereNull('b.contato_id')
+    ->select('contatos.id', 'contatos.nome_cliente', 'contatos.email', 'contatos.telefone1', 'contatos.created_at')
+    ->get();
+    }
 }

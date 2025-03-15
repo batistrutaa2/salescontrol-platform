@@ -547,4 +547,13 @@ class Comercial extends Controller
       return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar para fila");
     }
   }
+
+  public function indexMarketing() {
+      return view("content.pages.comercial.filaMarketing");
+  }
+
+  public function getLeadsmarketing() {
+    $leads = $this->contatosRepository->getLeadsmarketing(Auth::user()->empresa_id);
+    return response()->json($leads);
+  }
 }
