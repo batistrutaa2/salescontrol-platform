@@ -91,8 +91,6 @@ class Mailing extends Controller
 
   public function deleteMailing($id)
   {
-
-
     try {
       $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($id);
 
@@ -112,10 +110,6 @@ class Mailing extends Controller
       DB::rollBack();
       return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Erro ao excluir Lead");
     }
-
-
-
-
   }
 
   public function viewLeads()
