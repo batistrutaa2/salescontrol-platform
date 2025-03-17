@@ -215,24 +215,27 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
 
   public function getRemarketingLeads(string $empresa_id)
   {
-    $results = ContatosCorretores::with(['contato', 'tabulacao', 'subTabulacao'])
-      ->leftJoin('tabulacoes as c', 'contatos_corretores.tabulacao_id', '=', 'c.id')
-      ->leftJoin('contatos as b', 'contatos_corretores.contato_id', '=', 'b.id')
-      ->select(
-        'b.id',
-        'b.nome_cliente',
-        'b.email',
-        'b.telefone1',
-        'contatos_corretores.updated_at',
-        'b.plano',
-        'c.descricao as motivo_remarketing',
-        'b.entidade'
-      )
-      ->where('contatos_corretores.empresa_id', $empresa_id)
-      ->where('c.descricao', 'REMARKETING')
-      ->get();
-    return $results;
+      $results = ContatosCorretores::with(['contato', 'tabulacao', 'subTabulacao'])
+          ->leftJoin('tabulacoes as c', 'contatos_corretores.tabulacao_id', '=', 'c.id')
+          ->leftJoin('tabulacoes as sub', 'contatos_corretores.sub_tabulacao_id', '=', 'sub.id') // Adicionando a sub-tabulacao
+          ->leftJoin('contatos as b', 'contatos_corretores.contato_id', '=', 'b.id')
+          ->select(
+              'b.id',
+              'b.nome_cliente',
+              'b.email',
+              'b.telefone1',
+              'contatos_corretores.updated_at',
+              'b.plano',
+              DB::raw('COALESCE(sub.descricao, "REMARKETING") AS motivo_remarketing'), // Se subTabulacao for null, retorna "REMARKETING"
+              'b.entidade'
+          )
+          ->where('contatos_corretores.empresa_id', $empresa_id)
+          ->where('c.descricao', 'REMARKETING')
+          ->get();
+
+      return $results;
   }
+
 
   public function getTabulationId($idMailing)
   {

@@ -53,6 +53,8 @@ $(function () {
         {
           targets: 4,
           render: function (data, type, full, meta) {
+            if (!data) return ''; // Se for null, undefined ou string vazia, retorna vazio
+
             let value = data.toString().replace(/\D/g, '');
 
             if (value.length <= 11) {
