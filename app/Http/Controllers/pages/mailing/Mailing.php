@@ -3,20 +3,24 @@
 namespace App\Http\Controllers\pages\mailing;
 
 use App\Enums\UserRole;
-use App\Http\Controllers\Controller;
-use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
-use App\Repositories\Contracts\ContatosRepositoryInterface;
-use App\Repositories\Contracts\TabulacoesRepositoryInterface;
-use App\Repositories\Contracts\UsuariosRepositoryInterface;
-use App\Repositories\Contracts\VendasRepositoryInterface;
-use App\Repositories\Eloquent\BaseLegaceRespository;
-use App\Repositories\Eloquent\ContatosRepository;
-use App\Repositories\Eloquent\TabulacoesRepository;
-use App\Repositories\Eloquent\VendasRepository;
-use App\UseCases\MailingUseCase;
+use App\Models\Agendamento;
+use App\Models\Comentarios;
 use Illuminate\Http\Request;
+use App\UseCases\MailingUseCase;
+use App\Models\ContatosCorretores;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use App\Repositories\Eloquent\VendasRepository;
+use App\Repositories\Eloquent\ContatosRepository;
+use App\Repositories\Eloquent\TabulacoesRepository;
+use App\Repositories\Eloquent\BaseLegaceRespository;
+use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Repositories\Contracts\ContatosRepositoryInterface;
+use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
 
 class Mailing extends Controller
 {
@@ -86,11 +90,30 @@ class Mailing extends Controller
 
   public function deleteMailing($id)
   {
-    $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($id);
 
-    if (!$searchForLaunchedSale) {
-      return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Esse Lead possui venda cadastrada, exclusão cancelada.");
+
+    try {
+      $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($id);
+
+      if ($searchForLaunchedSale) {
+        return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Esse Lead possui venda cadastrada, exclusão cancelada.");
+      }
+
+      DB::beginTransaction();
+      Comentarios::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      Agendamento::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      ContatosCorretores::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      DB::commit();
+      return redirect()->back()->with('status', 'success')->with('message', "Contato Excluido com sucesso");
+
+    } catch (\Throwable $th) {
+      DB::rollBack();
+      return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Erro ao excluir Lead");
     }
+
+
+
+
   }
 
   public function viewLeads()
