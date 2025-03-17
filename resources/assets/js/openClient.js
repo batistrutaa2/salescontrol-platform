@@ -34,11 +34,29 @@
   });
 
   const telefones = document.querySelectorAll('.mask-telefone');
+
   telefones.forEach(mask => {
-    new Cleave(mask, {
-      delimiters: ['(', ') ', '-', ''],
-      blocks: [0, 2, 5, 4],
-      numericOnly: true
+    mask.addEventListener('input', () => {
+      let numero = mask.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+      let options;
+
+      if (numero.startsWith('55')) {
+        // Máscara para números com código do país
+        options = {
+          delimiters: [' ', ' (', ') ', '-'],
+          blocks: [2, 2, 5, 4], // 55 (11) 99678-3883
+          numericOnly: true
+        };
+      } else {
+        // Máscara para números sem código do país
+        options = {
+          delimiters: [' ', '-'],
+          blocks: [2, 5, 4], // 11 99678-3883
+          numericOnly: true
+        };
+      }
+
+      new Cleave(mask, options);
     });
   });
 
@@ -232,11 +250,29 @@
     });
 
     const telefones = document.querySelectorAll('.mask-telefone');
+
     telefones.forEach(mask => {
-      new Cleave(mask, {
-        delimiters: ['(', ') ', '-', ''],
-        blocks: [0, 2, 5, 4],
-        numericOnly: true
+      mask.addEventListener('input', () => {
+        let numero = mask.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+        let options;
+
+        if (numero.startsWith('55')) {
+          // Máscara para números com código do país
+          options = {
+            delimiters: [' ', ' (', ') ', '-'],
+            blocks: [2, 2, 5, 4], // 55 (11) 99678-3883
+            numericOnly: true
+          };
+        } else {
+          // Máscara para números sem código do país
+          options = {
+            delimiters: [' ', '-'],
+            blocks: [2, 5, 4], // 11 99678-3883
+            numericOnly: true
+          };
+        }
+
+        new Cleave(mask, options);
       });
     });
 

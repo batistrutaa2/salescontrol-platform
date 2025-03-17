@@ -190,7 +190,9 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.telefone3',
         'contatos.idades',
         'contatos.valor_plano_atual',
-        'contatos.valor_negociacao'
+        'contatos.valor_negociacao',
+        'contatos.tipo_criativo',
+        'contatos.is_ads'
       )
       ->get();
 

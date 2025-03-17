@@ -288,8 +288,6 @@ class Comercial extends Controller
   public function openClient($id_mailing)
   {
     $clientInfo = $this->repositoryContatosCorretores->getClientInfo($id_mailing);
-
-
     $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
     $tabulations = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
     $tabulationCurrent = $this->repositoryContatosCorretores->getTabulationId($id_mailing);
