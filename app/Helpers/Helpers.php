@@ -224,6 +224,20 @@ class Helpers
     return $string;
   }
 
+  public static function cleanSpecialCharactersTelefone($string)
+{
+    // Remove todos os caracteres não numéricos
+    $string = preg_replace('/\D/', '', $string);
+
+    // Remove o prefixo "55" caso o número comece com ele
+    if (strpos($string, '55') === 0) {
+        $string = substr($string, 2);
+    }
+
+    return $string;
+}
+
+
   public static function generateUniqueId()
   {
     // Obter o timestamp atual
