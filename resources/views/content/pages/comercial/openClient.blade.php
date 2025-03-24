@@ -302,7 +302,7 @@
                                 <div class="form-floating form-floating-outline">
                                   <input type="text" class="form-control" id="tipo_campanha" value="{{$client->vidas}}"
                                     aria-label="tipo Campanha" disabled>
-                                    <label for="valor_negociacao">Plano Ativo</label>
+                                    <label for="valor_negociacao">Quantide de vidas</label>
                                 </div>
                             </div>
                             @endif
