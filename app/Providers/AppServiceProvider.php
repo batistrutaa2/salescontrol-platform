@@ -5,8 +5,10 @@ namespace App\Providers;
 use App\Models\Agendamento;
 use App\Repositories\Contracts\LigacoesRepositoryInterface;
 use App\Repositories\Contracts\RamaisRepositoryInterface;
+use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
 use App\Repositories\Eloquent\LigacoesRepository;
 use App\Repositories\Eloquent\RamaisRepository;
+use App\Repositories\Eloquent\TransferenciaContatoRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
@@ -53,7 +55,7 @@ class AppServiceProvider extends ServiceProvider
     $this->app->bind(LeadAtividadeRepositoryInterface::class, LeadAtividadeRepository::class);
     $this->app->bind(AgendamentoRepositoryInterface::class, AgendamentoRepository::class);
     $this->app->bind(RamaisRepositoryInterface::class, RamaisRepository::class);
-    $this->app->bind(LigacoesRepositoryInterface::class, LigacoesRepository::class);
+    $this->app->bind(TransferenciaContatoRepositoryInterface::class, TransferenciaContatoRepository::class);
 
   }
 
@@ -64,8 +66,6 @@ class AppServiceProvider extends ServiceProvider
   {
     View::composer('*', function ($view) {
       if (Auth::check()) {
-        $user = Auth::user();
-
         $modelAgendamento = new Agendamento();
         $repositoryAgendamento = new AgendamentoRepository($modelAgendamento);
         $agendamentosAtrasados = $repositoryAgendamento->LateAppointments();

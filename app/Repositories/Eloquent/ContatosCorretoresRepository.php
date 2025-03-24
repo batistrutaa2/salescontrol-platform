@@ -349,6 +349,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
     }
   }
 
-
-
+  public function getContactOwner($id_contato) {
+    return $this->model::select('user_id')->where('contato_id', $id_contato)->first();
+  }
 }

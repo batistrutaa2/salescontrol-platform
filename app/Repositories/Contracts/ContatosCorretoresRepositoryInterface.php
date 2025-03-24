@@ -18,4 +18,5 @@ interface ContatosCorretoresRepositoryInterface
   public function sendSchedule($idLead);
   public function alterStatusContract($contato_id, $tabulacao_id): bool;
   public function getQueueCurrent($id_user);
+  public function getContactOwner($id_contato);
 }

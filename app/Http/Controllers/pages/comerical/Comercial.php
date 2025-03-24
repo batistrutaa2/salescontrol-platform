@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers\pages\comerical;
 
-use App\Models\ContatosCorretores;
-use App\Models\RankingVendas;
-use App\Modules\Ranking\Ranking;
 use DateTime;
 use Carbon\Carbon;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Enums\Tabulations;
 use Illuminate\Http\Request;
+use App\Models\RankingVendas;
+use App\Modules\Ranking\Ranking;
 use App\UseCases\MailingUseCase;
+use App\Models\ContatosCorretores;
 use App\UseCases\ComercialUseCase;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -29,11 +29,13 @@ use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Eloquent\TransferenciaContatoRepository;
 use App\Repositories\Contracts\AgendamentoRepositoryInterface;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
 
 class Comercial extends Controller
 {
@@ -49,6 +51,7 @@ class Comercial extends Controller
   protected MailingUseCase $mailingUseCase;
   protected AgendamentoRepository $agendamentoRepository;
   protected Ranking $ranking;
+  protected TransferenciaContatoRepository $transferenciaContatoRepository;
 
   public function __construct(
     ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
@@ -59,7 +62,8 @@ class Comercial extends Controller
     ComentariosLegadosRepositoryInterface $comentariosLegadosRepositoryInterface,
     VendasRepositoryInterface $vendasRepositoryInterface,
     LeadAtividadeRepositoryInterface $leadAtividadeRepositoryInterface,
-    AgendamentoRepositoryInterface $agendamentoRepositoryInterface
+    AgendamentoRepositoryInterface $agendamentoRepositoryInterface,
+    TransferenciaContatoRepositoryInterface $TransferenciaContatoRepositoryInterface
 
   ) {
     //Repositories
@@ -72,6 +76,7 @@ class Comercial extends Controller
     $this->vendasRepository = $vendasRepositoryInterface;
     $this->leadAtividadeRepository = $leadAtividadeRepositoryInterface;
     $this->agendamentoRepository = $agendamentoRepositoryInterface;
+    $this->transferenciaContatoRepository = $TransferenciaContatoRepositoryInterface;
 
     //UseCases
     $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface, $leadAtividadeRepositoryInterface);
@@ -378,33 +383,55 @@ class Comercial extends Controller
   public function transferContact(Request $request)
   {
     try {
+      $fromUser = $this->repositoryContatosCorretores->getContactOwner($request->idMailing);
       $clearComments = $this->comentariosRepository->clearCommentsOne($request->idMailing);
       $updateLead = $this->repositoryContatosCorretores->transferContact($request->all());
-      if ($updateLead && $clearComments) {
+      $saveTranfer = $this->transferenciaContatoRepository->saveTransfer(
+        Auth::user()->empresa_id,
+        $request->idMailing,
+        $fromUser->user_id == null ? $request->user_id : $fromUser->user_id,
+        $request->user_id,
+        Auth::user()->id
+      );
+
+      if ($updateLead && $clearComments && $saveTranfer) {
         return redirect()->back()->with('status', 'success')->with('message', 'Transferencia concluida com sucesso');
       } else {
         return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
       }
     } catch (\Throwable $th) {
-      dd($th);
       return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
     }
   }
 
   public function transferContactInNulk(Request $request)
   {
-    try {
-      $clearComments = $this->comentariosRepository->clearComments($request->all());
-      $updateLead = $this->repositoryContatosCorretores->transferContactInNulk($request->all());
-      if ($updateLead && $clearComments) {
-        return redirect()->back()->with('status', 'success')->with('message', 'Transferencia concluida com sucesso');
-      } else {
-        return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
+      try {
+          $leadIds = explode(',', $request->selectedLeadIds);
+          array_map(function ($leadId) use ($request) {
+              $fromUser = $this->repositoryContatosCorretores->getContactOwner($leadId);
+              $this->transferenciaContatoRepository->saveTransfer(
+                  Auth::user()->empresa_id,
+                  $leadId, // Correção: Agora está usando o ID correto
+                  $fromUser->user_id == null ? $request->user_id : $fromUser->user_id,
+                  $request->user_id,
+                  Auth::user()->id
+              );
+          }, $leadIds);
+          $clearComments = $this->comentariosRepository->clearComments($request->all());
+          $updateLead = $this->repositoryContatosCorretores->transferContactInNulk($request->all());
+
+          if ($updateLead && $clearComments) {
+              return redirect()->back()->with('status', 'success')->with('message', 'Transferência concluída com sucesso');
+          } else {
+              return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
+          }
+      } catch (\Throwable $th) {
+          dd($th);
+          return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
       }
-    } catch (\Throwable $th) {
-      return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
-    }
   }
+
 
 
   public function getCommentsLegacy(string $cpf)
