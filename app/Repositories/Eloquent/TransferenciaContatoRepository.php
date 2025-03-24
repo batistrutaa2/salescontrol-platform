@@ -20,14 +20,23 @@ class TransferenciaContatoRepository implements TransferenciaContatoRepositoryIn
       return (bool) $this->model::create([
           'empresa_id' => $empresa_id,
           'contato_id' => $contato_id,
-          'para_user_id' => $toUser, // Corrigido: `para_user_id` deveria ser `$toUser`
-          'de_users_id' => $fromUser, // Corrigido: `de_users_id` deveria ser `$fromUser`
+          'para_user_id' => $toUser,
+          'de_users_id' => $fromUser,
           'responsavel_transferencia' => $reponsableSend
       ]);
   }
 
 
-  public function monthlyTransferCount($empresa_id) {
-
+  public function monthlyTransferCount($month, $year, $empresaId)
+  {
+      return $this->model
+          ->selectRaw('users.name, COUNT(transferencia_contatos.id) as quantidade')
+          ->join('users', 'users.id', '=', 'transferencia_contatos.para_user_id')
+          ->where('transferencia_contatos.empresa_id', $empresaId)
+          ->whereMonth('transferencia_contatos.created_at', $month)
+          ->whereYear('transferencia_contatos.created_at', $year)
+          ->groupBy('users.name')
+          ->get();
   }
+
 }

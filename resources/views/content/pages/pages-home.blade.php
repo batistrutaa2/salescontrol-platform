@@ -167,7 +167,7 @@
         </div>
 
 
-        <div class="col-6">
+        <div class="col-4">
             <div class="card">
                 <div class="card-header header-elements">
                     <h5 class="card-title mb-0">Grafico de Vendas</h5>
@@ -178,13 +178,24 @@
             </div>
         </div>
 
-        <div class="col-6">
+        <div class="col-4">
             <div class="card">
                 <div class="card-header header-elements">
-                    <h5 class="card-title mb-0">Leads Importados (Por Vendedor)</h5>
+                    <h5 class="card-title mb-0">Leads Importados (Novos)</h5>
                 </div>
                 <div class="card-body">
                     <canvas id="importChart" class="chartjs" data-height="400"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-4">
+            <div class="card">
+                <div class="card-header header-elements">
+                    <h5 class="card-title mb-0">Transferencia de Leads</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="trasnferLeadsChats" class="chartjs" data-height="400"></canvas>
                 </div>
             </div>
         </div>

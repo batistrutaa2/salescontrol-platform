@@ -4,6 +4,8 @@ namespace App\Http\Controllers\pages;
 
 
 use App\Enums\UserRole;
+use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
+use App\Repositories\Eloquent\TransferenciaContatoRepository;
 use Illuminate\Support\Carbon;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -15,13 +17,16 @@ class HomePage extends Controller
 
   protected $vendasRepository;
   protected $contatosRepository;
+  protected TransferenciaContatoRepository $transferenciaContatoRepository;
 
   public function __construct(
     VendasRepositoryInterface $vendasRepositoryInterface,
-    ContatosRepositoryInterface $contatosRepositoryInterface
+    ContatosRepositoryInterface $contatosRepositoryInterface,
+    TransferenciaContatoRepositoryInterface $transferenciaContatoRepositoryInterface
   ) {
     $this->vendasRepository = $vendasRepositoryInterface;
     $this->contatosRepository = $contatosRepositoryInterface;
+    $this->transferenciaContatoRepository = $transferenciaContatoRepositoryInterface;
   }
 
   public function index()
@@ -45,6 +50,7 @@ class HomePage extends Controller
     $vendasImplantadasPorVendedor = $this->vendasRepository->quantidadeVendasImplantadasVendedor($month, $year, $empresaId);
     $quantidadeContatosImportados = $this->contatosRepository->quantidadeContatosImportadosMes($month, $year, $empresaId);
     $contatosImportadosMesPorVendedor = $this->contatosRepository->quantidadeContatosImportadosMesPorVendedor($month, $year, $empresaId);
+    $contatosTransferidos = $this->transferenciaContatoRepository->monthlyTransferCount($month, $year, $empresaId);
     $conversaoMensal = $this->vendasRepository->conversaoMensalPorData($empresaId, $month, $year);
     $contratosCadastrados = $this->vendasRepository->listaVendasCadastradasMes($month, $year, $empresaId);
     $contratosImplantados = $this->vendasRepository->listaVendasImplantadasMes($month, $year, $empresaId);
@@ -53,6 +59,7 @@ class HomePage extends Controller
       'vendasCadastradasPorVendedor' => $vendasCadastradasPorVendedor,
       'vendasImplantadasPorVendedor' => $vendasImplantadasPorVendedor,
       'quantidadeContatosImportados' => $quantidadeContatosImportados,
+      'quantidadeContatosTransferidos' => $contatosTransferidos,
       'conversaoMensal' => $conversaoMensal,
       'contratosCadastrados' => $contratosCadastrados,
       'contratosImplantados' => $contratosImplantados,
