@@ -38,7 +38,8 @@ class Contatos extends Model
     'is_ads',
     'tipo_criativo',
     'vidas',
-    'plano_ativo'
+    'plano_ativo',
+    'possui_cnpj'
   ];
 
   public function getDataNascimentoAttribute($value)

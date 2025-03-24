@@ -192,7 +192,9 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.valor_plano_atual',
         'contatos.valor_negociacao',
         'contatos.tipo_criativo',
-        'contatos.is_ads'
+        'contatos.is_ads',
+        'contatos.possui_cnpj',
+        'contatos.plano_ativo'
       )
       ->get();
 

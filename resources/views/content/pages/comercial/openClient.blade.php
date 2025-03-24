@@ -280,8 +280,22 @@
                             <div class="col mt-4">
                                 <div class="form-floating form-floating-outline">
                                     <input type="text" class="form-control" id="tipo_campanha" value="{{$client->tipo_criativo}}"
-                                      name="tipo_campanha" aria-label="tipo Campanha">
+                                    aria-label="tipo Campanha" disabled>
                                     <label for="valor_negociacao">Tipo de anuncio</label>
+                                </div>
+                            </div>
+                            <div class="col mt-4">
+                                <div class="form-floating form-floating-outline">
+                                  <input type="text" class="form-control" id="tipo_campanha" value="{{$client->possui_cnpj == "Y" ? "SIM" : "NÃO"}}"
+                                    aria-label="tipo Campanha" disabled>
+                                    <label for="valor_negociacao">Possui CNPJ?</label>
+                                </div>
+                            </div>
+                            <div class="col mt-4">
+                                <div class="form-floating form-floating-outline">
+                                  <input type="text" class="form-control" id="tipo_campanha" value="{{$client->plano_ativo == "Y" ? "SIM" : "NÃO"}}"
+                                    aria-label="tipo Campanha" disabled>
+                                    <label for="valor_negociacao">Plano Ativo</label>
                                 </div>
                             </div>
                             @endif
