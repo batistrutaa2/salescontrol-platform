@@ -194,7 +194,8 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.tipo_criativo',
         'contatos.is_ads',
         'contatos.possui_cnpj',
-        'contatos.plano_ativo'
+        'contatos.plano_ativo',
+        'contatos.vidas',
       )
       ->get();
 

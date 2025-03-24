@@ -298,6 +298,13 @@
                                     <label for="valor_negociacao">Plano Ativo</label>
                                 </div>
                             </div>
+                            <div class="col mt-4">
+                                <div class="form-floating form-floating-outline">
+                                  <input type="text" class="form-control" id="tipo_campanha" value="{{$client->vidas}}"
+                                    aria-label="tipo Campanha" disabled>
+                                    <label for="valor_negociacao">Plano Ativo</label>
+                                </div>
+                            </div>
                             @endif
                             <div class="d-flex mt-5">
                                 <button class="btn btn-success btn--twitter ms-auto">Atualizar informações</button>
