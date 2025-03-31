@@ -76,7 +76,6 @@ class ContatosImportDependencies implements ToModel
                 'valor_plano' => $valorPlano,
             ]);
         }
-
         return null;
     }
 }
