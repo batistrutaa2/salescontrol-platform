@@ -38,6 +38,7 @@ class ContatosImportDependencies implements ToModel
         $parentesco = strtoupper($row[3]);
         $valorPlano = $row[4];
         $cartegoria = $row[5];
+        $entidade = $row[6];
         $valorPlano = round($valorPlano, 2);
 
         if ($parentesco === 'TITULAR') {
@@ -52,7 +53,8 @@ class ContatosImportDependencies implements ToModel
                 'cpf' => Helpers::cleanSpecialCharacters($cpf),
                 'idades' => $idade,
                 'valor_plano_atual' => $valorPlano,
-                'categoria' => $cartegoria
+                'categoria' => $cartegoria,
+                'entidade' => $entidade
             ]);
 
             ContatosCorretores::create([
