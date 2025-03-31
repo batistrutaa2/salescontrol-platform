@@ -99,12 +99,12 @@ class Mailing extends Controller
         $cpfsFound = $this->contatosRepository->searchForCpfsFound($cpfs);
 
         if (count($cpfsFound) > 0) {
-        return response()->json([
-          'message' => count($cpfsFound) . " CPFs já se encontram na sua base de dados.",
-          'cpfs' => $cpfsFound,
-          'error' => true,
-        ]);
-      }
+          return response()->json([
+            'message' => count($cpfsFound) . " CPFs já se encontram na sua base de dados.",
+            'cpfs' => $cpfsFound,
+            'error' => true,
+          ]);
+        }
 
         Excel::import(new ContatosImportDependencies($request->base), $request->file('file'));
         return response()->json([
