@@ -37,6 +37,7 @@ class Contatos extends Model
     'updated_at',
     'is_ads',
     'tipo_criativo',
+    'tipo_layout',
     'vidas',
     'plano_ativo',
     'possui_cnpj'

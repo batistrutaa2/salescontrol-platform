@@ -196,6 +196,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
         'contatos.possui_cnpj',
         'contatos.plano_ativo',
         'contatos.vidas',
+        'contatos.tipo_layout'
       )
       ->get();
 
