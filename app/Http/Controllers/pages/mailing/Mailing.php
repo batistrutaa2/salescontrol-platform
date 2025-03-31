@@ -89,9 +89,13 @@ class Mailing extends Controller
           'file' => 'required|file|mimes:xlsx,csv',
         ]);
 
-        $rows = Excel::toArray(new ContatosImportDependencies($request->base), $request->file('file'));
-        foreach ($rows[0] as $row) {
-          if (!is_null($row[1])) {
+        $rows = Excel::toArray(new ContatosImportDependencies($request->base, $request->tabulacao, $request->id_user), $request->file('file'));
+        foreach ($rows[0] as $index => $row) {
+          if ($index == 0) {
+              continue;
+          }
+
+          if (!is_null($row[1]) && $row[3] == "TITULAR") {
             $cpfs[] = Helpers::cleanSpecialCharacters($row[1]);
           }
         }
@@ -106,7 +110,7 @@ class Mailing extends Controller
           ]);
         }
 
-        Excel::import(new ContatosImportDependencies($request->base), $request->file('file'));
+        Excel::import(new ContatosImportDependencies($request->base, $request->tabulacao, $request->id_user), $request->file('file'));
         return response()->json([
           'error' => false,
           'message' => "Mailing importado com sucesso.",

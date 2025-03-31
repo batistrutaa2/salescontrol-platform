@@ -94,9 +94,6 @@
                                     <tr>
                                         <th class="text-truncate">NOME</th>
                                         <th class="text-truncate">CPF</th>
-                                        <th class="text-truncate">TELEFONE</th>
-                                        <th class="text-truncate">TELEFONE 1</th>
-                                        <th class="text-truncate">TELEFONE 1</th>
                                     </tr>
                                 </thead>
                                 <tbody class="table-cpf-duplicado">

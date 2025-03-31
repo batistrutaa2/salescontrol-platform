@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Contatos;
+use App\Models\ContatosCorretores;
 use App\Models\Dependentes;
 use Maatwebsite\Excel\Concerns\ToModel;
 use App\Helpers\Helpers;
@@ -13,13 +14,15 @@ class ContatosImportDependencies implements ToModel
 {
     private $ultimoTitular = null;
     protected string $nome_base;
+    protected string $tabulacao_id;
+    protected string $user_id;
 
-    public function __construct($nome_base)
+    public function __construct($nome_base, $tabulacao_id, $user_id)
     {
       $this->nome_base = $nome_base;
+      $this->tabulacao_id = $tabulacao_id;
+      $this->user_id = $user_id;
     }
-
-
 
     public function model(array $row)
     {
@@ -45,9 +48,17 @@ class ContatosImportDependencies implements ToModel
                 'tipo_layout' => "com_dependentes",
                 'nome_base' => $this->nome_base,
                 'nome_cliente' => $nome,
-                'cpf' => $cpf,
+                'cpf' => Helpers::cleanSpecialCharacters($cpf),
                 'idades' => $idade,
                 'valor_plano_atual' => $valorPlano,
+            ]);
+
+            ContatosCorretores::create([
+              'empresa_id' => Auth::user()->empresa_id,
+              'contato_id' => $this->ultimoTitular->id,
+              'user_id' => $this->user_id,
+              'tabulacao_id' => $this->tabulacao_id,
+              'temperatura' => 'FRIO'
             ]);
         }
         elseif ($this->ultimoTitular) {

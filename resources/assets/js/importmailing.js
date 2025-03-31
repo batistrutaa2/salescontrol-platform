@@ -132,9 +132,6 @@ toastr.options = {
             row.innerHTML = `
               <td><span class="badge bg-label-danger rounded-pill">${cpfData.nome.toUpperCase()}</span></td>
               <td><span class="badge bg-label-danger rounded-pill">${cpfData.cpf.toUpperCase()}</span></td>
-              <td><span class="badge bg-label-danger rounded-pill">${cpfData.telefone1.toUpperCase()}</span></td>
-              <td><span class="badge bg-label-danger rounded-pill">${cpfData.telefone2.toUpperCase()}</span></td>
-              <td><span class="badge bg-label-danger rounded-pill">${cpfData.telefone3.toUpperCase()}</span></td>
             `;
             tableBody.appendChild(row);
           });
