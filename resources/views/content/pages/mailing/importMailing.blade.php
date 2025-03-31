@@ -53,6 +53,13 @@
                         </select>
                         <label for="tipo_user">Selecione a Tabulação</label>
                     </div>
+                      <div class="form-floating form-floating-outline mb-5">
+                        <select id="tipo_user" class="form-select" name="tipo_layout" required>
+                            <option value="padrao">PADRÃO</option>
+                            <option value="com_dependentes">COM DEPENDENTES</option>
+                        </select>
+                        <label for="tipo_import">Tipo Importação</label>
+                    </div>
                 </form>
 
                 <div class="row">
