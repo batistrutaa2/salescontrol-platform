@@ -67,19 +67,23 @@ class Mailing extends Controller
   public function importaMailing(Request $request)
   {
     try {
-      $validator = Validator::make($request->all(), $this->rulesUpload);
-      if ($validator->fails()) {
-        $firstError = $validator->errors()->first();
+      if ($request->tipo_layout === "padrao") {
+        $validator = Validator::make($request->all(), $this->rulesUpload);
+        if ($validator->fails()) {
+          $firstError = $validator->errors()->first();
 
-        return response()->json([
-          'error' => true,
-          'message' => $firstError
-        ], 422);
+          return response()->json([
+            'error' => true,
+            'message' => $firstError
+          ], 422);
+        }
+
+        $this->validateFileUploadExcel($request);
+
+        return $this->mailingUseCase->importaMailing($request);
+      } else {
+        dd("oi");
       }
-
-      $this->validateFileUploadExcel($request);
-
-      return $this->mailingUseCase->importaMailing($request);
     } catch (\Throwable $th) {
       return response()->json([
         'error' => true,

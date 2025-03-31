@@ -9,9 +9,6 @@ use Carbon\Carbon;
 class ContatosCorretores extends Model
 {
   use HasFactory;
-
-  use HasFactory;
-
   protected $table = "contatos_corretores";
 
   protected $fillable = [
