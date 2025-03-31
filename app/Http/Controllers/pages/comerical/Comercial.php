@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\pages\comerical;
 
+use App\Models\Dependentes;
 use DateTime;
 use Carbon\Carbon;
 use App\Enums\UserRole;
@@ -36,6 +37,7 @@ use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
+use PHPUnit\Metadata\Api\Dependencies;
 
 class Comercial extends Controller
 {
@@ -292,7 +294,16 @@ class Comercial extends Controller
 
   public function openClient($id_mailing)
   {
+    $dependentes = "";
     $clientInfo = $this->repositoryContatosCorretores->getClientInfo($id_mailing);
+    $totalFamilyPlan = $clientInfo->valor_plano_atual ?? 0;
+    if ($clientInfo->tipo_layout != "padrao") {
+      $dependentes = Dependentes::where('contato_id', $clientInfo->id)->get();
+      foreach ($dependentes as $dependente) {
+          $totalFamilyPlan += $dependente->valor_plano ?? 0;
+      }
+    }
+
     $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
     $tabulations = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
     $tabulationCurrent = $this->repositoryContatosCorretores->getTabulationId($id_mailing);
@@ -308,6 +319,8 @@ class Comercial extends Controller
     } else {
       return view('content.pages.comercial.openClient', [
         'client' => $clientInfo,
+        'dependentes' => $dependentes,
+        'totalFamilyPlan' => $totalFamilyPlan,
         'comments' => $commentsMailing,
         'editingPermission' => $permiteEdition,
         'tabulations' => $tabulations,

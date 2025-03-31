@@ -76,10 +76,12 @@
             </div>
         </div>
 
-        @if ($client->tipo_layout === "padrao")
         <div class="row">
+            <!-- First column-->
             <div class="col-12 col-lg-8">
+                <!-- Product Information -->
                 <div class="card mb-6">
+
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Informações Pessoais</h5>
 
@@ -274,6 +276,18 @@
                                     <label for="valor_negociacao">Valor Negociação</label>
                                 </div>
                             </div>
+                            @if ($client->tipo_layout != "padrao")
+                            <div class="col mt-5">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="text" class="form-control monetary-field"
+                                        id="ecommerce-product-barcode" {{ $editingPermission == false ? 'disabled' : '' }}
+                                        id="valor_plano_atual"
+                                        value="{{ number_format($totalFamilyPlan, 2, ',', '.') }}"
+                                        placeholder="R$ 1080.10" name="total_familia" aria-label="Product barcode">
+                                    <label for="ecommerce-product-name">Total Familia</label>
+                                </div>
+                            </div>
+                            @endif
                             @if ($client->is_ads == "Y")
                             <div class="col mt-4">
                                 <div class="form-floating form-floating-outline">
@@ -308,24 +322,89 @@
                                 <button class="btn btn-success btn--twitter ms-auto">Atualizar informações</button>
                             </div>
                         </form>
-                        <div class="row align-items-center">
-                            <div class="col-3">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="hidden" id="contato_id_pabx" name="contato_id" class="form-control"
-                                        value="{{ $client->id }}" />
-                                    <input type="text" class="form-control  " id="phone_number">
-                                    <label for="phone_number">Digite o telefone que desejar ligar</label>
-                                </div>
-                            </div>
-                            <div class="col-auto">
-                                <button class="btn btn-success" id="callButton">Ligar</button>
-                            </div>
-                        </div>
                     </div>
                 </div>
+                @if ($client->tipo_layout != "padrao")
+                      <div class="accordion mt-5" id="collapsibleSection">
+                          @foreach($dependentes as $index => $dependente)
+                              <div class="accordion-item {{ $loop->first ? 'active' : '' }}">
+                                  <h2 class="accordion-header" id="headingDependente{{ $index }}">
+                                      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDependente{{ $index }}" aria-expanded="{{ $loop->first ? 'true' : 'false' }}" aria-controls="collapseDependente{{ $index }}">
+                                          Dependente {{ $index + 1 }} - {{$dependente['parentesco'] ?? ''}}
+                                      </button>
+                                  </h2>
+                                  <div id="collapseDependente{{ $index }}" class="accordion-collapse collapse" aria-labelledby="headingDependente{{ $index }}" data-bs-parent="#collapsibleSection">
+                                      <div class="accordion-body">
+                                          <div class="row g-4">
+                                              <div class="col-md-10">
+                                                  <div class="row">
+                                                      <label class="col-sm-3 col-form-label text-sm-end" for="fullname{{ $index }}">Nome Completo</label>
+                                                      <div class="col-sm-9">
+                                                          <input type="text" id="fullname{{ $index }}" class="form-control" name="dependentes[{{ $index }}][nome]" value="{{ $dependente['nome'] ?? '' }}" placeholder="John Doe" />
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                              <div class="col-md-10">
+                                                  <div class="row">
+                                                      <label class="col-sm-3 col-form-label text-sm-end" for="fullname{{ $index }}">CPF</label>
+                                                      <div class="col-sm-9">
+                                                          <input type="text" id="fullname{{ $index }}" class="form-control" name="dependentes[{{ $index }}][cpf]" value="{{ $dependente['cpf'] ?? '' }}" placeholder="122.456.789-10" />
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                              <div class="col-md-10">
+                                                  <div class="row">
+                                                      <label class="col-sm-3 col-form-label text-sm-end" for="phone{{ $index }}">Telefone 1</label>
+                                                      <div class="col-sm-9">
+                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone]" value="{{ $dependente['telefone_1'] ?? '' }}" placeholder="(11) 94556-7166" />
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                              <div class="col-md-10">
+                                                  <div class="row">
+                                                      <label class="col-sm-3 col-form-label text-sm-end" for="phone{{ $index }}">Telefone 2</label>
+                                                      <div class="col-sm-9">
+                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone]" value="{{ $dependente['telefone_2'] ?? '' }}" placeholder="(11) 94556-7166" />
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                              <div class="col-md-10">
+                                                  <div class="row">
+                                                      <label class="col-sm-3 col-form-label text-sm-end" for="phone{{ $index }}">Telefone 3</label>
+                                                      <div class="col-sm-9">
+                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone]" value="{{ $dependente['telefone_3'] ?? '' }}" placeholder="(11) 94556-7166" />
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                              <div class="col-md-10">
+                                                  <div class="row">
+                                                      <label class="col-sm-3 col-form-label text-sm-end" for="idade{{ $index }}">Idade</label>
+                                                      <div class="col-sm-9">
+                                                          <input type="text" id="idade{{ $index }}" class="form-control" name="dependentes[{{ $index }}][idade]" value="{{ $dependente['idade'] ?? '' }}" placeholder="John Doe" />
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                              <div class="col-md-10">
+                                                  <div class="row">
+                                                      <label class="col-sm-3 col-form-label text-sm-end" for="idade{{ $index }}">Valor Dependente</label>
+                                                      <div class="col-sm-9">
+                                                          <input type="text" id="idade{{ $index }}" class="form-control" name="dependentes[{{ $index }}][idade]" value="R$ {{ number_format($dependente['valor_plano'] ?? 0, 2, ',', '.') ?? '' }}" placeholder="John Doe" />
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                            <div>
+                                              <button class="btn btn-success mt-5 btn--twitter">Atualizar</button>
+                                            </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          @endforeach
+                      </div>
+                @endif
                 <!-- /Product Information -->
                 <!-- Media -->
-                <div class="card mb-6">
+                <div class="card mb-6 mt-5">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 card-title">Adicionar Comentario</h5>
                     </div>
@@ -358,50 +437,6 @@
                 </div>
             </div>
         </div>
-        @else
-        <div class="row">
-            <div class="col-12 col-lg-8">
-                <div class="card mb-6">
-                    <div class="card-body">
-
-                    </div>
-                </div>
-                <!-- /Product Information -->
-                <!-- Media -->
-                <div class="card mb-6">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 card-title">Adicionar Comentario</h5>
-                    </div>
-                    <div class="card-body">
-                        <form action="{{ route('comercial.saveComment') }}" method="POST" id="saveComment">
-                            @csrf
-                            <input type="hidden" name="id_mailing" value="{{ $client->id }}">
-                            <input type="hidden" value="{{ $tabulationCurrent }}" name="id_tabulacao">
-                            <div>
-                                <div class="form-control p-0 pt-1">
-                                    <div class="comment-toolbar border-0 border-bottom">
-                                        <div class="d-flex justify-content-start">
-                                            <span class="ql-formats me-0">
-                                                <button class="ql-bold"></button>
-                                                <button class="ql-italic"></button>
-                                                <button class="ql-underline"></button>
-                                                <button class="ql-list" value="ordered"></button>
-                                                <button class="ql-list" value="bullet"></button>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="comment-editor border-0 pb-1" id="ecommerce-category-description">
-                                    </div>
-                                </div>
-                                <div>
-                                    <button class="btn btn-primary mt-5   btn--twitter">Salvar Comentario</button>
-                                </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
 
         <div class="col-12 col-lg-4">
             <!-- Pricing Card -->
