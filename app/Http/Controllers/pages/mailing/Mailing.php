@@ -7,6 +7,7 @@ use App\Helpers\Helpers;
 use App\Models\Contatos;
 use App\Models\Agendamento;
 use App\Models\Comentarios;
+use App\Models\Dependentes;
 use Illuminate\Http\Request;
 use App\UseCases\MailingUseCase;
 use App\Models\ContatosCorretores;
@@ -138,6 +139,7 @@ class Mailing extends Controller
       Comentarios::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Agendamento::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       ContatosCorretores::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      Dependentes::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Contatos::where("id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       DB::commit();
       return redirect()->back()->with('status', 'success')->with('message', "Contato Excluido com sucesso");
