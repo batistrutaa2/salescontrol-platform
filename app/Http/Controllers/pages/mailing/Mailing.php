@@ -3,16 +3,19 @@
 namespace App\Http\Controllers\pages\mailing;
 
 use App\Enums\UserRole;
+use App\Helpers\Helpers;
+use App\Models\Contatos;
 use App\Models\Agendamento;
 use App\Models\Comentarios;
-use App\Models\Contatos;
 use Illuminate\Http\Request;
 use App\UseCases\MailingUseCase;
 use App\Models\ContatosCorretores;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Validator;
+use App\Imports\ContatosImportDependencies;
 use App\Repositories\Eloquent\VendasRepository;
 use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
@@ -82,7 +85,32 @@ class Mailing extends Controller
 
         return $this->mailingUseCase->importaMailing($request);
       } else {
-        dd("oi");
+        $request->validate([
+          'file' => 'required|file|mimes:xlsx,csv',
+        ]);
+
+        $rows = Excel::toArray(new ContatosImportDependencies($request->base), $request->file('file'));
+        foreach ($rows[0] as $row) {
+          if (!is_null($row[1])) {
+            $cpfs[] = Helpers::cleanSpecialCharacters($row[1]);
+          }
+        }
+
+        $cpfsFound = $this->contatosRepository->searchForCpfsFound($cpfs);
+
+        if (count($cpfsFound) > 0) {
+        return response()->json([
+          'message' => count($cpfsFound) . " CPFs já se encontram na sua base de dados.",
+          'cpfs' => $cpfsFound,
+          'error' => true,
+        ]);
+      }
+
+        Excel::import(new ContatosImportDependencies($request->base), $request->file('file'));
+        return response()->json([
+          'error' => false,
+          'message' => "Mailing importado com sucesso.",
+        ], 201);
       }
     } catch (\Throwable $th) {
       return response()->json([
