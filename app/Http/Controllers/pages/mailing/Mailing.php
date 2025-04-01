@@ -8,6 +8,7 @@ use App\Models\Contatos;
 use App\Models\Agendamento;
 use App\Models\Comentarios;
 use App\Models\Dependentes;
+use App\Models\LeadAtividade;
 use App\Models\Ligacoes;
 use Illuminate\Http\Request;
 use App\UseCases\MailingUseCase;
@@ -141,11 +142,13 @@ class Mailing extends Controller
       Agendamento::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Dependentes::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Ligacoes::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      LeadAtividade::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       ContatosCorretores::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Contatos::where("id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       DB::commit();
       return redirect()->back()->with('status', 'success')->with('message', "Contato Excluido com sucesso");
     } catch (\Throwable $th) {
+      dd($th);
       DB::rollBack();
       return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Erro ao excluir Lead");
     }
