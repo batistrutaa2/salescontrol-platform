@@ -148,7 +148,6 @@ class Mailing extends Controller
       DB::commit();
       return redirect()->back()->with('status', 'success')->with('message', "Contato Excluido com sucesso");
     } catch (\Throwable $th) {
-      dd($th);
       DB::rollBack();
       return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Erro ao excluir Lead");
     }
