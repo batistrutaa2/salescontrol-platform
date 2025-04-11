@@ -19,7 +19,7 @@ jobs:
           command_timeout: "10m"  # 10 minutos para esta etapa
           script: |
             cd /var/www/html/salescontrol-new
-            sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/batistrutaa2/salescontrolsalescontrol-new.git master
+            sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/batistrutaa2/salescontrol-new.git master
 
       - name: Run migrations
         uses: appleboy/ssh-action@master
