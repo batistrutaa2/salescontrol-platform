@@ -37,15 +37,20 @@ jobs:
 
             # Puxar alterações do repositório
             sudo git pull origin master
+            NEW_HASH=$(git rev-parse HEAD)
 
             # Verificar se houve alterações
-            if [ "$CURRENT_HASH" != "$(git rev-parse HEAD)" ]; then
+            if [ "$CURRENT_HASH" != "$NEW_HASH" ]; then
               echo "Alterações detectadas!"
 
               # Verificar se há alterações em arquivos JS, CSS ou SCSS
-              git diff --name-only $CURRENT_HASH HEAD | grep -E '\.(js|css|scss)$' > /dev/null
-              if [ $? -eq 0 ]; then
-                echo "Alterações em assets detectadas. Executando build..."
+              # Usando uma abordagem mais direta para garantir que detecte corretamente
+              ASSET_CHANGES=$(git diff --name-only $CURRENT_HASH $NEW_HASH | grep -E '\.(js|css|scss)$')
+
+              if [ ! -z "$ASSET_CHANGES" ]; then
+                echo "Alterações em assets detectadas:"
+                echo "$ASSET_CHANGES"
+                echo "Executando build..."
                 sudo ./vendor/bin/sail npm run build
                 echo "Build de assets concluído."
               else
