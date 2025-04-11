@@ -2,7 +2,6 @@
  * Charts ChartsJS
  */
 'use strict';
-alert('teste');
 
 (function () {
   const tableContratosCadastrados = $('#tableContratosCadastrados').DataTable();
@@ -305,7 +304,6 @@ alert('teste');
 
     // Update tables function
     function updateTables(dataCadastrados, dataImplantados) {
-      console.log(dataCadastrados, dataImplantados);
 
       // Clear the tables
       tableContratosCadastrados.clear();
