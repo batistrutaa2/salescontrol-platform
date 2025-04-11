@@ -6,43 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  check_changes:
-    runs-on: ubuntu-latest
-    outputs:
-      has_changes: ${{ steps.check.outputs.has_changes }}
-      has_asset_changes: ${{ steps.check.outputs.has_asset_changes }}
-
-    steps:
-      - name: Check for changes
-        id: check
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          script: |
-            cd /var/www/html/salescontrol-new
-
-            # Verificação de alterações
-            CURRENT_HASH=$(git rev-parse HEAD)
-            git fetch origin master
-
-            if [ "$CURRENT_HASH" != "$(git rev-parse origin/master)" ]; then
-              echo "::set-output name=has_changes::true"
-              git diff --name-only $CURRENT_HASH origin/master | grep -E '\.(js|css|scss|vue|jsx|tsx)$' > /dev/null
-              if [ $? -eq 0 ]; then
-                echo "::set-output name=has_asset_changes::true"
-              else
-                echo "::set-output name=has_asset_changes::false"
-              fi
-            else
-              echo "::set-output name=has_changes::false"
-              echo "::set-output name=has_asset_changes::false"
-            fi
-
   deploy:
-    needs: check_changes
-    if: needs.check_changes.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -58,25 +22,7 @@ jobs:
         with:
           args: '🚀 **Iniciando deploy do SalesControl**\nAtualizações detectadas no repositório.'
 
-      - name: Deploy without assets build
-        if: needs.check_changes.outputs.has_asset_changes != 'true'
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          command_timeout: "20m"
-          script: |
-            cd /var/www/html/salescontrol-new
-            sudo git pull origin master
-            sudo ./vendor/bin/sail artisan route:clear
-            sudo ./vendor/bin/sail artisan config:clear
-            sudo ./vendor/bin/sail artisan cache:clear
-            sudo ./vendor/bin/sail artisan migrate --force
-            sudo ./vendor/bin/sail artisan optimize
-
-      - name: Deploy with optimized assets build
-        if: needs.check_changes.outputs.has_asset_changes == 'true'
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -85,41 +31,34 @@ jobs:
           command_timeout: "60m"
           script: |
             cd /var/www/html/salescontrol-new
+
+            # Salvar hash atual antes do pull
+            CURRENT_HASH=$(git rev-parse HEAD)
+
+            # Puxar alterações do repositório
             sudo git pull origin master
 
-            # Otimizar configuração do Vite para build mais rápido
-            if [ -f "vite.config.js" ]; then
-              echo "Otimizando configuração do Vite..."
-              # Fazer backup da configuração original
-              cp vite.config.js vite.config.js.bak
+            # Verificar se houve alterações
+            if [ "$CURRENT_HASH" != "$(git rev-parse HEAD)" ]; then
+              echo "Alterações detectadas!"
 
-              # Adicionar configurações de otimização
-              sed -i 's/export default defineConfig({/export default defineConfig({\n  build: { minify: false, sourcemap: false, cssMinify: false, assetsInlineLimit: 0 },/g' vite.config.js
+              # Verificar se há alterações em arquivos JS, CSS ou SCSS
+              git diff --name-only $CURRENT_HASH HEAD | grep -E '\.(js|css|scss)$' > /dev/null
+              if [ $? -eq 0 ]; then
+                echo "Alterações em assets detectadas. Executando build..."
+                sudo ./vendor/bin/sail npm run build
+                echo "Build de assets concluído."
+              else
+                echo "Sem alterações em assets. Pulando build."
+              fi
+
+              # Executar migrações
+              echo "Executando migrações..."
+              sudo ./vendor/bin/sail artisan migrate --force
+              echo "Migrações concluídas."
+            else
+              echo "Nenhuma alteração detectada."
             fi
-
-            # Executar build dentro do container via Sail
-            echo "Executando build de assets..."
-            sudo ./vendor/bin/sail npm ci --prefer-offline --no-audit
-            sudo ./vendor/bin/sail npm run build -- --emptyOutDir
-
-            # Restaurar configuração original do Vite
-            if [ -f "vite.config.js.bak" ]; then
-              mv vite.config.js.bak vite.config.js
-            fi
-
-            # Continuar com o resto do deploy
-            echo "Executando comandos do Laravel..."
-            sudo ./vendor/bin/sail artisan route:clear
-            sudo ./vendor/bin/sail artisan config:clear
-            sudo ./vendor/bin/sail artisan cache:clear
-            sudo ./vendor/bin/sail artisan migrate --force
-            sudo ./vendor/bin/sail artisan optimize
-
-            # Ajustar permissões dos arquivos gerados
-            echo "Ajustando permissões..."
-            sudo chown -R www-data:www-data public/build
-
-            echo "Deploy concluído com sucesso!"
 
       - name: Send Discord notification - Success
         if: success()
@@ -132,7 +71,6 @@ jobs:
             **Projeto:** SalesControl
             **Branch:** master
             **Hora:** ${{ steps.current-time.outputs.TIME }}
-            ${{ needs.check_changes.outputs.has_asset_changes == 'true' && '**Assets recompilados:** Sim' || '**Assets recompilados:** Não' }}
 
       - name: Send Discord notification - Failure
         if: failure()
@@ -146,24 +84,3 @@ jobs:
             **Branch:** master
             **Hora:** ${{ steps.current-time.outputs.TIME }}
             Por favor, verifique os logs para mais detalhes.
-
-  notify_no_changes:
-    needs: check_changes
-    if: needs.check_changes.outputs.has_changes != 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get current time
-        id: current-time
-        run: echo "TIME=$(date +'%H:%M:%S %d/%m/%Y')" >> $GITHUB_OUTPUT
-
-      - name: Send Discord notification - No changes
-        uses: Ilshidur/action-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        with:
-          args: |
-            ℹ️ **Verificação de deploy concluída**
-            **Projeto:** SalesControl
-            **Branch:** master
-            **Hora:** ${{ steps.current-time.outputs.TIME }}
-            **Status:** Nenhuma alteração detectada. Nenhum deploy necessário.

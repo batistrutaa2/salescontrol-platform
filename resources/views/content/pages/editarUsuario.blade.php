@@ -1,6 +1,6 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'Editar Usuario')
+@section('title', 'Editar Usuario - Manager')
 
 @section('page-script')
     @vite('resources/assets/js/form-input-group.js')
