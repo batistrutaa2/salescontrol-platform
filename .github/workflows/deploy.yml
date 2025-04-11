@@ -136,7 +136,7 @@ jobs:
             ✅ **Deploy concluído com sucesso!**
             **Projeto:** SalesControl
             **Branch:** master
-            **Hora:** ${{ format(now(), 'HH:mm:ss dd/MM/yyyy') }}
+            **Hora:** $(date '+%H:%M:%S %d/%m/%Y')
             ${{ needs.check_changes.outputs.has_asset_changes == 'true' && '**Assets recompilados:** Sim' || '**Assets recompilados:** Não' }}
 
       - name: Send Discord notification - Failure
@@ -149,7 +149,7 @@ jobs:
             ❌ **Falha no deploy!**
             **Projeto:** SalesControl
             **Branch:** master
-            **Hora:** ${{ format(now(), 'HH:mm:ss dd/MM/yyyy') }}
+            **Hora:** $(date '+%H:%M:%S %d/%m/%Y')
             Por favor, verifique os logs para mais detalhes.
 
   notify_no_changes:
@@ -166,5 +166,5 @@ jobs:
             ℹ️ **Verificação de deploy concluída**
             **Projeto:** SalesControl
             **Branch:** master
-            **Hora:** ${{ format(now(), 'HH:mm:ss dd/MM/yyyy') }}
+            **Hora:** $(date '+%H:%M:%S %d/%m/%Y')
             **Status:** Nenhuma alteração detectada. Nenhum deploy necessário.
