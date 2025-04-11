@@ -552,7 +552,6 @@
       } else {
         item.style.display = 'none';
       }
-
     });
   }
 
@@ -585,10 +584,11 @@
     });
   }
 
-  const initialSearchTerm = document.getElementById('kanban-search') ? document.getElementById('kanban-search').value : '';
+  const initialSearchTerm = document.getElementById('kanban-search')
+    ? document.getElementById('kanban-search').value
+    : '';
   const initialUserId = document.getElementById('user-filter') ? document.getElementById('user-filter').value : '';
   filterKanbanItems(initialSearchTerm, initialUserId);
-
 
   // Kanban Wrapper scrollbar
   if (kanbanWrapper) {
@@ -775,3 +775,245 @@
     });
   }
 })();
+
+document.addEventListener('DOMContentLoaded', function () {
+  // Botão para abrir a modal
+  const btnFilaPreditiva = document.getElementById('btn-fila-preditiva');
+  const modalFilaPreditiva = new bootstrap.Modal(document.getElementById('modal-fila-preditiva'));
+
+  // Elementos da modal
+  const loadingElement = document.getElementById('loading-fila-preditiva');
+  const noResultsElement = document.getElementById('no-results-fila-preditiva');
+  const clienteContainer = document.getElementById('cliente-preditiva-container');
+  const tabulacaoSelect = document.getElementById('tabulacao-preditiva');
+  const btnDescartar = document.getElementById('btn-descartar-cliente');
+  const btnConverter = document.getElementById('btn-converter-cliente');
+
+  // Campos do cliente
+  const clienteId = document.getElementById('cliente-id');
+  const clienteNome = document.getElementById('cliente-nome');
+  const clienteEmail = document.getElementById('cliente-email');
+  const clienteTelefone = document.getElementById('cliente-telefone');
+  const clienteNascimento = document.getElementById('cliente-nascimento');
+  const clientePlano = document.getElementById('cliente-plano');
+  const clienteCategoria = document.getElementById('cliente-categoria');
+  const clienteEntidade = document.getElementById('cliente-entidade');
+  const clienteValor = document.getElementById('cliente-valor');
+
+  // Obter token CSRF
+  const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+  // Evento para abrir a modal e buscar cliente
+  btnFilaPreditiva.addEventListener('click', function () {
+    resetarModal();
+    modalFilaPreditiva.show();
+    buscarClientePreditiva();
+  });
+
+  // Evento para habilitar/desabilitar botão de descartar
+  tabulacaoSelect.addEventListener('change', function () {
+    btnDescartar.disabled = !this.value;
+  });
+
+  // Evento para descartar cliente
+  btnDescartar.addEventListener('click', function () {
+    const id = clienteId.value;
+    const tabulacao = tabulacaoSelect.value;
+
+    if (!id || !tabulacao) {
+      alert('Selecione uma tabulação antes de descartar o cliente.');
+      return;
+    }
+
+    descartarCliente(id, tabulacao);
+  });
+
+  // Evento para converter cliente
+  btnConverter.addEventListener('click', function () {
+    const id = clienteId.value;
+
+    if (!id) {
+      alert('Nenhum cliente selecionado.');
+      return;
+    }
+
+    converterCliente(id);
+  });
+
+  // Função para buscar cliente da fila preditiva
+  function buscarClientePreditiva() {
+    // Mostrar loading
+    loadingElement.classList.remove('d-none');
+    noResultsElement.classList.add('d-none');
+    clienteContainer.classList.add('d-none');
+
+    fetch('/comercial/getClientesPreditiva', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token
+      },
+      body: JSON.stringify({})
+    })
+      .then(response => response.json())
+      .then(data => {
+        loadingElement.classList.add('d-none');
+
+        if (!data || data.length === 0) {
+          noResultsElement.classList.remove('d-none');
+          return;
+        }
+
+        const cliente = data[0];
+        preencherDadosCliente(cliente);
+        clienteContainer.classList.remove('d-none');
+      })
+      .catch(error => {
+        console.error('Erro ao buscar cliente:', error);
+        loadingElement.classList.add('d-none');
+        alert('Erro ao buscar cliente. Tente novamente.');
+      });
+  }
+
+  // Função para preencher dados do cliente
+  function preencherDadosCliente(cliente) {
+    clienteId.value = cliente.id;
+    clienteNome.textContent = cliente.nome || '-';
+    clienteEmail.textContent = cliente.email || '-';
+    clienteTelefone.textContent = cliente.telefone || '-';
+    clienteNascimento.textContent = formatarData(cliente.data_nascimento) || '-';
+    clientePlano.textContent = cliente.plano || '-';
+    clienteCategoria.textContent = cliente.categoria || '-';
+    clienteEntidade.textContent = cliente.entidade || '-';
+    clienteValor.textContent = formatarMoeda(cliente.valor_plano_atual) || '-';
+  }
+
+  // Função para descartar cliente
+  function descartarCliente(id, tabulacao) {
+    loadingElement.classList.remove('d-none');
+    clienteContainer.classList.add('d-none');
+
+    fetch('/comercial/descartarClientePreditiva', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token
+      },
+      body: JSON.stringify({
+        contato_id: id,
+        tabulacao: tabulacao
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          resetarModal();
+          buscarClientePreditiva();
+        } else {
+          alert('Erro ao descartar cliente. Tente novamente.');
+          clienteContainer.classList.remove('d-none');
+          loadingElement.classList.add('d-none');
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao descartar cliente:', error);
+        alert('Erro ao descartar cliente. Tente novamente.');
+        clienteContainer.classList.remove('d-none');
+        loadingElement.classList.add('d-none');
+      });
+  }
+
+  // Função para converter cliente
+  function converterCliente(id) {
+    loadingElement.classList.remove('d-none');
+    clienteContainer.classList.add('d-none');
+
+    fetch('/comercial/converterClientePreditiva', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token
+      },
+      body: JSON.stringify({
+        contato_id: id
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Mostrar mensagem de sucesso
+          Swal.fire({
+            icon: 'success',
+            title: 'Cliente convertido com sucesso!',
+            text: 'O cliente foi adicionado à sua lista de prospecção.',
+            confirmButtonText: 'OK',
+            customClass: {
+              confirmButton: 'btn btn-success waves-effect'
+            }
+          }).then(result => {
+            // Quando o usuário clicar em OK, recarregar a página
+            modalFilaPreditiva.hide();
+            location.reload(); // Recarrega a página para atualizar o kanban
+          });
+        } else {
+          alert('Erro ao converter cliente. Tente novamente.');
+          clienteContainer.classList.remove('d-none');
+          loadingElement.classList.add('d-none');
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao converter cliente:', error);
+        alert('Erro ao converter cliente. Tente novamente.');
+        clienteContainer.classList.remove('d-none');
+        loadingElement.classList.add('d-none');
+      });
+  }
+
+  // Função para resetar a modal
+  function resetarModal() {
+    tabulacaoSelect.value = '';
+    btnDescartar.disabled = true;
+    clienteId.value = '';
+    clienteNome.textContent = '-';
+    clienteEmail.textContent = '-';
+    clienteTelefone.textContent = '-';
+    clienteNascimento.textContent = '-';
+    clientePlano.textContent = '-';
+    clienteCategoria.textContent = '-';
+    clienteEntidade.textContent = '-';
+    clienteValor.textContent = '-';
+  }
+
+  // Função para formatar data
+  function formatarData(dataString) {
+    if (!dataString) return null;
+
+    // Verificar se é uma data válida
+    const data = new Date(dataString);
+    if (isNaN(data.getTime())) {
+      // Tentar formato DD/MM/YYYY
+      const partes = dataString.split('/');
+      if (partes.length === 3) {
+        return dataString; // Já está formatado
+      }
+      return dataString;
+    }
+
+    return data.toLocaleDateString('pt-BR');
+  }
+
+  // Função para formatar moeda
+  function formatarMoeda(valor) {
+    if (!valor) return null;
+
+    // Converter para número se for string
+    const numero = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
+
+    if (isNaN(numero)) return valor;
+
+    return numero.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+  }
+});

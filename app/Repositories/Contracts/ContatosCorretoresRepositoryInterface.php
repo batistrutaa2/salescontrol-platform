@@ -19,4 +19,5 @@ interface ContatosCorretoresRepositoryInterface
   public function alterStatusContract($contato_id, $tabulacao_id): bool;
   public function getQueueCurrent($id_user);
   public function getContactOwner($id_contato);
+  public function deleteMailing($id_mailing);
 }

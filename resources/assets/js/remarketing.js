@@ -104,11 +104,15 @@ $(function () {
               '<div class="dropdown-menu dropdown-menu-end m-0">' +
               '<a href="/comercial/abrir-cliente/' +
               full.id +
-              '"class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Editar Contato</span></a>' +
+              '"class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span> Editar Contato</span></a>' +
               '<button type="button" class="dropdown-item js-transferir-leads" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
               full.id +
               '">' +
-              '<i class="ri-arrow-left-right-fill"></i><span>Transferir Contato</span></button>' +
+              '<i class="ri-arrow-left-right-fill"></i><span> Transferir Contato</span></button>' +
+              '<button type="button" class="dropdown-item js-enviar-preditiva" data-id="' +
+              full.id +
+              '">' +
+              '<i class="ri-arrow-right-fill"></i><span> Enviar Preditiva</span></button>' +
               '</div>' +
               '</div>'
             );
@@ -313,6 +317,40 @@ $(function () {
       var button = event.target.closest('.js-transferir-leads');
       var leadId = button.getAttribute('data-id');
       document.querySelector('#idMailing').value = leadId;
+    }
+  });
+
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('.js-enviar-preditiva')) {
+      const button = event.target.closest('.js-enviar-preditiva');
+      const id = button.getAttribute('data-id');
+
+      // Criar um formulário temporário
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/comercial/sendLeadPredictive';
+      form.style.display = 'none';
+
+      // Adicionar o token CSRF
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = '_token';
+      csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      form.appendChild(csrfInput);
+
+      // Adicionar o ID
+      const idInput = document.createElement('input');
+      idInput.type = 'hidden';
+      idInput.name = 'id';
+      idInput.value = id;
+      form.appendChild(idInput);
+
+      // Adicionar o formulário ao documento e enviá-lo
+      document.body.appendChild(form);
+      form.submit();
+
+      // Prevenir comportamento padrão do botão
+      event.preventDefault();
     }
   });
 });

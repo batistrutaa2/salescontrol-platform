@@ -89,37 +89,44 @@
             </div>
         </div>
 
-        <div class="container mb-5">
-            <div class="d-flex justify-content-between">
-                <div class="form-floating form-floating-outline flex-fill me-2">
-                    <input type="text" id="kanban-search" class="form-control" placeholder="Pesquisar cliente.." />
-                    <label for="kanban-search-1">Pesquisar cliente..</label>
-                </div>
-                <div class="form-floating form-floating-outline flex-fill ms-2">
-                  <select class=" form-select" id="type-lead" name="tipolead">
+      <div class="container mb-5">
+          <div class="d-flex justify-content-between">
+              <div class="form-floating form-floating-outline flex-fill me-2">
+                  <input type="text" id="kanban-search" class="form-control" placeholder="Pesquisar cliente.." />
+                  <label for="kanban-search-1">Pesquisar cliente..</label>
+              </div>
+              <div class="form-floating form-floating-outline flex-fill ms-2">
+                  <select class="form-select" id="type-lead" name="tipolead">
                       <option value="A">Ativo</option>
                       <option value="R">Receptivo</option>
                   </select>
-                  <label for="label"> Tipo de lead</label>
+                  <label for="label">Tipo de lead</label>
               </div>
 
-                @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER')
-                    <div class="form-floating form-floating-outline flex-fill ms-2">
-                        <select class=" form-select" id="user-filter" name="temperatura">
-                            <option value="">
-                                Selecione o corretor
-                            </option>
-                            @foreach ($vendedores as $vendedor)
-                                <option value="{{ $vendedor->id }}">
-                                    {{ $vendedor->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <label for="label"> Vendedores</label>
-                    </div>
-                @endif
-            </div>
-        </div>
+              @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER')
+                  <div class="form-floating form-floating-outline flex-fill ms-2">
+                      <select class="form-select" id="user-filter" name="temperatura">
+                          <option value="">
+                              Selecione o corretor
+                          </option>
+                          @foreach ($vendedores as $vendedor)
+                              <option value="{{ $vendedor->id }}">
+                                  {{ $vendedor->name }}
+                              </option>
+                          @endforeach
+                      </select>
+                      <label for="label">Vendedores</label>
+                  </div>
+              @endif
+
+              <!-- Botão para abrir a modal de fila preditiva -->
+              <div class="ms-2 d-flex align-items-center">
+                  <button type="button" class="btn btn-primary" id="btn-fila-preditiva">
+                      <i class="ri-customer-service-line me-1"></i>Vitrini de clientes
+                  </button>
+              </div>
+          </div>
+      </div>
 
         <!-- Kanban Wrapper -->
         <div class="container-fluid">
@@ -444,4 +451,78 @@
             </div>
         </div>
     </div>
+
+  <!-- Modal para Fila Preditiva -->
+    <div class="modal fade" id="modal-fila-preditiva" tabindex="-1" aria-labelledby="modalFilaPreditivaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalFilaPreditivaLabel">Cliente na Fila Preditiva</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="loading-fila-preditiva" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-2">Buscando próximo cliente...</p>
+                    </div>
+
+                    <div id="no-results-fila-preditiva" class="text-center d-none">
+                        <div class="alert alert-info">
+                            <i class="ri-information-line me-2"></i>
+                            <span>Não há clientes disponíveis na fila preditiva no momento.</span>
+                        </div>
+                    </div>
+
+                    <div id="cliente-preditiva-container" class="d-none">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h4 id="cliente-nome">-</h4>
+                                        <p class="mb-1"><strong>Email:</strong> <span id="cliente-email">-</span></p>
+                                        <p class="mb-1"><strong>Telefone:</strong> <span id="cliente-telefone">-</span></p>
+                                        <p class="mb-1"><strong>Data de Nascimento:</strong> <span id="cliente-nascimento">-</span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Plano:</strong> <span id="cliente-plano">-</span></p>
+                                        <p class="mb-1"><strong>Categoria:</strong> <span id="cliente-categoria">-</span></p>
+                                        <p class="mb-1"><strong>Entidade:</strong> <span id="cliente-entidade">-</span></p>
+                                        <p class="mb-1"><strong>Valor Atual:</strong> <span id="cliente-valor">-</span></p>
+                                    </div>
+                                </div>
+
+                                <input type="hidden" id="cliente-id" value="">
+
+                                <div class="mt-4">
+                                    <div class="form-floating form-floating-outline mb-3">
+                                        <select class="form-select" id="tabulacao-preditiva">
+                                            <option value="">Selecione uma tabulação</option>
+                                            <option value="NAO ATENDE">Não atende</option>
+                                            <option value="NUMERO INEXISTENTE">Número inexistente</option>
+                                            <option value="NAO INTERESSADO">Não interessado</option>
+                                            <option value="LIGAR MAIS TARDE">Ligar mais tarde</option>
+                                            <option value="JA POSSUI PLANO">Já possui plano</option>
+                                        </select>
+                                        <label for="tabulacao-preditiva">Tabulação</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-danger" id="btn-descartar-cliente" disabled>
+                        <i class="ri-close-circle-line me-1"></i>Descartar
+                    </button>
+                    <button type="button" class="btn btn-success" id="btn-converter-cliente">
+                        <i class="ri-check-double-line me-1"></i>Converter Lead
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

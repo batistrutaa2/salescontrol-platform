@@ -4,9 +4,13 @@ namespace App\Providers;
 
 use App\Models\Agendamento;
 use App\Repositories\Contracts\LigacoesRepositoryInterface;
+use App\Repositories\Contracts\LogPreditivaRepositoryInterface;
+use App\Repositories\Contracts\PreditivaRepositoryInterface;
 use App\Repositories\Contracts\RamaisRepositoryInterface;
 use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
 use App\Repositories\Eloquent\LigacoesRepository;
+use App\Repositories\Eloquent\LogPreditivaRepository;
+use App\Repositories\Eloquent\PreditivaRepository;
 use App\Repositories\Eloquent\RamaisRepository;
 use App\Repositories\Eloquent\TransferenciaContatoRepository;
 use Illuminate\Support\Facades\Auth;
@@ -57,6 +61,9 @@ class AppServiceProvider extends ServiceProvider
     $this->app->bind(RamaisRepositoryInterface::class, RamaisRepository::class);
     $this->app->bind(TransferenciaContatoRepositoryInterface::class, TransferenciaContatoRepository::class);
 
+    $this->app->bind(LigacoesRepositoryInterface::class, LigacoesRepository::class);
+    $this->app->bind(PreditivaRepositoryInterface::class, PreditivaRepository::class);
+    $this->app->bind(LogPreditivaRepositoryInterface::class, LogPreditivaRepository::class);
   }
 
   /**
@@ -74,7 +81,7 @@ class AppServiceProvider extends ServiceProvider
 
         $view->with([
           'agendamentos' => $agendamentosAtrasados,
-          'isNotification' => $quantidade >= 1 ? true : false
+          'isNotification' => $quantidade >= 1
         ]);
 
       }
