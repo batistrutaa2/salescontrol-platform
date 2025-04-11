@@ -1,8 +1,8 @@
 name: Deploy to VPS
 
 on:
-  schedule:
-    - cron: '0 23 * * *'  # 23:00 UTC = 20:00 BRT
+  push:
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
