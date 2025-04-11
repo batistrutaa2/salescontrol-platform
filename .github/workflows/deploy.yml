@@ -7,27 +7,52 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 60  # Timeout global para todo o job (60 minutos)
+
     steps:
-      - name: Deploy to VPS
+      - name: Pull latest code
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
+          command_timeout: "10m"  # 10 minutos para esta etapa
           script: |
             cd /var/www/html/salescontrol-new
-            sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/batistrutaa2/salescontrol-new.git master
+            sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/batistrutaa2/salescontrolsalescontrol-new.git master
 
-            # Limpar caches antes de tentar migrar
+      - name: Run migrations
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          command_timeout: "15m"  # 15 minutos para esta etapa
+          script: |
+            cd /var/www/html/salescontrol-new
             ./vendor/bin/sail artisan route:clear
             ./vendor/bin/sail artisan config:clear
             ./vendor/bin/sail artisan cache:clear
-
-            # Executar migrações
             ./vendor/bin/sail artisan migrate --force
 
-            # Compilar assets
+      - name: Build assets
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          command_timeout: "40m"  # 40 minutos para esta etapa (build de assets)
+          script: |
+            cd /var/www/html/salescontrol-new
             ./vendor/bin/sail npm run build
 
-            # Otimizar após build bem-sucedido
+      - name: Optimize application
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          command_timeout: "10m"  # 10 minutos para esta etapa
+          script: |
+            cd /var/www/html/salescontrol-new
             ./vendor/bin/sail artisan optimize
