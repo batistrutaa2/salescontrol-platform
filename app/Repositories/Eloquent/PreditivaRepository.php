@@ -17,18 +17,15 @@ class PreditivaRepository implements PreditivaRepositoryInterface
     $this->model = $model;
   }
 
-    public function create(array $data): bool
-    {
+  public function create(array $data): bool
+  {
       try {
-        return $this->model::create([
-          'empresa_id' => $data['empresa_id'],
-          'contato_id' => $data['contato_id'],
-          'status' => $data['status'],
-        ]);
+          $result = $this->model::create($data);
+          return $result !== null;
       } catch (\Exception $e) {
-        return false;
+          return false;
       }
-    }
+  }
 
     public function getNextCLient(string $empresa_id)
     {

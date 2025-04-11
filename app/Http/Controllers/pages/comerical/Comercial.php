@@ -595,10 +595,13 @@ class Comercial extends Controller
   public function sendLeadPredictive(Request $request) {
       try {
         $respose = $this->preditivaUseCase->sendMailingPredictive($request->id);
-
-        dd($respose);
+        if ($respose) {
+          return redirect()->back()->with('status', 'success')->with('message', "Lead Enviado com sucesso");
+        } else {
+          return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar lead para preditiva");
+        }
       } catch (\Throwable $th) {
-        //throw $th;
+        return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar lead para preditiva");
       }
   }
 }

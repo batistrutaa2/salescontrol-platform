@@ -324,19 +324,33 @@ $(function () {
     if (event.target.closest('.js-enviar-preditiva')) {
       const button = event.target.closest('.js-enviar-preditiva');
       const id = button.getAttribute('data-id');
-      const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-      fetch('/comercial/sendLeadPredictive', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': token
-        },
-        body: JSON.stringify({ id: id })
-      })
-        .then(response => response.json())
-        .then(data => console.log('Sucesso:', data))
-        .catch(error => console.error('Erro:', error));
+      // Criar um formulário temporário
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/comercial/sendLeadPredictive';
+      form.style.display = 'none';
+
+      // Adicionar o token CSRF
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = '_token';
+      csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      form.appendChild(csrfInput);
+
+      // Adicionar o ID
+      const idInput = document.createElement('input');
+      idInput.type = 'hidden';
+      idInput.name = 'id';
+      idInput.value = id;
+      form.appendChild(idInput);
+
+      // Adicionar o formulário ao documento e enviá-lo
+      document.body.appendChild(form);
+      form.submit();
+
+      // Prevenir comportamento padrão do botão
+      event.preventDefault();
     }
   });
 });

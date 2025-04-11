@@ -349,6 +349,12 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
     }
   }
 
-
+  public function deleteMailing($id_mailing) {
+    return $this->model
+    ->where('contato_id', $id_mailing)
+    ->where('empresa_id', Auth::user()->empresa_id)
+    ->delete();
+  }
 
 }
+
