@@ -1,58 +1,170 @@
 name: Deploy to VPS
 
 on:
-  push:
-    branches: [ master ]
+  schedule:
+    - cron: '0 23 * * *'  # 23:00 UTC = 20:00 BRT
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  check_changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # Timeout global para todo o job (60 minutos)
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+      has_asset_changes: ${{ steps.check.outputs.has_asset_changes }}
 
     steps:
-      - name: Pull latest code
+      - name: Check for changes
+        id: check
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
-          command_timeout: "10m"  # 10 minutos para esta etapa
+          script: |
+            cd /var/www/html/salescontrol-new
+
+            # Verificação de alterações
+            CURRENT_HASH=$(git rev-parse HEAD)
+            git fetch origin master
+
+            if [ "$CURRENT_HASH" != "$(git rev-parse origin/master)" ]; then
+              echo "::set-output name=has_changes::true"
+              git diff --name-only $CURRENT_HASH origin/master | grep -E '\.(js|css|scss|vue|jsx|tsx)$' > /dev/null
+              if [ $? -eq 0 ]; then
+                echo "::set-output name=has_asset_changes::true"
+              else
+                echo "::set-output name=has_asset_changes::false"
+              fi
+            else
+              echo "::set-output name=has_changes::false"
+              echo "::set-output name=has_asset_changes::false"
+            fi
+
+  deploy:
+    needs: check_changes
+    if: needs.check_changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Send Discord notification - Starting deployment
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: '🚀 **Iniciando deploy do SalesControl**\nAtualizações detectadas no repositório.'
+
+      - name: Deploy without assets build
+        if: needs.check_changes.outputs.has_asset_changes != 'true'
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          command_timeout: "20m"
+          script: |
+            cd /var/www/html/salescontrol-new
+            sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/batistrutaa2/salescontrol-new.git master
+            sudo ./vendor/bin/sail artisan route:clear
+            sudo ./vendor/bin/sail artisan config:clear
+            sudo ./vendor/bin/sail artisan cache:clear
+            sudo ./vendor/bin/sail artisan migrate --force
+            sudo ./vendor/bin/sail artisan optimize
+
+      - name: Deploy with optimized assets build
+        if: needs.check_changes.outputs.has_asset_changes == 'true'
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          command_timeout: "60m"
           script: |
             cd /var/www/html/salescontrol-new
             sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/batistrutaa2/salescontrol-new.git master
 
-      - name: Run migrations
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          command_timeout: "15m"  # 15 minutos para esta etapa
-          script: |
-            cd /var/www/html/salescontrol-new
-            ./vendor/bin/sail artisan route:clear
-            ./vendor/bin/sail artisan config:clear
-            ./vendor/bin/sail artisan cache:clear
-            ./vendor/bin/sail artisan migrate --force
+            # Verificar se Node.js está instalado na VPS
+            if ! command -v node &> /dev/null; then
+              echo "Instalando Node.js na VPS..."
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
 
-      - name: Build assets
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          command_timeout: "40m"  # 40 minutos para esta etapa (build de assets)
-          script: |
-            cd /var/www/html/salescontrol-new
-            ./vendor/bin/sail npm run build
+            # Otimizar configuração do Vite para build mais rápido
+            if [ -f "vite.config.js" ]; then
+              echo "Otimizando configuração do Vite..."
+              # Fazer backup da configuração original
+              cp vite.config.js vite.config.js.bak
 
-      - name: Optimize application
-        uses: appleboy/ssh-action@master
+              # Adicionar configurações de otimização
+              sed -i 's/export default defineConfig({/export default defineConfig({\n  build: { minify: false, sourcemap: false, cssMinify: false, assetsInlineLimit: 0 },/g' vite.config.js
+            fi
+
+            # Executar build diretamente na VPS (fora do Docker)
+            echo "Instalando dependências do Node.js..."
+            npm ci --prefer-offline --no-audit
+
+            echo "Executando build de assets..."
+            NODE_ENV=production npm run build -- --emptyOutDir
+
+            # Restaurar configuração original do Vite
+            if [ -f "vite.config.js.bak" ]; then
+              mv vite.config.js.bak vite.config.js
+            fi
+
+            # Continuar com o resto do deploy
+            echo "Executando comandos do Laravel..."
+            sudo ./vendor/bin/sail artisan route:clear
+            sudo ./vendor/bin/sail artisan config:clear
+            sudo ./vendor/bin/sail artisan cache:clear
+            sudo ./vendor/bin/sail artisan migrate --force
+            sudo ./vendor/bin/sail artisan optimize
+
+            # Ajustar permissões dos arquivos gerados
+            echo "Ajustando permissões..."
+            sudo chown -R www-data:www-data public/build
+
+            echo "Deploy concluído com sucesso!"
+
+      - name: Send Discord notification - Success
+        if: success()
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          command_timeout: "10m"  # 10 minutos para esta etapa
-          script: |
-            cd /var/www/html/salescontrol-new
-            ./vendor/bin/sail artisan optimize
+          args: |
+            ✅ **Deploy concluído com sucesso!**
+            **Projeto:** SalesControl
+            **Branch:** master
+            **Hora:** ${{ format(now(), 'HH:mm:ss dd/MM/yyyy') }}
+            ${{ needs.check_changes.outputs.has_asset_changes == 'true' && '**Assets recompilados:** Sim' || '**Assets recompilados:** Não' }}
+
+      - name: Send Discord notification - Failure
+        if: failure()
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            ❌ **Falha no deploy!**
+            **Projeto:** SalesControl
+            **Branch:** master
+            **Hora:** ${{ format(now(), 'HH:mm:ss dd/MM/yyyy') }}
+            Por favor, verifique os logs para mais detalhes.
+
+  notify_no_changes:
+    needs: check_changes
+    if: needs.check_changes.outputs.has_changes != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification - No changes
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            ℹ️ **Verificação de deploy concluída**
+            **Projeto:** SalesControl
+            **Branch:** master
+            **Hora:** ${{ format(now(), 'HH:mm:ss dd/MM/yyyy') }}
+            **Status:** Nenhuma alteração detectada. Nenhum deploy necessário.
