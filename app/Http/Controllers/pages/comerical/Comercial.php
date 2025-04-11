@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers\pages\comerical;
 
-use App\Models\ContatosCorretores;
-use App\Models\RankingVendas;
-use App\Modules\Ranking\Ranking;
-use App\Repositories\Contracts\LogPreditivaRepositoryInterface;
-use App\Repositories\Contracts\PreditivaRepositoryInterface;
-use App\UseCases\PreditivaUseCase;
 use DateTime;
 use Carbon\Carbon;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
+use App\Models\Preditiva;
 use App\Enums\Tabulations;
+use App\Models\LogPreditiva;
 use Illuminate\Http\Request;
+use App\Models\RankingVendas;
+use App\Modules\Ranking\Ranking;
 use App\UseCases\MailingUseCase;
+use App\Models\ContatosCorretores;
 use App\UseCases\ComercialUseCase;
+use App\UseCases\PreditivaUseCase;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -31,9 +32,11 @@ use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
+use App\Repositories\Contracts\PreditivaRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\AgendamentoRepositoryInterface;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
+use App\Repositories\Contracts\LogPreditivaRepositoryInterface;
 use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
@@ -604,4 +607,141 @@ class Comercial extends Controller
         return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar lead para preditiva");
       }
   }
+
+  public function getClientesPreditiva(Request $request) {
+    $userId = Auth::id();
+    $empresaId = Auth::user()->empresa_id;
+
+    Preditiva::where('user_id', $userId)
+    ->where('data_atribuicao', '<', now()->subHours(2))
+    ->update([
+        'user_id' => null,
+        'data_atribuicao' => null
+    ]);
+
+    $cliente = DB::table('preditiva as p')
+            ->join('contatos as c', 'p.contato_id', '=', 'c.id')
+            ->leftJoin(DB::raw('(
+                SELECT contato_id, COUNT(*) as descartes, MAX(created_at) as ultimo_descarte
+                FROM log_preditiva
+                WHERE acao = "DESCARTE"
+                GROUP BY contato_id
+            ) as lp'), 'p.contato_id', '=', 'lp.contato_id')
+            ->select(
+                'c.id',
+                'c.nome_cliente as nome',
+                'c.telefone1 as telefone',
+                'c.email',
+                'c.plano',
+                'c.categoria',
+                'c.entidade',
+                'c.data_nascimento',
+                'c.valor_plano_atual',
+                'c.created_at'
+            )
+            ->where('p.empresa_id', $empresaId)
+            ->where('p.status', 'Y')
+            ->where(function($query) {
+                $query->whereNull('p.user_id')
+                      ->orWhere('p.user_id', Auth::id());
+            })
+            ->where(function($query) {
+                $query->whereNull('lp.descartes')
+                      ->orWhere('lp.descartes', '<', 5);
+            })
+            ->orderBy('lp.ultimo_descarte', 'asc')
+            ->orderBy('p.created_at', 'asc')
+            ->limit(1)
+            ->first();
+
+            if ($cliente) {
+              // Atribuir o cliente ao usuário atual
+              Preditiva::where('contato_id', $cliente->id)
+                  ->update([
+                      'user_id' => $userId,
+                      'data_atribuicao' => now()
+                  ]);
+
+              return response()->json([$cliente]);
+          }
+          return response()->json([]);
+  }
+
+  public function descartarClientePreditiva(Request $request)
+    {
+        $userId = Auth::id();
+        $empresaId = Auth::user()->empresa_id;
+        $contatoId = $request->contato_id;
+        $tabulacao = $request->tabulacao ?? 'SEM TABULAÇÃO';
+
+        // Registrar o descarte
+        LogPreditiva::create([
+            'empresa_id' => $empresaId,
+            'user_id' => $userId,
+            'contato_id' => $contatoId,
+            'tabulacao' => $tabulacao,
+            'acao' => 'DESCARTE'
+        ]);
+
+        // Liberar o cliente
+        Preditiva::where('contato_id', $contatoId)
+            ->update([
+                'user_id' => null,
+                'data_atribuicao' => null
+            ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function converterClientePreditiva(Request $request)
+    {
+        $userId = Auth::id();
+        $empresaId = Auth::user()->empresa_id;
+        $contatoId = $request->contato_id;
+
+        // Registrar a conversão no log
+        LogPreditiva::create([
+            'empresa_id' => $empresaId,
+            'user_id' => $userId,
+            'contato_id' => $contatoId,
+            'tabulacao' => 'CONVERTIDO',
+            'acao' => 'CONVERSAO'
+        ]);
+
+        // Buscar a tabulação "PROSPECÇÃO" da empresa
+        $tabulacaoProspeccao = DB::table('tabulacoes')
+            ->where('empresa_id', $empresaId)
+            ->where('descricao', 'PROSPECÇÃO')
+            ->where('status', 'Y')
+            ->first();
+
+        if ($tabulacaoProspeccao) {
+            // Verificar se já existe um registro para este contato
+            $existingRecord = DB::table('contatos_corretores')
+                ->where('contato_id', $contatoId)
+                ->where('user_id', $userId)
+                ->first();
+
+            if (!$existingRecord) {
+                // Criar registro na tabela contatos_corretores
+                DB::table('contatos_corretores')->insert([
+                    'empresa_id' => $empresaId,
+                    'contato_id' => $contatoId,
+                    'user_id' => $userId,
+                    'tabulacao_id' => $tabulacaoProspeccao->id,
+                    'sub_tabulacao_id' => null,
+                    'temperatura' => 'FRIO',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+        }
+
+        // Remover da fila preditiva
+        Preditiva::where('contato_id', $contatoId)->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+
 }
