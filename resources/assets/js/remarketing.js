@@ -109,10 +109,10 @@ $(function () {
               full.id +
               '">' +
               '<i class="ri-arrow-left-right-fill"></i><span> Transferir Contato</span></button>' +
-              '<a href=""  type="button" class="dropdown-item js-transferir-leads" data-id="' +
+              '<button type="button" class="dropdown-item js-enviar-preditiva" data-id="' +
               full.id +
               '">' +
-              '<i class="ri-arrow-right-fill"></i><span> Enviar Preditiva</span></a>' +
+              '<i class="ri-arrow-right-fill"></i><span> Enviar Preditiva</span></button>' +
               '</div>' +
               '</div>'
             );
@@ -317,6 +317,26 @@ $(function () {
       var button = event.target.closest('.js-transferir-leads');
       var leadId = button.getAttribute('data-id');
       document.querySelector('#idMailing').value = leadId;
+    }
+  });
+
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('.js-enviar-preditiva')) {
+      const button = event.target.closest('.js-enviar-preditiva');
+      const id = button.getAttribute('data-id');
+      const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+      fetch('/comercial/sendLeadPredictive', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': token
+        },
+        body: JSON.stringify({ id: id })
+      })
+        .then(response => response.json())
+        .then(data => console.log('Sucesso:', data))
+        .catch(error => console.error('Erro:', error));
     }
   });
 });

@@ -5,6 +5,9 @@ namespace App\Http\Controllers\pages\comerical;
 use App\Models\ContatosCorretores;
 use App\Models\RankingVendas;
 use App\Modules\Ranking\Ranking;
+use App\Repositories\Contracts\LogPreditivaRepositoryInterface;
+use App\Repositories\Contracts\PreditivaRepositoryInterface;
+use App\UseCases\PreditivaUseCase;
 use DateTime;
 use Carbon\Carbon;
 use App\Enums\UserRole;
@@ -47,6 +50,7 @@ class Comercial extends Controller
   protected LeadAtividadeRepository $leadAtividadeRepository;
   protected ComercialUseCase $comercialUseCase;
   protected MailingUseCase $mailingUseCase;
+  protected PreditivaUseCase $preditivaUseCase;
   protected AgendamentoRepository $agendamentoRepository;
   protected Ranking $ranking;
 
@@ -59,7 +63,9 @@ class Comercial extends Controller
     ComentariosLegadosRepositoryInterface $comentariosLegadosRepositoryInterface,
     VendasRepositoryInterface $vendasRepositoryInterface,
     LeadAtividadeRepositoryInterface $leadAtividadeRepositoryInterface,
-    AgendamentoRepositoryInterface $agendamentoRepositoryInterface
+    AgendamentoRepositoryInterface $agendamentoRepositoryInterface,
+    PreditivaRepositoryInterface $preditivaRepositoryInterface,
+    LogPreditivaRepositoryInterface $logPreditivaRepositoryInterface,
 
   ) {
     //Repositories
@@ -76,7 +82,7 @@ class Comercial extends Controller
     //UseCases
     $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface, $leadAtividadeRepositoryInterface);
     $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
-
+    $this->preditivaUseCase = new PreditivaUseCase($preditivaRepositoryInterface, $logPreditivaRepositoryInterface, $contatosCorretoresRepositoryInterface);
     //raking de vendas
     $this->ranking = new Ranking();
   }
@@ -581,9 +587,18 @@ class Comercial extends Controller
       }
 
     } catch (\Throwable $th) {
-
-      dd($th);
       return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar lead");
     }
+  }
+
+
+  public function sendLeadPredictive(Request $request) {
+      try {
+        $respose = $this->preditivaUseCase->sendMailingPredictive($request->id);
+
+        dd($respose);
+      } catch (\Throwable $th) {
+        //throw $th;
+      }
   }
 }
