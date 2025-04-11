@@ -28,16 +28,16 @@ jobs:
             git fetch origin master
 
             if [ "$CURRENT_HASH" != "$(git rev-parse origin/master)" ]; then
-              echo "has_changes=true" >> $GITHUB_OUTPUT
+              echo "::set-output name=has_changes::true"
               git diff --name-only $CURRENT_HASH origin/master | grep -E '\.(js|css|scss|vue|jsx|tsx)$' > /dev/null
               if [ $? -eq 0 ]; then
-                echo "has_asset_changes=true" >> $GITHUB_OUTPUT
+                echo "::set-output name=has_asset_changes::true"
               else
-                echo "has_asset_changes=false" >> $GITHUB_OUTPUT
+                echo "::set-output name=has_asset_changes::false"
               fi
             else
-              echo "has_changes=false" >> $GITHUB_OUTPUT
-              echo "has_asset_changes=false" >> $GITHUB_OUTPUT
+              echo "::set-output name=has_changes::false"
+              echo "::set-output name=has_asset_changes::false"
             fi
 
   deploy:
@@ -68,7 +68,7 @@ jobs:
           command_timeout: "20m"
           script: |
             cd /var/www/html/salescontrol-new
-            sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/batistrutaa2/salescontrol-new.git master
+            sudo git pull origin master
             sudo ./vendor/bin/sail artisan route:clear
             sudo ./vendor/bin/sail artisan config:clear
             sudo ./vendor/bin/sail artisan cache:clear
@@ -85,7 +85,7 @@ jobs:
           command_timeout: "60m"
           script: |
             cd /var/www/html/salescontrol-new
-            sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/batistrutaa2/salescontrol-new.git master
+            sudo git pull origin master
 
             # Otimizar configuração do Vite para build mais rápido
             if [ -f "vite.config.js" ]; then
@@ -160,3 +160,10 @@ jobs:
         uses: Ilshidur/action-discord@master
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            ℹ️ **Verificação de deploy concluída**
+            **Projeto:** SalesControl
+            **Branch:** master
+            **Hora:** ${{ steps.current-time.outputs.TIME }}
+            **Status:** Nenhuma alteração detectada. Nenhum deploy necessário.
