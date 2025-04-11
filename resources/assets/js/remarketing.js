@@ -104,11 +104,15 @@ $(function () {
               '<div class="dropdown-menu dropdown-menu-end m-0">' +
               '<a href="/comercial/abrir-cliente/' +
               full.id +
-              '"class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Editar Contato</span></a>' +
+              '"class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span> Editar Contato</span></a>' +
               '<button type="button" class="dropdown-item js-transferir-leads" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
               full.id +
               '">' +
-              '<i class="ri-arrow-left-right-fill"></i><span>Transferir Contato</span></button>' +
+              '<i class="ri-arrow-left-right-fill"></i><span> Transferir Contato</span></button>' +
+              '<a href=""  type="button" class="dropdown-item js-transferir-leads" data-id="' +
+              full.id +
+              '">' +
+              '<i class="ri-arrow-right-fill"></i><span> Enviar Preditiva</span></a>' +
               '</div>' +
               '</div>'
             );
