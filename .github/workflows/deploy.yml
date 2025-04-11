@@ -16,7 +16,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             cd /var/www/html/salescontrol-new
-            sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/seu-usuario/seu-repositorio.git master
+            sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/batistrutaa2/salescontrol-new.git master
 
             # Limpar caches antes de tentar migrar
             ./vendor/bin/sail artisan route:clear
