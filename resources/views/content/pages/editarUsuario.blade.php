@@ -1,6 +1,6 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'Editar Usuario - Manager')
+@section('title', 'Editar Usuario')
 
 @section('page-script')
     @vite('resources/assets/js/form-input-group.js')
@@ -8,7 +8,7 @@
 
 @section('content')
     <div class="row">
-    
+
         <div class="col-md-12">
             @if (session('status') == 'success')
                 <div class="alert alert-solid-success d-flex align-items-center" role="alert">
