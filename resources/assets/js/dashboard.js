@@ -2,6 +2,7 @@
  * Charts ChartsJS
  */
 'use strict';
+alert('teste');
 
 (function () {
   const tableContratosCadastrados = $('#tableContratosCadastrados').DataTable();
