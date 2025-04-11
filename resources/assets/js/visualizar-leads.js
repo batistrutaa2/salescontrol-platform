@@ -78,6 +78,7 @@ $(function () {
         {
           targets: 5, // Coluna com telefone
           render: function (data, type, row) {
+            if (!data) return ''; //
             let value = data.toString().replace(/\D/g, ''); // Remove caracteres não numéricos
 
             if (value.length === 11) {
