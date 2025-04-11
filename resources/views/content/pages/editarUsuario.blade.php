@@ -8,6 +8,7 @@
 
 @section('content')
     <div class="row">
+    
         <div class="col-md-12">
             @if (session('status') == 'success')
                 <div class="alert alert-solid-success d-flex align-items-center" role="alert">
