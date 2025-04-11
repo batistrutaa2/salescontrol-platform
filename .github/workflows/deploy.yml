@@ -17,5 +17,17 @@ jobs:
           script: |
             cd /var/www/html/salescontrol-new
             sudo git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com/seu-usuario/seu-repositorio.git master
+
+            # Limpar caches antes de tentar migrar
+            ./vendor/bin/sail artisan route:clear
+            ./vendor/bin/sail artisan config:clear
+            ./vendor/bin/sail artisan cache:clear
+
+            # Executar migrações
             ./vendor/bin/sail artisan migrate --force
+
+            # Compilar assets
             ./vendor/bin/sail npm run build
+
+            # Otimizar após build bem-sucedido
+            ./vendor/bin/sail artisan optimize
