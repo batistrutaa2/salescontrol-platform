@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\pages\comerical;
 
+use App\Models\Comentarios;
 use App\Models\Dependentes;
 use DateTime;
 use Carbon\Carbon;
@@ -765,6 +766,8 @@ class Comercial extends Controller
             'acao' => 'CONVERSAO'
         ]);
 
+
+
         // Buscar a tabulação "PROSPECÇÃO" da empresa
         $tabulacaoProspeccao = DB::table('tabulacoes')
             ->where('empresa_id', $empresaId)
@@ -796,6 +799,14 @@ class Comercial extends Controller
 
         // Remover da fila preditiva
         Preditiva::where('contato_id', $contatoId)->delete();
+
+        // Todos os comentarios anteriores que o vendedor fez será ocutado
+        Comentarios::where('user_id', $userId)
+        ->where('contato_id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->update([
+            'visivel' => "N"
+        ]);
 
         return response()->json(['success' => true]);
     }
