@@ -134,6 +134,9 @@ $(function () {
           searchable: false,
           orderable: false,
           render: function (data, type, full, meta) {
+            if (full['status'] === 'PREDITIVA') {
+              return '<div class="text-muted small">Lead na fila preditiva</div>';
+            }
             return (
               '<div class="d-flex align-items-center">' +
               '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown">' +

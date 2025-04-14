@@ -133,10 +133,16 @@ class ContatosRepository implements ContatosRepositoryInterface
         'a.cpf',
         'a.telefone1 as telefone',
         'a.valor_plano_atual',
-        'c.descricao as status',
+        DB::raw("
+          CASE
+              WHEN b.contato_id IS NULL THEN 'PREDITIVA'
+              ELSE c.descricao
+          END as status
+        "),
         'a.created_at',
         DB::raw("
           CASE
+              WHEN b.contato_id IS NULL THEN 'N/A'
               WHEN b.tabulacao_id = 1 AND DATEDIFF(CURDATE(), DATE(b.created_at)) > 5 THEN 'Fora do Prazo'
               WHEN b.tabulacao_id = 2 AND DATEDIFF(CURDATE(), DATE(b.created_at)) > 10 THEN 'Fora do Prazo'
               WHEN b.tabulacao_id = 3 AND DATEDIFF(CURDATE(), DATE(b.updated_at)) > 15 THEN 'Fora do Prazo'
@@ -144,10 +150,25 @@ class ContatosRepository implements ContatosRepositoryInterface
           END AS Prazo
         ")
       )
-      ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.id')
+      ->leftJoin('contatos_corretores as b', function($join) use ($empresa_id) {
+          $join->on('b.contato_id', '=', 'a.id')
+               ->where('b.empresa_id', '=', $empresa_id);
+      })
       ->leftJoin('tabulacoes as c', 'b.tabulacao_id', '=', 'c.id')
       ->leftJoin('users as d', 'b.user_id', '=', 'd.id')
-      ->where('b.empresa_id', $empresa_id)
+      ->where(function($query) use ($empresa_id) {
+          // Contatos que estão relacionados a esta empresa
+          $query->where(function($subquery) use ($empresa_id) {
+              $subquery->whereNotNull('b.contato_id')
+                       ->where('b.empresa_id', $empresa_id);
+          })
+          // OU contatos que não estão em nenhum relacionamento
+          ->orWhereNotExists(function($subquery) {
+              $subquery->select(DB::raw(1))
+                       ->from('contatos_corretores')
+                       ->whereRaw('contatos_corretores.contato_id = a.id');
+          });
+      })
       ->get();
   }
 
@@ -214,4 +235,3 @@ class ContatosRepository implements ContatosRepositoryInterface
   }
 
 }
-
