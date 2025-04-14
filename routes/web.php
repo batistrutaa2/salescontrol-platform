@@ -85,6 +85,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/getLeadsmarketing', [Comercial::class, 'getLeadsmarketing'])->name('comercial.getLeadsmarketing');
   Route::post('/comercial/sendLeadMarketing', [Comercial::class, 'sendLeadMarketing'])->name('comercial.sendLeadMarketing');
   Route::post('/comercial/sendLeadPredictive', [Comercial::class, 'sendLeadPredictive'])->name('comercial.sendLeadPredictive');
+  Route::post('/comercial/sendMultipleLeadsPredictive', [Comercial::class, 'sendMultipleLeadsPredictive'])->name('comercial.sendMultipleLeadsPredictive');
   Route::post('/comercial/getClientesPreditiva', [Comercial::class, 'getClientesPreditiva'])->name('comercial.getClientesPreditiva');
   Route::post('/comercial/descartarClientePreditiva', [Comercial::class, 'descartarClientePreditiva'])->name('comercial.descartarClientePreditiva');
   Route::post('/comercial/converterClientePreditiva', [Comercial::class, 'converterClientePreditiva'])->name('comercial.converterClientePreditiva');

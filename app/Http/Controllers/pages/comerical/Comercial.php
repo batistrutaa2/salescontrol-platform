@@ -467,7 +467,6 @@ class Comercial extends Controller
               return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
           }
       } catch (\Throwable $th) {
-          dd($th);
           return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
       }
   }
@@ -665,6 +664,59 @@ class Comercial extends Controller
         return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar lead para preditiva");
       }
   }
+
+
+  public function sendMultipleLeadsPredictive(Request $request) {
+    try {
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nenhum lead selecionado'
+            ]);
+        }
+
+        $successCount = 0;
+        $errorCount = 0;
+
+        foreach ($ids as $id) {
+            try {
+                $result = $this->preditivaUseCase->sendMailingPredictive($id);
+                if ($result) {
+                    $successCount++;
+                } else {
+                    $errorCount++;
+                }
+            } catch (\Throwable $th) {
+                $errorCount++;
+            }
+        }
+
+        if ($errorCount === 0) {
+            return response()->json([
+                'success' => true,
+                'message' => "$successCount lead(s) enviado(s) com sucesso para a fila preditiva."
+            ]);
+        } else if ($successCount > 0) {
+            return response()->json([
+                'success' => true,
+                'message' => "$successCount lead(s) enviado(s) com sucesso e $errorCount com falha."
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => "Falha ao enviar todos os $errorCount lead(s) para a fila preditiva."
+            ]);
+        }
+    } catch (\Throwable $th) {
+        return response()->json([
+            'success' => false,
+            'message' => "Erro ao processar: " . $th->getMessage()
+        ], 500);
+    }
+}
+
 
   public function getClientesPreditiva(Request $request) {
     $userId = Auth::id();

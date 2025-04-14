@@ -53,6 +53,14 @@ $(function () {
     });
   }
 
+  // Adicionar botão de envio em massa antes da inicialização da tabela
+  $('.card-datatable').before(
+    '<div class="d-flex justify-content-end mb-3">' +
+      '<button id="enviarSelecionadosBtn" class="btn btn-primary waves-effect waves-light" disabled>' +
+      '<i class="ri-arrow-right-fill me-1"></i>Enviar Selecionados para Preditiva</button>' +
+      '</div>'
+  );
+
   // customers datatable
   if (dt_customer_table.length) {
     table = dt_customer_table.DataTable({
@@ -63,6 +71,17 @@ $(function () {
         error: function (jqXHR, textStatus, errorThrown) {}
       },
       columns: [
+        {
+          // Coluna de checkbox
+          data: null,
+          title: '<input type="checkbox" class="form-check-input" id="selectAll">',
+          orderable: false,
+          searchable: false,
+          width: '30px',
+          render: function (data, type, full, meta) {
+            return '<input type="checkbox" class="form-check-input lead-checkbox" data-id="' + full.id + '">';
+          }
+        },
         { data: 'id' },
         { data: 'nome_cliente' },
         {
@@ -146,7 +165,7 @@ $(function () {
               text: '<i class="ri-printer-line me-1"></i>Print',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5, 6],
+                columns: [1, 2, 3, 4, 5, 6, 7], // Ajustado para pular a coluna de checkbox
                 format: {
                   body: function (inner, coldex, rowdex) {
                     if (inner.length <= 0) return inner;
@@ -182,7 +201,7 @@ $(function () {
               text: '<i class="ri-file-text-line me-1" ></i>Csv',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5, 6],
+                columns: [1, 2, 3, 4, 5, 6, 7], // Ajustado para pular a coluna de checkbox
                 format: {
                   body: function (inner, coldex, rowdex) {
                     if (inner.length <= 0) return inner;
@@ -205,7 +224,7 @@ $(function () {
               text: '<i class="ri-file-excel-line me-1"></i>Excel',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5, 6],
+                columns: [1, 2, 3, 4, 5, 6, 7], // Ajustado para pular a coluna de checkbox
                 format: {
                   body: function (inner, coldex, rowdex) {
                     if (inner.length <= 0) return inner;
@@ -228,7 +247,7 @@ $(function () {
               text: '<i class="ri-file-pdf-line me-1"></i>Pdf',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5, 6],
+                columns: [1, 2, 3, 4, 5, 6, 7], // Ajustado para pular a coluna de checkbox
                 format: {
                   body: function (inner, coldex, rowdex) {
                     if (inner.length <= 0) return inner;
@@ -251,7 +270,7 @@ $(function () {
               text: '<i class="ri-file-copy-line me-1"></i>Copy',
               className: 'dropdown-item',
               exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5, 6],
+                columns: [1, 2, 3, 4, 5, 6, 7], // Ajustado para pular a coluna de checkbox
                 format: {
                   body: function (inner, coldex, rowdex) {
                     if (inner.length <= 0) return inner;
@@ -310,6 +329,78 @@ $(function () {
     $('.dt-action-buttons').addClass('pt-0');
     $('.dataTables_filter input').addClass('ms-0');
     $('.dt-buttons').addClass('d-flex flex-wrap');
+
+    // Manipulador para o checkbox "Selecionar Todos"
+    $(document).on('change', '#selectAll', function () {
+      const isChecked = $(this).prop('checked');
+      $('.lead-checkbox').prop('checked', isChecked);
+      updateEnviarSelecionadosBtn();
+    });
+
+    // Manipulador para checkboxes individuais
+    $(document).on('change', '.lead-checkbox', function () {
+      updateEnviarSelecionadosBtn();
+
+      // Atualizar o estado do checkbox "Selecionar Todos"
+      const allChecked = $('.lead-checkbox:checked').length === $('.lead-checkbox').length;
+      $('#selectAll').prop('checked', allChecked && $('.lead-checkbox').length > 0);
+    });
+
+    // Função para atualizar o estado do botão "Enviar Selecionados"
+    function updateEnviarSelecionadosBtn() {
+      const hasChecked = $('.lead-checkbox:checked').length > 0;
+      $('#enviarSelecionadosBtn').prop('disabled', !hasChecked);
+    }
+
+    // Manipulador para o botão "Enviar Selecionados"
+    $('#enviarSelecionadosBtn').on('click', function () {
+      const selectedIds = [];
+
+      $('.lead-checkbox:checked').each(function () {
+        selectedIds.push($(this).data('id'));
+      });
+
+      if (selectedIds.length === 0) {
+        toastr.warning('Nenhum lead selecionado', 'Atenção');
+        return;
+      }
+
+      // Confirmar antes de enviar
+      if (confirm(`Deseja enviar ${selectedIds.length} lead(s) para a fila preditiva?`)) {
+        sendLeadsToPredictive(selectedIds);
+      }
+    });
+
+    // Função para enviar leads para a fila preditiva
+    function sendLeadsToPredictive(ids) {
+      $.ajaxSetup({
+        headers: {
+          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+      });
+
+      $.ajax({
+        url: '/comercial/sendMultipleLeadsPredictive',
+        type: 'POST',
+        data: { ids: ids },
+        success: function (response) {
+          if (response.success) {
+            toastr.success(response.message || 'Leads enviados com sucesso!', 'Sucesso');
+            // Desmarcar todos os checkboxes
+            $('.lead-checkbox, #selectAll').prop('checked', false);
+            updateEnviarSelecionadosBtn();
+            // Recarregar a tabela
+            table.ajax.reload();
+          } else {
+            toastr.error(response.message || 'Erro ao enviar leads', 'Erro');
+          }
+        },
+        error: function (xhr) {
+          const errorMsg = xhr.responseJSON ? xhr.responseJSON.message : 'Erro ao enviar leads para a fila preditiva';
+          toastr.error(errorMsg, 'Erro');
+        }
+      });
+    }
   }
 
   document.addEventListener('click', function (event) {
