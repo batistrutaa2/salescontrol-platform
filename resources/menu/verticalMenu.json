@@ -118,8 +118,13 @@
       "submenu": [
         {
           "url": "/vendas/analitico",
-          "name": "Analitico (Vendas)",
+          "name": "Relatorio de Vendas",
           "slug": "pages-mailing-importar"
+        },
+        {
+          "url": "/relatorios/preditiva",
+          "name": "Relatorio Preditivo",
+          "slug": "pages-relatorio-preditiva"
         },
         {
           "url": "/relatorios/ligacoes",
