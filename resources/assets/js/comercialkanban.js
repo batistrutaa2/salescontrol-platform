@@ -545,12 +545,34 @@
       const itemTypeLead = item.getAttribute('data-tipo-lead');
       const matchesSearch = itemTitle.includes(searchTerm.toLowerCase());
       const matchesUserId = userId === '' || itemUserId === userId;
-      const matchesTypeLead = typeLeadFilter == itemTypeLead ? true : false;
+      const matchesTypeLead = typeLeadFilter === '' || typeLeadFilter === itemTypeLead;
 
       if (matchesSearch && matchesUserId && matchesTypeLead) {
         item.style.display = 'block';
       } else {
         item.style.display = 'none';
+      }
+    });
+
+    // Atualizar contagem de itens visíveis em cada quadro
+    const boards = document.querySelectorAll('.kanban-board');
+    boards.forEach(board => {
+      const boardId = board.getAttribute('data-id');
+      const boardItems = board.querySelectorAll('.kanban-item');
+      let visibleCount = 0;
+
+      boardItems.forEach(item => {
+        if (item.style.display !== 'none') {
+          visibleCount++;
+        }
+      });
+
+      // Atualizar o título do quadro com a nova contagem
+      const titleElement = board.querySelector('.kanban-title-board');
+      if (titleElement) {
+        const originalTitle = titleElement.getAttribute('data-original-title') || titleElement.textContent.split(' - ')[0];
+        titleElement.setAttribute('data-original-title', originalTitle);
+        titleElement.textContent = `${originalTitle} - ${visibleCount}`;
       }
     });
   }
@@ -598,6 +620,12 @@
   const kanbanContainer = document.querySelector('.kanban-container'),
     kanbanTitleBoard = [].slice.call(document.querySelectorAll('.kanban-title-board')),
     kanbanItem = [].slice.call(document.querySelectorAll('.kanban-item'));
+
+  // Armazenar os títulos originais dos quadros
+  kanbanTitleBoard.forEach(title => {
+    const originalTitle = title.textContent.split(' - ')[0];
+    title.setAttribute('data-original-title', originalTitle);
+  });
 
   // Render custom items
   if (kanbanItem) {

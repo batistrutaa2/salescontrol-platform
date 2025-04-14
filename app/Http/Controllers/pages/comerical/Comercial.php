@@ -162,18 +162,15 @@ class Comercial extends Controller
         ];
       })->values()->toArray();
 
-      // Ordenar os itens pela data de criação, considerando apenas dia, mês e ano
       usort($items, function ($a, $b) {
-        // Extrair dia, mês e ano da data e compará-los
         $dataA = DateTime::createFromFormat('d/m/Y H:i:s', $a['data_create']);
         $dataB = DateTime::createFromFormat('d/m/Y H:i:s', $b['data_create']);
 
-        // Comparar apenas a data sem a hora (Y-m-d)
         if ($dataA && $dataB) {
           return $dataA->format('Y-m-d') <=> $dataB->format('Y-m-d');
         }
 
-        return 0; // Caso não consiga converter, mantém a ordem original
+        return 0;
       });
 
       $boardData[] = [
