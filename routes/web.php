@@ -68,6 +68,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/getCommentsLead/{id_mailing}', [Comercial::class, 'getCommentsLead'])->name('comercial.getCommentsLead');
   Route::get('/comercial/abrir-cliente/{id_mailing}', [Comercial::class, 'openClient'])->name('comercial.openClient');
   Route::post('/comercial/updateClient', [Comercial::class, 'updateClient'])->name('comercial.updateClient');
+  Route::post('/comercial/updateClientDependecies', [Comercial::class, 'updateClientDependecies'])->name('comercial.updateClientDependecies');
   Route::post('/comercial/saveComment', [Comercial::class, 'saveComment'])->name('comercial.saveComment');
   Route::get('/comercial/remarketing', [Comercial::class, 'remarketing'])->name('comercial.remarketing');
   Route::get('/comercial/getRemarketingLeads', [Comercial::class, 'getRemarketingLeads'])->name('comercial.getRemarketingLeads');

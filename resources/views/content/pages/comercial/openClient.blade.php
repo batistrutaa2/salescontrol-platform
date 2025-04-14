@@ -327,6 +327,10 @@
                 @if ($client->tipo_layout != "padrao")
                       <div class="accordion mt-5" id="collapsibleSection">
                           @foreach($dependentes as $index => $dependente)
+                          <form method="POST" action="{{ route('comercial.updateClientDependecies') }}">
+                            @csrf
+                            <input type="hidden" name="id_dependente" value="{{ $dependente->id }}">
+                            <input type="hidden" name="index_array" value="{{ $index }}">
                               <div class="accordion-item {{ $loop->first ? 'active' : '' }}">
                                   <h2 class="accordion-header" id="headingDependente{{ $index }}">
                                       <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDependente{{ $index }}" aria-expanded="{{ $loop->first ? 'true' : 'false' }}" aria-controls="collapseDependente{{ $index }}">
@@ -356,7 +360,7 @@
                                                   <div class="row">
                                                       <label class="col-sm-3 col-form-label text-sm-end" for="phone{{ $index }}">Telefone 1</label>
                                                       <div class="col-sm-9">
-                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone]" value="{{ $dependente['telefone_1'] ?? '' }}" placeholder="(11) 94556-7166" />
+                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone1]" value="{{ $dependente['telefone_1'] ?? '' }}" placeholder="(11) 94556-7166" />
                                                       </div>
                                                   </div>
                                               </div>
@@ -364,7 +368,7 @@
                                                   <div class="row">
                                                       <label class="col-sm-3 col-form-label text-sm-end" for="phone{{ $index }}">Telefone 2</label>
                                                       <div class="col-sm-9">
-                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone]" value="{{ $dependente['telefone_2'] ?? '' }}" placeholder="(11) 94556-7166" />
+                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone2]" value="{{ $dependente['telefone_2'] ?? '' }}" placeholder="(11) 94556-7166" />
                                                       </div>
                                                   </div>
                                               </div>
@@ -372,7 +376,7 @@
                                                   <div class="row">
                                                       <label class="col-sm-3 col-form-label text-sm-end" for="phone{{ $index }}">Telefone 3</label>
                                                       <div class="col-sm-9">
-                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone]" value="{{ $dependente['telefone_3'] ?? '' }}" placeholder="(11) 94556-7166" />
+                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone3]" value="{{ $dependente['telefone_3'] ?? '' }}" placeholder="(11) 94556-7166" />
                                                       </div>
                                                   </div>
                                               </div>
@@ -388,7 +392,7 @@
                                                   <div class="row">
                                                       <label class="col-sm-3 col-form-label text-sm-end" for="idade{{ $index }}">Valor Dependente</label>
                                                       <div class="col-sm-9">
-                                                          <input type="text" id="idade{{ $index }}" class="form-control" name="dependentes[{{ $index }}][idade]" value="R$ {{ number_format($dependente['valor_plano'] ?? 0, 2, ',', '.') ?? '' }}" placeholder="John Doe" />
+                                                          <input type="text" id="idade{{ $index }}" class="form-control" name="dependentes[{{ $index }}][valor_plano]" value="R$ {{ number_format($dependente['valor_plano'] ?? 0, 2, ',', '.') ?? '' }}" placeholder="John Doe" />
                                                       </div>
                                                   </div>
                                               </div>
@@ -399,6 +403,7 @@
                                       </div>
                                   </div>
                               </div>
+                          </form>
                           @endforeach
                       </div>
                 @endif
