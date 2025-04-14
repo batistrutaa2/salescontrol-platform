@@ -304,7 +304,6 @@
 
     // Update tables function
     function updateTables(dataCadastrados, dataImplantados) {
-      console.log(dataCadastrados, dataImplantados);
 
       // Clear the tables
       tableContratosCadastrados.clear();

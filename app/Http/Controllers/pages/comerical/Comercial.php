@@ -270,6 +270,27 @@ class Comercial extends Controller
     }
   }
 
+  public function updateClientDependecies(Request $request) {
+    try {
+      $dependencies = Dependentes::find($request->id_dependente);
+
+      $dependencies->nome = $request->dependentes[$request->index_array]["nome"];
+      $dependencies->cpf =  $request->dependentes[$request->index_array]["cpf"];
+      $dependencies->idade = $request->dependentes[$request->index_array]["idade"];
+      $dependencies->telefone_1 = $request->dependentes[$request->index_array]["telefone1"];
+      $dependencies->telefone_2 = $request->dependentes[$request->index_array]["telefone2"];
+      $dependencies->telefone_3 = $request->dependentes[$request->index_array]["telefone3"];
+      $dependencies->valor_plano = Helpers::moneyForRealSaveBank($request->dependentes[$request->index_array]["valor_plano"]);
+      if ($dependencies->save()) {
+        return redirect()->back()->with('status', 'success')->with('message', 'Dependente: '. $request->dependentes[$request->index_array]["nome"]. ' Atualizado com sucesso');
+      } else {
+        return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar dependente.');
+      }
+    } catch (\Throwable $th) {
+      return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar dependente.');
+    }
+  }
+
 
   public function saveNoteMailing(Request $request)
   {
@@ -322,7 +343,6 @@ class Comercial extends Controller
     if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
       $permiteEdition = true;
     }
-
     if (Auth::user()->empresa_id != $clientInfo->empresa_id){
       return redirect()->route('comercial.kanban')->with('status', 'error')->with('message', 'Sem permissao de acesso');
     } else {
