@@ -120,11 +120,13 @@
               @endif
 
               <!-- Botão para abrir a modal de fila preditiva -->
+              @if ($typeUserLogeed == 'VENDEDOR')
               <div class="ms-2 d-flex align-items-center">
                   <button type="button" class="btn btn-primary" id="btn-fila-preditiva">
                       <i class="ri-customer-service-line me-1"></i>Vitrini de clientes
                   </button>
               </div>
+              @endif
           </div>
       </div>
 
