@@ -32,9 +32,16 @@ jobs:
           script: |
             cd /var/www/html/salescontrol-new
 
+            # Configurar credenciais Git temporariamente
+            git config --local credential.helper store
+            echo "https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com" > ~/.git-credentials
+
             # Puxar alterações do repositório
             echo "Baixando alterações do repositório..."
             sudo git pull origin master
+
+            # Limpar credenciais após uso
+            rm -f ~/.git-credentials
 
             # Sempre executar o build de assets
             echo "Executando build de assets..."
