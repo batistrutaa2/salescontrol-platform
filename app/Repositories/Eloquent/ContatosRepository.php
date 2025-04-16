@@ -222,14 +222,18 @@ class ContatosRepository implements ContatosRepositoryInterface
 
 
   public function getLeadsmarketing($empresa_id) {
-    return $this->model::leftJoin('contatos_corretores as b', function ($join) use($empresa_id) {
-        // Junção entre contatos e contatos_corretores
+      return $this->model::leftJoin('contatos_corretores as b', function ($join) use ($empresa_id) {
         $join->on('b.contato_id', '=', 'contatos.id')
-             ->where('b.empresa_id', '=', $empresa_id); // Filtra a empresa no relacionamento com contatos_corretores
+            ->where('b.empresa_id', '=', $empresa_id);
     })
-    ->where('contatos.is_ads', 'Y')  // Verifica se o contato é um lead
-    ->whereNull('b.contato_id')  // Filtra os contatos que não tem corretores associados
-    ->where('contatos.empresa_id', '=', $empresa_id)  // Filtra a empresa diretamente na tabela contatos
+    ->leftJoin('preditiva as p', function ($join) use ($empresa_id) {
+        $join->on('p.contato_id', '=', 'contatos.id')
+            ->where('p.empresa_id', '=', $empresa_id);
+    })
+    ->where('contatos.is_ads', 'Y')
+    ->whereNull('b.contato_id')
+    ->whereNull('p.contato_id')
+    ->where('contatos.empresa_id', '=', $empresa_id)
     ->select('contatos.id', 'contatos.nome_cliente', 'contatos.email', 'contatos.telefone1', 'contatos.created_at')
     ->get();
   }
