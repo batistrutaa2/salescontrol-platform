@@ -570,7 +570,8 @@
       // Atualizar o título do quadro com a nova contagem
       const titleElement = board.querySelector('.kanban-title-board');
       if (titleElement) {
-        const originalTitle = titleElement.getAttribute('data-original-title') || titleElement.textContent.split(' - ')[0];
+        const originalTitle =
+          titleElement.getAttribute('data-original-title') || titleElement.textContent.split(' - ')[0];
         titleElement.setAttribute('data-original-title', originalTitle);
         titleElement.textContent = `${originalTitle} - ${visibleCount}`;
       }
@@ -822,6 +823,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const clienteNome = document.getElementById('cliente-nome');
   const clienteEmail = document.getElementById('cliente-email');
   const clienteTelefone = document.getElementById('cliente-telefone');
+  const clientecpf = document.getElementById('cliente-cpf');
   const clienteNascimento = document.getElementById('cliente-nascimento');
   const clientePlano = document.getElementById('cliente-plano');
   const clienteCategoria = document.getElementById('cliente-categoria');
@@ -908,6 +910,7 @@ document.addEventListener('DOMContentLoaded', function () {
     clienteId.value = cliente.id;
     clienteNome.textContent = cliente.nome || '-';
     clienteEmail.textContent = cliente.email || '-';
+    clientecpf.textContent = cliente.cpf || '-';
     clienteTelefone.textContent = cliente.telefone || '-';
     clienteNascimento.textContent = formatarData(cliente.data_nascimento) || '-';
     clientePlano.textContent = cliente.plano || '-';

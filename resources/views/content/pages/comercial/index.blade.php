@@ -485,6 +485,7 @@
                                         <h4 id="cliente-nome">-</h4>
                                         <p class="mb-1"><strong>Email:</strong> <span id="cliente-email">-</span></p>
                                         <p class="mb-1"><strong>Telefone:</strong> <span id="cliente-telefone">-</span></p>
+                                        <p class="mb-1"><strong>CPF:</strong> <span id="cliente-cpf">-</span></p>
                                         <p class="mb-1"><strong>Data de Nascimento:</strong> <span id="cliente-nascimento">-</span></p>
                                     </div>
                                     <div class="col-md-6">

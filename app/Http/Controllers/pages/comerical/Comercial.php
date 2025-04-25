@@ -745,6 +745,7 @@ class Comercial extends Controller
                 'c.plano',
                 'c.categoria',
                 'c.entidade',
+                'c.cpf',
                 'c.data_nascimento',
                 'c.valor_plano_atual',
                 'c.created_at'
