@@ -135,7 +135,17 @@ $(function () {
           orderable: false,
           render: function (data, type, full, meta) {
             if (full['status'] === 'PREDITIVA') {
-              return '<div class="text-muted small">Lead na fila preditiva</div>';
+              return (
+                '<div class="d-flex align-items-center">' +
+                '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown">' +
+                '<i class="ri-more-2-line ri-22px"></i></button>' +
+                '<div class="dropdown-menu dropdown-menu-end m-0">' +
+                '<a href="/mailing/excluir-lead/' +
+                full['id'] +
+                '" class="dropdown-item"><i class="ri-delete-bin-line me-2"></i><span>Excluir Lead</span></a>' +
+                '</div>' +
+                '</div>'
+              );
             }
             return (
               '<div class="d-flex align-items-center">' +
