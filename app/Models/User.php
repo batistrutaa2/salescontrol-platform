@@ -24,6 +24,8 @@ class User extends Authenticatable
     'email',
     'ativo',
     'password',
+    'empresa_id',
+    'user_role_id',
   ];
 
   /**
@@ -53,6 +55,11 @@ class User extends Authenticatable
   {
     return $this->belongsTo(Roles::class, 'user_role_id');
   }
+
+  public function empresa()
+    {
+        return $this->belongsTo(Empresa::class, 'empresa_id');
+    }
 
   public function getCreatedAtAttribute($value)
   {

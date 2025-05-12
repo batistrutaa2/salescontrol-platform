@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\Auth\Auth;
 use App\Http\Controllers\manager\Manager;
+use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\pages\HomePage;
 use App\Http\Controllers\pages\pabx\Pabx;
@@ -89,6 +90,15 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/getClientesPreditiva', [Comercial::class, 'getClientesPreditiva'])->name('comercial.getClientesPreditiva');
   Route::post('/comercial/descartarClientePreditiva', [Comercial::class, 'descartarClientePreditiva'])->name('comercial.descartarClientePreditiva');
   Route::post('/comercial/converterClientePreditiva', [Comercial::class, 'converterClientePreditiva'])->name('comercial.converterClientePreditiva');
+
+
+  Route::get('/comercial/calendario-reunioes', [ReunioesComercial::class, 'index'])->name('comercialReunioes.index');
+  Route::get('/reunioes/data', [ReunioesComercial::class, 'getReunioes']);
+  Route::post('/reunioes', [ReunioesComercial::class, 'store']);
+  Route::put('/reunioes/{id}', [ReunioesComercial::class, 'update']);
+  Route::delete('/reunioes/{id}', [ReunioesComercial::class, 'destroy']);
+  Route::get('/available-slots/{managerId}/{date}', [ReunioesComercial::class, 'getAvailableSlots']);
+
 
 
 

@@ -56,9 +56,21 @@
       ]
     },
     {
+      "url": "/comercial/calendario-reunioes",
+      "name": "Reuniões Comercial",
+      "icon": "menu-icon ri-restart-line",
+      "slug": "comercial-agendamentos",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "BACKOFFICE",
+        "VENDEDOR"
+      ]
+    },
+    {
       "url": "/comercial/remarketing",
       "name": "Fila Remarketing",
-      "icon": "menu-icon tf-icons ri-bar-chart-2-line",
+      "icon": "menu-icon tf-icons ri-refresh-line",
       "slug": "comercial-remarketing",
       "rules": [
         "ADMINISTRATIVO",
