@@ -159,19 +159,10 @@ $(function () {
         }
       ],
       select: {
-        style: 'multi', // Permitir múltiplas seleções
+        style: 'multi',
         selector: 'td:first-child input[type="checkbox"]'
       },
       order: [[2, 'asc']],
-      dom:
-        '<"card-header d-flex border-top rounded-0 flex-wrap py-0 pb-5 pb-md-0"' +
-        '<"me-5 ms-n2"f>' +
-        '<"d-flex justify-content-start justify-content-md-end align-items-baseline"<"dt-action-buttons d-flex align-items-start align-items-md-center justify-content-sm-center gap-4"lB>>' +
-        '>t' +
-        '<"row mx-1"' +
-        '<"col-sm-12 col-md-6"i>' +
-        '<"col-sm-12 col-md-6"p>' +
-        '>',
       lengthMenu: [
         [10, 25, 50, 100, -1],
         [10, 25, 50, 100, 'TODOS']
@@ -182,71 +173,6 @@ $(function () {
         searchPlaceholder: 'Buscar',
         info: 'Mostrando _START_ a _END_ de _TOTAL_ entradas'
       },
-      buttons: [
-        {
-          extend: 'collection',
-          className: 'btn btn-outline-secondary dropdown-toggle me-4 waves-effect waves-light',
-          text: '<i class="ri-download-line ri-16px me-2"></i><span class="d-none d-sm-inline-block">Exportar</span>',
-          buttons: [
-            {
-              extend: 'print',
-              text: '<i class="ri-printer-line me-1"></i>Imprimir',
-              className: 'dropdown-item',
-              exportOptions: {
-                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-                format: {
-                  body: function (inner, coldex, rowdex) {
-                    var el = $.parseHTML(inner);
-                    return $(el).text();
-                  }
-                }
-              }
-            },
-            {
-              extend: 'csv',
-              text: '<i class="ri-file-text-line me-1"></i>CSV',
-              className: 'dropdown-item',
-              exportOptions: {
-                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-                format: {
-                  body: function (inner, coldex, rowdex) {
-                    var el = $.parseHTML(inner);
-                    return $(el).text();
-                  }
-                }
-              }
-            },
-            {
-              extend: 'excel',
-              text: '<i class="ri-file-excel-line me-1"></i>Excel',
-              className: 'dropdown-item',
-              exportOptions: {
-                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-                format: {
-                  body: function (inner, coldex, rowdex) {
-                    var el = $.parseHTML(inner);
-                    return $(el).text();
-                  }
-                }
-              }
-            },
-            {
-              extend: 'pdf',
-              text: '<i class="ri-file-pdf-line me-1"></i>PDF',
-              className: 'dropdown-item',
-              exportOptions: {
-                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-                format: {
-                  body: function (inner, coldex, rowdex) {
-                    var el = $.parseHTML(inner);
-                    return $(el).text();
-                  }
-                }
-              }
-            }
-          ]
-        }
-      ],
       initComplete: function () {
         this.api()
           .columns(2)
