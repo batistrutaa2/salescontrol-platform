@@ -24,8 +24,7 @@
     'resources/assets/vendor/libs/@form-validation/auto-focus.js',
     'resources/assets/vendor/libs/select2/select2.js',
     'resources/assets/vendor/libs/flatpickr/flatpickr.js',
-    'resources/assets/vendor/libs/moment/moment.js',
-    'resources/assets/vendor/libs/moment/moment-with-locales.js'
+    'resources/assets/vendor/libs/moment/moment.js'
   ])
 @endsection
 
