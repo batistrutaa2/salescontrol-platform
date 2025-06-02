@@ -142,6 +142,11 @@
           "url": "/relatorios/ligacoes",
           "name": "Ligações (Geral)",
           "slug": "pages-users-ligacoes"
+        },
+        {
+          "url": "/relatorios/atividade",
+          "name": "Atividade",
+          "slug": "pages-users-atividade"
         }
       ]
     },

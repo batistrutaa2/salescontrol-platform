@@ -5,6 +5,7 @@ namespace App\Http\Controllers\pages\relatorios;
 use App\Models\LogPreditiva;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Repositories\Eloquent\LigacoesRepository;
@@ -166,5 +167,318 @@ class Relatorios extends Controller
       ]);
   }
 
+  public function activityReport() {
+      $users = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);
+
+      return view('content.pages.relatorios.atividades', [
+        'users' => $users
+      ]);
+  }
+
+public function activityReportData($dataInicial, $dataFinal, $leadsMes = 'todos', $idVendedor = null)
+    {
+        try {
+            // Validar e formatar datas
+            $dataInicio = Carbon::createFromFormat('Y-m-d', $dataInicial)->startOfDay();
+            $dataFim = Carbon::createFromFormat('Y-m-d', $dataFinal)->endOfDay();
+
+            // Empresa ID (você pode pegar do usuário logado ou sessão)
+            $empresaId = auth()->user()->empresa_id ?? 2;
+
+            // Query base para atividades
+            $queryAtividades = DB::table('lead_atividades as la')
+                ->join('contatos as c', 'c.id', '=', 'la.contato_id')
+                ->join('users as u', 'u.id', '=', 'la.user_id')
+                ->leftJoin('tabulacoes as t', 't.id', '=', 'la.tabulacao_atual_id')
+                ->where('la.empresa_id', $empresaId)
+                ->where('la.log_descricao', 'atividadeComentario')
+                ->whereBetween('la.created_at', [$dataInicio, $dataFim]);
+
+            // Filtro por tipo de lead (se leads do mês, filtrar também pela data de criação do contato)
+            if ($leadsMes === 'mes') {
+                $queryAtividades->whereBetween('c.created_at', [$dataInicio, $dataFim]);
+            }
+
+            // Filtro por vendedor específico
+            if ($idVendedor && $idVendedor !== 'null') {
+                $queryAtividades->where('la.user_id', $idVendedor);
+            }
+
+            // 1. Estatísticas gerais
+            $estatisticas = $this->getEstatisticasGerais($queryAtividades, $empresaId, $dataInicio, $dataFim, $leadsMes, $idVendedor);
+
+            // 2. Dados para gráfico de atividades por período
+            $atividadesPeriodo = $this->getAtividadesPorPeriodo($queryAtividades, $dataInicio, $dataFim);
+
+            // 3. Ranking de vendedores
+            $rankingVendedores = $this->getRankingVendedores($queryAtividades);
+
+            // 4. Distribuição por tabulação
+            $distribuicaoTabulacao = $this->getDistribuicaoTabulacao($queryAtividades);
+
+            // 5. Atividades por hora
+            $atividadesHora = $this->getAtividadesPorHora($queryAtividades);
+
+            // 6. Dados da tabela detalhada
+            $tabelaDetalhes = $this->getTabelaDetalhes($queryAtividades);
+
+            // 7. Lista de vendedores para o select
+            $vendedores = $this->getVendedores($empresaId);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'estatisticas' => $estatisticas,
+                    'atividades_periodo' => $atividadesPeriodo,
+                    'ranking_vendedores' => $rankingVendedores,
+                    'distribuicao_tabulacao' => $distribuicaoTabulacao,
+                    'atividades_hora' => $atividadesHora,
+                    'tabela_detalhes' => $tabelaDetalhes,
+                    'vendedores' => $vendedores
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao carregar dados: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function getEstatisticasGerais($queryAtividades, $empresaId, $dataInicio, $dataFim, $leadsMes, $idVendedor)
+    {
+        // Total de atividades
+        $totalAtividades = (clone $queryAtividades)->count();
+
+        // Total de leads únicos
+        $totalLeads = (clone $queryAtividades)->distinct('la.contato_id')->count('la.contato_id');
+
+        // Média de atividades por lead
+        $mediaAtividades = $totalLeads > 0 ? round($totalAtividades / $totalLeads, 1) : 0;
+
+        // Vendedores ativos
+        $vendedoresAtivos = (clone $queryAtividades)->distinct('la.user_id')->count('la.user_id');
+
+        // Calcular variações (comparar com período anterior)
+        $diasPeriodo = $dataInicio->diffInDays($dataFim) + 1;
+        $dataInicioAnterior = $dataInicio->copy()->subDays($diasPeriodo);
+        $dataFimAnterior = $dataInicio->copy()->subDay();
+
+        $queryAnterior = DB::table('lead_atividades as la')
+            ->join('contatos as c', 'c.id', '=', 'la.contato_id')
+            ->where('la.empresa_id', $empresaId)
+            ->where('la.log_descricao', 'atividadeComentario')
+            ->whereBetween('la.created_at', [$dataInicioAnterior, $dataFimAnterior]);
+
+        if ($leadsMes === 'mes') {
+            $queryAnterior->whereBetween('c.created_at', [$dataInicioAnterior, $dataFimAnterior]);
+        }
+
+        if ($idVendedor && $idVendedor !== 'null') {
+            $queryAnterior->where('la.user_id', $idVendedor);
+        }
+
+        $totalAtividadesAnterior = $queryAnterior->count();
+        $variacaoAtividades = $totalAtividadesAnterior > 0 ?
+            round((($totalAtividades - $totalAtividadesAnterior) / $totalAtividadesAnterior) * 100, 1) : 0;
+
+        return [
+            'total_atividades' => $totalAtividades,
+            'total_leads' => $totalLeads,
+            'media_atividades' => $mediaAtividades,
+            'vendedores_ativos' => $vendedoresAtivos,
+            'variacao_atividades' => $variacaoAtividades,
+            'variacao_leads' => 0, // Calcular se necessário
+            'variacao_media' => 0, // Calcular se necessário
+            'variacao_vendedores' => 0 // Calcular se necessário
+        ];
+    }
+
+    private function getAtividadesPorPeriodo($queryAtividades, $dataInicio, $dataFim)
+    {
+        $atividades = (clone $queryAtividades)
+            ->select(
+                DB::raw('DATE(la.created_at) as data'),
+                DB::raw('COUNT(*) as total')
+            )
+            ->groupBy(DB::raw('DATE(la.created_at)'))
+            ->orderBy('data')
+            ->get();
+
+        // Preencher dias sem atividades
+        $periodo = [];
+        $current = $dataInicio->copy();
+
+        while ($current <= $dataFim) {
+            $dataFormatada = $current->format('Y-m-d');
+            $atividade = $atividades->firstWhere('data', $dataFormatada);
+
+            $periodo[] = [
+                'data' => $current->format('d/m'),
+                'total' => $atividade ? $atividade->total : 0
+            ];
+
+            $current->addDay();
+        }
+
+        return $periodo;
+    }
+
+    private function getRankingVendedores($queryAtividades)
+    {
+        return (clone $queryAtividades)
+            ->select(
+                'u.name as vendedor',
+                DB::raw('COUNT(*) as total_atividades')
+            )
+            ->groupBy('u.id', 'u.name')
+            ->orderBy('total_atividades', 'desc')
+            ->limit(10)
+            ->get();
+    }
+
+    private function getDistribuicaoTabulacao($queryAtividades)
+    {
+        return (clone $queryAtividades)
+            ->select(
+                DB::raw('COALESCE(t.descricao, "Sem Tabulação") as tabulacao'),
+                DB::raw('COUNT(*) as total')
+            )
+            ->groupBy('t.id', 't.descricao')
+            ->orderBy('total', 'desc')
+            ->get();
+    }
+
+    private function getAtividadesPorHora($queryAtividades)
+    {
+        $atividades = (clone $queryAtividades)
+            ->select(
+                DB::raw('HOUR(la.created_at) as hora'),
+                DB::raw('COUNT(*) as total')
+            )
+            ->groupBy(DB::raw('HOUR(la.created_at)'))
+            ->orderBy('hora')
+            ->get();
+
+        // Preencher todas as horas (8h às 18h)
+        $horasPeriodo = [];
+        for ($h = 8; $h <= 18; $h++) {
+            $atividade = $atividades->firstWhere('hora', $h);
+            $horasPeriodo[] = [
+                'hora' => $h . 'h',
+                'total' => $atividade ? $atividade->total : 0
+            ];
+        }
+
+        return $horasPeriodo;
+    }
+
+    private function getTabelaDetalhes($queryAtividades)
+    {
+        return (clone $queryAtividades)
+            ->select(
+                'c.id',
+                'c.nome_cliente',
+                'u.name as vendedor',
+                DB::raw('COALESCE(t.descricao, "Sem Tabulação") as tabulacao'),
+                DB::raw('COUNT(*) as total_atividades'),
+                DB::raw('MAX(la.created_at) as ultima_atividade')
+            )
+            ->groupBy('c.id', 'c.nome_cliente', 'u.name', 't.descricao')
+            ->orderBy('total_atividades', 'desc')
+            ->paginate(50);
+    }
+
+    private function getVendedores($empresaId)
+    {
+        return DB::table('users')
+            ->where('empresa_id', $empresaId)
+            ->where('ativo', 1)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function getLeadComentarios($leadId)
+{
+    try {
+        $empresaId = auth()->user()->empresa_id;
+
+        // Buscar informações básicas do lead
+        $lead = DB::table('contatos as c')
+            ->leftJoin('contatos_corretores as cc', 'cc.contato_id', '=', 'c.id')
+            ->leftJoin('tabulacoes as t', 't.id', '=', 'cc.tabulacao_id')
+            ->where('c.id', $leadId)
+            ->where('c.empresa_id', $empresaId)
+            ->select(
+                'c.id',
+                'c.nome_cliente',
+                'c.telefone1',
+                'c.email',
+                'c.created_at as data_criacao',
+                't.descricao as tabulacao_atual'
+            )
+            ->first();
+
+        if (!$lead) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lead não encontrado'
+            ], 404);
+        }
+
+        // Buscar todos os comentários do lead
+        $comentarios = DB::table('comentarios as co')
+            ->leftJoin('users as u', 'u.id', '=', 'co.user_id')
+            ->where('co.contato_id', $leadId)
+            ->where('co.empresa_id', $empresaId)
+            ->where('co.visivel', 'Y')
+            ->select(
+                'co.id',
+                'co.anotacao',
+                'co.legado',
+                'co.supervisao',
+                'co.created_at',
+                'u.name as usuario',
+                DB::raw('COALESCE(u.name, "Sistema") as autor')
+            )
+            ->orderBy('co.created_at', 'desc')
+            ->get();
+
+        // Buscar histórico de atividades/tabulações
+        $atividades = DB::table('lead_atividades as la')
+            ->leftJoin('users as u', 'u.id', '=', 'la.user_id')
+            ->leftJoin('tabulacoes as ta', 'ta.id', '=', 'la.tabulacao_anterior_id')
+            ->leftJoin('tabulacoes as tb', 'tb.id', '=', 'la.tabulacao_atual_id')
+            ->where('la.contato_id', $leadId)
+            ->where('la.empresa_id', $empresaId)
+            ->select(
+                'la.id',
+                'la.log_descricao',
+                'la.created_at',
+                'u.name as usuario',
+                'ta.descricao as tabulacao_anterior',
+                'tb.descricao as tabulacao_atual'
+            )
+            ->orderBy('la.created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'lead' => $lead,
+                'comentarios' => $comentarios,
+                'atividades' => $atividades
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erro ao carregar comentários: ' . $e->getMessage()
+        ], 500);
+    }
+}
 
 }
