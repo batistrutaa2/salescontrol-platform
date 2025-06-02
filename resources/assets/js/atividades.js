@@ -1,4 +1,5 @@
 $(document).ready(function () {
+  moment.locale('pt-br');
   // Inicializar componentes
   initializeComponents();
 
@@ -19,19 +20,8 @@ function initializeComponents() {
     allowClear: true
   });
 
-  // Inicializar DataTable
-  dataTable = $('#tabela-detalhes').DataTable({
-    language: {
-      url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
-    },
-    pageLength: 25,
-    order: [[4, 'desc']],
-    processing: true,
-    serverSide: false,
-    columnDefs: [
-      { orderable: false, targets: 7 } // Desabilitar ordenação na coluna de ações
-    ]
-  });
+  // Não inicializar DataTable aqui
+  dataTable = null;
 
   // Inicializar gráficos
   initCharts();
@@ -207,8 +197,10 @@ function setupEventListeners() {
     exportToExcel();
   });
 
+  // Event delegation para botões de ver detalhes
   $(document).on('click', '.btn-ver-detalhes', function () {
     const leadId = $(this).data('lead-id');
+    console.log('Clicando para ver detalhes do lead:', leadId);
     verDetalhes(leadId);
   });
 }
@@ -352,101 +344,165 @@ function updateCharts(data) {
 }
 
 function updateTable(dados) {
-  // Limpar tabela existente
-  if (dataTable) {
-    dataTable.clear().destroy();
-  }
-
-  const tbody = $('#tabela-detalhes tbody');
-  tbody.empty();
+  console.log('Iniciando updateTable com dados:', dados);
 
   // Verificar se dados existe e extrair o array correto
   let arrayDados = [];
 
   if (!dados) {
+    console.log('Dados não fornecidos');
   } else if (Array.isArray(dados)) {
     arrayDados = dados;
   } else if (dados.data && Array.isArray(dados.data)) {
     arrayDados = dados.data;
   } else if (typeof dados === 'object') {
+    console.log('Estrutura de dados recebida:', dados);
     const possibleArrays = Object.values(dados).filter(value => Array.isArray(value));
     if (possibleArrays.length > 0) {
       arrayDados = possibleArrays[0];
     }
   }
 
+  console.log('Array de dados para tabela:', arrayDados);
+
+  // Destruir DataTable de forma segura
+  if (dataTable && $.fn.DataTable.isDataTable('#tabela-detalhes')) {
+    try {
+      dataTable.clear().destroy();
+      dataTable = null;
+    } catch (error) {
+      console.log('Erro ao destruir DataTable:', error);
+    }
+  }
+
+  // Limpar apenas o tbody (manter thead intacto)
+  const tbody = $('#tabela-detalhes tbody');
+  tbody.empty();
+
   if (!arrayDados || arrayDados.length === 0) {
-    tbody.append(`
+    console.log('Nenhum dado encontrado, adicionando linha vazia');
+    tbody.html(`
       <tr>
         <td colspan="8" class="text-center py-4">
-          <i class="ti ti-inbox ti-3x text-muted mb-3"></i>
-          <p class="text-muted">Nenhum dado encontrado para os filtros selecionados</p>
+          <div class="d-flex flex-column align-items-center">
+            <i class="ti ti-inbox ti-3x text-muted mb-3"></i>
+            <p class="text-muted mb-0">Nenhum dado encontrado para os filtros selecionados</p>
+          </div>
         </td>
       </tr>
     `);
+  } else {
+    console.log(`Adicionando ${arrayDados.length} linhas à tabela`);
 
-    // Reinicializar DataTable mesmo sem dados
-    dataTable = $('#tabela-detalhes').DataTable({
-      language: {
-        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
-      },
-      pageLength: 25,
-      order: [[4, 'desc']],
-      processing: true,
-      serverSide: false,
-      columnDefs: [{ orderable: false, targets: 7 }]
+    arrayDados.forEach((item, index) => {
+      const leadId = item.lead_id || item.id || item.contato_id || 0;
+      const nomeCliente = (item.nome_cliente || item.cliente || item.nome || 'N/A').toString();
+      const vendedor = (item.vendedor || item.usuario || item.user_name || 'N/A').toString();
+      const tabulacao = (item.tabulacao || item.tabulacao_atual || 'Sem tabulação').toString();
+      const totalAtividades = parseInt(item.total_atividades || item.atividades || 0);
+      const ultimaAtividade = item.ultima_atividade || item.last_activity || item.created_at;
+
+      // Calcular dias sem atividade se não vier do backend
+      let diasSemAtividade = 0;
+      if (item.dias_sem_atividade !== undefined) {
+        diasSemAtividade = parseInt(item.dias_sem_atividade) || 0;
+      } else if (ultimaAtividade) {
+        const hoje = moment();
+        const dataUltimaAtividade = moment(ultimaAtividade);
+        diasSemAtividade = hoje.diff(dataUltimaAtividade, 'days');
+      }
+
+      const row = `
+        <tr>
+          <td>${leadId}</td>
+          <td>${nomeCliente}</td>
+          <td>${vendedor}</td>
+          <td><span class="badge bg-label-primary">${tabulacao}</span></td>
+          <td><span class="badge bg-label-info">${totalAtividades}</span></td>
+          <td>${ultimaAtividade ? moment(ultimaAtividade).format('DD/MM/YYYY HH:mm') : 'N/A'}</td>
+          <td><span class="badge ${getStatusBadgeClass(diasSemAtividade)}">${getStatusText(diasSemAtividade)}</span></td>
+          <td><button type="button" class="btn btn-sm btn-primary btn-ver-detalhes" data-lead-id="${leadId}" title="Ver detalhes">Abrir<i class="ti ti-eye"></i></button></td>
+        </tr>
+      `;
+
+      tbody.append(row);
     });
-    return;
   }
 
-  arrayDados.forEach(item => {
-    // Verificar diferentes possíveis nomes de campos
-    const leadId = item.lead_id || item.id || item.contato_id;
-    const nomeCliente = item.nome_cliente || item.cliente || item.nome || 'N/A';
-    const vendedor = item.vendedor || item.usuario || item.user_name || 'N/A';
-    const tabulacao = item.tabulacao || item.tabulacao_atual || 'Sem tabulação';
-    const totalAtividades = item.total_atividades || item.atividades || 0;
-    const ultimaAtividade = item.ultima_atividade || item.last_activity || item.created_at;
-    const diasSemAtividade = item.dias_sem_atividade || 0;
+  // Inicializar DataTable após popular dados
+  setTimeout(() => {
+    initializeDataTable();
+  }, 100);
+}
 
-    const row = `
-      <tr>
-        <td>${leadId}</td>
-        <td>${nomeCliente}</td>
-        <td>${vendedor}</td>
-        <td>
-          <span class="badge bg-label-primary">${tabulacao}</span>
-        </td>
-        <td>
-          <span class="badge bg-label-info">${totalAtividades}</span>
-        </td>
-        <td>${ultimaAtividade ? moment(ultimaAtividade).format('DD/MM/YYYY HH:mm') : 'N/A'}</td>
-        <td>
-          <span class="badge ${getStatusBadgeClass(diasSemAtividade)}">
-            ${getStatusText(diasSemAtividade)}
-          </span>
-        </td>
-        <td>
-        <button type="button" class="btn btn-sm btn-primary btn-ver-detalhes" data-lead-id="${leadId}" title="Ver detalhes">
-            <i class="ti ti-eye">Abrir</i>
-          </button>
-        </td>
-      </tr>
-    `;
-    tbody.append(row);
-  });
+function initializeDataTable() {
+  try {
+    console.log('Inicializando DataTable...');
 
-  // Reinicializar DataTable
-  dataTable = $('#tabela-detalhes').DataTable({
-    language: {
-      url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
-    },
-    pageLength: 25,
-    order: [[4, 'desc']],
-    processing: true,
-    serverSide: false,
-    columnDefs: [{ orderable: false, targets: 7 }]
-  });
+    // Verificar se a tabela existe
+    if ($('#tabela-detalhes').length === 0) {
+      console.error('Tabela não encontrada!');
+      return;
+    }
+
+    // Verificar se há dados na tabela
+    const hasData = $('#tabela-detalhes tbody tr').length > 0;
+    if (!hasData) {
+      console.log('Tabela sem dados, não inicializando DataTable');
+      return;
+    }
+
+    // Verificar se a linha é de "sem dados"
+    const isEmptyMessage = $('#tabela-detalhes tbody tr').first().find('td[colspan]').length > 0;
+    if (isEmptyMessage) {
+      console.log('Tabela com mensagem de vazio, não inicializando DataTable');
+      return;
+    }
+
+    dataTable = $('#tabela-detalhes').DataTable({
+      pageLength: 25,
+      order: [[4, 'desc']],
+      processing: false,
+      serverSide: false,
+      autoWidth: false,
+      destroy: true, // Permitir reinicialização
+      columnDefs: [
+        {
+          orderable: false,
+          targets: 7,
+          width: '80px'
+        }
+      ],
+      language: {
+        sProcessing: 'Processando...',
+        sLengthMenu: 'Mostrar _MENU_ registros',
+        sZeroRecords: 'Não foram encontrados resultados',
+        sInfo: 'Mostrando de _START_ até _END_ de _TOTAL_ registros',
+        sInfoEmpty: 'Mostrando de 0 até 0 de 0 registros',
+        sInfoFiltered: '(filtrado de _MAX_ registros no total)',
+        sInfoPostFix: '',
+        sSearch: 'Buscar:',
+        sUrl: '',
+        oPaginate: {
+          sFirst: 'Primeiro',
+          sPrevious: 'Anterior',
+          sNext: 'Seguinte',
+          sLast: 'Último'
+        }
+      },
+      drawCallback: function () {
+        console.log('DataTable renderizado com sucesso');
+      },
+      initComplete: function () {
+        console.log('DataTable inicializado completamente');
+      }
+    });
+
+    console.log('DataTable inicializado com sucesso');
+  } catch (error) {
+    console.error('Erro ao inicializar DataTable:', error);
+    console.log('Tabela funcionará sem DataTable.');
+  }
 }
 
 function getStatusBadgeClass(dias) {
@@ -515,14 +571,10 @@ function verDetalhes(leadId) {
 }
 
 function restoreModalContent() {
-  // Garantir que o conteúdo do modal está visível
   const modalBody = $('#modalDetalhesLead .modal-body');
 
-  // Se ainda tem loading, remover e mostrar conteúdo
   if (modalBody.find('.modal-loading').length > 0) {
     modalBody.find('.modal-loading').remove();
-
-    // Garantir que as abas e conteúdo estão visíveis
     modalBody.find('.row, .nav-tabs, .tab-content').show();
   }
 }
@@ -530,35 +582,28 @@ function restoreModalContent() {
 function populateModal(data) {
   const { lead, comentarios, atividades } = data;
 
-  // Preencher informações básicas - corrigir os nomes dos campos
   $('#modal-nome-cliente').text(lead.nome_cliente || 'N/A');
   $('#modal-lead-id').text(lead.id);
   $('#modal-data-criacao').text(lead.data_criacao ? moment(lead.data_criacao).format('DD/MM/YYYY HH:mm') : 'N/A');
-  $('#modal-telefone').text(lead.telefone1 || lead.telefone || 'N/A'); // Note: telefone1 no retorno
+  $('#modal-telefone').text(lead.telefone1 || lead.telefone || 'N/A');
   $('#modal-email').text(lead.email || 'N/A');
   $('#modal-tabulacao').text(lead.tabulacao_atual || 'Sem tabulação');
 
-  // Preencher estatísticas
   $('#modal-total-comentarios').text(comentarios.length);
   $('#modal-total-atividades').text(atividades.length);
   $('#count-comentarios').text(comentarios.length);
   $('#count-atividades').text(atividades.length);
 
-  // Último contato (comentário mais recente)
   if (comentarios.length > 0) {
     const ultimoComentario = comentarios[0];
+    moment.locale('pt-br'); // garante o locale antes da formatação
     $('#modal-ultimo-contato').text(moment(ultimoComentario.created_at).fromNow());
   } else {
     $('#modal-ultimo-contato').text('Nunca');
   }
 
-  // Preencher comentários
   populateComentarios(comentarios);
-
-  // Preencher atividades
   populateAtividades(atividades);
-
-  // Restaurar o conteúdo do modal (remover loading)
   restoreModalContent();
 }
 
@@ -688,10 +733,8 @@ function formatComentarioTexto(texto) {
 function showModalLoading() {
   const modalBody = $('#modalDetalhesLead .modal-body');
 
-  // Esconder conteúdo existente
   modalBody.find('.row, .nav-tabs, .tab-content').hide();
 
-  // Adicionar loading se não existir
   if (modalBody.find('.modal-loading').length === 0) {
     const loadingHtml = `
       <div class="modal-loading text-center py-5">
@@ -707,11 +750,7 @@ function showModalLoading() {
 
 function hideModalLoading() {
   const modalBody = $('#modalDetalhesLead .modal-body');
-
-  // Remover loading
   modalBody.find('.modal-loading').remove();
-
-  // Mostrar conteúdo
   modalBody.find('.row, .nav-tabs, .tab-content').show();
 }
 
