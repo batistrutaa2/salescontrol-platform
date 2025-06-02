@@ -505,7 +505,6 @@
                                             <option value="NAO ATENDE">Não atende</option>
                                             <option value="NUMERO INEXISTENTE">Número inexistente</option>
                                             <option value="NAO INTERESSADO">Não interessado</option>
-                                            <option value="LIGAR MAIS TARDE">Ligar mais tarde</option>
                                             <option value="JA POSSUI PLANO">Já possui plano</option>
                                         </select>
                                         <label for="tabulacao-preditiva">Tabulação</label>
