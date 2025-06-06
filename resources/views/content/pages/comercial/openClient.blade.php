@@ -188,7 +188,7 @@
                                             {{ $editingPermission == false ? 'disabled' : '' }}
                                             value="{{ $client->categoria }}" placeholder="Black infinity"
                                             name="cartegoria" aria-label="Product barcode">
-                                        <label for="ecommerce-product-name">Cartegoria</label>
+                                        <label for="ecommerce-product-name">Categoria</label>
                                     </div>
                                 </div>
                                 <div class="col">
