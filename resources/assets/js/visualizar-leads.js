@@ -140,9 +140,14 @@ $(function () {
                 '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown">' +
                 '<i class="ri-more-2-line ri-22px"></i></button>' +
                 '<div class="dropdown-menu dropdown-menu-end m-0">' +
+                '<a href="javascript:void(0);" class="dropdown-item js-ver-comentarios" data-id="' +
+                full['id'] +
+                '">' +
+                '<i class="ri-chat-3-line me-2"></i><span>Ver Comentários</span></a>' +
                 '<a href="/mailing/excluir-lead/' +
                 full['id'] +
-                '" class="dropdown-item"><i class="ri-delete-bin-line me-2"></i><span>Excluir Lead</span></a>' +
+                '" class="dropdown-item">' +
+                '<i class="ri-delete-bin-line me-2"></i><span>Excluir Lead</span></a>' +
                 '</div>' +
                 '</div>'
               );
@@ -154,14 +159,20 @@ $(function () {
               '<div class="dropdown-menu dropdown-menu-end m-0">' +
               '<a href="/comercial/abrir-cliente/' +
               data.id +
-              '"class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Editar Usuario</span></a>' +
+              '" class="dropdown-item">' +
+              '<i class="ri-edit-box-line me-2"></i><span>Editar Usuario</span></a>' +
               '<button type="button" class="dropdown-item js-transferir-leads" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
               data.id +
               '">' +
               '<i class="ri-arrow-left-right-fill"></i><span>Transferir Contato</span></button>' +
+              '<a href="javascript:void(0);" class="dropdown-item js-ver-comentarios" data-id="' +
+              full['id'] +
+              '">' +
+              '<i class="ri-chat-3-line me-2"></i><span>Ver Comentários</span></a>' +
               '<a href="/mailing/excluir-lead/' +
               full['id'] +
-              '" class="dropdown-item"><i class="ri-delete-bin-line me-2"></i><span>Excluir Lead</span></a>' +
+              '" class="dropdown-item">' +
+              '<i class="ri-delete-bin-line me-2"></i><span>Excluir Lead</span></a>' +
               '</div>' +
               '</div>'
             );
@@ -260,3 +271,161 @@ $(function () {
     }
   });
 });
+
+// Adicione este código no final do seu arquivo JavaScript
+document.addEventListener('click', function (event) {
+  if (event.target.closest('.js-ver-comentarios')) {
+    var button = event.target.closest('.js-ver-comentarios');
+    var leadId = button.getAttribute('data-id');
+
+    // Fazer requisição AJAX para buscar os comentários
+    $.ajax({
+      url: '/relatorios/lead-comentarios/' + leadId,
+      method: 'GET',
+      beforeSend: function () {
+        $('#modalComentarios .modal-body').html(
+          '<div class="text-center"><div class="spinner-border" role="status"></div></div>'
+        );
+        $('#modalComentarios').modal('show');
+      },
+      success: function (response) {
+        if (response.success) {
+          var html = gerarHtmlComentarios(response.data);
+          $('#modalComentarios .modal-body').html(html);
+        } else {
+          $('#modalComentarios .modal-body').html('<div class="alert alert-danger">' + response.message + '</div>');
+        }
+      },
+      error: function () {
+        $('#modalComentarios .modal-body').html('<div class="alert alert-danger">Erro ao carregar comentários</div>');
+      }
+    });
+  }
+});
+
+function gerarHtmlComentarios(data) {
+  var comentarios = data.comentarios || [];
+  var atividades = data.atividades || [];
+  var lead = data.lead || {};
+
+  if (comentarios.length === 0 && atividades.length === 0) {
+    return `
+      <div class="text-center py-4">
+        <i class="ri-chat-3-line ri-48px text-muted mb-3"></i>
+        <p class="text-muted">Nenhum comentário encontrado para este lead.</p>
+      </div>
+    `;
+  }
+
+  var html = `
+    <div class="col-12">
+      <div class="card mb-6">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Anotações - ${lead.nome_cliente || 'Lead'}</h5>
+        </div>
+        <div class="card-body">
+          <div class="card mb-6">
+            <div class="card-header">
+              <h5 class="card-title m-2">Últimas atividades</h5>
+            </div>
+            <div class="card-body mt-5" style="max-height: 400px; overflow-y: auto;">
+  `;
+
+  // Combinar comentários e atividades e ordenar por data
+  var todosItens = [];
+
+  // Adicionar comentários
+  comentarios.forEach(function (comment) {
+    todosItens.push({
+      tipo: 'comentario',
+      data: comment.created_at,
+      autor: comment.autor || comment.usuario || 'Sistema',
+      conteudo: comment.anotacao,
+      legado: comment.legado,
+      supervisao: comment.supervisao
+    });
+  });
+
+  // Adicionar atividades
+  atividades.forEach(function (atividade) {
+    todosItens.push({
+      tipo: 'atividade',
+      data: atividade.created_at,
+      autor: atividade.usuario || 'Sistema',
+      conteudo: atividade.log_descricao,
+      tabulacao_anterior: atividade.tabulacao_anterior,
+      tabulacao_atual: atividade.tabulacao_atual
+    });
+  });
+
+  // Ordenar por data (mais recente primeiro)
+  todosItens.sort(function (a, b) {
+    return new Date(b.data) - new Date(a.data);
+  });
+
+  // Gerar HTML para cada item
+  todosItens.forEach(function (item) {
+    var badgeClass = '';
+    var badgeText = '';
+
+    if (item.tipo === 'comentario') {
+      if (item.supervisao === 'Y') {
+        badgeClass = 'bg-label-warning';
+        badgeText = 'SUPERVISÃO';
+      } else if (item.legado === 'Y') {
+        badgeClass = 'bg-label-info';
+        badgeText = 'LEGADO';
+      } else {
+        badgeClass = 'bg-label-primary';
+        badgeText = 'COMENTÁRIO';
+      }
+    } else {
+      badgeClass = 'bg-label-success';
+      badgeText = 'ATIVIDADE';
+    }
+
+    // Formatar a data
+    var dataFormatada = new Date(item.data).toLocaleString('pt-BR');
+
+    html += `
+      <ul class="timeline pb-0 mb-0">
+        <li class="timeline-item timeline-item-transparent border-primary">
+          <span class="timeline-point timeline-point-primary"></span>
+          <div class="timeline-event">
+            <div class="timeline-header mb-1">
+              <h6 class="mb-0">Feito por: (${item.autor})
+                <span class="badge ${badgeClass}">${badgeText}</span>
+              </h6>
+              <small class="text-muted">${dataFormatada}</small>
+            </div>
+            <p class="mt-1 mb-3">${item.conteudo || ''}</p>
+    `;
+
+    // Se for atividade e tiver mudança de tabulação, mostrar
+    if (item.tipo === 'atividade' && item.tabulacao_anterior && item.tabulacao_atual) {
+      html += `
+        <div class="mt-2">
+          <small class="text-muted">
+            <strong>Mudança:</strong> ${item.tabulacao_anterior} → ${item.tabulacao_atual}
+          </small>
+        </div>
+      `;
+    }
+
+    html += `
+          </div>
+        </li>
+      </ul>
+    `;
+  });
+
+  html += `
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return html;
+}
