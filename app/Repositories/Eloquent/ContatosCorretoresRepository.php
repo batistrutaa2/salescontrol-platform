@@ -246,19 +246,31 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
     return $this->model->select('tabulacao_id')->where('contato_id', $idMailing)->first();
   }
 
-  public function transferContact(array $data)
-  {
-    try {
-      $lead = $this->model::where('contato_id', $data['idMailing'])->first();
+public function transferContact(array $data)
+{
+  try {
+    $lead = $this->model::where('contato_id', $data['idMailing'])->first();
+
+    if ($lead) {
       $lead->user_id = $data['user_id'];
       $lead->tabulacao_id = $data['tabulation_id'];
-      $lead->created_at = Carbon::now();
       $lead->updated_at = Carbon::now();
       return $lead->save();
-    } catch (\Throwable $th) {
-      return false;
+    } else {
+      $newLead = new $this->model();
+      $newLead->contato_id = $data['idMailing'];
+      $newLead->user_id = $data['user_id'];
+      $newLead->tabulacao_id = $data['tabulation_id'];
+      $newLead->empresa_id = Auth::user()->empresa_id;
+      $newLead->temperatura = "FRIO";
+      $newLead->created_at = Carbon::now();
+      $newLead->updated_at = Carbon::now();
+      return $newLead->save();
     }
+  } catch (\Throwable $th) {
+    return false;
   }
+}
 
 
   public function transferContactInNulk(array $data)

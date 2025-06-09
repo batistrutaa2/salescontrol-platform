@@ -423,13 +423,23 @@ class Comercial extends Controller
   public function transferContact(Request $request)
   {
     try {
+      $existePreditiva = DB::table('preditiva') // ajuste o nome da tabela
+              ->where('contato_id', $request->idMailing) // ajuste o campo
+              ->exists();
+
+      if ($existePreditiva) {
+        DB::table('preditiva')
+          ->where('contato_id', $request->idMailing)
+          ->delete();
+      }
+
       $fromUser = $this->repositoryContatosCorretores->getContactOwner($request->idMailing);
       $clearComments = $this->comentariosRepository->clearCommentsOne($request->idMailing);
       $updateLead = $this->repositoryContatosCorretores->transferContact($request->all());
       $saveTranfer = $this->transferenciaContatoRepository->saveTransfer(
         Auth::user()->empresa_id,
         $request->idMailing,
-        $fromUser->user_id == null ? $request->user_id : $fromUser->user_id,
+         $fromUser ? $fromUser->user_id : null,
         $request->user_id,
         Auth::user()->id
       );
@@ -440,6 +450,7 @@ class Comercial extends Controller
         return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
       }
     } catch (\Throwable $th) {
+      dd($th);
       return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
     }
   }

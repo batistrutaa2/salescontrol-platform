@@ -26,7 +26,6 @@ class TransferenciaContatoRepository implements TransferenciaContatoRepositoryIn
       ]);
   }
 
-
   public function monthlyTransferCount($month, $year, $empresaId)
   {
       return $this->model

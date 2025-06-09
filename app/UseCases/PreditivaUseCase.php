@@ -51,4 +51,6 @@ class PreditivaUseCase
         return false;
       }
   }
+
+  
 }
