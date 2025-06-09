@@ -118,7 +118,7 @@ $(function () {
           targets: 9, // Coluna com data
           render: function (data, type, row) {
             if (!data) {
-              return 'Data não disponível'; // Valor padrão se o dado for null ou undefined
+              return 'Data não disponível';
             }
 
             let date = new Date(data);
@@ -134,15 +134,21 @@ $(function () {
           searchable: false,
           orderable: false,
           render: function (data, type, full, meta) {
+            var editarButton = '';
+            if (full['status'] !== 'PREDITIVA') {
+              editarButton =
+                '<a href="/comercial/abrir-cliente/' +
+                full['id'] +
+                '" class="dropdown-item">' +
+                '<i class="ri-edit-box-line me-2"></i><span>Editar Usuario</span></a>';
+            }
+
             return (
               '<div class="d-flex align-items-center">' +
               '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown">' +
               '<i class="ri-more-2-line ri-22px"></i></button>' +
               '<div class="dropdown-menu dropdown-menu-end m-0">' +
-              '<a href="/comercial/abrir-cliente/' +
-              full['id'] +
-              '" class="dropdown-item">' +
-              '<i class="ri-edit-box-line me-2"></i><span>Editar Usuario</span></a>' +
+              editarButton +
               '<button type="button" class="dropdown-item js-transferir-leads" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
               full['id'] +
               '">' +
