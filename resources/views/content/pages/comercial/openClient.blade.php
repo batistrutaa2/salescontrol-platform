@@ -114,6 +114,9 @@
                                             {{ $tabulation->descricao }}
                                         </option>
                                     @endforeach
+                                        <option value="5">
+                                           NEGOCIO FECHADO
+                                        </option>
                                 </select>
                             </div>
 
