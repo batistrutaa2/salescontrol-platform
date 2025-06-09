@@ -126,6 +126,11 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/vendas/vendasAnalitico', [Vendas::class, 'getSalesAnalytical'])->name('sale.getSalesAnalytical');
   Route::get('/vendas/filtro-vendas-mes/{nome_corretor?}', [Vendas::class, 'monthlySalesFilter'])->name('sale.monthlySalesFilter');
 
+  Route::get('/vendas/dados', [Vendas::class, 'dados'])->name('sale.dados');
+  Route::get('/vendas/listar', [Vendas::class, 'listarVendas'])->name('sale.listarVendas');
+  Route::get('/vendas/exportar', [Vendas::class, 'exportar'])->name('sale.exportar');
+
+
 
   /** PABX */
   Route::get('/pabx/cadastro-ramais', [Pabx::class, 'index'])->name('index.createRamal');

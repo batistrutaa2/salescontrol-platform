@@ -70,4 +70,9 @@ class User extends Authenticatable
   {
     return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
   }
+
+  public function vendas()
+    {
+        return $this->hasMany(Vendas::class, 'user_id');
+    }
 }

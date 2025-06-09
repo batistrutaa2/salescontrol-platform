@@ -32,6 +32,18 @@ class Vendas extends Model
     'updated_at'
   ];
 
+  protected $casts = [
+        'data_vigencia' => 'date',
+        'valor_contrato' => 'decimal:2',
+        'vidas' => 'integer',
+    ];
+
+    // Relacionamento com User
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
   public function getCreatedAtAttribute($value)
   {
     return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
