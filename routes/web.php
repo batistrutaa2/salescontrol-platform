@@ -2,10 +2,9 @@
 
 
 use App\Http\Controllers\Auth\Auth;
-use App\Http\Controllers\manager\Manager;
-use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\pages\HomePage;
+use App\Http\Controllers\manager\Manager;
 use App\Http\Controllers\pages\pabx\Pabx;
 use App\Http\Controllers\pages\vendas\Vendas;
 use App\Http\Controllers\pages\mailing\Mailing;
@@ -15,6 +14,8 @@ use App\Http\Controllers\pages\comerical\Comercial;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
 use App\Http\Controllers\pages\relatorios\Relatorios;
+use App\Http\Controllers\pages\comercial\ReunioesComercial;
+use App\Http\Controllers\pages\comercial\ConsultaController;
 
 Route::get('/login', [LoginBasic::class, 'index'])->name('login');
 /**TESTE CELSO */
@@ -91,7 +92,6 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/descartarClientePreditiva', [Comercial::class, 'descartarClientePreditiva'])->name('comercial.descartarClientePreditiva');
   Route::post('/comercial/converterClientePreditiva', [Comercial::class, 'converterClientePreditiva'])->name('comercial.converterClientePreditiva');
 
-
   Route::get('/comercial/calendario-reunioes', [ReunioesComercial::class, 'index'])->name('comercialReunioes.index');
   Route::get('/reunioes/data', [ReunioesComercial::class, 'getReunioes']);
   Route::post('/reunioes', [ReunioesComercial::class, 'store']);
@@ -147,3 +147,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/relatorios/atividade', [Relatorios::class, 'activityReport'])->name('relatorios.activityReport');
   Route::get('/relatorios/atividade-dados/{dataInicial}/{dataFinal}/{leadsMes?}/{idVendedor?}', [Relatorios::class, 'activityReportData'])->name('relatorios.activityReportData');});
   Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
+
+
+  Route::post('/consulta/pessoa', [ConsultaController::class, 'consultarPessoa'])->name('consulta.pessoa');
+Route::post('/consulta/empresa', [ConsultaController::class, 'consultarEmpresa'])->name('consulta.empresa');

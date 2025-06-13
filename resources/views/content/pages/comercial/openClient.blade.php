@@ -50,6 +50,7 @@
 
 @section('page-script')
     @vite(['resources/assets/js/openClient.js'])
+    
 @endsection
 
 @section('content')
@@ -83,7 +84,12 @@
                 <div class="card mb-6">
 
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Informações Pessoais</h5>
+
+
+                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#consultaModal">
+                                    <i class="ri-search-line ri-16px me-1"></i>
+                                    Consultar Lemit
+                        </button>
 
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                             data-bs-target="#modalcomments" id="js-importContatos">
@@ -102,6 +108,7 @@
                     </div>
 
                     <div class="card-body">
+                             <h5 class="card-title mb-0 mb-5">Informações Pessoais</h5>
                         <form method="POST" action="{{ route('comercial.updateClient') }}">
                             @csrf
                             <input type="hidden" name="id" value="{{ $client->id }}">
@@ -699,4 +706,138 @@
             </div>
         </div>
     </div>
+
+<!-- Modal de Consulta de Dados -->
+<div class="modal fade" id="consultaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Consulta de Dados - API Lemit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulário de Consulta -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Consulta por CPF</h6>
+                                <div class="form-floating form-floating-outline mb-3">
+                                    <input type="text" id="cpfConsulta" class="form-control" placeholder="000.000.000-00" maxlength="14">
+                                    <label for="cpfConsulta">CPF</label>
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="consultarPessoa()">
+                                    <span class="spinner-border spinner-border-sm d-none" id="loadingPessoa"></span>
+                                    <i class="ri-user-search-line ri-16px me-1"></i>
+                                    Consultar CPF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Consulta por CNPJ</h6>
+                                <div class="form-floating form-floating-outline mb-3">
+                                    <input type="text" id="cnpjConsulta" class="form-control" placeholder="00.000.000/0000-00" maxlength="18">
+                                    <label for="cnpjConsulta">CNPJ</label>
+                                </div>
+                                <button type="button" class="btn btn-success" onclick="consultarEmpresa()">
+                                    <span class="spinner-border spinner-border-sm d-none" id="loadingEmpresa"></span>
+                                    <i class="ri-building-line ri-16px me-1"></i>
+                                    Consultar CNPJ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resultado da Consulta -->
+                <div id="resultadoConsulta" class="d-none">
+                    <!-- Dados da Pessoa -->
+                    <div id="dadosPessoa" class="d-none">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="text-primary mb-0">
+                                    <i class="ri-user-line ri-16px me-1"></i>
+                                    Dados Pessoais Encontrados
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Nome:</strong> <span id="nome" class="text-muted"></span></p>
+                                        <p><strong>CPF:</strong> <span id="cpfResult" class="text-muted"></span></p>
+                                        <p><strong>Data Nascimento:</strong> <span id="dataNascimento" class="text-muted"></span></p>
+                                        <p><strong>Sexo:</strong> <span id="sexo" class="text-muted"></span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Nome da Mãe:</strong> <span id="nomeMae" class="text-muted"></span></p>
+                                        <p><strong>Situação CPF:</strong> <span id="situacaoCpf" class="text-muted"></span></p>
+                                        <p><strong>Renda:</strong> <span id="renda" class="text-muted"></span></p>
+                                        <p><strong>Ocupação:</strong> <span id="ocupacao" class="text-muted"></span></p>
+                                    </div>
+                                </div>
+
+                                <!-- Contatos -->
+                                <div class="row mt-3">
+                                    <div class="col-md-4">
+                                        <h6><i class="ri-smartphone-line ri-16px me-1"></i>Celulares</h6>
+                                        <div id="celulares" class="border rounded p-2" style="min-height: 60px;"></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6><i class="ri-phone-line ri-16px me-1"></i>Telefones Fixos</h6>
+                                        <div id="fixos" class="border rounded p-2" style="min-height: 60px;"></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6><i class="ri-mail-line ri-16px me-1"></i>E-mails</h6>
+                                        <div id="emails" class="border rounded p-2" style="min-height: 60px;"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Endereços -->
+                                <div class="mt-3">
+                                    <h6><i class="ri-map-pin-line ri-16px me-1"></i>Endereços</h6>
+                                    <div id="enderecos" class="border rounded p-2"></div>
+                                </div>
+
+                                <!-- Veículos -->
+                                <div class="mt-3">
+                                    <h6><i class="ri-car-line ri-16px me-1"></i>Veículos</h6>
+                                    <div id="carros" class="border rounded p-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dados da Empresa -->
+                    <div id="dadosEmpresa" class="d-none">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="text-success mb-0">
+                                    <i class="ri-building-line ri-16px me-1"></i>
+                                    Dados da Empresa Encontrados
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="infoEmpresa"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mensagem de Erro -->
+                <div id="erroConsulta" class="alert alert-danger d-none">
+                    <i class="ri-error-warning-line ri-16px me-1"></i>
+                    <span id="mensagemErro"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 @endsection
