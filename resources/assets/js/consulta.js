@@ -158,7 +158,10 @@
     // Mostrar seção de resultados
     document.getElementById('resultadoConsulta').classList.remove('d-none');
     document.getElementById('dadosPessoa').classList.remove('d-none');
-    document.getElementById('dadosEmpresa').classList.add('d-none');
+
+    // Esconder seção da empresa (ambas as versões)
+    const dadosEmpresaElements = document.querySelectorAll('#dadosEmpresa');
+    dadosEmpresaElements.forEach(el => el.classList.add('d-none'));
 
     // Preencher dados básicos
     document.getElementById('nome').textContent = pessoa.nome || 'N/A';
@@ -186,6 +189,7 @@
     // Preencher carros
     preencherCarros(pessoa.carros);
 
+    // Preencher vínculos
     preencherVinculos(pessoa.vinculos);
 
     // Preencher risco de crédito
@@ -195,7 +199,7 @@
     preencherParticipacaoSocietaria(pessoa.participacao_societaria);
   }
 
-  // FUNÇÃO PARA EXIBIR DADOS DA EMPRESA
+  // FUNÇÃO PARA EXIBIR DADOS DA EMPRESA (CORRIGIDA)
   function exibirDadosEmpresa(data) {
     const empresa = data.empresa || data;
     if (!empresa) {
@@ -203,24 +207,260 @@
       return;
     }
 
-    // Mostrar seção de resultados
+    // MOSTRAR seção de resultados (não esconder)
     document.getElementById('resultadoConsulta').classList.remove('d-none');
-    document.getElementById('dadosEmpresa').classList.remove('d-none');
+
+    // Esconder seção de pessoa
     document.getElementById('dadosPessoa').classList.add('d-none');
 
-    // Preencher dados da empresa
-    const infoEmpresa = document.getElementById('infoEmpresa');
-    infoEmpresa.innerHTML = `
-      <div class="row">
-        <div class="col-12">
-          <h6 class="text-primary mb-3">Informações da Empresa</h6>
-          <pre class="bg-light p-3 rounded" style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(empresa, null, 2)}</pre>
+    // Mostrar seção da empresa (primeira versão - a que tem os campos específicos)
+    const dadosEmpresaElements = document.querySelectorAll('#dadosEmpresa');
+    if (dadosEmpresaElements.length > 0) {
+      dadosEmpresaElements[0].classList.remove('d-none'); // Primeira versão (a detalhada)
+      if (dadosEmpresaElements.length > 1) {
+        dadosEmpresaElements[1].classList.add('d-none'); // Segunda versão (esconder)
+      }
+    }
+
+    // ... resto da função permanece igual
+    // Preencher dados básicos da empresa
+    document.getElementById('razaoSocial').textContent = empresa.razao_social || 'N/A';
+    document.getElementById('nomeFantasia').textContent = empresa.nome_fantasia || 'N/A';
+    document.getElementById('cnpjResult').textContent = formatarCNPJ(empresa.cnpj);
+    document.getElementById('dataFundacao').textContent = formatarData(empresa.data_fundacao);
+    document.getElementById('tipoEmpresa').textContent = empresa.tipo || 'N/A';
+    document.getElementById('situacaoEmpresa').innerHTML =
+      `<span class="badge ${empresa.situacao === 'ATIVA' ? 'bg-success' : 'bg-danger'}">${empresa.situacao || 'N/A'}</span>`;
+
+    // CNAE
+    if (empresa.cnae) {
+      document.getElementById('cnaeEmpresa').textContent = `${empresa.cnae.numero} - ${empresa.cnae.tipo}`;
+      document.getElementById('atividadeEmpresa').textContent = empresa.cnae.descricao || 'N/A';
+    } else {
+      document.getElementById('cnaeEmpresa').textContent = 'N/A';
+      document.getElementById('atividadeEmpresa').textContent = 'N/A';
+    }
+
+    // Preencher contatos da empresa
+    preencherCelularesEmpresa(empresa.celulares);
+    preencherFixosEmpresa(empresa.fixos);
+    preencherEmailsEmpresa(empresa.emails);
+
+    // Preencher endereço da empresa
+    preencherEnderecoEmpresa(empresa.endereco);
+
+    // Preencher sócios
+    preencherSocios(empresa.socios);
+
+    // Preencher carros da empresa
+    preencherCarrosEmpresa(empresa.carros);
+  }
+
+  // FUNÇÕES PARA PREENCHER DADOS DA EMPRESA
+  function preencherCelularesEmpresa(celulares) {
+    const container = document.getElementById('celularesEmpresa');
+    if (!celulares || celulares.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0">Nenhum celular encontrado</p>';
+      return;
+    }
+
+    let html = '';
+    celulares.forEach((cel, index) => {
+      const numeroCompleto = `${cel.ddd}${cel.numero}`;
+      html += `
+        <div class="mb-2 p-2 border rounded">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <strong>(${cel.ddd}) ${formatarTelefoneNumero(cel.numero)}</strong>
+              <div class="d-flex gap-1 mt-1">
+                <span class="badge bg-primary">Rank ${cel.ranking}</span>
+                ${cel.whatsapp ? '<span class="badge bg-success">WhatsApp</span>' : ''}
+                ${cel.plus ? '<span class="badge bg-warning">Plus</span>' : ''}
+              </div>
+            </div>
+            <div class="d-flex gap-1">
+              <a href="tel:${numeroCompleto}" class="btn btn-sm btn-outline-primary" title="Ligar">
+                <i class="ri-phone-line"></i>
+              </a>
+              ${
+                cel.whatsapp
+                  ? `
+                <a href="https://wa.me/55${numeroCompleto}" target="_blank" class="btn btn-sm btn-success" title="WhatsApp">
+                  <i class="ri-whatsapp-line"></i>
+                </a>
+              `
+                  : ''
+              }
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  }
+
+  function preencherFixosEmpresa(fixos) {
+    const container = document.getElementById('fixosEmpresa');
+    if (!fixos || fixos.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0">Nenhum telefone fixo encontrado</p>';
+      return;
+    }
+
+    let html = '';
+    fixos.forEach((fixo, index) => {
+      const numeroCompleto = `${fixo.ddd}${fixo.numero}`;
+      html += `
+        <div class="mb-2 p-2 border rounded">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <strong>(${fixo.ddd}) ${formatarTelefoneNumero(fixo.numero)}</strong>
+              <div class="d-flex gap-1 mt-1">
+                <span class="badge bg-primary">Rank ${fixo.ranking}</span>
+                ${fixo.plus ? '<span class="badge bg-warning">Plus</span>' : ''}
+              </div>
+            </div>
+            <a href="tel:${numeroCompleto}" class="btn btn-sm btn-outline-primary" title="Ligar">
+              <i class="ri-phone-line"></i>
+            </a>
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  }
+
+  function preencherEmailsEmpresa(emails) {
+    const container = document.getElementById('emailsEmpresa');
+    if (!emails || emails.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0">Nenhum e-mail encontrado</p>';
+      return;
+    }
+
+    let html = '';
+    emails.forEach((email, index) => {
+      html += `
+        <div class="mb-2 p-2 border rounded">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <strong>${email.email}</strong>
+              <div class="d-flex gap-1 mt-1">
+                <span class="badge bg-primary">Rank ${email.ranking}</span>
+                ${email.possui_cookie ? '<span class="badge bg-success">Com Cookie</span>' : '<span class="badge bg-secondary">Sem Cookie</span>'}
+              </div>
+            </div>
+            <a href="mailto:${email.email}" class="btn btn-sm btn-outline-primary" title="Enviar E-mail">
+              <i class="ri-mail-line"></i>
+            </a>
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  }
+
+  function preencherEnderecoEmpresa(endereco) {
+    const container = document.getElementById('enderecoEmpresa');
+    if (!endereco) {
+      container.innerHTML = '<p class="text-muted mb-0">Nenhum endereço encontrado</p>';
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="p-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h6 class="mb-0">Endereço Comercial</h6>
+          <div class="d-flex gap-1">
+            <span class="badge bg-primary">Rank ${endereco.ranking}</span>
+            <span class="badge bg-info">${endereco.tipo || 'N/A'}</span>
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <strong>Endereço Completo:</strong>
+          <p class="mb-0">${endereco.endereco || 'N/A'}</p>
+        </div>
+
+        <div class="row">
+          <div class="col-md-8">
+            <div class="row">
+              <div class="col-6">
+                <small class="text-muted">Logradouro:</small>
+                <p class="mb-1">${endereco.logradouro || 'N/A'}</p>
+              </div>
+              <div class="col-6">
+                <small class="text-muted">Número:</small>
+                <p class="mb-1">${endereco.numero || 'N/A'}</p>
+              </div>
+              <div class="col-6">
+                <small class="text-muted">Complemento:</small>
+                <p class="mb-1">${endereco.complemento || 'N/A'}</p>
+              </div>
+              <div class="col-6">
+                <small class="text-muted">Bairro:</small>
+                <p class="mb-1">${endereco.bairro || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <small class="text-muted">Cidade/UF:</small>
+            <p class="mb-1">${endereco.cidade || 'N/A'} - ${endereco.uf || 'N/A'}</p>
+            <small class="text-muted">CEP:</small>
+            <p class="mb-1">${formatarCEP(endereco.cep)}</p>
+          </div>
         </div>
       </div>
     `;
   }
 
-  // FUNÇÕES PARA PREENCHER DADOS ESPECÍFICOS
+  function preencherSocios(socios) {
+    const container = document.getElementById('sociosEmpresa');
+    if (!socios || socios.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0">Nenhum sócio encontrado</p>';
+      return;
+    }
+
+    let html = '';
+    socios.forEach((socio, index) => {
+      html += `
+        <div class="mb-3 p-3 border rounded">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <h6 class="mb-1">${socio.nome || 'N/A'}</h6>
+              <small class="text-muted">CPF: ${formatarCPF(socio.cpf)}</small>
+            </div>
+            <div class="col-md-6 text-md-end">
+              <div class="d-flex gap-1 justify-content-md-end flex-wrap">
+                <span class="badge bg-info">Participação: ${socio.participacao}%</span>
+                <span class="badge bg-success">Capital: ${formatarMoeda(socio.capital_social)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  }
+
+  function preencherCarrosEmpresa(carros) {
+    const container = document.getElementById('carrosEmpresa');
+    if (!carros || carros.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0">Nenhum veículo encontrado</p>';
+      return;
+    }
+
+    let html = '';
+    carros.forEach((carro, index) => {
+      html += `
+        <div class="mb-2 p-2 border rounded">
+          <strong>${carro.marca || 'N/A'} ${carro.modelo || 'N/A'}</strong>
+          <p class="mb-0">Placa: ${carro.placa || 'N/A'} | Ano: ${carro.ano || 'N/A'}</p>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  }
+
+  // FUNÇÕES PARA PREENCHER DADOS ESPECÍFICOS (PESSOA)
   function preencherCelulares(celulares) {
     const container = document.getElementById('celulares');
     if (!celulares || celulares.length === 0) {
@@ -399,106 +639,6 @@
     container.innerHTML = html;
   }
 
-  // FUNÇÕES AUXILIARES
-  function mostrarLoadingPessoa(mostrar) {
-    const loading = document.getElementById('loadingPessoa');
-    if (loading) {
-      if (mostrar) {
-        loading.classList.remove('d-none');
-      } else {
-        loading.classList.add('d-none');
-      }
-    }
-  }
-
-  function mostrarLoadingEmpresa(mostrar) {
-    const loading = document.getElementById('loadingEmpresa');
-    if (loading) {
-      if (mostrar) {
-        loading.classList.remove('d-none');
-      } else {
-        loading.classList.add('d-none');
-      }
-    }
-  }
-
-  function mostrarErro(mensagem) {
-    const erroDiv = document.getElementById('erroConsulta');
-    const mensagemSpan = document.getElementById('mensagemErro');
-
-    if (erroDiv && mensagemSpan) {
-      mensagemSpan.textContent = mensagem;
-      erroDiv.classList.remove('d-none');
-
-      // Esconder erro após 5 segundos
-      setTimeout(() => {
-        erroDiv.classList.add('d-none');
-      }, 5000);
-    }
-  }
-
-  function limparResultados() {
-    // Esconder resultados anteriores
-    document.getElementById('resultadoConsulta').classList.add('d-none');
-    document.getElementById('dadosPessoa').classList.add('d-none');
-    document.getElementById('dadosEmpresa').classList.add('d-none');
-    document.getElementById('erroConsulta').classList.add('d-none');
-  }
-
-  // FUNÇÕES DE FORMATAÇÃO
-  function formatarCPF(cpf) {
-    if (!cpf) return 'N/A';
-    const cleaned = cpf.replace(/\D/g, '');
-    return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-  }
-
-  function formatarCNPJ(cnpj) {
-    if (!cnpj) return 'N/A';
-    const cleaned = cnpj.replace(/\D/g, '');
-    return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-  }
-
-  function formatarCEP(cep) {
-    if (!cep) return 'N/A';
-    const cleaned = cep.replace(/\D/g, '');
-    return cleaned.replace(/(\d{5})(\d{3})/, '$1-$2');
-  }
-
-  function formatarTelefoneNumero(numero) {
-    if (!numero) return 'N/A';
-    const cleaned = numero.toString();
-    if (cleaned.length === 9) {
-      return cleaned.replace(/(\d{5})(\d{4})/, '$1-$2');
-    } else if (cleaned.length === 8) {
-      return cleaned.replace(/(\d{4})(\d{4})/, '$1-$2');
-    }
-    return cleaned;
-  }
-
-  function formatarData(data) {
-    if (!data) return 'N/A';
-    try {
-      const date = new Date(data);
-      return date.toLocaleDateString('pt-BR');
-    } catch (e) {
-      return data;
-    }
-  }
-
-  function formatarMoeda(valor) {
-    if (!valor || valor === 0) return 'N/A';
-    try {
-      return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-      }).format(valor);
-    } catch (e) {
-      return `R$ ${valor}`;
-    }
-  }
-
-  // Adicionar essas funções no final do script consulta.js, antes das funções de formatação:
-
   function preencherVinculos(vinculos) {
     const container = document.getElementById('vinculos');
     if (!vinculos || vinculos.length === 0) {
@@ -580,6 +720,110 @@
     `;
     });
     container.innerHTML = html;
+  }
+
+  // FUNÇÕES AUXILIARES
+  function mostrarLoadingPessoa(mostrar) {
+    const loading = document.getElementById('loadingPessoa');
+    if (loading) {
+      if (mostrar) {
+        loading.classList.remove('d-none');
+      } else {
+        loading.classList.add('d-none');
+      }
+    }
+  }
+
+  function mostrarLoadingEmpresa(mostrar) {
+    const loading = document.getElementById('loadingEmpresa');
+    if (loading) {
+      if (mostrar) {
+        loading.classList.remove('d-none');
+      } else {
+        loading.classList.add('d-none');
+      }
+    }
+  }
+
+  function mostrarErro(mensagem) {
+    const erroDiv = document.getElementById('erroConsulta');
+    const mensagemSpan = document.getElementById('mensagemErro');
+
+    if (erroDiv && mensagemSpan) {
+      mensagemSpan.textContent = mensagem;
+      erroDiv.classList.remove('d-none');
+
+      // Esconder erro após 5 segundos
+      setTimeout(() => {
+        erroDiv.classList.add('d-none');
+      }, 5000);
+    }
+  }
+
+  function limparResultados() {
+    // NÃO esconder a seção principal de resultados
+    // document.getElementById('resultadoConsulta').classList.add('d-none'); // REMOVER ESTA LINHA
+
+    // Esconder apenas as seções internas
+    document.getElementById('dadosPessoa').classList.add('d-none');
+
+    // Esconder todas as versões de dadosEmpresa
+    const dadosEmpresaElements = document.querySelectorAll('#dadosEmpresa');
+    dadosEmpresaElements.forEach(el => el.classList.add('d-none'));
+
+    document.getElementById('erroConsulta').classList.add('d-none');
+  }
+
+  // FUNÇÕES DE FORMATAÇÃO
+  function formatarCPF(cpf) {
+    if (!cpf) return 'N/A';
+    const cleaned = cpf.replace(/\D/g, '');
+    return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  }
+
+  function formatarCNPJ(cnpj) {
+    if (!cnpj) return 'N/A';
+    const cleaned = cnpj.replace(/\D/g, '');
+    return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  }
+
+  function formatarCEP(cep) {
+    if (!cep) return 'N/A';
+    const cleaned = cep.replace(/\D/g, '');
+    return cleaned.replace(/(\d{5})(\d{3})/, '$1-$2');
+  }
+
+  function formatarTelefoneNumero(numero) {
+    if (!numero) return 'N/A';
+    const cleaned = numero.toString();
+    if (cleaned.length === 9) {
+      return cleaned.replace(/(\d{5})(\d{4})/, '$1-$2');
+    } else if (cleaned.length === 8) {
+      return cleaned.replace(/(\d{4})(\d{4})/, '$1-$2');
+    }
+    return cleaned;
+  }
+
+  function formatarData(data) {
+    if (!data) return 'N/A';
+    try {
+      const date = new Date(data);
+      return date.toLocaleDateString('pt-BR');
+    } catch (e) {
+      return data;
+    }
+  }
+
+  function formatarMoeda(valor) {
+    if (!valor || valor === 0) return 'N/A';
+    try {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(valor);
+    } catch (e) {
+      return `R$ ${valor}`;
+    }
   }
 
   // Expor funções globalmente para uso em onclick

@@ -715,7 +715,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <!-- Formulário de Consulta -->
+                <!-- Formulário de Consulta - SEMPRE NO TOPO -->
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <div class="card">
@@ -746,6 +746,73 @@
                                     <i class="ri-building-line ri-16px me-1"></i>
                                     Consultar CNPJ
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dados da Empresa -->
+                <div id="dadosEmpresa" class="d-none">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="text-success mb-0">
+                                <i class="ri-building-line ri-16px me-1"></i>
+                                Dados da Empresa Encontrados
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Dados Básicos da Empresa -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Razão Social:</strong> <span id="razaoSocial" class="text-muted"></span></p>
+                                    <p><strong>Nome Fantasia:</strong> <span id="nomeFantasia" class="text-muted"></span></p>
+                                    <p><strong>CNPJ:</strong> <span id="cnpjResult" class="text-muted"></span></p>
+                                    <p><strong>Data Fundação:</strong> <span id="dataFundacao" class="text-muted"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Tipo:</strong> <span id="tipoEmpresa" class="text-muted"></span></p>
+                                    <p><strong>Situação:</strong> <span id="situacaoEmpresa" class="text-muted"></span></p>
+                                    <p><strong>CNAE:</strong> <span id="cnaeEmpresa" class="text-muted"></span></p>
+                                    <p><strong>Atividade:</strong> <span id="atividadeEmpresa" class="text-muted"></span></p>
+                                </div>
+                            </div>
+
+                            <!-- Contatos da Empresa - Telefones -->
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <h6><i class="ri-smartphone-line ri-16px me-1"></i>Celulares da Empresa</h6>
+                                    <div id="celularesEmpresa" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="ri-phone-line ri-16px me-1"></i>Telefones Fixos da Empresa</h6>
+                                    <div id="fixosEmpresa" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Contatos da Empresa - E-mails -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6><i class="ri-mail-line ri-16px me-1"></i>E-mails da Empresa</h6>
+                                    <div id="emailsEmpresa" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Endereço da Empresa -->
+                            <div class="mt-4">
+                                <h6><i class="ri-map-pin-line ri-16px me-1"></i>Endereço da Empresa</h6>
+                                <div id="enderecoEmpresa" class="border rounded p-2"></div>
+                            </div>
+
+                            <!-- Sócios -->
+                            <div class="mt-4">
+                                <h6><i class="ri-group-line ri-16px me-1"></i>Quadro Societário</h6>
+                                <div id="sociosEmpresa" class="border rounded p-2" style="max-height: 400px; overflow-y: auto;"></div>
+                            </div>
+
+                            <!-- Veículos da Empresa -->
+                            <div class="mt-4">
+                                <h6><i class="ri-car-line ri-16px me-1"></i>Veículos da Empresa</h6>
+                                <div id="carrosEmpresa" class="border rounded p-2"></div>
                             </div>
                         </div>
                     </div>
@@ -827,21 +894,6 @@
                                     <h6><i class="ri-building-2-line ri-16px me-1"></i>Participação Societária</h6>
                                     <div id="participacaoSocietaria" class="border rounded p-2"></div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Dados da Empresa -->
-                    <div id="dadosEmpresa" class="d-none">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="text-success mb-0">
-                                    <i class="ri-building-line ri-16px me-1"></i>
-                                    Dados da Empresa Encontrados
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div id="infoEmpresa"></div>
                             </div>
                         </div>
                     </div>
