@@ -56,6 +56,7 @@
 
 @section('page-script')
     @vite('resources/assets/js/comercialkanban.js')
+        @vite('resources/assets/js/consulta.js')
 @endsection
 
 @section('content')
@@ -455,67 +456,161 @@
     </div>
 
   <!-- Modal para Fila Preditiva -->
-    <div class="modal fade" id="modal-fila-preditiva" tabindex="-1" aria-labelledby="modalFilaPreditivaLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalFilaPreditivaLabel">Cliente na Fila Preditiva</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade" id="modal-fila-preditiva" tabindex="-1" aria-labelledby="modalFilaPreditivaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalFilaPreditivaLabel">Cliente na Fila Preditiva</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="loading-fila-preditiva" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-2">Buscando próximo cliente...</p>
                 </div>
-                <div class="modal-body">
-                    <div id="loading-fila-preditiva" class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Carregando...</span>
-                        </div>
-                        <p class="mt-2">Buscando próximo cliente...</p>
-                    </div>
 
-                    <div id="no-results-fila-preditiva" class="text-center d-none">
-                        <div class="alert alert-info">
-                            <i class="ri-information-line me-2"></i>
-                            <span>Não há clientes disponíveis na fila preditiva no momento.</span>
-                        </div>
+                <div id="no-results-fila-preditiva" class="text-center d-none">
+                    <div class="alert alert-info">
+                        <i class="ri-information-line me-2"></i>
+                        <span>Não há clientes disponíveis na fila preditiva no momento.</span>
                     </div>
+                </div>
 
-                    <div id="cliente-preditiva-container" class="d-none">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <h4 id="cliente-nome">-</h4>
-                                        <p class="mb-1"><strong>Email:</strong> <span id="cliente-email">-</span></p>
-                                        <p class="mb-1"><strong>Telefone:</strong> <span id="cliente-telefone">-</span></p>
-                                        <p class="mb-1"><strong>CPF:</strong> <span id="cliente-cpf">-</span></p>
-                                        <p class="mb-1"><strong>Data de Nascimento:</strong> <span id="cliente-nascimento">-</span></p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p class="mb-1"><strong>Plano:</strong> <span id="cliente-plano">-</span></p>
-                                        <p class="mb-1"><strong>Categoria:</strong> <span id="cliente-categoria">-</span></p>
-                                        <p class="mb-1"><strong>Entidade:</strong> <span id="cliente-entidade">-</span></p>
-                                        <p class="mb-1"><strong>Valor Atual:</strong> <span id="cliente-valor">-</span></p>
-                                    </div>
+                <div id="cliente-preditiva-container" class="d-none">
+                    <!-- Card com dados básicos do cliente -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="ri-user-line me-2"></i>
+                                Informações do Cliente
+                            </h6>
+                            <!-- Botão de consulta no header do card -->
+                            <button type="button" class="btn btn-sm btn-info" id="btn-consultar-dados-cliente">
+                                <span class="spinner-border spinner-border-sm d-none" id="loading-consulta-cliente"></span>
+                                <i class="ri-search-line ri-16px me-1"></i>
+                                Consultar Dados Completos
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h4 id="cliente-nome">-</h4>
+                                    <p class="mb-1"><strong>Email:</strong> <span id="cliente-email">-</span></p>
+                                    <p class="mb-1"><strong>Telefone:</strong> <span id="cliente-telefone">-</span></p>
+                                    <p class="mb-1"><strong>CPF:</strong> <span id="cliente-cpf">-</span></p>
+                                    <p class="mb-1"><strong>Data de Nascimento:</strong> <span id="cliente-nascimento">-</span></p>
                                 </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Plano:</strong> <span id="cliente-plano">-</span></p>
+                                    <p class="mb-1"><strong>Categoria:</strong> <span id="cliente-categoria">-</span></p>
+                                    <p class="mb-1"><strong>Entidade:</strong> <span id="cliente-entidade">-</span></p>
+                                    <p class="mb-1"><strong>Valor Atual:</strong> <span id="cliente-valor">-</span></p>
+                                </div>
+                            </div>
 
-                                <input type="hidden" id="cliente-id" value="">
+                            <input type="hidden" id="cliente-id" value="">
+                        </div>
+                    </div>
 
-                                <div class="mt-4">
-                                    <div class="form-floating form-floating-outline mb-3">
-                                        <select class="form-select" id="tabulacao-preditiva">
-                                            <option value="">Selecione uma tabulação</option>
-                                            <option value="NAO ATENDE">Não atende</option>
-                                            <option value="NUMERO INEXISTENTE">Número inexistente</option>
-                                            <option value="NAO INTERESSADO">Não interessado</option>
-                                            <option value="JA POSSUI PLANO">Já possui plano</option>
-                                        </select>
-                                        <label for="tabulacao-preditiva">Tabulação</label>
+                    <!-- Card de Tabulação -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="ri-clipboard-line me-2"></i>
+                                Tabulação do Atendimento
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-floating form-floating-outline">
+                                <select class="form-select" id="tabulacao-preditiva">
+                                    <option value="">Selecione uma tabulação</option>
+                                    <option value="NAO ATENDE">Não atende</option>
+                                    <option value="NUMERO INEXISTENTE">Número inexistente</option>
+                                    <option value="NAO INTERESSADO">Não interessado</option>
+                                    <option value="JA POSSUI PLANO">Já possui plano</option>
+                                </select>
+                                <label for="tabulacao-preditiva">Resultado do Contato</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção para exibir dados da consulta -->
+                    <div id="dados-consulta-cliente" class="d-none mt-3">
+                        <!-- Dados da Pessoa -->
+                        <div id="dados-pessoa-preditiva" class="d-none">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="text-primary mb-0">
+                                        <i class="ri-user-search-line ri-16px me-1"></i>
+                                        Dados Completos do Cliente
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Nome:</strong> <span id="nome-preditiva" class="text-muted"></span></p>
+                                            <p><strong>CPF:</strong> <span id="cpf-result-preditiva" class="text-muted"></span></p>
+                                            <p><strong>Data Nascimento:</strong> <span id="data-nascimento-preditiva" class="text-muted"></span></p>
+                                            <p><strong>Sexo:</strong> <span id="sexo-preditiva" class="text-muted"></span></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Nome da Mãe:</strong> <span id="nome-mae-preditiva" class="text-muted"></span></p>
+                                            <p><strong>Situação CPF:</strong> <span id="situacao-cpf-preditiva" class="text-muted"></span></p>
+                                            <p><strong>Renda:</strong> <span id="renda-preditiva" class="text-muted"></span></p>
+                                            <p><strong>Ocupação:</strong> <span id="ocupacao-preditiva" class="text-muted"></span></p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Contatos - Telefones -->
+                                    <div class="row mt-4">
+                                        <div class="col-md-6">
+                                            <h6><i class="ri-smartphone-line ri-16px me-1"></i>Celulares</h6>
+                                            <div id="celulares-preditiva" class="border rounded p-2" style="min-height: 60px; max-height: 200px; overflow-y: auto;"></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="ri-phone-line ri-16px me-1"></i>Telefones Fixos</h6>
+                                            <div id="fixos-preditiva" class="border rounded p-2" style="min-height: 60px; max-height: 200px; overflow-y: auto;"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Contatos - E-mails -->
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <h6><i class="ri-mail-line ri-16px me-1"></i>E-mails</h6>
+                                            <div id="emails-preditiva" class="border rounded p-2" style="min-height: 60px; max-height: 200px; overflow-y: auto;"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Endereços -->
+                                    <div class="mt-4">
+                                        <h6><i class="ri-map-pin-line ri-16px me-1"></i>Endereços</h6>
+                                        <div id="enderecos-preditiva" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;"></div>
+                                    </div>
+
+                                    <!-- Risco de Crédito -->
+                                    <div class="mt-4">
+                                        <h6><i class="ri-shield-check-line ri-16px me-1"></i>Análise de Crédito</h6>
+                                        <div id="risco-credito-preditiva" class="border rounded p-2"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Mensagem de Erro da Consulta -->
+                    <div id="erro-consulta-cliente" class="alert alert-danger d-none mt-3">
+                        <i class="ri-error-warning-line ri-16px me-1"></i>
+                        <span id="mensagem-erro-cliente"></span>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="ri-close-line me-1"></i>Fechar
+                </button>
+                <div class="d-flex gap-2">
                     <button type="button" class="btn btn-danger" id="btn-descartar-cliente" disabled>
                         <i class="ri-close-circle-line me-1"></i>Descartar
                     </button>
@@ -526,5 +621,6 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection

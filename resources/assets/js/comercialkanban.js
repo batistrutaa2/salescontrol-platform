@@ -856,6 +856,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     descartarCliente(id, tabulacao);
+    
   });
 
   // Evento para converter cliente

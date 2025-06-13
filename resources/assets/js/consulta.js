@@ -829,4 +829,332 @@
   // Expor funções globalmente para uso em onclick
   window.consultarPessoa = consultarPessoa;
   window.consultarEmpresa = consultarEmpresa;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    setupFilaPreditiva();
+  });
+
+  function setupFilaPreditiva() {
+    const btnConsultar = document.getElementById('btn-consultar-dados-cliente');
+    if (btnConsultar) {
+      btnConsultar.addEventListener('click', consultarDadosCliente);
+    }
+
+    // Adicionar evento para o botão descartar
+    const btnDescartar = document.getElementById('btn-descartar-cliente');
+    if (btnDescartar) {
+      btnDescartar.addEventListener('click', function () {
+        // Limpar os dados da consulta quando descartar o cliente
+        limparResultadosCliente();
+      });
+    }
+
+    // OPCIONAL: Limpar também quando a modal for fechada
+    const modalFilaPreditiva = document.getElementById('modal-fila-preditiva');
+    if (modalFilaPreditiva) {
+      modalFilaPreditiva.addEventListener('hidden.bs.modal', function () {
+        // Limpar os dados da consulta quando fechar a modal
+        limparResultadosCliente();
+      });
+    }
+  }
+
+  function consultarDadosCliente() {
+    const cpfElement = document.getElementById('cliente-cpf');
+    if (!cpfElement) {
+      mostrarErroCliente('CPF do cliente não encontrado');
+      return;
+    }
+
+    const cpfTexto = cpfElement.textContent.trim();
+    if (!cpfTexto || cpfTexto === '-') {
+      mostrarErroCliente('CPF do cliente não disponível');
+      return;
+    }
+
+    const cpf = cpfTexto.replace(/\D/g, '');
+    if (cpf.length !== 11) {
+      mostrarErroCliente('CPF inválido');
+      return;
+    }
+
+    // Mostrar loading
+    mostrarLoadingConsultaCliente(true);
+    limparResultadosCliente();
+
+    // Fazer requisição
+    fetch('/consulta/pessoa', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      },
+      body: JSON.stringify({ cpf: cpf })
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        mostrarLoadingConsultaCliente(false);
+
+        if (data.error) {
+          mostrarErroCliente(data.error);
+        } else {
+          exibirDadosClientePreditiva(data);
+        }
+      })
+      .catch(error => {
+        mostrarLoadingConsultaCliente(false);
+        mostrarErroCliente('Erro na consulta: ' + error.message);
+      });
+  }
+
+  function exibirDadosClientePreditiva(data) {
+    const pessoa = data.pessoa;
+    if (!pessoa) {
+      mostrarErroCliente('Dados da pessoa não encontrados');
+      return;
+    }
+
+    // Mostrar seção de resultados
+    document.getElementById('dados-consulta-cliente').classList.remove('d-none');
+    document.getElementById('dados-pessoa-preditiva').classList.remove('d-none');
+
+    // Preencher dados básicos
+    document.getElementById('nome-preditiva').textContent = pessoa.nome || 'N/A';
+    document.getElementById('cpf-result-preditiva').textContent = formatarCPF(pessoa.cpf);
+    document.getElementById('data-nascimento-preditiva').textContent = formatarData(pessoa.data_nascimento);
+    document.getElementById('sexo-preditiva').textContent = pessoa.sexo === 'M' ? 'Masculino' : 'Feminino';
+    document.getElementById('nome-mae-preditiva').textContent = pessoa.nome_mae || 'N/A';
+    document.getElementById('situacao-cpf-preditiva').innerHTML =
+      `<span class="badge ${pessoa.situacao_cpf === 'REGULAR' ? 'bg-success' : 'bg-warning'}">${pessoa.situacao_cpf || 'N/A'}</span>`;
+    document.getElementById('renda-preditiva').textContent = formatarMoeda(pessoa.renda);
+    document.getElementById('ocupacao-preditiva').textContent = pessoa.ocupacao || 'N/A';
+
+    // Preencher contatos
+    preencherCelularesPreditiva(pessoa.celulares);
+    preencherFixosPreditiva(pessoa.fixos);
+    preencherEmailsPreditiva(pessoa.emails);
+    preencherEnderecosPreditiva(pessoa.enderecos);
+    preencherRiscoCreditoPreditiva(pessoa.risco_credito);
+  }
+
+  // FUNÇÕES ESPECÍFICAS PARA PREDITIVA
+  function preencherCelularesPreditiva(celulares) {
+    const container = document.getElementById('celulares-preditiva');
+    if (!celulares || celulares.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0 small">Nenhum celular encontrado</p>';
+      return;
+    }
+
+    let html = '';
+    celulares.slice(0, 3).forEach((cel, index) => {
+      // Mostrar apenas os 3 primeiros
+      const numeroCompleto = `${cel.ddd}${cel.numero}`;
+      html += `
+        <div class="mb-1 p-2 border rounded">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong class="small">(${cel.ddd}) ${formatarTelefoneNumero(cel.numero)}</strong>
+              <div class="d-flex gap-1 mt-1">
+                <span class="badge bg-primary" style="font-size: 0.7em;">Rank ${cel.ranking}</span>
+                ${cel.whatsapp ? '<span class="badge bg-success" style="font-size: 0.7em;">WhatsApp</span>' : ''}
+              </div>
+            </div>
+            <div class="d-flex gap-1">
+              <a href="tel:${numeroCompleto}" class="btn btn-sm btn-outline-primary" title="Ligar">
+                <i class="ri-phone-line"></i>
+              </a>
+              ${
+                cel.whatsapp
+                  ? `
+                <a href="https://wa.me/55${numeroCompleto}" target="_blank" class="btn btn-sm btn-success" title="WhatsApp">
+                  <i class="ri-whatsapp-line"></i>
+                </a>
+              `
+                  : ''
+              }
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    if (celulares.length > 3) {
+      html += `<p class="text-muted small mb-0">+ ${celulares.length - 3} outros celulares</p>`;
+    }
+
+    container.innerHTML = html;
+  }
+
+  function preencherFixosPreditiva(fixos) {
+    const container = document.getElementById('fixos-preditiva');
+    if (!fixos || fixos.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0 small">Nenhum telefone fixo encontrado</p>';
+      return;
+    }
+
+    let html = '';
+    fixos.slice(0, 2).forEach((fixo, index) => {
+      // Mostrar apenas os 2 primeiros
+      const numeroCompleto = `${fixo.ddd}${fixo.numero}`;
+      html += `
+        <div class="mb-1 p-2 border rounded">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong class="small">(${fixo.ddd}) ${formatarTelefoneNumero(fixo.numero)}</strong>
+              <div class="d-flex gap-1 mt-1">
+                <span class="badge bg-primary" style="font-size: 0.7em;">Rank ${fixo.ranking}</span>
+              </div>
+            </div>
+            <a href="tel:${numeroCompleto}" class="btn btn-sm btn-outline-primary" title="Ligar">
+              <i class="ri-phone-line"></i>
+            </a>
+          </div>
+        </div>
+      `;
+    });
+
+    if (fixos.length > 2) {
+      html += `<p class="text-muted small mb-0">+ ${fixos.length - 2} outros telefones</p>`;
+    }
+
+    container.innerHTML = html;
+  }
+
+  function preencherEmailsPreditiva(emails) {
+    const container = document.getElementById('emails-preditiva');
+    if (!emails || emails.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0 small">Nenhum e-mail encontrado</p>';
+      return;
+    }
+
+    let html = '';
+    emails.slice(0, 3).forEach((email, index) => {
+      // Mostrar apenas os 3 primeiros
+      html += `
+        <div class="mb-1 p-2 border rounded">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong class="small">${email.email}</strong>
+              <div class="d-flex gap-1 mt-1">
+                <span class="badge bg-primary" style="font-size: 0.7em;">Rank ${email.ranking}</span>
+                ${email.possui_cookie ? '<span class="badge bg-success" style="font-size: 0.7em;">Com Cookie</span>' : ''}
+              </div>
+            </div>
+            <a href="mailto:${email.email}" class="btn btn-sm btn-outline-primary" title="Enviar E-mail">
+              <i class="ri-mail-line"></i>
+            </a>
+          </div>
+        </div>
+      `;
+    });
+
+    if (emails.length > 3) {
+      html += `<p class="text-muted small mb-0">+ ${emails.length - 3} outros e-mails</p>`;
+    }
+
+    container.innerHTML = html;
+  }
+
+  function preencherEnderecosPreditiva(enderecos) {
+    const container = document.getElementById('enderecos-preditiva');
+    if (!enderecos || enderecos.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0 small">Nenhum endereço encontrado</p>';
+      return;
+    }
+
+    let html = '';
+    enderecos.slice(0, 2).forEach((end, index) => {
+      // Mostrar apenas os 2 primeiros
+      html += `
+        <div class="mb-2 p-2 border rounded">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <h6 class="mb-0 small">Endereço ${index + 1}</h6>
+            <span class="badge bg-primary" style="font-size: 0.7em;">Rank ${end.ranking}</span>
+          </div>
+          <p class="mb-1 small"><strong>Endereço:</strong> ${end.endereco || 'N/A'}</p>
+          <p class="mb-0 small"><strong>Cidade:</strong> ${end.cidade || 'N/A'} - ${end.uf || 'N/A'} | <strong>CEP:</strong> ${formatarCEP(end.cep)}</p>
+        </div>
+      `;
+    });
+
+    if (enderecos.length > 2) {
+      html += `<p class="text-muted small mb-0">+ ${enderecos.length - 2} outros endereços</p>`;
+    }
+
+    container.innerHTML = html;
+  }
+
+  function preencherRiscoCreditoPreditiva(riscoCredito) {
+    const container = document.getElementById('risco-credito-preditiva');
+    if (!riscoCredito) {
+      container.innerHTML = '<p class="text-muted mb-0 small">Informações de crédito não disponíveis</p>';
+      return;
+    }
+
+    const scoreClass =
+      riscoCredito.score_credito === 'ALTO'
+        ? 'bg-success'
+        : riscoCredito.score_credito === 'MEDIO'
+          ? 'bg-warning'
+          : 'bg-danger';
+
+    const scoreText =
+      riscoCredito.score_credito === 'ALTO'
+        ? 'Baixo risco de inadimplência'
+        : riscoCredito.score_credito === 'MEDIO'
+          ? 'Risco moderado de inadimplência'
+          : 'Alto risco de inadimplência';
+
+    container.innerHTML = `
+      <div class="text-center p-2">
+        <h6 class="mb-1 small">Score de Crédito</h6>
+        <h5 class="mb-1">
+          <span class="badge ${scoreClass}">${riscoCredito.score_credito || 'N/A'}</span>
+        </h5>
+        <p class="text-muted mb-0 small">${scoreText}</p>
+      </div>
+    `;
+  }
+
+  // FUNÇÕES AUXILIARES PARA PREDITIVA
+  function mostrarLoadingConsultaCliente(mostrar) {
+    const loading = document.getElementById('loading-consulta-cliente');
+    const btnText = document.querySelector('#btn-consultar-dados-cliente i');
+
+    if (loading && btnText) {
+      if (mostrar) {
+        loading.classList.remove('d-none');
+        btnText.classList.add('d-none');
+      } else {
+        loading.classList.add('d-none');
+        btnText.classList.remove('d-none');
+      }
+    }
+  }
+
+  function mostrarErroCliente(mensagem) {
+    const erroDiv = document.getElementById('erro-consulta-cliente');
+    const mensagemSpan = document.getElementById('mensagem-erro-cliente');
+
+    if (erroDiv && mensagemSpan) {
+      mensagemSpan.textContent = mensagem;
+      erroDiv.classList.remove('d-none');
+
+      // Esconder erro após 5 segundos
+      setTimeout(() => {
+        erroDiv.classList.add('d-none');
+      }, 5000);
+    }
+  }
+
+  function limparResultadosCliente() {
+    document.getElementById('dados-consulta-cliente').classList.add('d-none');
+    document.getElementById('dados-pessoa-preditiva').classList.add('d-none');
+    document.getElementById('erro-consulta-cliente').classList.add('d-none');
+  }
 })();
