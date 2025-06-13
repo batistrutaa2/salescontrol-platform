@@ -50,7 +50,7 @@
 
 @section('page-script')
     @vite(['resources/assets/js/openClient.js'])
-    
+    @vite(['resources/assets/js/consulta.js'])
 @endsection
 
 @section('content')
@@ -707,7 +707,6 @@
         </div>
     </div>
 
-<!-- Modal de Consulta de Dados -->
 <div class="modal fade" id="consultaModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -779,32 +778,54 @@
                                     </div>
                                 </div>
 
-                                <!-- Contatos -->
-                                <div class="row mt-3">
-                                    <div class="col-md-4">
+                                <!-- Contatos - Telefones -->
+                                <div class="row mt-4">
+                                    <div class="col-md-6">
                                         <h6><i class="ri-smartphone-line ri-16px me-1"></i>Celulares</h6>
-                                        <div id="celulares" class="border rounded p-2" style="min-height: 60px;"></div>
+                                        <div id="celulares" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <h6><i class="ri-phone-line ri-16px me-1"></i>Telefones Fixos</h6>
-                                        <div id="fixos" class="border rounded p-2" style="min-height: 60px;"></div>
+                                        <div id="fixos" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
                                     </div>
-                                    <div class="col-md-4">
+                                </div>
+
+                                <!-- Contatos - E-mails -->
+                                <div class="row mt-3">
+                                    <div class="col-12">
                                         <h6><i class="ri-mail-line ri-16px me-1"></i>E-mails</h6>
-                                        <div id="emails" class="border rounded p-2" style="min-height: 60px;"></div>
+                                        <div id="emails" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
                                     </div>
                                 </div>
 
                                 <!-- Endereços -->
-                                <div class="mt-3">
+                                <div class="mt-4">
                                     <h6><i class="ri-map-pin-line ri-16px me-1"></i>Endereços</h6>
-                                    <div id="enderecos" class="border rounded p-2"></div>
+                                    <div id="enderecos" class="border rounded p-2" style="max-height: 400px; overflow-y: auto;"></div>
                                 </div>
 
                                 <!-- Veículos -->
-                                <div class="mt-3">
+                                <div class="mt-4">
                                     <h6><i class="ri-car-line ri-16px me-1"></i>Veículos</h6>
                                     <div id="carros" class="border rounded p-2"></div>
+                                </div>
+
+                                <!-- Vínculos Familiares -->
+                                <div class="mt-4">
+                                    <h6><i class="ri-links-line ri-16px me-1"></i>Vínculos Familiares</h6>
+                                    <div id="vinculos" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;"></div>
+                                </div>
+
+                                <!-- Risco de Crédito -->
+                                <div class="mt-4">
+                                    <h6><i class="ri-shield-check-line ri-16px me-1"></i>Análise de Crédito</h6>
+                                    <div id="riscoCredito" class="border rounded p-2"></div>
+                                </div>
+
+                                <!-- Participação Societária -->
+                                <div class="mt-4">
+                                    <h6><i class="ri-building-2-line ri-16px me-1"></i>Participação Societária</h6>
+                                    <div id="participacaoSocietaria" class="border rounded p-2"></div>
                                 </div>
                             </div>
                         </div>
