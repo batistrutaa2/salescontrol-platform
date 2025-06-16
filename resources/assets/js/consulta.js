@@ -15,6 +15,68 @@
 
     // Configurar eventos dos botões
     setupEventos();
+
+    // NOVA FUNÇÃO: Configurar o botão "Consultar Lemit"
+    setupConsultarLemitButton();
+  }
+
+  // NOVA FUNÇÃO: Configurar o botão "Consultar Lemit"
+  function setupConsultarLemitButton() {
+    const btnConsultarLemit = document.querySelector('[data-bs-target="#consultaModal"]');
+
+    if (btnConsultarLemit) {
+      btnConsultarLemit.addEventListener('click', function() {
+        // Aguardar a modal abrir completamente
+        setTimeout(() => {
+          preencherCamposEConsultar();
+        }, 300);
+      });
+    }
+  }
+
+  // NOVA FUNÇÃO: Preencher campos e executar consulta automaticamente
+  function preencherCamposEConsultar() {
+    // Buscar o campo CPF/CNPJ do cliente na página
+    const cpfClienteElement = document.getElementById('cpf');
+
+    if (!cpfClienteElement || !cpfClienteElement.value) {
+      mostrarErro('CPF/CNPJ do cliente não encontrado na página');
+      return;
+    }
+
+    const cpfCnpjCliente = cpfClienteElement.value.replace(/\D/g, '');
+
+    if (!cpfCnpjCliente) {
+      mostrarErro('CPF/CNPJ do cliente está vazio');
+      return;
+    }
+
+    // Determinar se é CPF (11 dígitos) ou CNPJ (14 dígitos)
+    if (cpfCnpjCliente.length === 11) {
+      // É CPF - preencher campo CPF e consultar
+      const cpfConsultaInput = document.getElementById('cpfConsulta');
+      if (cpfConsultaInput) {
+        cpfConsultaInput.value = cpfClienteElement.value; // Manter a formatação original
+
+        // Executar consulta automaticamente
+        setTimeout(() => {
+          consultarPessoa();
+        }, 100);
+      }
+    } else if (cpfCnpjCliente.length === 14) {
+      // É CNPJ - preencher campo CNPJ e consultar
+      const cnpjConsultaInput = document.getElementById('cnpjConsulta');
+      if (cnpjConsultaInput) {
+        cnpjConsultaInput.value = cpfClienteElement.value; // Manter a formatação original
+
+        // Executar consulta automaticamente
+        setTimeout(() => {
+          consultarEmpresa();
+        }, 100);
+      }
+    } else {
+      mostrarErro('CPF/CNPJ do cliente possui formato inválido. CPF deve ter 11 dígitos e CNPJ deve ter 14 dígitos.');
+    }
   }
 
   function setupMascaras() {
