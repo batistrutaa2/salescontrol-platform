@@ -187,11 +187,11 @@ class Vendas extends Controller
 
         // Aplicar outros filtros
         if ($filtros['ano']) {
-            $query->whereYear('created_at', $filtros['ano']);
+            $query->whereYear('vendas.created_at', $filtros['ano']);
         }
 
         if ($filtros['mes']) {
-            $query->whereMonth('created_at', $filtros['mes']);
+            $query->whereMonth('vendas.created_at', $filtros['mes']);
         }
 
         if ($filtros['vendedor_id']) {
@@ -203,10 +203,10 @@ class Vendas extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('data_vigencia', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
-        $query->orderBy('data_vigencia', 'desc');
+        $query->orderBy('vendas.created_at', 'desc');
 
         if ($perPage) {
             return $query->paginate($perPage);
@@ -229,7 +229,7 @@ class Vendas extends Controller
         $query = $this->aplicarFiltroEmpresa($query);
 
         if ($filtros['ano']) {
-            $query->whereYear('created_at', $filtros['ano']);
+            $query->whereYear('vendas.created_at', $filtros['ano']);
         }
 
         if ($filtros['vendedor_id']) {
@@ -241,7 +241,7 @@ class Vendas extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
         return $query->groupBy('ano', 'mes')
@@ -263,11 +263,11 @@ class Vendas extends Controller
          ->where('users.empresa_id', $empresaId); // Filtro por empresa
 
         if ($filtros['ano']) {
-            $query->whereYear('created_at', $filtros['ano']);
+            $query->whereYear('vendas.created_at', $filtros['ano']);
         }
 
         if ($filtros['mes']) {
-            $query->whereMonth('created_at', $filtros['mes']);
+            $query->whereMonth('vendas.created_at', $filtros['mes']);
         }
 
         if ($filtros['operadora']) {
@@ -275,7 +275,7 @@ class Vendas extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('data_vigencia', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
         return $query->groupBy('users.id', 'users.name')
@@ -296,11 +296,11 @@ class Vendas extends Controller
         $query = $this->aplicarFiltroEmpresa($query);
 
         if ($filtros['ano']) {
-            $query->whereYear('created_at', $filtros['ano']);
+            $query->whereYear('vendas.created_at', $filtros['ano']);
         }
 
         if ($filtros['mes']) {
-            $query->whereMonth('created_at', $filtros['mes']);
+            $query->whereMonth('vendas.created_at', $filtros['mes']);
         }
 
         if ($filtros['vendedor_id']) {
@@ -308,7 +308,7 @@ class Vendas extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('data_vigencia', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
         return $query->whereNotNull('operadora')
@@ -329,11 +329,11 @@ class Vendas extends Controller
         $query = $this->aplicarFiltroEmpresa($query);
 
         if ($filtros['ano']) {
-            $query->whereYear('created_at', $filtros['ano']);
+            $query->whereYear('vendas.created_at', $filtros['ano']);
         }
 
         if ($filtros['mes']) {
-            $query->whereMonth('created_at', $filtros['mes']);
+            $query->whereMonth('vendas.created_at', $filtros['mes']);
         }
 
         if ($filtros['vendedor_id']) {
@@ -345,7 +345,7 @@ class Vendas extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
         return $query->whereNotNull('nome_plano')
@@ -362,11 +362,11 @@ class Vendas extends Controller
         $query = $this->aplicarFiltroEmpresa($query);
 
         if ($filtros['ano']) {
-            $query->whereYear('created_at', $filtros['ano']);
+            $query->whereYear('vendas.created_at', $filtros['ano']);
         }
 
         if ($filtros['mes']) {
-            $query->whereMonth('created_at', $filtros['mes']);
+            $query->whereMonth('vendas.created_at', $filtros['mes']);
         }
 
         if ($filtros['vendedor_id']) {
@@ -378,7 +378,7 @@ class Vendas extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
         return [
@@ -404,7 +404,7 @@ class Vendas extends Controller
 
     private function getAnosDisponiveis($filtros)
     {
-        $query = VendasModel::select(DB::raw('YEAR(created_at) as ano'));
+        $query = VendasModel::select(DB::raw('YEAR(vendas.created_at) as ano'));
 
         // Aplicar filtro por empresa
         $query = $this->aplicarFiltroEmpresa($query);
