@@ -13,9 +13,6 @@
     // Configurar máscaras para os campos
     setupMascaras();
 
-    // Configurar eventos dos botões
-    setupEventos();
-
     // NOVA FUNÇÃO: Configurar o botão "Consultar Lemit"
     setupConsultarLemitButton();
   }
@@ -107,9 +104,7 @@
     }
   }
 
-  function setupEventos() {
-    // Os eventos já estão configurados via onclick no HTML
-  }
+
 
   // FUNÇÃO PARA CONSULTAR PESSOA
   function consultarPessoa() {
@@ -1002,6 +997,7 @@
     preencherEmailsPreditiva(pessoa.emails);
     preencherEnderecosPreditiva(pessoa.enderecos);
     preencherRiscoCreditoPreditiva(pessoa.risco_credito);
+    preencherParticipacaoSocietaria(pessoa.participacao_societaria);
   }
 
   // FUNÇÕES ESPECÍFICAS PARA PREDITIVA

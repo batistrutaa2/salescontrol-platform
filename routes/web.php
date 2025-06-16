@@ -150,4 +150,4 @@ Route::middleware(['auth'])->group(function () {
 
 
   Route::post('/consulta/pessoa', [ConsultaController::class, 'consultarPessoa'])->name('consulta.pessoa');
-Route::post('/consulta/empresa', [ConsultaController::class, 'consultarEmpresa'])->name('consulta.empresa');
+  Route::post('/consulta/empresa', [ConsultaController::class, 'consultarEmpresa'])->name('consulta.empresa');
