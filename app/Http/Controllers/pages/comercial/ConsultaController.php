@@ -4,6 +4,7 @@ namespace App\Http\Controllers\pages\comercial;
 
 use Illuminate\Http\Request;
 use App\Models\People\Pessoa;
+use App\Models\People\Empresa;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Http;
 
@@ -75,33 +76,130 @@ public function consultarPessoa(Request $request)
 }
 
 
-    public function consultarEmpresa(Request $request)
-    {
-        $request->validate([
-            'cnpj' => 'required|string|size:14'
+public function consultarEmpresa(Request $request)
+{
+    $request->validate([
+        'cnpj' => 'required|string|size:14'
+    ]);
+
+    try {
+        // Buscar no banco local
+        $empresa = Empresa::where('cnpj', $request->cnpj)->first();
+
+        if ($empresa) {
+            // Se já existe, verificar se a consulta é recente
+            $diff = now()->diffInMonths($empresa->created_at);
+            if ($diff < 3) {
+                // Se for recente (< 3 meses), retornar dados locais + relacionamentos
+                $empresa->load(['enderecos', 'celulares', 'fixos', 'emails', 'socios', 'carros']);
+                return response()->json([
+                    'data_consulta' => $empresa->created_at,
+                    'empresa' => $empresa
+                ]);
+            }
+        }
+
+        // Se não existir ou estiver desatualizado, consultar a API
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->apiToken,
+        ])->post($this->baseUrl . '/empresa', [
+            'documento' => $request->cnpj
         ]);
 
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiToken,
-            ])->post($this->baseUrl . '/empresa', [
-                'documento' => $request->cnpj
-            ]);
+        if ($response->successful()) {
+            $json = $response->json();
+            $empresaData = $json['empresa'] ?? null;
 
-            if ($response->successful()) {
-                return response()->json($response->json());
+            if (!$empresaData) {
+                return response()->json(['error' => 'Retorno da API inválido'], 500);
             }
 
-            return response()->json([
-                'error' => 'CNPJ não encontrado ou erro na consulta'
-            ], $response->status());
+            // Atualizar ou criar empresa principal
+            $empresa = Empresa::updateOrCreate(
+                ['cnpj' => $empresaData['cnpj']],
+                [
+                    'razao_social'   => $empresaData['razao_social'] ?? null,
+                    'nome_fantasia'  => $empresaData['nome_fantasia'] ?? null,
+                    'data_fundacao'  => $empresaData['data_fundacao'] ?? null,
+                    'tipo'           => $empresaData['tipo'] ?? null,
+                    'situacao'       => $empresaData['situacao'] ?? null,
+                    'cnae_numero'    => $empresaData['cnae']['numero'] ?? null,
+                    'cnae_tipo'      => $empresaData['cnae']['tipo'] ?? null,
+                    'cnae_segmento'  => $empresaData['cnae']['segmento'] ?? null,
+                    'cnae_descricao' => $empresaData['cnae']['descricao'] ?? null,
+                ]
+            );
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor'
-            ], 500);
+            // Sincronizar relacionamentos (endereços, celulares, fixos, emails, socios, carros)
+            $empresa->enderecos()->delete();
+            $empresa->celulares()->delete();
+            $empresa->fixos()->delete();
+            $empresa->emails()->delete();
+            $empresa->socios()->delete();
+            $empresa->carros()->delete();
+
+            foreach ($empresaData['endereco'] ? [$empresaData['endereco']] : [] as $endereco) {
+                $empresa->enderecos()->create([
+                    'endereco' => $endereco['endereco'] ?? null,
+                    'bairro'   => $endereco['bairro'] ?? null,
+                    'cidade'   => $endereco['cidade'] ?? null,
+                    'uf'       => $endereco['uf'] ?? null,
+                    'cep'      => $endereco['cep'] ?? null,
+                    'tipo'     => $endereco['tipo'] ?? null,
+                    'ranking'  => $endereco['ranking'] ?? null,
+                ]);
+            }
+
+            foreach ($empresaData['celulares'] ?? [] as $celular) {
+                $empresa->celulares()->create($celular);
+            }
+
+            foreach ($empresaData['fixos'] ?? [] as $fixo) {
+                $empresa->fixos()->create($fixo);
+            }
+
+            foreach ($empresaData['emails'] ?? [] as $email) {
+                $empresa->emails()->create($email);
+            }
+
+            foreach ($empresaData['socios'] ?? [] as $socio) {
+                $empresa->socios()->create([
+                    'cpf' => $socio['cpf'] ?? null,
+                    'nome' => $socio['nome'] ?? null,
+                    'participacao' => $socio['participacao'] ?? null,
+                    'capital_social' => $socio['capital_social'] ?? null,
+                ]);
+            }
+
+            foreach ($empresaData['carros'] ?? [] as $carro) {
+                $empresa->carros()->create([
+                    'placa' => $carro['placa'] ?? null,
+                    'marca' => $carro['marca'] ?? null,
+                    'ano_fabricacao' => $carro['ano_fabricacao'] ?? null,
+                    'ano_modelo' => $carro['ano_modelo'] ?? null,
+                    'renavan' => $carro['renavan'] ?? null,
+                    'chassi' => $carro['chassi'] ?? null,
+                    'data_licenciamento' => $carro['data_licenciamento'] ?? null,
+                    'ranking' => $carro['ranking'] ?? null,
+                ]);
+            }
+
+            // Retornar o que veio da API
+            return response()->json($json);
         }
+
+        return response()->json([
+            'error' => 'CNPJ não encontrado ou erro na consulta'
+        ], $response->status());
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Erro interno do servidor',
+            'message' => $e->getMessage(),
+        ], 500);
     }
+}
+
 
 
     private function salvarOuAtualizarPessoa(array $data)
