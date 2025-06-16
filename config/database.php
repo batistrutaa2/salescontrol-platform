@@ -79,7 +79,7 @@ return [
     ],
 
 
-    'mysql3' => [
+    'people_db' => [
       'driver' => 'mysql',
       'host' => env('DB_PERSONAL_HOST', '127.0.0.1'),
       'port' => env('DB_PERSONAL_PORT', '3306'),
