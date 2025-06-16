@@ -1,7 +1,7 @@
 @php
     use Illuminate\Support\Facades\Auth;
     use Illuminate\Support\Facades\Route;
-        use App\Models\Empresa;
+    use App\Models\Empresa;
 
     $containerNav = $configData['contentLayout'] === 'compact' ? 'container-xxl' : 'container-fluid';
     $navbarDetached = $navbarDetached ?? '';
@@ -54,7 +54,7 @@
 
         <!-- User -->
         <li class="nav-item navbar-dropdown dropdown-user dropdown">
-            <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
+            <a class="nav-link dropdown-toggle hide-arrow p-0" href="#" data-bs-toggle="dropdown">
                 <div class="avatar avatar-online">
                     <img src="{{ asset('assets/img/avatars/1.png') }}" alt class="w-px-40 h-auto rounded-circle">
                 </div>
@@ -62,7 +62,7 @@
             <ul class="dropdown-menu dropdown-menu-end mt-3 py-2">
                 <li>
                     <a class="dropdown-item pb-3"
-                        href="{{ Route::has('profile.show') ? route('profile.show') : 'javascript:void(0);' }}">
+                        href="#">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0 me-3">
                                 <div class="avatar avatar-online">
