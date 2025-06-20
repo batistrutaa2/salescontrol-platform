@@ -262,26 +262,90 @@ class ConsultaController extends Controller
         }
     }
 
-    private function formatPessoaResponse(Pessoa $pessoa)
-    {
-        // Formatar o objeto Pessoa para o mesmo formato da API, principalmente a chave "participacao_societaria"
-        $data = $pessoa->toArray();
+private function formatPessoaResponse(Pessoa $pessoa)
+{
+    $data = $pessoa->toArray();
+    $data['participacao_societaria'] = $pessoa->participacoesSocietarias->map(function ($item) {
+        return [
+            'nome' => $item->nome,
+            'cnpj' => $item->cnpj,
+            'capital_social' => $item->capital_social,
+            'participacao_socio' => $item->participacao_socio,
+            'data_fundacao' => $item->data_fundacao,
+            'situacao_cadastral' => $item->situacao_cadastral,
+        ];
+    })->toArray();
 
-        // Ajustar participacoes societarias para a chave correta e formato esperado
-        $data['participacao_societaria'] = $pessoa->participacoesSocietarias->map(function ($item) {
-            return [
-                'nome' => $item->nome,
-                'cnpj' => $item->cnpj,
-                'capital_social' => $item->capital_social,
-                'participacao_socio' => $item->participacao_socio,
-                'data_fundacao' => $item->data_fundacao,
-                'situacao_cadastral' => $item->situacao_cadastral,
-            ];
-        })->toArray();
+    $data['celulares'] = $pessoa->celulares->map(function ($item) {
+        return [
+            'ddd' => $item->ddd,
+            'numero' => $item->numero,
+            'plus' => $item->plus,
+            'ranking' => $item->ranking,
+            'whatsapp' => $item->whatsapp,
+        ];
+    })->toArray();
 
-        // Remove a chave antiga para não duplicar
-        unset($data['participacoesSocietarias']);
+    $data['fixos'] = $pessoa->fixos->map(function ($item) {
+        return [
+            'numero' => $item->numero,
+            'ddd' => $item->ddd,
+        ];
+    })->toArray();
 
-        return $data;
-    }
+    $data['emails'] = $pessoa->emails->map(function ($item) {
+        return [
+            'email' => $item->email,
+            'ranking' => $item->ranking,
+            'possui_cookie' => $item->possui_cookie,
+        ];
+    })->toArray();
+
+    $data['enderecos'] = $pessoa->enderecos->map(function ($item) {
+        return [
+            'endereco' => $item->endereco,
+            'bairro' => $item->bairro,
+            'cidade' => $item->cidade,
+            'uf' => $item->uf,
+            'cep' => $item->cep,
+            'tipo' => $item->tipo,
+            'ranking' => $item->ranking,
+        ];
+    })->toArray();
+
+    $data['carros'] = $pessoa->carros->map(function ($item) {
+        return [
+            'placa' => $item->placa,
+            'marca' => $item->marca,
+            'ano_fabricacao' => $item->ano_fabricacao,
+            'ano_modelo' => $item->ano_modelo,
+            'renavan' => $item->renavan,
+            'chassi' => $item->chassi,
+            'data_licenciamento' => $item->data_licenciamento,
+            'ranking' => $item->ranking,
+        ];
+    })->toArray();
+
+    $data['vinculos'] = $pessoa->vinculos->map(function ($item) {
+        return [
+            'cpf_vinculo' => $item->cpf_vinculo,
+            'nome_vinculo' => $item->nome_vinculo,
+            'tipo_vinculo' => $item->tipo_vinculo
+        ];
+    })->toArray();
+
+    $data['risco_credito'] = $pessoa->riscosCredito->map(function ($item) {
+        return [
+            'cpf_cnpj' => $item->cpf_cnpj,
+            'score_credito' => $item->score_credito,
+        ];
+    })->toArray();
+
+    unset(
+        $data['participacoesSocietarias'],
+    );
+
+    return $data;
+}
+
 }
