@@ -361,9 +361,12 @@ class VendasRepository implements VendasRepositoryInterface
     return DB::table('vendas as a')
       ->select('b.name', DB::raw('SUM(a.valor_contrato) as total_vendas'))
       ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
+      ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
+      ->leftJoin('tabulacoes as d', 'd.id', '=', 'c.tabulacao_id')
       ->whereYear('a.created_at', $year)
       ->whereMonth('a.created_at', $month)
       ->where('a.empresa_id', $empresa_id)
+      ->whereIn('c.tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO])
       ->groupBy('b.name')
       ->get();
   }

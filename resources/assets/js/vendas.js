@@ -36,7 +36,8 @@ $(function () {
               IMPLANTADO: '<i class="ri-user-line ri-22px text-primary me-2"></i>',
               VENDA: '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
               ESTORNO: '<i class="ri-computer-line ri-22px text-danger me-2"></i>',
-              DEVELOPER: '<i class="ri-vip-crown-line ri-22px text-warning me-2"></i>'
+              DEVELOPER: '<i class="ri-vip-crown-line ri-22px text-warning me-2"></i>',
+              DECLINADO: '<i class="ri-close-circle-line ri-22px text-danger me-2"></i>'
             };
             return (
               "<span class='text-truncate d-flex align-items-center text-heading'>" +

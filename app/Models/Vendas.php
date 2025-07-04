@@ -44,6 +44,12 @@ class Vendas extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function contatoCorretor()
+    {
+        return $this->hasOne(ContatosCorretores::class, 'contato_id', 'contato_id');
+    }
+
+
   public function getCreatedAtAttribute($value)
   {
     return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;

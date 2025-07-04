@@ -13,6 +13,7 @@ use App\Repositories\Eloquent\VendasRepository;
 use App\Repositories\Eloquent\UsuariosRepository;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Enums\Tabulations;
 
 class Vendas extends Controller
 {
@@ -184,6 +185,8 @@ class Vendas extends Controller
 
         // Aplicar filtro por empresa PRIMEIRO
         $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusVenda($query); // ✅ filtro de status
+
 
         // Aplicar outros filtros
         if ($filtros['ano']) {
@@ -227,6 +230,8 @@ class Vendas extends Controller
 
         // Aplicar filtro por empresa
         $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusVenda($query); // ✅ filtro de status
+
 
         if ($filtros['ano']) {
             $query->whereYear('vendas.created_at', $filtros['ano']);
@@ -278,6 +283,9 @@ class Vendas extends Controller
             $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
+        $query = $this->aplicarFiltroStatusVenda($query); 
+
+
         return $query->groupBy('users.id', 'users.name')
                     ->orderBy('valor_total', 'desc')
                     ->get();
@@ -294,6 +302,7 @@ class Vendas extends Controller
 
         // Aplicar filtro por empresa
         $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusVenda($query); 
 
         if ($filtros['ano']) {
             $query->whereYear('vendas.created_at', $filtros['ano']);
@@ -327,6 +336,8 @@ class Vendas extends Controller
 
         // Aplicar filtro por empresa
         $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusVenda($query); // ✅ filtro de status
+
 
         if ($filtros['ano']) {
             $query->whereYear('vendas.created_at', $filtros['ano']);
@@ -360,6 +371,8 @@ class Vendas extends Controller
 
         // Aplicar filtro por empresa
         $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusVenda($query); // ✅ filtro de status
+
 
         if ($filtros['ano']) {
             $query->whereYear('vendas.created_at', $filtros['ano']);
@@ -408,6 +421,7 @@ class Vendas extends Controller
 
         // Aplicar filtro por empresa
         $query = $this->aplicarFiltroEmpresa($query);
+        
 
         return $query->distinct()
                     ->orderBy('ano', 'desc')
@@ -438,4 +452,11 @@ class Vendas extends Controller
 
     return response()->json($sales);
   }
+
+    private function aplicarFiltroStatusVenda($query)
+    {
+        return $query->whereHas('contatoCorretor', function($q) {
+            $q->whereIn('tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO]);
+        });
+    }
 }

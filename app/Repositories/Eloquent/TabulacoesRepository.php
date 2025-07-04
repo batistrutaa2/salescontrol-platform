@@ -31,7 +31,7 @@ class TabulacoesRepository implements TabulacoesRepositoryInterface
       ->where('empresa_id', $empresa_id)
       ->where('status', 'Y')
       ->where('tipo_tabulacao', "A")
-      ->whereIn('descricao', ['VENDA', 'ESTORNO', 'IMPLANTADO'])
+      ->whereIn('descricao', ['VENDA', 'ESTORNO', 'IMPLANTADO', 'DECLINADO'])
       ->get();
   }
 
