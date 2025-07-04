@@ -99,9 +99,6 @@ Route::middleware(['auth'])->group(function () {
   Route::delete('/reunioes/{id}', [ReunioesComercial::class, 'destroy']);
   Route::get('/available-slots/{managerId}/{date}', [ReunioesComercial::class, 'getAvailableSlots']);
 
-
-
-
   /** COMERCIAL- AGENDAMENTO */
   Route::post('/comercial/sendSchedule', [Comercial::class, 'sendSchedule'])->name('comercial.sendSchedule');
   Route::post('/comercial/voltar-fila', [Comercial::class, 'backQueue'])->name('comercial.backqueue');
