@@ -12,6 +12,7 @@ use App\Models\LeadAtividade;
 use App\Models\Ligacoes;
 use App\Models\LogPreditiva;
 use App\Models\Preditiva;
+use App\Models\TransferenciaContato;
 use Illuminate\Http\Request;
 use App\UseCases\MailingUseCase;
 use App\Models\ContatosCorretores;
@@ -149,10 +150,12 @@ class Mailing extends Controller
       ContatosCorretores::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       LogPreditiva::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Preditiva::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      TransferenciaContato::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Contatos::where("id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       DB::commit();
       return redirect()->back()->with('status', 'success')->with('message', "Contato Excluido com sucesso");
     } catch (\Throwable $th) {
+      dd($th);
       DB::rollBack();
       return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Erro ao excluir Lead");
     }
