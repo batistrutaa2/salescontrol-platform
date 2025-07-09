@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\URL;
 use App\Models\Agendamento;
 use App\Repositories\Contracts\LigacoesRepositoryInterface;
 use App\Repositories\Contracts\LogPreditivaRepositoryInterface;
@@ -71,6 +72,15 @@ class AppServiceProvider extends ServiceProvider
    */
   public function boot(): void
   {
+
+        if (
+        request()->header('x-forwarded-proto') === 'https' ||
+        request()->server('HTTPS') === 'on'
+    ) {
+        URL::forceScheme('https');
+    }
+
+
     View::composer('*', function ($view) {
       if (Auth::check()) {
         $modelAgendamento = new Agendamento();
