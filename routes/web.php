@@ -17,10 +17,11 @@ use App\Http\Controllers\pages\relatorios\Relatorios;
 use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\comercial\ConsultaController;
 
-// Route::get('/login', [LoginBasic::class, 'index'])->name('login');
-/**TESTE CELSO */
+Route::get('/login', [LoginBasic::class, 'index'])->name('login');
 
-Route::get('/', [LoginBasic::class, 'index'])->name('login');
+Route::get('/', function () {
+  return redirect()->route('login');
+});
 
 
 Route::post('/logout', [LoginBasic::class, 'logout'])->name('logout');
