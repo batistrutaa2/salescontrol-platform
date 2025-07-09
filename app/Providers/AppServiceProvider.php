@@ -73,13 +73,7 @@ class AppServiceProvider extends ServiceProvider
   public function boot(): void
   {
 
-    if (
-        request()->header('x-forwarded-proto') === 'https' ||
-        (!app()->runningInConsole() && isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
-    ) {
         URL::forceScheme('https');
-    }
-
 
     View::composer('*', function ($view) {
       if (Auth::check()) {
