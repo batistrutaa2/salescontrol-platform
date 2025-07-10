@@ -173,6 +173,11 @@
           "url": "/comercial/leads-ads",
           "name": "Leads Anuncio",
           "slug": "comercial-leads-anuncio"
+        },
+        {
+          "url": "/comercial/preditiva",
+          "name": "Fila Preditiva",
+          "slug": "comercial-preditiva"
         }
       ]
     },
