@@ -74,18 +74,13 @@ class AppServiceProvider extends ServiceProvider
   public function boot(): void
   {
       // Configurar HTTPS e trusted proxies para produção
-      if (app()->environment('production')) {
-          URL::forceScheme('https');
-          
-          // Configurar trusted proxies para Docker/Proxy reverso
-          Request::setTrustedProxies(['*'], 
-              Request::HEADER_X_FORWARDED_FOR | 
-              Request::HEADER_X_FORWARDED_HOST | 
-              Request::HEADER_X_FORWARDED_PORT | 
-              Request::HEADER_X_FORWARDED_PROTO |
-              Request::HEADER_X_FORWARDED_AWS_ELB
-          );
-      }
+    if (app()->environment('production')) {
+        // Forçar HTTPS em todas as URLs
+        URL::forceScheme('https');
+        
+        // Configurar trusted proxies
+        $this->configureTrustedProxies();
+    }
 
       View::composer('*', function ($view) {
           if (Auth::check()) {
@@ -111,4 +106,22 @@ class AppServiceProvider extends ServiceProvider
           return [];
       });
   }
+
+
+    /**
+     * Configurar trusted proxies para Docker + Apache
+     */
+    private function configureTrustedProxies(): void
+    {
+        // Definir proxies confiáveis (Apache local)
+        $proxies = ['127.0.0.1', 'localhost'];
+        
+        // Headers que o Apache vai enviar
+        $headers = Request::HEADER_X_FORWARDED_FOR | 
+                Request::HEADER_X_FORWARDED_HOST | 
+                Request::HEADER_X_FORWARDED_PORT | 
+                Request::HEADER_X_FORWARDED_PROTO;
+        
+        Request::setTrustedProxies($proxies, $headers);
+    }
 }
