@@ -17,9 +17,6 @@ use App\Http\Controllers\pages\relatorios\Relatorios;
 use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\comercial\ConsultaController;
 
-// Route::get('/login', [LoginBasic::class, 'index'])->name('login');
-/**TESTE CELSO */
-
 Route::get('/', [LoginBasic::class, 'index'])->name('login');
 
 

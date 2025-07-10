@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\URL;
 use App\Models\Agendamento;
 use App\Repositories\Contracts\LigacoesRepositoryInterface;
 use App\Repositories\Contracts\LogPreditivaRepositoryInterface;
@@ -39,6 +40,7 @@ use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -71,30 +73,42 @@ class AppServiceProvider extends ServiceProvider
    */
   public function boot(): void
   {
-    View::composer('*', function ($view) {
-      if (Auth::check()) {
-        $modelAgendamento = new Agendamento();
-        $repositoryAgendamento = new AgendamentoRepository($modelAgendamento);
-        $agendamentosAtrasados = $repositoryAgendamento->LateAppointments();
-
-        $quantidade = $agendamentosAtrasados->count();
-
-        $view->with([
-          'agendamentos' => $agendamentosAtrasados,
-          'isNotification' => $quantidade >= 1
-        ]);
-
+      // Configurar HTTPS e trusted proxies para produção
+      if (app()->environment('production')) {
+          URL::forceScheme('https');
+          
+          // Configurar trusted proxies para Docker/Proxy reverso
+          Request::setTrustedProxies(['*'], 
+              Request::HEADER_X_FORWARDED_FOR | 
+              Request::HEADER_X_FORWARDED_HOST | 
+              Request::HEADER_X_FORWARDED_PORT | 
+              Request::HEADER_X_FORWARDED_PROTO |
+              Request::HEADER_X_FORWARDED_AWS_ELB
+          );
       }
-    });
 
+      View::composer('*', function ($view) {
+          if (Auth::check()) {
+              $modelAgendamento = new Agendamento();
+              $repositoryAgendamento = new AgendamentoRepository($modelAgendamento);
+              $agendamentosAtrasados = $repositoryAgendamento->LateAppointments();
 
-    Vite::useStyleTagAttributes(function (?string $src, string $url, ?array $chunk, ?array $manifest) {
-      if ($src !== null) {
-        return [
-          'class' => preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?core)-?.*/i", $src) ? 'template-customizer-core-css' : (preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?theme)-?.*/i", $src) ? 'template-customizer-theme-css' : '')
-        ];
-      }
-      return [];
-    });
+              $quantidade = $agendamentosAtrasados->count();
+
+              $view->with([
+                  'agendamentos' => $agendamentosAtrasados,
+                  'isNotification' => $quantidade >= 1
+              ]);
+          }
+      });
+
+      Vite::useStyleTagAttributes(function (?string $src, string $url, ?array $chunk, ?array $manifest) {
+          if ($src !== null) {
+              return [
+                  'class' => preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?core)-?.*/i", $src) ? 'template-customizer-core-css' : (preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?theme)-?.*/i", $src) ? 'template-customizer-theme-css' : '')
+              ];
+          }
+          return [];
+      });
   }
 }
