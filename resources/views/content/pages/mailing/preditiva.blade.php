@@ -18,6 +18,15 @@
     border-radius: 4px;
     padding: 0.2em 0.4em;
     }
+    .table td,
+    .table th {
+    vertical-align: middle;
+    }
+
+    .btn-group .btn {
+    min-width: 60px;
+    }
+
 
     </style>
 @endsection
