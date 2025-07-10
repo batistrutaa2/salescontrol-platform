@@ -40,6 +40,7 @@ use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -72,8 +73,18 @@ class AppServiceProvider extends ServiceProvider
    */
   public function boot(): void
   {
+      // Configurar HTTPS e trusted proxies para produção
       if (app()->environment('production')) {
           URL::forceScheme('https');
+          
+          // Configurar trusted proxies para Docker/Proxy reverso
+          Request::setTrustedProxies(['*'], 
+              Request::HEADER_X_FORWARDED_FOR | 
+              Request::HEADER_X_FORWARDED_HOST | 
+              Request::HEADER_X_FORWARDED_PORT | 
+              Request::HEADER_X_FORWARDED_PROTO |
+              Request::HEADER_X_FORWARDED_AWS_ELB
+          );
       }
 
       View::composer('*', function ($view) {
@@ -100,5 +111,4 @@ class AppServiceProvider extends ServiceProvider
           return [];
       });
   }
-
 }
