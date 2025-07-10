@@ -73,13 +73,11 @@ class AppServiceProvider extends ServiceProvider
    */
   public function boot(): void
   {
-      // Configurar HTTPS e trusted proxies para produção
-    if (app()->environment('production')) {
-        // Forçar HTTPS em todas as URLs
+    if (
+        isset($_SERVER['HTTP_X_FORWARDED_PROTO']) &&
+        $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'
+    ) {
         URL::forceScheme('https');
-        
-        // Configurar trusted proxies
-        $this->configureTrustedProxies();
     }
 
       View::composer('*', function ($view) {
