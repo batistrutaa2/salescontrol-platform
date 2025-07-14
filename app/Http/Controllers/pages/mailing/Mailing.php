@@ -264,7 +264,6 @@ class Mailing extends Controller
             DB::raw('COUNT(l.id) as tentativas')
         )
         ->groupBy('p.id', 'c.nome_cliente', 'c.valor_plano_atual', 'p.contato_id')
-        ->limit(50)
         ->get();
 
       return response()->json([
