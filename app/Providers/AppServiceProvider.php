@@ -80,6 +80,15 @@ class AppServiceProvider extends ServiceProvider
         URL::forceScheme('https');
     }
 
+    if (
+        request()->getHost() !== 'brsolution.tech' &&
+        !app()->runningInConsole()
+    ) {
+        redirect()->to('https://brsolution.tech' . request()->getRequestUri())->send();
+        exit;
+    }
+
+
       View::composer('*', function ($view) {
           if (Auth::check()) {
               $modelAgendamento = new Agendamento();
