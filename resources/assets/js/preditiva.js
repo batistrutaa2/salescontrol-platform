@@ -19,13 +19,11 @@ $(function () {
       url: '/getPreditiva',
       method: 'GET',
       success: function (response) {
-        // Atualiza cards
         animarAtualizacao('#total-leads', response.total_leads_fila);
         animarAtualizacao('#tentativas-hoje', response.tentativas_hoje);
         animarAtualizacao('#conversoes-hoje', response.conversoes_hoje);
         animarAtualizacao('#recusas-hoje', response.recusas_hoje);
 
-        // Atualiza DataTable
         if (tabela) {
           tabela.clear().draw();
           response.leads.forEach(lead => {
@@ -36,8 +34,11 @@ $(function () {
               lead.tentativas,
               `
                 <div class="btn-group btn-group-sm" role="group">
-                <button class="btn btn-primary">Transferir</button>
-                <button class="btn btn-warning">Desativar</button>
+                  <button class="btn btn-outline-primary me-1 btn-transferir"
+                          data-id="${lead.contato_id}"
+                          title="Transferir">
+                    <i class="ri-share-forward-line"></i>
+                  </button>
                 </div>
               `
             ]);
@@ -51,13 +52,27 @@ $(function () {
     });
   }
 
-  // Inicializa DataTable
   tabela = $('#tabela-fila-preditiva').DataTable({
     pageLength: 10,
     language: {
       url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
     }
   });
+
+  $('#tabela-fila-preditiva tbody').on('click', '.btn-transferir', function () {
+    const contatoId = $(this).data('id');
+    abrirModalTransferencia(contatoId);
+  });
+
+  $('#tabela-fila-preditiva tbody').on('click', '.btn-desativar', function () {
+    const contatoId = $(this).data('id');
+    console.log('Desativar lead:', contatoId);
+  });
+
+  function abrirModalTransferencia(contatoId) {
+    document.getElementById('idMailing').value = contatoId;
+    $('#modalTransferirLead').modal('show');
+  }
 
   atualizarPreditiva();
   setInterval(atualizarPreditiva, 5000);

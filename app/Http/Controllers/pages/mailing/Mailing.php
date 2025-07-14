@@ -212,7 +212,10 @@ class Mailing extends Controller
 
   public function preditiva()
   {
-    return view('content.pages.mailing.preditiva');
+    $users = $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
+    return view('content.pages.mailing.preditiva', [
+      'users' => $users
+    ]);
   }
 
   public function getPreditiva()
@@ -241,7 +244,7 @@ class Mailing extends Controller
       $recusasHoje = DB::table('log_preditiva')
           ->whereDate('created_at', $hoje)
           ->where('acao', 'DESCARTE')
-          ->whereIn('tabulacao', ['RECUSOU', 'SEM INTERESSE', 'NEGOU']) // ajuste conforme suas regras
+          ->whereIn('tabulacao', ['JA POSSUI PLANO', 'NAO INTERESSADO', 'NUMERO INEXISTENTE', 'NAO ATENDE'])
           ->where('empresa_id', $empresaId)
           ->count();
 

@@ -26,8 +26,6 @@
     .btn-group .btn {
     min-width: 60px;
     }
-
-
     </style>
 @endsection
 
@@ -35,7 +33,6 @@
 @section('vendor-script')
     @vite(['resources/assets/vendor/libs/dropzone/dropzone.js'])
     @vite(['resources/assets/vendor/libs/toastr/toastr.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js', 'resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/@form-validation/popular.js', 'resources/assets/vendor/libs/@form-validation/bootstrap5.js', 'resources/assets/vendor/libs/@form-validation/auto-focus.js', 'resources/assets/vendor/libs/cleavejs/cleave.js', 'resources/assets/vendor/libs/cleavejs/cleave-phone.js'])
-
 @endsection
 
 <!-- Page Scripts -->
@@ -44,6 +41,21 @@
 @endsection
 
 @section('content')
+
+        @if (session('status') == 'success')
+            <div class="alert alert-solid-success d-flex align-items-center" role="alert">
+                <span class="alert-icon rounded">
+                    <i class="ri-checkbox-circle-line ri-22px"></i>
+                </span>
+                {{ session('message') }}
+            </div>
+        @elseif(session('status') == 'error')
+            <div class="alert alert-danger">
+                {{ session('message') }}
+            </div>
+        @endif
+
+
 <div class="row">
     <!-- Total de Leads na Fila -->
     <div class="col-md-3 col-sm-6 mb-4">
@@ -110,6 +122,33 @@
   </div>
 </div>
 
+<div class="modal fade" id="modalTransferirLead" tabindex="-1" aria-labelledby="modalTransferirLeadLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTransferirLeadLabel">Transferir Lead</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formTransferenciaLead" action="{{ route('comercial.transferContact') }}" method="POST">
+          @csrf
+          <input type="hidden" name="idMailing" id="idMailing">
+          <div class="mb-3">
+            <label for="vendedorDestino" class="form-label">Selecionar Vendedor</label>
+            <select class="form-select" name="user_id" id="vendedorDestino" required>
+              <option value="">Selecione um vendedor</option>
+              @foreach ($users as $user)
+                <option value="{{ $user->id }}">{{ $user->name }}</option>
+              @endforeach
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Confirmar Transferência</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 
 @endsection
