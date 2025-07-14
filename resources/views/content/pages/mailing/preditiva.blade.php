@@ -141,8 +141,15 @@
                 <option value="{{ $user->id }}">{{ $user->name }}</option>
               @endforeach
             </select>
-          </div>
 
+            <label for="vendedorDestino" class="form-label">Selecionar Vendedor</label>
+            <select class="form-select" name="tabulation_id"required>
+              <option value="">Selecione uma tabulação</option>
+              @foreach ($tabulacoes as $tabulacao)
+                <option value="{{ $tabulacao->id }}">{{ $tabulacao->descricao }}</option>
+              @endforeach
+            </select>
+          </div>
           <button type="submit" class="btn btn-primary">Confirmar Transferência</button>
         </form>
       </div>
