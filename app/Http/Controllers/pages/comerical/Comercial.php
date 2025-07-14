@@ -450,7 +450,6 @@ class Comercial extends Controller
         return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
       }
     } catch (\Throwable $th) {
-      dd($th);
       return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
     }
   }

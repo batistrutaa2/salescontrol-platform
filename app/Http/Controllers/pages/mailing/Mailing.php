@@ -19,7 +19,6 @@ use App\Models\ContatosCorretores;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Validator;
 use App\Imports\ContatosImportDependencies;
@@ -32,6 +31,8 @@ use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
+use Carbon\Carbon;
+
 
 class Mailing extends Controller
 {
@@ -207,4 +208,70 @@ class Mailing extends Controller
   public function contactsAdvertisement() {
     return view('content.pages.mailing.leads-anuncio');
   }
+
+
+  public function preditiva()
+  {
+    $users = $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
+    return view('content.pages.mailing.preditiva', [
+      'users' => $users
+    ]);
+  }
+
+  public function getPreditiva()
+  {
+      $empresaId = Auth::user()->empresa_id;
+
+      $hoje = Carbon::today();
+
+      $totalLeadsFila = DB::table('preditiva')
+          ->where('status', 'Y')
+          ->where('empresa_id', $empresaId)
+          ->count();
+
+      $tentativasHoje = DB::table('log_preditiva')
+          ->whereDate('created_at', $hoje)
+          ->where('empresa_id', $empresaId)
+          ->count();
+
+      $conversoesHoje = DB::table('log_preditiva')
+          ->whereDate('created_at', $hoje)
+          ->where('acao', 'CONVERSAO')
+          ->where('tabulacao', 'CONVERTIDO')
+          ->where('empresa_id', $empresaId)
+          ->count();
+
+      $recusasHoje = DB::table('log_preditiva')
+          ->whereDate('created_at', $hoje)
+          ->where('acao', 'DESCARTE')
+          ->whereIn('tabulacao', ['JA POSSUI PLANO', 'NAO INTERESSADO', 'NUMERO INEXISTENTE', 'NAO ATENDE'])
+          ->where('empresa_id', $empresaId)
+          ->count();
+
+        
+    $leads = DB::table('preditiva as p')
+        ->join('contatos as c', 'c.id', '=', 'p.contato_id')
+        ->leftJoin('log_preditiva as l', 'l.contato_id', '=', 'p.contato_id')
+        ->where('p.status', 'Y')
+        ->where('p.empresa_id', $empresaId)
+        ->select(
+            'p.id as preditiva_id',
+            'c.nome_cliente',
+            'c.valor_plano_atual',
+            'p.contato_id',
+            DB::raw('COUNT(l.id) as tentativas')
+        )
+        ->groupBy('p.id', 'c.nome_cliente', 'c.valor_plano_atual', 'p.contato_id')
+        ->limit(50)
+        ->get();
+
+      return response()->json([
+          'total_leads_fila' => $totalLeadsFila,
+          'tentativas_hoje' => $tentativasHoje,
+          'conversoes_hoje' => $conversoesHoje,
+          'recusas_hoje' => $recusasHoje,
+          'leads' => $leads
+      ]);
+  }
+
 }

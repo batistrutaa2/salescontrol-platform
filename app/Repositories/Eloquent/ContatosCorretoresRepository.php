@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquent;
 use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Models\ContatosCorretores;
+use App\Models\Tabulacoes;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -257,10 +258,14 @@ public function transferContact(array $data)
       $lead->updated_at = Carbon::now();
       return $lead->save();
     } else {
+      $tabulation = Tabulacoes::where('descricao', 'NOVOS CLIENTES')
+      ->where('empresa_id', Auth::user()->empresa_id)
+      ->first();
+
       $newLead = new $this->model();
       $newLead->contato_id = $data['idMailing'];
       $newLead->user_id = $data['user_id'];
-      $newLead->tabulacao_id = $data['tabulation_id'];
+      $newLead->tabulacao_id = $data['tabulation_id'] ?? $tabulation->id;
       $newLead->empresa_id = Auth::user()->empresa_id;
       $newLead->temperatura = "FRIO";
       $newLead->created_at = Carbon::now();
