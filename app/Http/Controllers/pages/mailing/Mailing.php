@@ -213,8 +213,10 @@ class Mailing extends Controller
   public function preditiva()
   {
     $users = $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
+    $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
     return view('content.pages.mailing.preditiva', [
-      'users' => $users
+      'users' => $users,
+      'tabulacoes' => $tabulacoes
     ]);
   }
 
