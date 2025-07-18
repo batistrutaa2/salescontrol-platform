@@ -220,25 +220,25 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
 
   public function getRemarketingLeads(string $empresa_id)
   {
-      $results = ContatosCorretores::with(['contato', 'tabulacao', 'subTabulacao'])
-          ->leftJoin('tabulacoes as c', 'contatos_corretores.tabulacao_id', '=', 'c.id')
-          ->leftJoin('tabulacoes as sub', 'contatos_corretores.sub_tabulacao_id', '=', 'sub.id') // Adicionando a sub-tabulacao
-          ->leftJoin('contatos as b', 'contatos_corretores.contato_id', '=', 'b.id')
-          ->select(
-              'b.id',
-              'b.nome_cliente',
-              'b.email',
-              'b.telefone1',
-              'contatos_corretores.updated_at',
-              'b.plano',
-              DB::raw('COALESCE(sub.descricao, "REMARKETING") AS motivo_remarketing'), // Se subTabulacao for null, retorna "REMARKETING"
-              'b.entidade'
-          )
-          ->where('contatos_corretores.empresa_id', $empresa_id)
-          ->where('c.descricao', 'REMARKETING')
-          ->get();
+    $results = ContatosCorretores::with(['contato', 'tabulacao', 'subTabulacao'])
+      ->leftJoin('tabulacoes as c', 'contatos_corretores.tabulacao_id', '=', 'c.id')
+      ->leftJoin('tabulacoes as sub', 'contatos_corretores.sub_tabulacao_id', '=', 'sub.id') // Adicionando a sub-tabulacao
+      ->leftJoin('contatos as b', 'contatos_corretores.contato_id', '=', 'b.id')
+      ->select(
+        'b.id',
+        'b.nome_cliente',
+        'b.email',
+        'b.telefone1',
+        'contatos_corretores.updated_at',
+        'b.plano',
+        DB::raw('COALESCE(sub.descricao, "REMARKETING") AS motivo_remarketing'), // Se subTabulacao for null, retorna "REMARKETING"
+        'b.entidade'
+      )
+      ->where('contatos_corretores.empresa_id', $empresa_id)
+      ->where('c.descricao', 'REMARKETING')
+      ->get();
 
-      return $results;
+    return $results;
   }
 
 
@@ -247,35 +247,35 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
     return $this->model->select('tabulacao_id')->where('contato_id', $idMailing)->first();
   }
 
-public function transferContact(array $data)
-{
-  try {
-    $lead = $this->model::where('contato_id', $data['idMailing'])->first();
+  public function transferContact(array $data)
+  {
+    try {
+      $lead = $this->model::where('contato_id', $data['idMailing'])->first();
 
-    if ($lead) {
-      $lead->user_id = $data['user_id'];
-      $lead->tabulacao_id = $data['tabulation_id'];
-      $lead->updated_at = Carbon::now();
-      return $lead->save();
-    } else {
-      $tabulation = Tabulacoes::where('descricao', 'NOVOS CLIENTES')
-      ->where('empresa_id', Auth::user()->empresa_id)
-      ->first();
+      if ($lead) {
+        $lead->user_id = $data['user_id'];
+        $lead->tabulacao_id = $data['tabulation_id'];
+        $lead->updated_at = Carbon::now();
+        return $lead->save();
+      } else {
+        $tabulation = Tabulacoes::where('descricao', 'NOVOS CLIENTES')
+          ->where('empresa_id', Auth::user()->empresa_id)
+          ->first();
 
-      $newLead = new $this->model();
-      $newLead->contato_id = $data['idMailing'];
-      $newLead->user_id = $data['user_id'];
-      $newLead->tabulacao_id = $data['tabulation_id'] ?? $tabulation->id;
-      $newLead->empresa_id = Auth::user()->empresa_id;
-      $newLead->temperatura = "FRIO";
-      $newLead->created_at = Carbon::now();
-      $newLead->updated_at = Carbon::now();
-      return $newLead->save();
+        $newLead = new $this->model();
+        $newLead->contato_id = $data['idMailing'];
+        $newLead->user_id = $data['user_id'];
+        $newLead->tabulacao_id = $data['tabulation_id'] ?? $tabulation->id;
+        $newLead->empresa_id = Auth::user()->empresa_id;
+        $newLead->temperatura = "FRIO";
+        $newLead->created_at = Carbon::now();
+        $newLead->updated_at = Carbon::now();
+        return $newLead->save();
+      }
+    } catch (\Throwable $th) {
+      return false;
     }
-  } catch (\Throwable $th) {
-    return false;
   }
-}
 
 
   public function transferContactInNulk(array $data)
@@ -370,14 +370,17 @@ public function transferContact(array $data)
     }
   }
 
-  public function getContactOwner($id_contato) {
+  public function getContactOwner($id_contato)
+  {
     return $this->model::select('user_id')->where('contato_id', $id_contato)->first();
   }
-  public function deleteMailing($id_mailing) {
+  public function deleteMailing($id_mailing)
+  {
     return $this->model
-    ->where('contato_id', $id_mailing)
-    ->where('empresa_id', Auth::user()->empresa_id)
-    ->delete();
+      ->where('contato_id', $id_mailing)
+      ->where('empresa_id', Auth::user()->empresa_id)
+      ->delete();
   }
+
 
 }
