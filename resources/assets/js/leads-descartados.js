@@ -62,7 +62,7 @@
 
                 const items = comentarios.map(c => {
                     const autor = c.autor ?? 'Usuário';
-                    const data = c.created_at;
+                    const data = moment(c.created_at).format('DD/MM/YYYY HH:mm');
                     return `<li class="list-group-item">
                     <strong>${autor}</strong> em <small>${data}</small>
                     <p class="mb-0">${c.anotacao}</p>
