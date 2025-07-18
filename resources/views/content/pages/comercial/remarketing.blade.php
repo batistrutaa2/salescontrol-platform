@@ -27,7 +27,7 @@
         </div>
     @elseif(session('status') == 'error')
         <div class="alert alert-danger">
-            {{ session('message') }}
+            {{ session('message') }}a
         </div>
     @endif
 

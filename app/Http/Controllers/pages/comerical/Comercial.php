@@ -911,5 +911,25 @@ class Comercial extends Controller
     }
   }
 
+  public function discardMultipleLeads(Request $request)
+  {
+    $ids = $request->input('ids');
 
+    try {
+      DB::transaction(function () use ($ids) {
+        foreach ($ids as $id) {
+          $this->repositoryContatosCorretores->deleteMailing($id);
+          Contatos::where('id', $id)->update([
+            'status' => 'N',
+            'updated_at' => now()
+          ]);
+        }
+      });
+
+      return response()->json(['success' => true, 'message' => 'Leads descartados com sucesso!']);
+    } catch (\Exception $e) {
+      Log::error('Erro ao descartar múltiplos leads: ' . $e->getMessage());
+      return response()->json(['success' => false, 'message' => 'Erro ao descartar os leads.'], 500);
+    }
+  }
 }

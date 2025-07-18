@@ -305,4 +305,9 @@ class Mailing extends Controller
 
     return response()->json($comentarios);
   }
+
+
+
+
+
 }
