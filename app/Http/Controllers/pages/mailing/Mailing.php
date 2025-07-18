@@ -100,7 +100,7 @@ class Mailing extends Controller
         $rows = Excel::toArray(new ContatosImportDependencies($request->base, $request->tabulacao, $request->id_user), $request->file('file'));
         foreach ($rows[0] as $index => $row) {
           if ($index == 0) {
-              continue;
+            continue;
           }
 
           if (!is_null($row[1]) && $row[3] == "TITULAR") {
@@ -205,7 +205,8 @@ class Mailing extends Controller
     );
   }
 
-  public function contactsAdvertisement() {
+  public function contactsAdvertisement()
+  {
     return view('content.pages.mailing.leads-anuncio');
   }
 
@@ -222,57 +223,86 @@ class Mailing extends Controller
 
   public function getPreditiva()
   {
-      $empresaId = Auth::user()->empresa_id;
+    $empresaId = Auth::user()->empresa_id;
 
-      $hoje = Carbon::today();
+    $hoje = Carbon::today();
 
-      $totalLeadsFila = DB::table('preditiva')
-          ->where('status', 'Y')
-          ->where('empresa_id', $empresaId)
-          ->count();
+    $totalLeadsFila = DB::table('preditiva')
+      ->where('status', 'Y')
+      ->where('empresa_id', $empresaId)
+      ->count();
 
-      $tentativasHoje = DB::table('log_preditiva')
-          ->whereDate('created_at', $hoje)
-          ->where('empresa_id', $empresaId)
-          ->count();
+    $tentativasHoje = DB::table('log_preditiva')
+      ->whereDate('created_at', $hoje)
+      ->where('empresa_id', $empresaId)
+      ->count();
 
-      $conversoesHoje = DB::table('log_preditiva')
-          ->whereDate('created_at', $hoje)
-          ->where('acao', 'CONVERSAO')
-          ->where('tabulacao', 'CONVERTIDO')
-          ->where('empresa_id', $empresaId)
-          ->count();
+    $conversoesHoje = DB::table('log_preditiva')
+      ->whereDate('created_at', $hoje)
+      ->where('acao', 'CONVERSAO')
+      ->where('tabulacao', 'CONVERTIDO')
+      ->where('empresa_id', $empresaId)
+      ->count();
 
-      $recusasHoje = DB::table('log_preditiva')
-          ->whereDate('created_at', $hoje)
-          ->where('acao', 'DESCARTE')
-          ->whereIn('tabulacao', ['JA POSSUI PLANO', 'NAO INTERESSADO', 'NUMERO INEXISTENTE', 'NAO ATENDE'])
-          ->where('empresa_id', $empresaId)
-          ->count();
+    $recusasHoje = DB::table('log_preditiva')
+      ->whereDate('created_at', $hoje)
+      ->where('acao', 'DESCARTE')
+      ->whereIn('tabulacao', ['JA POSSUI PLANO', 'NAO INTERESSADO', 'NUMERO INEXISTENTE', 'NAO ATENDE'])
+      ->where('empresa_id', $empresaId)
+      ->count();
 
-        
+
     $leads = DB::table('preditiva as p')
-        ->join('contatos as c', 'c.id', '=', 'p.contato_id')
-        ->leftJoin('log_preditiva as l', 'l.contato_id', '=', 'p.contato_id')
-        ->where('p.status', 'Y')
-        ->where('p.empresa_id', $empresaId)
-        ->select(
-            'p.id as preditiva_id',
-            'c.nome_cliente',
-            'c.valor_plano_atual',
-            'p.contato_id',
-            DB::raw('COUNT(l.id) as tentativas')
-        )
-        ->groupBy('p.id', 'c.nome_cliente', 'c.valor_plano_atual', 'p.contato_id')
-        ->get();
+      ->join('contatos as c', 'c.id', '=', 'p.contato_id')
+      ->leftJoin('log_preditiva as l', 'l.contato_id', '=', 'p.contato_id')
+      ->where('p.status', 'Y')
+      ->where('p.empresa_id', $empresaId)
+      ->select(
+        'p.id as preditiva_id',
+        'c.nome_cliente',
+        'c.valor_plano_atual',
+        'p.contato_id',
+        DB::raw('COUNT(l.id) as tentativas')
+      )
+      ->groupBy('p.id', 'c.nome_cliente', 'c.valor_plano_atual', 'p.contato_id')
+      ->get();
 
-      return response()->json([
-          'total_leads_fila' => $totalLeadsFila,
-          'tentativas_hoje' => $tentativasHoje,
-          'conversoes_hoje' => $conversoesHoje,
-          'recusas_hoje' => $recusasHoje,
-          'leads' => $leads
-      ]);
+    return response()->json([
+      'total_leads_fila' => $totalLeadsFila,
+      'tentativas_hoje' => $tentativasHoje,
+      'conversoes_hoje' => $conversoesHoje,
+      'recusas_hoje' => $recusasHoje,
+      'leads' => $leads
+    ]);
   }
 
+  public function leadDescartados()
+  {
+    return view('content.pages.mailing.leads-descartados');
+  }
+
+  public function getLeadsDescartados()
+  {
+    $empresaId = Auth::user()->empresa_id;
+    $leadsDescartados = Contatos::select(['id', 'nome_cliente', 'cpf', 'telefone1', 'valor_plano_atual', 'created_at'])
+      ->where('empresa_id', $empresaId)
+      ->where('status', 'N')
+      ->get();
+
+    return response()->json(['data' => $leadsDescartados]);
+  }
+
+  public function getComentariosLead($contatoId)
+  {
+    $comentarios = DB::table('comentarios')
+      ->leftJoin('users', 'comentarios.user_id', '=', 'users.id')
+      ->where('comentarios.contato_id', $contatoId)
+      ->where('comentarios.empresa_id', Auth::user()->empresa_id)
+      ->select('comentarios.*', 'users.name as autor')
+      ->orderBy('comentarios.created_at', 'desc')
+      ->get();
+
+
+    return response()->json($comentarios);
+  }
 }

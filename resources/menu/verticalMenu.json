@@ -178,6 +178,11 @@
           "url": "/comercial/preditiva",
           "name": "Fila Preditiva",
           "slug": "comercial-preditiva"
+        },
+        {
+          "url": "/mailing/leads-descartados",
+          "name": "Leads Descartados",
+          "slug": "pages-mailing-leads-descartados"
         }
       ]
     },
