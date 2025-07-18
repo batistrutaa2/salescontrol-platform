@@ -44,75 +44,77 @@ use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
 {
-  /**
-   * Register any application services.
-   */
-  public function register(): void
-  {
-    $this->app->bind(EmpresaRepositoryInterface::class, EmpresaRepository::class);
-    $this->app->bind(UsuariosRepositoryInterface::class, UsuariosRepository::class);
-    $this->app->bind(ContatosRepositoryInterface::class, ContatosRepository::class);
-    $this->app->bind(ContatosCorretoresRepositoryInterface::class, ContatosCorretoresRepository::class);
-    $this->app->bind(TabulacoesRepositoryInterface::class, TabulacoesRepository::class);
-    $this->app->bind(ComentariosRepositoryInterface::class, ComentariosRepository::class);
-    $this->app->bind(ComentariosLegadosRepositoryInterface::class, ComentariosLegadosRepository::class);
-    $this->app->bind(VendasRepositoryInterface::class, VendasRepository::class);
-    $this->app->bind(BaseLegaceRespositoryInterface::class, BaseLegaceRespository::class);
-    $this->app->bind(LeadAtividadeRepositoryInterface::class, LeadAtividadeRepository::class);
-    $this->app->bind(AgendamentoRepositoryInterface::class, AgendamentoRepository::class);
-    $this->app->bind(RamaisRepositoryInterface::class, RamaisRepository::class);
-    $this->app->bind(TransferenciaContatoRepositoryInterface::class, TransferenciaContatoRepository::class);
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        $this->app->bind(EmpresaRepositoryInterface::class, EmpresaRepository::class);
+        $this->app->bind(UsuariosRepositoryInterface::class, UsuariosRepository::class);
+        $this->app->bind(ContatosRepositoryInterface::class, ContatosRepository::class);
+        $this->app->bind(ContatosCorretoresRepositoryInterface::class, ContatosCorretoresRepository::class);
+        $this->app->bind(TabulacoesRepositoryInterface::class, TabulacoesRepository::class);
+        $this->app->bind(ComentariosRepositoryInterface::class, ComentariosRepository::class);
+        $this->app->bind(ComentariosLegadosRepositoryInterface::class, ComentariosLegadosRepository::class);
+        $this->app->bind(VendasRepositoryInterface::class, VendasRepository::class);
+        $this->app->bind(BaseLegaceRespositoryInterface::class, BaseLegaceRespository::class);
+        $this->app->bind(LeadAtividadeRepositoryInterface::class, LeadAtividadeRepository::class);
+        $this->app->bind(AgendamentoRepositoryInterface::class, AgendamentoRepository::class);
+        $this->app->bind(RamaisRepositoryInterface::class, RamaisRepository::class);
+        $this->app->bind(TransferenciaContatoRepositoryInterface::class, TransferenciaContatoRepository::class);
 
-    $this->app->bind(LigacoesRepositoryInterface::class, LigacoesRepository::class);
-    $this->app->bind(PreditivaRepositoryInterface::class, PreditivaRepository::class);
-    $this->app->bind(LogPreditivaRepositoryInterface::class, LogPreditivaRepository::class);
-  }
-
-  /**
-   * Bootstrap any application services.
-   */
-  public function boot(): void
-  {
-    if (
-        isset($_SERVER['HTTP_X_FORWARDED_PROTO']) &&
-        $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'
-    ) {
-        URL::forceScheme('https');
+        $this->app->bind(LigacoesRepositoryInterface::class, LigacoesRepository::class);
+        $this->app->bind(PreditivaRepositoryInterface::class, PreditivaRepository::class);
+        $this->app->bind(LogPreditivaRepositoryInterface::class, LogPreditivaRepository::class);
     }
 
-    if (
-        request()->getHost() !== 'brsolution.tech' &&
-        !app()->runningInConsole()
-    ) {
-        redirect()->to('https://brsolution.tech' . request()->getRequestUri())->send();
-        exit;
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        if (
+            isset($_SERVER['HTTP_X_FORWARDED_PROTO']) &&
+            $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'
+        ) {
+            URL::forceScheme('https');
+        }
+
+        if (
+            app()->environment('production') &&
+            request()->getHost() !== 'brsolution.tech' &&
+            !app()->runningInConsole()
+        ) {
+            redirect()->to('https://brsolution.tech' . request()->getRequestUri())->send();
+            exit;
+        }
+
+
+
+        View::composer('*', function ($view) {
+            if (Auth::check()) {
+                $modelAgendamento = new Agendamento();
+                $repositoryAgendamento = new AgendamentoRepository($modelAgendamento);
+                $agendamentosAtrasados = $repositoryAgendamento->LateAppointments();
+
+                $quantidade = $agendamentosAtrasados->count();
+
+                $view->with([
+                    'agendamentos' => $agendamentosAtrasados,
+                    'isNotification' => $quantidade >= 1
+                ]);
+            }
+        });
+
+        Vite::useStyleTagAttributes(function (?string $src, string $url, ?array $chunk, ?array $manifest) {
+            if ($src !== null) {
+                return [
+                    'class' => preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?core)-?.*/i", $src) ? 'template-customizer-core-css' : (preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?theme)-?.*/i", $src) ? 'template-customizer-theme-css' : '')
+                ];
+            }
+            return [];
+        });
     }
-
-
-      View::composer('*', function ($view) {
-          if (Auth::check()) {
-              $modelAgendamento = new Agendamento();
-              $repositoryAgendamento = new AgendamentoRepository($modelAgendamento);
-              $agendamentosAtrasados = $repositoryAgendamento->LateAppointments();
-
-              $quantidade = $agendamentosAtrasados->count();
-
-              $view->with([
-                  'agendamentos' => $agendamentosAtrasados,
-                  'isNotification' => $quantidade >= 1
-              ]);
-          }
-      });
-
-      Vite::useStyleTagAttributes(function (?string $src, string $url, ?array $chunk, ?array $manifest) {
-          if ($src !== null) {
-              return [
-                  'class' => preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?core)-?.*/i", $src) ? 'template-customizer-core-css' : (preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?theme)-?.*/i", $src) ? 'template-customizer-theme-css' : '')
-              ];
-          }
-          return [];
-      });
-  }
 
 
     /**
@@ -122,13 +124,13 @@ class AppServiceProvider extends ServiceProvider
     {
         // Definir proxies confiáveis (Apache local)
         $proxies = ['127.0.0.1', 'localhost'];
-        
+
         // Headers que o Apache vai enviar
-        $headers = Request::HEADER_X_FORWARDED_FOR | 
-                Request::HEADER_X_FORWARDED_HOST | 
-                Request::HEADER_X_FORWARDED_PORT | 
-                Request::HEADER_X_FORWARDED_PROTO;
-        
+        $headers = Request::HEADER_X_FORWARDED_FOR |
+            Request::HEADER_X_FORWARDED_HOST |
+            Request::HEADER_X_FORWARDED_PORT |
+            Request::HEADER_X_FORWARDED_PROTO;
+
         Request::setTrustedProxies($proxies, $headers);
     }
 }
