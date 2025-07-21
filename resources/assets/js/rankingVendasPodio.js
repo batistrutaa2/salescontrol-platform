@@ -46,7 +46,9 @@ $(function () {
                 });
 
                 // Total vendido por todos os vendedores
-                const totalVendido = vendedores.reduce((acc, v) => acc + parseFloat(v.total), 0);
+                const totalVendido = vendedores
+                    .filter(v => v.nome !== 'Kaique Albertin' && v.nome !== 'Leandro Alves')
+                    .reduce((acc, v) => acc + parseFloat(v.total), 0);
 
                 // Valor da meta (dependendo do tipo de cálculo)
                 const metaValor = meta.tipo_calculo === 'VALOR'
