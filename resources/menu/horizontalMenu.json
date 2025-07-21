@@ -7,12 +7,6 @@
       "slug": "pages-home"
     },
     {
-      "url": "/page-2",
-      "icon": "menu-icon tf-icons ri-file-line",
-      "name": "Page 2",
-      "slug": "pages-page-2"
-    },
-    {
       "url": "/pages/misc-error",
       "name": "Error",
       "icon": "menu-icon tf-icons ri-alert-line",
