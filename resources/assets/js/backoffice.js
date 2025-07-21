@@ -4,7 +4,7 @@ $(function () {
     const table = $('.datatables-ajax').DataTable({
         processing: true,
         serverSide: false,
-        searching: false,
+        searching: true,
         ordering: false,
         ajax: {
             url: '/back-office/lista-vendas-filtro',
