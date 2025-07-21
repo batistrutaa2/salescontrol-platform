@@ -53,22 +53,25 @@ $(function () {
     });
   }
 
-  // Adicionar botão de envio em massa antes da inicialização da tabela
   $('.card-datatable').before(
-    '<div class="d-flex justify-content-end mb-3">' +
-      '<button id="enviarSelecionadosBtn" class="btn btn-primary waves-effect waves-light" disabled>' +
-      '<i class="ri-arrow-right-fill me-1"></i>Enviar Selecionados para Preditiva</button>' +
-      '</div>'
+    `<div class="d-flex justify-content-end gap-2 mb-3">
+    <button id="descartarSelecionadosBtn" class="btn btn-danger waves-effect waves-light" disabled>
+      <i class="ri-close-line me-1"></i>Descartar Selecionados
+    </button>
+    <button id="enviarSelecionadosBtn" class="btn btn-primary waves-effect waves-light" disabled>
+      <i class="ri-arrow-right-fill me-1"></i>Enviar Selecionados para Preditiva
+    </button>
+  </div>`
   );
 
-  // customers datatable
+
   if (dt_customer_table.length) {
     table = dt_customer_table.DataTable({
       ajax: {
         url: 'getRemarketingLeads',
         dataSrc: '',
-        complete: function (jqXHR, textStatus) {},
-        error: function (jqXHR, textStatus, errorThrown) {}
+        complete: function (jqXHR, textStatus) { },
+        error: function (jqXHR, textStatus, errorThrown) { }
       },
       columns: [
         {
@@ -123,19 +126,24 @@ $(function () {
               '<div class="dropdown-menu dropdown-menu-end m-0">' +
               '<a href="/comercial/abrir-cliente/' +
               full.id +
-              '"class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span> Editar Contato</span></a>' +
+              '" class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span> Editar Contato</span></a>' +
               '<button type="button" class="dropdown-item js-transferir-leads" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
               full.id +
               '">' +
-              '<i class="ri-arrow-left-right-fill"></i><span> Transferir Contato</span></button>' +
+              '<i class="ri-arrow-left-right-fill me-2"></i><span> Transferir Contato</span></button>' +
               '<button type="button" class="dropdown-item js-enviar-preditiva" data-id="' +
               full.id +
               '">' +
-              '<i class="ri-arrow-right-fill"></i><span> Enviar Preditiva</span></button>' +
+              '<i class="ri-arrow-right-fill me-2"></i><span> Enviar Preditiva</span></button>' +
+              '<button type="button" class="dropdown-item js-descartar-cliente" data-id="' +
+              full.id +
+              '">' +
+              '<i class="ri-close-circle-line me-2"></i><span> Descartar Cliente</span></button>' +
               '</div>' +
               '</div>'
             );
           }
+
         }
       ],
       order: [[2, 'desc']],
@@ -158,18 +166,18 @@ $(function () {
             var data = $.map(columns, function (col, i) {
               return col.title !== '' // Não mostrar linha no popup modal se o título estiver vazio (para check box)
                 ? '<tr data-dt-row="' +
-                    col.rowIndex +
-                    '" data-dt-column="' +
-                    col.columnIndex +
-                    '">' +
-                    '<td>' +
-                    col.title +
-                    ':' +
-                    '</td> ' +
-                    '<td>' +
-                    col.data +
-                    '</td>' +
-                    '</tr>'
+                col.rowIndex +
+                '" data-dt-column="' +
+                col.columnIndex +
+                '">' +
+                '<td>' +
+                col.title +
+                ':' +
+                '</td> ' +
+                '<td>' +
+                col.data +
+                '</td>' +
+                '</tr>'
                 : '';
             }).join('');
 
@@ -199,11 +207,51 @@ $(function () {
       $('#selectAll').prop('checked', allChecked && $('.lead-checkbox').length > 0);
     });
 
+    $(document).on('click', '.js-descartar-cliente', function () {
+      const leadId = $(this).data('id');
+      $.ajax({
+        url: '/comercial/descartar-cliente/' + leadId,
+        method: 'POST',
+        data: {
+          _token: $('meta[name="csrf-token"]').attr('content'), // CSRF para Laravel
+        },
+        success: function (response) {
+          toastr.success('Cliente descartado com sucesso!');
+          table.ajax.reload(null, false); // Atualiza tabela sem resetar a página
+        },
+        error: function (xhr) {
+          toastr.error('Erro ao descartar cliente.');
+        }
+      });
+    });
+
+
+
+
     // Função para atualizar o estado do botão "Enviar Selecionados"
     function updateEnviarSelecionadosBtn() {
       const hasChecked = $('.lead-checkbox:checked').length > 0;
-      $('#enviarSelecionadosBtn').prop('disabled', !hasChecked);
+      $('#enviarSelecionadosBtn, #descartarSelecionadosBtn').prop('disabled', !hasChecked);
     }
+
+    $('#descartarSelecionadosBtn').on('click', function () {
+      const selectedIds = [];
+
+      $('.lead-checkbox:checked').each(function () {
+        selectedIds.push($(this).data('id'));
+      });
+
+      if (selectedIds.length === 0) {
+        toastr.warning('Nenhum lead selecionado', 'Atenção');
+        return;
+      }
+
+      if (confirm(`Deseja descartar ${selectedIds.length} lead(s)?`)) {
+        discardMultipleLeads(selectedIds);
+      }
+    });
+
+
 
     // Manipulador para o botão "Enviar Selecionados"
     $('#enviarSelecionadosBtn').on('click', function () {
@@ -223,6 +271,36 @@ $(function () {
         sendLeadsToPredictive(selectedIds);
       }
     });
+
+    function discardMultipleLeads(ids) {
+      $.ajaxSetup({
+        headers: {
+          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+      });
+
+      $.ajax({
+        url: '/comercial/descartar-multiplos-leads',
+        method: 'POST',
+        data: { ids: ids },
+        success: function (response) {
+          if (response.success) {
+            toastr.success(response.message || 'Leads descartados com sucesso!', 'Sucesso');
+            $('.lead-checkbox, #selectAll').prop('checked', false);
+            updateEnviarSelecionadosBtn();
+            table.ajax.reload();
+          } else {
+            toastr.error(response.message || 'Erro ao descartar leads.', 'Erro');
+          }
+        },
+        error: function (xhr) {
+          const errorMsg = xhr.responseJSON?.message ?? 'Erro ao descartar leads.';
+          toastr.error(errorMsg, 'Erro');
+        }
+      });
+    }
+
+
 
     // Função para enviar leads para a fila preditiva
     function sendLeadsToPredictive(ids) {

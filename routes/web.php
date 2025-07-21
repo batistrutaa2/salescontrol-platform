@@ -58,7 +58,9 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/leads-ads', [Mailing::class, 'contactsAdvertisement'])->name('mailing.contactsAdvertisement');
   Route::get('/comercial/preditiva', action: [Mailing::class, 'preditiva'])->name('mailing.preditiva');
   Route::get('/getPreditiva', [Mailing::class, 'getPreditiva'])->name('mailing.getPreditiva');
-
+  Route::get('/mailing/leads-descartados', [Mailing::class, 'leadDescartados'])->name('mailing.leadDescartados');
+  Route::get('/mailing/get-leads-descartados', [Mailing::class, 'getLeadsDescartados'])->name('comercial.getLeadsDescartados');
+  Route::get('/mailing/getComentariosLead/{id}', [Mailing::class, 'getComentariosLead'])->name('comercial.getComentariosLead');
 
   /** COMERCIAL */
   Route::get('/comercial/kanban', [Comercial::class, 'index'])->name('comercial.kanban');
@@ -89,6 +91,9 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/getClientesPreditiva', [Comercial::class, 'getClientesPreditiva'])->name('comercial.getClientesPreditiva');
   Route::post('/comercial/descartarClientePreditiva', [Comercial::class, 'descartarClientePreditiva'])->name('comercial.descartarClientePreditiva');
   Route::post('/comercial/converterClientePreditiva', [Comercial::class, 'converterClientePreditiva'])->name('comercial.converterClientePreditiva');
+  Route::post('/comercial/descartar-cliente/{id}', [Comercial::class, 'descartarCliente'])->name('comercial.descartar');
+  Route::post('/comercial/descartar-multiplos-leads', [Comercial::class, 'discardMultipleLeads'])->name('comercial.discardMultipleLeads');
+
 
   Route::get('/comercial/calendario-reunioes', [ReunioesComercial::class, 'index'])->name('comercialReunioes.index');
   Route::get('/reunioes/data', [ReunioesComercial::class, 'getReunioes']);
@@ -140,9 +145,10 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/relatorios/preditiva', [Relatorios::class, 'predictiveReport'])->name('relatorios.preditiva.predictiveReport');
   Route::post('/relatorios/buscar', [Relatorios::class, 'get'])->name('relatorios.preditiva.buscar');
   Route::get('/relatorios/atividade', [Relatorios::class, 'activityReport'])->name('relatorios.activityReport');
-  Route::get('/relatorios/atividade-dados/{dataInicial}/{dataFinal}/{leadsMes?}/{idVendedor?}', [Relatorios::class, 'activityReportData'])->name('relatorios.activityReportData');});
-  Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
+  Route::get('/relatorios/atividade-dados/{dataInicial}/{dataFinal}/{leadsMes?}/{idVendedor?}', [Relatorios::class, 'activityReportData'])->name('relatorios.activityReportData');
+});
+Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
 
 
-  Route::post('/consulta/pessoa', [ConsultaController::class, 'consultarPessoa'])->name('consulta.pessoa');
-  Route::post('/consulta/empresa', [ConsultaController::class, 'consultarEmpresa'])->name('consulta.empresa');
+Route::post('/consulta/pessoa', [ConsultaController::class, 'consultarPessoa'])->name('consulta.pessoa');
+Route::post('/consulta/empresa', [ConsultaController::class, 'consultarEmpresa'])->name('consulta.empresa');

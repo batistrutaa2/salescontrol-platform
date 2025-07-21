@@ -27,38 +27,38 @@
         </div>
     @elseif(session('status') == 'error')
         <div class="alert alert-danger">
-            {{ session('message') }}
+            {{ session('message') }}a
         </div>
     @endif
 
     <!-- customers List Table -->
 
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0">Fila de Remarketing</h5>
-    </div>
-    <div class="card-body">
-        <div class="card">
-            <div class="card-datatable table-responsive">
-                <table class="datatables-customers table">
-                    <thead>
-                        <tr>
-                            <th><input type="checkbox" class="form-check-input" id="selectAll"></th>
-                            <th>ID</th>
-                            <th>NOME</th>
-                            <th>MOTIVO</th>
-                            <th>TELEFONE PRINCIAL</th>
-                            <th>PLANO</th>
-                            <th>ENTIDADE</th>
-                            <th>ULTIMA ATUALIZAÇÃO</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                </table>
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Fila de Remarketing</h5>
+        </div>
+        <div class="card-body">
+            <div class="card">
+                <div class="card-datatable table-responsive">
+                    <table class="datatables-customers table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" class="form-check-input" id="selectAll"></th>
+                                <th>ID</th>
+                                <th>NOME</th>
+                                <th>MOTIVO</th>
+                                <th>TELEFONE PRINCIAL</th>
+                                <th>PLANO</th>
+                                <th>ENTIDADE</th>
+                                <th>ULTIMA ATUALIZAÇÃO</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 
 

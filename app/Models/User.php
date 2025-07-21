@@ -57,9 +57,9 @@ class User extends Authenticatable
   }
 
   public function empresa()
-    {
-        return $this->belongsTo(Empresa::class, 'empresa_id');
-    }
+  {
+    return $this->belongsTo(Empresa::class, 'empresa_id');
+  }
 
   public function getCreatedAtAttribute($value)
   {
@@ -72,7 +72,8 @@ class User extends Authenticatable
   }
 
   public function vendas()
-    {
-        return $this->hasMany(Vendas::class, 'user_id');
-    }
+  {
+    return $this->hasMany(Vendas::class, 'user_id');
+  }
+
 }

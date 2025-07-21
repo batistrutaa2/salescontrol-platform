@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\pages\comerical;
 
 use App\Models\Comentarios;
+use App\Models\Contatos;
 use App\Models\Dependentes;
 use DateTime;
 use Carbon\Carbon;
@@ -12,7 +13,6 @@ use App\Models\Preditiva;
 use App\Enums\Tabulations;
 use App\Models\LogPreditiva;
 use Illuminate\Http\Request;
-use App\Models\RankingVendas;
 use App\Modules\Ranking\Ranking;
 use App\UseCases\MailingUseCase;
 use App\Models\ContatosCorretores;
@@ -44,7 +44,7 @@ use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
-use PHPUnit\Metadata\Api\Dependencies;
+use Illuminate\Support\Facades\Log;
 
 class Comercial extends Controller
 {
@@ -268,19 +268,20 @@ class Comercial extends Controller
     }
   }
 
-  public function updateClientDependecies(Request $request) {
+  public function updateClientDependecies(Request $request)
+  {
     try {
       $dependencies = Dependentes::find($request->id_dependente);
 
       $dependencies->nome = $request->dependentes[$request->index_array]["nome"];
-      $dependencies->cpf =  $request->dependentes[$request->index_array]["cpf"];
+      $dependencies->cpf = $request->dependentes[$request->index_array]["cpf"];
       $dependencies->idade = $request->dependentes[$request->index_array]["idade"];
       $dependencies->telefone_1 = $request->dependentes[$request->index_array]["telefone1"];
       $dependencies->telefone_2 = $request->dependentes[$request->index_array]["telefone2"];
       $dependencies->telefone_3 = $request->dependentes[$request->index_array]["telefone3"];
       $dependencies->valor_plano = Helpers::moneyForRealSaveBank($request->dependentes[$request->index_array]["valor_plano"]);
       if ($dependencies->save()) {
-        return redirect()->back()->with('status', 'success')->with('message', 'Dependente: '. $request->dependentes[$request->index_array]["nome"]. ' Atualizado com sucesso');
+        return redirect()->back()->with('status', 'success')->with('message', 'Dependente: ' . $request->dependentes[$request->index_array]["nome"] . ' Atualizado com sucesso');
       } else {
         return redirect()->back()->with('status', 'error')->with('message', 'Falha ao atualizar dependente.');
       }
@@ -328,7 +329,7 @@ class Comercial extends Controller
     if ($clientInfo->tipo_layout != "padrao") {
       $dependentes = Dependentes::where('contato_id', $clientInfo->id)->get();
       foreach ($dependentes as $dependente) {
-          $totalFamilyPlan += $dependente->valor_plano ?? 0;
+        $totalFamilyPlan += $dependente->valor_plano ?? 0;
       }
     }
 
@@ -341,7 +342,7 @@ class Comercial extends Controller
     if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
       $permiteEdition = true;
     }
-    if (Auth::user()->empresa_id != $clientInfo->empresa_id){
+    if (Auth::user()->empresa_id != $clientInfo->empresa_id) {
       return redirect()->route('comercial.kanban')->with('status', 'error')->with('message', 'Sem permissao de acesso');
     } else {
       return view('content.pages.comercial.openClient', [
@@ -424,8 +425,8 @@ class Comercial extends Controller
   {
     try {
       $existePreditiva = DB::table('preditiva') // ajuste o nome da tabela
-              ->where('contato_id', $request->idMailing) // ajuste o campo
-              ->exists();
+        ->where('contato_id', $request->idMailing) // ajuste o campo
+        ->exists();
 
       if ($existePreditiva) {
         DB::table('preditiva')
@@ -439,7 +440,7 @@ class Comercial extends Controller
       $saveTranfer = $this->transferenciaContatoRepository->saveTransfer(
         Auth::user()->empresa_id,
         $request->idMailing,
-         $fromUser ? $fromUser->user_id : null,
+        $fromUser ? $fromUser->user_id : null,
         $request->user_id,
         Auth::user()->id
       );
@@ -456,29 +457,29 @@ class Comercial extends Controller
 
   public function transferContactInNulk(Request $request)
   {
-      try {
-          $leadIds = explode(',', $request->selectedLeadIds);
-          array_map(function ($leadId) use ($request) {
-              $fromUser = $this->repositoryContatosCorretores->getContactOwner($leadId);
-              $this->transferenciaContatoRepository->saveTransfer(
-                  Auth::user()->empresa_id,
-                  $leadId, // Correção: Agora está usando o ID correto
-                  $fromUser->user_id == null ? $request->user_id : $fromUser->user_id,
-                  $request->user_id,
-                  Auth::user()->id
-              );
-          }, $leadIds);
-          $clearComments = $this->comentariosRepository->clearComments($request->all());
-          $updateLead = $this->repositoryContatosCorretores->transferContactInNulk($request->all());
+    try {
+      $leadIds = explode(',', $request->selectedLeadIds);
+      array_map(function ($leadId) use ($request) {
+        $fromUser = $this->repositoryContatosCorretores->getContactOwner($leadId);
+        $this->transferenciaContatoRepository->saveTransfer(
+          Auth::user()->empresa_id,
+          $leadId, // Correção: Agora está usando o ID correto
+          $fromUser->user_id == null ? $request->user_id : $fromUser->user_id,
+          $request->user_id,
+          Auth::user()->id
+        );
+      }, $leadIds);
+      $clearComments = $this->comentariosRepository->clearComments($request->all());
+      $updateLead = $this->repositoryContatosCorretores->transferContactInNulk($request->all());
 
-          if ($updateLead && $clearComments) {
-              return redirect()->back()->with('status', 'success')->with('message', 'Transferência concluída com sucesso');
-          } else {
-              return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
-          }
-      } catch (\Throwable $th) {
-          return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
+      if ($updateLead && $clearComments) {
+        return redirect()->back()->with('status', 'success')->with('message', 'Transferência concluída com sucesso');
+      } else {
+        return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
       }
+    } catch (\Throwable $th) {
+      return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
+    }
   }
 
 
@@ -624,26 +625,29 @@ class Comercial extends Controller
     }
   }
 
-  public function indexMarketing() {
+  public function indexMarketing()
+  {
     $users = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);
     $tabulations = $this->tabulacoesRepository->getAll(Auth::user()->empresa_id);
-      return view("content.pages.comercial.filaMarketing",[
-        'users' => $users,
-        'tabulations' => $tabulations
+    return view("content.pages.comercial.filaMarketing", [
+      'users' => $users,
+      'tabulations' => $tabulations
     ]);
   }
 
-  public function getLeadsmarketing() {
+  public function getLeadsmarketing()
+  {
     $leads = $this->contatosRepository->getLeadsmarketing(Auth::user()->empresa_id);
     return response()->json($leads);
   }
 
-  public function sendLeadMarketing(Request $request) {
+  public function sendLeadMarketing(Request $request)
+  {
     try {
-      $saveLeadBroker =  ContatosCorretores::create([
+      $saveLeadBroker = ContatosCorretores::create([
         'empresa_id' => Auth::user()->empresa_id,
         'contato_id' => $request->idMailing,
-        'user_id' =>   $request->user_id,
+        'user_id' => $request->user_id,
         'tabulacao_id' => $request->tabulation_id,
         'temperatura' => "QUENTE",
         'created_at' => now(),
@@ -662,217 +666,270 @@ class Comercial extends Controller
   }
 
 
-  public function sendLeadPredictive(Request $request) {
-      try {
-        $respose = $this->preditivaUseCase->sendMailingPredictive($request->id);
-        if ($respose) {
-          return redirect()->back()->with('status', 'success')->with('message', "Lead Enviado com sucesso");
-        } else {
-          return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar lead para preditiva");
-        }
-      } catch (\Throwable $th) {
+  public function sendLeadPredictive(Request $request)
+  {
+    try {
+      $respose = $this->preditivaUseCase->sendMailingPredictive($request->id);
+      if ($respose) {
+        return redirect()->back()->with('status', 'success')->with('message', "Lead Enviado com sucesso");
+      } else {
         return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar lead para preditiva");
       }
+    } catch (\Throwable $th) {
+      return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar lead para preditiva");
+    }
   }
 
 
-  public function sendMultipleLeadsPredictive(Request $request) {
+  public function sendMultipleLeadsPredictive(Request $request)
+  {
     try {
-        $ids = $request->input('ids', []);
+      $ids = $request->input('ids', []);
 
-        if (empty($ids)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Nenhum lead selecionado'
-            ]);
-        }
-
-        $successCount = 0;
-        $errorCount = 0;
-
-        foreach ($ids as $id) {
-            try {
-                $result = $this->preditivaUseCase->sendMailingPredictive($id);
-                if ($result) {
-                    $successCount++;
-                } else {
-                    $errorCount++;
-                }
-            } catch (\Throwable $th) {
-                $errorCount++;
-            }
-        }
-
-        if ($errorCount === 0) {
-            return response()->json([
-                'success' => true,
-                'message' => "$successCount lead(s) enviado(s) com sucesso para a fila preditiva."
-            ]);
-        } else if ($successCount > 0) {
-            return response()->json([
-                'success' => true,
-                'message' => "$successCount lead(s) enviado(s) com sucesso e $errorCount com falha."
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => "Falha ao enviar todos os $errorCount lead(s) para a fila preditiva."
-            ]);
-        }
-    } catch (\Throwable $th) {
+      if (empty($ids)) {
         return response()->json([
-            'success' => false,
-            'message' => "Erro ao processar: " . $th->getMessage()
-        ], 500);
+          'success' => false,
+          'message' => 'Nenhum lead selecionado'
+        ]);
+      }
+
+      $successCount = 0;
+      $errorCount = 0;
+
+      foreach ($ids as $id) {
+        try {
+          $result = $this->preditivaUseCase->sendMailingPredictive($id);
+          if ($result) {
+            $successCount++;
+          } else {
+            $errorCount++;
+          }
+        } catch (\Throwable $th) {
+          $errorCount++;
+        }
+      }
+
+      if ($errorCount === 0) {
+        return response()->json([
+          'success' => true,
+          'message' => "$successCount lead(s) enviado(s) com sucesso para a fila preditiva."
+        ]);
+      } else if ($successCount > 0) {
+        return response()->json([
+          'success' => true,
+          'message' => "$successCount lead(s) enviado(s) com sucesso e $errorCount com falha."
+        ]);
+      } else {
+        return response()->json([
+          'success' => false,
+          'message' => "Falha ao enviar todos os $errorCount lead(s) para a fila preditiva."
+        ]);
+      }
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => "Erro ao processar: " . $th->getMessage()
+      ], 500);
     }
-}
+  }
 
 
-  public function getClientesPreditiva(Request $request) {
+  public function getClientesPreditiva(Request $request)
+  {
     $userId = Auth::id();
     $empresaId = Auth::user()->empresa_id;
 
     Preditiva::where('user_id', $userId)
-    ->where('data_atribuicao', '<', now()->subHours(2))
-    ->update([
+      ->where('data_atribuicao', '<', now()->subHours(2))
+      ->update([
         'user_id' => null,
         'data_atribuicao' => null
-    ]);
+      ]);
 
     $cliente = DB::table('preditiva as p')
-            ->join('contatos as c', 'p.contato_id', '=', 'c.id')
-            ->leftJoin(DB::raw('(
+      ->join('contatos as c', 'p.contato_id', '=', 'c.id')
+      ->leftJoin(DB::raw('(
                 SELECT contato_id, COUNT(*) as descartes, MAX(created_at) as ultimo_descarte
                 FROM log_preditiva
                 WHERE acao = "DESCARTE"
                 GROUP BY contato_id
             ) as lp'), 'p.contato_id', '=', 'lp.contato_id')
-            ->select(
-                'c.id',
-                'c.nome_cliente as nome',
-                'c.telefone1 as telefone',
-                'c.email',
-                'c.plano',
-                'c.categoria',
-                'c.entidade',
-                'c.cpf',
-                'c.data_nascimento',
-                'c.valor_plano_atual',
-                'c.created_at'
-            )
-            ->where('p.empresa_id', $empresaId)
-            ->where('p.status', 'Y')
-            ->where(function($query) {
-                $query->whereNull('p.user_id')
-                      ->orWhere('p.user_id', Auth::id());
-            })
-            ->where(function($query) {
-                $query->whereNull('lp.descartes')
-                      ->orWhere('lp.descartes', '<', 5);
-            })
-            ->orderBy('lp.ultimo_descarte', 'asc')
-            ->orderBy('p.created_at', 'asc')
-            ->limit(1)
-            ->first();
+      ->select(
+        'c.id',
+        'c.nome_cliente as nome',
+        'c.telefone1 as telefone',
+        'c.email',
+        'c.plano',
+        'c.categoria',
+        'c.entidade',
+        'c.cpf',
+        'c.data_nascimento',
+        'c.valor_plano_atual',
+        'c.created_at'
+      )
+      ->where('p.empresa_id', $empresaId)
+      ->where('p.status', 'Y')
+      ->where(function ($query) {
+        $query->whereNull('p.user_id')
+          ->orWhere('p.user_id', Auth::id());
+      })
+      ->where(function ($query) {
+        $query->whereNull('lp.descartes')
+          ->orWhere('lp.descartes', '<', 5);
+      })
+      ->orderBy('lp.ultimo_descarte', 'asc')
+      ->orderBy('p.created_at', 'asc')
+      ->limit(1)
+      ->first();
 
-            if ($cliente) {
-              // Atribuir o cliente ao usuário atual
-              Preditiva::where('contato_id', $cliente->id)
-                  ->update([
-                      'user_id' => $userId,
-                      'data_atribuicao' => now()
-                  ]);
+    if ($cliente) {
+      // Atribuir o cliente ao usuário atual
+      Preditiva::where('contato_id', $cliente->id)
+        ->update([
+          'user_id' => $userId,
+          'data_atribuicao' => now()
+        ]);
 
-              return response()->json([$cliente]);
-          }
-          return response()->json([]);
+      return response()->json([$cliente]);
+    }
+    return response()->json([]);
   }
 
   public function descartarClientePreditiva(Request $request)
-    {
-        $userId = Auth::id();
-        $empresaId = Auth::user()->empresa_id;
-        $contatoId = $request->contato_id;
-        $tabulacao = $request->tabulacao ?? 'SEM TABULAÇÃO';
+  {
+    $userId = Auth::id();
+    $empresaId = Auth::user()->empresa_id;
+    $contatoId = $request->contato_id;
+    $tabulacao = $request->tabulacao ?? 'SEM TABULAÇÃO';
 
-        // Registrar o descarte
-        LogPreditiva::create([
-            'empresa_id' => $empresaId,
-            'user_id' => $userId,
-            'contato_id' => $contatoId,
-            'tabulacao' => $tabulacao,
-            'acao' => 'DESCARTE'
-        ]);
+    // Registrar o descarte
+    LogPreditiva::create([
+      'empresa_id' => $empresaId,
+      'user_id' => $userId,
+      'contato_id' => $contatoId,
+      'tabulacao' => $tabulacao,
+      'acao' => 'DESCARTE'
+    ]);
 
-        // Liberar o cliente
-        Preditiva::where('contato_id', $contatoId)
-            ->update([
-                'user_id' => null,
-                'data_atribuicao' => null
-            ]);
+    // Liberar o cliente
+    Preditiva::where('contato_id', $contatoId)
+      ->update([
+        'user_id' => null,
+        'data_atribuicao' => null
+      ]);
 
-        return response()->json(['success' => true]);
-    }
+    return response()->json(['success' => true]);
+  }
 
-    public function converterClientePreditiva(Request $request)
-    {
-        $userId = Auth::id();
-        $empresaId = Auth::user()->empresa_id;
-        $contatoId = $request->contato_id;
+  public function converterClientePreditiva(Request $request)
+  {
+    $userId = Auth::id();
+    $empresaId = Auth::user()->empresa_id;
+    $contatoId = $request->contato_id;
 
-        // Registrar a conversão no log
-        LogPreditiva::create([
-            'empresa_id' => $empresaId,
-            'user_id' => $userId,
-            'contato_id' => $contatoId,
-            'tabulacao' => 'CONVERTIDO',
-            'acao' => 'CONVERSAO'
-        ]);
+    // Registrar a conversão no log
+    LogPreditiva::create([
+      'empresa_id' => $empresaId,
+      'user_id' => $userId,
+      'contato_id' => $contatoId,
+      'tabulacao' => 'CONVERTIDO',
+      'acao' => 'CONVERSAO'
+    ]);
 
 
 
-        // Buscar a tabulação "PROSPECÇÃO" da empresa
-        $tabulacaoProspeccao = DB::table('tabulacoes')
-            ->where('empresa_id', $empresaId)
-            ->where('descricao', 'PROSPECÇÃO')
-            ->where('status', 'Y')
-            ->first();
+    // Buscar a tabulação "PROSPECÇÃO" da empresa
+    $tabulacaoProspeccao = DB::table('tabulacoes')
+      ->where('empresa_id', $empresaId)
+      ->where('descricao', 'PROSPECÇÃO')
+      ->where('status', 'Y')
+      ->first();
 
-        if ($tabulacaoProspeccao) {
-            // Verificar se já existe um registro para este contato
-            $existingRecord = DB::table('contatos_corretores')
-                ->where('contato_id', $contatoId)
-                ->where('user_id', $userId)
-                ->first();
-
-            if (!$existingRecord) {
-                // Criar registro na tabela contatos_corretores
-                DB::table('contatos_corretores')->insert([
-                    'empresa_id' => $empresaId,
-                    'contato_id' => $contatoId,
-                    'user_id' => $userId,
-                    'tabulacao_id' => $tabulacaoProspeccao->id,
-                    'sub_tabulacao_id' => null,
-                    'temperatura' => 'FRIO',
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
-        }
-
-        // Remover da fila preditiva
-        Preditiva::where('contato_id', $contatoId)->delete();
-
-        // Todos os comentarios anteriores que o vendedor fez será ocutado
-        Comentarios::where('user_id', $userId)
+    if ($tabulacaoProspeccao) {
+      // Verificar se já existe um registro para este contato
+      $existingRecord = DB::table('contatos_corretores')
         ->where('contato_id', $contatoId)
-        ->where('empresa_id', $empresaId)
-        ->update([
-            'visivel' => "N"
-        ]);
+        ->where('user_id', $userId)
+        ->first();
 
-        return response()->json(['success' => true]);
+      if (!$existingRecord) {
+        // Criar registro na tabela contatos_corretores
+        DB::table('contatos_corretores')->insert([
+          'empresa_id' => $empresaId,
+          'contato_id' => $contatoId,
+          'user_id' => $userId,
+          'tabulacao_id' => $tabulacaoProspeccao->id,
+          'sub_tabulacao_id' => null,
+          'temperatura' => 'FRIO',
+          'created_at' => now(),
+          'updated_at' => now()
+        ]);
+      }
     }
 
+    // Remover da fila preditiva
+    Preditiva::where('contato_id', $contatoId)->delete();
 
+    // Todos os comentarios anteriores que o vendedor fez será ocutado
+    Comentarios::where('user_id', $userId)
+      ->where('contato_id', $contatoId)
+      ->where('empresa_id', $empresaId)
+      ->update([
+        'visivel' => "N"
+      ]);
+
+    return response()->json(['success' => true]);
+  }
+
+
+  public function descartarCliente($id_mailing)
+  {
+    try {
+      DB::beginTransaction();
+
+      $deleteLinked = $this->repositoryContatosCorretores->deleteMailing($id_mailing);
+
+      if (!$deleteLinked) {
+        throw new \Exception('Erro ao excluir mailing.');
+      }
+
+      $updateCustomer = Contatos::where('id', $id_mailing)->update([
+        'status' => 'N',
+        'updated_at' => now()
+      ]);
+
+      if (!$updateCustomer) {
+        throw new \Exception('Erro ao atualizar contato.');
+      }
+
+      DB::commit();
+
+      return response()->json(['success' => true]);
+    } catch (\Exception $e) {
+      DB::rollBack();
+      return response()->json(['success' => false, 'message' => 'Erro ao descartar cliente.'], 500);
+    }
+  }
+
+  public function discardMultipleLeads(Request $request)
+  {
+    $ids = $request->input('ids');
+
+    try {
+      DB::transaction(function () use ($ids) {
+        foreach ($ids as $id) {
+          $this->repositoryContatosCorretores->deleteMailing($id);
+          Contatos::where('id', $id)->update([
+            'status' => 'N',
+            'updated_at' => now()
+          ]);
+        }
+      });
+
+      return response()->json(['success' => true, 'message' => 'Leads descartados com sucesso!']);
+    } catch (\Exception $e) {
+      Log::error('Erro ao descartar múltiplos leads: ' . $e->getMessage());
+      return response()->json(['success' => false, 'message' => 'Erro ao descartar os leads.'], 500);
+    }
+  }
 }
