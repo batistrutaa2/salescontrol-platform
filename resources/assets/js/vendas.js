@@ -1,101 +1,119 @@
 'use strict';
 
-$(function () {
-  var dt_ajax_table = $('.datatables-ajax');
+$(document).ready(function () {
+  const endpoint = '/vendas/getResultsBroker';
+  const formatMoeda = (valor) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2
+    }).format(valor ?? 0);
+  };
 
-  // Função para capturar e aplicar o filtro
-  function applyFilter() {
-    var startDate = $('#start_date').val();
-    var endDate = $('#end_date').val();
+  function fetchData(mes, ano) {
+    if (!mes || !ano) return;
 
-    // Recarregar a DataTable com os filtros
-    dt_ajax_table.DataTable().ajax.reload();
-  }
+    $.ajax({
+      url: endpoint,
+      method: 'GET',
+      data: { mes, ano },
+      beforeSend: function () {
+        $('.js-valorCadastrado, .js-implantado, .js-quantidadeContatosImportados, .js-conversao').text('...');
+      },
+      success: function (res) {
+        toastr.success('Dados carregados com sucesso!');
+        $('.js-valorCadastrado').text(formatMoeda(res.vendasCadastradasMes));
+        $('.js-implantado').text(formatMoeda(res.vendasImplantadasMes ?? '0'));
+        $('.js-quantidadeContatosImportados').text(res.quantidadeContatosMes ?? '0');
+        $('.js-conversao').text(res.conversao ?? '0%');
+        if ($.fn.DataTable.isDataTable('#tabela-vendas-detalhadas')) {
+          $('#tabela-vendas-detalhadas').DataTable().clear().rows.add(res.vendas).draw();
+        } else {
+          $('#tabela-vendas-detalhadas').DataTable({
+            destroy: true,
+            data: res.vendas,
+            columns: [
+              { data: 'id' },
+              { data: 'nome_contrato' },
+              {
+                data: 'descricao',
+                render: function (data, type, row) {
+                  let badgeClass = '';
+                  let icon = '';
+                  let label = data?.toUpperCase() ?? '';
 
-  if (dt_ajax_table.length) {
-    var dt_ajax = dt_ajax_table.dataTable({
-      processing: true,
-      ajax: {
-        url: '/back-office/lista-vendas-filtro',
-        data: function (d) {
-          // Adicionar as datas ao objeto de dados da requisição
-          d.start_date = $('#start_date').val();
-          d.end_date = $('#end_date').val();
+                  switch (label) {
+                    case 'VENDA':
+                      badgeClass = 'badge bg-label-info';
+                      icon = '<i class="ri-check-line me-1"></i>';
+                      break;
+                    case 'IMPLANTADO':
+                      badgeClass = 'badge bg-label-success';
+                      icon = '<i class="ri-tools-line me-1"></i>';
+                      break;
+                    case 'DECLINADO':
+                      badgeClass = 'badge bg-label-secondary';
+                      icon = '<i class="ri-close-line me-1"></i>';
+                      break;
+                    case 'ESTORNO':
+                      badgeClass = 'badge bg-label-danger';
+                      icon = '<i class="ri-loop-left-line me-1"></i>';
+                      break;
+                    default:
+                      badgeClass = 'badge bg-label-warning';
+                      icon = '<i class="ri-question-line me-1"></i>';
+                  }
+
+                  return `<span class="${badgeClass}">${icon}${label}</span>`;
+                }
+              },
+              {
+                data: 'valor_contrato',
+                render: function (data) {
+                  return formatMoeda(data);
+                }
+              },
+              {
+                data: null,
+                orderable: false,
+                searchable: false,
+                render: function (data, type, row) {
+                  if (row.descricao?.toUpperCase() === 'ESTORNO') {
+                    return `<button class="btn btn-sm btn-outline-danger ver-contrato" data-id="${row.id}">
+                    <i class="ri-file-text-line me-1"></i> Ver contrato
+                  </button>`;
+                  }
+                  return '';
+                }
+              }
+            ],
+            language: {
+              url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json'
+            }
+          });
+
         }
       },
-      dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>><"table-responsive"t><"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
-      columns: [
-        { data: 'id' },
-        { data: 'name' },
-        { data: 'nome_contrato' },
-        {
-          targets: 4,
-          render: function (data, type, full, meta) {
-            var $role = full['descricao'];
-            var roleBadgeObj = {
-              IMPLANTADO: '<i class="ri-user-line ri-22px text-primary me-2"></i>',
-              VENDA: '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
-              ESTORNO: '<i class="ri-computer-line ri-22px text-danger me-2"></i>',
-              DEVELOPER: '<i class="ri-vip-crown-line ri-22px text-warning me-2"></i>',
-              DECLINADO: '<i class="ri-close-circle-line ri-22px text-danger me-2"></i>'
-            };
-            return (
-              "<span class='text-truncate d-flex align-items-center text-heading'>" +
-              roleBadgeObj[$role] +
-              $role +
-              '</span>'
-            );
-          }
-        },
-        { data: 'valor_contrato', title: 'Valor', render: $.fn.dataTable.render.number('.', ',', 2, 'R$ ') },
-        { data: 'created_at' },
-        {
-          // Actions
-          targets: -1,
-          title: 'AÇÕES',
-          searchable: false,
-          orderable: false,
-          render: function (data, type, full, meta) {
-            return (
-              '<div class="d-flex align-items-center">' +
-              '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line ri-22px"></i></button>' +
-              '<div class="dropdown-menu dropdown-menu-end m-0">' +
-              '<a href="/back-office/abrir-contrato/' +
-              full['id'] +
-              '" class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Ver contrato</span></a>' +
-              '<button type="button" class="dropdown-item js-alterar-status" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
-              full['id'] +
-              '">' +
-              '<i class="ri-arrow-left-right-fill"></i><span> Alterar Status</span></button>' +
-              '<a href="/back-office/deletar-contrato/' +
-              full['id'] +
-              '" class="dropdown-item"><i class="ri-delete-bin-line me-2"></i><span>Excluir</span></a>' +
-              '</div>' +
-              '</div>'
-            );
-          }
-        }
-      ],
-      order: [[0, 'desc']]
+      error: function (err) {
+        console.error('Erro ao buscar relatório:', err);
+        toastr.error('Erro ao carregar dados do relatório.');
+      }
     });
   }
 
-  $(document).on('click', '.js-alterar-status', function () {
-    var contractId = $(this).data('id');
-    $('#modalcomments').modal('show');
-    $('#modalcomments input[name="idSale"]').val(contractId);
+  $('#select-month, #select-year').on('change', function () {
+    const mes = $('#select-month').val();
+    const ano = $('#select-year').val();
+    if (!isNaN(mes) && !isNaN(ano)) {
+      fetchData(mes, ano);
+    }
   });
 
-  // Ao clicar no botão "Filtrar", aplica o filtro
-  $('#filter_button').on('click', function () {
-    applyFilter();
-  });
+  // Carrega automaticamente mês atual ao iniciar
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+  $('#select-month').val(currentMonth);
+  $('#select-year').val(currentYear);
+  fetchData(currentMonth, currentYear);
 
-  // Ao clicar no botão "Limpar", limpa os campos de filtro e recarrega a tabela
-
-  $('#clear_filter').on('click', function () {
-    $('#start_date').val('');
-    $('#end_date').val('');
-    applyFilter();
-  });
 });

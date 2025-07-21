@@ -18,88 +18,78 @@ use App\Enums\Tabulations;
 class Vendas extends Controller
 {
 
-  protected VendasRepository $repositoryVendas;
-  protected UsuariosRepository $usuariosRepository;
-  public function __construct(
-    VendasRepositoryInterface $vendasRepositoryInterface,
-    UsuariosRepositoryInterface $usuariosRepositoryInterface
-  ) {
+    protected VendasRepository $repositoryVendas;
+    protected UsuariosRepository $usuariosRepository;
+    public function __construct(
+        VendasRepositoryInterface $vendasRepositoryInterface,
+        UsuariosRepositoryInterface $usuariosRepositoryInterface
+    ) {
 
-    $this->repositoryVendas = $vendasRepositoryInterface;
-    $this->usuariosRepository = $usuariosRepositoryInterface;
-  }
-
-  public function index()
-  {
-    $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-    $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-    $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-    $percentualConversaoMes = $this->repositoryVendas->conversaoMensal(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-    $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-
-    return view('content.pages.vendas.index', [
-      'vendasCadastradasMes' => $vendasCadastradasMes,
-      'vendasImplantadasMes' => $vendasImplantadasMes,
-      'vendasEstornadasMes' => $vendasEstornadasMes,
-      'percentualConversaoMes' => $percentualConversaoMes,
-      'totalContatosMes' => $totalContatosMes
-    ]);
-  }
-
-
-  public function salesOfTheMonth()
-  {
-    $vendas = $this->repositoryVendas->vendasDoMesAnoAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-    return response()->json(['data' => $vendas]);
-  }
-
-
-  public function monthlySalesFilter($name_user = null)
-  {
-    try {
-
-      if (is_null($name_user)) {
-        $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-        $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-        $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-        $percentualConversaoMes = $this->repositoryVendas->conversaoMensal(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-        $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-      } else {
-        $user = $this->usuariosRepository->getUserSearchName($name_user);
-
-        if (is_null($user)) {
-          return response()->json(["error" => true]);
-        }
-
-        $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
-        $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
-        $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
-        $percentualConversaoMes = $this->repositoryVendas->conversaoMensal($user->id, $user->empresa_id, $user->user_role_id);
-        $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes($user->id, $user->empresa_id, $user->user_role_id);
-      }
-
-      $response = [
-        'vendasCadastradasMes' => $vendasCadastradasMes,
-        'vendasImplantadasMes' => $vendasImplantadasMes,
-        'vendasEstornadasMes' => $vendasEstornadasMes,
-        'percentualConversaoMes' => $percentualConversaoMes,
-        'totalContatosMes' => $totalContatosMes,
-        "error" => false
-      ];
-
-      return response()->json($response);
-    } catch (\Throwable $th) {
-      return response()->json(["error" => true]);
+        $this->repositoryVendas = $vendasRepositoryInterface;
+        $this->usuariosRepository = $usuariosRepositoryInterface;
     }
-  }
 
-  public function analyticalSales()
-  {
-    return view('content.pages.vendas.analyticalSales');
-  }
+    public function index()
+    {
+        return view('content.pages.vendas.index', [
+            'anosDisponiveis' => $this->getAnosDisponiveis(Auth::user()->empresa_id),
+        ]);
+    }
 
 
-  public function dados(Request $request)
+    public function salesOfTheMonth()
+    {
+        $vendas = $this->repositoryVendas->vendasDoMesAnoAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+        return response()->json(['data' => $vendas]);
+    }
+
+
+    public function monthlySalesFilter($name_user = null)
+    {
+        try {
+
+            if (is_null($name_user)) {
+                $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+                $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+                $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+                $percentualConversaoMes = $this->repositoryVendas->conversaoMensal(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+                $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+            } else {
+                $user = $this->usuariosRepository->getUserSearchName($name_user);
+
+                if (is_null($user)) {
+                    return response()->json(["error" => true]);
+                }
+
+                $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
+                $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
+                $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
+                $percentualConversaoMes = $this->repositoryVendas->conversaoMensal($user->id, $user->empresa_id, $user->user_role_id);
+                $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes($user->id, $user->empresa_id, $user->user_role_id);
+            }
+
+            $response = [
+                'vendasCadastradasMes' => $vendasCadastradasMes,
+                'vendasImplantadasMes' => $vendasImplantadasMes,
+                'vendasEstornadasMes' => $vendasEstornadasMes,
+                'percentualConversaoMes' => $percentualConversaoMes,
+                'totalContatosMes' => $totalContatosMes,
+                "error" => false
+            ];
+
+            return response()->json($response);
+        } catch (\Throwable $th) {
+            return response()->json(["error" => true]);
+        }
+    }
+
+    public function analyticalSales()
+    {
+        return view('content.pages.vendas.analyticalSales');
+    }
+
+
+    public function dados(Request $request)
     {
         $filtros = $this->aplicarFiltros($request);
 
@@ -170,7 +160,7 @@ class Vendas extends Controller
         $empresaId = Auth::user()->empresa_id;
 
         // Filtrar vendas apenas da empresa do usuário logado
-        $query->whereHas('user', function($q) use ($empresaId) {
+        $query->whereHas('user', function ($q) use ($empresaId) {
             $q->where('empresa_id', $empresaId);
         });
 
@@ -179,9 +169,11 @@ class Vendas extends Controller
 
     private function getVendasTotais($filtros, $perPage = null)
     {
-        $query = VendasModel::with(['user' => function($query) {
-            $query->select('id', 'name', 'empresa_id');
-        }]);
+        $query = VendasModel::with([
+            'user' => function ($query) {
+                $query->select('id', 'name', 'empresa_id');
+            }
+        ]);
 
         // Aplicar filtro por empresa PRIMEIRO
         $query = $this->aplicarFiltroEmpresa($query);
@@ -250,9 +242,9 @@ class Vendas extends Controller
         }
 
         return $query->groupBy('ano', 'mes')
-                    ->orderBy('ano', 'desc')
-                    ->orderBy('mes', 'desc')
-                    ->get();
+            ->orderBy('ano', 'desc')
+            ->orderBy('mes', 'desc')
+            ->get();
     }
 
     private function getVendasPorVendedor($filtros)
@@ -265,7 +257,7 @@ class Vendas extends Controller
             DB::raw('SUM(valor_contrato) as valor_total'),
             DB::raw('SUM(vidas) as total_vidas')
         )->join('users', 'vendas.user_id', '=', 'users.id')
-         ->where('users.empresa_id', $empresaId); // Filtro por empresa
+            ->where('users.empresa_id', $empresaId); // Filtro por empresa
 
         if ($filtros['ano']) {
             $query->whereYear('vendas.created_at', $filtros['ano']);
@@ -283,12 +275,12 @@ class Vendas extends Controller
             $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
-        $query = $this->aplicarFiltroStatusVenda($query); 
+        $query = $this->aplicarFiltroStatusVenda($query);
 
 
         return $query->groupBy('users.id', 'users.name')
-                    ->orderBy('valor_total', 'desc')
-                    ->get();
+            ->orderBy('valor_total', 'desc')
+            ->get();
     }
 
     private function getVendasPorOperadora($filtros)
@@ -302,7 +294,7 @@ class Vendas extends Controller
 
         // Aplicar filtro por empresa
         $query = $this->aplicarFiltroEmpresa($query);
-        $query = $this->aplicarFiltroStatusVenda($query); 
+        $query = $this->aplicarFiltroStatusVenda($query);
 
         if ($filtros['ano']) {
             $query->whereYear('vendas.created_at', $filtros['ano']);
@@ -321,9 +313,9 @@ class Vendas extends Controller
         }
 
         return $query->whereNotNull('operadora')
-                    ->groupBy('operadora')
-                    ->orderBy('valor_total', 'desc')
-                    ->get();
+            ->groupBy('operadora')
+            ->orderBy('valor_total', 'desc')
+            ->get();
     }
 
     private function getVendasPorPlano($filtros)
@@ -360,9 +352,9 @@ class Vendas extends Controller
         }
 
         return $query->whereNotNull('nome_plano')
-                    ->groupBy('nome_plano')
-                    ->orderBy('total_vendas', 'desc')
-                    ->get();
+            ->groupBy('nome_plano')
+            ->orderBy('total_vendas', 'desc')
+            ->get();
     }
 
     private function getResumoGeral($filtros)
@@ -408,11 +400,11 @@ class Vendas extends Controller
         $empresaId = Auth::user()->empresa_id;
 
         return User::where('ativo', 'Y')
-                  ->where('empresa_id', $empresaId)
-                  ->where('user_role_id', UserRole::VENDEDOR)
-                  ->select('id', 'name')
-                  ->orderBy('name')
-                  ->get();
+            ->where('empresa_id', $empresaId)
+            ->where('user_role_id', UserRole::VENDEDOR)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
     }
 
     private function getAnosDisponiveis($filtros)
@@ -421,11 +413,11 @@ class Vendas extends Controller
 
         // Aplicar filtro por empresa
         $query = $this->aplicarFiltroEmpresa($query);
-        
+
 
         return $query->distinct()
-                    ->orderBy('ano', 'desc')
-                    ->pluck('ano');
+            ->orderBy('ano', 'desc')
+            ->pluck('ano');
     }
 
     private function getOperadoras($filtros)
@@ -436,27 +428,94 @@ class Vendas extends Controller
         $query = $this->aplicarFiltroEmpresa($query);
 
         return $query->whereNotNull('operadora')
-                    ->where('operadora', '!=', '')
-                    ->distinct()
-                    ->orderBy('operadora')
-                    ->pluck('operadora');
+            ->where('operadora', '!=', '')
+            ->distinct()
+            ->orderBy('operadora')
+            ->pluck('operadora');
     }
 
 
-  public function getSalesAnalytical(Request $request)
-  {
-    $month = $request->query('month');
-    $year = $request->query('year');
+    public function getSalesAnalytical(Request $request)
+    {
+        $month = $request->query('month');
+        $year = $request->query('year');
 
-    $sales = $this->repositoryVendas->getSalesAnalytical(Auth::user()->empresa_id, $month, $year);
+        $sales = $this->repositoryVendas->getSalesAnalytical(Auth::user()->empresa_id, $month, $year);
 
-    return response()->json($sales);
-  }
+        return response()->json($sales);
+    }
 
     private function aplicarFiltroStatusVenda($query)
     {
-        return $query->whereHas('contatoCorretor', function($q) {
+        return $query->whereHas('contatoCorretor', function ($q) {
             $q->whereIn('tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO]);
         });
     }
+
+
+    public function getResultsBroker(Request $request)
+    {
+        $vendasCadastradasMes = VendasModel::where('user_id', Auth::user()->id)
+            ->where('empresa_id', Auth::user()->empresa_id)
+            ->whereMonth('created_at', $request->mes)
+            ->whereYear('created_at', $request->ano)
+            ->sum('valor_contrato');
+
+        $vendasImplantadasMes = DB::table('vendas as a')
+            ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
+            ->where('b.tabulacao_id', Tabulations::IMPLANTADO)
+            ->where('a.user_id', Auth::user()->id)
+            ->whereMonth('a.created_at', $request->mes)
+            ->whereYear('a.created_at', $request->ano)
+            ->sum('a.valor_contrato');
+
+
+
+        $quantidadeContatosMes = DB::table('contatos as a')
+            ->leftJoin('contatos_corretores as b', 'a.id', '=', 'b.contato_id')
+            ->where('b.user_id', auth()->user()->id)
+            ->where('b.empresa_id', Auth::user()->empresa_id)
+            ->whereMonth('a.created_at', $request->mes)
+            ->whereYear('a.created_at', $request->ano)
+            ->count();
+
+        $quantidadeVendasMes = VendasModel::where('user_id', Auth::user()->id)
+            ->where('empresa_id', Auth::user()->empresa_id)
+            ->whereMonth('created_at', $request->mes)
+            ->whereYear('created_at', $request->ano)
+            ->count();
+
+        $conversao = $this->calculoConversao($quantidadeContatosMes, $quantidadeVendasMes);
+
+        $vendas = DB::table('vendas as a')
+            ->leftJoin('contatos_corretores as b', 'a.contato_id', '=', 'b.contato_id')
+            ->leftJoin('tabulacoes as c', 'c.id', '=', 'b.tabulacao_id')
+            ->where('a.user_id', auth()->user()->id)
+            ->whereMonth('a.created_at', $request->mes)
+            ->whereYear('a.created_at', $request->ano)
+            ->select('a.id', 'a.nome_contrato', 'c.descricao', 'a.valor_contrato')
+            ->get();
+
+        return response()->json([
+            'vendasCadastradasMes' => $vendasCadastradasMes ?? 0,
+            'vendasImplantadasMes' => $vendasImplantadasMes ?? 0,
+            'quantidadeContatosMes' => $quantidadeContatosMes ?? 0,
+            'conversao' => $conversao,
+            'vendas' => $vendas,
+        ]);
+    }
+
+
+
+    private function calculoConversao($quantidadeContatos, $quantidadeVendas)
+    {
+        if ($quantidadeVendas == 0) {
+            return 0.0;
+        }
+
+        $conversao = ($quantidadeVendas / $quantidadeContatos) * 100;
+
+        return "%" . number_format($conversao, 2, ',', '.');
+    }
+
 }

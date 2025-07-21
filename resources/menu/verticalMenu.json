@@ -219,16 +219,6 @@
       ]
     },
     {
-      "url": "/vendas/lista-vendas",
-      "name": "Estornos",
-      "icon": "menu-icon tf-icons ri-corner-up-left-line",
-      "slug": "clientes-vendas",
-      "rules": [
-        "VENDEDOR",
-        "DEVELOPER"
-      ]
-    },
-    {
       "url": "/comercial/criar-cliente",
       "name": "Cadastrar Cliente",
       "icon": "menu-icon tf-icons ri-contacts-book-line",

@@ -29,8 +29,6 @@ Route::middleware(['auth'])->group(function () {
   /** MANAGER */
   Route::get('manager/changeCompany/{companyId}', [Manager::class, 'changeCompany'])->name('manager.changeCompany');
 
-
-
   /** PAGINA INICIAL */
   Route::get('dashboard', [HomePage::class, 'index'])->name('home.dashboard');
   Route::get('searchMetrics/{month}/{year}', [HomePage::class, 'searchMetrics'])->name('home.searchMetrics');
@@ -125,6 +123,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/vendas/analitico', [Vendas::class, 'analyticalSales'])->name('sale.analyticalSales');
   Route::get('/vendas/vendasAnalitico', [Vendas::class, 'getSalesAnalytical'])->name('sale.getSalesAnalytical');
   Route::get('/vendas/filtro-vendas-mes/{nome_corretor?}', [Vendas::class, 'monthlySalesFilter'])->name('sale.monthlySalesFilter');
+  Route::get('/vendas/getResultsBroker', [Vendas::class, 'getResultsBroker'])->name('sale.getResultsBroker');
 
   Route::get('/vendas/dados', [Vendas::class, 'dados'])->name('sale.dados');
   Route::get('/vendas/listar', [Vendas::class, 'listarVendas'])->name('sale.listarVendas');
