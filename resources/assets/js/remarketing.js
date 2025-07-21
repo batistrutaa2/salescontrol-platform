@@ -146,6 +146,10 @@ $(function () {
 
         }
       ],
+      lengthMenu: [
+        [10, 25, 50, 100, -1],
+        [10, 25, 50, 100, 'TODOS']
+      ],
       order: [[2, 'desc']],
       language: {
         sLengthMenu: '_MENU_',

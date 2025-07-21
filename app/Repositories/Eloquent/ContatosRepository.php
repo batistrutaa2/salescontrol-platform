@@ -156,6 +156,7 @@ class ContatosRepository implements ContatosRepositoryInterface
       })
       ->leftJoin('tabulacoes as c', 'b.tabulacao_id', '=', 'c.id')
       ->leftJoin('users as d', 'b.user_id', '=', 'd.id')
+      ->where('a.status', 'Y')
       ->where(function($query) use ($empresa_id) {
           // Contatos que estão relacionados a esta empresa
           $query->where(function($subquery) use ($empresa_id) {
