@@ -19,5 +19,68 @@
 @endsection
 
 @section('content')
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Metas Cadastradas</h5>
+            <a href="#" class="btn btn-primary">Nova Meta</a>
+        </div>
 
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="metas-table" class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo Cálculo</th>
+                            <th>Escopo</th>
+                            <th>Período</th>
+                            <th>Meta</th>
+                            <th>Status</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($metas as $meta)
+                            <tr>
+                                <td>{{ $meta->nome }}</td>
+                                <td>
+                                    <span class="badge bg-label-{{ $meta->tipo_calculo === 'VALOR' ? 'primary' : 'info' }}">
+                                        {{ $meta->tipo_calculo }}
+                                    </span>
+                                </td>
+                                <td>{{ $meta->escopo }}</td>
+                                <td>{{ $meta->periodo }}</td>
+                                <td>
+                                    @if ($meta->tipo_calculo === 'VALOR')
+                                        R$ {{ number_format($meta->valor_meta, 2, ',', '.') }}
+                                    @else
+                                        {{ $meta->quantidade_meta }} unidades
+                                    @endif
+                                </td>
+                                <td>
+                                    <span class="badge bg-label-{{ $meta->ativa ? 'success' : 'secondary' }}">
+                                        {{ $meta->ativa ? 'Ativa' : 'Inativa' }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{{ route('ranking.edit', [$meta->id]) }}"
+                                        class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="ri-edit-line"></i>
+                                    </a>
+                                    <form method="POST" action="" class="d-inline-block"
+                                        onsubmit="return confirm('Tem certeza que deseja excluir esta meta?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 @endsection

@@ -149,7 +149,10 @@ Route::middleware(['auth'])->group(function () {
 
   /** RANKING DE VENDAS */
   Route::get('/ranking', [RankingVendas::class, 'index'])->name('ranking.index');
-    Route::get('/ranking/configuracao', [RankingVendas::class, 'config'])->name('ranking.config');
+  Route::get('/ranking/configuracao/edit/{id}', [RankingVendas::class, 'edit'])->name('ranking.edit');
+  Route::get('/ranking/configuracao', [RankingVendas::class, 'config'])->name('ranking.config');
+  Route::get('/ranking-vendas', [RankingVendas::class, 'rankingVendas'])->name('ranking.rankingVendas');
+  Route::get('/rankingVendasData', [RankingVendas::class, 'rankingVendasData'])->name('ranking.rankingVendasData');
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
 
