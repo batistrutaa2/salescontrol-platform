@@ -33,8 +33,7 @@ class Auth extends Controller
 
 
         if (AuthFacades::user()->user_role_id == UserRole::VENDEDOR) {
-          return redirect()->to('/comercial/kanban');
-
+          return redirect()->to('vendas/lista-vendas');
         } else {
           return redirect()->to('/dashboard');
         }
