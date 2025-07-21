@@ -14,7 +14,7 @@
 
 <!-- Page Scripts -->
 @section('page-script')
-    @vite(['resources/assets/js/vendas.js'])
+    @vite(['resources/assets/js/backoffice.js'])
 @endsection
 
 @section('content')
@@ -83,7 +83,8 @@
                         <h4 class="mb-2">Alterar Status</h4>
                         <p>Selecione o status atual do contrato</p>
                     </div>
-                    <form id="transferLead" class="row" action="{{route('backoffice.alterStatusContract')}}" method="POST">
+                    <form id="transferLead" class="row" action="{{ route('backoffice.alterStatusContract') }}"
+                        method="POST">
                         @csrf
                         <input type="hidden" id="idSale" name="idSale" value="">
                         <div class="col">
