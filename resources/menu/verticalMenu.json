@@ -94,6 +94,22 @@
       ]
     },
     {
+      "name": "Ranking de Vendas",
+      "icon": "menu-icon tf-icons ri-trophy-line",
+      "slug": "dashboard",
+      "rules": [
+        "DEVELOPER",
+        "ADMINISTRATIVO"
+      ],
+      "submenu": [
+        {
+          "url": "/ranking/configuracao",
+          "name": "Configuração de ranking",
+          "slug": "pages-mailing-importar"
+        }
+      ]
+    },
+    {
       "name": "Back-office",
       "icon": "menu-icon tf-icons ri-presentation-fill",
       "slug": "dashboard",
@@ -223,6 +239,16 @@
       "name": "Cadastrar Cliente",
       "icon": "menu-icon tf-icons ri-contacts-book-line",
       "slug": "clientes-vendas",
+      "rules": [
+        "VENDEDOR",
+        "DEVELOPER"
+      ]
+    },
+    {
+      "url": "/comercial/criar-cliente",
+      "name": "Relatorio de Vendas",
+      "icon": "menu-icon tf-icons ri-contacts-book-line",
+      "slug": "ranking-vendas",
       "rules": [
         "VENDEDOR",
         "DEVELOPER"

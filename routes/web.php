@@ -2,6 +2,7 @@
 
 
 use App\Http\Controllers\Auth\Auth;
+use App\Http\Controllers\pages\ranking\RankingVendas;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\pages\HomePage;
 use App\Http\Controllers\manager\Manager;
@@ -145,6 +146,10 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/relatorios/buscar', [Relatorios::class, 'get'])->name('relatorios.preditiva.buscar');
   Route::get('/relatorios/atividade', [Relatorios::class, 'activityReport'])->name('relatorios.activityReport');
   Route::get('/relatorios/atividade-dados/{dataInicial}/{dataFinal}/{leadsMes?}/{idVendedor?}', [Relatorios::class, 'activityReportData'])->name('relatorios.activityReportData');
+
+  /** RANKING DE VENDAS */
+  Route::get('/ranking', [RankingVendas::class, 'index'])->name('ranking.index');
+    Route::get('/ranking/configuracao', [RankingVendas::class, 'config'])->name('ranking.config');
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
 
