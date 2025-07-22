@@ -284,10 +284,31 @@ document.addEventListener('DOMContentLoaded', function () {
             }
           }
         },
+        eventManager: {
+          validators: {
+            notEmpty: {
+              message: 'Por favor, informe o gestor responsável'
+            }
+          }
+        },
         eventEndDate: {
           validators: {
             notEmpty: {
               message: 'Por favor, insira a data de término'
+            }
+          }
+        },
+        eventLocation: {
+          validators: {
+            notEmpty: {
+              message: 'Por favor, informe o local da reunião'
+            }
+          }
+        },
+        eventDescription: {
+          validators: {
+            notEmpty: {
+              message: 'Coloque as informações sobre a reunião, como valores pré-abordados, plano e etc..'
             }
           }
         }
@@ -331,14 +352,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Add Event
     function addEvent(eventData) {
-      // Formatar datas para o backend
       const formattedData = {
         ...eventData,
         data_inicio: formatDateForBackend(eventData.data_inicio),
         data_final: formatDateForBackend(eventData.data_final)
       };
 
-      // Enviar dados para o backend
       fetch('/reunioes', {
         method: 'POST',
         headers: {
@@ -347,24 +366,33 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         body: JSON.stringify(formattedData)
       })
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'success') {
-            // Adicionar evento ao calendário
-            currentEvents.push(data.reuniao);
-            calendar.refetchEvents();
+        .then(async response => {
+          const data = await response.json();
 
-            // Mostrar mensagem de sucesso
-            toastr.success(data.message);
-          } else {
-            toastr.error('Erro ao agendar reunião: ' + data.message);
+          if (!response.ok) {
+            // Se status for 422 (validação), mostrar os erros
+            if (response.status === 422 && data.errors) {
+              const messages = Object.values(data.errors).flat();
+              messages.forEach(msg => toastr.error(msg));
+            } else {
+              toastr.error(data.message || 'Erro ao agendar reunião.');
+            }
+            throw new Error('Erro de validação');
           }
+
+          // Sucesso
+          currentEvents.push(data.reuniao);
+          calendar.refetchEvents();
+          toastr.success(data.message);
         })
         .catch(error => {
-          console.error('Erro ao adicionar reunião:', error);
-          toastr.error('Erro ao agendar reunião. Tente novamente.');
+          console.error(error);
+          if (error.name !== 'Error') {
+            toastr.error('Erro inesperado ao agendar reunião.');
+          }
         });
     }
+
 
     // Update Event
     function updateEvent(eventData) {

@@ -101,6 +101,10 @@ Route::middleware(['auth'])->group(function () {
   Route::put('/reunioes/{id}', [ReunioesComercial::class, 'update']);
   Route::delete('/reunioes/{id}', [ReunioesComercial::class, 'destroy']);
   Route::get('/available-slots/{managerId}/{date}', [ReunioesComercial::class, 'getAvailableSlots']);
+  Route::get('/notificacoes/ler', function () {
+    auth()->user()->unreadNotifications->markAsRead();
+    return back();
+  })->name('notificacoes.marcar-como-lidas');
 
   /** COMERCIAL- AGENDAMENTO */
   Route::post('/comercial/sendSchedule', [Comercial::class, 'sendSchedule'])->name('comercial.sendSchedule');

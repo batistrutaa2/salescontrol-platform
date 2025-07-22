@@ -84,7 +84,7 @@
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
                                 <input type="text" class="form-control" id="eventCreatedBy" placeholder="Agendado por"
-                                    readonly />
+                                    disabled />
                                 <label for="eventCreatedBy">Agendado por</label>
                             </div>
 
@@ -112,7 +112,7 @@
                                 <label for="eventLocation">Local</label>
                             </div>
                             <div class="form-floating form-floating-outline mb-5">
-                                <textarea class="form-control" name="eventDescription" id="eventDescription"
+                                <textarea class="form-control" name="eventDescription" id="eventDescription" rows="3" required
                                     placeholder="Observações sobre valores pré-abordados"></textarea>
                                 <label for="eventDescription">Observações (valores pré-abordados)</label>
                             </div>

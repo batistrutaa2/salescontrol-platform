@@ -9,6 +9,8 @@ use Illuminate\Support\Carbon;
 use App\Models\ComercialReunioes;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use App\Notifications\NovaReuniaoAgendada;
+
 
 class ReunioesComercial extends Controller
 {
@@ -54,67 +56,81 @@ class ReunioesComercial extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'titulo' => 'required|string|max:255',
-            'manager_id' => 'required|exists:users,id',
-            'data_inicio' => 'required|date',
-            'data_final' => 'required|date|after:data_inicio',
-            'location' => 'nullable|string|max:255',
-            'observacao' => 'nullable|string'
-        ]);
+        try {
+            $validated = $request->validate([
+                'titulo' => 'required|string|max:255',
+                'manager_id' => 'required|exists:users,id',
+                'data_inicio' => 'required|date',
+                'data_final' => 'required|date|after:data_inicio',
+                'location' => 'nullable|string|max:255',
+                'observacao' => 'nullable|string'
+            ]);
 
-        // Obter o ID da empresa do usuário logado
-        $empresaId = Auth::user()->empresa_id;
+            // Obter o ID da empresa do usuário logado
+            $empresaId = Auth::user()->empresa_id;
 
-        // Verificar se o usuário selecionado é realmente um gestor
-        $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO')->first()->id;
-        $manager = User::where('id', $request->manager_id)
-            ->where('user_role_id', $managerRoleId)
-            ->first();
+            // Verificar se o usuário selecionado é realmente um gestor
+            $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO')->first()->id;
+            $manager = User::where('id', $request->manager_id)
+                ->where('user_role_id', $managerRoleId)
+                ->first();
 
-        if (!$manager) {
+            if (!$manager) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'O usuário selecionado não é um gestor comercial.'
+                ], 422);
+            }
+
+            // Converter strings de data para objetos Carbon
+            $dataInicio = Carbon::parse($request->data_inicio);
+            $dataFinal = Carbon::parse($request->data_final);
+
+            // Criar nova reunião
+            $reuniao = new ComercialReunioes();
+            $reuniao->titulo = $request->titulo;
+            $reuniao->user_id = Auth::id(); // ID do usuário logado (vendedor)
+            $reuniao->manager_id = $request->manager_id;
+            $reuniao->empresa_id = $empresaId; // Adicionar empresa_id do usuário logado
+            $reuniao->data_inicio = $dataInicio;
+            $reuniao->data_final = $dataFinal;
+            $reuniao->location = $request->location;
+            $reuniao->observacao = $request->observacao;
+            $reuniao->status = 'scheduled';
+            $reuniao->save();
+
+
+            $admins = User::where('user_role_id', $managerRoleId)
+                ->where('empresa_id', $empresaId)
+                ->get();
+
+            foreach ($admins as $admin) {
+                $admin->notify(new NovaReuniaoAgendada($reuniao));
+            }
+
+
+            // Retornar dados da reunião para atualizar o calendário
             return response()->json([
-                'status' => 'error',
-                'message' => 'O usuário selecionado não é um gestor comercial.'
-            ], 422);
-        }
-
-        // Converter strings de data para objetos Carbon
-        $dataInicio = Carbon::parse($request->data_inicio);
-        $dataFinal = Carbon::parse($request->data_final);
-
-        // Criar nova reunião
-        $reuniao = new ComercialReunioes();
-        $reuniao->titulo = $request->titulo;
-        $reuniao->user_id = Auth::id(); // ID do usuário logado (vendedor)
-        $reuniao->manager_id = $request->manager_id;
-        $reuniao->empresa_id = $empresaId; // Adicionar empresa_id do usuário logado
-        $reuniao->data_inicio = $dataInicio;
-        $reuniao->data_final = $dataFinal;
-        $reuniao->location = $request->location;
-        $reuniao->observacao = $request->observacao;
-        $reuniao->status = 'scheduled';
-        $reuniao->save();
-
-        // Retornar dados da reunião para atualizar o calendário
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Reunião agendada com sucesso!',
-            'reuniao' => [
-                'id' => $reuniao->id,
-                'title' => $reuniao->titulo,
-                'start' => $reuniao->data_inicio->format('Y-m-d\TH:i:s'),
-                'end' => $reuniao->data_final->format('Y-m-d\TH:i:s'),
-                'extendedProps' => [
-                    'calendar' => 'Business',
-                    'location' => $reuniao->location ?? '',
-                    'description' => $reuniao->observacao ?? '',
-                    'manager_id' => $reuniao->manager_id,
-                    'manager_name' => $manager->name,
-                    'user_name' => Auth::user()->name
+                'status' => 'success',
+                'message' => 'Reunião agendada com sucesso!',
+                'reuniao' => [
+                    'id' => $reuniao->id,
+                    'title' => $reuniao->titulo,
+                    'start' => $reuniao->data_inicio->format('Y-m-d\TH:i:s'),
+                    'end' => $reuniao->data_final->format('Y-m-d\TH:i:s'),
+                    'extendedProps' => [
+                        'calendar' => 'Business',
+                        'location' => $reuniao->location ?? '',
+                        'description' => $reuniao->observacao ?? '',
+                        'manager_id' => $reuniao->manager_id,
+                        'manager_name' => $manager->name,
+                        'user_name' => Auth::user()->name
+                    ]
                 ]
-            ]
-        ]);
+            ]);
+        } catch (\Throwable $th) {
+            dd($th);
+        }
     }
 
     public function update(Request $request, $id)
