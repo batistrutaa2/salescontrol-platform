@@ -2,6 +2,7 @@
 
 @section('title', 'Leads Descartados')
 
+
 <!-- Vendor Styles -->
 @section('vendor-style')
     @vite(['resources/assets/vendor/libs/dropzone/dropzone.scss', 'resources/assets/vendor/libs/@form-validation/form-validation.scss'])

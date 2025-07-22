@@ -132,6 +132,34 @@ class Mailing extends Controller
     }
   }
 
+  public function deleteMailingLeadsDescarted($id)
+  {
+    try {
+      $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($id);
+
+      if ($searchForLaunchedSale) {
+        return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Esse Lead possui venda cadastrada, exclusão cancelada.");
+      }
+
+      DB::beginTransaction();
+      Comentarios::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      Agendamento::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      Dependentes::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      Ligacoes::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      LeadAtividade::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      ContatosCorretores::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      LogPreditiva::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      Preditiva::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      TransferenciaContato::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      Contatos::where("id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      DB::commit();
+      return redirect()->back()->with('status', 'success')->with('message', "Contato Excluido com sucesso");
+    } catch (\Throwable $th) {
+      DB::rollBack();
+      return redirect()->route(route: 'mailing.leadDescartados')->with('status', 'error')->with('message', "Erro ao excluir Lead");
+    }
+  }
+
 
   public function deleteMailing($id)
   {
@@ -156,7 +184,6 @@ class Mailing extends Controller
       DB::commit();
       return redirect()->back()->with('status', 'success')->with('message', "Contato Excluido com sucesso");
     } catch (\Throwable $th) {
-      dd($th);
       DB::rollBack();
       return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', "Erro ao excluir Lead");
     }
