@@ -126,8 +126,9 @@
             <li class="dropdown-menu-header border-bottom">
                 <div class="dropdown-header d-flex align-items-center py-3">
                     <h6 class="mb-0 me-auto">Notificações</h6>
-                    <a href="" class="text-muted small">Marcar como
+                    <a href="{{ route('notificacoes.marcar-como-lidas') }}" class="text-muted small">Marcar como
                         lidas</a>
+
                 </div>
             </li>
 
@@ -135,7 +136,7 @@
                 <ul class="list-group list-group-flush">
                     @forelse ($notifications as $notification)
                         <li class="list-group-item list-group-item-action dropdown-notifications-item">
-                            <a href="{{ $notification->data['url'] ?? '#' }}"
+                            <a href="{{ $notification->data['url'] ?? '/comercial/calendario-reunioes' }}"
                                 class="d-flex text-decoration-none text-reset">
                                 <div class="flex-grow-1">
                                     <h6 class="small mb-1">{{ $notification->data['titulo'] }}</h6>
