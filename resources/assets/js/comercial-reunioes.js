@@ -112,8 +112,6 @@ document.addEventListener('DOMContentLoaded', function () {
       fetch(`/available-slots/${managerId}/${date}`)
         .then(response => response.json())
         .then(data => {
-          // Você pode implementar uma lógica para mostrar slots disponíveis
-          console.log('Slots disponíveis:', data.available_slots);
         })
         .catch(error => console.error('Erro ao verificar disponibilidade:', error));
     }
@@ -142,6 +140,9 @@ document.addEventListener('DOMContentLoaded', function () {
       // Preencher outros campos
       eventLocation.value = eventToUpdate.extendedProps.location || '';
       eventDescription.value = eventToUpdate.extendedProps.description || '';
+      document.querySelector('#eventCreatedBy').value = eventToUpdate.extendedProps.user_name || '';
+
+
     }
 
     // Modify sidebar toggler
@@ -246,6 +247,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const formattedDate = moment(date).format('DD/MM/YYYY');
         start.setDate(moment(date + 'T09:00:00').toDate());
         end.setDate(moment(date + 'T10:00:00').toDate());
+        document.querySelector('#eventCreatedBy').value = '';
+
+
       },
       eventClick: function (info) {
         eventClick(info);
