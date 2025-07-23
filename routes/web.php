@@ -30,6 +30,14 @@ Route::middleware(['auth'])->group(function () {
   /** MANAGER */
   Route::get('manager/changeCompany/{companyId}', [Manager::class, 'changeCompany'])->name('manager.changeCompany');
 
+  Route::get('/notificacoes/novas', function () {
+      $notifications = Auth::user()->unreadNotifications
+          ->filter(fn($n) => !isset($n->data['agendado_por']) || $n->data['agendado_por'] == Auth::id());
+
+      return response()->json($notifications->values());
+  })->middleware('auth')->name('notificacoes.novas');
+
+
   /** PAGINA INICIAL */
   Route::get('dashboard', [HomePage::class, 'index'])->name('home.dashboard');
   Route::get('searchMetrics/{month}/{year}', [HomePage::class, 'searchMetrics'])->name('home.searchMetrics');
