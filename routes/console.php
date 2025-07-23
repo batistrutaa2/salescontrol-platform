@@ -1,8 +1,12 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+use Carbon\Carbon;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote')->hourly();
+Schedule::command('verificar:agendamentos')
+    ->everyMinute()
+    ->timezone('America/Sao_Paulo')
+    ->when(function () {
+        $hora = Carbon::now('America/Sao_Paulo')->format('H:i');
+        return $hora >= '08:00' && $hora <= '20:00';
+    });

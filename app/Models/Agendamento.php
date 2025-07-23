@@ -34,4 +34,9 @@ class Agendamento extends Model
     return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
   }
 
+  public function user()
+  {
+    return $this->belongsTo(User::class);
+  }
+
 }

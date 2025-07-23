@@ -5,7 +5,10 @@
     $containerNav = $configData['contentLayout'] === 'compact' ? 'container-xxl' : 'container-fluid';
     $navbarDetached = $navbarDetached ?? '';
     $empresas = Empresa::all();
-    $notifications = Auth::user()->unreadNotifications;
+
+    $notifications = Auth::user()->unreadNotifications->filter(function ($notification) {
+        return !isset($notification->data['agendado_por']) || $notification->data['agendado_por'] == Auth::id();
+    });
 @endphp
 
 @if (isset($navbarDetached) && $navbarDetached == 'navbar-detached')
@@ -33,7 +36,6 @@
 
 <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
     <ul class="navbar-nav flex-row align-items-center ms-auto">
-
 
         @if (Auth::user()->user_role_id === 4)
             <li class="nav-item me-3">
@@ -128,7 +130,6 @@
                     <h6 class="mb-0 me-auto">Notificações</h6>
                     <a href="{{ route('notificacoes.marcar-como-lidas') }}" class="text-muted small">Marcar como
                         lidas</a>
-
                 </div>
             </li>
 
@@ -160,6 +161,7 @@
         </ul>
     </li>
 </div>
+
 @if (!isset($navbarDetached))
     </div>
 @endif
