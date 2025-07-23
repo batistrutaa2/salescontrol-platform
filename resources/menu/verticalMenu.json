@@ -63,8 +63,7 @@
       "rules": [
         "ADMINISTRATIVO",
         "DEVELOPER",
-        "BACKOFFICE",
-        "VENDEDOR"
+        "BACKOFFICE"
       ]
     },
     {
@@ -201,6 +200,15 @@
       "rules": [
         "VENDEDOR",
         "DEVELOPER"
+      ]
+    },
+    {
+      "url": "/comercial/calendario-reunioes",
+      "name": "Reuniões Comercial",
+      "icon": "menu-icon ri-restart-line",
+      "slug": "comercial-agendamentos",
+      "rules": [
+        "VENDEDOR"
       ]
     },
     {

@@ -103,6 +103,12 @@
   const commentEditorElement = document.querySelector('.comment-editor');
   let quill;
 
+  function isEditorContentEmpty(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent.trim().length === 0;
+  }
+
   if (commentEditorElement) {
     quill = new Quill(commentEditorElement, {
       modules: {
@@ -110,6 +116,15 @@
       },
       placeholder: 'Atualize sua negociação..',
       theme: 'snow'
+    });
+
+    commentEditorElement.addEventListener('paste', () => {
+      setTimeout(() => {
+        const html = quill.root.innerHTML;
+        if (!isEditorContentEmpty(html)) {
+          console.log('Conteúdo colado:', html);
+        }
+      }, 50);
     });
   }
 
@@ -166,14 +181,15 @@
   document.getElementById('saveComment').addEventListener('submit', function (event) {
     event.preventDefault();
 
-    const editorContent = quill ? quill.root.innerHTML.trim() : '';
-    if (editorContent === '' || editorContent === '<p><br></p>') {
+    const htmlContent = quill ? quill.root.innerHTML.trim() : '';
+    if (isEditorContentEmpty(htmlContent)) {
+      toastr.warning('Preencha o comentário antes de salvar.');
       return;
     }
 
     const form = event.target;
     const formData = new FormData(form);
-    formData.append('anotacao', editorContent);
+    formData.append('anotacao', htmlContent);
 
     fetch(form.action, {
       method: 'POST',
@@ -187,10 +203,13 @@
         if (!data.error) {
           window.location.reload();
         } else {
-          alert('erro ao salvar comentario');
+          toastr.error('Erro ao salvar comentário.');
         }
       })
-      .catch(error => {});
+      .catch(error => {
+        toastr.error('Erro ao salvar comentário.');
+        console.error(error);
+      });
   });
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -330,4 +349,4 @@
   });
 })();
 
-$(function () {});
+$(function () { });
