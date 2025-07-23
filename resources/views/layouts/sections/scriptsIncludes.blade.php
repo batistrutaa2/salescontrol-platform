@@ -17,12 +17,16 @@
 
 @if ($configData['hasCustomizer'])
 <script type="module">
-    document.getElementById('empresaSelect').addEventListener('change', function () {
-        let empresaId = this.value;
-        if (empresaId) {
-            window.location.href = `/manager/changeCompany/${empresaId}`;
-        }
-    });
+    const empresaSelect = document.getElementById('empresaSelect');
+
+    if (empresaSelect) {
+        empresaSelect.addEventListener('change', function() {
+            let empresaId = this.value;
+            if (empresaId) {
+                window.location.href = `/manager/changeCompany/${empresaId}`;
+            }
+        });
+    }
 
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -62,5 +66,31 @@
         },
         'controls': <?php echo json_encode($configData['customizerControls']); ?>,
     });
+
+
+    let notificacoesExibidas = [];
+
+    function buscarNotificacoes() {
+        console.log("Buscando notificações...");
+        $.get("{{ route('notificacoes.novas') }}")
+            .done(function(res) {
+                console.log("Notificações recebidas:", res);
+                res.forEach(n => {
+                    if (!notificacoesExibidas.includes(n.id)) {
+                        toastr.info(
+                            `📅 ${n.data.titulo}<br><small>Agendada para ${n.data.data_inicio}</small>`,
+                            'Nova Notificação'
+                        );
+                        notificacoesExibidas.push(n.id);
+                    }
+                });
+            })
+            .fail(function(err) {
+                console.warn("Erro ao buscar notificações:", err);
+            });
+    }
+
+    document.addEventListener("DOMContentLoaded", buscarNotificacoes);
+    setInterval(buscarNotificacoes, 60000)
 </script>
 @endif
