@@ -89,5 +89,34 @@
     <!-- Drag Target Area To SlideIn Menu On Small Screens -->
     <div class="drag-target"></div>
     </div>
-    <!-- / Layout wrapper -->
+    @push('scripts')
+        <script>
+            let notificacoesExibidas = [];
+
+            function buscarNotificacoes() {
+                $.get("{{ route('notificacoes.novas') }}", function(res) {
+                    res.forEach(n => {
+                        if (!notificacoesExibidas.includes(n.id)) {
+                            toastr.info(
+                                `📅 ${n.data.titulo}<br><small>Agendada para ${n.data.data_inicio}</small>`,
+                                'Nova Notificação', {
+                                    timeOut: 7000,
+                                    extendedTimeOut: 2000,
+                                    closeButton: true,
+                                    progressBar: true,
+                                    tapToDismiss: true
+                                });
+                            notificacoesExibidas.push(n.id);
+                        }
+                    });
+                });
+            }
+
+            // Executa quando a página carrega
+            document.addEventListener("DOMContentLoaded", buscarNotificacoes);
+
+            // E repete a cada minuto
+            setInterval(buscarNotificacoes, 60000);
+        </script>
+    @endpush
 @endsection
