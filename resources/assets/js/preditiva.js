@@ -54,9 +54,24 @@ $(function () {
 
   tabela = $('#tabela-fila-preditiva').DataTable({
     pageLength: 10,
+    lengthMenu: [
+      [10, 25, 50, -1],       
+      [10, 25, 50, 'Todos']   
+    ],
     language: {
       url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
-    }
+    },
+    columnDefs: [
+      {
+        targets: 0,
+        orderable: false,
+        searchable: false,
+        className: 'dt-body-center',
+        render: function (data) {
+          return `<input type="checkbox" class="select-lead" value="${data}">`;
+        }
+      }
+    ]
   });
 
   $('#tabela-fila-preditiva tbody').on('click', '.btn-transferir', function () {
@@ -74,6 +89,47 @@ $(function () {
     $('#modalTransferirLead').modal('show');
   }
 
+  $('#tabela-fila-preditiva tbody').on('change', '.select-lead', function () {
+    const row = $(this).closest('tr');
+    row.toggleClass('selected', this.checked);
+  });
+
+  $('#btnLimparFila').on('click', function () {
+    const selecionados = [];
+
+    $('#tabela-fila-preditiva tbody input.select-lead:checked').each(function () {
+      selecionados.push($(this).val());
+    });
+
+    if (selecionados.length === 0) {
+      return alert('Nenhum lead selecionado.');
+    }
+
+    if (!confirm(`Deseja realmente remover ${selecionados.length} leads da fila?`)) return;
+
+    $.ajax({
+      url: '/comercial/descartar-multiplos-leads',
+      method: 'POST',
+      data: {
+        ids: selecionados,
+        clearPreditiva: true,
+        _token: $('meta[name="csrf-token"]').attr('content')
+      },
+      success: function () {
+        toastr.success('Fila preditiva atualizada!');
+        atualizarPreditiva();
+      },
+      error: function () {
+        toastr.error('Erro ao limpar fila preditiva.');
+      }
+    });
+  });
+
+  $('#select-all-leads').on('click', function () {
+    const isChecked = $(this).is(':checked');
+    $('#tabela-fila-preditiva tbody input.select-lead').prop('checked', isChecked).trigger('change');
+  });
+
   atualizarPreditiva();
-  setInterval(atualizarPreditiva, 5000);
+  setInterval(atualizarPreditiva, 20000);
 });

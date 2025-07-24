@@ -914,11 +914,22 @@ class Comercial extends Controller
   public function discardMultipleLeads(Request $request)
   {
     $ids = $request->input('ids');
-
+    $clearPreditiva = $request->input('clearPreditiva');
     try {
-      DB::transaction(function () use ($ids) {
+      DB::transaction(function () use ($ids, $clearPreditiva) {
         foreach ($ids as $id) {
+          if ($clearPreditiva) {
+            $existePreditiva = DB::table('preditiva')
+              ->where('contato_id', $id)
+              ->exists();
+
+            if ($existePreditiva) {
+              DB::table('preditiva')->where('contato_id', $id)->delete();
+            }
+          }
+
           $this->repositoryContatosCorretores->deleteMailing($id);
+
           Contatos::where('id', $id)->update([
             'status' => 'N',
             'updated_at' => now()
@@ -928,8 +939,8 @@ class Comercial extends Controller
 
       return response()->json(['success' => true, 'message' => 'Leads descartados com sucesso!']);
     } catch (\Exception $e) {
-      Log::error('Erro ao descartar múltiplos leads: ' . $e->getMessage());
-      return response()->json(['success' => false, 'message' => 'Erro ao descartar os leads.'], 500);
+      return response()->json(['error' => false, 'message' => 'Erro ao descartar os leads.'], 500);
     }
   }
+
 }
