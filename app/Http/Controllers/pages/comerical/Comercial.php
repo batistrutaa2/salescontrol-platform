@@ -925,6 +925,7 @@ class Comercial extends Controller
 
             if ($existePreditiva) {
               DB::table('preditiva')->where('contato_id', $id)->delete();
+              DB::table('log_preditiva')->where('contato_id', $id)->delete();
             }
           }
 
@@ -942,5 +943,4 @@ class Comercial extends Controller
       return response()->json(['error' => false, 'message' => 'Erro ao descartar os leads.'], 500);
     }
   }
-
 }
