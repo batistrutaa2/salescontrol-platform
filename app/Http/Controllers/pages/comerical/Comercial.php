@@ -836,8 +836,6 @@ class Comercial extends Controller
       'acao' => 'CONVERSAO'
     ]);
 
-
-
     // Buscar a tabulação "PROSPECÇÃO" da empresa
     $tabulacaoProspeccao = DB::table('tabulacoes')
       ->where('empresa_id', $empresaId)
