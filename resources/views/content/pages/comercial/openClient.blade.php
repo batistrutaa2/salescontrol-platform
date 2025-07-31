@@ -350,7 +350,6 @@
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <span class="me-2">{{ $cotacao['name'] }}</span>
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ $cotacao['url'] }}" target="_blank" class="btn btn-outline-primary view-cotacao" data-name="{{ $cotacao['name'] }}">Ver</a>
                                         <a href="{{ $cotacao['url'] }}" download class="btn btn-outline-success download-cotacao" data-name="{{ $cotacao['name'] }}">Baixar</a>
                                         <button type="button" class="btn btn-outline-secondary replace-cotacao" data-name="{{ $cotacao['name'] }}">Trocar</button>
                                         <button type="button" class="btn btn-outline-danger delete-cotacao" data-name="{{ $cotacao['name'] }}">Excluir</button>
