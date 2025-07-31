@@ -87,8 +87,8 @@
 
 
                         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#consultaModal">
-                                    <i class="ri-search-line ri-16px me-1"></i>
-                                    Consultar Lemit
+                            <i class="ri-search-line ri-16px me-1"></i>
+                            Consultar Lemit
                         </button>
 
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal"
@@ -108,7 +108,7 @@
                     </div>
 
                     <div class="card-body">
-                             <h5 class="card-title mb-0 mb-5">Informações Pessoais</h5>
+                        <h5 class="card-title mb-0 mb-5">Informações Pessoais</h5>
                         <form method="POST" action="{{ route('comercial.updateClient') }}">
                             @csrf
                             <input type="hidden" name="id" value="{{ $client->id }}">
@@ -121,9 +121,9 @@
                                             {{ $tabulation->descricao }}
                                         </option>
                                     @endforeach
-                                        <option value="5">
-                                           NEGOCIO FECHADO
-                                        </option>
+                                    <option value="5">
+                                        NEGOCIO FECHADO
+                                    </option>
                                 </select>
                             </div>
 
@@ -286,47 +286,49 @@
                                     <label for="valor_negociacao">Valor Negociação</label>
                                 </div>
                             </div>
-                            @if ($client->tipo_layout != "padrao")
-                            <div class="col mt-5">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control monetary-field"
-                                        id="ecommerce-product-barcode" {{ $editingPermission == false ? 'disabled' : '' }}
-                                        id="valor_plano_atual"
-                                        value="{{ number_format($totalFamilyPlan, 2, ',', '.') }}"
-                                        placeholder="R$ 1080.10" name="total_familia" aria-label="Product barcode">
-                                    <label for="ecommerce-product-name">Total Familia</label>
+                            @if ($client->tipo_layout != 'padrao')
+                                <div class="col mt-5">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control monetary-field"
+                                            id="ecommerce-product-barcode"
+                                            {{ $editingPermission == false ? 'disabled' : '' }} id="valor_plano_atual"
+                                            value="{{ number_format($totalFamilyPlan, 2, ',', '.') }}"
+                                            placeholder="R$ 1080.10" name="total_familia" aria-label="Product barcode">
+                                        <label for="ecommerce-product-name">Total Familia</label>
+                                    </div>
                                 </div>
-                            </div>
                             @endif
-                            @if ($client->is_ads == "Y")
-                            <div class="col mt-4">
-                                <div class="form-floating form-floating-outline">
-                                    <input type="text" class="form-control" id="tipo_campanha" value="{{$client->tipo_criativo}}"
-                                    aria-label="tipo Campanha" disabled>
-                                    <label for="valor_negociacao">Tipo de anuncio</label>
+                            @if ($client->is_ads == 'Y')
+                                <div class="col mt-4">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="tipo_campanha"
+                                            value="{{ $client->tipo_criativo }}" aria-label="tipo Campanha" disabled>
+                                        <label for="valor_negociacao">Tipo de anuncio</label>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col mt-4">
-                                <div class="form-floating form-floating-outline">
-                                  <input type="text" class="form-control" id="tipo_campanha" value="{{$client->possui_cnpj == "Y" ? "SIM" : "NÃO"}}"
-                                    aria-label="tipo Campanha" disabled>
-                                    <label for="valor_negociacao">Possui CNPJ?</label>
+                                <div class="col mt-4">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="tipo_campanha"
+                                            value="{{ $client->possui_cnpj == 'Y' ? 'SIM' : 'NÃO' }}"
+                                            aria-label="tipo Campanha" disabled>
+                                        <label for="valor_negociacao">Possui CNPJ?</label>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col mt-4">
-                                <div class="form-floating form-floating-outline">
-                                  <input type="text" class="form-control" id="tipo_campanha" value="{{$client->plano_ativo == "Y" ? "SIM" : "NÃO"}}"
-                                    aria-label="tipo Campanha" disabled>
-                                    <label for="valor_negociacao">Plano Ativo</label>
+                                <div class="col mt-4">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="tipo_campanha"
+                                            value="{{ $client->plano_ativo == 'Y' ? 'SIM' : 'NÃO' }}"
+                                            aria-label="tipo Campanha" disabled>
+                                        <label for="valor_negociacao">Plano Ativo</label>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col mt-4">
-                                <div class="form-floating form-floating-outline">
-                                  <input type="text" class="form-control" id="tipo_campanha" value="{{$client->vidas}}"
-                                    aria-label="tipo Campanha" disabled>
-                                    <label for="valor_negociacao">Quantide de vidas</label>
+                                <div class="col mt-4">
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="tipo_campanha"
+                                            value="{{ $client->vidas }}" aria-label="tipo Campanha" disabled>
+                                        <label for="valor_negociacao">Quantide de vidas</label>
+                                    </div>
                                 </div>
-                            </div>
                             @endif
                             <div class="d-flex mt-5">
                                 <button class="btn btn-success btn--twitter ms-auto">Atualizar informações</button>
@@ -334,114 +336,161 @@
                         </form>
                     </div>
                 </div>
+
+                @if ($client->tipo_layout != 'padrao')
+                    <div class="accordion mt-5" id="collapsibleSection">
+                        @foreach ($dependentes as $index => $dependente)
+                            <form method="POST" action="{{ route('comercial.updateClientDependecies') }}">
+                                @csrf
+                                <input type="hidden" name="id_dependente" value="{{ $dependente->id }}">
+                                <input type="hidden" name="index_array" value="{{ $index }}">
+                                <div class="accordion-item {{ $loop->first ? 'active' : '' }}">
+                                    <h2 class="accordion-header" id="headingDependente{{ $index }}">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                            data-bs-target="#collapseDependente{{ $index }}"
+                                            aria-expanded="{{ $loop->first ? 'true' : 'false' }}"
+                                            aria-controls="collapseDependente{{ $index }}">
+                                            Dependente {{ $index + 1 }} - {{ $dependente['parentesco'] ?? '' }}
+                                        </button>
+                                    </h2>
+                                    <div id="collapseDependente{{ $index }}" class="accordion-collapse collapse"
+                                        aria-labelledby="headingDependente{{ $index }}"
+                                        data-bs-parent="#collapsibleSection">
+                                        <div class="accordion-body">
+                                            <div class="row g-4">
+                                                <div class="col-md-10">
+                                                    <div class="row">
+                                                        <label class="col-sm-3 col-form-label text-sm-end"
+                                                            for="fullname{{ $index }}">Nome Completo</label>
+                                                        <div class="col-sm-9">
+                                                            <input type="text" id="fullname{{ $index }}"
+                                                                class="form-control"
+                                                                name="dependentes[{{ $index }}][nome]"
+                                                                value="{{ $dependente['nome'] ?? '' }}"
+                                                                placeholder="John Doe" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-10">
+                                                    <div class="row">
+                                                        <label class="col-sm-3 col-form-label text-sm-end"
+                                                            for="fullname{{ $index }}">CPF</label>
+                                                        <div class="col-sm-9">
+                                                            <input type="text" id="fullname{{ $index }}"
+                                                                class="form-control"
+                                                                name="dependentes[{{ $index }}][cpf]"
+                                                                value="{{ $dependente['cpf'] ?? '' }}"
+                                                                placeholder="122.456.789-10" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-10">
+                                                    <div class="row">
+                                                        <label class="col-sm-3 col-form-label text-sm-end"
+                                                            for="phone{{ $index }}">Telefone 1</label>
+                                                        <div class="col-sm-9">
+                                                            <input type="text" id="phone{{ $index }}"
+                                                                class="form-control phone-mask"
+                                                                name="dependentes[{{ $index }}][telefone1]"
+                                                                value="{{ $dependente['telefone_1'] ?? '' }}"
+                                                                placeholder="(11) 94556-7166" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-10">
+                                                    <div class="row">
+                                                        <label class="col-sm-3 col-form-label text-sm-end"
+                                                            for="phone{{ $index }}">Telefone 2</label>
+                                                        <div class="col-sm-9">
+                                                            <input type="text" id="phone{{ $index }}"
+                                                                class="form-control phone-mask"
+                                                                name="dependentes[{{ $index }}][telefone2]"
+                                                                value="{{ $dependente['telefone_2'] ?? '' }}"
+                                                                placeholder="(11) 94556-7166" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-10">
+                                                    <div class="row">
+                                                        <label class="col-sm-3 col-form-label text-sm-end"
+                                                            for="phone{{ $index }}">Telefone 3</label>
+                                                        <div class="col-sm-9">
+                                                            <input type="text" id="phone{{ $index }}"
+                                                                class="form-control phone-mask"
+                                                                name="dependentes[{{ $index }}][telefone3]"
+                                                                value="{{ $dependente['telefone_3'] ?? '' }}"
+                                                                placeholder="(11) 94556-7166" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-10">
+                                                    <div class="row">
+                                                        <label class="col-sm-3 col-form-label text-sm-end"
+                                                            for="idade{{ $index }}">Idade</label>
+                                                        <div class="col-sm-9">
+                                                            <input type="text" id="idade{{ $index }}"
+                                                                class="form-control"
+                                                                name="dependentes[{{ $index }}][idade]"
+                                                                value="{{ $dependente['idade'] ?? '' }}"
+                                                                placeholder="John Doe" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-10">
+                                                    <div class="row">
+                                                        <label class="col-sm-3 col-form-label text-sm-end"
+                                                            for="idade{{ $index }}">Valor Dependente</label>
+                                                        <div class="col-sm-9">
+                                                            <input type="text" id="idade{{ $index }}"
+                                                                class="form-control"
+                                                                name="dependentes[{{ $index }}][valor_plano]"
+                                                                value="R$ {{ number_format($dependente['valor_plano'] ?? 0, 2, ',', '.') ?? '' }}"
+                                                                placeholder="John Doe" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <button class="btn btn-success mt-5 btn--twitter">Atualizar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        @endforeach
+                    </div>
+                @endif
                 <div class="card mb-6">
                     <div class="card-header">
                         <h5 class="card-title mb-0">Cotações</h5>
                     </div>
                     <div class="card-body">
-                        <form action="{{ route('comercial.uploadCotacao', ['id_mailing' => $client->id]) }}" class="dropzone" id="cotacoes-dropzone">
+                        <form action="{{ route('comercial.uploadCotacao', ['id_mailing' => $client->id]) }}"
+                            class="dropzone" id="cotacoes-dropzone">
                             @csrf
                             <div class="dz-message">Arraste arquivos ou clique aqui para anexar</div>
                         </form>
-                        <button type="button" class="btn btn-primary mt-3" id="cotacao-upload-btn">Salvar cotações</button>
+                        <button type="button" class="btn btn-primary mt-3" id="cotacao-upload-btn">Salvar
+                            cotações</button>
                         <input type="file" id="cotacao-replace-input" class="d-none" accept=".pdf,.jpg,.jpeg,.png">
-                            <ul class="list-group mt-4" id="cotacoes-list">
-                                @foreach ($cotacoes as $cotacao)
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <span class="me-2">{{ $cotacao['name'] }}</span>
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <a href="{{ $cotacao['url'] }}" download class="btn btn-outline-success download-cotacao" data-name="{{ $cotacao['name'] }}">Baixar</a>
-                                            <button type="button" class="btn btn-outline-secondary replace-cotacao" data-name="{{ $cotacao['name'] }}">Trocar</button>
-                                            <button type="button" class="btn btn-outline-danger delete-cotacao" data-name="{{ $cotacao['name'] }}">Excluir</button>
-                                        </div>
-                                    </li>
-                                @endforeach
-                            </ul>
+                        <ul class="list-group mt-4" id="cotacoes-list">
+                            @foreach ($cotacoes as $cotacao)
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span class="me-2">{{ $cotacao['name'] }}</span>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ $cotacao['url'] }}" download
+                                            class="btn btn-outline-success download-cotacao"
+                                            data-name="{{ $cotacao['name'] }}">Baixar</a>
+                                        <button type="button" class="btn btn-outline-secondary replace-cotacao"
+                                            data-name="{{ $cotacao['name'] }}">Trocar</button>
+                                        <button type="button" class="btn btn-outline-danger delete-cotacao"
+                                            data-name="{{ $cotacao['name'] }}">Excluir</button>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
                     </div>
                 </div>
-                @if ($client->tipo_layout != "padrao")
-                      <div class="accordion mt-5" id="collapsibleSection">
-                          @foreach($dependentes as $index => $dependente)
-                          <form method="POST" action="{{ route('comercial.updateClientDependecies') }}">
-                            @csrf
-                            <input type="hidden" name="id_dependente" value="{{ $dependente->id }}">
-                            <input type="hidden" name="index_array" value="{{ $index }}">
-                              <div class="accordion-item {{ $loop->first ? 'active' : '' }}">
-                                  <h2 class="accordion-header" id="headingDependente{{ $index }}">
-                                      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDependente{{ $index }}" aria-expanded="{{ $loop->first ? 'true' : 'false' }}" aria-controls="collapseDependente{{ $index }}">
-                                          Dependente {{ $index + 1 }} - {{$dependente['parentesco'] ?? ''}}
-                                      </button>
-                                  </h2>
-                                  <div id="collapseDependente{{ $index }}" class="accordion-collapse collapse" aria-labelledby="headingDependente{{ $index }}" data-bs-parent="#collapsibleSection">
-                                      <div class="accordion-body">
-                                          <div class="row g-4">
-                                              <div class="col-md-10">
-                                                  <div class="row">
-                                                      <label class="col-sm-3 col-form-label text-sm-end" for="fullname{{ $index }}">Nome Completo</label>
-                                                      <div class="col-sm-9">
-                                                          <input type="text" id="fullname{{ $index }}" class="form-control" name="dependentes[{{ $index }}][nome]" value="{{ $dependente['nome'] ?? '' }}" placeholder="John Doe" />
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                              <div class="col-md-10">
-                                                  <div class="row">
-                                                      <label class="col-sm-3 col-form-label text-sm-end" for="fullname{{ $index }}">CPF</label>
-                                                      <div class="col-sm-9">
-                                                          <input type="text" id="fullname{{ $index }}" class="form-control" name="dependentes[{{ $index }}][cpf]" value="{{ $dependente['cpf'] ?? '' }}" placeholder="122.456.789-10" />
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                              <div class="col-md-10">
-                                                  <div class="row">
-                                                      <label class="col-sm-3 col-form-label text-sm-end" for="phone{{ $index }}">Telefone 1</label>
-                                                      <div class="col-sm-9">
-                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone1]" value="{{ $dependente['telefone_1'] ?? '' }}" placeholder="(11) 94556-7166" />
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                              <div class="col-md-10">
-                                                  <div class="row">
-                                                      <label class="col-sm-3 col-form-label text-sm-end" for="phone{{ $index }}">Telefone 2</label>
-                                                      <div class="col-sm-9">
-                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone2]" value="{{ $dependente['telefone_2'] ?? '' }}" placeholder="(11) 94556-7166" />
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                              <div class="col-md-10">
-                                                  <div class="row">
-                                                      <label class="col-sm-3 col-form-label text-sm-end" for="phone{{ $index }}">Telefone 3</label>
-                                                      <div class="col-sm-9">
-                                                          <input type="text" id="phone{{ $index }}" class="form-control phone-mask" name="dependentes[{{ $index }}][telefone3]" value="{{ $dependente['telefone_3'] ?? '' }}" placeholder="(11) 94556-7166" />
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                              <div class="col-md-10">
-                                                  <div class="row">
-                                                      <label class="col-sm-3 col-form-label text-sm-end" for="idade{{ $index }}">Idade</label>
-                                                      <div class="col-sm-9">
-                                                          <input type="text" id="idade{{ $index }}" class="form-control" name="dependentes[{{ $index }}][idade]" value="{{ $dependente['idade'] ?? '' }}" placeholder="John Doe" />
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                              <div class="col-md-10">
-                                                  <div class="row">
-                                                      <label class="col-sm-3 col-form-label text-sm-end" for="idade{{ $index }}">Valor Dependente</label>
-                                                      <div class="col-sm-9">
-                                                          <input type="text" id="idade{{ $index }}" class="form-control" name="dependentes[{{ $index }}][valor_plano]" value="R$ {{ number_format($dependente['valor_plano'] ?? 0, 2, ',', '.') ?? '' }}" placeholder="John Doe" />
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                            <div>
-                                              <button class="btn btn-success mt-5 btn--twitter">Atualizar</button>
-                                            </div>
-                                          </div>
-                                      </div>
-                                  </div>
-                              </div>
-                          </form>
-                          @endforeach
-                      </div>
-                @endif
                 <!-- /Product Information -->
                 <!-- Media -->
                 <div class="card mb-6 mt-5">
@@ -732,210 +781,230 @@
         </div>
     </div>
 
-<div class="modal fade" id="consultaModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Consulta de Dados - API Lemit</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Formulário de Consulta - SEMPRE NO TOPO -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h6 class="card-title">Consulta por CPF</h6>
-                                <div class="form-floating form-floating-outline mb-3">
-                                    <input type="text" id="cpfConsulta" class="form-control" placeholder="000.000.000-00" maxlength="14">
-                                    <label for="cpfConsulta">CPF</label>
-                                </div>
-                                <button type="button" class="btn btn-primary" onclick="consultarPessoa()">
-                                    <span class="spinner-border spinner-border-sm d-none" id="loadingPessoa"></span>
-                                    <i class="ri-user-search-line ri-16px me-1"></i>
-                                    Consultar CPF
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h6 class="card-title">Consulta por CNPJ</h6>
-                                <div class="form-floating form-floating-outline mb-3">
-                                    <input type="text" id="cnpjConsulta" class="form-control" placeholder="00.000.000/0000-00" maxlength="18">
-                                    <label for="cnpjConsulta">CNPJ</label>
-                                </div>
-                                <button type="button" class="btn btn-success" onclick="consultarEmpresa()">
-                                    <span class="spinner-border spinner-border-sm d-none" id="loadingEmpresa"></span>
-                                    <i class="ri-building-line ri-16px me-1"></i>
-                                    Consultar CNPJ
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+    <div class="modal fade" id="consultaModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Consulta de Dados - API Lemit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-
-                <!-- Dados da Empresa -->
-                <div id="dadosEmpresa" class="d-none">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="text-success mb-0">
-                                <i class="ri-building-line ri-16px me-1"></i>
-                                Dados da Empresa Encontrados
-                            </h6>
+                <div class="modal-body">
+                    <!-- Formulário de Consulta - SEMPRE NO TOPO -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Consulta por CPF</h6>
+                                    <div class="form-floating form-floating-outline mb-3">
+                                        <input type="text" id="cpfConsulta" class="form-control"
+                                            placeholder="000.000.000-00" maxlength="14">
+                                        <label for="cpfConsulta">CPF</label>
+                                    </div>
+                                    <button type="button" class="btn btn-primary" onclick="consultarPessoa()">
+                                        <span class="spinner-border spinner-border-sm d-none" id="loadingPessoa"></span>
+                                        <i class="ri-user-search-line ri-16px me-1"></i>
+                                        Consultar CPF
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <!-- Dados Básicos da Empresa -->
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Razão Social:</strong> <span id="razaoSocial" class="text-muted"></span></p>
-                                    <p><strong>Nome Fantasia:</strong> <span id="nomeFantasia" class="text-muted"></span></p>
-                                    <p><strong>CNPJ:</strong> <span id="cnpjResult" class="text-muted"></span></p>
-                                    <p><strong>Data Fundação:</strong> <span id="dataFundacao" class="text-muted"></span></p>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Consulta por CNPJ</h6>
+                                    <div class="form-floating form-floating-outline mb-3">
+                                        <input type="text" id="cnpjConsulta" class="form-control"
+                                            placeholder="00.000.000/0000-00" maxlength="18">
+                                        <label for="cnpjConsulta">CNPJ</label>
+                                    </div>
+                                    <button type="button" class="btn btn-success" onclick="consultarEmpresa()">
+                                        <span class="spinner-border spinner-border-sm d-none" id="loadingEmpresa"></span>
+                                        <i class="ri-building-line ri-16px me-1"></i>
+                                        Consultar CNPJ
+                                    </button>
                                 </div>
-                                <div class="col-md-6">
-                                    <p><strong>Tipo:</strong> <span id="tipoEmpresa" class="text-muted"></span></p>
-                                    <p><strong>Situação:</strong> <span id="situacaoEmpresa" class="text-muted"></span></p>
-                                    <p><strong>CNAE:</strong> <span id="cnaeEmpresa" class="text-muted"></span></p>
-                                    <p><strong>Atividade:</strong> <span id="atividadeEmpresa" class="text-muted"></span></p>
-                                </div>
-                            </div>
-
-                            <!-- Contatos da Empresa - Telefones -->
-                            <div class="row mt-4">
-                                <div class="col-md-6">
-                                    <h6><i class="ri-smartphone-line ri-16px me-1"></i>Celulares da Empresa</h6>
-                                    <div id="celularesEmpresa" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6><i class="ri-phone-line ri-16px me-1"></i>Telefones Fixos da Empresa</h6>
-                                    <div id="fixosEmpresa" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Contatos da Empresa - E-mails -->
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h6><i class="ri-mail-line ri-16px me-1"></i>E-mails da Empresa</h6>
-                                    <div id="emailsEmpresa" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Endereço da Empresa -->
-                            <div class="mt-4">
-                                <h6><i class="ri-map-pin-line ri-16px me-1"></i>Endereço da Empresa</h6>
-                                <div id="enderecoEmpresa" class="border rounded p-2"></div>
-                            </div>
-
-                            <!-- Sócios -->
-                            <div class="mt-4">
-                                <h6><i class="ri-group-line ri-16px me-1"></i>Quadro Societário</h6>
-                                <div id="sociosEmpresa" class="border rounded p-2" style="max-height: 400px; overflow-y: auto;"></div>
-                            </div>
-
-                            <!-- Veículos da Empresa -->
-                            <div class="mt-4">
-                                <h6><i class="ri-car-line ri-16px me-1"></i>Veículos da Empresa</h6>
-                                <div id="carrosEmpresa" class="border rounded p-2"></div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Resultado da Consulta -->
-                <div id="resultadoConsulta" class="d-none">
-                    <!-- Dados da Pessoa -->
-                    <div id="dadosPessoa" class="d-none">
+                    <!-- Dados da Empresa -->
+                    <div id="dadosEmpresa" class="d-none">
                         <div class="card">
                             <div class="card-header">
-                                <h6 class="text-primary mb-0">
-                                    <i class="ri-user-line ri-16px me-1"></i>
-                                    Dados Pessoais Encontrados
+                                <h6 class="text-success mb-0">
+                                    <i class="ri-building-line ri-16px me-1"></i>
+                                    Dados da Empresa Encontrados
                                 </h6>
                             </div>
                             <div class="card-body">
+                                <!-- Dados Básicos da Empresa -->
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <p><strong>Nome:</strong> <span id="nome" class="text-muted"></span></p>
-                                        <p><strong>CPF:</strong> <span id="cpfResult" class="text-muted"></span></p>
-                                        <p><strong>Data Nascimento:</strong> <span id="dataNascimento" class="text-muted"></span></p>
-                                        <p><strong>Sexo:</strong> <span id="sexo" class="text-muted"></span></p>
+                                        <p><strong>Razão Social:</strong> <span id="razaoSocial"
+                                                class="text-muted"></span></p>
+                                        <p><strong>Nome Fantasia:</strong> <span id="nomeFantasia"
+                                                class="text-muted"></span></p>
+                                        <p><strong>CNPJ:</strong> <span id="cnpjResult" class="text-muted"></span></p>
+                                        <p><strong>Data Fundação:</strong> <span id="dataFundacao"
+                                                class="text-muted"></span></p>
                                     </div>
                                     <div class="col-md-6">
-                                        <p><strong>Nome da Mãe:</strong> <span id="nomeMae" class="text-muted"></span></p>
-                                        <p><strong>Situação CPF:</strong> <span id="situacaoCpf" class="text-muted"></span></p>
-                                        <p><strong>Renda:</strong> <span id="renda" class="text-muted"></span></p>
-                                        <p><strong>Ocupação:</strong> <span id="ocupacao" class="text-muted"></span></p>
+                                        <p><strong>Tipo:</strong> <span id="tipoEmpresa" class="text-muted"></span></p>
+                                        <p><strong>Situação:</strong> <span id="situacaoEmpresa"
+                                                class="text-muted"></span></p>
+                                        <p><strong>CNAE:</strong> <span id="cnaeEmpresa" class="text-muted"></span></p>
+                                        <p><strong>Atividade:</strong> <span id="atividadeEmpresa"
+                                                class="text-muted"></span></p>
                                     </div>
                                 </div>
 
-                                <!-- Contatos - Telefones -->
+                                <!-- Contatos da Empresa - Telefones -->
                                 <div class="row mt-4">
                                     <div class="col-md-6">
-                                        <h6><i class="ri-smartphone-line ri-16px me-1"></i>Celulares</h6>
-                                        <div id="celulares" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
+                                        <h6><i class="ri-smartphone-line ri-16px me-1"></i>Celulares da Empresa</h6>
+                                        <div id="celularesEmpresa" class="border rounded p-2"
+                                            style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
                                     </div>
                                     <div class="col-md-6">
-                                        <h6><i class="ri-phone-line ri-16px me-1"></i>Telefones Fixos</h6>
-                                        <div id="fixos" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
+                                        <h6><i class="ri-phone-line ri-16px me-1"></i>Telefones Fixos da Empresa</h6>
+                                        <div id="fixosEmpresa" class="border rounded p-2"
+                                            style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
                                     </div>
                                 </div>
 
-                                <!-- Contatos - E-mails -->
+                                <!-- Contatos da Empresa - E-mails -->
                                 <div class="row mt-3">
                                     <div class="col-12">
-                                        <h6><i class="ri-mail-line ri-16px me-1"></i>E-mails</h6>
-                                        <div id="emails" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
+                                        <h6><i class="ri-mail-line ri-16px me-1"></i>E-mails da Empresa</h6>
+                                        <div id="emailsEmpresa" class="border rounded p-2"
+                                            style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
                                     </div>
                                 </div>
 
-                                <!-- Endereços -->
+                                <!-- Endereço da Empresa -->
                                 <div class="mt-4">
-                                    <h6><i class="ri-map-pin-line ri-16px me-1"></i>Endereços</h6>
-                                    <div id="enderecos" class="border rounded p-2" style="max-height: 400px; overflow-y: auto;"></div>
+                                    <h6><i class="ri-map-pin-line ri-16px me-1"></i>Endereço da Empresa</h6>
+                                    <div id="enderecoEmpresa" class="border rounded p-2"></div>
                                 </div>
 
-                                <!-- Veículos -->
+                                <!-- Sócios -->
                                 <div class="mt-4">
-                                    <h6><i class="ri-car-line ri-16px me-1"></i>Veículos</h6>
-                                    <div id="carros" class="border rounded p-2"></div>
+                                    <h6><i class="ri-group-line ri-16px me-1"></i>Quadro Societário</h6>
+                                    <div id="sociosEmpresa" class="border rounded p-2"
+                                        style="max-height: 400px; overflow-y: auto;"></div>
                                 </div>
 
-                                <!-- Vínculos Familiares -->
+                                <!-- Veículos da Empresa -->
                                 <div class="mt-4">
-                                    <h6><i class="ri-links-line ri-16px me-1"></i>Vínculos Familiares</h6>
-                                    <div id="vinculos" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;"></div>
-                                </div>
-
-                                <!-- Risco de Crédito -->
-                                <div class="mt-4">
-                                    <h6><i class="ri-shield-check-line ri-16px me-1"></i>Análise de Crédito</h6>
-                                    <div id="riscoCredito" class="border rounded p-2"></div>
-                                </div>
-
-                                <!-- Participação Societária -->
-                                <div class="mt-4">
-                                    <h6><i class="ri-building-2-line ri-16px me-1"></i>Participação Societária</h6>
-                                    <div id="participacaoSocietaria" class="border rounded p-2"></div>
+                                    <h6><i class="ri-car-line ri-16px me-1"></i>Veículos da Empresa</h6>
+                                    <div id="carrosEmpresa" class="border rounded p-2"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Mensagem de Erro -->
-                <div id="erroConsulta" class="alert alert-danger d-none">
-                    <i class="ri-error-warning-line ri-16px me-1"></i>
-                    <span id="mensagemErro"></span>
+                    <!-- Resultado da Consulta -->
+                    <div id="resultadoConsulta" class="d-none">
+                        <!-- Dados da Pessoa -->
+                        <div id="dadosPessoa" class="d-none">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="text-primary mb-0">
+                                        <i class="ri-user-line ri-16px me-1"></i>
+                                        Dados Pessoais Encontrados
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Nome:</strong> <span id="nome" class="text-muted"></span></p>
+                                            <p><strong>CPF:</strong> <span id="cpfResult" class="text-muted"></span></p>
+                                            <p><strong>Data Nascimento:</strong> <span id="dataNascimento"
+                                                    class="text-muted"></span></p>
+                                            <p><strong>Sexo:</strong> <span id="sexo" class="text-muted"></span></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Nome da Mãe:</strong> <span id="nomeMae"
+                                                    class="text-muted"></span></p>
+                                            <p><strong>Situação CPF:</strong> <span id="situacaoCpf"
+                                                    class="text-muted"></span></p>
+                                            <p><strong>Renda:</strong> <span id="renda" class="text-muted"></span></p>
+                                            <p><strong>Ocupação:</strong> <span id="ocupacao" class="text-muted"></span>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Contatos - Telefones -->
+                                    <div class="row mt-4">
+                                        <div class="col-md-6">
+                                            <h6><i class="ri-smartphone-line ri-16px me-1"></i>Celulares</h6>
+                                            <div id="celulares" class="border rounded p-2"
+                                                style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="ri-phone-line ri-16px me-1"></i>Telefones Fixos</h6>
+                                            <div id="fixos" class="border rounded p-2"
+                                                style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Contatos - E-mails -->
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <h6><i class="ri-mail-line ri-16px me-1"></i>E-mails</h6>
+                                            <div id="emails" class="border rounded p-2"
+                                                style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Endereços -->
+                                    <div class="mt-4">
+                                        <h6><i class="ri-map-pin-line ri-16px me-1"></i>Endereços</h6>
+                                        <div id="enderecos" class="border rounded p-2"
+                                            style="max-height: 400px; overflow-y: auto;"></div>
+                                    </div>
+
+                                    <!-- Veículos -->
+                                    <div class="mt-4">
+                                        <h6><i class="ri-car-line ri-16px me-1"></i>Veículos</h6>
+                                        <div id="carros" class="border rounded p-2"></div>
+                                    </div>
+
+                                    <!-- Vínculos Familiares -->
+                                    <div class="mt-4">
+                                        <h6><i class="ri-links-line ri-16px me-1"></i>Vínculos Familiares</h6>
+                                        <div id="vinculos" class="border rounded p-2"
+                                            style="max-height: 300px; overflow-y: auto;"></div>
+                                    </div>
+
+                                    <!-- Risco de Crédito -->
+                                    <div class="mt-4">
+                                        <h6><i class="ri-shield-check-line ri-16px me-1"></i>Análise de Crédito</h6>
+                                        <div id="riscoCredito" class="border rounded p-2"></div>
+                                    </div>
+
+                                    <!-- Participação Societária -->
+                                    <div class="mt-4">
+                                        <h6><i class="ri-building-2-line ri-16px me-1"></i>Participação Societária</h6>
+                                        <div id="participacaoSocietaria" class="border rounded p-2"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mensagem de Erro -->
+                    <div id="erroConsulta" class="alert alert-danger d-none">
+                        <i class="ri-error-warning-line ri-16px me-1"></i>
+                        <span id="mensagemErro"></span>
+                    </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 
 @endsection
