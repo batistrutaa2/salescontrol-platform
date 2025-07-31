@@ -341,7 +341,9 @@
                     <div class="card-body">
                         <form action="{{ route('comercial.uploadCotacao', ['id_mailing' => $client->id]) }}" class="dropzone" id="cotacoes-dropzone">
                             @csrf
+                            <div class="dz-message">Arraste arquivos ou clique aqui para anexar</div>
                         </form>
+                        <button type="button" class="btn btn-primary mt-3" id="cotacao-upload-btn">Salvar cotações</button>
                         <ul class="list-group mt-4" id="cotacoes-list">
                             @foreach ($cotacoes as $cotacao)
                                 <li class="list-group-item"><a href="{{ $cotacao['url'] }}" target="_blank">{{ $cotacao['name'] }}</a></li>

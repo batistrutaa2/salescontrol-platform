@@ -147,11 +147,18 @@
   if (document.getElementById('cotacoes-dropzone')) {
     Dropzone.autoDiscover = false;
     const cotacoesDropzone = new Dropzone('#cotacoes-dropzone', {
+      autoProcessQueue: false,
       paramName: 'file',
       maxFilesize: 10,
       acceptedFiles: '.pdf,.jpg,.jpeg,.png',
       headers: {
         'X-CSRF-TOKEN': document.querySelector('#cotacoes-dropzone input[name="_token"]').value
+      }
+    });
+
+    document.getElementById('cotacao-upload-btn').addEventListener('click', function () {
+      if (cotacoesDropzone.getQueuedFiles().length > 0) {
+        cotacoesDropzone.processQueue();
       }
     });
 
@@ -167,6 +174,10 @@
         li.appendChild(link);
         list.appendChild(li);
       }
+    });
+
+    cotacoesDropzone.on('queuecomplete', function () {
+      cotacoesDropzone.removeAllFiles();
     });
   }
 
