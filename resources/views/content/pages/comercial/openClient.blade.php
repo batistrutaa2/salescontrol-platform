@@ -345,18 +345,18 @@
                         </form>
                         <button type="button" class="btn btn-primary mt-3" id="cotacao-upload-btn">Salvar cotações</button>
                         <input type="file" id="cotacao-replace-input" class="d-none" accept=".pdf,.jpg,.jpeg,.png">
-                        <ul class="list-group mt-4" id="cotacoes-list">
-                            @foreach ($cotacoes as $cotacao)
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span class="me-2">{{ $cotacao['name'] }}</span>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ $cotacao['url'] }}" download class="btn btn-outline-success download-cotacao" data-name="{{ $cotacao['name'] }}">Baixar</a>
-                                        <button type="button" class="btn btn-outline-secondary replace-cotacao" data-name="{{ $cotacao['name'] }}">Trocar</button>
-                                        <button type="button" class="btn btn-outline-danger delete-cotacao" data-name="{{ $cotacao['name'] }}">Excluir</button>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
+                            <ul class="list-group mt-4" id="cotacoes-list">
+                                @foreach ($cotacoes as $cotacao)
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span class="me-2">{{ $cotacao['name'] }}</span>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ $cotacao['url'] }}" download class="btn btn-outline-success download-cotacao" data-name="{{ $cotacao['name'] }}">Baixar</a>
+                                            <button type="button" class="btn btn-outline-secondary replace-cotacao" data-name="{{ $cotacao['name'] }}">Trocar</button>
+                                            <button type="button" class="btn btn-outline-danger delete-cotacao" data-name="{{ $cotacao['name'] }}">Excluir</button>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
                     </div>
                 </div>
                 @if ($client->tipo_layout != "padrao")
