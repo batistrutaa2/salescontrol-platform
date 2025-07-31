@@ -176,7 +176,7 @@
       li.appendChild(span);
       const group = document.createElement('div');
       group.className = 'btn-group btn-group-sm';
-      group.innerHTML = `\n        <a href="${url}" target="_blank" class="btn btn-outline-primary view-cotacao" data-name="${name}">Ver</a>\n        <a href="${url}" download class="btn btn-outline-success download-cotacao" data-name="${name}">Baixar</a>\n        <button type="button" class="btn btn-outline-secondary replace-cotacao" data-name="${name}">Trocar</button>\n        <button type="button" class="btn btn-outline-danger delete-cotacao" data-name="${name}">Excluir</button>`;
+      group.innerHTML = `\n      <a href="${url}" download class="btn btn-outline-success download-cotacao" data-name="${name}">Baixar</a>\n        <button type="button" class="btn btn-outline-secondary replace-cotacao" data-name="${name}">Trocar</button>\n        <button type="button" class="btn btn-outline-danger delete-cotacao" data-name="${name}">Excluir</button>`;
       li.appendChild(group);
       return li;
     }
