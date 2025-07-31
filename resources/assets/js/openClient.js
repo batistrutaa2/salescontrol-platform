@@ -170,15 +170,13 @@
     function renderCotacaoItem(name, url) {
       const li = document.createElement('li');
       li.className = 'list-group-item d-flex justify-content-between align-items-center';
-      const link = document.createElement('a');
-      link.href = url;
-      link.target = '_blank';
-      link.className = 'me-2';
-      link.textContent = name;
-      li.appendChild(link);
+      const span = document.createElement('span');
+      span.className = 'me-2';
+      span.textContent = name;
+      li.appendChild(span);
       const group = document.createElement('div');
       group.className = 'btn-group btn-group-sm';
-      group.innerHTML = `\n        <button type="button" class="btn btn-outline-secondary replace-cotacao" data-name="${name}">Trocar</button>\n        <button type="button" class="btn btn-outline-danger delete-cotacao" data-name="${name}">Excluir</button>`;
+      group.innerHTML = `\n        <a href="${url}" target="_blank" class="btn btn-outline-primary view-cotacao" data-name="${name}">Ver</a>\n        <a href="${url}" download class="btn btn-outline-success download-cotacao" data-name="${name}">Baixar</a>\n        <button type="button" class="btn btn-outline-secondary replace-cotacao" data-name="${name}">Trocar</button>\n        <button type="button" class="btn btn-outline-danger delete-cotacao" data-name="${name}">Excluir</button>`;
       li.appendChild(group);
       return li;
     }
@@ -231,8 +229,11 @@
             const items = document.querySelectorAll(`#cotacoes-list .replace-cotacao[data-name="${replaceTarget}"]`);
             if (items.length && data.url && data.name) {
               const li = items[0].closest('li');
-              li.querySelector('a').href = data.url;
-              li.querySelector('a').textContent = data.name;
+              li.querySelector('span').textContent = data.name;
+              li.querySelector('.view-cotacao').href = data.url;
+              li.querySelector('.view-cotacao').setAttribute('data-name', data.name);
+              li.querySelector('.download-cotacao').href = data.url;
+              li.querySelector('.download-cotacao').setAttribute('data-name', data.name);
               li.querySelector('.replace-cotacao').setAttribute('data-name', data.name);
               li.querySelector('.delete-cotacao').setAttribute('data-name', data.name);
             }
