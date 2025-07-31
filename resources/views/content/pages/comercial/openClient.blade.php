@@ -334,6 +334,21 @@
                         </form>
                     </div>
                 </div>
+                <div class="card mb-6">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Cotações</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ route('comercial.uploadCotacao', ['id_mailing' => $client->id]) }}" class="dropzone" id="cotacoes-dropzone">
+                            @csrf
+                        </form>
+                        <ul class="list-group mt-4" id="cotacoes-list">
+                            @foreach ($cotacoes as $cotacao)
+                                <li class="list-group-item"><a href="{{ $cotacao['url'] }}" target="_blank">{{ $cotacao['name'] }}</a></li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
                 @if ($client->tipo_layout != "padrao")
                       <div class="accordion mt-5" id="collapsibleSection">
                           @foreach($dependentes as $index => $dependente)

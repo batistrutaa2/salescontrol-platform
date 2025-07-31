@@ -144,6 +144,32 @@
       });
   });
 
+  if (document.getElementById('cotacoes-dropzone')) {
+    Dropzone.autoDiscover = false;
+    const cotacoesDropzone = new Dropzone('#cotacoes-dropzone', {
+      paramName: 'file',
+      maxFilesize: 10,
+      acceptedFiles: '.pdf,.jpg,.jpeg,.png',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('#cotacoes-dropzone input[name="_token"]').value
+      }
+    });
+
+    cotacoesDropzone.on('success', function (file, response) {
+      const list = document.getElementById('cotacoes-list');
+      if (list && response.url && response.name) {
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+        const link = document.createElement('a');
+        link.href = response.url;
+        link.target = '_blank';
+        link.textContent = response.name;
+        li.appendChild(link);
+        list.appendChild(li);
+      }
+    });
+  }
+
   function updateTimeline(newData) {
     const timelineList = document.getElementById('timeline-list');
     timelineList.innerHTML = '';
