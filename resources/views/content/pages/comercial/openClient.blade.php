@@ -344,9 +344,16 @@
                             <div class="dz-message">Arraste arquivos ou clique aqui para anexar</div>
                         </form>
                         <button type="button" class="btn btn-primary mt-3" id="cotacao-upload-btn">Salvar cotações</button>
+                        <input type="file" id="cotacao-replace-input" class="d-none" accept=".pdf,.jpg,.jpeg,.png">
                         <ul class="list-group mt-4" id="cotacoes-list">
                             @foreach ($cotacoes as $cotacao)
-                                <li class="list-group-item"><a href="{{ $cotacao['url'] }}" target="_blank">{{ $cotacao['name'] }}</a></li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="{{ $cotacao['url'] }}" target="_blank" class="me-2">{{ $cotacao['name'] }}</a>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary replace-cotacao" data-name="{{ $cotacao['name'] }}">Trocar</button>
+                                        <button type="button" class="btn btn-outline-danger delete-cotacao" data-name="{{ $cotacao['name'] }}">Excluir</button>
+                                    </div>
+                                </li>
                             @endforeach
                         </ul>
                     </div>

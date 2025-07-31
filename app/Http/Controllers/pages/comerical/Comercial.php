@@ -379,6 +379,11 @@ class Comercial extends Controller
 
     $empresaId = Auth::user()->empresa_id;
     $path = "cotacoes/{$empresaId}/{$id_mailing}";
+
+    if ($request->filled('replace')) {
+      Storage::disk('public')->delete($path . '/' . $request->input('replace'));
+    }
+
     $file = $request->file('file');
     $filename = time() . '_' . $file->getClientOriginalName();
     $file->storeAs($path, $filename, 'public');
@@ -387,6 +392,18 @@ class Comercial extends Controller
       'name' => $filename,
       'url' => Storage::url($path . '/' . $filename)
     ]);
+  }
+
+  public function deleteCotacao($id_mailing, $filename)
+  {
+    $empresaId = Auth::user()->empresa_id;
+    $path = "cotacoes/{$empresaId}/{$id_mailing}/{$filename}";
+
+    if (Storage::disk('public')->exists($path)) {
+      Storage::disk('public')->delete($path);
+    }
+
+    return response()->json(['deleted' => true]);
   }
 
   public function saveComment(Request $request)
