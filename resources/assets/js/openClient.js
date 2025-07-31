@@ -155,6 +155,7 @@
       paramName: 'file',
       maxFilesize: 10,
       acceptedFiles: '.pdf,.jpg,.jpeg,.png',
+      withCredentials: true,
       headers: {
         'X-CSRF-TOKEN': csrfToken
       }
