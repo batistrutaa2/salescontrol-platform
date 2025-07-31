@@ -144,6 +144,108 @@
       });
   });
 
+  if (document.getElementById('cotacoes-dropzone')) {
+    Dropzone.autoDiscover = false;
+    const cotacoesForm = document.getElementById('cotacoes-dropzone');
+    const uploadUrl = cotacoesForm.action;
+    const csrfToken = cotacoesForm.querySelector('input[name="_token"]').value;
+    const cotacoesDropzone = new Dropzone('#cotacoes-dropzone', {
+      url: uploadUrl,
+      autoProcessQueue: false,
+      paramName: 'file',
+      maxFilesize: 10,
+      acceptedFiles: '.pdf,.jpg,.jpeg,.png',
+      withCredentials: true,
+      headers: {
+        'X-CSRF-TOKEN': csrfToken
+      }
+    });
+
+    document.getElementById('cotacao-upload-btn').addEventListener('click', function () {
+      if (cotacoesDropzone.getQueuedFiles().length > 0) {
+        cotacoesDropzone.processQueue();
+      }
+    });
+
+    function renderCotacaoItem(name, url) {
+      const li = document.createElement('li');
+      li.className = 'list-group-item d-flex justify-content-between align-items-center';
+      const span = document.createElement('span');
+      span.className = 'me-2';
+      span.textContent = name;
+      li.appendChild(span);
+      const group = document.createElement('div');
+      group.className = 'btn-group btn-group-sm';
+      group.innerHTML = `\n        <a href="${url}" target="_blank" class="btn btn-outline-primary view-cotacao" data-name="${name}">Ver</a>\n        <a href="${url}" download class="btn btn-outline-success download-cotacao" data-name="${name}">Baixar</a>\n        <button type="button" class="btn btn-outline-secondary replace-cotacao" data-name="${name}">Trocar</button>\n        <button type="button" class="btn btn-outline-danger delete-cotacao" data-name="${name}">Excluir</button>`;
+      li.appendChild(group);
+      return li;
+    }
+
+    cotacoesDropzone.on('success', function (file, response) {
+      const list = document.getElementById('cotacoes-list');
+      if (list && response.url && response.name) {
+        list.appendChild(renderCotacaoItem(response.name, response.url));
+      }
+    });
+
+    cotacoesDropzone.on('queuecomplete', function () {
+      cotacoesDropzone.removeAllFiles();
+    });
+
+    const replaceInput = document.getElementById('cotacao-replace-input');
+    let replaceTarget = null;
+
+    document.getElementById('cotacoes-list').addEventListener('click', function (e) {
+      if (e.target.classList.contains('delete-cotacao')) {
+        const name = e.target.getAttribute('data-name');
+        fetch(`${uploadUrl}/${encodeURIComponent(name)}`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-TOKEN': csrfToken
+          }
+        }).then(() => {
+          e.target.closest('li').remove();
+        });
+      } else if (e.target.classList.contains('replace-cotacao')) {
+        replaceTarget = e.target.getAttribute('data-name');
+        replaceInput.click();
+      }
+    });
+
+    replaceInput.addEventListener('change', function () {
+      if (replaceInput.files.length && replaceTarget) {
+        const formData = new FormData();
+        formData.append('file', replaceInput.files[0]);
+        formData.append('replace', replaceTarget);
+        fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': csrfToken
+          },
+          body: formData
+        })
+          .then(response => response.json())
+          .then(data => {
+            const items = document.querySelectorAll(`#cotacoes-list .replace-cotacao[data-name="${replaceTarget}"]`);
+            if (items.length && data.url && data.name) {
+              const li = items[0].closest('li');
+              li.querySelector('span').textContent = data.name;
+              li.querySelector('.view-cotacao').href = data.url;
+              li.querySelector('.view-cotacao').setAttribute('data-name', data.name);
+              li.querySelector('.download-cotacao').href = data.url;
+              li.querySelector('.download-cotacao').setAttribute('data-name', data.name);
+              li.querySelector('.replace-cotacao').setAttribute('data-name', data.name);
+              li.querySelector('.delete-cotacao').setAttribute('data-name', data.name);
+            }
+          })
+          .finally(() => {
+            replaceInput.value = '';
+            replaceTarget = null;
+          });
+      }
+    });
+  }
+
   function updateTimeline(newData) {
     const timelineList = document.getElementById('timeline-list');
     timelineList.innerHTML = '';

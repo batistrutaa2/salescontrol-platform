@@ -45,6 +45,7 @@ use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class Comercial extends Controller
 {
@@ -342,6 +343,16 @@ class Comercial extends Controller
     if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
       $permiteEdition = true;
     }
+    $cotacoes = [];
+    $cotacoesPath = 'cotacoes/' . Auth::user()->empresa_id . '/' . $id_mailing;
+    if (Storage::disk('public')->exists($cotacoesPath)) {
+      foreach (Storage::disk('public')->files($cotacoesPath) as $file) {
+        $cotacoes[] = [
+          'name' => basename($file),
+          'url' => Storage::url($file)
+        ];
+      }
+    }
     if (Auth::user()->empresa_id != $clientInfo->empresa_id) {
       return redirect()->route('comercial.kanban')->with('status', 'error')->with('message', 'Sem permissao de acesso');
     } else {
@@ -353,11 +364,47 @@ class Comercial extends Controller
         'editingPermission' => $permiteEdition,
         'tabulations' => $tabulations,
         'tabulationCurrent' => $tabulationCurrent->tabulacao_id,
-        'subTabulacoes' => $subTabulacoes
+        'subTabulacoes' => $subTabulacoes,
+        'cotacoes' => $cotacoes
       ]);
     }
   }
 
+
+  public function uploadCotacao(Request $request, $id_mailing)
+  {
+    $request->validate([
+      'file' => 'required|mimes:pdf,jpg,jpeg,png|max:2048'
+    ]);
+
+    $empresaId = Auth::user()->empresa_id;
+    $path = "cotacoes/{$empresaId}/{$id_mailing}";
+
+    if ($request->filled('replace')) {
+      Storage::disk('public')->delete($path . '/' . $request->input('replace'));
+    }
+
+    $file = $request->file('file');
+    $filename = time() . '_' . $file->getClientOriginalName();
+    $file->storeAs($path, $filename, 'public');
+
+    return response()->json([
+      'name' => $filename,
+      'url' => Storage::url($path . '/' . $filename)
+    ]);
+  }
+
+  public function deleteCotacao($id_mailing, $filename)
+  {
+    $empresaId = Auth::user()->empresa_id;
+    $path = "cotacoes/{$empresaId}/{$id_mailing}/{$filename}";
+
+    if (Storage::disk('public')->exists($path)) {
+      Storage::disk('public')->delete($path);
+    }
+
+    return response()->json(['deleted' => true]);
+  }
 
   public function saveComment(Request $request)
   {
