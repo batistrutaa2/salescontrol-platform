@@ -138,6 +138,11 @@
           "slug": "pages-mailing-importar"
         },
         {
+          "url": "/relatorios/implantacoes",
+          "name": "Relatorio de Implantação",
+          "slug": "pages-relatorio-implantacoes"
+        },
+        {
           "url": "/relatorios/preditiva",
           "name": "Relatorio Preditivo",
           "slug": "pages-relatorio-preditiva"

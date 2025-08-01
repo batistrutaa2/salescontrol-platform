@@ -14,6 +14,10 @@ use App\Repositories\Contracts\LigacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use App\Models\Vendas as VendasModel;
+use App\Models\User;
+use App\Enums\UserRole;
+use App\Enums\Tabulations;
 
 class Relatorios extends Controller
 {
@@ -481,6 +485,330 @@ class Relatorios extends Controller
                 'message' => 'Erro ao carregar comentários: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function implantacoes()
+    {
+        return view('content.pages.relatorios.implantacoes');
+    }
+
+    public function implantacoesData(Request $request)
+    {
+        $filtros = $this->aplicarFiltrosImplantacao($request);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'vendas_totais' => $this->getImplantacoesTotais($filtros),
+                'vendas_por_mes' => $this->getImplantacoesPorMes($filtros),
+                'vendas_por_vendedor' => $this->getImplantacoesPorVendedor($filtros),
+                'vendas_por_operadora' => $this->getImplantacoesPorOperadora($filtros),
+                'vendas_por_plano' => $this->getImplantacoesPorPlano($filtros),
+                'resumo_geral' => $this->getResumoGeralImplantacao($filtros),
+                'vendedores' => $this->getVendedoresPorEmpresa(),
+                'anos_disponiveis' => $this->getAnosDisponiveisImplantacao($filtros),
+                'operadoras' => $this->getOperadoras($filtros)
+            ]
+        ]);
+    }
+
+    public function implantacoesList(Request $request)
+    {
+        $filtros = $this->aplicarFiltrosImplantacao($request);
+        $perPage = $request->get('per_page', 20);
+        $vendas = $this->getImplantacoesTotais($filtros, $perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $vendas->items(),
+            'pagination' => [
+                'current_page' => $vendas->currentPage(),
+                'last_page' => $vendas->lastPage(),
+                'per_page' => $vendas->perPage(),
+                'total' => $vendas->total(),
+                'from' => $vendas->firstItem(),
+                'to' => $vendas->lastItem()
+            ]
+        ]);
+    }
+
+    private function aplicarFiltrosImplantacao($request)
+    {
+        return [
+            'ano' => $request->get('ano'),
+            'mes' => $request->get('mes'),
+            'vendedor_id' => $request->get('vendedor_id'),
+            'operadora' => $request->get('operadora'),
+            'data_inicio' => $request->get('data_inicio'),
+            'data_fim' => $request->get('data_fim'),
+            'empresa_id' => Auth::user()->empresa_id
+        ];
+    }
+
+    private function aplicarFiltroEmpresa($query)
+    {
+        $empresaId = Auth::user()->empresa_id;
+
+        return $query->whereHas('user', function ($q) use ($empresaId) {
+            $q->where('empresa_id', $empresaId);
+        });
+    }
+
+    private function aplicarFiltroStatusImplantado($query)
+    {
+        return $query->whereHas('contatoCorretor', function ($q) {
+            $q->where('tabulacao_id', Tabulations::IMPLANTADO);
+        });
+    }
+
+    private function getImplantacoesTotais($filtros, $perPage = null)
+    {
+        $query = VendasModel::with([
+            'user' => function ($query) {
+                $query->select('id', 'name', 'empresa_id');
+            }
+        ]);
+
+        $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusImplantado($query);
+
+        if ($filtros['ano']) {
+            $query->whereYear('data_implantacao', $filtros['ano']);
+        }
+
+        if ($filtros['mes']) {
+            $query->whereMonth('data_implantacao', $filtros['mes']);
+        }
+
+        if ($filtros['vendedor_id']) {
+            $query->where('user_id', $filtros['vendedor_id']);
+        }
+
+        if ($filtros['operadora']) {
+            $query->where('operadora', $filtros['operadora']);
+        }
+
+        if ($filtros['data_inicio'] && $filtros['data_fim']) {
+            $query->whereBetween('data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
+        }
+
+        $query->orderBy('data_implantacao', 'desc');
+
+        if ($perPage) {
+            return $query->paginate($perPage);
+        }
+
+        return $query->get();
+    }
+
+    private function getImplantacoesPorMes($filtros)
+    {
+        $query = VendasModel::select(
+            DB::raw('MONTH(data_implantacao) as mes'),
+            DB::raw('YEAR(data_implantacao) as ano'),
+            DB::raw('COUNT(*) as total_vendas'),
+            DB::raw('SUM(valor_contrato) as valor_total'),
+            DB::raw('SUM(vidas) as total_vidas')
+        );
+
+        $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusImplantado($query);
+
+        if ($filtros['ano']) {
+            $query->whereYear('data_implantacao', $filtros['ano']);
+        }
+
+        if ($filtros['vendedor_id']) {
+            $query->where('user_id', $filtros['vendedor_id']);
+        }
+
+        if ($filtros['operadora']) {
+            $query->where('operadora', $filtros['operadora']);
+        }
+
+        if ($filtros['data_inicio'] && $filtros['data_fim']) {
+            $query->whereBetween('data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
+        }
+
+        return $query->groupBy('ano', 'mes')
+            ->orderBy('ano', 'desc')
+            ->orderBy('mes', 'desc')
+            ->get();
+    }
+
+    private function getImplantacoesPorVendedor($filtros)
+    {
+        $empresaId = Auth::user()->empresa_id;
+
+        $query = VendasModel::select(
+            'users.name as vendedor',
+            DB::raw('COUNT(*) as total_vendas'),
+            DB::raw('SUM(valor_contrato) as valor_total'),
+            DB::raw('SUM(vidas) as total_vidas')
+        )->join('users', 'vendas.user_id', '=', 'users.id')
+            ->where('users.empresa_id', $empresaId);
+
+        if ($filtros['ano']) {
+            $query->whereYear('data_implantacao', $filtros['ano']);
+        }
+
+        if ($filtros['mes']) {
+            $query->whereMonth('data_implantacao', $filtros['mes']);
+        }
+
+        if ($filtros['operadora']) {
+            $query->where('operadora', $filtros['operadora']);
+        }
+
+        if ($filtros['data_inicio'] && $filtros['data_fim']) {
+            $query->whereBetween('data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
+        }
+
+        $query = $this->aplicarFiltroStatusImplantado($query);
+
+        return $query->groupBy('users.id', 'users.name')
+            ->orderBy('valor_total', 'desc')
+            ->get();
+    }
+
+    private function getImplantacoesPorOperadora($filtros)
+    {
+        $query = VendasModel::select(
+            'operadora',
+            DB::raw('COUNT(*) as total_vendas'),
+            DB::raw('SUM(valor_contrato) as valor_total'),
+            DB::raw('SUM(vidas) as total_vidas')
+        );
+
+        $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusImplantado($query);
+
+        if ($filtros['ano']) {
+            $query->whereYear('data_implantacao', $filtros['ano']);
+        }
+
+        if ($filtros['mes']) {
+            $query->whereMonth('data_implantacao', $filtros['mes']);
+        }
+
+        if ($filtros['vendedor_id']) {
+            $query->where('user_id', $filtros['vendedor_id']);
+        }
+
+        if ($filtros['data_inicio'] && $filtros['data_fim']) {
+            $query->whereBetween('data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
+        }
+
+        return $query->whereNotNull('operadora')
+            ->groupBy('operadora')
+            ->orderBy('valor_total', 'desc')
+            ->get();
+    }
+
+    private function getImplantacoesPorPlano($filtros)
+    {
+        $query = VendasModel::select(
+            'nome_plano',
+            DB::raw('COUNT(*) as total_vendas'),
+            DB::raw('SUM(valor_contrato) as valor_total')
+        );
+
+        $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusImplantado($query);
+
+        if ($filtros['ano']) {
+            $query->whereYear('data_implantacao', $filtros['ano']);
+        }
+
+        if ($filtros['mes']) {
+            $query->whereMonth('data_implantacao', $filtros['mes']);
+        }
+
+        if ($filtros['vendedor_id']) {
+            $query->where('user_id', $filtros['vendedor_id']);
+        }
+
+        if ($filtros['operadora']) {
+            $query->where('operadora', $filtros['operadora']);
+        }
+
+        if ($filtros['data_inicio'] && $filtros['data_fim']) {
+            $query->whereBetween('data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
+        }
+
+        return $query->whereNotNull('nome_plano')
+            ->groupBy('nome_plano')
+            ->orderBy('total_vendas', 'desc')
+            ->get();
+    }
+
+    private function getResumoGeralImplantacao($filtros)
+    {
+        $query = VendasModel::query();
+
+        $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusImplantado($query);
+
+        if ($filtros['ano']) {
+            $query->whereYear('data_implantacao', $filtros['ano']);
+        }
+
+        if ($filtros['mes']) {
+            $query->whereMonth('data_implantacao', $filtros['mes']);
+        }
+
+        if ($filtros['vendedor_id']) {
+            $query->where('user_id', $filtros['vendedor_id']);
+        }
+
+        if ($filtros['operadora']) {
+            $query->where('operadora', $filtros['operadora']);
+        }
+
+        if ($filtros['data_inicio'] && $filtros['data_fim']) {
+            $query->whereBetween('data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
+        }
+
+        return [
+            'total_contratos' => $query->count(),
+            'valor_total' => $query->sum('valor_contrato') ?? 0,
+            'total_vidas' => $query->sum('vidas') ?? 0,
+            'ticket_medio' => $query->avg('valor_contrato') ?? 0,
+            'vidas_por_contrato' => $query->avg('vidas') ?? 0
+        ];
+    }
+
+    private function getVendedoresPorEmpresa()
+    {
+        return User::where('empresa_id', Auth::user()->empresa_id)
+            ->where('user_role_id', UserRole::VENDEDOR)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function getAnosDisponiveisImplantacao($filtros)
+    {
+        $query = VendasModel::select(DB::raw('YEAR(data_implantacao) as ano'));
+
+        $query = $this->aplicarFiltroEmpresa($query);
+
+        return $query->distinct()
+            ->orderBy('ano', 'desc')
+            ->pluck('ano');
+    }
+
+    private function getOperadoras($filtros)
+    {
+        $query = VendasModel::select('operadora');
+
+        $query = $this->aplicarFiltroEmpresa($query);
+
+        return $query->whereNotNull('operadora')
+            ->where('operadora', '!=', '')
+            ->distinct()
+            ->orderBy('operadora')
+            ->pluck('operadora');
     }
 
 }

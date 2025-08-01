@@ -162,6 +162,9 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/relatorios/buscar', [Relatorios::class, 'get'])->name('relatorios.preditiva.buscar');
   Route::get('/relatorios/atividade', [Relatorios::class, 'activityReport'])->name('relatorios.activityReport');
   Route::get('/relatorios/atividade-dados/{dataInicial}/{dataFinal}/{leadsMes?}/{idVendedor?}', [Relatorios::class, 'activityReportData'])->name('relatorios.activityReportData');
+  Route::get('/relatorios/implantacoes', [Relatorios::class, 'implantacoes'])->name('relatorios.implantacoes');
+  Route::get('/relatorios/implantacoes/dados', [Relatorios::class, 'implantacoesData'])->name('relatorios.implantacoes.dados');
+  Route::get('/relatorios/implantacoes/listar', [Relatorios::class, 'implantacoesList'])->name('relatorios.implantacoes.listar');
 
   /** RANKING DE VENDAS */
   Route::get('/ranking', [RankingVendas::class, 'index'])->name('ranking.index');
