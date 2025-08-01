@@ -21,6 +21,7 @@ class Vendas extends Model
     'cpf_cnpj',
     'email',
     'data_vigencia',
+    'data_implantacao',
     'telefone1',
     'telefone2',
     'operadora',

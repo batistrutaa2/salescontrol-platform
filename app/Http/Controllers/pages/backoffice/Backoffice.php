@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\pages\backoffice;
 
+use App\Enums\Tabulations;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -76,13 +77,10 @@ class Backoffice extends Controller
 
   public function updateSale(Request $request)
   {
-    $updateContract = $this->vendasRepository->updateContract($request->all());
-    if ($updateContract) {
-      if ($updateContract) {
-        return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Atualizado");
-      } else {
-        return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
-      }
+    if ($this->vendasRepository->updateContract($request->all())) {
+      return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Atualizado");
+    } else {
+      return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
     }
   }
 
@@ -90,6 +88,10 @@ class Backoffice extends Controller
   {
     $sale = $this->vendasRepository->find($request->idSale);
     $updateContract = $this->contatosCorretoresRepository->alterStatusContract($sale->contato_id, $request->tabulacao_id);
+    
+    if($request->tabulacao_id == Tabulations::IMPLANTADO) {
+      $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, now());
+    }
 
     if ($updateContract) {
       return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Atualizado");
