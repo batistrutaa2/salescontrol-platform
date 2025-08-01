@@ -96,7 +96,7 @@ class Backoffice extends Controller
       ]);
 
       $file = $request->file('comprovante');
-      $directory = $sale->empresa_id . '/' . $sale->id;
+      $directory = "comprovantes/" . $sale->empresa_id . '/' . $sale->id;
       $fileName = 'comprovante_pagamento.' . $file->getClientOriginalExtension();
       Storage::putFileAs($directory, $file, $fileName);
 
@@ -118,7 +118,7 @@ class Backoffice extends Controller
       abort(404);
     }
 
-    $directory = $sale->empresa_id . '/' . $sale->id;
+    $directory = "comprovantes/" . $sale->empresa_id . '/' . $sale->id;
     $files = Storage::files($directory);
 
     if (empty($files)) {

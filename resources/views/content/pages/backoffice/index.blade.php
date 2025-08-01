@@ -1,6 +1,6 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'BackOffice - Contratos')
+@section('title', 'Backoffice - Contratos')
 
 <!-- Vendor Styles -->
 @section('vendor-style')
