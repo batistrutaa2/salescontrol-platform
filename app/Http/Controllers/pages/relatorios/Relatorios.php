@@ -556,9 +556,10 @@ class Relatorios extends Controller
 
     private function aplicarFiltroStatusImplantado($query)
     {
-        return $query->whereHas('contatoCorretor', function ($q) {
-            $q->where('tabulacao_id', Tabulations::IMPLANTADO);
-        });
+        return $query->whereNotNull('data_implantacao')
+            ->whereHas('contatoCorretor', function ($q) {
+                $q->where('tabulacao_id', Tabulations::IMPLANTADO);
+            });
     }
 
     private function getImplantacoesTotais($filtros, $perPage = null)
@@ -792,6 +793,7 @@ class Relatorios extends Controller
         $query = VendasModel::select(DB::raw('YEAR(data_implantacao) as ano'));
 
         $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusImplantado($query);
 
         return $query->distinct()
             ->orderBy('ano', 'desc')
@@ -803,6 +805,7 @@ class Relatorios extends Controller
         $query = VendasModel::select('operadora');
 
         $query = $this->aplicarFiltroEmpresa($query);
+        $query = $this->aplicarFiltroStatusImplantado($query);
 
         return $query->whereNotNull('operadora')
             ->where('operadora', '!=', '')
