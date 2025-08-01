@@ -33,21 +33,21 @@ class Vendas extends Model
   ];
 
   protected $casts = [
-        'data_vigencia' => 'date',
-        'valor_contrato' => 'decimal:2',
-        'vidas' => 'integer',
-    ];
+    'data_vigencia' => 'date',
+    'valor_contrato' => 'decimal:2',
+    'vidas' => 'integer',
+    'data_implantacao' => 'date',
+  ];
 
-    // Relacionamento com User
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
+  public function user()
+  {
+    return $this->belongsTo(User::class, 'user_id');
+  }
 
-    public function contatoCorretor()
-    {
-        return $this->hasOne(ContatosCorretores::class, 'contato_id', 'contato_id');
-    }
+  public function contatoCorretor()
+  {
+    return $this->hasOne(ContatosCorretores::class, 'contato_id', 'contato_id');
+  }
 
 
   public function getCreatedAtAttribute($value)
