@@ -84,7 +84,7 @@
                         <p>Selecione o status atual do contrato</p>
                     </div>
                     <form id="transferLead" class="row" action="{{ route('backoffice.alterStatusContract') }}"
-                        method="POST">
+                        method="POST" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" id="idSale" name="idSale" value="">
                         <div class="col">
@@ -97,6 +97,11 @@
                                     @endforeach
                                 </select>
                                 <label for="ecommerce-product-name">Selecione o status</label>
+                            </div>
+                            <div id="proof-group" class="mt-3" style="display: none;">
+                                <label for="comprovante" class="form-label">Comprovante de Pagamento</label>
+                                <input type="file" id="comprovante" name="comprovante" class="form-control"
+                                    accept="image/*,application/pdf">
                             </div>
                             <div>
                                 <button class="btn btn-danger   btn--twitter mt-5">Alterar Status</button>

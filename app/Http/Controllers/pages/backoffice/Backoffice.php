@@ -13,6 +13,7 @@ use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Modules\Ranking\Ranking;
+use Illuminate\Support\Facades\Storage;
 
 class Backoffice extends Controller
 {
@@ -88,8 +89,17 @@ class Backoffice extends Controller
   {
     $sale = $this->vendasRepository->find($request->idSale);
     $updateContract = $this->contatosCorretoresRepository->alterStatusContract($sale->contato_id, $request->tabulacao_id);
-    
+
     if($request->tabulacao_id == Tabulations::IMPLANTADO) {
+      $request->validate([
+        'comprovante' => 'required|file|mimes:jpeg,jpg,png,pdf'
+      ]);
+
+      $file = $request->file('comprovante');
+      $directory = $sale->empresa_id . '/' . $sale->id;
+      $fileName = 'comprovante_pagamento.' . $file->getClientOriginalExtension();
+      Storage::putFileAs($directory, $file, $fileName);
+
       $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, now());
     }
 
@@ -98,6 +108,24 @@ class Backoffice extends Controller
     } else {
       return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
     }
+  }
+
+  public function downloadPaymentProof($id)
+  {
+    $sale = $this->vendasRepository->find($id);
+
+    if (!$sale || !$sale->contatoCorretor || $sale->contatoCorretor->tabulacao_id != Tabulations::IMPLANTADO) {
+      abort(404);
+    }
+
+    $directory = $sale->empresa_id . '/' . $sale->id;
+    $files = Storage::files($directory);
+
+    if (empty($files)) {
+      abort(404);
+    }
+
+    return Storage::download($files[0]);
   }
 
 

@@ -52,7 +52,7 @@ $(function () {
             {
                 data: 'id',
                 render: function (data, type, full, meta) {
-                    return (
+                    let actions =
                         '<div class="d-flex align-items-center">' +
                         '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line ri-22px"></i></button>' +
                         '<div class="dropdown-menu dropdown-menu-end m-0">' +
@@ -62,13 +62,22 @@ $(function () {
                         '<button type="button" class="dropdown-item js-alterar-status" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' +
                         full['id'] +
                         '">' +
-                        '<i class="ri-arrow-left-right-fill"></i><span> Alterar Status</span></button>' +
+                        '<i class="ri-arrow-left-right-fill"></i><span> Alterar Status</span></button>';
+
+                    if (full['descricao'] === 'IMPLANTADO') {
+                        actions +=
+                            '<a href="/back-office/comprovante/' +
+                            full['id'] +
+                            '" class="dropdown-item"><i class="ri-download-line me-2"></i><span>Baixar comprovante</span></a>';
+                    }
+
+                    actions +=
                         '<a href="/back-office/deletar-contrato/' +
                         full['id'] +
                         '" class="dropdown-item"><i class="ri-delete-bin-line me-2"></i><span>Excluir</span></a>' +
                         '</div>' +
-                        '</div>'
-                    );
+                        '</div>';
+                    return actions;
                 }
             },
 
@@ -98,6 +107,17 @@ $(function () {
     $(document).on('click', '.js-alterar-status', function () {
         const id = $(this).data('id');
         $('#idSale').val(id);
+    });
+
+    // Mostrar/ocultar comprovante conforme status
+    $(document).on('change', '#label', function () {
+        if ($(this).val() === '18') {
+            $('#proof-group').show();
+            $('#comprovante').prop('required', true);
+        } else {
+            $('#proof-group').hide();
+            $('#comprovante').prop('required', false).val('');
+        }
     });
 
 
