@@ -133,8 +133,10 @@ Route::middleware(['auth'])->group(function () {
   Route::post(uri: '/back-office/alterar-status-contrato', action: [Backoffice::class, 'alterStatusContract'])->name('backoffice.alterStatusContract');
   Route::get(uri: '/back-office/comprovante/{id}', action: [Backoffice::class, 'downloadPaymentProof'])->name('backoffice.downloadPaymentProof');
   Route::get(uri: '/back-office/deletar-contrato/{id}', action: [Backoffice::class, 'deleteContract'])->name('backoffice.deleteContract');
-  Route::get(uri: '/back-office/cadastrar-planos', action: [Backoffice::class, 'createPlans'])->name('backoffice.createPlans');
-  Route::get(uri: '/back-office/cadastrar-operadora', action: [Backoffice::class, 'createOperation'])->name('backoffice.createOperation');
+  Route::get(uri: '/back-office/cadastrar-planos', action: [Backoffice::class, 'planos'])->name('backoffice.planos');
+  Route::get(uri: '/back-office/cadastrar-operadora', action: [Backoffice::class, 'operadoras'])->name('backoffice.operadoras');
+  Route::post(uri: '/back-office/createOperation', action: [Backoffice::class, 'createOperation'])->name('backoffice.createOperation');
+  Route::get(uri: '/back-office/getOperators', action: [Backoffice::class, 'getOperators'])->name('backoffice.getOperators');
 
 
   /** VENDAS */

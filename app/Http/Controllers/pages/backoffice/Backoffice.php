@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\pages\backoffice;
 
 use App\Enums\Tabulations;
+use App\Models\Operadora;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -140,14 +141,40 @@ class Backoffice extends Controller
   }
 
 
-  public function createPlans()
+  public function planos()
   {
     return view("content.pages.backoffice.planos");
   }
 
-  public function createOperation()
+  public function operadoras()
   {
-    return view("content.pages.backoffice.operadoras");
+    return view("content.pages.backoffice.operadora");
+  }
+
+  public function createOperation(Request $request)
+  {
+    try {
+      Operadora::insert([
+        'empresa_id' => Auth::user()->empresa_id,
+        'nome' => mb_strtoupper($request->nome, 'UTF-8'),
+        'status' => $request->status,
+        'created_at' => now(),
+        'updated_at' => now()
+      ]);
+      return response()->json(['success' => true, 'message' => 'Operadora cadastrada com sucesso!'], 201);
+
+    } catch (\Exception $e) {
+      return response()->json(['success' => false, 'message' => 'Erro ao cadastrar operadora.'], 500);
+    }
+  }
+
+
+  public function getOperators()
+  {
+    $operators = Operadora::where('empresa_id', Auth::user()->empresa_id)->get();
+    return response()->json(
+      $operators
+    );
   }
 
 }
