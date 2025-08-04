@@ -5,6 +5,8 @@ namespace App\Repositories\Eloquent;
 use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
+use App\Models\Operadora;
+use App\Models\Plano;
 use App\Models\Vendas;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use Exception;
@@ -24,6 +26,9 @@ class VendasRepository implements VendasRepositoryInterface
   public function create(array $data)
   {
     try {
+      $operadora = Operadora::where('id', $data['operadora_id'])->first();
+      $plano = Plano::where('id', $data['plano_id'])->first();
+
       DB::beginTransaction();
       $this->model->create([
         'empresa_id' => Auth::user()->empresa_id,
@@ -32,14 +37,16 @@ class VendasRepository implements VendasRepositoryInterface
         'nome_contrato' => strtoupper($data['nome_contrato']),
         'cpf_cnpj' => Helpers::cleanSpecialCharacters($data['cpf_cnpj']),
         'email' => $data['email'],
-        'data_vigencia' => $data['data_vigencia'],
         'telefone1' => Helpers::cleanSpecialCharacters($data['telefone1']),
         'telefone2' => Helpers::cleanSpecialCharacters($data['telefone2']),
-        'operadora' => strtoupper($data['operadora']),
-        'nome_plano' => strtoupper($data['nome_plano']),
+        'operadora' => $operadora->nome,
+        'nome_plano' => $plano->nome,
         'valor_contrato' => Helpers::converterParaDecimal($data['valor_contrato']),
         'vidas' => $data['vidas'],
         'obs_contrato' => $data['obs_contrato'],
+        'plano_id' => $plano->id,
+        'data_vigencia' => now(),
+        'coparticipacao' => $data['coparticipacao'],
       ]);
       DB::commit();
       return true;

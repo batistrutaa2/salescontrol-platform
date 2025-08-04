@@ -630,6 +630,7 @@
                                 <label for="nome_contrato">Nome Contrato</label>
                             </div>
                         </div>
+
                         <div class="col-12 col-md-6">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="cpf_cnpj" name="cpf_cnpj" class="form-control"
@@ -637,18 +638,11 @@
                                 <label for="cpf_cnpj">CPF / CNPJ</label>
                             </div>
                         </div>
-                        <div class="col-12 col-md-6">
+                        <div class="col-12 col-md-12">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="email" name="email" class="form-control"
                                     placeholder="jhon1234@salescontro.com.br" />
                                 <label for="email">E-mail</label>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <div class="form-floating form-floating-outline">
-                                <input type="date" id="data_vigencia" name="data_vigencia" class="form-control"
-                                    placeholder="29/08/2024" />
-                                <label for="data_vigencia">Data de Vigencia</label>
                             </div>
                         </div>
 
@@ -669,19 +663,45 @@
 
                         <div class="col-12 col-md-4">
                             <div class="form-floating form-floating-outline">
-                                <input type="text" id="operadora" name="operadora" class="form-control"
-                                    placeholder="Sulamerica" />
+                                <select id="operadora" name="operadora_id" class="form-select" required>
+                                    <option value="">Selecione...</option>
+                                    @foreach ($operadoras as $op)
+                                        <option value="{{ $op->id }}">{{ strtoupper($op->nome) }}</option>
+                                    @endforeach
+                                </select>
                                 <label for="operadora">Operadora</label>
                             </div>
                         </div>
+
                         <div class="col-12 col-md-4">
                             <div class="form-floating form-floating-outline">
-                                <input type="text" id="nome_plano" name="nome_plano" class="form-control"
-                                    placeholder="plus diamante" />
+                                <select id="nome_plano" name="plano_id" class="form-select" required>
+                                    <option value="">Selecione a operadora</option>
+                                </select>
                                 <label for="nome_plano">Nome do Plano</label>
                             </div>
                         </div>
+
                         <div class="col-12 col-md-4">
+                            <div class="form-floating form-floating-outline">
+                                <input type="text" id="acomodacao" class="form-control" placeholder="Acomodação"
+                                    disabled>
+                                <label for="acomodacao">Acomodação</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-12">
+                            <div class="form-floating form-floating-outline">
+                                <select id="coparticipacao" name="coparticipacao" class="form-select" required>
+                                    <option value="">Selecione a coparticipação</option>
+                                    <option value="Y">SIM</option>
+                                    <option value="N">NÃO</option>
+                                </select>
+                                <label for="coparticipacao">Coparticipação</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-12">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="valor_contrato" name="valor_contrato" value="0"
                                     class="form-control monetary-field" placeholder="R$ 2500,00" />

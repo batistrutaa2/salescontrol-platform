@@ -29,6 +29,8 @@ class Vendas extends Model
     'valor_contrato',
     'vidas',
     'obs_contrato',
+    'coparticipacao',
+    'plano_id',
     'created_at',
     'updated_at'
   ];

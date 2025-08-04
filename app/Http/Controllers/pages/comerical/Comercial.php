@@ -5,6 +5,8 @@ namespace App\Http\Controllers\pages\comerical;
 use App\Models\Comentarios;
 use App\Models\Contatos;
 use App\Models\Dependentes;
+use App\Models\Operadora;
+use App\Models\Plano;
 use DateTime;
 use Carbon\Carbon;
 use App\Enums\UserRole;
@@ -353,6 +355,12 @@ class Comercial extends Controller
         ];
       }
     }
+
+
+    $operadoras = Operadora::where('status', 'Y')
+      ->orderBy('nome')
+      ->get(['id', 'nome']);
+
     if (Auth::user()->empresa_id != $clientInfo->empresa_id) {
       return redirect()->route('comercial.kanban')->with('status', 'error')->with('message', 'Sem permissao de acesso');
     } else {
@@ -365,7 +373,8 @@ class Comercial extends Controller
         'tabulations' => $tabulations,
         'tabulationCurrent' => $tabulationCurrent->tabulacao_id,
         'subTabulacoes' => $subTabulacoes,
-        'cotacoes' => $cotacoes
+        'cotacoes' => $cotacoes,
+        'operadoras' => $operadoras
       ]);
     }
   }
@@ -546,16 +555,13 @@ class Comercial extends Controller
   {
     try {
       $saveSale = $this->vendasRepository->create($request->all());
-
       $arrayData = [
         'contato_id' => $request->contato_id,
         'tabulacao_id' => Tabulations::VENDA
       ];
+      $updateStatus = $this->repositoryContatosCorretores->changeStatusLead($arrayData);
 
-      $updateStatusContact = $this->repositoryContatosCorretores->changeStatusLead($arrayData);
-
-
-      if ($saveSale && $updateStatusContact) {
+      if ($saveSale && $updateStatus) {
         return redirect()->route('sale.listSale')->with('status', 'success')->with('message', 'Venda Cadastrada com sucesso');
       } else {
         return redirect()->route('sale.listSale')->with('status', 'error')->with('message', 'Falha ao atualizar status.');
@@ -987,5 +993,15 @@ class Comercial extends Controller
     } catch (\Exception $e) {
       return response()->json(['error' => false, 'message' => 'Erro ao descartar os leads.'], 500);
     }
+  }
+
+  public function getPlansByOperator($operadora_id)
+  {
+    $planos = Plano::where('operadora_id', $operadora_id)
+      ->where('status', 'Y')
+      ->orderBy('created_at', 'desc')
+      ->get(['id', 'nome', 'acomodacao']);
+
+    return response()->json($planos);
   }
 }

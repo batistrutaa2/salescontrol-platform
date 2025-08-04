@@ -449,6 +449,36 @@
       });
     }
   });
+
+  $(document).on('change', '#operadora', function () {
+    let operadoraId = $(this).val();
+    let $planoSelect = $('#nome_plano');
+    let $acomodacaoField = $('#acomodacao');
+
+    $planoSelect.empty().append('<option value="">Carregando...</option>');
+    $acomodacaoField.val('');
+
+    if (operadoraId) {
+      let url = "/comercial/getPlansByOperator/" + operadoraId;
+
+      $.get(url, function (data) {
+        $planoSelect.empty().append('<option value="">Selecione...</option>');
+        data.forEach(function (plano) {
+          $planoSelect.append('<option value="' + plano.id + '" data-acomodacao="' + plano.acomodacao + '">' + plano.nome.toUpperCase() + '</option>');
+        });
+      }).fail(function () {
+        $planoSelect.empty().append('<option value="">Erro ao carregar planos</option>');
+      });
+    } else {
+      $planoSelect.empty().append('<option value="">Selecione a operadora primeiro</option>');
+    }
+  });
+
+  $(document).on('change', '#nome_plano', function () {
+    let acomodacao = $(this).find(':selected').data('acomodacao') || '';
+    $('#acomodacao').val(acomodacao);
+  });
+
 })();
 
 $(function () { });
