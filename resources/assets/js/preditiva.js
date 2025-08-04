@@ -55,8 +55,8 @@ $(function () {
   tabela = $('#tabela-fila-preditiva').DataTable({
     pageLength: 10,
     lengthMenu: [
-      [10, 25, 50, -1],       
-      [10, 25, 50, 'Todos']   
+      [10, 25, 50, -1],
+      [10, 25, 50, 'Todos']
     ],
     language: {
       url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'

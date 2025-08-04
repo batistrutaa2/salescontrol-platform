@@ -90,7 +90,7 @@ class Backoffice extends Controller
     $sale = $this->vendasRepository->find($request->idSale);
     $updateContract = $this->contatosCorretoresRepository->alterStatusContract($sale->contato_id, $request->tabulacao_id);
 
-    if($request->tabulacao_id == Tabulations::IMPLANTADO) {
+    if ($request->tabulacao_id == Tabulations::IMPLANTADO) {
       $request->validate([
         'comprovante' => 'required|file|mimes:jpeg,jpg,png,pdf'
       ]);
@@ -137,6 +137,17 @@ class Backoffice extends Controller
     } else {
       return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao Deletar contrato ,contate nosso suporte");
     }
+  }
+
+
+  public function createPlans()
+  {
+    return view("content.pages.backoffice.planos");
+  }
+
+  public function createOperation()
+  {
+    return view("content.pages.backoffice.operadoras");
   }
 
 }
