@@ -32,7 +32,6 @@
                             <th>OPERADORA</th>
                             <th>STATUS</th>
                             <th>CRIADO EM:</th>
-                            <th>AÇÕES</th>
                         </tr>
                     </thead>
                     <tbody>

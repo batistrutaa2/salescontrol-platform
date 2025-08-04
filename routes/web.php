@@ -136,7 +136,9 @@ Route::middleware(['auth'])->group(function () {
   Route::get(uri: '/back-office/cadastrar-planos', action: [Backoffice::class, 'planos'])->name('backoffice.planos');
   Route::get(uri: '/back-office/cadastrar-operadora', action: [Backoffice::class, 'operadoras'])->name('backoffice.operadoras');
   Route::post(uri: '/back-office/createOperation', action: [Backoffice::class, 'createOperation'])->name('backoffice.createOperation');
+  Route::post(uri: '/back-office/createPlan', action: [Backoffice::class, 'createPlan'])->name('backoffice.createPlan');
   Route::get(uri: '/back-office/getOperators', action: [Backoffice::class, 'getOperators'])->name('backoffice.getOperators');
+  Route::get(uri: '/back-office/getPlans', action: [Backoffice::class, 'getPlans'])->name('backoffice.getPlans');
 
 
   /** VENDAS */

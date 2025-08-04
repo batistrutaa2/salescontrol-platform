@@ -15,31 +15,15 @@ $(function () {
             { data: 'nome', title: 'Nome da Operadora' },
             {
                 data: 'status',
-                title: 'Status Atual',
                 render: function (data) {
                     if (data === 'Y') {
-                        return `<span class="badge bg-label-success">Ativo</span>`;
+                        return `<span class="badge bg-label-success">ATIVO</span>`;
                     } else {
-                        return `<span class="badge bg-label-secondary">Inativo</span>`;
+                        return `<span class="badge bg-label-secondary">INATIVO</span>`;
                     }
                 }
             },
-            { data: 'created_at' },
-            {
-                data: null,
-                title: 'Ações',
-                orderable: false,
-                render: function (data, type, row) {
-                    return `
-                        <button class="btn btn-sm btn-warning me-1 editar-operadora" data-id="${row.id}">
-                            <i class="ri-edit-line"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger deletar-operadora" data-id="${row.id}">
-                            <i class="ri-delete-bin-line"></i>
-                        </button>
-                    `;
-                }
-            }
+            { data: 'created_at' }
         ]
     });
 

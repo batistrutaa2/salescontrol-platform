@@ -4,6 +4,7 @@ namespace App\Http\Controllers\pages\backoffice;
 
 use App\Enums\Tabulations;
 use App\Models\Operadora;
+use App\Models\Plano;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -143,11 +144,15 @@ class Backoffice extends Controller
 
   public function planos()
   {
-    return view("content.pages.backoffice.planos");
+    $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)->get();
+    return view("content.pages.backoffice.planos", [
+      'operadoras' => $operadoras
+    ]);
   }
 
   public function operadoras()
   {
+    $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)->get();
     return view("content.pages.backoffice.operadora");
   }
 
@@ -169,12 +174,47 @@ class Backoffice extends Controller
   }
 
 
+  public function createPlan(Request $request)
+  {
+    try {
+      Plano::insert([
+        'empresa_id' => Auth::user()->empresa_id,
+        'operadora_id' => $request->operadora_id,
+        'nome' => mb_strtoupper($request->nome, 'UTF-8'),
+        'status' => $request->status,
+        'acomodacao' => $request->acomodacao,
+        'created_at' => now(),
+        'updated_at' => now()
+      ]);
+      return response()->json(['success' => true, 'message' => 'Plano cadastrado com sucesso!'], 201);
+    } catch (\Exception $e) {
+      return response()->json(['success' => false, 'message' => 'Erro ao cadastrar plano.'], 500);
+    }
+  }
+
   public function getOperators()
   {
     $operators = Operadora::where('empresa_id', Auth::user()->empresa_id)->get();
     return response()->json(
       $operators
     );
+  }
+
+  public function getPlans()
+  {
+    $plans = Plano::select(
+      'planos.id',
+      'operadoras.nome as operadora',
+      'planos.status',
+      'planos.acomodacao',
+      'planos.created_at',
+      'planos.nome'
+    )
+      ->leftJoin('operadoras', 'operadoras.id', '=', 'planos.operadora_id')
+      ->where('planos.empresa_id', Auth::user()->empresa_id)
+      ->orderBy('planos.created_at', 'desc')
+      ->get();
+    return response()->json($plans);
   }
 
 }
