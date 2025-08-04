@@ -70,7 +70,7 @@ class VendasRepository implements VendasRepositoryInterface
       ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
       ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
       ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
-      ->orderBy('vendas.id', 'desc')
+      ->orderBy('vendas.created_at', 'desc')
       ->get();
   }
 
@@ -92,7 +92,7 @@ class VendasRepository implements VendasRepositoryInterface
       ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
       ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
       ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
-      ->orderBy('vendas.id', 'desc')
+      ->orderBy('vendas.created_at', 'desc')
       ->get();
   }
 
