@@ -14,9 +14,8 @@ return new class extends Migration {
             $table->id();
             $table->unsignedBigInteger('empresa_id');
             $table->unsignedBigInteger('contato_id');
-
             $table->string('nome');
-
+            $table->enum('status', ['Y', 'N'])->default('Y');
             $table->foreign('empresa_id')->references('id')->on('empresas');
             $table->foreign('contato_id')->references('id')->on('contatos');
             $table->timestamps();
