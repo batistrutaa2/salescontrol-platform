@@ -15,122 +15,99 @@
 @endsection
 
 @section('content')
-    <!-- First column -->
-    <div class="col-12 col-lg-12">
-        <!-- Product Information -->
-        <div class="card mb-6">
+    <div class="row g-4">
 
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Informações do Contrato</h5>
+        {{-- Dados do Plano --}}
+        @if (!is_null($contract->plano_id))
+            <div class="col-12 col-lg-5">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Informações do Plano</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Operadora</label>
+                                <input type="text" class="form-control" value="{{ $contract->operadora }}" disabled>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Nome do Plano</label>
+                                <input type="text" class="form-control" value="{{ $contract->nome_plano }}" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Acomodação</label>
+                                <input type="text" class="form-control"
+                                    value="{{ $contract->acomodacao ?? 'Não informado' }}" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Coparticipação</label>
+                                <input type="text" class="form-control"
+                                    value="{{ $contract->coparticipacao === 'Y' ? 'Sim' : 'Não' }}" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+        @endif
 
-            <div class="card-body">
-                <form method="POST" action="{{ route('backoffice.updateSale') }}">
-                    @csrf
-                    <input type="hidden" name="id" value="{{ $contract->id }}">
+        {{-- Dados do Contrato --}}
+        <div class="col-12 col-lg-{{ !is_null($contract->plano_id) ? '7' : '12' }}">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Informações do Contrato</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ route('backoffice.updateSale') }}">
+                        @csrf
+                        <input type="hidden" name="id" value="{{ $contract->id }}">
 
-                    <div class="form-floating form-floating-outline mb-5">
-                        <input type="text" class="form-control" id="nome_contrato" value="{{ $contract->nome_contrato }}"
-                            placeholder="Nome do Contrato" name="nome_contrato">
-                        <label for="nome_contrato">Nome do Contrato</label>
-                    </div>
-
-                    <div class="row gx-5 mb-5">
-                        <div class="col">
-                            <div class="form-floating form-floating-outline">
-                                <input type="text" class="form-control" id="cpf_cnpj" value="{{ $contract->cpf_cnpj }}"
-                                    placeholder="CPF / CNPJ" name="cpf_cnpj">
-                                <label for="cpf_cnpj">CPF / CNPJ</label>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nome do Contrato</label>
+                                <input type="text" class="form-control" name="nome_contrato"
+                                    value="{{ $contract->nome_contrato }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">CPF / CNPJ</label>
+                                <input type="text" class="form-control" name="cpf_cnpj"
+                                    value="{{ $contract->cpf_cnpj }}">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">E-mail</label>
+                                <input type="email" class="form-control" name="email" value="{{ $contract->email }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Telefone 1</label>
+                                <input type="text" class="form-control mask-telefone" name="telefone1"
+                                    value="{{ $contract->telefone1 }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Telefone 2</label>
+                                <input type="text" class="form-control mask-telefone" name="telefone2"
+                                    value="{{ $contract->telefone2 }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Valor do Contrato</label>
+                                <input type="text" class="form-control monetary-field" name="valor_contrato"
+                                    value="{{ number_format($contract->valor_contrato, 2, ',', '.') }}">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Número de Vidas</label>
+                                <input type="number" class="form-control" name="vidas" value="{{ $contract->vidas }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Observações</label>
+                                <textarea class="form-control" name="obs_contrato" rows="5">{{ $contract->obs_contrato }}</textarea>
                             </div>
                         </div>
 
-                        <div class="col">
-                            <div class="form-floating form-floating-outline">
-                                <input type="email" class="form-control" id="email" value="{{ $contract->email }}"
-                                    placeholder="Email" name="email">
-                                <label for="email">Email</label>
-                            </div>
+                        <div class="d-flex mt-4">
+                            <button class="btn btn-success ms-auto">Atualizar contrato</button>
                         </div>
-
-                        <div class="col">
-                            <div class="form-floating form-floating-outline">
-                                <input type="text" class="form-control" id="data_vigencia"
-                                    value="{{ $contract->data_vigencia }}" placeholder="Data de Vigência"
-                                    name="data_vigencia">
-                                <label for="data_vigencia">Data de Vigência</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row gx-5 mb-5">
-                        <div class="col">
-                            <div class="form-floating form-floating-outline">
-                                <input type="text" class="form-control mask-telefone" id="telefone1"
-                                    value="{{ $contract->telefone1 }}" placeholder="Telefone 1" name="telefone1">
-                                <label for="telefone1">Telefone 1</label>
-                            </div>
-                        </div>
-
-                        <div class="col">
-                            <div class="form-floating form-floating-outline">
-                                <input type="text" class="form-control mask-telefone" id="telefone2"
-                                    value="{{ $contract->telefone2 }}" placeholder="Telefone 2" name="telefone2">
-                                <label for="telefone2">Telefone 2</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col mt-5">
-                        <div class="form-floating form-floating-outline">
-                            <input type="text" class="form-control monetary-field" id="valor_contrato"
-                                value="{{ number_format($contract->valor_contrato, 2, ',', '.') }}" placeholder="R$ 1080.10"
-                                name="valor_contrato">
-                            <label for="valor_contrato">Valor do Contrato</label>
-                        </div>
-                    </div>
-
-                    <div class="col mt-4">
-                        <div class="form-floating form-floating-outline">
-                            <input type="text" class="form-control" id="vidas" value="{{ $contract->vidas }}"
-                                placeholder="Número de Vidas" name="vidas">
-                            <label for="vidas">Número de Vidas</label>
-                        </div>
-                    </div>
-
-                    <div class="col mt-4">
-                        <div class="form-floating form-floating-outline">
-                            <input type="text" class="form-control" id="operadora" value="{{ $contract->operadora }}"
-                                placeholder="Operadora" name="operadora">
-                            <label for="operadora">Operadora</label>
-                        </div>
-                    </div>
-
-                    <div class="col mt-4">
-                        <div class="form-floating form-floating-outline">
-                            <input type="text" class="form-control" id="nome_plano" value="{{ $contract->nome_plano }}"
-                                placeholder="Nome do Plano" name="nome_plano">
-                            <label for="nome_plano">Nome do Plano</label>
-                        </div>
-                    </div>
-                    <div class="col mt-4">
-                        <div class="form-floating form-floating-outline">
-                            <textarea
-                                class="form-control"
-                                id="obs_contrato"
-                                name="obs_contrato"
-                                rows="10"
-                                style="height: 300px; min-height: 200px;"
-                            >{{ $contract->obs_contrato }}</textarea>
-                            <label for="obs_contrato">Observações</label>
-                        </div>
-                    </div>
-
-                    <div class="d-flex mt-5">
-                        <button class="btn btn-success btn--twitter ms-auto">Atualizar contrato</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
 
+    </div>
 @endsection
