@@ -441,18 +441,22 @@ class VendasRepository implements VendasRepositoryInterface
 
   public function updateContract($data)
   {
-
     try {
       $contract = $this->model::find($data['id']);
+      $plano = Plano::find($data['plano_id']);
+      $operadora = Operadora::find($data['operadora']);
 
       $contract->nome_contrato = $data['nome_contrato'];
       $contract->cpf_cnpj = Helpers::cleanSpecialCharacters($data['cpf_cnpj']);
       $contract->email = $data['email'];
-      $contract->data_vigencia = $data['data_vigencia'];
+      $contract->data_vigencia = now();
       $contract->telefone1 = Helpers::cleanSpecialCharacters($data['telefone1']);
       $contract->telefone2 = Helpers::cleanSpecialCharacters($data['telefone2']);
-      $contract->operadora = $data['operadora'];
-      $contract->nome_plano = $data['nome_plano'];
+      $contract->operadora = $operadora->nome;
+      $contract->plano_id = $data['plano_id'];
+      $contract->coparticipacao = $data['coparticipacao'];
+      $contract->nome_plano = $plano->nome;
+      $contract->nome_plano = $plano->nome;
       $contract->valor_contrato = Helpers::moneyForRealSaveBank($data['valor_contrato']);
       $contract->vidas = $data['vidas'];
       $contract->obs_contrato = $data['obs_contrato'];

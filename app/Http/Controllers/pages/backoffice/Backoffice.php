@@ -73,8 +73,12 @@ class Backoffice extends Controller
   public function openContract(string $idContract)
   {
     $sale = $this->vendasRepository->find($idContract);
+    $plano = Plano::find($sale->plano_id);
+    $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)->get();
     return view("content.pages.backoffice.openContract", [
-      'contract' => $sale
+      'contract' => $sale,
+      'operadoras' => $operadoras,
+      'plano' => $plano
     ]);
   }
 
