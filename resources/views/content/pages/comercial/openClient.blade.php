@@ -460,6 +460,37 @@
                         @endforeach
                     </div>
                 @endif
+                <div class="card mb-6 mt-5">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 card-title">Adicionar Comentario</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ route('comercial.saveComment') }}" method="POST" id="saveComment">
+                            @csrf
+                            <input type="hidden" name="id_mailing" value="{{ $client->id }}">
+                            <input type="hidden" value="{{ $tabulationCurrent }}" name="id_tabulacao">
+                            <div>
+                                <div class="form-control p-0 pt-1">
+                                    <div class="comment-toolbar border-0 border-bottom">
+                                        <div class="d-flex justify-content-start">
+                                            <span class="ql-formats me-0">
+                                                <button class="ql-bold"></button>
+                                                <button class="ql-italic"></button>
+                                                <button class="ql-underline"></button>
+                                                <button class="ql-list" value="ordered"></button>
+                                                <button class="ql-list" value="bullet"></button>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="comment-editor border-0 pb-1" id="ecommerce-category-description">
+                                    </div>
+                                </div>
+                                <div>
+                                    <button class="btn btn-primary mt-5   btn--twitter">Salvar Comentario</button>
+                                </div>
+                        </form>
+                    </div>
+                </div>
                 <div class="card mb-6">
                     <div class="card-header">
                         <h5 class="card-title mb-0">Cotações</h5>
@@ -493,37 +524,7 @@
                 </div>
                 <!-- /Product Information -->
                 <!-- Media -->
-                <div class="card mb-6 mt-5">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 card-title">Adicionar Comentario</h5>
-                    </div>
-                    <div class="card-body">
-                        <form action="{{ route('comercial.saveComment') }}" method="POST" id="saveComment">
-                            @csrf
-                            <input type="hidden" name="id_mailing" value="{{ $client->id }}">
-                            <input type="hidden" value="{{ $tabulationCurrent }}" name="id_tabulacao">
-                            <div>
-                                <div class="form-control p-0 pt-1">
-                                    <div class="comment-toolbar border-0 border-bottom">
-                                        <div class="d-flex justify-content-start">
-                                            <span class="ql-formats me-0">
-                                                <button class="ql-bold"></button>
-                                                <button class="ql-italic"></button>
-                                                <button class="ql-underline"></button>
-                                                <button class="ql-list" value="ordered"></button>
-                                                <button class="ql-list" value="bullet"></button>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="comment-editor border-0 pb-1" id="ecommerce-category-description">
-                                    </div>
-                                </div>
-                                <div>
-                                    <button class="btn btn-primary mt-5   btn--twitter">Salvar Comentario</button>
-                                </div>
-                        </form>
-                    </div>
-                </div>
+
             </div>
         </div>
 
