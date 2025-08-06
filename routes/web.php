@@ -179,7 +179,9 @@ Route::middleware(['auth'])->group(function () {
 
   /** COMISSIONAMENTO */
   Route::get('/comissionamento', [Comissionamento::class, 'index'])->name('comissionamento.index');
-
+  Route::get('/comissionamento/getCommissioning', [Comissionamento::class, 'getCommissioning'])->name('comissionamento.getCommissioning');
+  Route::post('/comissionamento', [Comissionamento::class, 'store'])->name('comissionamento.store');
+  Route::delete('/comissionamento/{id}', [Comissionamento::class, 'destroy'])->name('comissionamento.destroy');
 
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
