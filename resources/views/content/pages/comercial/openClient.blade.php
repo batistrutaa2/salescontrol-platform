@@ -460,7 +460,37 @@
                         @endforeach
                     </div>
                 @endif
-
+                <div class="card mb-6">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Cotações</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ route('comercial.uploadCotacao', ['id_mailing' => $client->id]) }}"
+                            class="dropzone" id="cotacoes-dropzone">
+                            @csrf
+                            <div class="dz-message">Arraste arquivos ou clique aqui para anexar</div>
+                        </form>
+                        <button type="button" class="btn btn-primary mt-3" id="cotacao-upload-btn">Salvar
+                            cotações</button>
+                        <input type="file" id="cotacao-replace-input" class="d-none" accept=".pdf,.jpg,.jpeg,.png">
+                        <ul class="list-group mt-4" id="cotacoes-list">
+                            @foreach ($cotacoes as $cotacao)
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span class="me-2">{{ $cotacao['name'] }}</span>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ $cotacao['url'] }}" download
+                                            class="btn btn-outline-success download-cotacao"
+                                            data-name="{{ $cotacao['name'] }}">Baixar</a>
+                                        <button type="button" class="btn btn-outline-secondary replace-cotacao"
+                                            data-name="{{ $cotacao['name'] }}">Trocar</button>
+                                        <button type="button" class="btn btn-outline-danger delete-cotacao"
+                                            data-name="{{ $cotacao['name'] }}">Excluir</button>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
                 <!-- /Product Information -->
                 <!-- Media -->
                 <div class="card mb-6 mt-5">
@@ -493,38 +523,6 @@
                                 </div>
                         </form>
                     </div>
-                </div>
-
-            </div>
-            <div class="card mb-6">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Cotações</h5>
-                </div>
-                <div class="card-body">
-                    <form action="{{ route('comercial.uploadCotacao', ['id_mailing' => $client->id]) }}" class="dropzone"
-                        id="cotacoes-dropzone">
-                        @csrf
-                        <div class="dz-message">Arraste arquivos ou clique aqui para anexar</div>
-                    </form>
-                    <button type="button" class="btn btn-primary mt-3" id="cotacao-upload-btn">Salvar
-                        cotações</button>
-                    <input type="file" id="cotacao-replace-input" class="d-none" accept=".pdf,.jpg,.jpeg,.png">
-                    <ul class="list-group mt-4" id="cotacoes-list">
-                        @foreach ($cotacoes as $cotacao)
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span class="me-2">{{ $cotacao['name'] }}</span>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <a href="{{ $cotacao['url'] }}" download
-                                        class="btn btn-outline-success download-cotacao"
-                                        data-name="{{ $cotacao['name'] }}">Baixar</a>
-                                    <button type="button" class="btn btn-outline-secondary replace-cotacao"
-                                        data-name="{{ $cotacao['name'] }}">Trocar</button>
-                                    <button type="button" class="btn btn-outline-danger delete-cotacao"
-                                        data-name="{{ $cotacao['name'] }}">Excluir</button>
-                                </div>
-                            </li>
-                        @endforeach
-                    </ul>
                 </div>
             </div>
         </div>
@@ -632,6 +630,7 @@
                                 <label for="nome_contrato">Nome Contrato</label>
                             </div>
                         </div>
+
                         <div class="col-12 col-md-6">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="cpf_cnpj" name="cpf_cnpj" class="form-control"
@@ -639,21 +638,13 @@
                                 <label for="cpf_cnpj">CPF / CNPJ</label>
                             </div>
                         </div>
-                        <div class="col-12 col-md-6">
+                        <div class="col-12 col-md-12">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="email" name="email" class="form-control"
                                     placeholder="jhon1234@salescontro.com.br" />
                                 <label for="email">E-mail</label>
                             </div>
                         </div>
-                        <div class="col-12 col-md-6">
-                            <div class="form-floating form-floating-outline">
-                                <input type="date" id="data_vigencia" name="data_vigencia" class="form-control"
-                                    placeholder="29/08/2024" />
-                                <label for="data_vigencia">Data de Vigencia</label>
-                            </div>
-                        </div>
-
                         <div class="col-12 col-md-6">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="telefone1" name="telefone1" class="form-control mask-telefone"
@@ -671,19 +662,45 @@
 
                         <div class="col-12 col-md-4">
                             <div class="form-floating form-floating-outline">
-                                <input type="text" id="operadora" name="operadora" class="form-control"
-                                    placeholder="Sulamerica" />
+                                <select id="operadora" name="operadora_id" class="form-select" required>
+                                    <option value="">Selecione...</option>
+                                    @foreach ($operadoras as $op)
+                                        <option value="{{ $op->id }}">{{ strtoupper($op->nome) }}</option>
+                                    @endforeach
+                                </select>
                                 <label for="operadora">Operadora</label>
                             </div>
                         </div>
+
                         <div class="col-12 col-md-4">
                             <div class="form-floating form-floating-outline">
-                                <input type="text" id="nome_plano" name="nome_plano" class="form-control"
-                                    placeholder="plus diamante" />
+                                <select id="nome_plano" name="plano_id" class="form-select" required>
+                                    <option value="">Selecione a operadora</option>
+                                </select>
                                 <label for="nome_plano">Nome do Plano</label>
                             </div>
                         </div>
+
                         <div class="col-12 col-md-4">
+                            <div class="form-floating form-floating-outline">
+                                <input type="text" id="acomodacao" class="form-control" placeholder="Acomodação"
+                                    disabled>
+                                <label for="acomodacao">Acomodação</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-12">
+                            <div class="form-floating form-floating-outline">
+                                <select id="coparticipacao" name="coparticipacao" class="form-select" required>
+                                    <option value="">Selecione a coparticipação</option>
+                                    <option value="Y">SIM</option>
+                                    <option value="N">NÃO</option>
+                                </select>
+                                <label for="coparticipacao">Coparticipação</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-12">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="valor_contrato" name="valor_contrato" value="0"
                                     class="form-control monetary-field" placeholder="R$ 2500,00" />
