@@ -225,8 +225,8 @@
           "slug": "pages-mailing-importar"
         },
         {
-          "url": "/mailing/visualizar-leads",
-          "name": "Relatorio de Comissionamento",
+          "url": "/comissionamento/faturar",
+          "name": "Faturar Comissões",
           "slug": "pages-mailing-importar"
         }
       ]

@@ -182,6 +182,10 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comissionamento/getCommissioning', [Comissionamento::class, 'getCommissioning'])->name('comissionamento.getCommissioning');
   Route::post('/comissionamento', [Comissionamento::class, 'store'])->name('comissionamento.store');
   Route::delete('/comissionamento/{id}', [Comissionamento::class, 'destroy'])->name('comissionamento.destroy');
+  Route::get('/comissionamento/faturar', [Comissionamento::class, 'invoiceCommission'])->name('comissionamento.invoiceCommission');
+  Route::get('/comissionamento/faturamento', [Comissionamento::class, 'getFaturamentoComissionamento'])->name('comissionamento.faturamento');
+
+
 
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
