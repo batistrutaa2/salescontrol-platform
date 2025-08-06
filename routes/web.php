@@ -2,6 +2,7 @@
 
 
 use App\Http\Controllers\Auth\Auth;
+use App\Http\Controllers\pages\comissionamento\Comissionamento;
 use App\Http\Controllers\pages\ranking\RankingVendas;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\pages\HomePage;
@@ -105,9 +106,6 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/descartar-cliente/{id}', [Comercial::class, 'descartarCliente'])->name('comercial.descartar');
   Route::post('/comercial/descartar-multiplos-leads', [Comercial::class, 'discardMultipleLeads'])->name('comercial.discardMultipleLeads');
   Route::get('/comercial/getPlansByOperator/{operadora_id}', [Comercial::class, 'getPlansByOperator'])->name('comercial.getPlansByOperator');
-
-
-
   Route::get('/comercial/calendario-reunioes', [ReunioesComercial::class, 'index'])->name('comercialReunioes.index');
   Route::get('/reunioes/data', [ReunioesComercial::class, 'getReunioes']);
   Route::post('/reunioes', [ReunioesComercial::class, 'store']);
@@ -155,14 +153,11 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/vendas/listar', [Vendas::class, 'listarVendas'])->name('sale.listarVendas');
   Route::get('/vendas/exportar', [Vendas::class, 'exportar'])->name('sale.exportar');
 
-
-
   /** PABX */
   Route::get('/pabx/cadastro-ramais', [Pabx::class, 'index'])->name('index.createRamal');
   Route::get('/pabx/getRamais', [Pabx::class, 'getRamais'])->name('pabx.getRamais');
   Route::post('/pabx/createramal', [Pabx::class, 'createramal'])->name('pabx.createramal');
   Route::post('/pabx/clickToCall', [Pabx::class, 'clickToCall'])->name('pabx.clickToCall');
-
 
   /** RELATORIOS */
   Route::get('/relatorios/ligacoes', [Relatorios::class, 'index'])->name('pabx.getLigacoess');
@@ -181,6 +176,11 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/ranking/configuracao', [RankingVendas::class, 'config'])->name('ranking.config');
   Route::get('/ranking-vendas', [RankingVendas::class, 'rankingVendas'])->name('ranking.rankingVendas');
   Route::get('/rankingVendasData', [RankingVendas::class, 'rankingVendasData'])->name('ranking.rankingVendasData');
+
+  /** COMISSIONAMENTO */
+  Route::get('/comissionamento', [Comissionamento::class, 'index'])->name('comissionamento.index');
+
+
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
 
