@@ -98,7 +98,8 @@ class Backoffice extends Controller
 
     if ($request->tabulacao_id == Tabulations::IMPLANTADO) {
       $request->validate([
-        'comprovante' => 'required|file|mimes:jpeg,jpg,png,pdf'
+        'comprovante' => 'required|file|mimes:jpeg,jpg,png,pdf',
+        'data_implantacao' => 'required|date',
       ]);
 
       $file = $request->file('comprovante');
@@ -106,7 +107,7 @@ class Backoffice extends Controller
       $fileName = 'comprovante_pagamento.' . $file->getClientOriginalExtension();
       Storage::putFileAs($directory, $file, $fileName);
 
-      $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, now());
+      $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao);
     }
 
     if ($updateContract) {

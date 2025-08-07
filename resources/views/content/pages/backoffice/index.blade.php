@@ -98,6 +98,12 @@
                                 </select>
                                 <label for="ecommerce-product-name">Selecione o status</label>
                             </div>
+                            <div id="proof-group-data-implantacao" class="mt-3" style="display: none;">
+                                <label for="data_implantacao" class="form-label">Data de Implantação</label>
+                                <input type="date" id="data_implantacao" name="data_implantacao" class="form-control"
+                                    required>
+
+                            </div>
                             <div id="proof-group" class="mt-3" style="display: none;">
                                 <label for="comprovante" class="form-label">Comprovante de Pagamento</label>
                                 <input type="file" id="comprovante" name="comprovante" class="form-control"

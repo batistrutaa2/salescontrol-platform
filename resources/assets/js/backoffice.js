@@ -114,11 +114,18 @@ $(function () {
         if ($(this).val() === '18') {
             $('#proof-group').show();
             $('#comprovante').prop('required', true);
+
+            $('#proof-group-data-implantacao').show();
+            $('#data_implantacao').prop('required', true);
         } else {
             $('#proof-group').hide();
             $('#comprovante').prop('required', false).val('');
+
+            $('#proof-group-data-implantacao').hide();
+            $('#data_implantacao').prop('required', false).val('');
         }
     });
+
 
 
 });
