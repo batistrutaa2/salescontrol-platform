@@ -31,6 +31,7 @@ class Vendas extends Model
     'obs_contrato',
     'coparticipacao',
     'plano_id',
+    'motivo_pendencia',
     'created_at',
     'updated_at'
   ];

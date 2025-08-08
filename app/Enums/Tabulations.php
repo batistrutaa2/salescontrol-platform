@@ -17,6 +17,7 @@ class Tabulations
   const ESTORNO = 17;
   const AGENDAMENTO = 29;
   const FOLLOWUP = 13;
+  const PENDENCIA = 55;
 
 
   private static array $ids_rules = [

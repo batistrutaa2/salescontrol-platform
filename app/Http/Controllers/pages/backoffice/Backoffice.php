@@ -14,7 +14,6 @@ use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
-use App\Modules\Ranking\Ranking;
 use Illuminate\Support\Facades\Storage;
 
 class Backoffice extends Controller
@@ -107,8 +106,13 @@ class Backoffice extends Controller
       $fileName = 'comprovante_pagamento.' . $file->getClientOriginalExtension();
       Storage::putFileAs($directory, $file, $fileName);
 
-      $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao);
+      $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao, $request->motivo_pendencia ?? null);
     }
+
+    if ($request->tabulacao_id == Tabulations::PENDENCIA) {
+      $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, NULL, $request->motivo_pendencia ?? null);
+    }
+
 
     if ($updateContract) {
       return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Atualizado");

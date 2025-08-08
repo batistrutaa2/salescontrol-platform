@@ -324,10 +324,6 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
           'tabulacao_id' => $tabulacao_id
         ]
       );
-
-      
-
-
       return $update;
     } catch (\Throwable $th) {
       return false;

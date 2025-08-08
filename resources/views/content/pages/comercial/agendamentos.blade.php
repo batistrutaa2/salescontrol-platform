@@ -25,15 +25,6 @@
 @endsection
 
 
-@section('page-style')
-    <style>
-        .table tr.selected,
-        .table tr.selected td {
-            background-color: transparent !important;
-        }
-    </style>
-
-
 @section('content')
 
     @if (session('status') == 'success')

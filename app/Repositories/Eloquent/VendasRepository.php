@@ -71,7 +71,10 @@ class VendasRepository implements VendasRepositoryInterface
       'vendas.telefone1',
       'tabulacoes.descricao',
       'vendas.valor_contrato',
+      'vendas.motivo_pendencia',
       'vendas.created_at',
+      'vendas.updated_at',
+      'tabulacoes.prazo'
     ])
       ->where('vendas.empresa_id', $empresa_id)
       ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
@@ -92,7 +95,10 @@ class VendasRepository implements VendasRepositoryInterface
       'vendas.telefone1',
       'tabulacoes.descricao',
       'vendas.valor_contrato',
+      'vendas.motivo_pendencia',
       'vendas.created_at',
+      'vendas.updated_at',
+      'tabulacoes.prazo'
     ])
       ->whereBetween('vendas.created_at', [$startDate, $endDate])
       ->where('vendas.empresa_id', $empresa_id)
@@ -467,12 +473,13 @@ class VendasRepository implements VendasRepositoryInterface
     }
   }
 
-  public function updateDataImplantacao($id, $dataImplantacao)
+  public function updateDataImplantacao($id, $dataImplantacao, $motivo_pendencia = null)
   {
     try {
       $contract = $this->model::find($id);
       if ($contract) {
         $contract->data_implantacao = $dataImplantacao;
+        $contract->motivo_pendencia = $motivo_pendencia;
         return $contract->save();
       }
       return false;

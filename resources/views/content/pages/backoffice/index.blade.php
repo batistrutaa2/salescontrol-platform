@@ -17,6 +17,15 @@
     @vite(['resources/assets/js/backoffice.js'])
 @endsection
 
+@section('page-style')
+    <style>
+        tr.overdue {
+            color: #dc3545 !important;
+            font-weight: bold;
+        }   
+    </style>
+
+
 @section('content')
     @if (session('status') == 'success')
         <div class="alert alert-solid-success d-flex align-items-center" role="alert">
@@ -65,6 +74,8 @@
                         <th>Status</th>
                         <th>Valor Contrato</th>
                         <th>Data Criação</th>
+                        <th>Prazo</th>
+                        <th>ultima Atualização</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -102,7 +113,11 @@
                                 <label for="data_implantacao" class="form-label">Data de Implantação</label>
                                 <input type="date" id="data_implantacao" name="data_implantacao" class="form-control"
                                     required>
-
+                            </div>
+                            <div id="proof-group-data-pendencia" class="mt-3" style="display: none;">
+                                <label for="data_pendencia" class="form-label">Motivo da pendencia</label>
+                                <input type="text" id="data_pendencia" name="motivo_pendencia" class="form-control"
+                                    required>
                             </div>
                             <div id="proof-group" class="mt-3" style="display: none;">
                                 <label for="comprovante" class="form-label">Comprovante de Pagamento</label>
@@ -110,7 +125,7 @@
                                     accept="image/*,application/pdf">
                             </div>
                             <div>
-                                <button class="btn btn-danger   btn--twitter mt-5">Alterar Status</button>
+                                <button class="btn btn-danger btn--twitter mt-5">Alterar Status</button>
                             </div>
                         </div>
                     </form>
@@ -118,5 +133,6 @@
             </div>
         </div>
     </div>
+
 
 @endsection

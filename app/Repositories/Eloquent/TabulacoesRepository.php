@@ -18,7 +18,7 @@ class TabulacoesRepository implements TabulacoesRepositoryInterface
   public function getTabulationsCompanieCommercial($empresa_id)
   {
     return $this->model->select(['id', 'descricao', 'ordem_kanban'])->where('empresa_id', $empresa_id)->where('status', 'Y')->where('tipo_tabulacao', 'C')->get();
-  } 
+  }
 
   public function getAll($empresa_id)
   {
@@ -31,7 +31,18 @@ class TabulacoesRepository implements TabulacoesRepositoryInterface
       ->where('empresa_id', $empresa_id)
       ->where('status', 'Y')
       ->where('tipo_tabulacao', "A")
-      ->whereIn('descricao', ['VENDA', 'ESTORNO', 'IMPLANTADO', 'DECLINADO'])
+      ->whereIn('descricao', [
+        'VENDA',
+        'ESTORNO',
+        'IMPLANTADO',
+        'DECLINADO',
+        'ANALISE OPERADORA',
+        'BOLETO DISPONIVEL',
+        'REGULARIZADO',
+        'CONTR. GERADO - AGUARDANDO ASSINATURA',
+        'PENDENCIA',
+        'ANALISE DE DOCUMENTOS'
+      ])
       ->get();
   }
 

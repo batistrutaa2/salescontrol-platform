@@ -20,6 +20,7 @@ class Tabulacoes extends Model
     'ordem_kanban',
     'status',
     'sub_tabulacao',
+    'prazo',
     'created_at',
     'updated_at'
   ];
