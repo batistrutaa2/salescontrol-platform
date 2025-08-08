@@ -379,7 +379,16 @@ class VendasRepository implements VendasRepositoryInterface
       ->whereYear('a.created_at', $year)
       ->whereMonth('a.created_at', $month)
       ->where('a.empresa_id', $empresa_id)
-      ->whereIn('c.tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO])
+      ->whereIn('c.tabulacao_id', [
+        Tabulations::VENDA, 
+        Tabulations::IMPLANTADO,
+        Tabulations::PENDENCIA,
+        Tabulations::ANALISE_OPERADORA,
+        Tabulations::BOLETO_DISPONIVEL,
+        Tabulations::REGULARIZADO,
+        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+        Tabulations::ANALISE_DOCUMENTOS,
+        ])
       ->groupBy('b.name')
       ->get();
   }

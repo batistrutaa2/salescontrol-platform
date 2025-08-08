@@ -18,6 +18,11 @@ class Tabulations
   const AGENDAMENTO = 29;
   const FOLLOWUP = 13;
   const PENDENCIA = 55;
+  const ANALISE_OPERADORA = 59;
+  const BOLETO_DISPONIVEL = 57;
+  const REGULARIZADO = 57;
+  const CONTR_GERADO_AGUARDANDO_ASSINATURA = 56;
+  const ANALISE_DOCUMENTOS = 54;
 
 
   private static array $ids_rules = [
