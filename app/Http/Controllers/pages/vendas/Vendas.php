@@ -494,7 +494,7 @@ class Vendas extends Controller
             ->where('a.user_id', auth()->user()->id)
             ->whereMonth('a.created_at', $request->mes)
             ->whereYear('a.created_at', $request->ano)
-            ->select('a.id', 'a.nome_contrato', 'c.descricao', 'a.valor_contrato')
+            ->select('a.id', 'a.nome_contrato', 'c.descricao', 'a.valor_contrato', 'a.motivo_pendencia')
             ->get();
 
         return response()->json([
