@@ -8,6 +8,7 @@ use App\Helpers\Helpers;
 use App\Models\Operadora;
 use App\Models\Plano;
 use App\Models\Vendas;
+use App\Models\VendaTitular;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use Exception;
 use Illuminate\Support\Facades\Auth;
@@ -26,35 +27,93 @@ class VendasRepository implements VendasRepositoryInterface
   public function create(array $data)
   {
     try {
-      $operadora = Operadora::where('id', $data['operadora_id'])->first();
-      $plano = Plano::where('id', $data['plano_id'])->first();
+      return DB::transaction(function () use ($data) {
+        $contatoId = (int) ($data['contato_id'] ?? 0);
+        $operadoraId = (int) ($data['operadora_id'] ?? 0);
+        $titulares = is_array($data['titulares'] ?? null) ? $data['titulares'] : [];
 
-      DB::beginTransaction();
-      $this->model->create([
-        'empresa_id' => Auth::user()->empresa_id,
-        'user_id' => Auth::user()->id,
-        'contato_id' => $data['contato_id'],
-        'nome_contrato' => strtoupper($data['nome_contrato']),
-        'cpf_cnpj' => Helpers::cleanSpecialCharacters($data['cpf_cnpj']),
-        'email' => $data['email'],
-        'telefone1' => Helpers::cleanSpecialCharacters($data['telefone1']),
-        'telefone2' => Helpers::cleanSpecialCharacters($data['telefone2']),
-        'operadora' => $operadora->nome,
-        'nome_plano' => $plano->nome,
-        'valor_contrato' => Helpers::converterParaDecimal($data['valor_contrato']),
-        'vidas' => $data['vidas'],
-        'obs_contrato' => $data['obs_contrato'],
-        'plano_id' => $plano->id,
-        'data_vigencia' => now(),
-        'coparticipacao' => $data['coparticipacao'],
-      ]);
-      DB::commit();
-      return true;
-    } catch (Exception $ex) {
-      DB::rollBack();
+        $nomeContrato = strtoupper(trim($data['nome_contrato'] ?? ''));
+        $cpfCnpj = Helpers::cleanSpecialCharacters($data['cpf_cnpj'] ?? '');
+        $emailEmpresa = $data['email'] ?? null;
+        $tel1 = Helpers::cleanSpecialCharacters($data['telefone1'] ?? '');
+        $tel2 = Helpers::cleanSpecialCharacters($data['telefone2'] ?? '');
+        $valorContrato = Helpers::converterParaDecimal($data['valor_contrato'] ?? '0');
+        $vidas = (int) ($data['vidas'] ?? count($titulares));
+        $obsContrato = $data['obs_contrato'] ?? null;
+
+        $operadora = Operadora::findOrFail($operadoraId);
+
+        $primeiroTitular = $titulares[0] ?? null;
+        $planoPrimeiro = $primeiroTitular
+          ? Plano::find($primeiroTitular['plano_id'] ?? null)
+          : null;
+
+        $copValues = array_values(array_unique(array_map(function ($t) {
+          return isset($t['coparticipacao']) && $t['coparticipacao'] !== ''
+            ? strtoupper($t['coparticipacao'])
+            : null;
+        }, $titulares)));
+
+        $coparticipacaoVenda = null;
+        if (count($copValues) === 1) {
+          $coparticipacaoVenda = $copValues[0];
+        }
+
+        $venda = $this->model->create([
+          'empresa_id' => Auth::user()->empresa_id,
+          'user_id' => Auth::user()->id,
+          'contato_id' => $contatoId,
+          'nome_contrato' => $nomeContrato,
+          'cpf_cnpj' => $cpfCnpj,
+          'email' => $emailEmpresa,
+          'telefone1' => $tel1,
+          'telefone2' => $tel2,
+          'operadora' => $operadora->nome,
+          'nome_plano' => $planoPrimeiro?->nome,
+          'plano_id' => $planoPrimeiro?->id,
+          'valor_contrato' => $valorContrato,
+          'vidas' => $vidas,
+          'obs_contrato' => $obsContrato,
+          'data_vigencia' => now(),
+          'coparticipacao' => $coparticipacaoVenda,
+        ]);
+
+        if (!empty($titulares)) {
+          $now = now();
+          $rows = [];
+          foreach ($titulares as $t) {
+            $rows[] = [
+              'venda_id' => $venda->id,
+              'nome' => mb_strtoupper(trim($t['nome'] ?? ''), 'UTF-8'),
+              'email' => $t['email'] ?? null,
+              'telefone' => Helpers::cleanSpecialCharacters($t['telefone'] ?? ''),
+              'plano_id' => !empty($t['plano_id']) ? (int) $t['plano_id'] : null,
+              'coparticipacao' => isset($t['coparticipacao']) && $t['coparticipacao'] !== ''
+                ? strtoupper($t['coparticipacao'])
+                : null,
+              'created_at' => $now,
+              'updated_at' => $now,
+            ];
+          }
+
+          if (method_exists($venda, 'titulares')) {
+            $cleanPayload = array_map(function ($r) {
+              unset($r['created_at'], $r['updated_at']);
+              return $r;
+            }, $rows);
+            $venda->titulares()->createMany($cleanPayload);
+          } else {
+            VendaTitular::insert($rows);
+          }
+        }
+
+        return true;
+      });
+    } catch (\Throwable $ex) {
       return false;
     }
   }
+
 
   public function find($id)
   {
@@ -380,7 +439,7 @@ class VendasRepository implements VendasRepositoryInterface
       ->whereMonth('a.created_at', $month)
       ->where('a.empresa_id', $empresa_id)
       ->whereIn('c.tabulacao_id', [
-        Tabulations::VENDA, 
+        Tabulations::VENDA,
         Tabulations::IMPLANTADO,
         Tabulations::PENDENCIA,
         Tabulations::ANALISE_OPERADORA,
@@ -388,7 +447,7 @@ class VendasRepository implements VendasRepositoryInterface
         Tabulations::REGULARIZADO,
         Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
         Tabulations::ANALISE_DOCUMENTOS,
-        ])
+      ])
       ->groupBy('b.name')
       ->get();
   }

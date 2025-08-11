@@ -43,6 +43,13 @@ class Vendas extends Model
     'data_implantacao' => 'date',
   ];
 
+
+  public function titulares()
+  {
+    return $this->hasMany(\App\Models\VendaTitular::class, 'venda_id');
+  }
+
+
   public function user()
   {
     return $this->belongsTo(User::class, 'user_id');
