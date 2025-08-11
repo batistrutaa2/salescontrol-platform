@@ -16,18 +16,19 @@
 
 @section('content')
     @php
-        // Fallbacks caso o controller não tenha enviado estes dados prontos
+        // resolve operadora selecionada por ID
         $selectedOperadoraId =
             $selectedOperadoraId ?? optional(($operadoras ?? collect())->firstWhere('nome', $contract->operadora))->id;
 
         $planosDaOperadora = $planosDaOperadora ?? collect();
 
+        // AMIL: considera qualquer variação que contenha "AMIL"
         $isAmil = false;
         if ($selectedOperadoraId) {
             $nomeOpSel = optional(($operadoras ?? collect())->firstWhere('id', $selectedOperadoraId))->nome;
-            $isAmil = strtoupper((string) $nomeOpSel) === 'AMIL - PME';
+            $isAmil = stripos((string) $nomeOpSel, 'AMIL') !== false;
         } else {
-            $isAmil = strtoupper((string) $contract->operadora) === 'AMIL - PME';
+            $isAmil = stripos((string) $contract->operadora, 'AMIL') !== false;
         }
     @endphp
 
@@ -53,10 +54,9 @@
         </div>
     @endif
 
-
     <div class="row g-4">
 
-        {{-- COLUNA ESQUERDA: APÓLICE (Operadora/Plano base) + DADOS DA EMPRESA --}}
+        {{-- COLUNA ESQUERDA: Apólice + Empresa --}}
         <div class="col-12 col-xl-5">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-light py-2">
@@ -82,6 +82,36 @@
                             </select>
                         </div>
 
+                        {{-- Plano base --}}
+                        <div class="col-12">
+                            <label class="form-label">Plano (base)</label>
+                            <select id="planoSelect" class="form-select" name="plano_id">
+                                @if (($planosDaOperadora ?? collect())->count())
+                                    <option value="">Selecione...</option>
+                                    @foreach ($planosDaOperadora as $p)
+                                        <option value="{{ $p->id }}" data-acomodacao="{{ $p->acomodacao }}"
+                                            {{ (int) $contract->plano_id === (int) $p->id ? 'selected' : '' }}>
+                                            {{ strtoupper($p->nome) }}
+                                        </option>
+                                    @endforeach
+                                @else
+                                    @if ($contract->plano_id && $contract->nome_plano)
+                                        <option value="{{ $contract->plano_id }}" selected>{{ $contract->nome_plano }}
+                                        </option>
+                                    @else
+                                        <option value="">Selecione a operadora primeiro</option>
+                                    @endif
+                                @endif
+                            </select>
+                        </div>
+
+                        {{-- Acomodação base (informativa) --}}
+                        <div class="col-md-6">
+                            <label class="form-label">Acomodação</label>
+                            <input type="text" id="acomodacao" class="form-control" name="acomodacao"
+                                value="{{ optional(($planosDaOperadora ?? collect())->firstWhere('id', $contract->plano_id))->acomodacao ?? ($plano->acomodacao ?? '') }}"
+                                disabled>
+                        </div>
 
                         <div class="col-12">
                             <hr class="my-2">
@@ -141,7 +171,7 @@
             </div>
         </div>
 
-        {{-- COLUNA DIREITA: TITULARES (Edição individual) --}}
+        {{-- COLUNA DIREITA: Titulares --}}
         <div class="col-12 col-xl-7">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
@@ -180,7 +210,7 @@
                                     value="{{ $titular->telefone }}">
                             </div>
 
-                            {{-- Plano por titular: já pré-carrega se a lista vier do controller; senão, JS buscará --}}
+                            {{-- Plano por titular (limitado à operadora base) --}}
                             <div class="col-md-4">
                                 <label class="form-label">Plano</label>
                                 <select class="form-select select-plano-titular" name="plano_id"
@@ -237,8 +267,92 @@
                             </div>
                         </form>
                     @empty
-                        <div class="alert alert-warning mb-0 mt-4">Nenhum titular encontrado para esta venda.</div>
+                        <div class="alert alert-warning mb-0 mt-4 d-flex justify-content-between align-items-center">
+                            <span>Nenhum titular encontrado para esta venda.</span>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                data-bs-target="#modalAddTitular">
+                                ➕ Adicionar Titular
+                            </button>
+                        </div>
                     @endforelse
+
+                    {{-- Modal: Adicionar Titular (planos seguem a operadora base) --}}
+                    <div class="modal fade" id="modalAddTitular" tabindex="-1" aria-labelledby="modalAddTitularLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <form method="POST" action="{{ route('backoffice.titulares.store') }}"
+                                class="modal-content">
+                                @csrf
+                                <input type="hidden" name="venda_id" value="{{ $contract->id }}">
+
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="modalAddTitularLabel">Cadastrar Titular</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Fechar"></button>
+                                </div>
+
+                                <div class="modal-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Nome</label>
+                                            <input type="text" name="nome" class="form-control" required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">E-mail</label>
+                                            <input type="email" name="email" class="form-control">
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label class="form-label">Telefone</label>
+                                            <input type="text" name="telefone" class="form-control mask-telefone">
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label class="form-label">Plano</label>
+                                            <select name="plano_id" class="form-select select-plano-modal" required>
+                                                @if (($planosDaOperadora ?? collect())->count())
+                                                    <option value="">Selecione...</option>
+                                                    @foreach ($planosDaOperadora as $p)
+                                                        <option value="{{ $p->id }}"
+                                                            data-acomodacao="{{ $p->acomodacao }}">
+                                                            {{ strtoupper($p->nome) }}
+                                                        </option>
+                                                    @endforeach
+                                                @else
+                                                    <option value="">Carregando...</option> {{-- JS preencherá ao abrir a modal --}}
+                                                @endif
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label
+                                                class="form-label label-coparticipacao-modal">{{ $isAmil ? 'Coparticipação (Amil)' : 'Coparticipação' }}</label>
+                                            <select name="coparticipacao" class="form-select select-coparticipacao-modal"
+                                                required>
+                                                @if ($isAmil)
+                                                    <option value="">Selecione...</option>
+                                                    <option value="PARCIAL">PARCIAL</option>
+                                                    <option value="COMPLETA">COMPLETA</option>
+                                                @else
+                                                    <option value="">Selecione...</option>
+                                                    <option value="Y">SIM</option>
+                                                    <option value="N">NÃO</option>
+                                                @endif
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-success">Salvar Titular</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>

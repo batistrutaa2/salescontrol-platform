@@ -317,5 +317,80 @@ class Backoffice extends Controller
     }
   }
 
+  public function storeTitular(Request $request)
+  {
+    try {
+      // 1) valida apenas venda_id para poder decidir regra dinâmica
+      $request->validate([
+        'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+      ]);
+
+      $venda = Vendas::findOrFail((int) $request->input('venda_id'));
+
+      // segura: venda precisa pertencer à mesma empresa do usuário
+      if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+        return back()
+          ->withInput()
+          ->with('status', 'error')
+          ->with('message', 'Acesso negado para esta venda.');
+      }
+
+      // Regra AMIL (qualquer variação contendo "AMIL")
+      $isAmil = stripos((string) $venda->operadora, 'AMIL') !== false;
+
+      // 2) validação completa agora que sabemos a regra de coparticipação
+      $validated = $request->validate([
+        'nome' => ['required', 'string', 'max:90'],
+        'email' => ['nullable', 'email', 'max:90'],
+        'telefone' => ['nullable', 'string', 'max:50'],
+        'plano_id' => ['required', 'integer', 'exists:planos,id'],
+        'coparticipacao' => ['required', Rule::in($isAmil ? ['PARCIAL', 'COMPLETA'] : ['Y', 'N'])],
+      ]);
+
+      // (Opcional forte) garantir que o PLANO pertence à operadora base do contrato
+      $operadora = Operadora::where('empresa_id', Auth::user()->empresa_id)
+        ->whereRaw('UPPER(nome) = ?', [mb_strtoupper((string) $venda->operadora, 'UTF-8')])
+        ->first();
+
+      if ($operadora) {
+        $plano = Plano::findOrFail((int) $validated['plano_id']);
+        if ((int) $plano->operadora_id !== (int) $operadora->id) {
+          return back()
+            ->withInput()
+            ->with('status', 'error')
+            ->with('message', 'Plano selecionado não pertence à operadora do contrato.');
+        }
+      }
+
+      DB::transaction(function () use ($venda, $validated) {
+        VendaTitular::create([
+          'venda_id' => $venda->id,
+          'nome' => mb_strtoupper($validated['nome'], 'UTF-8'),
+          'email' => $validated['email'] ?? null,
+          'telefone' => Helpers::cleanSpecialCharacters($validated['telefone'] ?? ''),
+          'plano_id' => (int) $validated['plano_id'],
+          'coparticipacao' => strtoupper($validated['coparticipacao']),
+        ]);
+      });
+
+      return back()
+        ->with('status', 'success')
+        ->with('message', 'Titular cadastrado com sucesso.');
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return back()
+        ->withErrors($e->errors())
+        ->withInput()
+        ->with('status', 'error')
+        ->with('message', 'Erro de validação.');
+    } catch (\Throwable $e) {
+      // \Log::error('Erro ao criar titular', ['e' => $e]);
+      return back()
+        ->withInput()
+        ->with('status', 'error')
+        ->with('message', 'Falha ao cadastrar titular.');
+    }
+  }
+
+
 
 }

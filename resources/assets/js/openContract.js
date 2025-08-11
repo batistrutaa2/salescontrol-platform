@@ -3,15 +3,18 @@
 $(function () {
   // ===== Helpers =====
   function maskPhone(el) {
+    if (!el) return;
     new Cleave(el, { delimiters: ['(', ') ', '-', ''], blocks: [0, 2, 5, 4], numericOnly: true });
   }
   function maskMoney(el) {
+    if (!el) return;
     new Cleave(el, {
       numeral: true, numeralThousandsGroupStyle: 'thousand',
       numeralDecimalMark: ',', delimiter: '.', prefix: 'R$ ', numeralDecimalScale: 2
     });
   }
   function maskCpfCnpj(el) {
+    if (!el) return;
     const applyMask = (value) => {
       const clean = (value || '').replace(/[.\-\/]/g, '');
       return clean.length > 11
@@ -24,17 +27,14 @@ $(function () {
       cleave = new Cleave(el, applyMask(el.value || ''));
     });
   }
-
   function isOperadoraAmil() {
     const $sel = $('#operadoraSelect');
-    const nome = ($sel.find(':selected').data('nome') || $sel.find(':selected').text() || '').toString().trim().toUpperCase();
-    return nome.startsWith('AMIL');
+    const nome = ($sel.find(':selected').data('nome') || $sel.find(':selected').text() || '')
+      .toString().trim().toUpperCase();
+    return nome.includes('AMIL'); // considera qualquer variação
   }
-
   function copartOptionsHtml(isAmil, current) {
-    const opts = isAmil
-      ? ['PARCIAL', 'COMPLETA']
-      : ['Y', 'N'];
+    const opts = isAmil ? ['PARCIAL', 'COMPLETA'] : ['Y', 'N'];
     let html = '<option value="">Selecione...</option>';
     opts.forEach(v => {
       const sel = (current && current.toString().toUpperCase() === v) ? 'selected' : '';
@@ -46,8 +46,7 @@ $(function () {
   // ===== Aplicar máscaras iniciais =====
   document.querySelectorAll('.mask-telefone').forEach(maskPhone);
   document.querySelectorAll('.monetary-field').forEach(maskMoney);
-  const cpfEl = document.getElementById('cpf_cnpj');
-  if (cpfEl) maskCpfCnpj(cpfEl);
+  maskCpfCnpj(document.getElementById('cpf_cnpj'));
 
   // Select2 em operadora
   if ($('#operadoraSelect').length) {
@@ -85,13 +84,12 @@ $(function () {
     });
   }
 
-  // on change plano base -> preenche acomodação
   $(document).on('change', '#planoSelect', function () {
     let acomodacao = $(this).find(':selected').data('acomodacao') || '';
     $('#acomodacao').val(acomodacao);
   });
 
-  // ===== Planos para cada titular =====
+  // ===== Planos para cada titular (limitados à operadora base) =====
   function carregarPlanosParaTitular($formTitular) {
     const operadoraId = $('#operadoraSelect').val();
     const $selectPlano = $formTitular.find('.select-plano-titular');
@@ -124,13 +122,12 @@ $(function () {
     });
   }
 
-  // on change plano do titular -> preenche acomodação
   $(document).on('change', '.select-plano-titular', function () {
     const acom = $(this).find(':selected').data('acomodacao') || '';
     $(this).closest('form').find('.input-acomodacao').val(acom);
   });
 
-  // ===== Coparticipação por titular (Amil => PARCIAL/COMPLETA, outras => SIM/NÃO) =====
+  // ===== Coparticipação por titular =====
   function atualizarCoparticipacaoTitulares() {
     const amil = isOperadoraAmil();
     $('.form-titular-update').each(function () {
@@ -142,7 +139,46 @@ $(function () {
     });
   }
 
-  // ===== Inicialização: carregar planos (base e titulares) e coparticipação =====
+  // ===== Modal: carregar planos conforme operadora base =====
+  function carregarPlanosParaModal() {
+    const operadoraId = $('#operadoraSelect').val();
+    const $selectPlano = $('#modalAddTitular .select-plano-modal');
+
+    $selectPlano.empty().append('<option value="">Carregando...</option>');
+
+    if (!operadoraId) {
+      $selectPlano.empty().append('<option value="">Selecione a operadora primeiro</option>');
+      return;
+    }
+
+    $.get(`/comercial/getPlansByOperator/${encodeURIComponent(operadoraId)}`, function (data) {
+      $selectPlano.empty().append('<option value="">Selecione...</option>');
+      (data || []).forEach(plano => {
+        $selectPlano.append(
+          `<option value="${plano.id}" data-acomodacao="${plano.acomodacao || ''}">${(plano.nome || '').toUpperCase()}</option>`
+        );
+      });
+    }).fail(function () {
+      $selectPlano.empty().append('<option value="">Erro ao carregar planos</option>');
+    });
+  }
+
+  function atualizarCoparticipacaoModal() {
+    const amil = isOperadoraAmil();
+    const $selCop = $('#modalAddTitular .select-coparticipacao-modal');
+    const $label = $('#modalAddTitular .label-coparticipacao-modal');
+    $selCop.html(copartOptionsHtml(amil, null));
+    $label.text(amil ? 'Coparticipação (Amil)' : 'Coparticipação');
+  }
+
+  // Ao abrir a modal, aplica máscara no telefone e carrega planos/copa
+  $('#modalAddTitular').on('show.bs.modal', function () {
+    maskPhone($('#modalAddTitular .mask-telefone')[0]);
+    carregarPlanosParaModal();
+    atualizarCoparticipacaoModal();
+  });
+
+  // ===== Inicialização =====
   (function initLoad() {
     const operadoraInicial = $('#operadoraSelect').val();
     const planoInicial = $('#planoSelect').val();
@@ -150,10 +186,8 @@ $(function () {
       carregarPlanos(operadoraInicial, planoInicial);
     }
 
-    // Para cada titular, carrega planos conforme operadora
     $('.form-titular-update').each(function () {
       carregarPlanosParaTitular($(this));
-      // armazena valor atual de copart para preservar ao mudar operadora
       const $selCop = $(this).find('.select-coparticipacao');
       $selCop.attr('data-current', ($selCop.val() || '').toString().toUpperCase());
     });
@@ -161,7 +195,7 @@ $(function () {
     atualizarCoparticipacaoTitulares();
   })();
 
-  // Quando mudar a operadora, recarrega planos (base e titulares) e opções de coparticipação
+  // Quando mudar a operadora base → atualiza tudo (inclui modal)
   $(document).on('change', '#operadoraSelect', function () {
     const operadoraId = $(this).val();
     carregarPlanos(operadoraId, $('#planoSelect').val());
@@ -171,27 +205,13 @@ $(function () {
     });
 
     atualizarCoparticipacaoTitulares();
-  });
 
-  // ===== Submit individual do titular (AJAX) =====
-  // Para cada titular, só carrega via AJAX se não houver planos renderizados
-  $('.form-titular-update').each(function () {
-    const $form = $(this);
-    const $selectPlano = $form.find('.select-plano-titular');
-
-    if ($selectPlano.find('option').length <= 1) {
-      // só 1 placeholder -> precisa buscar
-      carregarPlanosParaTitular($form);
-    } else {
-      // já veio renderizado do servidor: apenas sincroniza acomodação
-      const opt = $selectPlano.find(':selected');
-      $form.find('.input-acomodacao').val(opt.data('acomodacao') || '');
+    // Se a modal estiver aberta, atualiza também
+    if ($('#modalAddTitular').hasClass('show')) {
+      carregarPlanosParaModal();
+      atualizarCoparticipacaoModal();
     }
-
-    // guarda coparticipação atual pra preservar se operadora mudar
-    const $selCop = $form.find('.select-coparticipacao');
-    $selCop.attr('data-current', ($selCop.val() || '').toString().toUpperCase());
   });
 
-
+  // Se você envia a modal por POST normal (sem AJAX), não precisa JS extra no submit.
 });
