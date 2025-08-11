@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\pages\backoffice;
 
 use App\Enums\Tabulations;
+use App\Helpers\Helpers;
 use App\Models\Operadora;
 use App\Models\Plano;
+use App\Models\Vendas;
+use App\Models\VendaTitular;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +18,8 @@ use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 class Backoffice extends Controller
 {
   protected VendasRepository $vendasRepository;
@@ -72,14 +76,37 @@ class Backoffice extends Controller
   public function openContract(string $idContract)
   {
     $sale = $this->vendasRepository->find($idContract);
-    $plano = Plano::find($sale->plano_id);
+    if (!$sale)
+      abort(404, 'Contrato não encontrado.');
+
     $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)->get();
-    return view("content.pages.backoffice.openContract", [
+
+    $selectedOperadora = $operadoras->first(function ($op) use ($sale) {
+      return mb_strtoupper($op->nome, 'UTF-8') === mb_strtoupper($sale->operadora ?? '', 'UTF-8');
+    });
+    $selectedOperadoraId = optional($selectedOperadora)->id;
+
+    $planosDaOperadora = $selectedOperadoraId
+      ? Plano::where('operadora_id', $selectedOperadoraId)->get()
+      : collect();
+
+    $plano = $sale->plano_id ? Plano::find($sale->plano_id) : null;
+
+    $titulares = VendaTitular::with('plano')
+      ->where('venda_id', $sale->id)
+      ->get();
+
+    return view('content.pages.backoffice.openContract', [
       'contract' => $sale,
       'operadoras' => $operadoras,
-      'plano' => $plano
+      'selectedOperadoraId' => $selectedOperadoraId,
+      'planosDaOperadora' => $planosDaOperadora,
+      'plano' => $plano,
+      'titulares' => $titulares,
     ]);
   }
+
+
 
   public function updateSale(Request $request)
   {
@@ -225,5 +252,69 @@ class Backoffice extends Controller
       ->get();
     return response()->json($plans);
   }
+
+
+  public function updateTitular(Request $request, int $id)
+  {
+    try {
+      $titular = VendaTitular::findOrFail($id);
+
+      $vendaId = (int) $request->input('venda_id');
+      $venda = Vendas::findOrFail($vendaId);
+
+      if ($titular->venda_id !== $venda->id) {
+        return back()
+          ->withInput()
+          ->with('status', 'error')
+          ->with('message', 'Titular não pertence a esta venda.');
+      }
+
+      if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+        return back()
+          ->with('status', 'error')
+          ->with('message', 'Acesso negado para esta venda.');
+      }
+
+
+      $isAmil = stripos((string) $venda->operadora, 'AMIL - PME') !== false;
+
+      // Validação
+      $validated = $request->validate([
+        'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+        'nome' => ['required', 'string', 'max:90'],
+        'email' => ['nullable', 'email', 'max:90'],
+        'telefone' => ['nullable', 'string', 'max:50'],
+        'plano_id' => ['required', 'integer', 'exists:planos,id'],
+        'coparticipacao' => ['required', Rule::in($isAmil ? ['PARCIAL', 'COMPLETA'] : ['Y', 'N'])],
+      ]);
+
+      DB::transaction(function () use ($titular, $validated) {
+        $titular->update([
+          'nome' => $validated['nome'], // se tiver mutator, fará uppercase
+          'email' => $validated['email'] ?? null,
+          'telefone' => Helpers::cleanSpecialCharacters($validated['telefone'] ?? ''),
+          'plano_id' => (int) $validated['plano_id'],
+          'coparticipacao' => strtoupper($validated['coparticipacao']),
+        ]);
+      });
+
+      return back()
+        ->with('status', 'success')
+        ->with('message', 'Titular atualizado com sucesso.');
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return back()
+        ->withErrors($e->errors())
+        ->withInput()
+        ->with('status', 'error')
+        ->with('message', 'Erro de validação.');
+    } catch (\Throwable $e) {
+      // \Log::error('Erro ao atualizar titular', ['e' => $e]);
+      return back()
+        ->withInput()
+        ->with('status', 'error')
+        ->with('message', 'Falha ao atualizar titular.');
+    }
+  }
+
 
 }
