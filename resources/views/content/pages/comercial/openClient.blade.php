@@ -272,14 +272,14 @@
 
                                 <div class="col mt-5">
                                     <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control monetary-field"
-                                            id="ecommerce-product-barcode"
-                                            {{ $editingPermission == false ? 'disabled' : '' }} id="valor_plano_atual"
-                                            value="{{ number_format($client->valor_plano_atual, 2, ',', '.') }}"
-                                            placeholder="R$ 1080.10" name="valor_plano_atual"
-                                            aria-label="Product barcode">
-                                        <label for="ecommerce-product-name">Valor Atual Investido</label>
+                                        <input type="text" class="form-control monetary-field" id="valor_plano_atual"
+                                            name="valor_plano_atual"
+                                            value="{{ old('valor_plano_atual', $client->valor_plano_atual) }}"
+                                            {{-- ex: 2715.62 --}} placeholder="R$ 1080,10"
+                                            {{ $editingPermission == false ? 'disabled' : '' }}>
+                                        <label for="valor_plano_atual">Valor Atual Investido</label>
                                     </div>
+
                                 </div>
                                 <div class="col mt-4">
                                     <div class="form-floating form-floating-outline">
@@ -292,13 +292,11 @@
                                 @if ($client->tipo_layout != 'padrao')
                                     <div class="col mt-5">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control monetary-field"
-                                                id="ecommerce-product-barcode"
-                                                {{ $editingPermission == false ? 'disabled' : '' }} id="valor_plano_atual"
-                                                value="{{ number_format($totalFamilyPlan, 2, ',', '.') }}"
-                                                placeholder="R$ 1080.10" name="total_familia"
-                                                aria-label="Product barcode">
-                                            <label for="ecommerce-product-name">Total Familia</label>
+                                            <input type="text" class="form-control monetary-field" id="total_familia"
+                                                name="total_familia" value="{{ old('total_familia', $totalFamilyPlan) }}"
+                                                {{-- ex: 2715.62 --}} placeholder="R$ 1.080,10"
+                                                {{ $editingPermission == false ? 'disabled' : '' }}>
+                                            <label for="total_familia">Total Família</label>
                                         </div>
                                     </div>
                                 @endif

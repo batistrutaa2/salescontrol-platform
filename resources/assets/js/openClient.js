@@ -35,10 +35,21 @@
 
   // Máscara monetária
   const monetaryFields = document.querySelectorAll('.monetary-field');
+
   monetaryFields.forEach(function (field) {
     if (!field) return;
-    let rawValue = (field.value || '').replace('.', ',');
-    field.value = rawValue;
+
+    // normaliza valor inicial vindo do backend (pode vir 2715.62, 2.715,62, R$ 2.715,62, etc.)
+    let v = String(field.value || '');
+    v = v.replace(/\s+/g, '')
+      .replace(/^R\$\s?/, '')
+      .replace(/\./g, '')   // remove separadores de milhar
+      .replace(',', '.');   // usa ponto como decimal para parse
+
+    const num = parseFloat(v);
+    field.value = isNaN(num) ? '' : num.toFixed(2).replace('.', ',');
+
+    // agora a cleave formata bonitinho
     new Cleave(field, {
       numeral: true,
       numeralThousandsGroupStyle: 'thousand',
@@ -48,6 +59,7 @@
       numeralDecimalScale: 2
     });
   });
+
 
   // Select2 (com proteção)
   let select2 = $('.select2');
