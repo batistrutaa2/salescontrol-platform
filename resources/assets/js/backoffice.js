@@ -2,16 +2,12 @@
 
 $(function () {
 
-    // Parser robusto para datas BR e ISO
+    // ================= Helpers =================
     function parseBrDateTime(str) {
         if (!str) return null;
         const s = String(str).trim();
-
         // ISO ou YYYY-MM-DD HH:MM:SS
-        if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
-            return new Date(s.replace(' ', 'T'));
-        }
-
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return new Date(s.replace(' ', 'T'));
         // BR: dd/mm/yyyy HH:MM:SS
         const [d, t = '00:00:00'] = s.split(' ');
         const [day, month, year] = (d || '').split('/').map(Number);
@@ -19,28 +15,40 @@ $(function () {
         return new Date(year, (month || 1) - 1, day || 1, hour || 0, minute || 0, second || 0);
     }
 
+    function escapeHtml(s) {
+        return String(s || '')
+            .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function truncate(s, n) {
+        s = String(s || '');
+        return s.length <= n ? s : s.slice(0, n) + '…';
+    }
+
+    function initTooltipsInTable() {
+        const tableEl = document.querySelector('.datatables-ajax');
+        if (!tableEl) return;
+        const els = [].slice.call(tableEl.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        els.forEach(el => new bootstrap.Tooltip(el, { container: tableEl }));
+    }
+
     let table;
 
-    // Filtro customizado do DataTables (Status + Mês/Ano em cima de created_at)
+    // ====== Filtro customizado (STATUS + MÊS/ANO baseado em created_at) ======
     $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
         if (!table || settings.nTable !== table.table().node()) return true;
 
         const row = table.row(dataIndex).data() || {};
-
         const statusSel = ($('#status_filter').val() || '').toString().trim().toUpperCase();
         const mesSel = parseInt($('#periodo_mes').val(), 10);
         const anoSel = parseInt($('#periodo_ano').val(), 10);
 
-        // Filtra por status (campo: descricao)
-        if (statusSel && (String(row.descricao || '').toUpperCase() !== statusSel)) {
-            return false;
-        }
+        if (statusSel && (String(row.descricao || '').toUpperCase() !== statusSel)) return false;
 
-        // Filtra por mês/ano do created_at
         if (mesSel || anoSel) {
             const dt = parseBrDateTime(row.created_at);
             if (!(dt instanceof Date) || isNaN(dt)) return false;
-
             if (mesSel && (dt.getMonth() + 1) !== mesSel) return false;
             if (anoSel && dt.getFullYear() !== anoSel) return false;
         }
@@ -48,7 +56,7 @@ $(function () {
         return true;
     });
 
-    // DataTable
+    // ================= DataTable =================
     table = $('.datatables-ajax').DataTable({
         processing: true,
         serverSide: false,
@@ -61,22 +69,18 @@ $(function () {
         rowCallback: function (row, data) {
             const role = data.descricao || '';
             const updatedAt = parseBrDateTime(data.updated_at);
-
             let overdue = false;
+
             if (updatedAt && !isNaN(updatedAt)) {
                 const diffHours = (new Date() - updatedAt) / 36e5;
                 const diffDays = diffHours / 24;
-
                 if (role === 'ANALISE DOCUMENTO' && diffHours > 48) overdue = true;
                 else if (role === 'ANALISE OPERADORA' && diffDays > 10) overdue = true;
                 else if (role === 'PENDENCIA' && diffHours > 48) overdue = true;
             }
 
-            if (overdue) {
-                $('td', row).css({ color: '#dc3545', 'font-weight': '700' });
-            } else {
-                $('td', row).css({ color: '', 'font-weight': '' });
-            }
+            if (overdue) $('td', row).css({ color: '#dc3545', 'font-weight': '700' });
+            else $('td', row).css({ color: '', 'font-weight': '' });
         },
         columns: [
             { data: 'id' },
@@ -88,6 +92,7 @@ $(function () {
                     const role = full.descricao || '';
                     const updatedAt = parseBrDateTime(full.updated_at);
                     let diffHours = 0, diffDays = 0;
+
                     if (updatedAt && !isNaN(updatedAt)) {
                         const now = new Date();
                         diffHours = (now - updatedAt) / 36e5;
@@ -99,31 +104,21 @@ $(function () {
                     else if (role === 'ANALISE OPERADORA' && diffDays > 10) overdue = true;
                     else if (role === 'PENDENCIA' && diffHours > 48) overdue = true;
 
-                    if (role === 'PENDENCIA' || role === 'DECLINADO' || role === 'ESTORNO') {
-                        const color = overdue ? 'text-danger' : 'text-warning';
-                        const motivo = full.motivo_pendencia || 'Motivo não informado';
-                        const motivoEsc = String(motivo)
-                            .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
-                            .replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-                        return "<span class='text-truncate d-flex align-items-center text-heading'>" +
-                            "<i class='ri-error-warning-line " + color + " me-2' title='" + motivoEsc + "'></i>" +
-                            role + "</span>";
-                    }
-
                     const roleBadgeObj = {
                         'IMPLANTADO': '<i class="ri-user-line ri-22px text-primary me-2"></i>',
                         'VENDA': '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
-                        'ESTORNO': '<i class="ri-computer-line ri-22px text-danger me-2"></i>',
+                        'ESTORNO': '<i class="ri-computer-line ri-22px text-danger me-2"></i>',     // fixo vermelho
                         'DEVELOPER': '<i class="ri-vip-crown-line ri-22px text-warning me-2"></i>',
-                        'DECLINADO': '<i class="ri-close-circle-line ri-22px text-danger me-2"></i>',
+                        'DECLINADO': '<i class="ri-close-circle-line ri-22px text-danger me-2"></i>', // fixo vermelho
                         'ANALISE DOCUMENTO': '<i class="ri-file-search-line ri-22px me-2"></i>',
-                        'ANALISE OPERADORA': '<i class="ri-building-line ri-22px me-2"></i>'
+                        'ANALISE OPERADORA': '<i class="ri-building-line ri-22px me-2"></i>',
+                        'PENDENCIA': '<i class="ri-error-warning-line ri-22px text-warning me-2"></i>' // fixo amarelo
                     };
 
                     let icon = roleBadgeObj[role] || '<i class="ri-time-line ri-22px text-secondary me-2"></i>';
 
-                    if (overdue) {
+                    // só pinta de vermelho por atraso quando NÃO for pendência/estorno/declinado
+                    if (!['PENDENCIA', 'ESTORNO', 'DECLINADO'].includes(role) && overdue) {
                         icon = icon
                             .replace('ri-22px', 'ri-22px text-danger')
                             .replace('text-secondary', 'text-danger')
@@ -133,9 +128,33 @@ $(function () {
                             .replace('text-danger text-danger', 'text-danger');
                     }
 
-                    return "<span class='text-truncate d-flex align-items-center text-heading'>" + icon + role + "</span>";
+                    // estes 3 têm motivo -> o ÚNICO ícone vira botão clicável (tooltip + SweetAlert)
+                    if (['PENDENCIA', 'DECLINADO', 'ESTORNO'].includes(role)) {
+                        const motivoFull = full.motivo_pendencia || 'Motivo não informado';
+                        const motivoEsc = escapeHtml(motivoFull);
+                        const resumoEsc = escapeHtml(truncate(motivoFull, 140));
+
+                        return `
+                        <span class="text-truncate d-flex align-items-center text-heading">
+                        <button type="button"
+                                class="btn p-0 border-0 bg-transparent js-view-motivo"
+                                aria-label="Ver motivo"
+                                data-motivo="${motivoEsc}"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="${resumoEsc}">
+                            ${icon}
+                        </button>
+                        <span class="ms-1">${role}</span>
+                        </span>`;
+                    }
+
+                    // demais status: ícone estático + texto
+                    return `<span class="text-truncate d-flex align-items-center text-heading">${icon}${role}</span>`;
                 }
-            },
+            }
+            ,
+
             {
                 data: 'valor_contrato',
                 render: function (data) {
@@ -147,7 +166,7 @@ $(function () {
                 data: 'prazo',
                 render: function (data) {
                     const icon = '<i class="ri-time-fill ri-16px text-muted ms-1"></i>';
-                    return (data ? (data + ' ' + icon) : ('N/A ' + icon));
+                    return data ? `${data} ${icon}` : `N/A ${icon}`;
                 }
             },
             { data: 'updated_at' },
@@ -174,13 +193,16 @@ $(function () {
                     return actions;
                 }
             }
-        ]
+        ],
+        // reativa tooltips após cada draw
+        drawCallback: function () {
+            initTooltipsInTable();
+        }
     });
 
-    // Ações dos filtros (sem start/end date)
-    $('#btn_aplicar_filtro').on('click', function (e) {
-        e.preventDefault();
-        table.draw(); // aplica ext.search
+    // ====== Filtros: disparam no change (sem botão Filtrar) ======
+    $('#status_filter, #periodo_mes, #periodo_ano').on('change', function () {
+        table.draw();
     });
 
     $('#btn_limpar_filtro').on('click', function () {
@@ -190,12 +212,7 @@ $(function () {
         table.draw();
     });
 
-    // Também dispara no change para UX melhor
-    $('#status_filter, #periodo_mes, #periodo_ano').on('change', function () {
-        table.draw();
-    });
-
-    // Modal status (mantido)
+    // ====== Modal status (mantido) ======
     $(document).on('click', '.open-status-modal', function () {
         const id = $(this).data('id');
         $('#idSale').val(id);
@@ -207,7 +224,7 @@ $(function () {
         $('#idSale').val(id);
     });
 
-    // Mostrar/ocultar comprovante conforme status (mantido)
+    // ====== Mostrar/ocultar comprovante conforme status (mantido) ======
     $(document).on('change', '#label', function () {
         if ($(this).val() === '18') {
             $('#proof-group').show();
@@ -220,6 +237,7 @@ $(function () {
             $('#proof-group-data-implantacao').hide();
             $('#data_implantacao').prop('required', false).val('');
         }
+
         if ($(this).val() === '55' || $(this).val() === '17' || $(this).val() === '53') {
             $('#proof-group-data-pendencia').show();
             $('#data_pendencia').prop('required', true);
@@ -227,5 +245,18 @@ $(function () {
             $('#proof-group-data-pendencia').hide();
             $('#data_pendencia').prop('required', false).val('');
         }
+    });
+
+    $(document).on('click', '.js-view-motivo', function (e) {
+        e.preventDefault();
+        const motivo = $(this).data('motivo') || 'Motivo não informado';
+        Swal.fire({
+            html: `<div class="text-start" style="white-space:pre-wrap">${escapeHtml(motivo)}</div>`,
+            icon: 'warning',
+            width: 700,
+            confirmButtonText: 'Fechar',
+            customClass: { confirmButton: 'btn btn-warning' },
+            buttonsStyling: false
+        });
     });
 });
