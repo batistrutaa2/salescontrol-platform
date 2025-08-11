@@ -516,6 +516,7 @@ class VendasRepository implements VendasRepositoryInterface
   public function updateContract($data)
   {
     try {
+      dd($data);  
       $contract = $this->model::find($data['id']);
       $operadora = Operadora::find($data['operadora']);
 
@@ -527,6 +528,7 @@ class VendasRepository implements VendasRepositoryInterface
       $contract->telefone2 = Helpers::cleanSpecialCharacters($data['telefone2']);
       $contract->valor_contrato = Helpers::moneyForRealSaveBank($data['valor_contrato']);
       $contract->vidas = $data['vidas'];
+      $contract->motivo_pendencia = $data['motivo_pendencia'] ?? null;
       $contract->obs_contrato = $data['obs_contrato'];
       $contract->updated_at = now();
 

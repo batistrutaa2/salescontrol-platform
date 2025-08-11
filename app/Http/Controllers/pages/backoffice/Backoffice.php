@@ -39,7 +39,7 @@ class Backoffice extends Controller
     $this->contatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
   }
 
-  
+
   public function index()
   {
     $tabulations = $this->tabulacoesRepository->getTabulationsBackoffice(Auth::user()->empresa_id);
@@ -136,7 +136,8 @@ class Backoffice extends Controller
       $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao, $request->motivo_pendencia ?? null);
     }
 
-    if ($request->tabulacao_id == Tabulations::PENDENCIA) {
+
+    if ($request->tabulacao_id == Tabulations::PENDENCIA || $request->tabulacao_id == Tabulations::DECLINIO || $request->tabulacao_id == Tabulations::ESTORNO) {
       $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, NULL, $request->motivo_pendencia ?? null);
     }
 

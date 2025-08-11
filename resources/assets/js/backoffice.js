@@ -51,7 +51,7 @@ $(function () {
     // DataTable
     table = $('.datatables-ajax').DataTable({
         processing: true,
-        serverSide: false, 
+        serverSide: false,
         searching: true,
         ordering: false,
         ajax: {
@@ -99,7 +99,7 @@ $(function () {
                     else if (role === 'ANALISE OPERADORA' && diffDays > 10) overdue = true;
                     else if (role === 'PENDENCIA' && diffHours > 48) overdue = true;
 
-                    if (role === 'PENDENCIA') {
+                    if (role === 'PENDENCIA' || role === 'DECLINADO' || role === 'ESTORNO') {
                         const color = overdue ? 'text-danger' : 'text-warning';
                         const motivo = full.motivo_pendencia || 'Motivo não informado';
                         const motivoEsc = String(motivo)
@@ -220,7 +220,7 @@ $(function () {
             $('#proof-group-data-implantacao').hide();
             $('#data_implantacao').prop('required', false).val('');
         }
-        if ($(this).val() === '55') {
+        if ($(this).val() === '55' || $(this).val() === '17' || $(this).val() === '53') {
             $('#proof-group-data-pendencia').show();
             $('#data_pendencia').prop('required', true);
         } else {
@@ -228,5 +228,4 @@ $(function () {
             $('#data_pendencia').prop('required', false).val('');
         }
     });
-
 });
