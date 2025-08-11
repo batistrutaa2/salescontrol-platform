@@ -471,8 +471,22 @@ class VendasRepository implements VendasRepositoryInterface
   {
     return DB::table('vendas as a')
       ->select('a.nome_contrato', 'a.valor_contrato')
+      ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
       ->whereYear('a.created_at', $year)
       ->whereMonth('a.created_at', $month)
+      ->whereIn(
+        'c.tabulacao_id',
+        [
+          Tabulations::VENDA,
+          Tabulations::IMPLANTADO,
+          Tabulations::PENDENCIA,
+          Tabulations::ANALISE_OPERADORA,
+          Tabulations::BOLETO_DISPONIVEL,
+          Tabulations::REGULARIZADO,
+          Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+          Tabulations::ANALISE_DOCUMENTOS,
+        ]
+      )
       ->where('a.empresa_id', $empresa_id)
       ->get();
   }
