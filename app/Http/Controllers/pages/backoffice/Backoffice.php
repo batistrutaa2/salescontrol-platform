@@ -39,7 +39,7 @@ class Backoffice extends Controller
     $this->contatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
   }
 
-
+  
   public function index()
   {
     $tabulations = $this->tabulacoesRepository->getTabulationsBackoffice(Auth::user()->empresa_id);

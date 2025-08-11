@@ -22,7 +22,7 @@
         tr.overdue {
             color: #dc3545 !important;
             font-weight: bold;
-        }   
+        }
     </style>
 
 
@@ -40,26 +40,48 @@
         </div>
     @endif
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Filtro:</h5>
-            <div class="row pt-4">
-                <div class="col-md-4">
-                    <label for="start_date" class="form-label">Data Inicial</label>
-                    <input type="date" id="start_date" class="form-control">
-                </div>
-                <div class="col-md-4">
-                    <label for="end_date" class="form-label">Data Final</label>
-                    <input type="date" id="end_date" class="form-control">
-                </div>
-                <div class="col-md-4 d-flex align-items-end ">
-                    <button id="filter_button" class="btn btn-primary w-65 r">Filtrar</button>
+    <div class="card mb-3">
+        <div class="card-body row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label">Status</label>
+                <select id="status_filter" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="IMPLANTADO">IMPLANTADO</option>
+                    <option value="VENDA">VENDA</option>
+                    <option value="ESTORNO">ESTORNO</option>
+                    <option value="DECLINADO">DECLINADO</option>
+                    <option value="ANALISE DOCUMENTO">ANALISE DOCUMENTO</option>
+                    <option value="ANALISE OPERADORA">ANALISE OPERADORA</option>
+                    <option value="PENDENCIA">PENDENCIA</option>
+                </select>
+            </div>
 
-                    <button id="clear_filter" class="btn btn-success w-65">Limpar</button>
-                </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label">Mês</label>
+                <select id="periodo_mes" class="form-select">
+                    <option value="">Todos</option>
+                    @for ($m = 1; $m <= 12; $m++)
+                        <option value="{{ $m }}">{{ str_pad($m, 2, '0', STR_PAD_LEFT) }}</option>
+                    @endfor
+                </select>
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label">Ano</label>
+                <select id="periodo_ano" class="form-select">
+                    <option value="">Todos</option>
+                    @for ($y = now()->year; $y >= now()->year - 6; $y--)
+                        <option value="{{ $y }}">{{ $y }}</option>
+                    @endfor
+                </select>
+            </div>
+
+            <div class="col-12 col-md-4 d-flex gap-2">
+                <button id="btn_limpar_filtro" class="btn btn-primary mb-3  " type="button">Limpar</button>
             </div>
         </div>
     </div>
+
 
     <!-- Ajax Sourced Server-side -->
     <div class="card mt-5">
@@ -115,10 +137,11 @@
                                     required>
                             </div>
                             <div id="proof-group-data-pendencia" class="mt-3" style="display: none;">
-                                <label for="data_pendencia" class="form-label">Motivo da pendencia</label>
-                                <input type="text" id="data_pendencia" name="motivo_pendencia" class="form-control"
-                                    required>
+                                <label for="data_pendencia" class="form-label">Motivo da pendência</label>
+                                <textarea id="data_pendencia" name="motivo_pendencia" class="form-control" rows="5"
+                                    placeholder="Descreva o motivo da pendência..." required style="min-height: 120px; resize: vertical;"></textarea>
                             </div>
+
                             <div id="proof-group" class="mt-3" style="display: none;">
                                 <label for="comprovante" class="form-label">Comprovante de Pagamento</label>
                                 <input type="file" id="comprovante" name="comprovante" class="form-control"
