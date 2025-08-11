@@ -410,11 +410,7 @@ class Vendas extends Controller
     private function getAnosDisponiveis($filtros)
     {
         $query = VendasModel::select(DB::raw('YEAR(vendas.created_at) as ano'));
-
-        // Aplicar filtro por empresa
         $query = $this->aplicarFiltroEmpresa($query);
-
-
         return $query->distinct()
             ->orderBy('ano', 'desc')
             ->pluck('ano');
@@ -423,10 +419,7 @@ class Vendas extends Controller
     private function getOperadoras($filtros)
     {
         $query = VendasModel::select('operadora');
-
-        // Aplicar filtro por empresa
         $query = $this->aplicarFiltroEmpresa($query);
-
         return $query->whereNotNull('operadora')
             ->where('operadora', '!=', '')
             ->distinct()
@@ -448,7 +441,17 @@ class Vendas extends Controller
     private function aplicarFiltroStatusVenda($query)
     {
         return $query->whereHas('contatoCorretor', function ($q) {
-            $q->whereIn('tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO]);
+            $q->whereIn('tabulacao_id', [
+                Tabulations::VENDA,
+                Tabulations::IMPLANTADO,
+                Tabulations::PENDENCIA,
+                Tabulations::ESTORNO,
+                Tabulations::ANALISE_OPERADORA,
+                Tabulations::BOLETO_DISPONIVEL,
+                Tabulations::REGULARIZADO,
+                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                Tabulations::ANALISE_DOCUMENTOS
+            ]);
         });
     }
 
