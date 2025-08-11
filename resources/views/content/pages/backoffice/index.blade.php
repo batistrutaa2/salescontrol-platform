@@ -12,6 +12,23 @@
     @vite(['resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js'])
 @endsection
 
+@php
+    $meses = [
+        1 => 'Janeiro',
+        2 => 'Fevereiro',
+        3 => 'Março',
+        4 => 'Abril',
+        5 => 'Maio',
+        6 => 'Junho',
+        7 => 'Julho',
+        8 => 'Agosto',
+        9 => 'Setembro',
+        10 => 'Outubro',
+        11 => 'Novembro',
+        12 => 'Dezembro',
+    ];
+@endphp
+
 <!-- Page Scripts -->
 @section('page-script')
     @vite(['resources/assets/js/backoffice.js'])
@@ -60,11 +77,12 @@
                 <label class="form-label">Mês</label>
                 <select id="periodo_mes" class="form-select">
                     <option value="">Todos</option>
-                    @for ($m = 1; $m <= 12; $m++)
-                        <option value="{{ $m }}">{{ str_pad($m, 2, '0', STR_PAD_LEFT) }}</option>
-                    @endfor
+                    @foreach ($meses as $num => $nome)
+                        <option value="{{ $num }}">{{ $nome }}</option>
+                    @endforeach
                 </select>
             </div>
+
 
             <div class="col-6 col-md-2">
                 <label class="form-label">Ano</label>
