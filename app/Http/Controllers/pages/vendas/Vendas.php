@@ -445,7 +445,6 @@ class Vendas extends Controller
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
                 Tabulations::PENDENCIA,
-                Tabulations::ESTORNO,
                 Tabulations::ANALISE_OPERADORA,
                 Tabulations::BOLETO_DISPONIVEL,
                 Tabulations::REGULARIZADO,
@@ -454,7 +453,6 @@ class Vendas extends Controller
             ]);
         });
     }
-
 
     public function getResultsBroker(Request $request)
     {
