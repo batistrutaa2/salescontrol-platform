@@ -284,8 +284,8 @@
                                 <div class="col mt-4">
                                     <div class="form-floating form-floating-outline">
                                         <input type="text" class="form-control monetary-field" id="valor_negociacao"
-                                            value="{{ number_format($client->valor_negociacao, 2, ',', '.') }}"
-                                            placeholder="R$ 0,00" name="valor_negociacao" aria-label="Valor Negociacao">
+                                            value="{{ $client->valor_negociacao }}" placeholder="R$ 0,00"
+                                            name="valor_negociacao" aria-label="Valor Negociacao">
                                         <label for="valor_negociacao">Valor Negociação</label>
                                     </div>
                                 </div>
