@@ -528,6 +528,7 @@ class VendasRepository implements VendasRepositoryInterface
       $contract->valor_contrato = Helpers::moneyForRealSaveBank($data['valor_contrato']);
       $contract->vidas = $data['vidas'];
       $contract->obs_contrato = $data['obs_contrato'];
+      $contract->updated_at = now();
 
       return $contract->save();
     } catch (\Throwable $th) {
