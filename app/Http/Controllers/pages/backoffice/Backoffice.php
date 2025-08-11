@@ -111,9 +111,9 @@ class Backoffice extends Controller
   public function updateSale(Request $request)
   {
     if ($this->vendasRepository->updateContract($request->all())) {
-      return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Atualizado");
+      return redirect()->back()->with('status', 'success')->with('message', "Contrato Atualizado");
     } else {
-      return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
+      return redirect()->back()->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
     }
   }
 
