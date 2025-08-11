@@ -70,6 +70,8 @@
                     <option value="ANALISE DOCUMENTO">ANALISE DOCUMENTO</option>
                     <option value="ANALISE OPERADORA">ANALISE OPERADORA</option>
                     <option value="PENDENCIA">PENDENCIA</option>
+                    <option value="BOLETO DISPONIVEL">BOLETO DISPONIVEL</option>
+                    <option value="REGULARIZADO">REGULARIZADO</option>
                 </select>
             </div>
 
