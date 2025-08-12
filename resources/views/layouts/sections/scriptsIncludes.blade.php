@@ -33,7 +33,7 @@
         toastr.options = {
             closeButton: true,
             progressBar: true,
-            positionClass: "toast-bottom-right",
+            positionClass: "toast-top-right",
             timeOut: 8000,
             extendedTimeOut: 8000
         };
