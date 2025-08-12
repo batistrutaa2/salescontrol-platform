@@ -510,13 +510,17 @@ class Vendas extends Controller
 
     private function calculoConversao($quantidadeContatos, $quantidadeVendas)
     {
-        if ($quantidadeVendas == 0) {
+        try {
+            if ($quantidadeVendas == 0) {
+                return 0.0;
+            }
+
+            $conversao = ($quantidadeVendas / $quantidadeContatos) * 100;
+
+            return "%" . number_format($conversao, 2, ',', '.');
+        } catch (\Throwable $th) {
             return 0.0;
         }
-
-        $conversao = ($quantidadeVendas / $quantidadeContatos) * 100;
-
-        return "%" . number_format($conversao, 2, ',', '.');
     }
 
 }
