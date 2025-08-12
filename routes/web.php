@@ -145,8 +145,6 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/backoffice/titulares', [Backoffice::class, 'storeTitular'])->name('backoffice.titulares.store');
 
 
-
-
   /** VENDAS */
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');
   Route::get('/vendas/lista-vendas-mes', [Vendas::class, 'salesOfTheMonth'])->name('sale.salesOfTheMonth');
@@ -159,7 +157,6 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/vendas/listar', [Vendas::class, 'listarVendas'])->name('sale.listarVendas');
   Route::get('/vendas/exportar', [Vendas::class, 'exportar'])->name('sale.exportar');
   Route::get('/vendas/boletos/{id}', [Vendas::class, 'downloadBoleto'])->name('vendas.boleto.download');
-
 
 
   /** PABX */
