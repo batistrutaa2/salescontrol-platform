@@ -26,6 +26,7 @@ class AgendamentoNotificacao extends Notification
     public function toDatabase($notifiable)
     {
         return [
+            'tipo' => 'agendamento',
             'titulo' => 'Você tem um contato agendado agora!',
             'data_inicio' => \Carbon\Carbon::parse($this->agendamento->horario_agendamento)->format('d/m/Y H:i'),
             'contato_id' => $this->agendamento->contato_id,

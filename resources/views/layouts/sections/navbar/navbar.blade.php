@@ -136,33 +136,81 @@
             <li class="dropdown-notifications-list scrollable-container">
                 <ul class="list-group list-group-flush">
                     @forelse ($notifications as $notification)
+                        @php
+                            $d = $notification->data;
+                            $tipo = $d['tipo'] ?? 'generica';
+                        @endphp
+
                         <li class="list-group-item list-group-item-action dropdown-notifications-item">
-                            <a href="{{ $notification->data['url'] ?? '/comercial/calendario-reunioes' }}"
-                                class="d-flex text-decoration-none text-reset">
+                            <a href="{{ $d['url'] ?? '#' }}" class="d-flex text-decoration-none text-reset">
                                 <div class="flex-grow-1">
-                                    <h6 class="small mb-1">{{ $notification->data['titulo'] }}</h6>
-                                    <small class="mb-1 d-block text-body">
-                                        Agendada para {{ $notification->data['data_inicio'] }}<br>
-                                        Por: {{ $notification->data['criado_por'] ?? 'Desconhecido' }}
-                                    </small>
+                                    @switch($tipo)
+                                        {{-- 1) Layout: Agendamento --}}
+                                        @case('agendamento')
+                                            <h6 class="small mb-1">{{ $d['titulo'] ?? 'Agendamento' }}</h6>
+                                            <small class="mb-1 d-block text-body">
+                                                Agendado para {{ $d['data_inicio'] ?? '-' }}<br>
+                                                Por: {{ $d['criado_por'] ?? 'Desconhecido' }}
+                                            </small>
+                                        @break
+
+                                        {{-- 2) Layout: Reunião --}}
+                                        @case('reuniao')
+                                            <h6 class="small mb-1">{{ $d['titulo'] ?? 'Reunião' }}</h6>
+                                            <small class="mb-1 d-block text-body">
+                                                Início: {{ $d['data_inicio'] ?? '-' }}<br>
+                                                Criado por: {{ $d['criado_por'] ?? 'Desconhecido' }}
+                                            </small>
+                                        @break
+
+                                        {{-- 3) Layout: Status de Venda --}}
+                                        @case('status_venda')
+                                            <h6 class="small mb-1">{{ $d['titulo'] ?? 'Status da venda atualizado' }}</h6>
+                                            <small class="mb-1 d-block text-body">
+                                                {{ $d['mensagem'] ?? '' }}
+                                                @if (!empty($d['status']))
+                                                    <br>Status: {{ $d['status'] }}
+                                                @endif
+                                            </small>
+                                        @break
+
+                                        {{-- Fallback para notificações legadas sem "tipo" --}}
+
+                                        @default
+                                            <h6 class="small mb-1">{{ $d['titulo'] ?? 'Notificação' }}</h6>
+                                            <small class="mb-1 d-block text-body">
+                                                @if (!empty($d['mensagem']))
+                                                    {{ $d['mensagem'] }}
+                                                @else
+                                                    @if (!empty($d['data_inicio']))
+                                                        Agendada para {{ $d['data_inicio'] }}<br>
+                                                    @endif
+                                                    @if (!empty($d['criado_por']))
+                                                        Por: {{ $d['criado_por'] }}
+                                                    @endif
+                                                @endif
+                                            </small>
+                                    @endswitch
                                 </div>
+
                                 <div class="flex-shrink-0 dropdown-notifications-actions">
                                     <span class="badge badge-dot"></span>
                                 </div>
                             </a>
                         </li>
-                    @empty
-                        <li class="list-group-item text-center text-muted small py-3">
-                            Sem notificações recentes.
-                        </li>
-                    @endforelse
-                </ul>
-            </li>
-        </ul>
-    </li>
-</div>
+                        @empty
+                            <li class="list-group-item text-center text-muted small py-3">
+                                Sem notificações recentes.
+                            </li>
+                        @endforelse
 
-@if (!isset($navbarDetached))
+                    </ul>
+                </li>
+            </ul>
+        </li>
     </div>
-@endif
-</nav>
+
+    @if (!isset($navbarDetached))
+        </div>
+    @endif
+    </nav>

@@ -6,8 +6,11 @@ use App\Enums\Tabulations;
 use App\Helpers\Helpers;
 use App\Models\Operadora;
 use App\Models\Plano;
+use App\Models\Tabulacoes;
+use App\Models\User;
 use App\Models\Vendas;
 use App\Models\VendaTitular;
+use App\Notifications\StatusPropostaAlterada;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -154,11 +157,20 @@ class Backoffice extends Controller
       }
 
       if ($updateContract) {
+        $tabulation = Tabulacoes::find($request->tabulacao_id);
+        $vendedor = User::findOrFail($sale->user_id);
+        $vendedor->notify(new StatusPropostaAlterada(
+          venda: $sale,
+          novoStatus: $tabulation->descricao,
+          alteradoPorId: Auth::id(),
+          alteradoPorNome: Auth::user()->name ?? null
+        ));
         return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Atualizado");
       } else {
         return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
       }
     } catch (\Throwable $th) {
+      dd($th);
       return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
     }
 

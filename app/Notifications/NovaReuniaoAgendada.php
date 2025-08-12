@@ -26,6 +26,7 @@ class NovaReuniaoAgendada extends Notification
     public function toArray($notifiable)
     {
         return [
+            'tipo' => 'reuniao',
             'titulo' => "REUNIAO COMERCIAL: " . $this->reuniao->titulo,
             'data_inicio' => Carbon::parse($this->reuniao->data_inicio)->format('d/m/Y H:i'),
             'criado_por' => auth()->user()->name,
