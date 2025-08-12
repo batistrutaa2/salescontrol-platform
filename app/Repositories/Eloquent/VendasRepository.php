@@ -552,7 +552,7 @@ class VendasRepository implements VendasRepositoryInterface
     }
   }
 
-  public function updateDataImplantacao($id, $dataImplantacao, $motivo_pendencia = null)
+  public function updateDataImplantacao($id, $dataImplantacao, $motivo_pendencia = null, $path_ticket = null)
   {
     try {
       $contract = $this->model::find($id);
@@ -563,6 +563,21 @@ class VendasRepository implements VendasRepositoryInterface
       }
       return false;
     } catch (\Throwable $th) {
+      return false;
+    }
+  }
+
+  public function saveTicket($id, $path_ticket = null)
+  {
+    try {
+      $contract = $this->model::find($id);
+      if ($contract) {
+        $contract->path_boleto_disponivel = $path_ticket;
+        return $contract->save();
+      }
+      return false;
+    } catch (\Throwable $th) {
+      dd($th);
       return false;
     }
   }

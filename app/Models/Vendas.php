@@ -32,6 +32,7 @@ class Vendas extends Model
     'coparticipacao',
     'plano_id',
     'motivo_pendencia',
+    'path_boleto_disponivel',
     'created_at',
     'updated_at'
   ];

@@ -152,9 +152,7 @@ $(function () {
                     // demais status: ícone estático + texto
                     return `<span class="text-truncate d-flex align-items-center text-heading">${icon}${role}</span>`;
                 }
-            }
-            ,
-
+            },
             {
                 data: 'valor_contrato',
                 render: function (data) {
@@ -244,6 +242,14 @@ $(function () {
         } else {
             $('#proof-group-data-pendencia').hide();
             $('#data_pendencia').prop('required', false).val('');
+        }
+
+        if ($(this).val() == '58') {
+            $('#proof-group-boleto-disponivel').show();
+            $('#boleto_disponivel').prop('required', true);
+        } else {
+            $('#proof-group-boleto-disponivel').hide();
+            $('#boleto_disponivel').prop('required', false).val('');
         }
     });
 

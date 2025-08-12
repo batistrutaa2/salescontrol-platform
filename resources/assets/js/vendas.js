@@ -50,7 +50,6 @@ $(document).ready(function () {
           const motivoEsc = escapeHtml(motivoFull);
           const resumoEsc = escapeHtml(truncate(motivoFull, 140));
 
-          // mapeia ícone base (cores fixas para os três status com motivo)
           const icons = {
             'PENDENCIA': '<i class="ri-error-warning-line ri-22px text-warning me-2"></i>',
             'DECLINADO': '<i class="ri-close-circle-line ri-22px text-danger me-2"></i>',
@@ -58,31 +57,55 @@ $(document).ready(function () {
             'VENDA': '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
             'IMPLANTADO': '<i class="ri-user-line ri-22px text-primary me-2"></i>',
             'ANALISE DOCUMENTO': '<i class="ri-file-search-line ri-22px me-2"></i>',
-            'ANALISE OPERADORA': '<i class="ri-building-line ri-22px me-2"></i>'
+            'ANALISE OPERADORA': '<i class="ri-building-line ri-22px me-2"></i>',
+            'BOLETO DISPONIVEL': '<i class="ri-bill-line ri-22px text-info me-2"></i>'
           };
           const defaultIcon = '<i class="ri-time-line ri-22px text-secondary me-2"></i>';
           const icon = icons[label] || defaultIcon;
 
-          // para PENDÊNCIA / DECLINADO / ESTORNO => um único ícone clicável com tooltip
+          // PENDÊNCIA / DECLINADO / ESTORNO: botão com tooltip do motivo
           if (label === 'PENDENCIA' || label === 'DECLINADO' || label === 'ESTORNO') {
             return `
-              <span class="d-flex align-items-center text-heading">
-                <button type="button"
-                        class="btn p-0 border-0 bg-transparent js-view-motivo"
-                        aria-label="Ver motivo"
-                        data-motivo="${motivoEsc}"
-                        data-bs-toggle="tooltip"
-                        data-bs-placement="top"
-                        title="${resumoEsc}">
-                  ${icon}
-                </button>
-                <span class="ms-1">${label}</span>
-              </span>`;
+      <span class="d-flex align-items-center text-heading">
+        <button type="button"
+                class="btn p-0 border-0 bg-transparent js-view-motivo"
+                aria-label="Ver motivo"
+                data-motivo="${motivoEsc}"
+                data-bs-toggle="tooltip"
+                data-bs-placement="top"
+                title="${resumoEsc}">
+          ${icon}
+        </button>
+        <span class="ms-1">${label}</span>
+      </span>`;
           }
 
-          // demais: ícone estático + texto
+          // BOLETO DISPONIVEL: mostra botão de download quando houver path
+          if (label === 'BOLETO DISPONIVEL' && row.path_boleto_disponivel) {
+            // Opção A (via rota backend segura): /vendas/boletos/{id}
+            const href = `/vendas/boletos/${row.id}`;
+
+            // Se você preferir servir direto do storage público, use:
+            // const href = `/storage/${row.path_boleto_disponivel}`;
+
+            return `
+            <span class="d-flex align-items-center text-heading">
+              ${icon}<span class="me-2">${label}</span>
+              <a href="${href}"
+                class="btn btn-sm btn-outline-primary"
+                target="_blank" rel="noopener"
+                data-bs-toggle="tooltip"
+                data-bs-placement="top"
+                title="Baixar boleto">
+                <i class="ri-download-2-line"></i>
+              </a>
+            </span>`;
+          }
+
+          // Demais: ícone estático + texto
           return `<span class="d-flex align-items-center text-heading">${icon}${label}</span>`;
         };
+
 
         if ($.fn.DataTable.isDataTable('#tabela-vendas-detalhadas')) {
           const dt = $('#tabela-vendas-detalhadas').DataTable();

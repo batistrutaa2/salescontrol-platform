@@ -19,7 +19,7 @@ class Tabulations
   const FOLLOWUP = 13;
   const PENDENCIA = 55;
   const ANALISE_OPERADORA = 59;
-  const BOLETO_DISPONIVEL = 57;
+  const BOLETO_DISPONIVEL = 58;
   const REGULARIZADO = 57;
   const CONTR_GERADO_AGUARDANDO_ASSINATURA = 56;
   const ANALISE_DOCUMENTOS = 54;

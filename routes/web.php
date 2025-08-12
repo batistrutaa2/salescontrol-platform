@@ -158,6 +158,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/vendas/dados', [Vendas::class, 'dados'])->name('sale.dados');
   Route::get('/vendas/listar', [Vendas::class, 'listarVendas'])->name('sale.listarVendas');
   Route::get('/vendas/exportar', [Vendas::class, 'exportar'])->name('sale.exportar');
+  Route::get('/vendas/boletos/{id}', [Vendas::class, 'downloadBoleto'])->name('vendas.boleto.download');
 
 
 

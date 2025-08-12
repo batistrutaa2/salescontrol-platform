@@ -119,34 +119,49 @@ class Backoffice extends Controller
 
   public function alterStatusContract(Request $request)
   {
-    $sale = $this->vendasRepository->find($request->idSale);
-    $updateContract = $this->contatosCorretoresRepository->alterStatusContract($sale->contato_id, $request->tabulacao_id);
+    try {
+      $sale = $this->vendasRepository->find($request->idSale);
+      $updateContract = $this->contatosCorretoresRepository->alterStatusContract($sale->contato_id, $request->tabulacao_id);
 
-    if ($request->tabulacao_id == Tabulations::IMPLANTADO) {
-      $request->validate([
-        'comprovante' => 'required|file|mimes:jpeg,jpg,png,pdf',
-        'data_implantacao' => 'required|date',
-      ]);
+      if ($request->tabulacao_id == Tabulations::IMPLANTADO) {
+        $request->validate([
+          'comprovante' => 'required|file|mimes:jpeg,jpg,png,pdf',
+          'data_implantacao' => 'required|date',
+        ]);
 
-      $file = $request->file('comprovante');
-      $directory = "comprovantes/" . $sale->empresa_id . '/' . $sale->id;
-      $fileName = 'comprovante_pagamento.' . $file->getClientOriginalExtension();
-      Storage::putFileAs($directory, $file, $fileName);
+        $file = $request->file('comprovante');
+        $directory = "comprovantes/" . $sale->empresa_id . '/' . $sale->id;
+        $fileName = 'comprovante_pagamento.' . $file->getClientOriginalExtension();
+        Storage::putFileAs($directory, $file, $fileName);
 
-      $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao, $request->motivo_pendencia ?? null);
-    }
+        $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao, $request->motivo_pendencia ?? null);
+      }
 
+      if ($request->tabulacao_id == Tabulations::BOLETO_DISPONIVEL) {
+        $request->validate([
+          'boleto_disponivel' => 'required|file|mimes:jpeg,jpg,png,pdf',
+        ]);
 
-    if ($request->tabulacao_id == Tabulations::PENDENCIA || $request->tabulacao_id == Tabulations::DECLINIO || $request->tabulacao_id == Tabulations::ESTORNO) {
-      $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, NULL, $request->motivo_pendencia ?? null);
-    }
+        $file = $request->file('boleto_disponivel');
+        $directory = "boleto_disponiveis/" . $sale->empresa_id . '/' . $sale->id;
+        $fileName = "/boleto." . $file->getClientOriginalExtension();
+        Storage::putFileAs($directory, $file, $fileName);
+        $updateContract = $this->vendasRepository->saveTicket($sale->id, $directory . $fileName);
+      }
 
+      if ($request->tabulacao_id == Tabulations::PENDENCIA || $request->tabulacao_id == Tabulations::DECLINIO || $request->tabulacao_id == Tabulations::ESTORNO) {
+        $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, NULL, $request->motivo_pendencia ?? null);
+      }
 
-    if ($updateContract) {
-      return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Atualizado");
-    } else {
+      if ($updateContract) {
+        return redirect()->route(route: 'backoffice.index')->with('status', 'success')->with('message', "Contrato Atualizado");
+      } else {
+        return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
+      }
+    } catch (\Throwable $th) {
       return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
     }
+
   }
 
   public function downloadPaymentProof($id)

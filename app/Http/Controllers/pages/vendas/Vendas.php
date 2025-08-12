@@ -14,6 +14,7 @@ use App\Repositories\Eloquent\UsuariosRepository;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Enums\Tabulations;
+use Illuminate\Support\Facades\Storage;
 
 class Vendas extends Controller
 {
@@ -140,6 +141,23 @@ class Vendas extends Controller
             'message' => 'Exportação em desenvolvimento',
             'total_registros' => $vendas->count()
         ]);
+    }
+
+    public function downloadBoleto($id)
+    {
+        $venda = VendasModel::findOrFail($id);
+
+        $path = trim($venda->path_boleto_disponivel ?? '', '/');
+        if ($path === '') {
+            abort(404);
+        }
+
+        $downloadName = 'boleto-' . $venda->nome_contrato . '.' . (pathinfo($path, PATHINFO_EXTENSION) ?: 'pdf');
+        if (Storage::exists($path)) {
+            return Storage::download($path, $downloadName);
+        }
+
+        abort(404);
     }
 
     private function aplicarFiltros($request)
@@ -471,7 +489,6 @@ class Vendas extends Controller
             ->sum('a.valor_contrato');
 
 
-
         $quantidadeContatosMes = DB::table('contatos as a')
             ->leftJoin('contatos_corretores as b', 'a.id', '=', 'b.contato_id')
             ->where('b.user_id', auth()->user()->id)
@@ -494,7 +511,7 @@ class Vendas extends Controller
             ->where('a.user_id', auth()->user()->id)
             ->whereMonth('a.created_at', $request->mes)
             ->whereYear('a.created_at', $request->ano)
-            ->select('a.id', 'a.nome_contrato', 'c.descricao', 'a.valor_contrato', 'a.motivo_pendencia')
+            ->select('a.id', 'a.nome_contrato', 'c.descricao', 'a.valor_contrato', 'a.motivo_pendencia', 'a.path_boleto_disponivel')
             ->get();
 
         return response()->json([

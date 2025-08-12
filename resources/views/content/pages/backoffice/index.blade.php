@@ -167,6 +167,12 @@
                                 <input type="file" id="comprovante" name="comprovante" class="form-control"
                                     accept="image/*,application/pdf">
                             </div>
+
+                            <div id="proof-group-boleto-disponivel" class="mt-3" style="display: none;">
+                                <label for="boleto_pagamento" class="form-label">Boleto Disponivel</label>
+                                <input type="file" id="boleto_disponivel" name="boleto_disponivel" class="form-control"
+                                    accept="image/*,application/pdf">
+                            </div>
                             <div>
                                 <button class="btn btn-danger btn--twitter mt-5">Alterar Status</button>
                             </div>
