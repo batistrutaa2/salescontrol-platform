@@ -139,13 +139,49 @@
                         @php
                             $d = $notification->data;
                             $tipo = $d['tipo'] ?? 'generica';
+
+                            // defaults
+                            $icon = 'ri-notification-2-line';
+                            $chip = 'bg-secondary-subtle text-secondary';
+
+                            if ($tipo === 'agendamento') {
+                                $icon = 'ri-time-line';
+                                $chip = 'bg-warning-subtle text-warning';
+                            } elseif ($tipo === 'reuniao') {
+                                $icon = 'ri-calendar-event-line';
+                                $chip = 'bg-info-subtle text-info';
+                            } elseif ($tipo === 'status_venda') {
+                                $status = strtolower($d['status'] ?? '');
+                                if (in_array($status, ['aprovado', 'implantado', 'concluido', 'concluído'])) {
+                                    $icon = 'ri-check-double-line';
+                                    $chip = 'bg-success-subtle text-success';
+                                } elseif (in_array($status, ['recusado', 'cancelado', 'negado'])) {
+                                    $icon = 'ri-close-circle-line';
+                                    $chip = 'bg-danger-subtle text-danger';
+                                } elseif (in_array($status, ['pendente', 'analise', 'análise', 'andamento'])) {
+                                    $icon = 'ri-time-line';
+                                    $chip = 'bg-warning-subtle text-warning';
+                                } else {
+                                    $icon = 'ri-arrow-left-right-line';
+                                    $chip = 'bg-primary-subtle text-primary';
+                                }
+                            }
                         @endphp
 
                         <li class="list-group-item list-group-item-action dropdown-notifications-item">
-                            <a href="{{ $d['url'] ?? '#' }}" class="d-flex text-decoration-none text-reset">
+                            <a href="{{ $d['url'] ?? '#' }}"
+                                class="d-flex text-decoration-none text-reset align-items-start">
+                                {{-- Ícone/Chip à esquerda --}}
+                                <span
+                                    class="me-3 rounded-circle d-inline-flex align-items-center justify-content-center {{ $chip }}"
+                                    style="width: 36px; height: 36px;">
+                                    <i class="{{ $icon }} ri-18px"></i>
+                                </span>
+
+                                {{-- Conteúdo por tipo --}}
                                 <div class="flex-grow-1">
                                     @switch($tipo)
-                                        {{-- 1) Layout: Agendamento --}}
+                                        {{-- 1) Agendamento --}}
                                         @case('agendamento')
                                             <h6 class="small mb-1">{{ $d['titulo'] ?? 'Agendamento' }}</h6>
                                             <small class="mb-1 d-block text-body">
@@ -154,7 +190,7 @@
                                             </small>
                                         @break
 
-                                        {{-- 2) Layout: Reunião --}}
+                                        {{-- 2) Reunião --}}
                                         @case('reuniao')
                                             <h6 class="small mb-1">{{ $d['titulo'] ?? 'Reunião' }}</h6>
                                             <small class="mb-1 d-block text-body">
@@ -163,18 +199,18 @@
                                             </small>
                                         @break
 
-                                        {{-- 3) Layout: Status de Venda --}}
+                                        {{-- 3) Status de Venda (cores por status) --}}
                                         @case('status_venda')
                                             <h6 class="small mb-1">{{ $d['titulo'] ?? 'Status da venda atualizado' }}</h6>
                                             <small class="mb-1 d-block text-body">
                                                 {{ $d['mensagem'] ?? '' }}
                                                 @if (!empty($d['status']))
-                                                    <br>Status: {{ $d['status'] }}
+                                                    <br>Status: <strong>{{ $d['status'] }}</strong>
                                                 @endif
                                             </small>
                                         @break
 
-                                        {{-- Fallback para notificações legadas sem "tipo" --}}
+                                        {{-- Fallback para notificações legadas --}}
 
                                         @default
                                             <h6 class="small mb-1">{{ $d['titulo'] ?? 'Notificação' }}</h6>
@@ -183,7 +219,7 @@
                                                     {{ $d['mensagem'] }}
                                                 @else
                                                     @if (!empty($d['data_inicio']))
-                                                        Agendada para {{ $d['data_inicio'] }}<br>
+                                                        Quando: {{ $d['data_inicio'] }}<br>
                                                     @endif
                                                     @if (!empty($d['criado_por']))
                                                         Por: {{ $d['criado_por'] }}
@@ -203,6 +239,7 @@
                                 Sem notificações recentes.
                             </li>
                         @endforelse
+
 
                     </ul>
                 </li>
