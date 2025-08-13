@@ -68,20 +68,122 @@
     });
 
 
+    // Ajuste de estilo do Toastr (opcional)
+    toastr.options = {
+        closeButton: true,
+        progressBar: true,
+        newestOnTop: true,
+        preventDuplicates: true,
+        positionClass: "toast-bottom-right",
+        timeOut: 7000,
+        extendedTimeOut: 3000
+    };
+
     let notificacoesExibidas = [];
 
+    function listaNotificacoes(res) {
+        if (Array.isArray(res)) return res;
+        if (Array.isArray(res?.data)) return res.data;
+        return [];
+    }
+
+    function nivelPorStatus(status) {
+        const s = (status || '').toLowerCase();
+        if (['aprovado', 'implantado', 'concluido', 'concluído'].includes(s)) return 'success';
+        if (['recusado', 'cancelado', 'negado'].includes(s)) return 'error';
+        if (['pendente', 'analise', 'análise', 'andamento'].includes(s)) return 'warning';
+        return 'info';
+    }
+
+    function linkWrap(html, url) {
+        return url ? `<a href="${url}" class="text-decoration-underline" style="color:inherit">${html}</a>` : html;
+    }
+
+    // Renderizadores por tipo
+    function renderAgendamento(d) {
+        const tituloToast = 'Agendamento';
+        const corpo = `📅 ${d.titulo || 'Agendamento'}<br><small>
+      Quando: ${d.data_inicio || '-'}<br>
+      Por: ${d.criado_por || 'Desconhecido'}
+    </small>`;
+        return {
+            nivel: 'info',
+            tituloToast,
+            htmlMsg: linkWrap(corpo, d.url)
+        };
+    }
+
+    function renderReuniao(d) {
+        const tituloToast = 'Reunião';
+        const corpo = `🗓️ ${d.titulo || 'Reunião'}<br><small>
+      Início: ${d.data_inicio || '-'}<br>
+      Criado por: ${d.criado_por || 'Desconhecido'}
+    </small>`;
+        return {
+            nivel: 'info',
+            tituloToast,
+            htmlMsg: linkWrap(corpo, d.url)
+        };
+    }
+
+    function renderStatusVenda(d) {
+        const tituloToast = 'Status da Venda';
+        // Evita repetir “Status” se já veio na mensagem
+        const msg = d.mensagem || '';
+        const statusLine = d.status ? `<br>Status: <strong>${d.status}</strong>` : '';
+        const corpo = `🔔 ${d.titulo || 'Status da venda atualizado'}<br><small>${msg}${statusLine}</small>`;
+        return {
+            nivel: nivelPorStatus(d.status),
+            tituloToast,
+            htmlMsg: linkWrap(corpo, d.url)
+        };
+    }
+
+    function renderGenerica(d) {
+        const tituloToast = 'Notificação';
+        const linhas = [];
+        if (d.mensagem) linhas.push(d.mensagem);
+        if (d.data_inicio) linhas.push(`Quando: ${d.data_inicio}`);
+        if (d.criado_por) linhas.push(`Por: ${d.criado_por}`);
+        const corpo = `🔔 ${d.titulo || 'Notificação'}<br><small>${linhas.join('<br>')}</small>`;
+        return {
+            nivel: 'info',
+            tituloToast,
+            htmlMsg: linkWrap(corpo, d.url)
+        };
+    }
+
+    function montarToast(notif) {
+        const d = notif?.data || {};
+        switch ((d.tipo || 'generica')) {
+            case 'agendamento':
+                return renderAgendamento(d);
+            case 'reuniao':
+                return renderReuniao(d);
+            case 'status_venda':
+                return renderStatusVenda(d);
+            default:
+                return renderGenerica(d);
+        }
+    }
+
     function buscarNotificacoes() {
-        console.log("Buscando notificações...");
         $.get("{{ route('notificacoes.novas') }}")
             .done(function(res) {
-                console.log("Notificações recebidas:", res);
-                res.forEach(n => {
-                    if (!notificacoesExibidas.includes(n.id)) {
-                        toastr.info(
-                            `📅 ${n.data.titulo}<br><small>Agendada para ${n.data.data_inicio}</small>`,
-                            'Nova Notificação'
-                        );
-                        notificacoesExibidas.push(n.id);
+                const lista = listaNotificacoes(res);
+                lista.forEach(n => {
+                    if (!n?.id || notificacoesExibidas.includes(n.id)) return;
+
+                    const {
+                        nivel,
+                        tituloToast,
+                        htmlMsg
+                    } = montarToast(n);
+                    (toastr[nivel] || toastr.info)(htmlMsg, tituloToast);
+
+                    notificacoesExibidas.push(n.id);
+                    if (notificacoesExibidas.length > 200) {
+                        notificacoesExibidas = notificacoesExibidas.slice(-100);
                     }
                 });
             })
@@ -91,6 +193,6 @@
     }
 
     document.addEventListener("DOMContentLoaded", buscarNotificacoes);
-    setInterval(buscarNotificacoes, 60000)
+    setInterval(buscarNotificacoes, 60000);
 </script>
 @endif

@@ -130,7 +130,6 @@ $(document).ready(function () {
         }
       },
       error: function (err) {
-        console.error('Erro ao buscar relatório:', err);
         toastr.error('Erro ao carregar dados do relatório.');
       }
     });
