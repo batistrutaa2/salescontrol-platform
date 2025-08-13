@@ -3,15 +3,15 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 
-class StatusPropostaAlterada extends Notification implements ShouldQueue
+class StatusPropostaAlterada extends Notification
 {
+    use Queueable;
 
     public function __construct(
-        public readonly object $venda,
+        public readonly int $vendaId,
         public readonly string $novoStatus,
         public readonly ?int $alteradoPorId = null,
         public readonly ?string $alteradoPorNome = null,
@@ -20,17 +20,16 @@ class StatusPropostaAlterada extends Notification implements ShouldQueue
 
     public function via($notifiable)
     {
-        // database p/ aparecer no seu dropdown; broadcast se quiser tempo real depois
         return ['database', 'broadcast'];
     }
 
-    public function toArray($notifiable)
+    public function toDatabase($notifiable)
     {
         return [
             'tipo' => 'status_venda',
-            'titulo' => "Status da venda #{$this->venda->id} Atualizado",
+            'titulo' => "Status da venda #{$this->vendaId} Atualizado",
             'mensagem' => "O status foi alterado para {$this->novoStatus}.",
-            'venda_id' => $this->venda->id,
+            'venda_id' => $this->vendaId,
             'status' => $this->novoStatus,
             'url' => route('sale.listSale'),
             'criado_por' => $this->alteradoPorNome ?? 'Sistema',
@@ -40,6 +39,6 @@ class StatusPropostaAlterada extends Notification implements ShouldQueue
 
     public function toBroadcast($notifiable)
     {
-        return new BroadcastMessage($this->toArray($notifiable));
+        return new BroadcastMessage($this->toDatabase($notifiable));
     }
 }

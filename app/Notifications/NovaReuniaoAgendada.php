@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 
 class NovaReuniaoAgendada extends Notification
 {
+    use Queueable;
 
     protected $reuniao;
 

@@ -160,7 +160,7 @@ class Backoffice extends Controller
         $tabulation = Tabulacoes::find($request->tabulacao_id);
         $vendedor = User::findOrFail($sale->user_id);
         $vendedor->notify(new StatusPropostaAlterada(
-          venda: $sale,
+          vendaId: $sale->id,
           novoStatus: $tabulation->descricao,
           alteradoPorId: Auth::id(),
           alteradoPorNome: Auth::user()->name ?? null
@@ -170,7 +170,6 @@ class Backoffice extends Controller
         return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
       }
     } catch (\Throwable $th) {
-      dd($th);
       return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
     }
 
