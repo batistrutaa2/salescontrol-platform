@@ -467,7 +467,8 @@ class Vendas extends Controller
                 Tabulations::BOLETO_DISPONIVEL,
                 Tabulations::REGULARIZADO,
                 Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                Tabulations::ANALISE_DOCUMENTOS
+                Tabulations::ANALISE_DOCUMENTOS,
+                Tabulations::AGUARD_ASSINATURA_DS,
             ]);
         });
     }

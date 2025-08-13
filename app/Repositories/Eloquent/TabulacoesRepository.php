@@ -41,7 +41,8 @@ class TabulacoesRepository implements TabulacoesRepositoryInterface
         'REGULARIZADO',
         'CONTR. GERADO - AGUARDANDO ASSINATURA',
         'PENDENCIA',
-        'ANALISE DE DOCUMENTOS'
+        'ANALISE DE DOCUMENTOS',
+        'AGUARD. ASSINATURA DA DS'
       ])
       ->get();
   }

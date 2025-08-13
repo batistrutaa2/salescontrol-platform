@@ -447,6 +447,7 @@ class VendasRepository implements VendasRepositoryInterface
         Tabulations::REGULARIZADO,
         Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
         Tabulations::ANALISE_DOCUMENTOS,
+        Tabulations::AGUARD_ASSINATURA_DS,
       ])
       ->groupBy('b.name')
       ->get();
@@ -485,6 +486,7 @@ class VendasRepository implements VendasRepositoryInterface
           Tabulations::REGULARIZADO,
           Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
           Tabulations::ANALISE_DOCUMENTOS,
+          Tabulations::AGUARD_ASSINATURA_DS,
         ]
       )
       ->where('a.empresa_id', $empresa_id)
