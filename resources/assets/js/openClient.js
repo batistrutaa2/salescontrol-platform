@@ -8,7 +8,7 @@
   const inputCpf = document.querySelector('#cpf');
   if (inputCpf) {
     function applyMaskBasedOnLength(value) {
-      const cleanValue = (value || '').replace(/[.-\/]/g, '');
+      const cleanValue = (value || '').replace(/[.\-\/]/g, '');
       return cleanValue.length > 11
         ? { delimiters: ['.', '.', '/', '-'], blocks: [2, 3, 3, 4, 2] }
         : { delimiters: ['.', '.', '-'], blocks: [3, 3, 3, 2] };
@@ -35,7 +35,6 @@
 
   // Máscara monetária
   const monetaryFields = document.querySelectorAll('.monetary-field');
-
   monetaryFields.forEach(function (field) {
     if (!field) return;
 
@@ -60,13 +59,12 @@
     });
   });
 
-
   // Select2 (com proteção)
   let select2 = $('.select2');
   if (select2 && select2.length) {
     function renderLabels(option) {
       if (!option.id) return option.text;
-      var $badge = "<div class='badge " + $(option.element).data('color') + " rounded-pill'> " + option.text + '</div>';
+      var $badge = "<div class='badge " + ($(option.element).data('color') || '') + " rounded-pill'> " + option.text + '</div>';
       return $badge;
     }
     select2.each(function () {
@@ -96,11 +94,51 @@
       placeholder: 'Atualize sua negociação..',
       theme: 'snow'
     });
+
+    // === HARDEN QUILL CONTRA EXTENSÕES ===
+    (function hardenQuill() {
+      const editorRoot = quill.root; // .ql-editor
+      let internalChange = false;
+      let lastSafeDelta = quill.getContents();
+      const DeltaClass = (Quill.imports && (Quill.imports['delta'] || Quill.imports['parchment'])) ? Quill.imports['delta'] : null;
+
+      quill.on('text-change', () => {
+        internalChange = true;
+        if (quill.getLength() > 1) lastSafeDelta = quill.getContents();
+        queueMicrotask(() => (internalChange = false));
+      });
+
+      const mo = new MutationObserver(() => {
+        const empty = editorRoot.innerText.trim().length === 0;
+        if (empty && !internalChange) {
+          quill.setContents(lastSafeDelta);
+        }
+      });
+      mo.observe(editorRoot, { childList: true, subtree: true, characterData: true });
+
+      // Remove nós suspeitos comuns de extensões no *paste*
+      const suspiciousClassRx = /^(gr-|lt-|microsoft-editor)/i;
+      quill.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
+        if (node.classList && [...node.classList].some(c => suspiciousClassRx.test(c))) {
+          return DeltaClass ? new DeltaClass() : delta; // descarta o nó suspeito
+        }
+        return delta;
+      });
+
+      // Fail-safe extra contra deleções externas que zeram tudo
+      editorRoot.addEventListener('beforeinput', (e) => {
+        if (e.inputType && e.inputType.startsWith('delete') && quill.getLength() <= 1) {
+          e.preventDefault();
+        }
+      });
+    })();
+
     commentEditorElement.addEventListener('paste', () => {
       setTimeout(() => {
         const html = quill.root.innerHTML;
         if (!isEditorContentEmpty(html)) {
-          console.log('Conteúdo colado:', html);
+          // debug opcional
+          // console.log('Conteúdo colado:', html);
         }
       }, 50);
     });
@@ -364,7 +402,8 @@
   }
 
   // Modal de venda via SweetAlert (protegido + correção "success")
-  const selectElement = document.getElementById('label');
+  // Usa seletor POR NAME para evitar conflito com o id="label" duplicado no blade
+  const selectElement = document.querySelector('select[name="tabulacao_id"]');
   let oldValue = selectElement ? selectElement.value : '';
   if (selectElement) {
     selectElement.addEventListener('focus', function () {
@@ -652,4 +691,4 @@
 
 })(); // IIFE
 
-$(function () { })
+$(function () { });

@@ -471,7 +471,8 @@
                             <h5 class="mb-0 card-title">Adicionar Comentario</h5>
                         </div>
                         <div class="card-body">
-                            <form action="{{ route('comercial.saveComment') }}" method="POST" id="saveComment">
+                            <form action="{{ route('comercial.saveComment') }}" method="POST" id="saveComment"
+                                autocomplete="off">
                                 @csrf
                                 <input type="hidden" name="id_mailing" value="{{ $client->id }}">
                                 <input type="hidden" value="{{ $tabulationCurrent }}" name="id_tabulacao">
@@ -488,7 +489,10 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        <div class="comment-editor border-0 pb-1" id="ecommerce-category-description">
+                                        <div class="comment-editor border-0 pb-1" id="ecommerce-category-description"
+                                            data-gramm="false" data-lt-active="false" data-ms-editor="false"
+                                            autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"
+                                            role="textbox" aria-autocomplete="none">
                                         </div>
                                     </div>
                                     <div>
