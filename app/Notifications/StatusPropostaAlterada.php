@@ -9,7 +9,6 @@ use Illuminate\Notifications\Notification;
 
 class StatusPropostaAlterada extends Notification implements ShouldQueue
 {
-    use Queueable;
 
     public function __construct(
         public readonly object $venda,

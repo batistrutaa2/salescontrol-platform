@@ -9,8 +9,6 @@ use Illuminate\Notifications\Notification;
 
 class AgendamentoNotificacao extends Notification
 {
-    use Queueable;
-
     public $agendamento;
 
     public function __construct($agendamento)
