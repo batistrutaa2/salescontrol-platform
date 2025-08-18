@@ -77,6 +77,16 @@
       ]
     },
     {
+      "url": "/comercial/demandas",
+      "name": "Demandas",
+      "icon": "menu-icon tf-icons ri-task-line",
+      "slug": "comercial-demandas",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER"
+      ]
+    },
+    {
       "name": "Usuarios",
       "icon": "menu-icon tf-icons ri-user-line",
       "slug": "dashboard",

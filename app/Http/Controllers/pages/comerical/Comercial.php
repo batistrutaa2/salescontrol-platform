@@ -4,9 +4,11 @@ namespace App\Http\Controllers\pages\comerical;
 
 use App\Models\Comentarios;
 use App\Models\Contatos;
+use App\Models\Demanda;
 use App\Models\Dependentes;
 use App\Models\Operadora;
 use App\Models\Plano;
+use App\Models\User;
 use DateTime;
 use Carbon\Carbon;
 use App\Enums\UserRole;
@@ -46,8 +48,8 @@ use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Comercial extends Controller
 {
@@ -1011,5 +1013,91 @@ class Comercial extends Controller
       ->get(['id', 'nome', 'acomodacao']);
 
     return response()->json($planos);
+  }
+
+  public function demands()
+  {
+    $users = User::select('id', 'name')
+      ->where('user_role_id', UserRole::ADMINISTRATIVO)
+      ->where('empresa_id', Auth::user()->empresa_id)
+      ->orderBy('name')->get();
+
+    return view('content.pages.comercial.demandas', [
+      'users' => $users,
+    ]);
+  }
+
+  public function list(Request $request)
+  {
+    $q = Demanda::with(['criador:id,name', 'responsavel:id,name'])
+      ->when($request->status && $request->status !== 'TODOS', fn($s) => $s->where('status', $request->status))
+      ->when($request->prioridade && $request->prioridade !== 'TODAS', fn($s) => $s->where('prioridade', $request->prioridade))
+      ->when($request->assigned_to, fn($s) => $s->where('assigned_to', $request->assigned_to))
+      ->orderByDesc('created_at');
+
+    return response()->json([
+      'data' => $q->get()->map(function ($d) {
+        return [
+          'id' => $d->id,
+          'titulo' => $d->titulo,
+          'descricao' => Str::limit($d->descricao, 120),
+          'prioridade' => $d->prioridade,
+          'status' => $d->status,
+          'responsavel' => $d->responsavel?->name,
+          'criador' => $d->criador?->name,
+          'data_limite' => optional($d->data_limite)->format('Y-m-d'),
+          'created_at' => $d->created_at->toDateTimeString(),
+        ];
+      })
+    ]);
+  }
+
+  public function store(Request $r)
+  {
+    $data = $r->validate([
+      'titulo' => 'required|string|max:255',
+      'descricao' => 'nullable|string',
+      'prioridade' => 'required|in:BAIXA,MEDIA,ALTA',
+      'assigned_to' => 'nullable|exists:users,id',
+      'data_limite' => 'nullable|date',
+    ]);
+
+    $data['empresa_id'] = auth()->user()->empresa_id;
+    $data['created_by'] = auth()->id();
+
+    $d = Demanda::create($data);
+    return response()->json(['ok' => true, 'id' => $d->id]);
+  }
+
+  public function update($id, Request $r)
+  {
+    $d = Demanda::findOrFail($id);
+    $data = $r->validate([
+      'titulo' => 'required|string|max:255',
+      'descricao' => 'nullable|string',
+      'prioridade' => 'required|in:BAIXA,MEDIA,ALTA',
+      'assigned_to' => 'nullable|exists:users,id',
+      'data_limite' => 'nullable|date',
+    ]);
+    $d->update($data);
+    return response()->json(['ok' => true]);
+  }
+
+  public function updateStatus($id, Request $r)
+  {
+    $d = Demanda::findOrFail($id);
+    $r->validate(['status' => 'required|in:ABERTA,EM_ANDAMENTO,CONCLUIDA,CANCELADA']);
+
+    $d->status = $r->status;
+    $d->concluida_em = $r->status === 'CONCLUIDA' ? now() : null;
+    $d->save();
+
+    return response()->json(['ok' => true]);
+  }
+
+  public function destroy($id)
+  {
+    Demanda::whereKey($id)->delete();
+    return response()->json(['ok' => true]);
   }
 }

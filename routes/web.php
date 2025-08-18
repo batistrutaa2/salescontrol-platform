@@ -105,8 +105,13 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/descartar-cliente/{id}', [Comercial::class, 'descartarCliente'])->name('comercial.descartar');
   Route::post('/comercial/descartar-multiplos-leads', [Comercial::class, 'discardMultipleLeads'])->name('comercial.discardMultipleLeads');
   Route::get('/comercial/getPlansByOperator/{operadora_id}', [Comercial::class, 'getPlansByOperator'])->name('comercial.getPlansByOperator');
+  Route::get('/comercial/demandas', [Comercial::class, 'demands'])->name('comercial.demands');
 
-
+  Route::get('/comercial/demandas/list', [Comercial::class, 'list'])->name('demandas.list');
+  Route::post('/comercial/demandas', [Comercial::class, 'store'])->name('demandas.store');
+  Route::put('/comercial/demandas/{id}', [Comercial::class, 'update'])->name('demandas.update');
+  Route::patch('/comercial/demandas/{id}/status', [Comercial::class, 'updateStatus'])->name('demandas.status');
+  Route::delete('/comercial/demandas/{id}', [Comercial::class, 'destroy'])->name('demandas.destroy');
 
   Route::get('/comercial/calendario-reunioes', [ReunioesComercial::class, 'index'])->name('comercialReunioes.index');
   Route::get('/reunioes/data', [ReunioesComercial::class, 'getReunioes']);
