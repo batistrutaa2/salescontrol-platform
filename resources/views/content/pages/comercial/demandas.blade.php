@@ -14,6 +14,49 @@
     @vite('resources/assets/js/demandas.js')
 @endsection
 
+
+@section('page-style')
+    <style>
+        .kanban-card.kanban-overdue {
+            border: 1px solid var(--bs-danger);
+            animation: pulse-danger 2s infinite;
+        }
+
+        .kanban-card.kanban-overdue::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--bs-danger);
+            border-top-left-radius: .5rem;
+            border-bottom-left-radius: .5rem;
+        }
+
+        .kanban-card {
+            position: relative;
+        }
+
+        .overdue-badge {
+            font-size: .675rem;
+        }
+
+        @keyframes pulse-danger {
+            0% {
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, .35);
+            }
+
+            70% {
+                box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+            }
+        }
+    </style>
+
 @section('content')
     <div class="card">
         <div class="card-header d-flex flex-wrap gap-2 align-items-center">
