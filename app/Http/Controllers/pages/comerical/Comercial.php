@@ -1020,6 +1020,7 @@ class Comercial extends Controller
     $users = User::select('id', 'name')
       ->where('user_role_id', UserRole::ADMINISTRATIVO)
       ->where('empresa_id', Auth::user()->empresa_id)
+      ->where('ativo', 'Y')
       ->orderBy('name')->get();
 
     return view('content.pages.comercial.demandas', [
