@@ -90,4 +90,28 @@ class RankingVendas extends Controller
 
     }
 
+    public function valoresMensais(Request $request)
+    {
+        $tz = 'America/Sao_Paulo';
+
+        $year = (int) ($request->input('year') ?? now($tz)->year);
+        $month = (int) ($request->input('month') ?? now($tz)->month);
+
+        $start = Carbon::createFromDate($year, $month, 1, $tz)->startOfMonth();
+        $end = (clone $start)->endOfMonth();
+
+        $rows = DB::table('vendas as v')
+            ->join('users as u', 'u.id', '=', 'v.user_id')
+            ->selectRaw('v.user_id, u.name as vendedor, COALESCE(SUM(v.valor_contrato),0) as total')
+            ->where('v.empresa_id', auth()->user()->empresa_id)
+            ->when($request->integer('empresa_id'), fn($q, $v) => $q->where('v.empresa_id', $v))
+            ->whereBetween('v.created_at', [$start, $end])
+            ->groupBy('v.user_id', 'u.name')
+            ->orderByDesc('total')
+            ->get();
+
+        return response()->json(['data' => $rows], 200);
+    }
+
+
 }

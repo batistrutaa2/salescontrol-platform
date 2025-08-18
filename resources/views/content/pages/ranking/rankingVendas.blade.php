@@ -77,4 +77,17 @@
             </div>
         </div>
     </div>
+
+    {{-- Vendas do mês (gráfico) --}}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📈 Vendas do Mês</h5>
+            <small class="text-muted">Valores confirmados no mês corrente</small>
+        </div>
+        <div class="card-body">
+            <div id="chart-vendas-mes" style="min-height: 320px;"></div>
+        </div>
+    </div>
+
+
 @endsection

@@ -188,6 +188,8 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/ranking/configuracao', [RankingVendas::class, 'config'])->name('ranking.config');
   Route::get('/ranking-vendas', [RankingVendas::class, 'rankingVendas'])->name('ranking.rankingVendas');
   Route::get('/rankingVendasData', [RankingVendas::class, 'rankingVendasData'])->name('ranking.rankingVendasData');
+  Route::get('/vendas/valores-mensais', [RankingVendas::class, 'valoresMensais'])->name('ranking.valoresMensais');
+
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
 
