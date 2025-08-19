@@ -33,11 +33,11 @@ class ContatosImportDependencies implements ToModel
 
         // Dados do lead
         $nome = $row[0];
-        $cpf = $row[1];
-        $idade = (int) $row[2];
-        $parentesco = strtoupper($row[3]);
-        $valorPlano = $row[4];
-        $cartegoria = $row[5];
+        $cartegoria = $row[1];
+        $cpf = $row[2];
+        $idade = (int) $row[3];
+        $parentesco = strtoupper($row[4]);
+        $valorPlano = $row[5];
         $entidade = $row[6];
         $valorPlano = round($valorPlano, 2);
 
