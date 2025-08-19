@@ -318,7 +318,8 @@
         "VENDEDOR",
         "DEVELOPER",
         "ADMINISTRATIVO",
-        "BACKOFFICE"
+        "BACKOFFICE",
+        "SUPERVISOR"
       ]
     }
   ]
