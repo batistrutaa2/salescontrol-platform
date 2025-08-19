@@ -134,6 +134,4 @@ class RankingVendas extends Controller
 
         return response()->json(['data' => $rows], 200);
     }
-
-
 }

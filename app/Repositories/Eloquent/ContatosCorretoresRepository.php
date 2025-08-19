@@ -23,7 +23,7 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
 
   public function getClientComercial(string $rulerUser, string $empresa_id)
   {
-    if ($rulerUser == UserRole::ADMINISTRATIVO || $rulerUser == UserRole::BACKOFFICE) {
+    if ($rulerUser == UserRole::ADMINISTRATIVO || $rulerUser == UserRole::BACKOFFICE || $rulerUser == UserRole::SUPERVISOR) {
       return $this->model::select(
         'tabulacoes.id',
         'tabulacoes.descricao as title',

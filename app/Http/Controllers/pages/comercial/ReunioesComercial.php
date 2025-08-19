@@ -16,7 +16,7 @@ class ReunioesComercial extends Controller
 {
     public function index()
     {
-        $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO')->first()->id;
+        $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO', 'SUPERVISOR')->first()->id;
 
         $managers = User::where('user_role_id', $managerRoleId)
             ->where('ativo', 'Y')
@@ -70,7 +70,7 @@ class ReunioesComercial extends Controller
             $empresaId = Auth::user()->empresa_id;
 
             // Verificar se o usuário selecionado é realmente um gestor
-            $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO')->first()->id;
+            $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO', 'SUPERVISOR')->first()->id;
             $manager = User::where('id', $request->manager_id)
                 ->where('user_role_id', $managerRoleId)
                 ->first();
@@ -160,7 +160,7 @@ class ReunioesComercial extends Controller
         }
 
         // Verificar se o usuário selecionado é realmente um gestor
-        $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO')->first()->id;
+        $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO', 'SUPERVISOR')->first()->id;
         $manager = User::where('id', $request->manager_id)
             ->where('user_role_id', $managerRoleId)
             ->first();
@@ -237,7 +237,7 @@ class ReunioesComercial extends Controller
         $empresaId = Auth::user()->empresa_id;
 
         // Verificar se o gestor pertence à mesma empresa do usuário
-        $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO')->first()->id;
+        $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO','SUPERVISOR')->first()->id;
         $manager = User::where('id', $managerId)
             ->where('user_role_id', $managerRoleId)
             ->where('empresa_id', $empresaId)

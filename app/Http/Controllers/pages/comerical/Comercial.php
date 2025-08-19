@@ -196,7 +196,7 @@ class Comercial extends Controller
 
   private function showNameUserCard($typeUser): bool
   {
-    if ($typeUser->user_role_id == UserRole::ADMINISTRATIVO || $typeUser->user_role_id == UserRole::BACKOFFICE) {
+    if ($typeUser->user_role_id == UserRole::ADMINISTRATIVO || $typeUser->user_role_id == UserRole::BACKOFFICE || $typeUser->user_role_id == UserRole::SUPERVISOR) {
       return true;
     }
     return false;
@@ -344,7 +344,7 @@ class Comercial extends Controller
     $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
 
     $permiteEdition = false;
-    if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
+    if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER || Auth::user()->role->id === UserRole::SUPERVISOR) {
       $permiteEdition = true;
     }
     $cotacoes = [];

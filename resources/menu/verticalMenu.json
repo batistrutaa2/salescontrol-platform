@@ -8,7 +8,8 @@
       "rules": [
         "ADMINISTRATIVO",
         "BACKOFFICE",
-        "DEVELOPER"
+        "DEVELOPER",
+        "SUPERVISOR"
       ]
     },
     {
@@ -31,7 +32,8 @@
       "rules": [
         "ADMINISTRATIVO",
         "BACKOFFICE",
-        "DEVELOPER"
+        "DEVELOPER",
+        "SUPERVISOR"
       ]
     },
     {
@@ -42,7 +44,8 @@
       "rules": [
         "ADMINISTRATIVO",
         "DEVELOPER",
-        "BACKOFFICE"
+        "BACKOFFICE",
+        "SUPERVISOR"
       ]
     },
     {
@@ -52,7 +55,8 @@
       "slug": "comercial-agendamentos",
       "rules": [
         "ADMINISTRATIVO",
-        "DEVELOPER"
+        "DEVELOPER",
+        "SUPERVISOR"
       ]
     },
     {
@@ -63,7 +67,8 @@
       "rules": [
         "ADMINISTRATIVO",
         "DEVELOPER",
-        "BACKOFFICE"
+        "BACKOFFICE",
+        "SUPERVISOR"
       ]
     },
     {
@@ -73,7 +78,8 @@
       "slug": "comercial-remarketing",
       "rules": [
         "ADMINISTRATIVO",
-        "DEVELOPER"
+        "DEVELOPER",
+        "SUPERVISOR"
       ]
     },
     {
@@ -92,7 +98,8 @@
       "slug": "dashboard",
       "rules": [
         "DEVELOPER",
-        "ADMINISTRATIVO"
+        "ADMINISTRATIVO",
+        "SUPERVISOR"
       ],
       "submenu": [
         {
@@ -162,6 +169,31 @@
           "name": "Relatorio de Implantação",
           "slug": "pages-relatorio-implantacoes"
         },
+        {
+          "url": "/relatorios/preditiva",
+          "name": "Relatorio Preditivo",
+          "slug": "pages-relatorio-preditiva"
+        },
+        {
+          "url": "/relatorios/ligacoes",
+          "name": "Ligações (Geral)",
+          "slug": "pages-users-ligacoes"
+        },
+        {
+          "url": "/relatorios/atividade",
+          "name": "Atividade Vendedor",
+          "slug": "pages-users-atividade"
+        }
+      ]
+    },
+    {
+      "name": "Relatorios",
+      "icon": "menu-icon tf-icons ri-bar-chart-fill",
+      "slug": "dashboard",
+      "rules": [
+        "SUPERVISOR"
+      ],
+      "submenu": [
         {
           "url": "/relatorios/preditiva",
           "name": "Relatorio Preditivo",
@@ -273,7 +305,8 @@
       "slug": "clientes-vendas",
       "rules": [
         "VENDEDOR",
-        "DEVELOPER"
+        "DEVELOPER",
+        "SUPERVISOR"
       ]
     },
     {

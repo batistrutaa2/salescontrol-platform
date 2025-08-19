@@ -48,7 +48,7 @@ class AgendamentoRepository implements AgendamentoRepositoryInterface
     try {
 
 
-      if ($rulerUser == UserRole::ADMINISTRATIVO || $rulerUser == UserRole::DEVELOPER) {
+      if ($rulerUser == UserRole::ADMINISTRATIVO || $rulerUser == UserRole::DEVELOPER || $rulerUser == UserRole::SUPERVISOR) {
         return $this->model->select('c.id', 'b.name AS nome_corretor', 'c.nome_cliente', 'agendamentos.horario_agendamento', 'agendamentos.notificado')
           ->leftJoin('users AS b', 'b.id', '=', 'agendamentos.user_id')
           ->leftJoin('contatos AS c', 'c.id', '=', 'agendamentos.contato_id')
