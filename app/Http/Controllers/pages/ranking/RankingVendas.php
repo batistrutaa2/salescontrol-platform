@@ -49,7 +49,17 @@ class RankingVendas extends Controller
             ->join('users', 'users.id', '=', 'vendas.user_id')
             ->join('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
             ->where('vendas.empresa_id', $empresaId)
-            ->whereIn('contatos_corretores.tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO]);
+            ->whereIn('contatos_corretores.tabulacao_id', [
+                Tabulations::VENDA,
+                Tabulations::IMPLANTADO,
+                Tabulations::PENDENCIA,
+                Tabulations::ANALISE_OPERADORA,
+                Tabulations::BOLETO_DISPONIVEL,
+                Tabulations::REGULARIZADO,
+                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                Tabulations::ANALISE_DOCUMENTOS,
+                Tabulations::AGUARD_ASSINATURA_DS
+            ]);
 
 
         if ($meta->periodo === 'MENSAL') {
@@ -102,10 +112,22 @@ class RankingVendas extends Controller
 
         $rows = DB::table('vendas as v')
             ->join('users as u', 'u.id', '=', 'v.user_id')
+            ->join('contatos_corretores', 'contatos_corretores.contato_id', '=', 'v.contato_id')
             ->selectRaw('v.user_id, u.name as vendedor, COALESCE(SUM(v.valor_contrato),0) as total')
             ->where('v.empresa_id', auth()->user()->empresa_id)
             ->when($request->integer('empresa_id'), fn($q, $v) => $q->where('v.empresa_id', $v))
             ->whereBetween('v.created_at', [$start, $end])
+            ->whereIn('contatos_corretores.tabulacao_id', [
+                Tabulations::VENDA,
+                Tabulations::IMPLANTADO,
+                Tabulations::PENDENCIA,
+                Tabulations::ANALISE_OPERADORA,
+                Tabulations::BOLETO_DISPONIVEL,
+                Tabulations::REGULARIZADO,
+                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                Tabulations::ANALISE_DOCUMENTOS,
+                Tabulations::AGUARD_ASSINATURA_DS
+            ])
             ->groupBy('v.user_id', 'u.name')
             ->orderByDesc('total')
             ->get();
