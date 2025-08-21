@@ -373,39 +373,61 @@ class VendasRepository implements VendasRepositoryInterface
     }
   }
 
-
   public function conversaoMensalPorData($empresa_id, $month, $year)
   {
-    $quantidadeVendasMes = DB::table('contatos as a')
-      ->leftJoin('contatos_corretores as b', 'a.id', '=', 'b.contato_id')
-      ->where(function ($query) {
-        $query->where('b.tabulacao_id', Tabulations::VENDA)
-          ->orWhere('b.tabulacao_id', Tabulations::IMPLANTADO);
-      })
-      ->where('b.empresa_id', $empresa_id)
-      ->whereMonth('a.created_at', $month)
-      ->whereYear('a.created_at', $year)
+    $inicio = Carbon::createFromDate($year, $month, 1, 'America/Sao_Paulo')->startOfMonth();
+    $fim = Carbon::createFromDate($year, $month, 1, 'America/Sao_Paulo')->endOfMonth();
+
+    // Timestamp efetivo do log (event time do registro)
+    $tsCol = DB::raw('COALESCE(lead_atividades.updated_at, lead_atividades.created_at)');
+
+    // === Denominador: contatos trabalhados no período (DEDUPLICADO por contato_id) ===
+    $trabalhadosSub = DB::table('lead_atividades')
+      ->select('contato_id')
+      ->where('empresa_id', $empresa_id)
+      ->whereBetween($tsCol, [$inicio, $fim])
+      ->groupBy('contato_id');
+
+    $quantidadeContatosMes = DB::query()
+      ->fromSub($trabalhadosSub, 't')
       ->count();
 
-    $quantidadeContatosMes = DB::table('contatos as a')
-      ->leftJoin('contatos_corretores as b', 'a.id', '=', 'b.contato_id')
-      ->where('b.empresa_id', $empresa_id)
-      ->whereMonth('a.created_at', $month)
+    // === Numerador (como você já usa hoje): vendas no período ===
+    $quantidadeVendasMes = DB::table('vendas as a')
+      ->select('b.name', DB::raw('SUM(a.valor_contrato) as total_vendas'))
+      ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
+      ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
+      ->leftJoin('tabulacoes as d', 'd.id', '=', 'c.tabulacao_id')
       ->whereYear('a.created_at', $year)
+      ->whereMonth('a.created_at', $month)
+      ->where('a.empresa_id', $empresa_id)
+      ->whereIn('c.tabulacao_id', [
+        Tabulations::VENDA,
+        Tabulations::IMPLANTADO,
+        Tabulations::PENDENCIA,
+        Tabulations::ANALISE_OPERADORA,
+        Tabulations::BOLETO_DISPONIVEL,
+        Tabulations::REGULARIZADO,
+        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+        Tabulations::ANALISE_DOCUMENTOS,
+        Tabulations::AGUARD_ASSINATURA_DS,
+      ])
+      ->groupBy('b.name')
       ->count();
+
     return $this->calculoConversao($quantidadeContatosMes, $quantidadeVendasMes);
   }
 
-  private function calculoConversao($quantidadeContatos, $quantidadeVendas)
+  private function calculoConversao(int $quantidadeContatos, int $quantidadeVendas): string
   {
-    if ($quantidadeVendas == 0) {
-      return 0;
+    if ($quantidadeContatos === 0 || $quantidadeVendas === 0) {
+      return '0,00';
     }
 
     $conversao = ($quantidadeVendas / $quantidadeContatos) * 100;
-
     return number_format($conversao, 2, ',', '.');
   }
+
 
 
   public function quantidadeContatosMes($user_id, $empresa_id, $role_user_id)
