@@ -381,26 +381,19 @@ class VendasRepository implements VendasRepositoryInterface
     // Timestamp efetivo do log (event time do registro)
     $tsCol = DB::raw('COALESCE(lead_atividades.updated_at, lead_atividades.created_at)');
 
-    // === Denominador: contatos trabalhados no período (DEDUPLICADO por contato_id) ===
-    $trabalhadosSub = DB::table('lead_atividades')
-      ->select('contato_id')
+    // === Denominador: contatos trabalhados no período (dedup por contato_id) ===
+    $quantidadeContatosMes = DB::table('lead_atividades')
       ->where('empresa_id', $empresa_id)
       ->whereBetween($tsCol, [$inicio, $fim])
-      ->groupBy('contato_id');
+      ->distinct('contato_id')
+      ->count('contato_id');
 
-    $quantidadeContatosMes = DB::query()
-      ->fromSub($trabalhadosSub, 't')
-      ->count();
-
-    // === Numerador (como você já usa hoje): vendas no período ===
+    // === Numerador: total de vendas no período ===
+    // Mantive o filtro de tabulação, mas removi select/groupBy para contar vendas de fato.
     $quantidadeVendasMes = DB::table('vendas as a')
-      ->select('b.name', DB::raw('SUM(a.valor_contrato) as total_vendas'))
-      ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
       ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
-      ->leftJoin('tabulacoes as d', 'd.id', '=', 'c.tabulacao_id')
-      ->whereYear('a.created_at', $year)
-      ->whereMonth('a.created_at', $month)
       ->where('a.empresa_id', $empresa_id)
+      ->whereBetween('a.created_at', [$inicio, $fim])
       ->whereIn('c.tabulacao_id', [
         Tabulations::VENDA,
         Tabulations::IMPLANTADO,
@@ -412,8 +405,8 @@ class VendasRepository implements VendasRepositoryInterface
         Tabulations::ANALISE_DOCUMENTOS,
         Tabulations::AGUARD_ASSINATURA_DS,
       ])
-      ->groupBy('b.name')
-      ->count();
+      ->distinct('a.id')          // evita duplicar se o join gerar múltiplas linhas
+      ->count('a.id');
 
     return $this->calculoConversao($quantidadeContatosMes, $quantidadeVendasMes);
   }
@@ -425,8 +418,9 @@ class VendasRepository implements VendasRepositoryInterface
     }
 
     $conversao = ($quantidadeVendas / $quantidadeContatos) * 100;
-    return number_format($conversao, 2, ',', '.');
+    return number_format($conversao, 2, ',', '.'); // ex.: 3,52
   }
+
 
 
 
