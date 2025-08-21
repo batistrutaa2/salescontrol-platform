@@ -63,6 +63,7 @@
                     <h5 class="mb-0">Dados da Apólice</h5>
                 </div>
 
+
                 <div class="card-body mt-5">
                     <form method="POST" action="{{ route('backoffice.updateSale') }}" class="row g-3" id="form-contrato">
                         @csrf
@@ -179,7 +180,16 @@
                     <small class="text-muted">Atualize os dados de cada titular individualmente.</small>
                 </div>
 
+
+
                 <div class="card-body">
+                    <div class="mb-0 mt-4 d-flex justify-content-between align-items-center">
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#modalAddTitular">
+                            ➕ Adicionar Titular
+                        </button>
+                    </div>
+
                     @forelse(($titulares ?? $contract->titulares ?? collect()) as $i => $titular)
                         <form class="row g-3 align-items-end border rounded p-3 mb-3 form-titular-update mt-4"
                             action="{{ route('backoffice.titulares.update', $titular->id) }}" method="POST"
@@ -267,13 +277,7 @@
                             </div>
                         </form>
                     @empty
-                        <div class="alert alert-warning mb-0 mt-4 d-flex justify-content-between align-items-center">
-                            <span>Nenhum titular encontrado para esta venda.</span>
-                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
-                                data-bs-target="#modalAddTitular">
-                                ➕ Adicionar Titular
-                            </button>
-                        </div>
+
                     @endforelse
 
                     {{-- Modal: Adicionar Titular (planos seguem a operadora base) --}}
