@@ -339,7 +339,11 @@
                         </div>
                     </div>
 
-                    @if ($client->tipo_layout != 'padrao' || $dependentes->isNotEmpty())
+                    @if (
+                        ($client->tipo_layout ?? 'padrao') !== 'padrao' ||
+                            (isset($dependentes) &&
+                                (($dependentes instanceof \Illuminate\Support\Collection && $dependentes->isNotEmpty()) ||
+                                    (is_array($dependentes) && !empty($dependentes)))))
                         <div class="card mb-6 mt-5">
                             <div class="card-body">
                                 <div class="accordion mt-5" id="collapsibleSection">
