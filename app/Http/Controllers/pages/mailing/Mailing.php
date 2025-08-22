@@ -127,7 +127,6 @@ class Mailing extends Controller
         ], 201);
       }
     } catch (\Throwable $th) {
-      dd($th);
       return response()->json([
         'error' => true,
         'message' => $th->getMessage()
