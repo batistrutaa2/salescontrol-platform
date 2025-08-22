@@ -98,13 +98,15 @@ class Mailing extends Controller
         ]);
 
         $rows = Excel::toArray(new ContatosImportDependencies($request->base, $request->tabulacao, $request->id_user), $request->file('file'));
+     
+
         foreach ($rows[0] as $index => $row) {
           if ($index == 0) {
             continue;
           }
 
-          if (!is_null($row[1]) && $row[3] == "TITULAR") {
-            $cpfs[] = Helpers::cleanSpecialCharacters($row[1]);
+          if (!is_null($row[2]) && $row[4] == "TITULAR") {
+            $cpfs[] = Helpers::cleanSpecialCharacters($row[2]);
           }
         }
 
@@ -125,6 +127,7 @@ class Mailing extends Controller
         ], 201);
       }
     } catch (\Throwable $th) {
+      dd($th);
       return response()->json([
         'error' => true,
         'message' => $th->getMessage()
@@ -335,6 +338,6 @@ class Mailing extends Controller
 
 
 
-  
+
 
 }
