@@ -338,6 +338,8 @@ class Comercial extends Controller
       }
     }
 
+
+
     $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
     $tabulations = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
     $tabulationCurrent = $this->repositoryContatosCorretores->getTabulationId($id_mailing);
@@ -1026,6 +1028,18 @@ class Comercial extends Controller
     return view('content.pages.comercial.demandas', [
       'users' => $users,
     ]);
+  }
+
+  public function deletarDependente(Request $request)
+  {
+    $dependente = Dependentes::find($request->id_dependente);
+    if ($dependente) {
+      $dependente->delete();
+      return redirect()->back()->with('status', 'success')->with('message', 'Dependente excluído com sucesso.');
+    } else {
+      return redirect()->back()->with('status', 'error')->with('message', 'Dependente não encontrado.');
+    }
+
   }
 
   public function list(Request $request)

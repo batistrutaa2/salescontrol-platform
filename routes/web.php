@@ -106,6 +106,8 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/descartar-multiplos-leads', [Comercial::class, 'discardMultipleLeads'])->name('comercial.discardMultipleLeads');
   Route::get('/comercial/getPlansByOperator/{operadora_id}', [Comercial::class, 'getPlansByOperator'])->name('comercial.getPlansByOperator');
   Route::get('/comercial/demandas', [Comercial::class, 'demands'])->name('comercial.demands');
+  Route::post('/comercial/deletar-dependente', [Comercial::class, 'deletarDependente'])->name('comercial.deletar.depedente');
+
 
   Route::get('/comercial/demandas/list', [Comercial::class, 'list'])->name('demandas.list');
   Route::post('/comercial/demandas', [Comercial::class, 'store'])->name('demandas.store');
