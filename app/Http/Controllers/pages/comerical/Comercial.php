@@ -164,7 +164,8 @@ class Comercial extends Controller
           'user-name' => $contact->nameVendedor,
           'show-name-card' => $typeUser,
           'tipo-lead' => $contact->is_ads === "Y" ? "R" : "A",
-          'data_create' => $contact->created_at
+          'data_create' => $contact->created_at,
+          'data_update' => $contact->updated_at
         ];
       })->values()->toArray();
 

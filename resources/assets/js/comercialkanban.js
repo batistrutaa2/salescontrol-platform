@@ -16,6 +16,40 @@
     select2 = $('.select2'),
     assetsPath = document.querySelector('html').getAttribute('data-assets-path');
 
+  // ===== ESTILO: injeta CSS para melhorar layout/tamanho do card =====
+  (function injectStaleStyles() {
+    if (document.getElementById('kanban-stale-styles')) return;
+    const css = `
+      .kanban-item{
+        padding: 14px 16px !important;
+        border-radius: 12px !important;
+        min-height: 118px;
+      }
+      .kanban-header-flex{
+        display:flex; align-items:center; justify-content:space-between; gap:8px;
+      }
+      .kanban-badges{
+        display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      }
+      .kanban-title-text{
+        margin-top:8px; font-weight:700; font-size:0.98rem; letter-spacing:.2px;
+        color:var(--bs-body-color);
+        white-space:normal;
+      }
+      .kanban-date{
+        margin-top:6px; font-size:.78rem; opacity:.8;
+      }
+      .kanban-item .badge{
+        padding:6px 10px; font-size:.73rem; border-radius:999px;
+      }
+    `;
+    const style = document.createElement('style');
+    style.id = 'kanban-stale-styles';
+    style.textContent = css;
+    document.head.appendChild(style);
+  })();
+  // ====================================================================
+
   // Init kanban Offcanvas
   const kanbanOffcanvas = new bootstrap.Offcanvas(kanbanSidebar);
 
@@ -113,6 +147,57 @@
       });
   });
 
+  // ==== NOVO: helpers de data/estagnação ====
+  function parseDateBRorISO(str) {
+    if (!str) return null;
+    const isoTry = new Date(str.replace(' ', 'T'));
+    if (!isNaN(isoTry.getTime())) return isoTry;
+
+    const parts = str.split(' ');
+    const datePart = parts[0];
+    const dmy = datePart.split('/');
+    if (dmy.length === 3) {
+      const d = parseInt(dmy[0], 10);
+      const m = parseInt(dmy[1], 10) - 1;
+      const y = parseInt(dmy[2], 10);
+      let hh = 0, mm = 0, ss = 0;
+      if (parts[1]) {
+        const hms = parts[1].split(':');
+        if (hms.length >= 2) {
+          hh = parseInt(hms[0], 10) || 0;
+          mm = parseInt(hms[1], 10) || 0;
+          ss = parseInt(hms[2], 10) || 0;
+        }
+      }
+      const dt = new Date(y, m, d, hh, mm, ss);
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+    return null;
+  }
+
+  function daysSince(date) {
+    if (!date) return null;
+    const now = new Date();
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffMs = today - start;
+    return Math.floor(diffMs / 86400000);
+  }
+
+  function buildStaleBadge(dataUpdateStr) {
+    const dt = parseDateBRorISO(dataUpdateStr);
+    const diff = daysSince(dt);
+    if (diff === null || diff < 7) return '';
+
+    let tone = 'bg-label-warning';      // 7–13
+    if (diff >= 14 && diff < 20) tone = 'bg-label-primary'; // 14–19
+    if (diff >= 20) tone = 'bg-label-danger';               // 20+
+
+    const label = `Sem atualização: ${diff}d`;
+    return `<div class='badge rounded-pill ${tone}'>${label}</div>`;
+  }
+  // ===================================================================
+
   // Render board dropdown
   function renderBoardDropdown() {
     return (
@@ -135,30 +220,25 @@
     );
   }
 
-  // Função para definir o ID do lead a ser descartado
-
-  // Render header
-  function renderHeader(color, text, idMailing, dataInsert, messageTime) {
+  // ====== NOVO: header + título + data, mais organizado ======
+  function renderHeader(color, text, idMailing, dataInsert, messageTime, staleHtml = '') {
     return (
-      "<div class='d-flex justify-content-between flex-wrap align-items-center mb-2'>" +
-      "<div class='item-badges d-flex'>" +
-      "<div class='badge rounded-pill bg-label-" +
-      color +
-      "'> " +
-      text +
-      '</div>' +
-      '</div>' +
-      "<div class='item-badges d-flex'>" +
-      "<div class='badge rounded-pill bg-label-" +
-      dataInsert +
-      "'> " +
-      messageTime +
-      '</div>' +
-      '</div>' +
+      "<div class='kanban-header-flex mb-1'>" +
+      "<div class='kanban-badges'>" +
+      "<div class='badge rounded-pill bg-label-" + color + "'>" + text + "</div>" +
+      (staleHtml ? staleHtml : '') +
+      "</div>" +
       renderDropdown(idMailing) +
-      '</div>'
+      "</div>" +
+      "<div class='kanban-date text-muted'>" + messageTime + "</div>"
     );
   }
+
+  function renderTitle(nameText) {
+    const safe = (nameText || '').toString();
+    return "<div class='kanban-title-text'>" + safe + "</div>";
+  }
+  // ===========================================================
 
   // Render footer
   function renderFooterAdmin(nameUser) {
@@ -307,12 +387,9 @@
 
       if (board.item && board.item.length > 0) {
         board.item = board.item.sort((a, b) => {
-          // Convertendo a data_create para o formato 'YYYY-MM-DD' (sem a hora)
           const dateA = a.data_create.split(' ')[0].split('/').reverse().join('-');
           const dateB = b.data_create.split(' ')[0].split('/').reverse().join('-');
-
-          // Comparando as datas
-          if (dateA < dateB) return 1; // Ordenação decrescente
+          if (dateA < dateB) return 1;
           if (dateA > dateB) return -1;
           return 0;
         });
@@ -322,9 +399,7 @@
     dragBoards: true,
     addItemButton: false,
     buttonContent: '+ Criar Cliente',
-    itemAddOptions: {
-      enabled: false
-    },
+    itemAddOptions: { enabled: false },
 
     dropEl: function (el, target, source, sibling) {
       const contato_id = el.dataset.eid;
@@ -348,10 +423,8 @@
               icon: 'success',
               title: 'Concluido!',
               text: 'Contato Descartado com sucesso.',
-              customClass: {
-                confirmButton: 'btn btn-success waves-effect'
-              }
-            }).then(function name(params) {
+              customClass: { confirmButton: 'btn btn-success waves-effect' }
+            }).then(function () {
               sendRequestApichangeStatusLead(contato_id, tabulacao_id);
               el.style.display = 'none';
             });
@@ -360,13 +433,9 @@
               title: 'Cancelado',
               text: 'Contato mantido na lista de clientes',
               icon: 'error',
-              customClass: {
-                confirmButton: 'btn btn-primary waves-effect'
-              }
-            }).then(function name(result) {
-              if (result.value) {
-                location.reload();
-              }
+              customClass: { confirmButton: 'btn btn-primary waves-effect' }
+            }).then(function (result) {
+              if (result.value) { location.reload(); }
             });
           }
         });
@@ -383,9 +452,7 @@
           },
           buttonsStyling: false
         }).then(function (result) {
-          if (result.value) {
-            showModalCadastroVenda(contato_id);
-          }
+          if (result.value) showModalCadastroVenda(contato_id);
         });
       } else {
         sendRequestApichangeStatusLead(contato_id, tabulacao_id);
@@ -427,6 +494,7 @@
       let temperatura = element.getAttribute('data-temperatura');
       let idades = element.getAttribute('data-idades');
       let tabulation_id = element.getAttribute('data-tabulacao-id');
+      let data_update = element.getAttribute('data-data_update');
 
       kanbanSidebar.querySelector('#id_mailing').value = idMailing == 'null' ? '' : idMailing;
       kanbanSidebar.querySelector('#id_tabulacao').value = tabulation_id == 'null' ? '' : tabulation_id;
@@ -499,7 +567,7 @@
       kanbanOffcanvas.show();
     },
 
-    buttonClick: function (el, boardId) {}
+    buttonClick: function (el, boardId) { }
   });
 
   function renderNotes(notes, temperatura) {
@@ -557,7 +625,6 @@
     // Atualizar contagem de itens visíveis em cada quadro
     const boards = document.querySelectorAll('.kanban-board');
     boards.forEach(board => {
-      const boardId = board.getAttribute('data-id');
       const boardItems = board.querySelectorAll('.kanban-item');
       let visibleCount = 0;
 
@@ -567,7 +634,6 @@
         }
       });
 
-      // Atualizar o título do quadro com a nova contagem
       const titleElement = board.querySelector('.kanban-title-board');
       if (titleElement) {
         const originalTitle =
@@ -587,7 +653,6 @@
     });
   }
 
-  // Verifica se o select de filtro de usuário existe antes de adicionar o evento
   const userFilterSelect = document.getElementById('user-filter');
   if (userFilterSelect) {
     userFilterSelect.addEventListener('change', function () {
@@ -597,7 +662,6 @@
     });
   }
 
-  // Verifica se o select de filtro de tipo de lead existe antes de adicionar o evento
   const typeLeadSelect = document.getElementById('type-lead');
   if (typeLeadSelect) {
     typeLeadSelect.addEventListener('change', function () {
@@ -635,12 +699,16 @@
       let colorTime = '';
       let messageTime = '';
       let idMailing = elementCard.getAttribute('data-eid');
-      const element = "<span class='kanban-text'>" + el.textContent + '</span>';
-      let img = '';
+      let nameOnCard = (el.getAttribute('data-nome_cliente') || el.textContent || '').trim();
 
       colorTime = 'secondary';
       messageTime = el.getAttribute('data-data_create');
 
+      // NOVO: calcula stale badge pela data da última atualização
+      const dataUpdateStr = el.getAttribute('data-data_update');
+      const staleBadge = buildStaleBadge(dataUpdateStr);
+
+      // limpa e re-renderiza com ordem melhor
       el.textContent = '';
       if (el.getAttribute('data-badge') !== undefined && el.getAttribute('data-badge-text') !== undefined) {
         el.insertAdjacentHTML(
@@ -650,10 +718,10 @@
             el.getAttribute('data-badge-text'),
             idMailing,
             colorTime,
-            messageTime
+            messageTime,
+            staleBadge
           ) +
-            img +
-            element
+          renderTitle(nameOnCard)
         );
       }
 
@@ -675,6 +743,7 @@
   }
 
   function limitUserName(userName) {
+    if (!userName) return '';
     if (userName.length > 15) {
       return userName.substring(0, 15) + '...';
     } else {
@@ -754,12 +823,7 @@
       const thisEle = this,
         value = thisEle.querySelector('.form-control').value,
         id = value.replace(/\s+/g, '-').toLowerCase();
-      kanban.addBoards([
-        {
-          id: id,
-          title: value
-        }
-      ]);
+      kanban.addBoards([{ id: id, title: value }]);
 
       const kanbanBoardLastChild = document.querySelectorAll('.kanban-board:last-child')[0];
       if (kanbanBoardLastChild) {
@@ -856,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     descartarCliente(id, tabulacao);
-    
+
   });
 
   // Evento para converter cliente
@@ -873,7 +937,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Função para buscar cliente da fila preditiva
   function buscarClientePreditiva() {
-    // Mostrar loading
     loadingElement.classList.remove('d-none');
     noResultsElement.classList.add('d-none');
     clienteContainer.classList.add('d-none');
@@ -973,19 +1036,15 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          // Mostrar mensagem de sucesso
           Swal.fire({
             icon: 'success',
             title: 'Cliente convertido com sucesso!',
             text: 'O cliente foi adicionado à sua lista de prospecção.',
             confirmButtonText: 'OK',
-            customClass: {
-              confirmButton: 'btn btn-success waves-effect'
-            }
+            customClass: { confirmButton: 'btn btn-success waves-effect' }
           }).then(result => {
-            // Quando o usuário clicar em OK, recarregar a página
             modalFilaPreditiva.hide();
-            location.reload(); // Recarrega a página para atualizar o kanban
+            location.reload();
           });
         } else {
           alert('Erro ao converter cliente. Tente novamente.');
@@ -1019,33 +1078,20 @@ document.addEventListener('DOMContentLoaded', function () {
   // Função para formatar data
   function formatarData(dataString) {
     if (!dataString) return null;
-
-    // Verificar se é uma data válida
     const data = new Date(dataString);
     if (isNaN(data.getTime())) {
-      // Tentar formato DD/MM/YYYY
       const partes = dataString.split('/');
-      if (partes.length === 3) {
-        return dataString; // Já está formatado
-      }
+      if (partes.length === 3) return dataString;
       return dataString;
     }
-
     return data.toLocaleDateString('pt-BR');
   }
 
   // Função para formatar moeda
   function formatarMoeda(valor) {
     if (!valor) return null;
-
-    // Converter para número se for string
     const numero = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
-
     if (isNaN(numero)) return valor;
-
-    return numero.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    });
+    return numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 });
