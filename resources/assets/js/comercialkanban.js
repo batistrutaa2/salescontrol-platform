@@ -147,7 +147,7 @@
       });
   });
 
-  // ==== NOVO: helpers de data/estagnação ====
+  // ==== helpers de data/estagnação ====
   function parseDateBRorISO(str) {
     if (!str) return null;
     const isoTry = new Date(str.replace(' ', 'T'));
@@ -220,7 +220,7 @@
     );
   }
 
-  // ====== NOVO: header + título + data, mais organizado ======
+  // header + título + data
   function renderHeader(color, text, idMailing, dataInsert, messageTime, staleHtml = '') {
     return (
       "<div class='kanban-header-flex mb-1'>" +
@@ -238,7 +238,6 @@
     const safe = (nameText || '').toString();
     return "<div class='kanban-title-text'>" + safe + "</div>";
   }
-  // ===========================================================
 
   // Render footer
   function renderFooterAdmin(nameUser) {
@@ -603,7 +602,8 @@
     });
   }
 
-  function filterKanbanItems(searchTerm, userId) {
+  // ========= ATUALIZADO: filtro com "stale" =========
+  function filterKanbanItems(searchTerm, userId, staleSel) {
     const items = document.querySelectorAll('.kanban-item');
     const typeLeadFilter = document.getElementById('type-lead') ? document.getElementById('type-lead').value : '';
 
@@ -611,11 +611,30 @@
       const itemTitle = item.textContent.toLowerCase();
       const itemUserId = item.getAttribute('data-user-id');
       const itemTypeLead = item.getAttribute('data-tipo-lead');
+
+      // cálculo de estagnação
+      const updStr = item.getAttribute('data-data_update');
+      const diffDays = daysSince(parseDateBRorISO(updStr));
+
+      const matchesStale = (() => {
+        if (!staleSel) return true;               // sem filtro
+        if (diffDays == null) return false;       // sem data -> fora
+        switch (staleSel) {
+          case '7': return diffDays >= 7;
+          case '14': return diffDays >= 14;
+          case '20': return diffDays >= 20;
+          case '7-13': return diffDays >= 7 && diffDays < 14;
+          case '14-19': return diffDays >= 14 && diffDays < 20;
+          case '20+': return diffDays >= 20;
+          default: return true;
+        }
+      })();
+
       const matchesSearch = itemTitle.includes(searchTerm.toLowerCase());
       const matchesUserId = userId === '' || itemUserId === userId;
       const matchesTypeLead = typeLeadFilter === '' || typeLeadFilter === itemTypeLead;
 
-      if (matchesSearch && matchesUserId && matchesTypeLead) {
+      if (matchesSearch && matchesUserId && matchesTypeLead && matchesStale) {
         item.style.display = 'block';
       } else {
         item.style.display = 'none';
@@ -643,13 +662,15 @@
       }
     });
   }
+  // ================================================
 
   const searchInput = document.getElementById('kanban-search');
   if (searchInput) {
     searchInput.addEventListener('input', function () {
       const searchTerm = this.value;
       const userId = document.getElementById('user-filter') ? document.getElementById('user-filter').value : '';
-      filterKanbanItems(searchTerm, userId);
+      const staleSel = document.getElementById('stale-filter') ? document.getElementById('stale-filter').value : '';
+      filterKanbanItems(searchTerm, userId, staleSel);
     });
   }
 
@@ -657,8 +678,8 @@
   if (userFilterSelect) {
     userFilterSelect.addEventListener('change', function () {
       const searchTerm = document.getElementById('kanban-search') ? document.getElementById('kanban-search').value : '';
-      const userId = this.value;
-      filterKanbanItems(searchTerm, userId);
+      const staleSel = document.getElementById('stale-filter') ? document.getElementById('stale-filter').value : '';
+      filterKanbanItems(searchTerm, this.value, staleSel);
     });
   }
 
@@ -667,7 +688,18 @@
     typeLeadSelect.addEventListener('change', function () {
       const searchTerm = document.getElementById('kanban-search') ? document.getElementById('kanban-search').value : '';
       const userId = document.getElementById('user-filter') ? document.getElementById('user-filter').value : '';
-      filterKanbanItems(searchTerm, userId);
+      const staleSel = document.getElementById('stale-filter') ? document.getElementById('stale-filter').value : '';
+      filterKanbanItems(searchTerm, userId, staleSel);
+    });
+  }
+
+  // NOVO: listener do seletor de estagnação
+  const staleSelect = document.getElementById('stale-filter');
+  if (staleSelect) {
+    staleSelect.addEventListener('change', function () {
+      const searchTerm = document.getElementById('kanban-search') ? document.getElementById('kanban-search').value : '';
+      const userId = document.getElementById('user-filter') ? document.getElementById('user-filter').value : '';
+      filterKanbanItems(searchTerm, userId, this.value);
     });
   }
 
@@ -675,7 +707,8 @@
     ? document.getElementById('kanban-search').value
     : '';
   const initialUserId = document.getElementById('user-filter') ? document.getElementById('user-filter').value : '';
-  filterKanbanItems(initialSearchTerm, initialUserId);
+  const initialStale = document.getElementById('stale-filter') ? document.getElementById('stale-filter').value : '';
+  filterKanbanItems(initialSearchTerm, initialUserId, initialStale);
 
   // Kanban Wrapper scrollbar
   if (kanbanWrapper) {
@@ -704,11 +737,11 @@
       colorTime = 'secondary';
       messageTime = el.getAttribute('data-data_create');
 
-      // NOVO: calcula stale badge pela data da última atualização
+      // badge de estagnação
       const dataUpdateStr = el.getAttribute('data-data_update');
       const staleBadge = buildStaleBadge(dataUpdateStr);
 
-      // limpa e re-renderiza com ordem melhor
+      // re-render com ordem melhor
       el.textContent = '';
       if (el.getAttribute('data-badge') !== undefined && el.getAttribute('data-badge-text') !== undefined) {
         el.insertAdjacentHTML(

@@ -120,6 +120,17 @@
                     </div>
                 @endif
 
+                <div class="form-floating form-floating-outline flex-fill ms-2">
+                    <select class="form-select" id="stale-filter">
+                        <option value="">Sem atualização (todos)</option>
+                        <option value="7">≥ 7 dias</option>
+                        <option value="14">≥ 14 dias</option>
+                        <option value="20+">20+ dias</option>
+                    </select>
+                    <label for="stale-filter">Sem atualização</label>
+                </div>
+
+
                 <!-- Botão para abrir a modal de fila preditiva -->
                 @if ($typeUserLogeed == 'VENDEDOR')
                     <div class="ms-2 d-flex align-items-center">
