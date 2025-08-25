@@ -433,6 +433,10 @@ class Comercial extends Controller
       $request->id_mailing
     );
 
+    ContatosCorretores::where('contato_id', $request->id_mailing)->update([
+      'updated_at' => now()
+    ]);
+
     if ($saveComment) {
       return response()->json(
         [
