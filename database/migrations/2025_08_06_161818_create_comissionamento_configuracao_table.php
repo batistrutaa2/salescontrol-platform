@@ -13,8 +13,6 @@ return new class extends Migration {
             $table->unsignedBigInteger('user_id');
             $table->decimal('percentual', 5, 2)->default(0);
             $table->enum('periodicidade', ['mensal', 'trimestral', 'semestral', 'anual'])->default('mensal');
-            $table->boolean('pagar_automaticamente')->default(false);
-            $table->tinyInteger('dia_fechamento')->default(5);
             $table->timestamps();
 
             $table->foreign('empresa_id')->references('id')->on('empresas')->onDelete('cascade');
