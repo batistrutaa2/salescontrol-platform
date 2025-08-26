@@ -15,94 +15,92 @@
 @endsection
 
 @section('content')
-    <div class="row mb-4">
-        <div class="col-md-6 col-xl-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-title mb-1 text-muted">Total Vendido no Período</h6>
-                    <h4 class="fw-bold text-primary" id="card-total-vendido">R$ 0,00</h4>
-                </div>
-            </div>
-        </div>
 
-        <div class="col-md-6 col-xl-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-title mb-1 text-muted">Total Comissionado</h6>
-                    <h4 class="fw-bold text-success" id="card-total-comissionado">R$ 0,00</h4>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-xl-3 mt-3 mt-md-0">
-            <label for="filtroPeriodo" class="form-label">Período</label>
-            <input type="month" class="form-control" id="filtroPeriodo" value="{{ date('Y-m') }}">
-        </div>
+    <div id="comissionamento-root" data-url="{{ route('comissionamento.faturamento') }}"
+        data-empresa-id="{{ auth()->user()->empresa_id }}">
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Comissionamento Disponível</h5>
-        </div>
-
+    <div class="card mb-6">
         <div class="card-body">
-            <div class="table-responsive">
-                <table id="comissao-faturamento-table" class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Vendedor</th>
-                            <th>Total Implantado (R$)</th>
-                            <th>% Comissão</th>
-                            <th>Valor Comissão (R$)</th>
-                            <th>Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="filtro-mes" class="form-label">Mês de referência</label>
+                    <input type="month" id="filtro-mes" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label for="filtro-vendedor" class="form-label">Vendedor (opcional)</label>
+                    <select id="filtro-vendedor" class="form-select select2" data-placeholder="Todos">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button id="btn-aplicar-filtro" class="btn btn-primary w-100">
+                        <i class="ri-filter-3-line me-1"></i> Aplicar
+                    </button>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="text-muted small">Somente contratos **sem comissão paga** no período selecionado.</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Confirmação de Faturamento -->
-    <div class="modal fade" id="modalFaturar" tabindex="-1" aria-labelledby="modalFaturarLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <form id="formFaturarComissao" method="POST">
-                @csrf
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Confirmar Faturamento</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                    </div>
-
-                    <div class="modal-body">
-                        <dl class="row">
-                            <dt class="col-sm-5">Vendedor:</dt>
-                            <dd class="col-sm-7" id="faturar-vendedor">—</dd>
-
-                            <dt class="col-sm-5">Período:</dt>
-                            <dd class="col-sm-7" id="faturar-periodo">—</dd>
-
-                            <dt class="col-sm-5">Valor Vendido:</dt>
-                            <dd class="col-sm-7" id="faturar-vendido">—</dd>
-
-                            <dt class="col-sm-5">% Comissão:</dt>
-                            <dd class="col-sm-7" id="faturar-percentual">—</dd>
-
-                            <dt class="col-sm-5">Valor Comissionado:</dt>
-                            <dd class="col-sm-7" id="faturar-comissao">—</dd>
-                        </dl>
-
-                        <input type="hidden" id="faturar-user-id">
-                        <input type="hidden" id="faturar-valor">
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-success">Confirmar Faturamento</button>
+    <div id="resumo-geral" class="row g-4 mb-6">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted">Vendedores</div>
+                            <h4 class="mb-0" id="kpi-vendedores">0</h4>
+                        </div>
+                        <i class="ri-group-fill ri-28px"></i>
                     </div>
                 </div>
-            </form>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted">Contratos pendentes</div>
+                            <h4 class="mb-0" id="kpi-contratos">0</h4>
+                        </div>
+                        <i class="ri-file-list-3-fill ri-28px"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted">Total contratos (R$)</div>
+                            <h4 class="mb-0" id="kpi-total-contratos">0,00</h4>
+                        </div>
+                        <i class="ri-money-dollar-circle-fill ri-28px"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted">Total comissão (R$)</div>
+                            <h4 class="mb-0" id="kpi-total-comissao">0,00</h4>
+                        </div>
+                        <i class="ri-bar-chart-2-fill ri-28px"></i>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <div id="lista-vendedores" class="row g-4">
+        <!-- Cards por vendedor renderizados via JS -->
+    </div>
 @endsection

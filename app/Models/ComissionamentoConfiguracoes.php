@@ -16,16 +16,23 @@ class ComissionamentoConfiguracoes extends Model
         'user_id',
         'percentual',
         'periodicidade',
+        'imposto',
+        'grade',
+        'salario',
         'created_at',
         'updated_at',
+    ];
+
+    protected $casts = [
+        'percentual' => 'decimal:2',
+        'imposto' => 'decimal:2',
+        'salario' => 'decimal:2',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
-
-
 
     public function getCreatedAtAttribute($value)
     {

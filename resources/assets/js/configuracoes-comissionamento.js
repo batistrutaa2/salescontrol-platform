@@ -3,34 +3,84 @@
 (function () {
     const table = $('#comissionamento-table');
 
+    // helper numérico seguro
+    const num = (x) => {
+        const n = parseFloat(x);
+        return Number.isFinite(n) ? n : 0;
+    };
+
     const dataTable = table.DataTable({
-        ajax: '/comissionamento/getCommissioning',
+        ajax: {
+            url: '/comissionamento/getCommissioning',
+            // Se o seu controller retorna { data: [...] }, deixe 'data'.
+            // Se retorna um array puro [...], troque para dataSrc: ''.
+            dataSrc: 'data'
+        },
         processing: true,
         serverSide: false,
         responsive: true,
         columns: [
-            { data: 'id' },
+            { data: 'id', defaultContent: '—' },
+
+            // Suporta objeto aninhado: { user: { name: '...' } }
             { data: 'user.name', defaultContent: '—' },
+
             {
                 data: 'percentual',
-                render: (data) => parseFloat(data).toFixed(2) + ' %'
+                className: 'text-end',
+                render: (data, type) => {
+                    const value = num(data);
+                    return (type === 'display' || type === 'filter')
+                        ? `${value.toFixed(2)} %`
+                        : value; // para sort
+                }
             },
             {
-                data: 'periodicidade',
-                render: (data) => data.charAt(0).toUpperCase() + data.slice(1)
+                data: 'imposto',
+                className: 'text-end',
+                render: (data, type) => {
+                    const value = num(data);
+                    return (type === 'display' || type === 'filter')
+                        ? `${value.toFixed(2)} %`
+                        : value;
+                }
             },
+
+            // grade: ex. 'junior' | 'pleno' | 'senior'
+            {
+                data: 'grade',
+                render: (d) => {
+                    const s = (d || '').toString();
+                    return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—';
+                }
+            },
+
+            // salário em BRL
+            {
+                data: 'salario',
+                className: 'text-end',
+                render: (data, type) => {
+                    const value = num(data);
+                    return (type === 'display' || type === 'filter')
+                        ? value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                        : value;
+                }
+            },
+            { data: 'periodicidade' },
+
             {
                 data: null,
                 orderable: false,
-                render: (data, type, row) => `
+                searchable: false,
+                render: (_data, _type, row) => `
         <button class="btn btn-sm btn-danger btn-delete-comissao" data-id="${row.id}">
-            <i class="ri-delete-bin-line"></i>
+          <i class="ri-delete-bin-line"></i>
         </button>
-    `
+      `
             }
-
         ]
     });
+
 
     $('#formComissao').on('submit', function (e) {
         e.preventDefault();
