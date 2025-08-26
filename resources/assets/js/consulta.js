@@ -19,60 +19,61 @@
 
   // NOVA FUNÇÃO: Configurar o botão "Consultar Lemit"
   function setupConsultarLemitButton() {
-    const btnConsultarLemit = document.querySelector('[data-bs-target="#consultaModal"]');
+    // pega todos os botões que abrem a modal
+    const btns = document.querySelectorAll('[data-bs-target="#consultaModal"]');
+    if (!btns.length) return;
 
-    if (btnConsultarLemit) {
-      btnConsultarLemit.addEventListener('click', function() {
-        // Aguardar a modal abrir completamente
+    btns.forEach(btn => {
+      btn.addEventListener('click', function () {
+        let cpfSourceValue = '';
+
+        const sel = btn.getAttribute('data-cpf-from');
+        if (sel) {
+          // caso dependente
+          const el = document.querySelector(sel);
+          if (el) {
+            cpfSourceValue = el.value || '';
+          }
+        } else {
+          // caso titular (não tem data-cpf-from)
+          const titularEl = document.getElementById('cpf');
+          if (titularEl) {
+            cpfSourceValue = titularEl.value || '';
+          }
+        }
+
+        // aguarda modal abrir completamente
         setTimeout(() => {
-          preencherCamposEConsultar();
+          preencherCamposEConsultar(cpfSourceValue);
         }, 300);
       });
-    }
+    });
   }
 
+
   // NOVA FUNÇÃO: Preencher campos e executar consulta automaticamente
-  function preencherCamposEConsultar() {
-    // Buscar o campo CPF/CNPJ do cliente na página
-    const cpfClienteElement = document.getElementById('cpf');
-
-    if (!cpfClienteElement || !cpfClienteElement.value) {
-      mostrarErro('CPF/CNPJ do cliente não encontrado na página');
+  function preencherCamposEConsultar(cpfOverride) {
+    const valor = cpfOverride || (document.getElementById('cpf') ? document.getElementById('cpf').value : '');
+    if (!valor) {
+      mostrarErro('CPF/CNPJ não encontrado na página');
       return;
     }
 
-    const cpfCnpjCliente = cpfClienteElement.value.replace(/\D/g, '');
-
-    if (!cpfCnpjCliente) {
-      mostrarErro('CPF/CNPJ do cliente está vazio');
-      return;
-    }
-
-    // Determinar se é CPF (11 dígitos) ou CNPJ (14 dígitos)
-    if (cpfCnpjCliente.length === 11) {
-      // É CPF - preencher campo CPF e consultar
+    const digits = valor.replace(/\D/g, '');
+    if (digits.length === 11) {
       const cpfConsultaInput = document.getElementById('cpfConsulta');
       if (cpfConsultaInput) {
-        cpfConsultaInput.value = cpfClienteElement.value; // Manter a formatação original
-
-        // Executar consulta automaticamente
-        setTimeout(() => {
-          consultarPessoa();
-        }, 100);
+        cpfConsultaInput.value = valor; // mantém formatação
+        setTimeout(() => consultarPessoa(), 100);
       }
-    } else if (cpfCnpjCliente.length === 14) {
-      // É CNPJ - preencher campo CNPJ e consultar
+    } else if (digits.length === 14) {
       const cnpjConsultaInput = document.getElementById('cnpjConsulta');
       if (cnpjConsultaInput) {
-        cnpjConsultaInput.value = cpfClienteElement.value; // Manter a formatação original
-
-        // Executar consulta automaticamente
-        setTimeout(() => {
-          consultarEmpresa();
-        }, 100);
+        cnpjConsultaInput.value = valor;
+        setTimeout(() => consultarEmpresa(), 100);
       }
     } else {
-      mostrarErro('CPF/CNPJ do cliente possui formato inválido. CPF deve ter 11 dígitos e CNPJ deve ter 14 dígitos.');
+      mostrarErro('Documento inválido. CPF deve ter 11 dígitos e CNPJ deve ter 14 dígitos.');
     }
   }
 
@@ -339,15 +340,14 @@
               <a href="tel:${numeroCompleto}" class="btn btn-sm btn-outline-primary" title="Ligar">
                 <i class="ri-phone-line"></i>
               </a>
-              ${
-                cel.whatsapp
-                  ? `
+              ${cel.whatsapp
+          ? `
                 <a href="https://wa.me/55${numeroCompleto}" target="_blank" class="btn btn-sm btn-success" title="WhatsApp">
                   <i class="ri-whatsapp-line"></i>
                 </a>
               `
-                  : ''
-              }
+          : ''
+        }
             </div>
           </div>
         </div>
@@ -543,15 +543,14 @@
               <a href="tel:${numeroCompleto}" class="btn btn-sm btn-outline-primary" title="Ligar">
                 <i class="ri-phone-line"></i>
               </a>
-              ${
-                cel.whatsapp
-                  ? `
+              ${cel.whatsapp
+          ? `
                 <a href="https://wa.me/55${numeroCompleto}" target="_blank" class="btn btn-sm btn-success" title="WhatsApp">
                   <i class="ri-whatsapp-line"></i>
                 </a>
               `
-                  : ''
-              }
+          : ''
+        }
             </div>
           </div>
         </div>
@@ -1026,15 +1025,14 @@
               <a href="tel:${numeroCompleto}" class="btn btn-sm btn-outline-primary" title="Ligar">
                 <i class="ri-phone-line"></i>
               </a>
-              ${
-                cel.whatsapp
-                  ? `
+              ${cel.whatsapp
+          ? `
                 <a href="https://wa.me/55${numeroCompleto}" target="_blank" class="btn btn-sm btn-success" title="WhatsApp">
                   <i class="ri-whatsapp-line"></i>
                 </a>
               `
-                  : ''
-              }
+          : ''
+        }
             </div>
           </div>
         </div>

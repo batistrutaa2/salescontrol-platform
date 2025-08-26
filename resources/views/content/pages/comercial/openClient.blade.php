@@ -364,125 +364,150 @@
                                                         Dependente {{ $index + 1 }} -
                                                         {{ $dependente['parentesco'] ?? '' }}
                                                     </button>
-
-                                                    {{-- Botão excluir (topo direito) --}}
-                                                    <button type="submit" class="btn btn-danger btn-sm ms-2"
-                                                        title="Excluir dependente"
-                                                        form="delete-dependent-{{ $index }}"
-                                                        onclick="return confirm('Tem certeza que deseja excluir este dependente?')">
-                                                        <i class="ri-delete-bin-line"></i>
-                                                    </button>
                                                 </h2>
+                                                <div class="card mt-5 mb-6 p-2">
+                                                    <div class="card-body">
+                                                        <div id="collapseDependente{{ $index }}"
+                                                            class="accordion-collapse collapse"
+                                                            aria-labelledby="headingDependente{{ $index }}"
+                                                            data-bs-parent="#collapsibleSection">
+                                                            <div class="d-flex justify-content-end">
+                                                                <button type="submit" class="btn btn-danger btn-sm ms-2"
+                                                                    title="Excluir dependente"
+                                                                    form="delete-dependent-{{ $index }}"
+                                                                    onclick="return confirm('Tem certeza que deseja excluir este dependente?')">
+                                                                    <i class="ri-delete-bin-line"></i>
+                                                                </button>
+                                                            </div>
+                                                            <div class="accordion-body">
+                                                                <div class="row g-4">
+                                                                    <div class="col-md-10">
+                                                                        <div class="row">
+                                                                            <label
+                                                                                class="col-sm-3 col-form-label text-sm-end"
+                                                                                for="fullname{{ $index }}">Nome
+                                                                                Completo</label>
+                                                                            <div class="col-sm-9">
+                                                                                <input type="text"
+                                                                                    id="fullname{{ $index }}"
+                                                                                    class="form-control"
+                                                                                    name="dependentes[{{ $index }}][nome]"
+                                                                                    value="{{ $dependente['nome'] ?? '' }}"
+                                                                                    placeholder="John Doe" />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-10">
+                                                                        <div class="row">
+                                                                            <label
+                                                                                class="col-sm-3 col-form-label text-sm-end"
+                                                                                for="fullname{{ $index }}">CPF</label>
+                                                                            <div class="col-sm-9">
+                                                                                <div class="input-group">
+                                                                                    <input type="text"
+                                                                                        id="cpfDependente{{ $index }}"
+                                                                                        class="form-control"
+                                                                                        name="dependentes[{{ $index }}][cpf]"
+                                                                                        value="{{ $dependente['cpf'] ?? '' }}"
+                                                                                        placeholder="122.456.789-10" />
+                                                                                    <button type="button"
+                                                                                        class="btn btn-info consulta-modal-trigger"
+                                                                                        data-bs-toggle="modal"
+                                                                                        data-bs-target="#consultaModal"
+                                                                                        data-cpf-from="#cpfDependente{{ $index }}">
+                                                                                        <i
+                                                                                            class="ri-search-line ri-16px"></i>
+                                                                                    </button>
+                                                                                </div>
 
-                                                <div id="collapseDependente{{ $index }}"
-                                                    class="accordion-collapse collapse"
-                                                    aria-labelledby="headingDependente{{ $index }}"
-                                                    data-bs-parent="#collapsibleSection">
-                                                    <div class="accordion-body">
-                                                        <div class="row g-4">
-                                                            <div class="col-md-10">
-                                                                <div class="row">
-                                                                    <label class="col-sm-3 col-form-label text-sm-end"
-                                                                        for="fullname{{ $index }}">Nome
-                                                                        Completo</label>
-                                                                    <div class="col-sm-9">
-                                                                        <input type="text"
-                                                                            id="fullname{{ $index }}"
-                                                                            class="form-control"
-                                                                            name="dependentes[{{ $index }}][nome]"
-                                                                            value="{{ $dependente['nome'] ?? '' }}"
-                                                                            placeholder="John Doe" />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="col-md-10">
+                                                                        <div class="row">
+                                                                            <label
+                                                                                class="col-sm-3 col-form-label text-sm-end"
+                                                                                for="phone{{ $index }}">Telefone
+                                                                                1</label>
+                                                                            <div class="col-sm-9">
+                                                                                <input type="text"
+                                                                                    id="phone{{ $index }}"
+                                                                                    class="form-control phone-mask"
+                                                                                    name="dependentes[{{ $index }}][telefone1]"
+                                                                                    value="{{ $dependente['telefone_1'] ?? '' }}"
+                                                                                    placeholder="(11) 94556-7166" />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-10">
+                                                                        <div class="row">
+                                                                            <label
+                                                                                class="col-sm-3 col-form-label text-sm-end"
+                                                                                for="phone{{ $index }}">Telefone
+                                                                                2</label>
+                                                                            <div class="col-sm-9">
+                                                                                <input type="text"
+                                                                                    id="phone{{ $index }}"
+                                                                                    class="form-control phone-mask"
+                                                                                    name="dependentes[{{ $index }}][telefone2]"
+                                                                                    value="{{ $dependente['telefone_2'] ?? '' }}"
+                                                                                    placeholder="(11) 94556-7166" />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-10">
+                                                                        <div class="row">
+                                                                            <label
+                                                                                class="col-sm-3 col-form-label text-sm-end"
+                                                                                for="phone{{ $index }}">Telefone
+                                                                                3</label>
+                                                                            <div class="col-sm-9">
+                                                                                <input type="text"
+                                                                                    id="phone{{ $index }}"
+                                                                                    class="form-control phone-mask"
+                                                                                    name="dependentes[{{ $index }}][telefone3]"
+                                                                                    value="{{ $dependente['telefone_3'] ?? '' }}"
+                                                                                    placeholder="(11) 94556-7166" />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-10">
+                                                                        <div class="row">
+                                                                            <label
+                                                                                class="col-sm-3 col-form-label text-sm-end"
+                                                                                for="idade{{ $index }}">Idade</label>
+                                                                            <div class="col-sm-9">
+                                                                                <input type="text"
+                                                                                    id="idade{{ $index }}"
+                                                                                    class="form-control"
+                                                                                    name="dependentes[{{ $index }}][idade]"
+                                                                                    value="{{ $dependente['idade'] ?? '' }}"
+                                                                                    placeholder="John Doe" />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-10">
+                                                                        <div class="row">
+                                                                            <label
+                                                                                class="col-sm-3 col-form-label text-sm-end"
+                                                                                for="idade{{ $index }}">Valor
+                                                                                Dependente</label>
+                                                                            <div class="col-sm-9">
+                                                                                <input type="text"
+                                                                                    id="idade{{ $index }}"
+                                                                                    class="form-control"
+                                                                                    name="dependentes[{{ $index }}][valor_plano]"
+                                                                                    value="R$ {{ number_format($dependente['valor_plano'] ?? 0, 2, ',', '.') ?? '' }}"
+                                                                                    placeholder="John Doe" />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <button
+                                                                            class="btn btn-success mt-5 btn--twitter">Atualizar</button>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                            <div class="col-md-10">
-                                                                <div class="row">
-                                                                    <label class="col-sm-3 col-form-label text-sm-end"
-                                                                        for="fullname{{ $index }}">CPF</label>
-                                                                    <div class="col-sm-9">
-                                                                        <input type="text"
-                                                                            id="fullname{{ $index }}"
-                                                                            class="form-control"
-                                                                            name="dependentes[{{ $index }}][cpf]"
-                                                                            value="{{ $dependente['cpf'] ?? '' }}"
-                                                                            placeholder="122.456.789-10" />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-10">
-                                                                <div class="row">
-                                                                    <label class="col-sm-3 col-form-label text-sm-end"
-                                                                        for="phone{{ $index }}">Telefone 1</label>
-                                                                    <div class="col-sm-9">
-                                                                        <input type="text"
-                                                                            id="phone{{ $index }}"
-                                                                            class="form-control phone-mask"
-                                                                            name="dependentes[{{ $index }}][telefone1]"
-                                                                            value="{{ $dependente['telefone_1'] ?? '' }}"
-                                                                            placeholder="(11) 94556-7166" />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-10">
-                                                                <div class="row">
-                                                                    <label class="col-sm-3 col-form-label text-sm-end"
-                                                                        for="phone{{ $index }}">Telefone 2</label>
-                                                                    <div class="col-sm-9">
-                                                                        <input type="text"
-                                                                            id="phone{{ $index }}"
-                                                                            class="form-control phone-mask"
-                                                                            name="dependentes[{{ $index }}][telefone2]"
-                                                                            value="{{ $dependente['telefone_2'] ?? '' }}"
-                                                                            placeholder="(11) 94556-7166" />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-10">
-                                                                <div class="row">
-                                                                    <label class="col-sm-3 col-form-label text-sm-end"
-                                                                        for="phone{{ $index }}">Telefone 3</label>
-                                                                    <div class="col-sm-9">
-                                                                        <input type="text"
-                                                                            id="phone{{ $index }}"
-                                                                            class="form-control phone-mask"
-                                                                            name="dependentes[{{ $index }}][telefone3]"
-                                                                            value="{{ $dependente['telefone_3'] ?? '' }}"
-                                                                            placeholder="(11) 94556-7166" />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-10">
-                                                                <div class="row">
-                                                                    <label class="col-sm-3 col-form-label text-sm-end"
-                                                                        for="idade{{ $index }}">Idade</label>
-                                                                    <div class="col-sm-9">
-                                                                        <input type="text"
-                                                                            id="idade{{ $index }}"
-                                                                            class="form-control"
-                                                                            name="dependentes[{{ $index }}][idade]"
-                                                                            value="{{ $dependente['idade'] ?? '' }}"
-                                                                            placeholder="John Doe" />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-10">
-                                                                <div class="row">
-                                                                    <label class="col-sm-3 col-form-label text-sm-end"
-                                                                        for="idade{{ $index }}">Valor
-                                                                        Dependente</label>
-                                                                    <div class="col-sm-9">
-                                                                        <input type="text"
-                                                                            id="idade{{ $index }}"
-                                                                            class="form-control"
-                                                                            name="dependentes[{{ $index }}][valor_plano]"
-                                                                            value="R$ {{ number_format($dependente['valor_plano'] ?? 0, 2, ',', '.') ?? '' }}"
-                                                                            placeholder="John Doe" />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <button
-                                                                    class="btn btn-success mt-5 btn--twitter">Atualizar</button>
                                                             </div>
                                                         </div>
                                                     </div>
