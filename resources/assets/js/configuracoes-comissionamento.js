@@ -19,14 +19,6 @@
                 data: 'periodicidade',
                 render: (data) => data.charAt(0).toUpperCase() + data.slice(1)
             },
-            { data: 'dia_fechamento' },
-            {
-                data: 'pagar_automaticamente',
-                render: (data) =>
-                    data
-                        ? '<span class="badge bg-success">Sim</span>'
-                        : '<span class="badge bg-secondary">Não</span>'
-            },
             {
                 data: null,
                 orderable: false,

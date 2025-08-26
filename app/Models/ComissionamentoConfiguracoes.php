@@ -16,8 +16,6 @@ class ComissionamentoConfiguracoes extends Model
         'user_id',
         'percentual',
         'periodicidade',
-        'pagar_automaticamente',
-        'dia_fechamento',
         'created_at',
         'updated_at',
     ];

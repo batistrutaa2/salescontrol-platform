@@ -44,7 +44,6 @@ class Comissionamento extends Controller
             'user_id' => 'required|exists:users,id',
             'percentual' => 'required|numeric|min:0',
             'periodicidade' => 'required|in:mensal,trimestral,semestral,anual',
-            'dia_fechamento' => 'required|integer|min:1|max:31',
         ]);
 
         $empresaId = auth()->user()->empresa_id;
@@ -53,7 +52,6 @@ class Comissionamento extends Controller
             'percentual' => $request->percentual,
             'periodicidade' => $request->periodicidade,
             'pagar_automaticamente' => $request->has('pagar_automaticamente'),
-            'dia_fechamento' => $request->dia_fechamento,
         ];
 
         $comissao = ComissionamentoConfiguracoes::updateOrCreate(

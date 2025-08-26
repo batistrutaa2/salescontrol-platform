@@ -33,8 +33,6 @@
                             <th>Usuário</th>
                             <th>Percentual</th>
                             <th>Periodicidade</th>
-                            <th>Dia Fechamento</th>
-                            <th>Automático</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -83,20 +81,6 @@
                                 <option value="semestral">Semestral</option>
                                 <option value="anual">Anual</option>
                             </select>
-                        </div>
-
-                        <!-- Dia de Fechamento -->
-                        <div class="mb-3">
-                            <label for="dia_fechamento" class="form-label">Dia do Fechamento</label>
-                            <input type="number" min="1" max="31" class="form-control" name="dia_fechamento"
-                                id="dia_fechamento" value="5" required>
-                        </div>
-
-                        <!-- Pagar Automaticamente -->
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" name="pagar_automaticamente"
-                                id="pagar_automaticamente" value="1">
-                            <label class="form-check-label" for="pagar_automaticamente">Pagar automaticamente</label>
                         </div>
                     </div>
 
