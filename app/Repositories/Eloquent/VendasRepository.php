@@ -38,6 +38,7 @@ class VendasRepository implements VendasRepositoryInterface
         $tel1 = Helpers::cleanSpecialCharacters($data['telefone1'] ?? '');
         $tel2 = Helpers::cleanSpecialCharacters($data['telefone2'] ?? '');
         $valorContrato = Helpers::converterParaDecimal($data['valor_contrato'] ?? '0');
+        $taxaAngariacao = Helpers::converterParaDecimal($data['valor_contrato'] ?? '0');
         $vidas = (int) ($data['vidas'] ?? count($titulares));
         $obsContrato = $data['obs_contrato'] ?? null;
 
@@ -59,6 +60,8 @@ class VendasRepository implements VendasRepositoryInterface
           $coparticipacaoVenda = $copValues[0];
         }
 
+        $isAngariacao = $operadora->nome === "AMIL - SUPERMED" ? "SIM" : "NÃO";
+
         $venda = $this->model->create([
           'empresa_id' => Auth::user()->empresa_id,
           'user_id' => Auth::user()->id,
@@ -76,6 +79,8 @@ class VendasRepository implements VendasRepositoryInterface
           'obs_contrato' => $obsContrato,
           'data_vigencia' => now(),
           'coparticipacao' => $coparticipacaoVenda,
+          'angariacao_valor' => $taxaAngariacao,
+          'angariacao_status' => $isAngariacao,
         ]);
 
         if (!empty($titulares)) {
@@ -563,6 +568,7 @@ class VendasRepository implements VendasRepositoryInterface
       $contract->motivo_pendencia = $data['motivo_pendencia'] ?? null;
       $contract->obs_contrato = $data['obs_contrato'];
       $contract->updated_at = now();
+      $contract->angariacao_valor = Helpers::moneyForRealSaveBank($data['angariacao_valor']);
 
       return $contract->save();
     } catch (\Throwable $th) {

@@ -799,6 +799,14 @@
 
                             <div class="col-12 col-md-12">
                                 <div class="form-floating form-floating-outline">
+                                    <input type="text" id="taxa_angariacao" name="taxa_angariacao" value="0"
+                                        class="form-control monetary-field" placeholder="R$ 2.500,00" />
+                                    <label for="taxa_angariacao">$ Taxa Angariação</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-12">
+                                <div class="form-floating form-floating-outline">
                                     <input type="number" id="vidas" name="vidas" class="form-control" required
                                         placeholder="Quantidade de vidas" />
                                     <label for="vidas">Quantidade de vidas</label>

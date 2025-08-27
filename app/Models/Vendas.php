@@ -38,7 +38,9 @@ class Vendas extends Model
     'comissao_estornada',
     'data_estorno_comissao',
     'created_at',
-    'updated_at'
+    'updated_at',
+    'angariacao_valor',
+    'angariacao_status'
   ];
 
   protected $casts = [
@@ -48,12 +50,10 @@ class Vendas extends Model
     'data_implantacao' => 'date',
   ];
 
-
   public function titulares()
   {
     return $this->hasMany(\App\Models\VendaTitular::class, 'venda_id');
   }
-
 
   public function user()
   {

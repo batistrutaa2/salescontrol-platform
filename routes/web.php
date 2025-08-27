@@ -108,8 +108,6 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/getPlansByOperator/{operadora_id}', [Comercial::class, 'getPlansByOperator'])->name('comercial.getPlansByOperator');
   Route::get('/comercial/demandas', [Comercial::class, 'demands'])->name('comercial.demands');
   Route::post('/comercial/deletar-dependente', [Comercial::class, 'deletarDependente'])->name('comercial.deletar.depedente');
-
-
   Route::get('/comercial/demandas/list', [Comercial::class, 'list'])->name('demandas.list');
   Route::post('/comercial/demandas', [Comercial::class, 'store'])->name('demandas.store');
   Route::put('/comercial/demandas/{id}', [Comercial::class, 'update'])->name('demandas.update');
@@ -196,8 +194,6 @@ Route::middleware(['auth'])->group(function () {
   Route::delete('/comissionamento/{id}', [Comissionamento::class, 'destroy'])->name('comissionamento.destroy');
   Route::get('/comissionamento/faturar', [Comissionamento::class, 'invoiceCommission'])->name('comissionamento.invoiceCommission');
   Route::get('/comissionamento/faturamento', [Comissionamento::class, 'getFaturamentoComissionamento'])->name('comissionamento.faturamento');
-
-
 
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');

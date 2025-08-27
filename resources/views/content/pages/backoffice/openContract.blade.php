@@ -136,27 +136,34 @@
                             <input type="email" class="form-control" name="email" value="{{ $contract->email }}">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Telefone 1</label>
                             <input type="text" class="form-control mask-telefone" name="telefone1"
                                 value="{{ $contract->telefone1 }}">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Telefone 2</label>
                             <input type="text" class="form-control mask-telefone" name="telefone2"
                                 value="{{ $contract->telefone2 }}">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Valor do Contrato</label>
                             <input type="text" class="form-control monetary-field" name="valor_contrato"
                                 value="{{ number_format((float) $contract->valor_contrato, 2, ',', '.') }}">
                         </div>
 
                         <div class="col-md-6">
+                            <label class="form-label">Taxa de Angaricação</label>
+                            <input type="text" class="form-control monetary-field" name="angariacao_valor"
+                                value="{{ number_format((float) $contract->angariacao_valor, 2, ',', '.') }}">
+                        </div>
+
+                        <div class="col-md-6">
                             <label class="form-label">Número de Vidas</label>
-                            <input type="number" class="form-control" name="vidas" value="{{ (int) $contract->vidas }}">
+                            <input type="number" class="form-control" name="vidas"
+                                value="{{ (int) $contract->vidas }}">
                         </div>
 
                         <div class="col-12">
