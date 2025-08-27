@@ -121,6 +121,8 @@ class Comissionamento extends Controller
                 'v.user_id',
                 'u.name as vendedor',
                 'v.nome_contrato',
+                'v.angariacao_valor',
+                'v.angariacao_status',
                 DB::raw('COALESCE(v.valor_contrato,0) as valor_contrato'),
                 'v.data_implantacao',
                 DB::raw('LOWER(cfg.grade) as grade'), // normaliza: junior/senior/admin/comercial
@@ -145,6 +147,8 @@ class Comissionamento extends Controller
             $valor = (float) $r->valor_contrato;
             $imposto = (float) $r->imposto;
             $grade = strtolower((string) $r->grade);
+            $angariacaoValor = (float) $r->angariacao_valor;
+            $angariacaoStatus = strtolower((string) $r->angariacao_status);
 
             // Todas entram na base do ADMIN
             $totalVendasAllGrades += $valor;
@@ -156,8 +160,14 @@ class Comissionamento extends Controller
 
             // Apenas JUNIOR/SENIOR aparecem individualmente na tela
             if ($r->percentual > 0) {
-                $valorComissaoBruta = $valor * ($r->percentual / 100.0);
-                $valorComissaoLiquida = $valorComissaoBruta * (1.0 - ($imposto / 100.0));
+                $valorComissaoLiquida = 0.0;
+
+                if ($r->angariacao_status == 'SIM') {
+                    $valorComissaoLiquida = $angariacaoValor * 0.5;
+                } else {
+                    $valorComissaoBruta = $valor * ($r->percentual / 100.0);
+                    $valorComissaoLiquida = $valorComissaoBruta * (1.0 - ($imposto / 100.0));
+                }
 
                 $porVendedor[$r->user_id] ??= [
                     'user_id' => $r->user_id,
@@ -171,8 +181,10 @@ class Comissionamento extends Controller
                     'id' => $r->id,
                     'nome_contrato' => $r->nome_contrato,
                     'valor_contrato' => round($valor, 2),
-                    'valor_comissao' => round($valorComissaoLiquida, 2), // líquido do imposto do vendedor
+                    'valor_comissao' => round($valorComissaoLiquida, 2),
                     'data_implantacao' => Carbon::parse($r->data_implantacao)->format('d/m/Y'),
+                    'angariacao_valor' => round($angariacaoValor, 2),
+                    'angariacao_status' => $r->angariacao_status,
                 ];
 
                 $porVendedor[$r->user_id]['totais']['qtd'] += 1;
@@ -184,6 +196,7 @@ class Comissionamento extends Controller
                 $kpiTotalComissao += $valorComissaoLiquida;
             }
         }
+
 
         // ========== ADMIN (5% sobre TODAS as vendas), com imposto individual ==========
         $admins = DB::table('comissionamento_configuracao as cfg')
