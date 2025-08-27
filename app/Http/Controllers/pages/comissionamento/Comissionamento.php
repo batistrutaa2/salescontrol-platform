@@ -148,25 +148,25 @@ class Comissionamento extends Controller
             $imposto = (float) $r->imposto;
             $grade = strtolower((string) $r->grade);
             $angariacaoValor = (float) $r->angariacao_valor;
-            $angariacaoStatus = strtolower((string) $r->angariacao_status);
 
-            // Todas entram na base do ADMIN
-            $totalVendasAllGrades += $valor;
-
-            // JUNIOR também alimenta a base da grade COMERCIAL
-            if ($grade == 'junior') {
-                $totalVendasJunior += $valor;
-            }
-
-            // Apenas JUNIOR/SENIOR aparecem individualmente na tela
             if ($r->percentual > 0) {
                 $valorComissaoLiquida = 0.0;
 
                 if ($r->angariacao_status == 'SIM') {
                     $valorComissaoLiquida = $angariacaoValor * 0.5;
+                    $totalVendasAllGrades += $angariacaoValor;
+
+                    if ($grade == 'junior') {
+                        $totalVendasJunior += $angariacaoValor;
+                    }
                 } else {
                     $valorComissaoBruta = $valor * ($r->percentual / 100.0);
                     $valorComissaoLiquida = $valorComissaoBruta * (1.0 - ($imposto / 100.0));
+                    $totalVendasAllGrades += $valor;
+
+                    if ($grade == 'junior') {
+                        $totalVendasJunior += $valor;
+                    }
                 }
 
                 $porVendedor[$r->user_id] ??= [
@@ -297,7 +297,6 @@ class Comissionamento extends Controller
                 ],
             ],
         ];
-
         return response()->json($payload);
     }
 }

@@ -169,6 +169,7 @@
                     <th class="text-end">% Comissão</th>
                     <th class="text-end">Valor comissão (com imposto)</th>
                     <th class="text-end">Implantação</th>
+                    <th class="text-end">Angariação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -180,6 +181,9 @@
                       <td class="text-end">${perc.toFixed(0)}%</td>
                       <td class="text-end">${brl(it.valor_comissao)}</td>
                       <td class="text-end">${it.data_implantacao}</td>
+                      <td class="text-end">
+                        ${it.angariacao_status === "SIM" ? `<span class="badge bg-success">Angariação</span>` : '-'}
+                      </td>
                     </tr>
                   `).join('')}
                 </tbody>
