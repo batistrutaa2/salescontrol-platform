@@ -167,7 +167,7 @@
                     <thead>
                         <tr>
                             <th>Supervisor</th>
-                            <th class="text-end">Quota</th>
+                            <th class="text-end">Quota (com imposto)</th>
                         </tr>
                     </thead>
                     <tbody></tbody>

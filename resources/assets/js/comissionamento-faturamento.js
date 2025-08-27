@@ -315,7 +315,7 @@
       </div>
       <div class="col-md-3">
         <div class="card h-100"><div class="card-body">
-          <div class="text-muted small">Quota por supervisor</div>
+          <div class="text-muted small">Quota por supervisor (com imposto)</div>
           <div class="h5 mb-0">${brl(com.quota)}</div>
         </div></div>
       </div>

@@ -150,7 +150,7 @@ class Comissionamento extends Controller
             $totalVendasAllGrades += $valor;
 
             // JUNIOR também alimenta a base da grade COMERCIAL
-            if ($grade === 'junior') {
+            if ($grade == 'junior') {
                 $totalVendasJunior += $valor;
             }
 
@@ -219,7 +219,10 @@ class Comissionamento extends Controller
             ->sum('salario');
 
         $custoAdm5 = $totalVendasJunior * 0.05;
+
         $poolFinal = $totalVendasJunior - $salariosJuniorTot - $custoAdm5;
+        $desconto = $poolFinal * 0.10; 
+        $poolFinal = $poolFinal - $desconto;
 
         $gestores = DB::table('comissionamento_configuracao as cfg')
             ->join('users as u', 'u.id', '=', 'cfg.user_id')
@@ -277,7 +280,7 @@ class Comissionamento extends Controller
                     'pool_final' => round($poolFinal, 2),
                     'quota' => round($quota, 2),
                     'gestores' => $gestoresArr,
-                    'total_distribuido' => round($quota * $qtdGestores, 2), // deve = pool_final (se gestores > 0)
+                    'total_distribuido' => round($quota * $qtdGestores, 2),
                 ],
             ],
         ];
