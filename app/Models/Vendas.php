@@ -31,8 +31,12 @@ class Vendas extends Model
     'obs_contrato',
     'coparticipacao',
     'plano_id',
-    'motivo_pendencia',
     'path_boleto_disponivel',
+    'motivo_pendencia',
+    'comissao_paga',
+    'data_pagamento_comissao',
+    'comissao_estornada',
+    'data_estorno_comissao',
     'created_at',
     'updated_at'
   ];
@@ -71,4 +75,10 @@ class Vendas extends Model
   {
     return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
   }
+
+  public function getDataImplantacaoAttribute($value)
+  {
+    return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
+  }
+
 }

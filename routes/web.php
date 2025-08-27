@@ -2,6 +2,7 @@
 
 
 use App\Http\Controllers\Auth\Auth;
+use App\Http\Controllers\pages\comissionamento\Comissionamento;
 use App\Http\Controllers\pages\ranking\RankingVendas;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\pages\HomePage;
@@ -163,15 +164,12 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/vendas/dados', [Vendas::class, 'dados'])->name('sale.dados');
   Route::get('/vendas/listar', [Vendas::class, 'listarVendas'])->name('sale.listarVendas');
   Route::get('/vendas/exportar', [Vendas::class, 'exportar'])->name('sale.exportar');
-  Route::get('/vendas/boletos/{id}', [Vendas::class, 'downloadBoleto'])->name('vendas.boleto.download');
-
 
   /** PABX */
   Route::get('/pabx/cadastro-ramais', [Pabx::class, 'index'])->name('index.createRamal');
   Route::get('/pabx/getRamais', [Pabx::class, 'getRamais'])->name('pabx.getRamais');
   Route::post('/pabx/createramal', [Pabx::class, 'createramal'])->name('pabx.createramal');
   Route::post('/pabx/clickToCall', [Pabx::class, 'clickToCall'])->name('pabx.clickToCall');
-
 
   /** RELATORIOS */
   Route::get('/relatorios/ligacoes', [Relatorios::class, 'index'])->name('pabx.getLigacoess');
@@ -190,7 +188,16 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/ranking/configuracao', [RankingVendas::class, 'config'])->name('ranking.config');
   Route::get('/ranking-vendas', [RankingVendas::class, 'rankingVendas'])->name('ranking.rankingVendas');
   Route::get('/rankingVendasData', [RankingVendas::class, 'rankingVendasData'])->name('ranking.rankingVendasData');
-  Route::get('/vendas/valores-mensais', [RankingVendas::class, 'valoresMensais'])->name('ranking.valoresMensais');
+
+  /** COMISSIONAMENTO */
+  Route::get('/comissionamento', [Comissionamento::class, 'index'])->name('comissionamento.index');
+  Route::get('/comissionamento/getCommissioning', [Comissionamento::class, 'getCommissioning'])->name('comissionamento.getCommissioning');
+  Route::post('/comissionamento', [Comissionamento::class, 'store'])->name('comissionamento.store');
+  Route::delete('/comissionamento/{id}', [Comissionamento::class, 'destroy'])->name('comissionamento.destroy');
+  Route::get('/comissionamento/faturar', [Comissionamento::class, 'invoiceCommission'])->name('comissionamento.invoiceCommission');
+  Route::get('/comissionamento/faturamento', [Comissionamento::class, 'getFaturamentoComissionamento'])->name('comissionamento.faturamento');
+
+
 
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');

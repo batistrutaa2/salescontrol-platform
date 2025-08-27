@@ -253,6 +253,27 @@
       ]
     },
     {
+      "name": "Comissionamento",
+      "icon": "menu-icon tf-icons ri-hand-coin-line",
+      "slug": "dashboard",
+      "rules": [
+        "DEVELOPER",
+        "ADMINISTRATIVO"
+      ],
+      "submenu": [
+        {
+          "url": "/comissionamento",
+          "name": "Configurar Comissões",
+          "slug": "pages-mailing-importar"
+        },
+        {
+          "url": "/comissionamento/faturar",
+          "name": "Faturar Comissões",
+          "slug": "pages-mailing-importar"
+        }
+      ]
+    },
+    {
       "menuHeader": "Vendedor",
       "rules": [
         "VENDEDOR",
