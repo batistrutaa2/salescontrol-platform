@@ -172,7 +172,7 @@ class Comissionamento extends Controller
                     'nome_contrato' => $r->nome_contrato,
                     'valor_contrato' => round($valor, 2),
                     'valor_comissao' => round($valorComissaoLiquida, 2), // líquido do imposto do vendedor
-                    'data_implantacao' => $r->data_implantacao,
+                    'data_implantacao' => Carbon::parse($r->data_implantacao)->format('d/m/Y'),
                 ];
 
                 $porVendedor[$r->user_id]['totais']['qtd'] += 1;
@@ -221,7 +221,7 @@ class Comissionamento extends Controller
         $custoAdm5 = $totalVendasJunior * 0.05;
 
         $poolFinal = $totalVendasJunior - $salariosJuniorTot - $custoAdm5;
-        $desconto = $poolFinal * 0.10; 
+        $desconto = $poolFinal * 0.10;
         $poolFinal = $poolFinal - $desconto;
 
         $gestores = DB::table('comissionamento_configuracao as cfg')
