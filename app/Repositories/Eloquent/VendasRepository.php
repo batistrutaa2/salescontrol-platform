@@ -556,6 +556,8 @@ class VendasRepository implements VendasRepositoryInterface
       $contract = $this->model::find($data['id']);
       $operadora = Operadora::find($data['operadora']);
 
+      $isAngariacao = $operadora->nome === "AMIL - SUPERMED" ? "SIM" : "NÃO";
+
       $contract->operadora = $operadora->nome;
       $contract->nome_contrato = $data['nome_contrato'];
       $contract->cpf_cnpj = Helpers::cleanSpecialCharacters($data['cpf_cnpj']);
@@ -569,6 +571,7 @@ class VendasRepository implements VendasRepositoryInterface
       $contract->obs_contrato = $data['obs_contrato'];
       $contract->updated_at = now();
       $contract->angariacao_valor = Helpers::moneyForRealSaveBank($data['angariacao_valor']);
+      $contract->angariacao_status = $isAngariacao;
 
       return $contract->save();
     } catch (\Throwable $th) {
