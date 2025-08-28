@@ -18,6 +18,7 @@ use App\Http\Controllers\pages\backoffice\Backoffice;
 use App\Http\Controllers\pages\relatorios\Relatorios;
 use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\comercial\ConsultaController;
+use App\Http\Controllers\pages\estudo\Estudo;
 
 
 Route::get('/', [LoginBasic::class, 'index'])->name('login');
@@ -188,8 +189,6 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/rankingVendasData', [RankingVendas::class, 'rankingVendasData'])->name('ranking.rankingVendasData');
   Route::get('/vendas/valores-mensais', [RankingVendas::class, 'valoresMensais'])->name('ranking.valoresMensais');
 
-
-
   /** COMISSIONAMENTO */
   Route::get('/comissionamento', [Comissionamento::class, 'index'])->name('comissionamento.index');
   Route::get('/comissionamento/getCommissioning', [Comissionamento::class, 'getCommissioning'])->name('comissionamento.getCommissioning');
@@ -198,6 +197,8 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comissionamento/faturar', [Comissionamento::class, 'invoiceCommission'])->name('comissionamento.invoiceCommission');
   Route::get('/comissionamento/faturamento', [Comissionamento::class, 'getFaturamentoComissionamento'])->name('comissionamento.faturamento');
 
+  /** ESTUDO */
+  Route::get('/estudo-criar', [Estudo::class, 'create'])->name('estudo.create');
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
 
