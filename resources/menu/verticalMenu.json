@@ -233,7 +233,8 @@
       "slug": "dashboard",
       "rules": [
         "DEVELOPER",
-        "ADMINISTRATIVO"
+        "ADMINISTRATIVO",
+        "SUPERVISOR"
       ],
       "submenu": [
         {
