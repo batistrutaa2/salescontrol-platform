@@ -30,10 +30,19 @@
     {
       "menuHeader": "Administrativo",
       "rules": [
-        "ADMINISTRATIVO",
-        "BACKOFFICE",
-        "DEVELOPER",
+        "ADMINISTRATIVO"
+      ]
+    },
+    {
+      "menuHeader": "Supervisor",
+      "rules": [
         "SUPERVISOR"
+      ]
+    },
+    {
+      "menuHeader": "Back-office",
+      "rules": [
+        "BACKOFFICE"
       ]
     },
     {
@@ -44,7 +53,6 @@
       "rules": [
         "ADMINISTRATIVO",
         "DEVELOPER",
-        "BACKOFFICE",
         "SUPERVISOR"
       ]
     },
@@ -67,7 +75,6 @@
       "rules": [
         "ADMINISTRATIVO",
         "DEVELOPER",
-        "BACKOFFICE",
         "SUPERVISOR"
       ]
     },
@@ -100,6 +107,7 @@
       "rules": [
         "DEVELOPER",
         "ADMINISTRATIVO",
+        "BACKOFFICE",
         "SUPERVISOR"
       ],
       "submenu": [
@@ -131,7 +139,8 @@
       "slug": "dashboard",
       "rules": [
         "DEVELOPER",
-        "ADMINISTRATIVO"
+        "ADMINISTRATIVO",
+        "BACKOFFICE"
       ],
       "submenu": [
         {
@@ -157,7 +166,8 @@
       "slug": "dashboard",
       "rules": [
         "DEVELOPER",
-        "ADMINISTRATIVO"
+        "ADMINISTRATIVO",
+        "BACKOFFICE"
       ],
       "submenu": [
         {
@@ -195,6 +205,11 @@
         "SUPERVISOR"
       ],
       "submenu": [
+        {
+          "url": "/vendas/analitico",
+          "name": "Relatorio de Vendas",
+          "slug": "pages-mailing-importar"
+        },
         {
           "url": "/relatorios/preditiva",
           "name": "Relatorio Preditivo",
