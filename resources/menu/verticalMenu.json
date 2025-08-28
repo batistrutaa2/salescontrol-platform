@@ -89,7 +89,8 @@
       "slug": "comercial-demandas",
       "rules": [
         "ADMINISTRATIVO",
-        "DEVELOPER"
+        "DEVELOPER",
+        "BACKOFFICE"
       ]
     },
     {
