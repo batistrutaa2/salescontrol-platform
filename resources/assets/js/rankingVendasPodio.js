@@ -150,7 +150,7 @@ $(function () {
                 });
 
                 const totalVendido = vendedores
-                    .filter(v => v.nome !== 'Kaique Albertin' && v.nome !== 'Leandro Alves')
+                    .filter(v => v.nome !== 'KAIQUE ALBERTIN' && v.nome !== 'LEANDRO ALVES')
                     .reduce((acc, v) => acc + parseFloat(v.total), 0);
 
                 const metaValor = meta.tipo_calculo === 'VALOR'
