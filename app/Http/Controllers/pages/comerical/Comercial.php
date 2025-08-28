@@ -1025,7 +1025,7 @@ class Comercial extends Controller
   public function demands()
   {
     $users = User::select('id', 'name')
-      ->where('user_role_id', UserRole::ADMINISTRATIVO)
+      ->wherein('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER, UserRole::BACKOFFICE])
       ->where('empresa_id', Auth::user()->empresa_id)
       ->where('ativo', 'Y')
       ->orderBy('name')->get();
