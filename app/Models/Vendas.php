@@ -76,9 +76,4 @@ class Vendas extends Model
     return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
   }
 
-  public function getDataImplantacaoAttribute($value)
-  {
-    return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
-  }
-
 }

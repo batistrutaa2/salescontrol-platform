@@ -35,7 +35,6 @@ $(function () {
         'Content-Type': 'application/json'
       },
       success: function (response) {
-        console.log('Dados carregados:', response);
         if (response.success) {
           popularFiltros(response.data);
           atualizarDashboard(response.data);
@@ -129,7 +128,6 @@ $(function () {
         }
       },
       error: function (xhr, status, error) {
-        console.error('Erro ao aplicar filtros:', { xhr, status, error });
         showToast('Erro ao aplicar filtros', 'error');
       },
       complete: function () {
@@ -155,7 +153,6 @@ $(function () {
         }
       },
       error: function (xhr) {
-        console.error('Erro ao carregar vendas:', xhr);
         showToast('Erro ao carregar lista de vendas', 'error');
       }
     });
@@ -174,7 +171,7 @@ $(function () {
       // Atualizar gráficos
       atualizarGraficos(data);
     } catch (error) {
-      console.error('Erro ao atualizar dashboard:', error);
+        showToast('Erro ao Atualizar dados', 'error');
     }
   }
 
@@ -462,8 +459,6 @@ $(function () {
   }
 
   function showToast(message, type = 'info') {
-    console.log(`${type.toUpperCase()}: ${message}`);
-    // Implementar notificação toast se necessário
     if (typeof toastr !== 'undefined') {
       toastr[type](message);
     } else {
