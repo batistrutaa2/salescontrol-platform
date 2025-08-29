@@ -199,6 +199,8 @@ Route::middleware(['auth'])->group(function () {
 
   /** ESTUDO */
   Route::get('/estudo-criar', [Estudo::class, 'create'])->name('estudo.create');
+  Route::get('/planos/{operadoraId}', [Estudo::class, 'getByOperadora']);
+
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
 

@@ -1,22 +1,49 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'Cadastrar Cliente - Leads')
+@section('title', 'Estudo de Planos de Saúde')
 
-<!-- Vendor Styles -->
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/bootstrap-select/bootstrap-select.scss', 'resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/tagify/tagify.scss', 'resources/assets/vendor/libs/@form-validation/form-validation.scss'])
+    @vite(['resources/assets/vendor/libs/bootstrap-select/bootstrap-select.scss', 'resources/assets/vendor/libs/select2/select2.scss'])
 @endsection
 
-<!-- Vendor Scripts -->
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/bootstrap-select/bootstrap-select.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js', 'resources/assets/vendor/libs/tagify/tagify.js', 'resources/assets/vendor/libs/@form-validation/popular.js', 'resources/assets/vendor/libs/@form-validation/bootstrap5.js', 'resources/assets/vendor/libs/@form-validation/auto-focus.js', 'resources/assets/vendor/libs/cleavejs/cleave.js', 'resources/assets/vendor/libs/cleavejs/cleave-phone.js'])
+    @vite(['resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/bootstrap-select/bootstrap-select.js'])
 @endsection
 
-<!-- Page Scripts -->
 @section('page-script')
     @vite(['resources/assets/js/estudo.js'])
 @endsection
 
 @section('content')
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Criar Estudo</h5>
+        </div>
+        <div class="card-body">
+            <!-- Seleção Operadora e Plano -->
+            <div class="row mb-3">
+                <div class="col-md-5">
+                    <label class="form-label">Operadora</label>
+                    <select id="operadoraSelect" class="form-select select2">
+                        <option value="">Selecione</option>
+                        @foreach ($operadoras as $op)
+                            <option value="{{ $op->id }}">{{ $op->nome }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Plano</label>
+                    <select id="planoSelect" class="form-select select2" disabled>
+                        <option value="">Selecione</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button id="addEstudo" class="btn btn-primary w-100">Adicionar</button>
+                </div>
+            </div>
 
+            <!-- Container onde os estudos serão adicionados -->
+            <div id="estudosContainer" class="row g-3"></div>
+        </div>
+    </div>
 @endsection
