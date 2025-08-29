@@ -19,7 +19,12 @@
         <div class="card-header">
             <h5 class="mb-0">Criar Estudo</h5>
         </div>
+
         <div class="card-body">
+            <div class="mb-3">
+                <label for="nomeEmpresa" class="form-label">Nome da Empresa</label>
+                <input type="text" class="form-control" id="nomeEmpresa" placeholder="Digite o nome da empresa">
+            </div>
             <!-- Seleção Operadora e Plano -->
             <div class="row mb-3">
                 <div class="col-md-5">

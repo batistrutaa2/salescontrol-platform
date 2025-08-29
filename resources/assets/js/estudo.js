@@ -36,7 +36,7 @@
         const container = document.getElementById("estudosContainer");
 
         const estudoId = `estudo_${Date.now()}`;
-        const faixas = ['0 a 18', '19 a 23', '24 a 28', '29 a 33', '34 a 38', '39 a 43', '49 a 53'];
+        const faixas = ['0 a 18', '19 a 23', '24 a 28', '29 a 33', '34 a 38', '39 a 43', '49 a 53', '54 a 58', '59+'];
 
         let html = `
         <div class="card mb-4 estudo" id="${estudoId}">
@@ -44,7 +44,20 @@
                 <h6 class="mb-0">${operadora.options[operadora.selectedIndex].text} - ${plano.options[plano.selectedIndex].text}</h6>
                 <button type="button" class="btn btn-sm btn-danger remover-estudo">Remover</button>
             </div>
+
+            <!-- Novos campos abaixo do botão de remover -->
             <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col">
+                        <label>Coparticipação</label>
+                        <input type="text" class="form-control coparticipacao">
+                    </div>
+                    <div class="col">
+                        <label>Reembolso Consulta (R$)</label>
+                        <input type="number" class="form-control reembolso" step="0.01" min="0" value="0">
+                    </div>
+                </div>
+
                 <table class="table table-bordered text-center align-middle">
                     <thead>
                         <tr>
@@ -82,7 +95,6 @@
 
         container.insertAdjacentHTML("beforeend", `<div class="col-md-4">${html}</div>`);
 
-
         atualizarTotais(); // recalcula os valores
     });
 
@@ -95,7 +107,7 @@
 
     document.addEventListener("click", function (e) {
         if (e.target.classList.contains("remover-estudo")) {
-            e.target.closest(".estudo").remove();
+            e.target.closest(".col-md-4").remove(); // remove a coluna inteira
         }
     });
 
