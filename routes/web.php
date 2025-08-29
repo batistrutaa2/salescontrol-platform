@@ -198,8 +198,9 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comissionamento/faturamento', [Comissionamento::class, 'getFaturamentoComissionamento'])->name('comissionamento.faturamento');
 
   /** ESTUDO */
-  Route::get('/estudo-criar', [Estudo::class, 'create'])->name('estudo.create');
+  Route::get('/estudo-criar', [Estudo::class, 'index'])->name('estudo.index');
   Route::get('/planos/{operadoraId}', [Estudo::class, 'getByOperadora']);
+  Route::post('/estudos', [Estudo::class, 'store'])->name('comissionamento.store');
 
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');

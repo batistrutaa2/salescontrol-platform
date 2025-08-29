@@ -2,7 +2,29 @@
 
 (function () {
 
-    // Listener para carregar planos ao selecionar operadora
+    // Função para atualizar totais (igual à sua)
+    function atualizarTotais() {
+        document.querySelectorAll(".estudo").forEach(estudo => {
+            let totalVidas = 0;
+            let totalGeral = 0;
+
+            estudo.querySelectorAll("tbody tr").forEach(row => {
+                const qtde = parseInt(row.querySelector(".qtde").value) || 0;
+                const valor = parseFloat(row.querySelector(".valor").value) || 0;
+                const subtotal = qtde * valor;
+
+                row.querySelector(".total").textContent = subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
+                totalVidas += qtde;
+                totalGeral += subtotal;
+            });
+
+            estudo.querySelector(".totalVidas").textContent = totalVidas;
+            estudo.querySelector(".totalGeral").textContent = totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+        });
+    }
+
+    // Carregar planos ao selecionar operadora
     document.getElementById("operadoraSelect").addEventListener("change", function () {
         const operadoraId = this.value;
         const planoSelect = document.getElementById("planoSelect");
@@ -11,7 +33,7 @@
         planoSelect.disabled = true;
 
         if (operadoraId) {
-            fetch(`planos/${operadoraId}`) // rota que você vai criar
+            fetch(`planos/${operadoraId}`)
                 .then(res => res.json())
                 .then(planos => {
                     planoSelect.innerHTML = "<option value=''>Selecione</option>";
@@ -23,7 +45,7 @@
         }
     });
 
-    // Listener para adicionar bloco de estudo
+    // Adicionar bloco de estudo
     document.getElementById("addEstudo").addEventListener("click", function () {
         const operadora = document.getElementById("operadoraSelect");
         const plano = document.getElementById("planoSelect");
@@ -34,9 +56,8 @@
         }
 
         const container = document.getElementById("estudosContainer");
-
         const estudoId = `estudo_${Date.now()}`;
-        const faixas = ['0 a 18', '19 a 23', '24 a 28', '29 a 33', '34 a 38', '39 a 43', '49 a 53', '54 a 58', '59+'];
+        const faixas = ['0 a 18', '19 a 23', '24 a 28', '29 a 33', '34 a 38', '39 a 43', '44 a 48', '49 a 53', '54 a 58', '59+'];
 
         let html = `
         <div class="card mb-4 estudo" id="${estudoId}">
@@ -44,8 +65,6 @@
                 <h6 class="mb-0">${operadora.options[operadora.selectedIndex].text} - ${plano.options[plano.selectedIndex].text}</h6>
                 <button type="button" class="btn btn-sm btn-danger remover-estudo">Remover</button>
             </div>
-
-            <!-- Novos campos abaixo do botão de remover -->
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col">
@@ -57,7 +76,6 @@
                         <input type="number" class="form-control reembolso" step="0.01" min="0" value="0">
                     </div>
                 </div>
-
                 <table class="table table-bordered text-center align-middle">
                     <thead>
                         <tr>
@@ -95,7 +113,7 @@
 
         container.insertAdjacentHTML("beforeend", `<div class="col-md-4">${html}</div>`);
 
-        atualizarTotais(); // recalcula os valores
+        atualizarTotais();
     });
 
     // Delegação de eventos para inputs e remover
@@ -107,34 +125,68 @@
 
     document.addEventListener("click", function (e) {
         if (e.target.classList.contains("remover-estudo")) {
-            e.target.closest(".col-md-4").remove(); // remove a coluna inteira
+            e.target.closest(".col-md-6").remove();
         }
     });
 
-    // Função para atualizar totais de cada bloco
-    function atualizarTotais() {
-        document.querySelectorAll(".estudo").forEach(estudo => {
-            let totalVidas = 0;
-            let totalGeral = 0;
+    // Botão salvar estudo
+    const saveBtn = document.createElement('button');
+    saveBtn.classList.add('btn', 'btn-success', 'mt-3');
+    saveBtn.textContent = "Salvar Estudo";
+    document.querySelector('.card-body').appendChild(saveBtn);
 
-            estudo.querySelectorAll("tbody tr").forEach(row => {
-                const qtde = parseInt(row.querySelector(".qtde").value) || 0;
-                const valor = parseFloat(row.querySelector(".valor").value) || 0;
-                const subtotal = qtde * valor;
+    saveBtn.addEventListener('click', function () {
+        const nomeEmpresa = document.getElementById('nomeEmpresa').value.trim();
+        if (!nomeEmpresa) {
+            alert("Digite o nome da empresa");
+            return;
+        }
 
-                row.querySelector(".total").textContent = subtotal.toLocaleString("pt-BR", {
-                    minimumFractionDigits: 2
+        const estudos = [];
+        document.querySelectorAll('.estudo').forEach(card => {
+            const titulo = card.querySelector('h6').textContent;
+            const coparticipacao = card.querySelector('.coparticipacao').value;
+            const reembolso = parseFloat(card.querySelector('.reembolso').value) || 0;
+            const faixas = [];
+
+            card.querySelectorAll('tbody tr').forEach(row => {
+                faixas.push({
+                    faixa: row.children[0].textContent,
+                    qtde: parseInt(row.children[1].querySelector('input').value) || 0,
+                    valor_unitario: parseFloat(row.children[2].querySelector('input').value) || 0,
+                    total: parseFloat(row.children[3].textContent.replace(/\./g, '').replace(',', '.')) || 0
                 });
-
-                totalVidas += qtde;
-                totalGeral += subtotal;
             });
 
-            estudo.querySelector(".totalVidas").textContent = totalVidas;
-            estudo.querySelector(".totalGeral").textContent = totalGeral.toLocaleString("pt-BR", {
-                minimumFractionDigits: 2
+            estudos.push({
+                titulo,
+                coparticipacao,
+                reembolso,
+                faixas
             });
         });
-    }
+
+        fetch('/estudos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                nome_empresa: nomeEmpresa,
+                estudos
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Estudo salvo com sucesso!');
+                    window.location.reload();
+                } else {
+                    alert('Erro ao salvar estudo.');
+                }
+            })
+            .catch(err => console.error(err));
+    });
 
 })();
