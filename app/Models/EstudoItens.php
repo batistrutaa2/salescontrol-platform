@@ -20,4 +20,15 @@ class EstudoItens extends Model
         'created_at',
         'updated_at'
     ];
+
+    public function estudo()
+    {
+        return $this->belongsTo(Estudos::class, 'estudo_id');
+    }
+
+    // Cada item tem muitas vidas
+    public function vidas()
+    {
+        return $this->hasMany(EstudoVidas::class, 'estudo_item_id');
+    }
 }

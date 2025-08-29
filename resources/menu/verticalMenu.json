@@ -301,8 +301,8 @@
       ],
       "submenu": [
         {
-          "url": "/estudo-criar",
-          "name": "Criar Estudo",
+          "url": "/estudo-lista",
+          "name": "Listar Estudos",
           "slug": "pages-estudo-criar"
         }
       ]

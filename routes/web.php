@@ -28,6 +28,9 @@ Route::post('/logout', [LoginBasic::class, 'logout'])->name('logout');
 Route::post('autentication', [Auth::class, 'login'])->name('login.autentication');
 
 
+Route::get('/visualizar-estudo/{uuid}', [Estudo::class, 'showStudy'])->name('estudo.show');
+
+
 Route::middleware(['auth'])->group(function () {
 
   /** MANAGER */
@@ -198,9 +201,13 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comissionamento/faturamento', [Comissionamento::class, 'getFaturamentoComissionamento'])->name('comissionamento.faturamento');
 
   /** ESTUDO */
-  Route::get('/estudo-criar', [Estudo::class, 'index'])->name('estudo.index');
+  Route::get('/estudo-lista', [Estudo::class, 'index'])->name('estudo.index');
+  Route::get('/estudo-criar', [Estudo::class, 'create'])->name('estudo.create');
+  Route::get('/estudo/getListStudies', [Estudo::class, 'getListStudies'])->name('estudo.getListStudies');
+
   Route::get('/planos/{operadoraId}', [Estudo::class, 'getByOperadora']);
   Route::post('/estudos', [Estudo::class, 'store'])->name('comissionamento.store');
+  Route::delete('/estudo-delete/{id}', [Estudo::class, 'delete'])->name('comissionamento.delete');
 
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');

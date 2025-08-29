@@ -23,6 +23,7 @@ class Empresa extends Model
     'updated_at'
   ];
 
+
   public function getCreatedAtAttribute($value)
   {
     return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;

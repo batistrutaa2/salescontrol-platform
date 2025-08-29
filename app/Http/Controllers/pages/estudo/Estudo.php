@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\pages\estudo;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\EstudoItens;
 use App\Models\EstudoVidas;
@@ -17,11 +18,30 @@ use App\Models\EstudoVida;
 
 class Estudo extends Controller
 {
+
     public function index()
     {
+        $estudos = EstudoModel::with(['user', 'empresa'])->latest()->paginate(10);
+        return view('content.pages.estudo.list', compact('estudos'));
+    }
+
+    public function create()
+    {
         $operadoras = Operadora::where('status', 'Y')->get(['id', 'nome']);
+
         return view('content.pages.estudo.create', compact('operadoras'));
     }
+
+    public function getListStudies()
+    {
+        if (Auth::user()->role_id != UserRole::VENDEDOR) {
+            $estudos = EstudoModel::with(['user', 'empresa'])->get();
+        } else {
+            $estudos = EstudoModel::where('user_id', Auth::user()->id)->with(['user', 'empresa'])->get();
+        }
+        return response()->json(['data' => $estudos]);
+    }
+
 
     public function getByOperadora($operadoraId)
     {
@@ -53,7 +73,7 @@ class Estudo extends Controller
                     'reembolso_consulta' => $itemData['reembolso'] ?? 0,
                 ]);
 
-       
+
 
                 // 3️⃣ Iterar pelas faixas/vidas
                 foreach ($itemData['faixas'] as $faixa) {
@@ -83,4 +103,22 @@ class Estudo extends Controller
             ], 500);
         }
     }
+
+    public function showStudy($uuid)
+    {
+        $estudo = EstudoModel::with(['itens.vidas'])
+            ->where('link_unico', $uuid)
+            ->firstOrFail();
+
+        return view('content.pages.estudo.show', compact('estudo'));
+    }
+
+    public function delete($id)
+    {
+        $estudo = EstudoModel::findOrFail($id);
+        $estudo->delete();
+
+        return response()->json(['success' => true]);
+    }
+
 }
