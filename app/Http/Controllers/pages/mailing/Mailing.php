@@ -311,7 +311,7 @@ class Mailing extends Controller
   }
 
   public function getLeadsDescartados()
-  {
+  {                           
     $empresaId = Auth::user()->empresa_id;
     $leadsDescartados = Contatos::select(['id', 'nome_cliente', 'cpf', 'telefone1', 'valor_plano_atual', 'created_at'])
       ->where('empresa_id', $empresaId)
