@@ -297,7 +297,9 @@
       "rules": [
         "DEVELOPER",
         "ADMINISTRATIVO",
-        "SUPERVISOR"
+        "SUPERVISOR",
+        "BACKOFFICE",
+        "VENDEDOR"
       ],
       "submenu": [
         {
