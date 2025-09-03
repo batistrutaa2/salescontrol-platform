@@ -448,7 +448,7 @@
         ];
         $operadoraLogos = [
             'AMIL' => 'assets/img/logos-operadoras/amil.png',
-            'PORTO SEGURO' => 'assets/img/logos-operadoras/porto_seguro.png',
+            'PORTO SEGURO' => 'assets/img/logos-operadoras/porto-seguro.png',
             'BRADESCO' => 'assets/img/logos-operadoras/bradesco.png',
             'SULAMERICA' => 'assets/img/logos-operadoras/sulamerica.png',
             'UNIMED' => 'assets/img/logos-operadoras/unimed.png',
