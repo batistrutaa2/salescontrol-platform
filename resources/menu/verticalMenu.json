@@ -291,6 +291,25 @@
       ]
     },
     {
+      "name": "Estudo",
+      "icon": "menu-icon tf-icons ri-book-2-line",
+      "slug": "dashboard",
+      "rules": [
+        "DEVELOPER",
+        "ADMINISTRATIVO",
+        "SUPERVISOR",
+        "BACKOFFICE",
+        "VENDEDOR"
+      ],
+      "submenu": [
+        {
+          "url": "/estudo-lista",
+          "name": "Listar Estudos",
+          "slug": "pages-estudo-criar"
+        }
+      ]
+    },
+    {
       "menuHeader": "Vendedor",
       "rules": [
         "VENDEDOR",

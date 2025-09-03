@@ -530,7 +530,7 @@ class Comercial extends Controller
         $fromUser = $this->repositoryContatosCorretores->getContactOwner($leadId);
         $this->transferenciaContatoRepository->saveTransfer(
           Auth::user()->empresa_id,
-          $leadId, // Correção: Agora está usando o ID correto
+          $leadId,
           $fromUser->user_id == null ? $request->user_id : $fromUser->user_id,
           $request->user_id,
           Auth::user()->id
