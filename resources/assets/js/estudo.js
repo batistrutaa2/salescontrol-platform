@@ -181,7 +181,7 @@
             .then(data => {
                 if (data.success) {
                     alert('Estudo salvo com sucesso!');
-                    window.location.reload();
+                    window.location.href = "/estudo-lista";
                 } else {
                     alert('Erro ao salvar estudo.');
                 }
