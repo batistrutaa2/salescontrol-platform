@@ -414,7 +414,7 @@ class Comissionamento extends Controller
             'liquido' => $enriched->sum('liquido'),
         ];
 
-        // perfil (pega o 1º ou o mais frequente)
+        // perfil (1º registro; se quiser modo "mais frequente", posso ajustar)
         $perfil = [
             'grade' => optional($rows->first())->grade,
             'percentual' => optional($rows->first())->percentual,
@@ -422,8 +422,11 @@ class Comissionamento extends Controller
             'imposto' => optional($rows->first())->imposto ?? 10,
         ];
 
+        // total a receber = salário (cfg) + comissão líquida total
+        $totalReceber = ((float) ($perfil['salario'] ?? 0)) + ((float) ($totais['liquido'] ?? 0));
+
         $vendedor = optional($rows->first())->vendedor ?? '—';
-        $periodo = Carbon::createFromDate($y, $m, 1)->locale('pt_BR')->isoFormat('MMMM [de] YYYY');
+        $periodo = Carbon::createFromDate((int) $y, (int) $m, 1)->locale('pt_BR')->isoFormat('MMMM [de] YYYY');
 
         $pdf = Pdf::loadView('pdf.comissionamento-vendedor', [
             'mes' => $mes,
@@ -432,9 +435,11 @@ class Comissionamento extends Controller
             'linhas' => $enriched,
             'totais' => $totais,
             'perfil' => $perfil,
-        ])->setPaper('a4', 'portrait');
+            'totalReceber' => $totalReceber, // <-- novo
+        ])->setPaper('a4', 'landscape');       // <-- orientação horizontal
 
         return $pdf->stream("comissionamento_{$mes}.pdf");
-        // se quiser download direto: ->download("comissionamento_{$mes}.pdf");
+        // Para download direto: return $pdf->download("comissionamento_{$mes}.pdf");
     }
+
 }

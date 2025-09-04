@@ -7,11 +7,14 @@
     const urlApi = $('#cardsResumo').data('url'); // ajuste para a sua rota real
     const tabelaEl = $('#tabela-comissao');
 
+    let currentCfg = { grade: null, percentual: null, salario: 0, imposto: 10 };
+
     // Helpers
     const fmtBRL = (v) =>
         (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     const parseNumber = (v) => {
+        // aceita number ou string numérica
         const n = Number(v);
         return Number.isFinite(n) ? n : 0;
     };
@@ -47,9 +50,9 @@
             $('#cfgPercentual').text('—');
             $('#cfgSalario').text('—');
             $('#cfgImposto').text('—');
-            return;
+            currentCfg = { grade: null, percentual: null, salario: 0, imposto: 10 };
+            return currentCfg;
         }
-        // assume mesma configuração para o vendedor; pega a mais frequente
         const freq = { grade: {}, percentual: {}, salario: {}, imposto: {} };
         rows.forEach(r => {
             const g = (r.grade || '—'); freq.grade[g] = (freq.grade[g] || 0) + 1;
@@ -68,6 +71,14 @@
         $('#cfgPercentual').text(percentual === '—' ? '—' : `${Number(percentual)}%`);
         $('#cfgSalario').text(salario === '—' ? '—' : fmtBRL(Number(salario)));
         $('#cfgImposto').text(imposto === '—' ? '10% (padrão)' : `${Number(imposto)}%`);
+
+        currentCfg = {
+            grade: grade === '—' ? null : grade,
+            percentual: percentual === '—' ? null : Number(percentual),
+            salario: salario === '—' ? 0 : Number(salario),
+            imposto: imposto === '—' ? 10 : Number(imposto)
+        };
+        return currentCfg;
     }
 
     function atualizarCardsTotais(rows) {
@@ -82,9 +93,18 @@
         $('#cardImposto').text(fmtBRL(totals.imposto));
         $('#cardLiquido').text(fmtBRL(totals.liquido));
 
+        // Tabela (tfoot)
         $('#ftBruto').text(fmtBRL(totals.bruto));
         $('#ftImposto').text(fmtBRL(totals.imposto));
         $('#ftLiquido').text(fmtBRL(totals.liquido));
+
+        // Total a Receber = Salário (config) + Comissão Líquida total
+        const salario = parseNumber(currentCfg.salario || 0);
+        const totalReceber = salario + totals.liquido;
+        $('#cardTotalReceber').text(fmtBRL(totalReceber));
+        if ($('#ftTotalReceber').length) {
+            $('#ftTotalReceber').text(fmtBRL(totalReceber));
+        }
     }
 
     async function buscarDados() {
@@ -96,10 +116,12 @@
 
         try {
             tabelaEl.addClass('opacity-50');
+
             const res = await fetch(`${urlApi}?mes=${encodeURIComponent(mes)}`, {
                 headers: { 'Accept': 'application/json' }
             });
             if (!res.ok) throw new Error('Falha ao consultar o comissionamento.');
+
             const json = await res.json();
             const rows = Array.isArray(json.data) ? json.data : [];
 
@@ -125,6 +147,7 @@
             dt.clear();
             dt.rows.add(enriched).draw();
 
+            // Atualiza config (salário, etc.) e os cards
             preencherCfgResumo(rows);
             atualizarCardsTotais(enriched);
 
@@ -136,7 +159,7 @@
         }
     }
 
-    // Exportar CSV simples
+    // Exportar CSV (opcional; só binda se o botão existir)
     function exportarCSV() {
         const data = dt.rows({ search: 'applied' }).data().toArray();
         const header = [
@@ -170,7 +193,10 @@
 
     // Eventos
     btnBuscar.on('click', buscarDados);
-    $('#btnExportar').on('click', exportarCSV);
+
+    if ($('#btnExportar').length) {
+        $('#btnExportar').on('click', exportarCSV);
+    }
 
     // Auto-busca ao abrir
     $(document).ready(buscarDados);
@@ -183,10 +209,7 @@
         if (mes) url.searchParams.set('mes', mes);
         btnPdf.attr('href', url.toString());
     }
-
     $('#inputMes').on('change', atualizarLinkPdf);
-    $(document).ready(() => {
-        atualizarLinkPdf();
-    });
+    $(document).ready(() => { atualizarLinkPdf(); });
 
 })();

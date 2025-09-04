@@ -90,17 +90,29 @@
         </div>
     </div>
 
+    <!-- Segunda linha de cards: Total a Receber -->
+    <div class="row g-3 mt-0">
+        <div class="col-12 col-md-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small">Total a Receber</div>
+                    <div class="fs-4 fw-bold" id="cardTotalReceber">R$ 0,00</div>
+                    <div class="text-muted small mt-1">Salário + Comissão Líquida</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tabela -->
     <div class="card mt-4 border-0 shadow-sm">
         <div class="card-body">
-            <div>
+            <div class="d-flex gap-2">
                 <a id="btnPdf" class="btn btn-outline-primary btn-sm" target="_blank">
                     <i class="ri-file-pdf-line me-1"></i> Exportar PDF
                 </a>
             </div>
 
-
-            <div class="table-responsive">
+            <div class="table-responsive mt-3">
                 <table id="tabela-comissao" class="table table-striped table-hover" style="width:100%">
                     <thead>
                         <tr>
@@ -122,6 +134,11 @@
                             <td id="ftBruto">R$ 0,00</td>
                             <td id="ftImposto">R$ 0,00</td>
                             <td id="ftLiquido">R$ 0,00</td>
+                            <td colspan="2"></td>
+                        </tr>
+                        <tr class="fw-semibold">
+                            <td colspan="6" class="text-end">Total a Receber (Salário + Líquido):</td>
+                            <td id="ftTotalReceber">R$ 0,00</td>
                             <td colspan="2"></td>
                         </tr>
                     </tfoot>
