@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 class Comissionamento extends Controller
@@ -298,5 +299,142 @@ class Comissionamento extends Controller
             ],
         ];
         return response()->json($payload);
+    }
+
+    public function sellerCommission()
+    {
+        return view('content.pages.comissionamento.comissionamento-vendedor', );
+    }
+
+    public function getCommissioningBySeller(Request $request)
+    {
+        $empresaId = Auth::user()->empresa_id;
+        $userId = Auth::id();
+
+        $mes = $request->input('mes') ?: Carbon::now('America/Sao_Paulo')->format('Y-m');
+        [$y, $m] = explode('-', $mes);
+
+        $inicio = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->startOfMonth()->toDateString();
+        $fim = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->endOfMonth()->toDateString();
+
+        $rows = DB::table('vendas as v')
+            ->join('users as u', 'u.id', '=', 'v.user_id')
+            ->join('comissionamento_configuracao as cfg', function ($j) use ($empresaId) {
+                $j->on('cfg.user_id', '=', 'v.user_id')
+                    ->where('cfg.empresa_id', '=', $empresaId);
+            })
+            ->where('v.empresa_id', operator: $empresaId)
+            ->whereBetween('v.data_implantacao', [$inicio, $fim])
+            ->whereNotNull('v.data_implantacao')
+            ->where('v.comissao_paga', 0)
+            ->where('v.user_id', $userId)
+            ->select([
+                'v.id',
+                'v.user_id',
+                'u.name as vendedor',
+                'v.nome_contrato',
+                'v.angariacao_valor',
+                'v.angariacao_status',
+                DB::raw('COALESCE(v.valor_contrato,0) as valor_contrato'),
+                'v.data_implantacao',
+                DB::raw('LOWER(cfg.grade) as grade'),
+                'cfg.imposto',
+                'cfg.salario',
+                'cfg.percentual',
+            ])
+            ->orderBy('u.name')
+            ->orderBy('v.data_implantacao')
+            ->get();
+
+        return response()->json([
+            'data' => $rows
+        ]);
+    }
+
+    public function getCommissioningBySellerPdf(Request $request)
+    {
+        $empresaId = Auth::user()->empresa_id;
+        $userId = Auth::id();
+
+        $mes = $request->input('mes') ?: Carbon::now('America/Sao_Paulo')->format('Y-m');
+        [$y, $m] = explode('-', $mes);
+
+        $inicio = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->startOfMonth()->toDateString();
+        $fim = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->endOfMonth()->toDateString();
+
+        $rows = DB::table('vendas as v')
+            ->join('users as u', 'u.id', '=', 'v.user_id')
+            ->join('comissionamento_configuracao as cfg', function ($j) use ($empresaId) {
+                $j->on('cfg.user_id', '=', 'v.user_id')
+                    ->where('cfg.empresa_id', '=', $empresaId);
+            })
+            ->where('v.empresa_id', $empresaId)
+            ->whereBetween('v.data_implantacao', [$inicio, $fim])
+            ->whereNotNull('v.data_implantacao')
+            ->where('v.comissao_paga', 0)
+            ->where('v.user_id', $userId)
+            ->select([
+                'v.id',
+                'v.user_id',
+                'u.name as vendedor',
+                'v.nome_contrato',
+                'v.angariacao_valor',
+                'v.angariacao_status',
+                DB::raw('COALESCE(v.valor_contrato,0) as valor_contrato'),
+                'v.data_implantacao',
+                DB::raw('LOWER(cfg.grade) as grade'),
+                'cfg.imposto',
+                'cfg.salario',
+                'cfg.percentual',
+            ])
+            ->orderBy('u.name')
+            ->orderBy('v.data_implantacao')
+            ->get();
+
+        // cálculos por linha
+        $enriched = $rows->map(function ($r) {
+            $valorContrato = (float) $r->valor_contrato;
+            $perc = isset($r->percentual) ? (float) $r->percentual : 0.0;
+            $impostoPerc = isset($r->imposto) ? (float) $r->imposto : 10.0;
+
+            $bruto = $valorContrato * ($perc / 100.0);
+            $impVal = $bruto * ($impostoPerc / 100.0);
+            $liquido = $bruto - $impVal;
+
+            $r->bruto = $bruto;
+            $r->imposto_valor = $impVal;
+            $r->liquido = $liquido;
+            return $r;
+        });
+
+        // totais
+        $totais = [
+            'bruto' => $enriched->sum('bruto'),
+            'imposto' => $enriched->sum('imposto_valor'),
+            'liquido' => $enriched->sum('liquido'),
+        ];
+
+        // perfil (pega o 1º ou o mais frequente)
+        $perfil = [
+            'grade' => optional($rows->first())->grade,
+            'percentual' => optional($rows->first())->percentual,
+            'salario' => optional($rows->first())->salario,
+            'imposto' => optional($rows->first())->imposto ?? 10,
+        ];
+
+        $vendedor = optional($rows->first())->vendedor ?? '—';
+        $periodo = Carbon::createFromDate($y, $m, 1)->locale('pt_BR')->isoFormat('MMMM [de] YYYY');
+
+        $pdf = Pdf::loadView('pdf.comissionamento-vendedor', [
+            'mes' => $mes,
+            'periodo' => mb_convert_case($periodo, MB_CASE_TITLE, 'UTF-8'),
+            'vendedor' => $vendedor,
+            'linhas' => $enriched,
+            'totais' => $totais,
+            'perfil' => $perfil,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream("comissionamento_{$mes}.pdf");
+        // se quiser download direto: ->download("comissionamento_{$mes}.pdf");
     }
 }

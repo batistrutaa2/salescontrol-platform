@@ -201,6 +201,12 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comissionamento/faturar', [Comissionamento::class, 'invoiceCommission'])->name('comissionamento.invoiceCommission');
   Route::get('/comissionamento/faturamento', [Comissionamento::class, 'getFaturamentoComissionamento'])->name('comissionamento.faturamento');
 
+  Route::get('/comissionamento-vendedor', [Comissionamento::class, 'sellerCommission'])->name('comissionamento.vendedor');
+  Route::get('/comissionamento/getCommissioningBySeller', [Comissionamento::class, 'getCommissioningBySeller'])->name('comissionamento.getCommissioningBySeller');
+  Route::get('/comissionamento/pdf', [Comissionamento::class, 'getCommissioningBySellerPdf'])
+    ->name('comissionamento.vendedor.pdf')
+    ->middleware('auth');
+
   /** ESTUDO */
   Route::get('/estudo-lista', [Estudo::class, 'index'])->name('estudo.index');
   Route::get('/estudo-criar', [Estudo::class, 'create'])->name('estudo.create');

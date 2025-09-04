@@ -298,8 +298,7 @@
         "DEVELOPER",
         "ADMINISTRATIVO",
         "SUPERVISOR",
-        "BACKOFFICE",
-        "VENDEDOR"
+        "BACKOFFICE"
       ],
       "submenu": [
         {
@@ -377,6 +376,37 @@
         "ADMINISTRATIVO",
         "BACKOFFICE",
         "SUPERVISOR"
+      ]
+    },
+    {
+      "name": "Comissionamento",
+      "icon": "menu-icon tf-icons ri-hand-coin-line",
+      "slug": "comissionamento",
+      "rules": [
+        "DEVELOPER",
+        "VENDEDOR"
+      ],
+      "submenu": [
+        {
+          "url": "/comissionamento-vendedor",
+          "name": "Visualizar Comissões",
+          "slug": "pages-comissao-vendedor"
+        }
+      ]
+    },
+    {
+      "name": "Estudo",
+      "icon": "menu-icon tf-icons ri-book-2-line",
+      "slug": "dashboard",
+      "rules": [
+        "VENDEDOR"
+      ],
+      "submenu": [
+        {
+          "url": "/estudo-lista",
+          "name": "Listar Estudos",
+          "slug": "pages-estudo-criar"
+        }
       ]
     }
   ]
