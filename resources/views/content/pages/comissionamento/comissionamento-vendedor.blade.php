@@ -106,12 +106,6 @@
     <!-- Tabela -->
     <div class="card mt-4 border-0 shadow-sm">
         <div class="card-body">
-            <div class="d-flex gap-2">
-                <a id="btnPdf" class="btn btn-outline-primary btn-sm" target="_blank">
-                    <i class="ri-file-pdf-line me-1"></i> Exportar PDF
-                </a>
-            </div>
-
             <div class="table-responsive mt-3">
                 <table id="tabela-comissao" class="table table-striped table-hover" style="width:100%">
                     <thead>

@@ -38,6 +38,8 @@
   const $comKpis = document.getElementById('grade-comercial-kpis');
   const $comTbody = document.querySelector('#tabela-grade-comercial tbody');
   const $comTotalDistribuido = document.getElementById('comercial-total-distribuido');
+  const PAY_URL = $root.dataset.payUrl;
+
 
   // ======== Utils ========
   const brl = (n) => (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -221,24 +223,54 @@
     });
 
     document.querySelectorAll('.js-pagar').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const vend = btn.getAttribute('data-vendedor');
         const dateInput = document.querySelector(`.js-data-pagamento[data-vendedor="${vend}"]`);
         const dataPagamento = dateInput?.value;
         const selecionados = Array.from(document.querySelectorAll(`tr[data-vendedor="${vend}"] .js-select-row:checked`))
           .map(cb => Number(cb.closest('tr').getAttribute('data-id')));
 
-        if (!selecionados.length) {
-          toastr.info('Selecione ao menos um contrato para pagar.');
-          return;
-        }
-        if (!dataPagamento) {
-          toastr.warning('Informe a data do pagamento da comissão.');
-          return;
-        }
+        if (!selecionados.length) { toastr.info('Selecione ao menos um contrato para pagar.'); return; }
+        if (!dataPagamento) { toastr.warning('Informe a data do pagamento da comissão.'); return; }
 
-        // TODO: integrar POST de pagamento
-        toastr.info('Ação de pagamento (Júnior/Sênior) ainda não integrada ao backend.');
+        try {
+          btn.disabled = true;
+          const mes = document.getElementById('filtro-mes').value;
+
+          const res = await fetch(PAY_URL, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+              mes,
+              vendedor_id: Number(vend),
+              data_pagamento: dataPagamento,
+              venda_ids: selecionados
+            })
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || 'Falha ao registrar pagamento.');
+          }
+
+          const json = await res.json();
+          toastr.success(json.message || 'Pagamento registrado com sucesso.');
+
+          // Abre recibo
+          if (json.pdf_url) window.open(json.pdf_url, '_blank');
+
+          // Recarrega lista após pagar
+          document.getElementById('btn-aplicar-filtro').click();
+
+        } catch (e) {
+          toastr.error(e.message || 'Erro ao pagar comissão.');
+        } finally {
+          btn.disabled = false;
+        }
       });
     });
   }
@@ -364,7 +396,6 @@
       renderGradeComercial(grades.comercial, grade);
 
     } catch (err) {
-      console.error(err);
       toastr.error('Falha ao carregar faturamento de comissões.');
       renderVendedores({ kpis: { vendedores: 0, contratos: 0, total_contratos: 0, total_comissao: 0 }, vendedores: [] }, '');
       if ($adminCard) $adminCard.style.display = 'none';

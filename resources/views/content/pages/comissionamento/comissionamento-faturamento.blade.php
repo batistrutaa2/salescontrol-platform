@@ -17,8 +17,9 @@
 @section('content')
 
     <div id="comissionamento-root" data-url="{{ route('comissionamento.faturamento') }}"
-        data-empresa-id="{{ auth()->user()->empresa_id }}">
+        data-pay-url="{{ route('comissionamento.pagar') }}" data-empresa-id="{{ auth()->user()->empresa_id }}">
     </div>
+
 
     <div class="card mb-6">
         <div class="card-body">

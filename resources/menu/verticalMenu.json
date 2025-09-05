@@ -287,6 +287,11 @@
           "url": "/comissionamento/faturar",
           "name": "Faturar Comissões",
           "slug": "pages-mailing-importar"
+        },
+        {
+          "url": "/comissionamento/pagamentos",
+          "name": "Pagamentos de Comissões",
+          "slug": "pages-mailing-importar"
         }
       ]
     },

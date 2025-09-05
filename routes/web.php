@@ -203,9 +203,14 @@ Route::middleware(['auth'])->group(function () {
 
   Route::get('/comissionamento-vendedor', [Comissionamento::class, 'sellerCommission'])->name('comissionamento.vendedor');
   Route::get('/comissionamento/getCommissioningBySeller', [Comissionamento::class, 'getCommissioningBySeller'])->name('comissionamento.getCommissioningBySeller');
-  Route::get('/comissionamento/pdf', [Comissionamento::class, 'getCommissioningBySellerPdf'])
-    ->name('comissionamento.vendedor.pdf')
-    ->middleware('auth');
+  Route::get('/comissionamento/pdf', [Comissionamento::class, 'getCommissioningBySellerPdf'])->name('comissionamento.vendedor.pdf');
+  Route::post('/comissionamento/pagar', [Comissionamento::class, 'pagarVendedor'])->name('comissionamento.pagar');
+
+  Route::get('/comissionamento/pagamento/{pagamento}/pdf', [Comissionamento::class, 'pdfPagamento'])->name('comissionamento.pagamento.pdf');
+
+  Route::get('/comissionamento/pagamentos', [Comissionamento::class, 'pagamentosIndex'])->name('comissionamento.pagamentos');
+  Route::get('/comissionamento/pagamentos/data', [Comissionamento::class, 'pagamentosData'])->name('comissionamento.pagamentos.data');
+  Route::post('/comissionamento/pagamentos/{id}/estornar', [Comissionamento::class, 'pagamentosEstornar'])->name('comissionamento.pagamentos.estornar'); // opcional
 
   /** ESTUDO */
   Route::get('/estudo-lista', [Estudo::class, 'index'])->name('estudo.index');
