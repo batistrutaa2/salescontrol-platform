@@ -215,6 +215,9 @@ Route::middleware(['auth'])->group(function () {
   /** ESTUDO */
   Route::get('/estudo-lista', [Estudo::class, 'index'])->name('estudo.index');
   Route::get('/estudo-criar', [Estudo::class, 'create'])->name('estudo.create');
+  Route::get('/editar-estudo/{idEstudo}', [Estudo::class, 'edit'])->name('estudo.edit');
+  Route::get('/estudos/{id}', [Estudo::class, 'show']);      
+  Route::put('/estudos/{id}', [Estudo::class, 'update']);     
   Route::get('/estudo/getListStudies', [Estudo::class, 'getListStudies'])->name('estudo.getListStudies');
 
   Route::get('/planos/{operadoraId}', [Estudo::class, 'getByOperadora']);
