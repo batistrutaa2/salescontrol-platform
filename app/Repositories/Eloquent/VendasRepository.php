@@ -38,7 +38,7 @@ class VendasRepository implements VendasRepositoryInterface
         $tel1 = Helpers::cleanSpecialCharacters($data['telefone1'] ?? '');
         $tel2 = Helpers::cleanSpecialCharacters($data['telefone2'] ?? '');
         $valorContrato = Helpers::converterParaDecimal($data['valor_contrato'] ?? '0');
-        $taxaAngariacao = Helpers::converterParaDecimal($data['valor_contrato'] ?? '0');
+        $taxaAngariacao = Helpers::converterParaDecimal($data['taxa_angariacao'] ?? '0');
         $vidas = (int) ($data['vidas'] ?? count($titulares));
         $obsContrato = $data['obs_contrato'] ?? null;
 
