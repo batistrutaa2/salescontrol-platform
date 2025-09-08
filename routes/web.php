@@ -20,7 +20,7 @@ use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\comercial\ConsultaController;
 use App\Http\Controllers\pages\estudo\Estudo;
 
-
+//ROUTE
 Route::get('/', [LoginBasic::class, 'index'])->name('login');
 
 
