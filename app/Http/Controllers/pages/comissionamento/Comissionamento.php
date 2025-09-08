@@ -485,6 +485,8 @@ class Comissionamento extends Controller
                 'cfg.imposto',
                 'cfg.salario',
                 'cfg.percentual',
+                'v.angariacao_status',
+                DB::raw('COALESCE(v.angariacao_valor,0) as angariacao_valor'),
             ])
             ->orderBy('v.data_implantacao')
             ->get();
@@ -493,23 +495,33 @@ class Comissionamento extends Controller
             return response()->json(['message' => 'Nenhuma venda elegível para pagamento.'], 422);
         }
 
-        // Congela parâmetros e calcula por item
         $enriched = $rows->map(function ($r) {
-            $valor = (float) $r->valor_contrato;
-            $perc = isset($r->percentual) ? (float) $r->percentual : 0.0;
-            $impP = isset($r->imposto) ? (float) $r->imposto : 10.0;
+            $isAng = strtoupper((string) $r->angariacao_status) === 'SIM';
 
-            $bruto = $valor * ($perc / 100);
-            $impVal = $bruto * ($impP / 100);
-            $liquido = $bruto - $impVal;
+            // Base e % de comissão conforme regra
+            $base = $isAng ? (float) $r->angariacao_valor : (float) $r->valor_contrato;
+            $perc = $isAng ? 50.0 : (isset($r->percentual) ? (float) $r->percentual : 0.0);
 
+            // imposto: se angariação, é 0%
+            $impP = $isAng ? 0.0 : (isset($r->imposto) ? (float) $r->imposto : 10.0);
+
+            $bruto = round($base * ($perc / 100), 2);
+            $impVal = $isAng ? 0.0 : round($bruto * ($impP / 100), 2);
+            $liquido = round($bruto - $impVal, 2);
+
+            // sobrescreve os campos usados adiante
             $r->percentual = $perc;
             $r->imposto_perc = $impP;
             $r->bruto = $bruto;
             $r->imposto_valor = $impVal;
             $r->liquido = $liquido;
+
+            // opcionalmente, guarde a base usada para persistir no item
+            $r->valor_base_para_item = $base;
+
             return $r;
         });
+
 
         $totais = [
             'bruto' => (float) $enriched->sum('bruto'),
@@ -525,13 +537,12 @@ class Comissionamento extends Controller
         $totalRec = $salario + $totais['liquido'];
         $vendedor = $rows->first()->vendedor ?? 'Vendedor';
 
-        // Transação: grava header + itens + marca vendas
         $pagamentoId = DB::transaction(function () use ($empresaId, $vendedorId, $adminUserId, $mes, $request, $enriched, $totais, $salario, $totalRec, $percCom, $percImp) {
             $headerId = DB::table('comissao_pagamentos')->insertGetId([
                 'empresa_id' => $empresaId,
                 'vendedor_id' => $vendedorId,
                 'mes' => $mes,
-                'data_pagamento' => \Carbon\Carbon::parse($request->input('data_pagamento'))->toDateString(),
+                'data_pagamento' => Carbon::parse($request->input('data_pagamento'))->toDateString(),
                 'percentual_comissao' => $percCom,
                 'percentual_imposto' => $percImp,
                 'total_bruto' => $totais['bruto'],
@@ -548,7 +559,7 @@ class Comissionamento extends Controller
                 return [
                     'comissao_pagamento_id' => $headerId,
                     'venda_id' => $r->id,
-                    'valor_contrato' => $r->valor_contrato,
+                    'valor_contrato' => $r->valor_base_para_item,
                     'percentual' => $r->percentual,
                     'imposto_perc' => $r->imposto_perc,
                     'bruto' => $r->bruto,
@@ -559,6 +570,7 @@ class Comissionamento extends Controller
                 ];
             })->toArray();
 
+
             DB::table('comissao_pagamento_itens')->insert($itens);
 
             DB::table('vendas')
@@ -566,8 +578,6 @@ class Comissionamento extends Controller
                 ->update([
                     'comissao_paga' => 1,
                     'data_pagamento_comissao' => now(),
-                    // se você criou a coluna opcional comissao_pagamento_id:
-                    // 'comissao_pagamento_id' => $headerId,
                     'updated_at' => now(),
                 ]);
 

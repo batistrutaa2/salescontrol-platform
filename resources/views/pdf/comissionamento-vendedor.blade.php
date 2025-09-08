@@ -13,11 +13,25 @@
     $liquido = $totais['liquido'] ?? 0;
 
     $grade = strtoupper($perfil['grade'] ?? '—');
-    $percentual = $perfil['percentual'] ?? null;
+    $percentual = $perfil['percentual'] ?? null; // % do perfil (pode não refletir itens com angariação)
     $salario = $perfil['salario'] ?? 0;
     $impPerc = $perfil['imposto'] ?? 10;
 
     $totalReceber = isset($totalReceber) ? (float) $totalReceber : (float) $salario + (float) $liquido;
+
+    // ---- NOVO: detectar angariação e calcular média ponderada real (% = bruto/base_total*100)
+    $linhasCol = collect($linhas ?? []);
+    $hasAng = $linhasCol->contains(function ($r) {
+        return strtoupper((string) ($r->angariacao_status ?? '')) === 'SIM';
+    });
+
+    // Base por item usada no cálculo: angariação_valor (SIM) ou valor_contrato (NÃO)
+    $baseTotal = (float) $linhasCol->sum(function ($r) {
+        $isAng = strtoupper((string) ($r->angariacao_status ?? '')) === 'SIM';
+        return (float) ($isAng ? $r->angariacao_valor ?? 0 : $r->valor_contrato ?? 0);
+    });
+
+    $avgPercent = $baseTotal > 0 ? ($bruto / $baseTotal) * 100.0 : null;
 @endphp
 <!doctype html>
 <html lang="pt-BR">
@@ -36,7 +50,6 @@
             font-size: 12px;
         }
 
-        /* Cores identidade */
         .gold {
             color: #d4af37;
         }
@@ -260,8 +273,15 @@
         <div class="ctx-col" style="width: 60%;">
             <div class="ctx-label">Perfil de Comissionamento</div>
             <div class="ctx-value">
-                Grade: <span class="gold">{{ $grade }}</span> &nbsp;&middot;&nbsp;
-                % Comissão: {{ pct($percentual) }} &nbsp;&middot;&nbsp;
+                Grade: <span class="gold">{{ $grade }}</span>
+                &nbsp;&middot;&nbsp;
+                @if ($hasAng)
+                    % Comissão (média): <span class="gold">{{ pct($avgPercent) }}</span>
+                    <span class="badge">Regras mistas (inclui Angariação 50%)</span>
+                @else
+                    % Comissão: {{ pct($percentual) }}
+                @endif
+                &nbsp;&middot;&nbsp;
                 Imposto: {{ pct($impPerc) }}
                 @if ($salario)
                     &nbsp;&middot;&nbsp; Salário: {{ brl($salario) }}
@@ -276,7 +296,7 @@
             <div class="card">
                 <div class="kpi-title">Comissão Bruta</div>
                 <div class="kpi-value">{{ brl($bruto) }}</div>
-                <div class="kpi-note">Soma de (Valor × % Comissão)</div>
+                <div class="kpi-note">Soma de (Base × % Comissão)</div>
             </div>
         </div>
         <div class="col" style="width: 25%;">
@@ -309,7 +329,7 @@
             <tr>
                 <th class="center" style="width: 12%;">Data</th>
                 <th>Contrato</th>
-                <th class="right">Valor</th>
+                <th class="right">Valor (Base)</th>
                 <th class="right">% Com.</th>
                 <th class="right">Bruto</th>
                 <th class="right">Imposto</th>
@@ -320,10 +340,15 @@
         </thead>
         <tbody>
             @forelse ($linhas as $r)
+                @php
+                    $isAng = strtoupper((string) ($r->angariacao_status ?? '')) === 'SIM';
+                    // Base exibida segue a mesma regra de cálculo: angariação_valor (SIM) ou valor_contrato
+                    $valorBase = (float) ($isAng ? $r->angariacao_valor ?? 0 : $r->valor_contrato ?? 0);
+                @endphp
                 <tr>
                     <td class="center">{{ \Carbon\Carbon::parse($r->data_implantacao)->format('d/m/Y') }}</td>
                     <td>{{ $r->nome_contrato }}</td>
-                    <td class="right">{{ brl($r->valor_contrato) }}</td>
+                    <td class="right">{{ brl($valorBase) }}</td>
                     <td class="right">{{ pct($r->percentual) }}</td>
                     <td class="right">{{ brl($r->bruto) }}</td>
                     <td class="right">{{ brl($r->imposto_valor) }}</td>
