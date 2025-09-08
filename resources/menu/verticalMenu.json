@@ -388,8 +388,7 @@
       "icon": "menu-icon tf-icons ri-hand-coin-line",
       "slug": "comissionamento",
       "rules": [
-        "DEVELOPER",
-        "VENDEDOR"
+        "DEVELOPER"
       ],
       "submenu": [
         {
