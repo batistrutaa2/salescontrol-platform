@@ -8,6 +8,8 @@
     const URL_DATA = $root.data('url');
     const PDF_BASE = String($root.data('pdf-base') || '');       // .../pagamento/PAYMENT_ID/pdf
     const URL_ESTORNO_BASE = String($root.data('estornar-url') || ''); // .../pagamentos/PAYMENT_ID/estornar
+    const USER_ROLE = $root.data('role');
+
 
     const fmtBRL = (v) => (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const fmtPct = (v) => v == null ? '—' : `${Number(v).toFixed(2)}%`;
@@ -55,17 +57,25 @@
                 render: function (row) {
                     const pdfUrl = PDF_BASE.replace('PAYMENT_ID', row.id);
                     const estornoUrl = URL_ESTORNO_BASE ? URL_ESTORNO_BASE.replace('PAYMENT_ID', row.id) : null;
-                    return `
-            <div class="btn-group btn-group-sm" role="group">
-              <a class="btn btn-outline-primary" href="${pdfUrl}" target="_blank" title="Abrir PDF">
-                <i class="ri-file-pdf-line"></i>
-              </a>
-              ${estornoUrl ? `
-              <button class="btn btn-outline-danger js-estornar" data-url="${estornoUrl}" title="Estornar">
-                <i class="ri-arrow-go-back-line"></i>
-              </button>` : ``}
-            </div>
-          `;
+
+                    let buttons = `
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a class="btn btn-outline-primary" href="${pdfUrl}" target="_blank" title="Abrir PDF">
+                        <i class="ri-file-pdf-line"></i>
+                        </a>
+                    `;
+
+                    // só exibe estorno se não for vendedor
+                    if (estornoUrl && USER_ROLE !== 1) {
+                        buttons += `
+                        <button class="btn btn-outline-danger js-estornar" data-url="${estornoUrl}" title="Estornar">
+                        <i class="ri-arrow-go-back-line"></i>
+                        </button>
+                    `;
+                    }
+
+                    buttons += `</div>`;
+                    return buttons;
                 }
             }
         ],

@@ -18,7 +18,8 @@
 
     <div id="pgmts-root" data-url="{{ route('comissionamento.pagamentos.data') }}"
         data-pdf-base="{{ route('comissionamento.pagamento.pdf', ['pagamento' => 'PAYMENT_ID']) }}"
-        data-estornar-url="{{ route('comissionamento.pagamentos.estornar', ['id' => 'PAYMENT_ID']) }}">
+        data-estornar-url="{{ route('comissionamento.pagamentos.estornar', ['id' => 'PAYMENT_ID']) }}"
+        data-role="{{ strtoupper(auth()->user()->user_role_id) }}">
     </div>
 
     <div class="card mb-4 border-0 shadow-sm">
