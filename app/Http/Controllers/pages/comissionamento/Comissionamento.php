@@ -104,14 +104,13 @@ class Comissionamento extends Controller
         $vendedorId = $request->input('vendedor_id');
 
         // ========== BASE DE VENDAS ==========
-        // Vendas implantadas no período, com comissão AINDA não paga, e com config de comissionamento
         $rows = DB::table('vendas as v')
             ->join('users as u', 'u.id', '=', 'v.user_id')
             ->join('comissionamento_configuracao as cfg', function ($j) use ($empresaId) {
                 $j->on('cfg.user_id', '=', 'v.user_id')
                     ->where('cfg.empresa_id', '=', $empresaId);
             })
-            ->where('v.empresa_id', operator: $empresaId)
+            ->where('v.empresa_id', $empresaId)
             ->whereBetween('v.data_implantacao', [$inicio, $fim])
             ->whereNotNull('v.data_implantacao')
             ->where('v.comissao_paga', 0)
@@ -125,80 +124,84 @@ class Comissionamento extends Controller
                 'v.angariacao_status',
                 DB::raw('COALESCE(v.valor_contrato,0) as valor_contrato'),
                 'v.data_implantacao',
-                DB::raw('LOWER(cfg.grade) as grade'), // normaliza: junior/senior/admin/comercial
+                DB::raw('LOWER(cfg.grade) as grade'),
                 'cfg.imposto',
                 'cfg.salario',
-                'cfg.percentual', // mantido para eventual uso futuro
+                'cfg.percentual',
             ])
             ->orderBy('u.name')
             ->orderBy('v.data_implantacao')
             ->get();
 
-        // ========== CÁLCULOS (JÚNIOR/SÊNIOR) ==========
+        // ========== CÁLCULOS ==========
         $porVendedor = [];
         $kpiContratos = 0;
         $kpiTotalContratos = 0.0;
         $kpiTotalComissao = 0.0;
 
-        $totalVendasAllGrades = 0.0; // base ADMIN (5% sobre TODAS as vendas do período)
+        $totalVendasAllGrades = 0.0; // base ADMIN (percentual dos admins sobre TODAS as vendas)
         $totalVendasJunior = 0.0; // base COMERCIAL (somente vendas de JUNIOR)
 
         foreach ($rows as $r) {
             $valor = (float) $r->valor_contrato;
-            $imposto = (float) $r->imposto;
+            $impostoCfg = (float) $r->imposto;
             $grade = strtolower((string) $r->grade);
-            $angariacaoValor = (float) $r->angariacao_valor;
+            $angVal = (float) $r->angariacao_valor;
 
-            if ($r->percentual > 0) {
-                $valorComissaoLiquida = 0.0;
+            // Regra: se angariação => base = angariacao_valor, % = 50, imposto = 0
+            $isAng = strtoupper((string) $r->angariacao_status) === 'SIM';
+            $baseAplicada = $isAng ? $angVal : $valor;
+            $percentualAplic = $isAng ? 50.0 : (float) $r->percentual;
+            $impostoAplic = $isAng ? 0.0 : $impostoCfg;
 
-                if ($r->angariacao_status == 'SIM') {
-                    $valorComissaoLiquida = $angariacaoValor * 0.5;
-                    $totalVendasAllGrades += $angariacaoValor;
+            if ($percentualAplic > 0) {
+                // Comissão bruta e líquida (respeitando imposto 0% na angariação)
+                $valorComissaoBruta = round($baseAplicada * ($percentualAplic / 100.0), 2);
+                $valorComissaoLiquida = round($valorComissaoBruta * (1.0 - ($impostoAplic / 100.0)), 2);
 
-                    if ($grade == 'junior') {
-                        $totalVendasJunior += $angariacaoValor;
-                    }
-                } else {
-                    $valorComissaoBruta = $valor * ($r->percentual / 100.0);
-                    $valorComissaoLiquida = $valorComissaoBruta * (1.0 - ($imposto / 100.0));
-                    $totalVendasAllGrades += $valor;
-
-                    if ($grade == 'junior') {
-                        $totalVendasJunior += $valor;
-                    }
+                // Bases para blocos ADMIN/COMERCIAL
+                $totalVendasAllGrades += $baseAplicada;
+                if ($grade === 'junior') {
+                    $totalVendasJunior += $baseAplicada;
                 }
 
-                $porVendedor[$r->user_id] ??= [
-                    'user_id' => $r->user_id,
-                    'vendedor' => $r->vendedor,
-                    'percentual' => $r->percentual,
-                    'totais' => ['qtd' => 0, 'contratos' => 0.0, 'comissao' => 0.0],
-                    'contratos' => [],
-                ];
+                // Bucket por vendedor
+                if (!isset($porVendedor[$r->user_id])) {
+                    $porVendedor[$r->user_id] = [
+                        'user_id' => $r->user_id,
+                        'vendedor' => $r->vendedor,
+                        // Mantém percentual do perfil para referência, mas a UI deve usar o percentual_aplicado por contrato:
+                        'percentual' => (float) $r->percentual,
+                        'totais' => ['qtd' => 0, 'contratos' => 0.0, 'comissao' => 0.0],
+                        'contratos' => [],
+                    ];
+                }
 
                 $porVendedor[$r->user_id]['contratos'][] = [
                     'id' => $r->id,
                     'nome_contrato' => $r->nome_contrato,
-                    'valor_contrato' => round($valor, 2),
-                    'valor_comissao' => round($valorComissaoLiquida, 2),
+                    'valor_contrato' => round($valor, 2),             // valor do contrato original (exibição/histórico)
+                    'valor_base' => round($baseAplicada, 2),      // <<< base usada no cálculo (angariação ou contrato)
+                    'percentual_aplicado' => round($percentualAplic, 2),   // <<< 50% se angariação, senão % do perfil
+                    'imposto_aplicado' => round($impostoAplic, 2),      // <<< 0% se angariação, senão imposto do perfil
+                    'valor_comissao_bruta' => round($valorComissaoBruta, 2),
+                    'valor_comissao' => round($valorComissaoLiquida, 2), // líquida
                     'data_implantacao' => Carbon::parse($r->data_implantacao)->format('d/m/Y'),
-                    'angariacao_valor' => round($angariacaoValor, 2),
+                    'angariacao_valor' => round($angVal, 2),
                     'angariacao_status' => $r->angariacao_status,
                 ];
 
                 $porVendedor[$r->user_id]['totais']['qtd'] += 1;
-                $porVendedor[$r->user_id]['totais']['contratos'] += $valor;
-                $porVendedor[$r->user_id]['totais']['comissao'] += $valorComissaoLiquida;
+                $porVendedor[$r->user_id]['totais']['contratos'] += $baseAplicada;          // usa a base aplicada
+                $porVendedor[$r->user_id]['totais']['comissao'] += $valorComissaoLiquida;  // líquida
 
                 $kpiContratos += 1;
-                $kpiTotalContratos += $valor;
+                $kpiTotalContratos += $baseAplicada;            // para KPI, conta a base aplicada
                 $kpiTotalComissao += $valorComissaoLiquida;
             }
         }
 
-
-        // ========== ADMIN (5% sobre TODAS as vendas), com imposto individual ==========
+        // ========== ADMIN ==========
         $admins = DB::table('comissionamento_configuracao as cfg')
             ->join('users as u', 'u.id', '=', 'cfg.user_id')
             ->where('cfg.empresa_id', $empresaId)
@@ -206,26 +209,21 @@ class Comissionamento extends Controller
             ->select('cfg.user_id', 'u.name as nome', 'cfg.imposto', 'cfg.percentual')
             ->get();
 
-
-        $adminPercent = 5.0;
         $adminUsuarios = [];
-
         foreach ($admins as $ad) {
-            $bruta = $totalVendasAllGrades * ($ad->percentual / 100.0);
+            $bruta = $totalVendasAllGrades * ((float) $ad->percentual / 100.0);
             $liquida = $bruta * (1.0 - ((float) $ad->imposto / 100.0));
             $adminUsuarios[] = [
                 'user_id' => $ad->user_id,
                 'nome' => $ad->nome,
-                'percentual_base' => $ad->percentual,
+                'percentual_base' => (float) $ad->percentual,
                 'comissao_bruta' => round($bruta, 2),
                 'comissao_liquida' => round($liquida, 2),
                 'imposto' => (float) $ad->imposto,
             ];
         }
-        // ========== COMERCIAL (supervisores) – REGRA CORRETA ==========
-        // Base = soma das VENDAS dos JUNIOR no período (totalVendasJunior)
-        // Deduz: SOMA dos SALÁRIOS de TODOS os JUNIOR + 5% custo adm
-        // Resultado (pool) dividido IGUALMENTE entre os supervisores (grade 'comercial'), SEM imposto.
+
+        // ========== COMERCIAL (supervisores) – regra existente ==========
         $salariosJuniorTot = (float) DB::table('comissionamento_configuracao')
             ->where('empresa_id', $empresaId)
             ->whereRaw('LOWER(grade) = "junior"')
@@ -271,7 +269,7 @@ class Comissionamento extends Controller
                 'total_contratos' => round($kpiTotalContratos, 2),
                 'total_comissao' => round($kpiTotalComissao, 2),
             ],
-            // JUNIOR/SENIOR para a UI atual
+            // JUNIOR/SENIOR para a UI
             'vendedores' => array_values($porVendedor),
 
             // Bloco por grades
@@ -281,7 +279,6 @@ class Comissionamento extends Controller
                     'total_vendas_junior' => round($totalVendasJunior, 2),
                 ],
                 'admin' => [
-                    'percentual' => $adminPercent,
                     'usuarios' => $adminUsuarios,
                     'total_liquido' => round(array_sum(array_column($adminUsuarios, 'comissao_liquida')), 2),
                 ],
@@ -297,8 +294,10 @@ class Comissionamento extends Controller
                 ],
             ],
         ];
+
         return response()->json($payload);
     }
+
 
     public function sellerCommission()
     {

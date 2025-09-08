@@ -10,6 +10,7 @@
 
   const API_URL = $root.dataset.url;
   const EMPRESA_ID = $root.dataset.empresaId;
+  const PAY_URL = $root.dataset.payUrl;
 
   if (!API_URL || !EMPRESA_ID) {
     console.error('[comissionamento] data-url ou data-empresa-id ausentes no #comissionamento-root.');
@@ -38,8 +39,6 @@
   const $comKpis = document.getElementById('grade-comercial-kpis');
   const $comTbody = document.querySelector('#tabela-grade-comercial tbody');
   const $comTotalDistribuido = document.getElementById('comercial-total-distribuido');
-  const PAY_URL = $root.dataset.payUrl;
-
 
   // ======== Utils ========
   const brl = (n) => (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -135,11 +134,20 @@
     }
 
     vendedores.forEach(v => {
-      const perc = Number(v.percentual) || 0; // 30 ou 100
+      const percPerfil = Number(v.percentual) || 0; // 30 ou 100
       const lista = v.contratos || [];
-      const totContratos = v.totais?.contratos ?? lista.reduce((acc, it) => acc + Number(it.valor_contrato || 0), 0);
+
+      // Totais (já vêm prontos no payload, mas garantimos fallback)
+      const totContratos = v.totais?.contratos ?? lista.reduce((acc, it) => acc + Number(it.valor_base || it.valor_contrato || 0), 0);
       const totComissao = v.totais?.comissao ?? lista.reduce((acc, it) => acc + Number(it.valor_comissao || 0), 0);
       const qtd = v.totais?.qtd ?? lista.length;
+
+      // >>> NOVO: detectar mix (angariação + normal) e calcular % médio ponderado pela base
+      const somaBase = lista.reduce((acc, it) => acc + Number(it.valor_base || it.valor_contrato || 0), 0);
+      const percMedio = somaBase > 0
+        ? (lista.reduce((acc, it) => acc + Number((it.percentual_aplicado || percPerfil) * (it.valor_base || it.valor_contrato || 0)), 0) / somaBase)
+        : percPerfil;
+      const hasMix = lista.some(it => String(it.angariacao_status).toUpperCase() === 'SIM');
 
       const card = document.createElement('div');
       card.className = 'col-12';
@@ -149,13 +157,14 @@
             <div>
               <h5 class="mb-1">${v.vendedor || ('Vendedor #' + v.user_id)}</h5>
               <div class="text-muted small">
-                ${qtd} contrato(s) pendente(s) · Comissão: ${perc.toFixed(0)}%
+                ${qtd} contrato(s) pendente(s) · Comissão: ${hasMix ? `${percMedio.toFixed(0)}% (média)` : `${percPerfil.toFixed(0)}%`
+        }
               </div>
             </div>
             <div class="text-end">
               <div class="small text-muted">Totais do vendedor</div>
-              <div class="fw-semibold">${brl(totContratos)} (contratos)</div>
-              <div class="fw-semibold">${brl(totComissao)} (comissão)</div>
+              <div class="fw-semibold">${brl(totContratos)} (base)</div>
+              <div class="fw-semibold">${brl(totComissao)} (comissão líquida)</div>
             </div>
           </div>
           <div class="card-body">
@@ -167,27 +176,32 @@
                       <input type="checkbox" class="form-check-input js-select-all" data-vendedor="${v.user_id}">
                     </th>
                     <th>Contrato</th>
-                    <th class="text-end">Valor do contrato</th>
+                    <th class="text-end">Valor (base)</th>
                     <th class="text-end">% Comissão</th>
-                    <th class="text-end">Valor comissão (com imposto)</th>
+                    <th class="text-end">Valor comissão (líquida)</th>
                     <th class="text-end">Implantação</th>
                     <th class="text-end">Angariação</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${lista.map(it => `
-                    <tr data-id="${it.id}" data-vendedor="${v.user_id}">
-                      <td><input type="checkbox" class="form-check-input js-select-row"></td>
-                      <td class="fw-medium">${it.nome_contrato}</td>
-                      <td class="text-end">${brl(it.valor_contrato)}</td>
-                      <td class="text-end">${perc.toFixed(0)}%</td>
-                      <td class="text-end">${brl(it.valor_comissao)}</td>
-                      <td class="text-end">${it.data_implantacao}</td>
-                      <td class="text-end">
-                        ${it.angariacao_status === "SIM" ? `<span class="badge bg-success">Angariação</span>` : '-'}
-                      </td>
-                    </tr>
-                  `).join('')}
+                  ${lista.map(it => {
+          const base = Number(it.valor_base ?? it.valor_contrato ?? 0);
+          const pApplied = Number(it.percentual_aplicado ?? percPerfil);
+          const isAng = String(it.angariacao_status).toUpperCase() === 'SIM';
+          return `
+                      <tr data-id="${it.id}" data-vendedor="${v.user_id}">
+                        <td><input type="checkbox" class="form-check-input js-select-row"></td>
+                        <td class="fw-medium">${it.nome_contrato}</td>
+                        <td class="text-end">${brl(base)}</td>
+                        <td class="text-end">${pApplied.toFixed(0)}%</td>
+                        <td class="text-end">${brl(it.valor_comissao)}</td>
+                        <td class="text-end">${it.data_implantacao}</td>
+                        <td class="text-end">
+                          ${isAng ? `<span class="badge bg-success">Angariação</span>` : '-'}
+                        </td>
+                      </tr>
+                    `;
+        }).join('')}
                 </tbody>
               </table>
             </div>

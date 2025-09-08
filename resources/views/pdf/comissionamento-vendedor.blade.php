@@ -12,6 +12,7 @@
     $imposto = $totais['imposto'] ?? 0;
     $liquido = $totais['liquido'] ?? 0;
 
+
     $grade = strtoupper($perfil['grade'] ?? '—');
     $percentual = $perfil['percentual'] ?? null; // % do perfil (pode não refletir itens com angariação)
     $salario = $perfil['salario'] ?? 0;
@@ -247,6 +248,26 @@
         .pages:after {
             content: counter(pages);
         }
+
+        .ctx-lines .line {
+            margin-top: 2px;
+        }
+
+        .ctx-lines .line+.line {
+            margin-top: 4px;
+        }
+
+        /* espaço entre linhas */
+        .ctx-chip {
+            display: inline-block;
+            padding: 2px 6px;
+            border: 1px solid #d4af37;
+            border-radius: 999px;
+            font-size: 10px;
+            background: #fffbe6;
+            color: #111827;
+            margin-left: 6px;
+        }
     </style>
 </head>
 
@@ -270,25 +291,33 @@
             <div class="ctx-label">Vendedor</div>
             <div class="ctx-value gold">{{ $vendedor }}</div>
         </div>
+
         <div class="ctx-col" style="width: 60%;">
             <div class="ctx-label">Perfil de Comissionamento</div>
-            <div class="ctx-value">
-                Grade: <span class="gold">{{ $grade }}</span>
-                &nbsp;&middot;&nbsp;
-                @if ($hasAng)
-                    % Comissão (média): <span class="gold">{{ pct($avgPercent) }}</span>
-                    <span class="badge">Regras mistas (inclui Angariação 50%)</span>
-                @else
-                    % Comissão: {{ pct($percentual) }}
-                @endif
-                &nbsp;&middot;&nbsp;
-                Imposto: {{ pct($impPerc) }}
-                @if ($salario)
-                    &nbsp;&middot;&nbsp; Salário: {{ brl($salario) }}
-                @endif
+            <div class="ctx-value ctx-lines">
+                <!-- Linha 1: Grade + % Comissão -->
+                <div class="line">
+                    Grade: <span class="gold">{{ $grade }}</span>
+                    &nbsp;&middot;&nbsp;
+                    @if ($hasAng)
+                        % Comissão (média): <span class="gold">{{ pct($avgPercent) }}</span>
+                        <span class="ctx-chip">Regras mistas (inclui Angariação 50%)</span>
+                    @else
+                        % Comissão: {{ pct($percentual) }}
+                    @endif
+                </div>
+
+                <!-- Linha 2: Imposto + Salário -->
+                <div class="line">
+                    Imposto: {{ pct($impPerc) }}
+                    @if ($salario)
+                        &nbsp;&middot;&nbsp; Salário: {{ brl($salario) }}
+                    @endif
+                </div>
             </div>
         </div>
     </div>
+
 
     <!-- Resumo -->
     <div class="grid">
@@ -334,8 +363,8 @@
                 <th class="right">Bruto</th>
                 <th class="right">Imposto</th>
                 <th class="right">Líquido</th>
-                <th class="right">Angariação</th>
-                <th class="center">Status</th>
+                <th class="right">Angariação (Valor)</th>
+                <th class="center">Status Anga.</th>
             </tr>
         </thead>
         <tbody>
