@@ -388,13 +388,14 @@
       "icon": "menu-icon tf-icons ri-hand-coin-line",
       "slug": "comissionamento",
       "rules": [
-        "DEVELOPER"
+        "DEVELOPER",
+        "VENDEDOR"
       ],
       "submenu": [
         {
-          "url": "/comissionamento-vendedor",
-          "name": "Visualizar Comissões",
-          "slug": "pages-comissao-vendedor"
+          "url": "/comissionamento/pagamentos",
+          "name": "Pagamentos de Comissões",
+          "slug": "pages-mailing-importarr"
         }
       ]
     },

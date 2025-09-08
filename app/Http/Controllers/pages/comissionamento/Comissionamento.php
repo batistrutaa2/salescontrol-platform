@@ -653,14 +653,24 @@ class Comissionamento extends Controller
     {
         $empresaId = auth()->user()->empresa_id;
 
-        // carrega opções de vendedores para o select
-        $vendedores = DB::table('users as u')
-            ->join('comissao_pagamentos as p', 'p.vendedor_id', '=', 'u.id')
-            ->where('p.empresa_id', $empresaId)
-            ->select('u.id', 'u.name')
-            ->distinct()
-            ->orderBy('u.name')
-            ->get();
+        if (Auth::user()->user_role_id === UserRole::VENDEDOR) {
+            $vendedores = DB::table('users as u')
+                ->join('comissao_pagamentos as p', 'p.vendedor_id', '=', 'u.id')
+                ->where('p.empresa_id', $empresaId)
+                ->where('u.id', Auth::user()->id)
+                ->select('u.id', 'u.name')
+                ->distinct()
+                ->orderBy('u.name')
+                ->get();
+        } else {
+            $vendedores = DB::table('users as u')
+                ->join('comissao_pagamentos as p', 'p.vendedor_id', '=', 'u.id')
+                ->where('p.empresa_id', $empresaId)
+                ->select('u.id', 'u.name')
+                ->distinct()
+                ->orderBy('u.name')
+                ->get();
+        }
 
         // quem criou (admins)
         $criadores = DB::table('users as u')
@@ -676,9 +686,12 @@ class Comissionamento extends Controller
 
     public function pagamentosData(Request $request)
     {
-        $empresaId = auth()->user()->empresa_id;
+        $user = auth()->user();
+        $empresaId = $user->empresa_id;
 
-        $mes = $request->input('mes');         // 'YYYY-MM' (opcional)
+        $isVendedor = $user->user_role_id == UserRole::VENDEDOR;
+
+        $mes = $request->input('mes');
         $vendedorId = $request->integer('vendedor_id');
         $criadorId = $request->integer('created_by');
 
@@ -687,12 +700,20 @@ class Comissionamento extends Controller
             ->join('users as c', 'c.id', '=', 'p.created_by')
             ->where('p.empresa_id', $empresaId);
 
-        if ($mes)
+        if ($isVendedor) {
+            $q->where('p.vendedor_id', $user->id);
+        } else {
+            if (!empty($vendedorId)) {
+                $q->where('p.vendedor_id', $vendedorId);
+            }
+            if (!empty($criadorId)) {
+                $q->where('p.created_by', $criadorId);
+            }
+        }
+
+        if (!empty($mes)) {
             $q->where('p.mes', $mes);
-        if ($vendedorId)
-            $q->where('p.vendedor_id', $vendedorId);
-        if ($criadorId)
-            $q->where('p.created_by', $criadorId);
+        }
 
         $rows = $q->select([
             'p.id',
@@ -713,11 +734,10 @@ class Comissionamento extends Controller
             ->orderByDesc('p.id')
             ->get();
 
-        // retorno simples (client-side DataTable)
         return response()->json(['data' => $rows]);
     }
 
-    // OPCIONAL: estorno simples (com validação mínima)
+
     public function pagamentosEstornar($id)
     {
         $empresaId = auth()->user()->empresa_id;
@@ -733,7 +753,6 @@ class Comissionamento extends Controller
         }
 
         DB::transaction(function () use ($id) {
-            // reabre vendas
             $vendaIds = DB::table('comissao_pagamento_itens')
                 ->where('comissao_pagamento_id', $id)
                 ->pluck('venda_id');
@@ -741,20 +760,11 @@ class Comissionamento extends Controller
             DB::table('vendas')->whereIn('id', $vendaIds)->update([
                 'comissao_paga' => 0,
                 'data_pagamento_comissao' => null,
-                // 'comissao_pagamento_id' => null, // se tiver essa coluna
                 'updated_at' => now(),
             ]);
 
-            // manter histórico do pagamento? duas opções:
-            // 1) deletar header/itens:
             DB::table('comissao_pagamento_itens')->where('comissao_pagamento_id', $id)->delete();
             DB::table('comissao_pagamentos')->where('id', $id)->delete();
-
-            // 2) marcar estornado (recomendado): adicione colunas estornado_at/by por migration
-            // \DB::table('comissao_pagamentos')->where('id',$id)->update([
-            //   'estornado_at'=> now(),
-            //   'estornado_by'=> auth()->id(),
-            // ]);
         });
 
         return response()->json(['message' => 'Pagamento estornado com sucesso.']);

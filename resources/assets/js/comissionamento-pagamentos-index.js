@@ -114,6 +114,4 @@
 
     $apply.on('click', () => table.ajax.reload());
 
-    // auto carregar na entrada
-    $(document).ready(() => table.ajax.reload());
 })();
