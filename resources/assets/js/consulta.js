@@ -225,6 +225,7 @@
     document.getElementById('nome').textContent = pessoa.nome || 'N/A';
     document.getElementById('cpfResult').textContent = formatarCPF(pessoa.cpf);
     document.getElementById('dataNascimento').textContent = formatarData(pessoa.data_nascimento);
+    document.getElementById('idade').textContent = calcularIdade(pessoa.data_nascimento);
     document.getElementById('sexo').textContent = pessoa.sexo === 'M' ? 'Masculino' : 'Feminino';
     document.getElementById('nomeMae').textContent = pessoa.nome_mae || 'N/A';
     document.getElementById('situacaoCpf').innerHTML =
@@ -858,6 +859,24 @@
       return cleaned.replace(/(\d{4})(\d{4})/, '$1-$2');
     }
     return cleaned;
+  }
+
+
+  function calcularIdade(dataNascimento) {
+    console.log('Calculando idade para data de nascimento:', dataNascimento);
+    if (!dataNascimento) return 'N/A';
+    try {
+      const nascimento = new Date(dataNascimento);
+      const hoje = new Date();
+      let idade = hoje.getFullYear() - nascimento.getFullYear();
+      const m = hoje.getMonth() - nascimento.getMonth();
+      if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) {
+        idade--;
+      }
+      return idade >= 0 ? idade : 'N/A';
+    } catch (e) {
+      return 'N/A';
+    }
   }
 
   function formatarData(data) {

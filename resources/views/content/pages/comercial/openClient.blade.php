@@ -904,7 +904,7 @@
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Consulta de Dados - API Lemit</h5>
+                        <h5 class="modal-title">Consulta de Dados</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -1045,6 +1045,8 @@
                                                 <p><strong>CPF:</strong> <span id="cpfResult" class="text-muted"></span>
                                                 </p>
                                                 <p><strong>Data Nascimento:</strong> <span id="dataNascimento"
+                                                        class="text-muted"></span></p>
+                                                <p><strong>Idade:</strong> <span id="idade"
                                                         class="text-muted"></span></p>
                                                 <p><strong>Sexo:</strong> <span id="sexo" class="text-muted"></span>
                                                 </p>
