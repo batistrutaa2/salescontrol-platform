@@ -597,18 +597,42 @@
                                                     <span>Total mensal</span>
                                                     <strong>R$ {{ number_format($subtotal, 2, ',', '.') }}</strong>
                                                 </div>
-                                                @if ($qtdVidas > 0)
-                                                    <div class="total-pill" style="margin-top:8px">
-                                                        <span>Média por vida</span>
-                                                        <strong>
-                                                            R$
-                                                            {{ number_format($subtotal / max(1, $qtdVidas), 2, ',', '.') }}
-                                                        </strong>
+
+                                                @php
+                                                    $operadoraNome = strtoupper($item->operadora_plano);
+                                                    $operadorasComIOF = ['BRADESCO', 'PORTO', 'SULAMERICA'];
+
+                                                    $temIOF = false;
+                                                    foreach ($operadorasComIOF as $op) {
+                                                        if (str_contains($operadoraNome, $op)) {
+                                                            $temIOF = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                @endphp
+
+                                                @if ($temIOF)
+                                                    @php
+                                                        $valorIof = $subtotal * 0.0238;
+                                                        $totalComIof = $subtotal + $valorIof;
+                                                    @endphp
+
+                                                    <div class="total-pill"
+                                                        style="background:#fff7ed; border:1px solid #fdba74; margin-top:8px">
+                                                        <span>IOF (2,38%)</span>
+                                                        <strong>R$ {{ number_format($valorIof, 2, ',', '.') }}</strong>
+                                                    </div>
+
+                                                    <div class="total-pill"
+                                                        style="background:#ecfdf5; border:1px solid #6ee7b7; margin-top:8px">
+                                                        <span>Total com IOF</span>
+                                                        <strong>R$ {{ number_format($totalComIof, 2, ',', '.') }}</strong>
                                                     </div>
                                                 @endif
                                             </td>
                                         </tr>
                                     </tfoot>
+
                                 </table>
                             </div>
                         </div>

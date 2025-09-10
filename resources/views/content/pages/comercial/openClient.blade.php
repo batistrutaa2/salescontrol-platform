@@ -1046,7 +1046,7 @@
                                                 </p>
                                                 <p><strong>Data Nascimento:</strong> <span id="dataNascimento"
                                                         class="text-muted"></span></p>
-                                                <p><strong>Idade:</strong> <span id="idade"
+                                                <p><strong>Idade Atual:</strong> <span id="idade"
                                                         class="text-muted"></span></p>
                                                 <p><strong>Sexo:</strong> <span id="sexo" class="text-muted"></span>
                                                 </p>
