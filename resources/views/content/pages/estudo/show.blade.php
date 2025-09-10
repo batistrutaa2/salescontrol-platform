@@ -603,7 +603,7 @@
                                         <tr>
                                             <td colspan="4">
                                                 <div class="total-pill">
-                                                    <span>Total mensal</span>
+                                                    <span>Total Mensal</span>
                                                     <strong>R$ {{ number_format($subtotal, 2, ',', '.') }}</strong>
                                                 </div>
 
