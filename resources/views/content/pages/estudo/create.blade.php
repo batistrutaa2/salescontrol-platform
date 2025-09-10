@@ -66,6 +66,10 @@
                         <input type="text" class="form-control coparticipacao" placeholder="Digite a coparticipação">
                     </div>
                     <div class="mb-2">
+                        <label class="form-label">Coparticipação</label>
+                        <input type="text" class="form-control coparticipacao" placeholder="Digite a coparticipação">
+                    </div>
+                    <div class="mb-2">
                         <label class="form-label">Reembolso Consulta</label>
                         <input type="text" class="form-control reembolso" placeholder="Digite o valor do reembolso">
                     </div>

@@ -48,13 +48,14 @@
     // titulo = header do card (será salvo como estudo_itens.operadora_plano)
     // reembolso = reembolso_consulta
     // faixas = array [{faixa, qtde, valor_unitario}]
-    function criarCard({ titulo, coparticipacao = '', reembolso = 0, faixas = [] }) {
+    function criarCard({ titulo, coparticipacao = '', categoria = '', reembolso = 0, faixas = [] }) {
         const node = tpl.content.cloneNode(true);
 
         // Título no header do card
         node.querySelector('.titulo-estudo').textContent = titulo;
 
         // Campos topo
+        node.querySelector('.categoria').value = categoria || '';
         node.querySelector('.coparticipacao').value = coparticipacao || '';
         node.querySelector('.reembolso').value = reembolso || 0;
 
@@ -127,7 +128,6 @@
 
     // --------- Carregar estudo existente ---------
     function carregarEstudo() {
-        // Backend: { id, titulo, estudos: [{ operadora_plano, coparticipacao, reembolso_consulta, vidas: [{faixa, qtde, valor_unitario, total}] }] }
         fetch(`/estudos/${estudoId}`)
             .then(res => res.json())
             .then(data => {
@@ -143,7 +143,8 @@
 
                 (data.estudos || []).forEach(item => {
                     criarCard({
-                        titulo: item.operadora_plano,                 // header do card
+                        titulo: item.operadora_plano,
+                        categoria: item.categoria,
                         coparticipacao: item.coparticipacao,
                         reembolso: item.reembolso_consulta,
                         faixas: (item.vidas || []).map(v => ({
@@ -162,7 +163,6 @@
 
     // --------- Salvar alterações (PUT) ---------
     document.getElementById('salvarEdicao').addEventListener('click', function () {
-        // Campo de entrada (id=nomeEmpresa) na verdade representa estudos.titulo
         const tituloEstudo = document.getElementById('nomeEmpresa').value.trim();
         if (!tituloEstudo) {
             alert('Digite o título do estudo');
@@ -170,21 +170,29 @@
         }
 
         const estudos = [];
-        container.querySelectorAll('.estudo').forEach(card => {
-            const operadora_plano = card.querySelector('.titulo-estudo').textContent.trim();
-            const coparticipacao = card.querySelector('.coparticipacao').value || '';
-            const reembolso_consulta = parseFloat(card.querySelector('.reembolso').value) || 0;
+
+        // Use o wrapper raiz de cada card
+        container.querySelectorAll('.estudo-wrapper').forEach(wrapper => {
+            // titulo no header
+            const operadora_plano = wrapper.querySelector('.titulo-estudo')?.textContent.trim() || '';
+
+            // campos do topo (podem estar fora de .estudo, então busque no wrapper)
+            const coparticipacao = (wrapper.querySelector('.coparticipacao')?.value || '').trim();
+            const categoria = (wrapper.querySelector('.categoria')?.value || '').trim();
+            const reembolso_consulta = parseFloat(wrapper.querySelector('.reembolso')?.value) || 0;
 
             const vidas = [];
-            card.querySelectorAll('tbody tr').forEach(row => {
-                const faixa = row.children[0].textContent.trim();
-                const qtde = parseInt(row.children[1].querySelector('input').value) || 0;
-                const valor_unitario = parseFloat(row.children[2].querySelector('input').value) || 0;
+            // linhas da tabela (a tabela geralmente fica dentro de .estudo)
+            wrapper.querySelectorAll('tbody tr').forEach(row => {
+                const tds = row.children;
+                const faixa = tds[0]?.textContent?.trim() || '';
+                const qtde = parseInt(tds[1]?.querySelector('input')?.value) || 0;
+                const valor_unitario = parseFloat(tds[2]?.querySelector('input')?.value) || 0;
                 const total = qtde * valor_unitario;
                 vidas.push({ faixa, qtde, valor_unitario, total });
             });
 
-            estudos.push({ operadora_plano, coparticipacao, reembolso_consulta, vidas });
+            estudos.push({ operadora_plano, coparticipacao, categoria, reembolso_consulta, vidas });
         });
 
         fetch(`/estudos/${estudoId}`, {
@@ -210,7 +218,7 @@
             });
     });
 
+
     // init
     carregarEstudo();
 })();
-    

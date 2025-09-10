@@ -77,6 +77,7 @@ class Estudo extends Controller
             $payloadItens[] = [
                 'operadora_plano' => $item->operadora_plano,
                 'coparticipacao' => $item->coparticipacao,
+                'categoria' => $item->categoria,
                 'reembolso_consulta' => (float) $item->reembolso_consulta,
                 'vidas' => $vidas,
             ];
@@ -98,6 +99,7 @@ class Estudo extends Controller
 
             'estudos.*.operadora_plano' => ['required', 'string'],
             'estudos.*.coparticipacao' => ['nullable', 'string'],
+            'estudos.*.categoria' => ['nullable', 'string'],
             'estudos.*.reembolso_consulta' => ['nullable', 'numeric', 'min:0'],
 
             'estudos.*.vidas' => ['required', 'array', 'min:1'],
@@ -122,10 +124,12 @@ class Estudo extends Controller
             DB::table('estudo_itens')->where('estudo_id', $id)->delete();
 
             foreach ($data['estudos'] as $est) {
+
                 $itemId = DB::table('estudo_itens')->insertGetId([
                     'estudo_id' => $id,
                     'operadora_plano' => $est['operadora_plano'],
                     'coparticipacao' => $est['coparticipacao'] ?? '',
+                    'categoria' => $est['categoria'] ?? '',
                     'reembolso_consulta' => $est['reembolso_consulta'] ?? 0,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -165,6 +169,8 @@ class Estudo extends Controller
 
     public function store(Request $request)
     {
+
+
         DB::beginTransaction();
 
         try {
@@ -172,6 +178,7 @@ class Estudo extends Controller
                 'user_id' => Auth::user()->id,
                 'empresa_id' => Auth::user()->empresa_id,
                 'titulo' => $request->nome_empresa,
+
                 'link_unico' => (string) Str::uuid(),
             ]);
 
@@ -180,10 +187,10 @@ class Estudo extends Controller
                 $item = EstudoItens::create([
                     'estudo_id' => $estudo->id,
                     'operadora_plano' => $itemData['titulo'],
-                    'coparticipacao' => $itemData['coparticipacao'] ?? null,
+                    'coparticipacao' => $itemData['coparticipacao'] ?? "NÃO",
+                    'categoria' => $itemData['categoria'] ?? "",
                     'reembolso_consulta' => $itemData['reembolso'] ?? 0,
                 ]);
-
 
 
                 // 3️⃣ Iterar pelas faixas/vidas

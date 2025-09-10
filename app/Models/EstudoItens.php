@@ -16,6 +16,7 @@ class EstudoItens extends Model
         'estudo_id',
         'operadora_plano',
         'coparticipacao',
+        'categoria',
         'reembolso_consulta',
         'created_at',
         'updated_at'

@@ -74,6 +74,10 @@
                 <div class="card-body">
                     <div class="row mb-3">
                         <div class="col">
+                            <label>Categoria</label>
+                            <input type="text" class="form-control categoria">
+                        </div>
+                        <div class="col">
                             <label>Coparticipação</label>
                             <input type="text" class="form-control coparticipacao">
                         </div>

@@ -68,6 +68,10 @@
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col">
+                        <label>Categoria</label>
+                        <input type="text" class="form-control categoria">
+                    </div>
+                    <div class="col">
                         <label>Coparticipação</label>
                         <input type="text" class="form-control coparticipacao">
                     </div>
@@ -146,6 +150,7 @@
         document.querySelectorAll('.estudo').forEach(card => {
             const titulo = card.querySelector('h6').textContent;
             const coparticipacao = card.querySelector('.coparticipacao').value;
+            const categoria = card.querySelector('.categoria').value;
             const reembolso = parseFloat(card.querySelector('.reembolso').value) || 0;
             const faixas = [];
 
@@ -161,6 +166,7 @@
             estudos.push({
                 titulo,
                 coparticipacao,
+                categoria,
                 reembolso,
                 faixas
             });

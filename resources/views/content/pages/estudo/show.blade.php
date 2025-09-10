@@ -556,15 +556,24 @@
                         </div>
 
                         <div class="plan-body">
+                            @if (filled($item->categoria) && trim($item->categoria) !== '')
+                                <div class="text-center" style="margin:8px 12px 0">
+                                    <span class="chip" style="background:#eef2ff; border-color:#c7d2fe;">
+                                        Categoria: <strong>{{ $item->categoria }}</strong>
+                                    </span>
+                                </div>
+                            @endif
+
                             <div class="badge-row">
                                 <span class="chip">Coparticipação: <strong>{{ $item->coparticipacao }}</strong></span>
                                 <span class="chip">Reembolso: <strong>R$
                                         {{ number_format($item->reembolso_consulta, 2, ',', '.') }}</strong></span>
-                                @php
-                                    $qtdVidas = $item->vidas->sum('qtde');
-                                @endphp
+                                @php $qtdVidas = $item->vidas->sum('qtde'); @endphp
                                 <span class="chip">Vidas: <strong>{{ $qtdVidas }}</strong></span>
+
+
                             </div>
+
 
                             <div class="table-wrap">
                                 <table class="plan">
