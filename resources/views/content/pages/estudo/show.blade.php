@@ -271,9 +271,18 @@
             color: #fff;
             font-weight: 700;
             font-size: .72rem;
-            padding: 6px 60px;
-            box-shadow: 0 6px 16px rgba(22, 163, 74, .3)
+            padding: 6px 40px;
+            box-shadow: 0 6px 16px rgba(22, 163, 74, .3);
+
+            display: flex;
+            /* 🔥 Ativa flexbox */
+            justify-content: center;
+            /* Centraliza horizontal */
+            align-items: center;
+            /* Centraliza vertical */
         }
+
+
 
         .badge-row {
             display: flex;
@@ -464,6 +473,7 @@
             $subtotais[$idx] = $it->vidas->sum('total');
         }
         $idxMelhorCusto = count($subtotais) ? array_keys($subtotais, min($subtotais))[0] : null;
+        $single = count($estudo->itens) === 1;
     @endphp
 
     <div class="container py-5">
@@ -520,7 +530,7 @@
 
 
         <!-- GRID DE PLANOS -->
-        <div class="row g-4">
+        <div class="row g-4 {{ $single ? 'justify-content-center' : '' }}">
             @foreach ($estudo->itens as $i => $item)
                 @php
                     $color = '#334155';
@@ -586,7 +596,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach ($item->vidas->where('qtde', '>', 1) as $vida)
+                                        @foreach ($item->vidas->where('qtde', '>=', 1) as $vida)
                                             <tr>
                                                 <td data-label="Faixa" class="text-center">{{ $vida->faixa }}</td>
                                                 <td data-label="Qtde" class="text-center">{{ $vida->qtde }}</td>
