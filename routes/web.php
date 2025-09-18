@@ -15,6 +15,7 @@ use App\Http\Controllers\pages\manager\Usuarios;
 use App\Http\Controllers\pages\comerical\Comercial;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
+
 use App\Http\Controllers\pages\relatorios\Relatorios;
 use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\comercial\ConsultaController;
