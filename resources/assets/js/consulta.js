@@ -1002,10 +1002,10 @@
     document.getElementById('nome-preditiva').textContent = pessoa.nome || 'N/A';
     document.getElementById('cpf-result-preditiva').textContent = formatarCPF(pessoa.cpf);
     document.getElementById('data-nascimento-preditiva').textContent = formatarData(pessoa.data_nascimento);
+    document.getElementById('idade').textContent = calcularIdade(pessoa.data_nascimento);
     document.getElementById('sexo-preditiva').textContent = pessoa.sexo === 'M' ? 'Masculino' : 'Feminino';
     document.getElementById('nome-mae-preditiva').textContent = pessoa.nome_mae || 'N/A';
-    document.getElementById('situacao-cpf-preditiva').innerHTML =
-      `<span class="badge ${pessoa.situacao_cpf === 'REGULAR' ? 'bg-success' : 'bg-warning'}">${pessoa.situacao_cpf || 'N/A'}</span>`;
+    document.getElementById('situacao-cpf-preditiva').innerHTML =`<span class="badge ${pessoa.situacao_cpf === 'REGULAR' ? 'bg-success' : 'bg-warning'}">${pessoa.situacao_cpf || 'N/A'}</span>`;
     document.getElementById('renda-preditiva').textContent = formatarMoeda(pessoa.renda);
     document.getElementById('ocupacao-preditiva').textContent = pessoa.ocupacao || 'N/A';
 

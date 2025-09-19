@@ -81,6 +81,7 @@ $(function () {
             var roleBadgeObj = {
               VENDEDOR: '<i class="ri-user-line ri-22px text-primary me-2"></i>',
               ADMINISTRATIVO: '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
+              SUPERVISOR: '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
               BACKOFFICE: '<i class="ri-computer-line ri-22px text-danger me-2"></i>',
               DEVELOPER: '<i class="ri-vip-crown-line ri-22px text-warning me-2"></i>'
             };

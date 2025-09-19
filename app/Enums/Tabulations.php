@@ -23,8 +23,8 @@ class Tabulations
   const REGULARIZADO = 57;
   const CONTR_GERADO_AGUARDANDO_ASSINATURA = 56;
   const ANALISE_DOCUMENTOS = 54;
-   const DECLINIO = 53;
-   const AGUARD_ASSINATURA_DS = 60;
+  const DECLINIO = 53;
+  const AGUARD_ASSINATURA_DS = 60;
 
 
   private static array $ids_rules = [

@@ -514,8 +514,8 @@
                                         <p class="mb-1"><strong>Telefone:</strong> <span id="cliente-telefone">-</span>
                                         </p>
                                         <p class="mb-1"><strong>CPF:</strong> <span id="cliente-cpf">-</span></p>
-                                        <p class="mb-1"><strong>Data de Nascimento:</strong> <span
-                                                id="cliente-nascimento">-</span></p>
+                                        <p class="mb-1"><strong>Data de Nascimento:</strong> 
+                                        <span id="cliente-nascimento">-</span></p>
                                     </div>
                                     <div class="col-md-6">
                                         <p class="mb-1"><strong>Plano:</strong> <span id="cliente-plano">-</span></p>
@@ -574,6 +574,10 @@
                                                         class="text-muted"></span></p>
                                                 <p><strong>Data Nascimento:</strong> <span id="data-nascimento-preditiva"
                                                         class="text-muted"></span></p>
+
+                                                <p><strong>Idade Atual:</strong> <span id="idade"
+                                                        class="text-muted"></span></p>
+
                                                 <p><strong>Sexo:</strong> <span id="sexo-preditiva"
                                                         class="text-muted"></span></p>
                                             </div>
