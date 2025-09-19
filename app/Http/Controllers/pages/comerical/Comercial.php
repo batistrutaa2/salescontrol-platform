@@ -366,8 +366,6 @@ class Comercial extends Controller
       ->orderBy('nome')
       ->get(['id', 'nome']);
 
-
-
     if (Auth::user()->empresa_id != $clientInfo->empresa_id) {
       return redirect()->route('comercial.kanban')->with('status', 'error')->with('message', 'Sem permissao de acesso');
     } else {
