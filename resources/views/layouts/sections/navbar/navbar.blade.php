@@ -165,6 +165,10 @@
                                     $icon = 'ri-arrow-left-right-line';
                                     $chip = 'bg-primary-subtle text-primary';
                                 }
+                            } elseif ($tipo === 'aniversario') {
+                                // <<< ADICIONADO: tipo 'aniversario'
+                                $icon = 'ri-cake-2-line';
+                                $chip = 'bg-success-subtle text-success';
                             }
                         @endphp
 
@@ -203,20 +207,30 @@
                                         @case('status_venda')
                                             <h6 class="small mb-1">{{ $d['titulo'] ?? 'Status da venda atualizado' }}</h6>
                                             <small class="mb-1 d-block text-body">
-                                                {{ $d['mensagem'] ?? '' }}
+                                                {{ $d['mensagem'] ?? ($d['message'] ?? '') }}
                                                 @if (!empty($d['status']))
                                                     <br>Status: <strong>{{ $d['status'] }}</strong>
                                                 @endif
                                             </small>
                                         @break
 
-                                        {{-- Fallback para notificações legadas --}}
-
-                                        @default
-                                            <h6 class="small mb-1">{{ $d['titulo'] ?? 'Notificação' }}</h6>
+                                        {{-- 4) Aniversário (NOVO) --}}
+                                        @case('aniversario')
+                                            <h6 class="small mb-1">{{ $d['titulo'] ?? ($d['title'] ?? 'Feliz Aniversário! 🎉') }}</h6>
                                             <small class="mb-1 d-block text-body">
-                                                @if (!empty($d['mensagem']))
-                                                    {{ $d['mensagem'] }}
+                                                {{ $d['mensagem'] ?? ($d['message'] ?? 'Celebre seu dia! 🎂') }}
+                                                @if (!empty($d['data']))
+                                                    <br><span class="text-muted">Data: {{ $d['data'] }}</span>
+                                                @endif
+                                            </small>
+                                        @break
+
+                                        {{-- Fallback para notificações legadas --}}
+                                        @default
+                                            <h6 class="small mb-1">{{ $d['titulo'] ?? ($d['title'] ?? 'Notificação') }}</h6>
+                                            <small class="mb-1 d-block text-body">
+                                                @if (!empty($d['mensagem']) || !empty($d['message']))
+                                                    {{ $d['mensagem'] ?? $d['message'] }}
                                                 @else
                                                     @if (!empty($d['data_inicio']))
                                                         Quando: {{ $d['data_inicio'] }}<br>

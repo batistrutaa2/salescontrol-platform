@@ -10,3 +10,9 @@ Schedule::command('verificar:agendamentos')
         $hora = Carbon::now('America/Sao_Paulo')->format('H:i');
         return $hora >= '08:00' && $hora <= '20:00';
     });
+
+Schedule::command('birthdays:send')
+    ->timezone('America/Sao_Paulo')
+    ->dailyAt('09:00') 
+    ->withoutOverlapping()
+    ->onOneServer();
