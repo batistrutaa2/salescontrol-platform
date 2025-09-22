@@ -152,7 +152,7 @@ class Backoffice extends Controller
         $updateContract = $this->vendasRepository->saveTicket($sale->id, $directory . $fileName);
       }
 
-      if ($request->tabulacao_id == Tabulations::PENDENCIA || $request->tabulacao_id == Tabulations::DECLINIO || $request->tabulacao_id == Tabulations::ESTORNO) {
+      if ($request->tabulacao_id != Tabulations::IMPLANTADO && $request->tabulacao_id != Tabulations::BOLETO_DISPONIVEL) {
         $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, NULL, $request->motivo_pendencia ?? null);
       }
 

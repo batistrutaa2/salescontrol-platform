@@ -394,7 +394,8 @@ public function getClientInfo($idMailing)
     try {
       $update = $this->model::where('contato_id', $contato_id)->update(
         [
-          'tabulacao_id' => $tabulacao_id
+          'tabulacao_id' => $tabulacao_id,
+          'updated_at' => Carbon::now()
         ]
       );
       return $update;

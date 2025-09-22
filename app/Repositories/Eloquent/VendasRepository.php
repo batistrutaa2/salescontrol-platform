@@ -586,6 +586,7 @@ class VendasRepository implements VendasRepositoryInterface
       if ($contract) {
         $contract->data_implantacao = $dataImplantacao;
         $contract->motivo_pendencia = $motivo_pendencia;
+        $contract->updated_at = now();
         return $contract->save();
       }
       return false;
@@ -600,11 +601,11 @@ class VendasRepository implements VendasRepositoryInterface
       $contract = $this->model::find($id);
       if ($contract) {
         $contract->path_boleto_disponivel = $path_ticket;
+        $contract->updated_at = now();
         return $contract->save();
       }
       return false;
     } catch (\Throwable $th) {
-      dd($th);
       return false;
     }
   }

@@ -1042,7 +1042,6 @@ class Comercial extends Controller
     } else {
       return redirect()->back()->with('status', 'error')->with('message', 'Dependente não encontrado.');
     }
-
   }
 
   public function list(Request $request)
