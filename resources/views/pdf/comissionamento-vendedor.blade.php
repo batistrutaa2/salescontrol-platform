@@ -311,7 +311,7 @@
                 <div class="line">
                     Imposto: {{ pct($impPerc) }}
                     @if ($salario)
-                        &nbsp;&middot;&nbsp; Salário: {{ brl($salario) }}
+                        &nbsp;&middot;&nbsp; Prestação de Serv: {{ brl($salario) }}
                     @endif
                 </div>
             </div>
@@ -357,6 +357,8 @@
         <thead>
             <tr>
                 <th class="center" style="width: 12%;">Data</th>
+
+
                 <th>Contrato</th>
                 <th class="right">Valor (Base)</th>
                 <th class="right">% Com.</th>
