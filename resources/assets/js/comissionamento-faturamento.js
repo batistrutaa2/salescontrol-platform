@@ -345,11 +345,18 @@
     if ($ajNatureza) $ajNatureza.value = natureza; // CREDITO | DEBITO
 
     if ($ajCategoria) $ajCategoria.value = 'MOTIVACIONAL';
-    if ($ajImpPerc)   $ajImpPerc.value   = '10.00';
+    if ($ajImpPerc)   $ajImpPerc.value   = '0.00';
     if ($ajValor)     $ajValor.value     = '';
     if ($ajDesc)      $ajDesc.value      = '';
 
     recalcAjuste();
+    // Título da modal
+    const titleEl = $ajModal.querySelector('.js-natureza-title');
+    if (titleEl) {
+      const icn = (natureza === 'DEBITO') ? '<i class="ri-subtract-line me-2"></i>' : '<i class="ri-add-line me-2"></i>';
+      const txt = (natureza === 'DEBITO') ? 'Lançar Despesa' : 'Lançar Crédito';
+      titleEl.innerHTML = `${icn}${txt}`;
+    }
 
     const modal = new bootstrap.Modal($ajModal);
     modal.show();
@@ -378,7 +385,6 @@
       if (!$ajMes?.value)    throw new Error('Informe o mês de referência.');
       if (!Number($ajValor?.value)) throw new Error('Informe um valor válido.');
 
-      // Sem endpoint configurado: apenas fecha e avisa
       if (!AJUSTE_URL) {
         toastr.success('Ajuste preparado (frontend). Configure data-ajuste-url no #comissionamento-root para salvar no backend.');
         bootstrap.Modal.getInstance($ajModal)?.hide();
@@ -388,7 +394,7 @@
       const payload = {
         vendedor_id: Number($ajVendId.value),
         mes: $ajMes.value,
-        natureza: $ajNatureza.value,            // CREDITO | DEBITO
+        natureza: $ajNatureza.value,
         categoria: $ajCategoria.value,
         imposto_perc: Number($ajImpPerc.value),
         valor_bruto: Number($ajValor.value),

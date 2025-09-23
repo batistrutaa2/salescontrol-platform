@@ -211,7 +211,8 @@ Route::middleware(['auth'])->group(function () {
 
   Route::get('/comissionamento/pagamentos', [Comissionamento::class, 'pagamentosIndex'])->name('comissionamento.pagamentos');
   Route::get('/comissionamento/pagamentos/data', [Comissionamento::class, 'pagamentosData'])->name('comissionamento.pagamentos.data');
-  Route::post('/comissionamento/pagamentos/{id}/estornar', [Comissionamento::class, 'pagamentosEstornar'])->name('comissionamento.pagamentos.estornar'); // opcional
+  Route::post('/comissionamento/pagamentos/{id}/estornar', [Comissionamento::class, 'pagamentosEstornar'])->name('comissionamento.pagamentos.estornar');
+  Route::post('/comissionamento/lancamentos',[Comissionamento::class, 'storeLancamentoDebitoCredito'])->name('comissionamento.ajuste.store');
 
   /** ESTUDO */
   Route::get('/estudo-lista', [Estudo::class, 'index'])->name('estudo.index');

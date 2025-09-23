@@ -17,7 +17,8 @@
 @section('content')
 
     <div id="comissionamento-root" data-url="{{ route('comissionamento.faturamento') }}"
-        data-pay-url="{{ route('comissionamento.pagar') }}" data-empresa-id="{{ auth()->user()->empresa_id }}">
+        data-pay-url="{{ route('comissionamento.pagar') }}" data-empresa-id="{{ auth()->user()->empresa_id }}"
+        data-ajuste-url="{{ route('comissionamento.ajuste.store') }}">
     </div>
 
 
@@ -190,7 +191,7 @@
             <form class="modal-content" id="form-lanc-ajuste" action="#" method="POST">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h5 class="modal-title js-natureza-title">
                         <i class="ri-hand-coin-line me-2"></i>Lançar ajuste para vendedor
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
@@ -199,7 +200,7 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <input type="hidden" id="ajVendId" name="vendedor_id">
-                        <input type="hidden" id="ajNatureza" name="natureza"> {{-- CREDITO | DEBITO --}}
+                        <input type="hidden" id="ajNatureza" name="natureza">
                         <input type="hidden" id="ajImpVal" name="imposto_valor">
                         <input type="hidden" id="ajLiqVal" name="valor_liquido">
 
@@ -217,17 +218,17 @@
                         <div class="col-md-4">
                             <label class="form-label">Categoria</label>
                             <select class="form-select" id="ajCategoria" name="categoria" required>
-                                <option value="MOTIVACIONAL">Motivacional</option>
-                                <option value="AJUSTE">Ajuste</option>
-                                <option value="DESCONTO">Desconto</option>
-                                <option value="OUTRO">Outro</option>
+                                <option value="MOTIVACIONAL">MOTIVACIONAL</option>
+                                <option value="AJUSTE">AJUSTE</option>
+                                <option value="DESCONTO">ESTORNO</option>
+                                <option value="OUTRO">OUTROS</option>
                             </select>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label">% Imposto</label>
                             <input type="number" step="0.01" class="form-control" id="ajImpPerc"
-                                name="imposto_perc" value="10.00" required>
+                                name="imposto_perc" value="0.00" required>
                         </div>
 
                         <div class="col-md-4">
