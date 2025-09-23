@@ -183,4 +183,89 @@
         </div>
     </div>
 
+
+    {{-- Modal: Lançar Ajuste (Crédito/Débito) --}}
+    <div class="modal fade" id="modalLancAjuste" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <form class="modal-content" id="form-lanc-ajuste" action="#" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="ri-hand-coin-line me-2"></i>Lançar ajuste para vendedor
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <input type="hidden" id="ajVendId" name="vendedor_id">
+                        <input type="hidden" id="ajNatureza" name="natureza"> {{-- CREDITO | DEBITO --}}
+                        <input type="hidden" id="ajImpVal" name="imposto_valor">
+                        <input type="hidden" id="ajLiqVal" name="valor_liquido">
+
+                        <div class="col-md-4">
+                            <label class="form-label">Mês de referência</label>
+                            <input type="month" class="form-control" id="ajMes" name="mes"
+                                value="{{ \Carbon\Carbon::now('America/Sao_Paulo')->format('Y-m') }}" required>
+                        </div>
+
+                        <div class="col-md-8">
+                            <label class="form-label">Vendedor</label>
+                            <input type="text" class="form-control" id="ajVendNome" disabled>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Categoria</label>
+                            <select class="form-select" id="ajCategoria" name="categoria" required>
+                                <option value="MOTIVACIONAL">Motivacional</option>
+                                <option value="AJUSTE">Ajuste</option>
+                                <option value="DESCONTO">Desconto</option>
+                                <option value="OUTRO">Outro</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">% Imposto</label>
+                            <input type="number" step="0.01" class="form-control" id="ajImpPerc"
+                                name="imposto_perc" value="10.00" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Valor (R$)</label>
+                            <input type="number" step="0.01" class="form-control" id="ajValor" name="valor_bruto"
+                                required>
+                        </div>
+
+                        <div class="col-md-8">
+                            <label class="form-label">Descrição/observação</label>
+                            <input type="text" class="form-control" id="ajDesc" name="descricao"
+                                placeholder="Ex.: Bônus por meta ou desconto por atraso">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label">Imposto (R$)</label>
+                            <input type="text" class="form-control" id="ajImpValView" disabled>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Líquido (R$)</label>
+                            <input type="text" class="form-control" id="ajLiqView" disabled>
+                        </div>
+                        <div class="col-md-8 d-flex align-items-end">
+                            <div class="small text-muted">
+                                * Para <strong>Crédito</strong>, o líquido será somado ao total do vendedor. Para
+                                <strong>Débito</strong>, será subtraído.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-confirm-ajuste">Salvar ajuste</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
 @endsection
