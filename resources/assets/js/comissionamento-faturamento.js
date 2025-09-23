@@ -170,41 +170,60 @@
           </div>
           <div class="card-body">
             <div class="table-responsive">
-              <table class="table align-middle mb-4">
-                <thead>
-                  <tr>
-                    <th style="width:40px;">
-                      <input type="checkbox" class="form-check-input js-select-all" data-vendedor="${v.user_id}">
-                    </th>
-                    <th>Contrato</th>
-                    <th class="text-end">Valor (base)</th>
-                    <th class="text-end">% Comissão</th>
-                    <th class="text-end">Valor comissão (líquida)</th>
-                    <th class="text-end">Implantação</th>
-                    <th class="text-end">Angariação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${lista.map(it => {
-                    const base = Number(it.valor_base ?? it.valor_contrato ?? 0);
-                    const pApplied = Number(it.percentual_aplicado ?? percPerfil);
-                    const isAng = String(it.angariacao_status).toUpperCase() === 'SIM';
-                    return `
-                      <tr data-id="${it.id}" data-vendedor="${v.user_id}">
-                        <td><input type="checkbox" class="form-check-input js-select-row"></td>
-                        <td class="fw-medium">${esc(it.nome_contrato)}</td>
-                        <td class="text-end">${brl(base)}</td>
-                        <td class="text-end">${pApplied.toFixed(0)}%</td>
-                        <td class="text-end">${brl(it.valor_comissao)}</td>
-                        <td class="text-end">${esc(it.data_implantacao)}</td>
-                        <td class="text-end">
-                          ${isAng ? `<span class="badge bg-success">Angariação</span>` : '-'}
-                        </td>
-                      </tr>
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
+            <table class="table align-middle mb-4">
+              <thead>
+                <tr>
+                  <th style="width:40px;">
+                    <input type="checkbox" class="form-check-input js-select-all" data-vendedor="${v.user_id}">
+                  </th>
+                  <th>Contrato</th>
+                  <th class="text-end">Valor (base)</th>
+                  <th class="text-end">% Comissão</th>
+                  <th class="text-end">Valor comissão (líquida)</th>
+                  <th class="text-end">Implantação</th>
+                  <th class="text-end">Origem</th> <!-- <<< era "Angariação" -->
+                </tr>
+              </thead>
+              <tbody>
+                ${lista.map(it => {
+                  const base     = Number(it.valor_base ?? it.valor_contrato ?? 0);
+                  const pApplied = Number(it.percentual_aplicado ?? percPerfil);
+                  const isAng    = String(it.angariacao_status).toUpperCase() === 'SIM';
+                  const isAjuste = !!it.is_ajuste;
+
+                  // líquido com sinal: se negativo, mostra "- R$ ..." em vermelho
+                  const liq = Number(it.valor_comissao || 0);
+                  const liqHtml = liq < 0
+                    ? `<span class="text-danger">- ${brl(Math.abs(liq))}</span>`
+                    : brl(liq);
+
+                  // última coluna (Origem): Ajuste Crédito/Débito, Angariação, ou "-"
+                  let origemHtml = '-';
+                  if (isAjuste) {
+                    // tenta inferir pelo sinal do líquido
+                    const isDeb = liq < 0;
+                    const cat   = (it.categoria || '').toString().toUpperCase(); // se vier do backend
+                    origemHtml  = isDeb
+                      ? `<span class="badge bg-danger">Ajuste (Débito${cat ? ' · '+cat : ''})</span>`
+                      : `<span class="badge bg-success">Ajuste (Crédito${cat ? ' · '+cat : ''})</span>`;
+                  } else if (isAng) {
+                    origemHtml = `<span class="badge bg-success">Angariação</span>`;
+                  }
+
+                  return `
+                    <tr data-id="${it.id}" data-vendedor="${v.user_id}" data-ajuste="${isAjuste ? '1' : '0'}">
+                      <td><input type="checkbox" class="form-check-input js-select-row"></td>
+                      <td class="fw-medium">${esc(it.nome_contrato)}</td>
+                      <td class="text-end">${brl(base)}</td>
+                      <td class="text-end">${isAjuste ? '-' : pApplied.toFixed(0) + '%'}</td>
+                      <td class="text-end">${liqHtml}</td>
+                      <td class="text-end">${isAjuste ? '-' : esc(it.data_implantacao)}</td>
+                      <td class="text-end">${origemHtml}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
             </div>
 
             <div class="row g-3 justify-content-end align-items-end">
