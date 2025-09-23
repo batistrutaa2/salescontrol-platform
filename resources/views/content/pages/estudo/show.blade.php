@@ -496,7 +496,8 @@
                             <i class="ri-calendar-line"></i>
                             <span class="kpi-label">Criado em</span>
                             <strong class="kpi-value">
-                                {{ \Carbon\Carbon::parse($estudo->created_at)->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}
+                                {{ \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $estudo->created_at)->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}
+
                             </strong>
                         </div>
                         <div class="kpi-chip">
