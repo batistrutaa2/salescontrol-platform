@@ -549,54 +549,57 @@ public function getFaturamentoComissionamento(Request $request)
     public function pagarVendedor(Request $request)
     {
         $request->validate([
-            'mes' => ['required', 'regex:/^\d{4}\-\d{2}$/'],
-            'vendedor_id' => ['required', 'integer'],
-            'data_pagamento' => ['required', 'date'],
-            'venda_ids' => ['required', 'array', 'min:1'],
-            'venda_ids.*' => ['integer'],
+            'mes'             => ['required', 'regex:/^\d{4}\-\d{2}$/'],
+            'vendedor_id'     => ['required', 'integer', 'exists:users,id'],
+            'data_pagamento'  => ['required', 'date'],
+            'venda_ids'       => ['array'],
+            'venda_ids.*'     => ['integer'],
+            'ajuste_ids'      => ['array'],
+            'ajuste_ids.*'    => ['integer'],
         ]);
 
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId   = Auth::user()->empresa_id;
         $adminUserId = Auth::id();
-        $vendedorId = (int) $request->integer('vendedor_id');
-        $mes = $request->input('mes');
+        $vendedorId  = (int) $request->integer('vendedor_id');
+        $mes         = $request->input('mes');
+        $dataPagto   = Carbon::parse($request->input('data_pagamento'))->toDateString();
 
         [$y, $m] = explode('-', $mes);
         $inicio = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->startOfMonth()->toDateString();
-        $fim = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->endOfMonth()->toDateString();
+        $fim    = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->endOfMonth()->toDateString();
 
-        $ids = array_map('intval', $request->input('venda_ids', []));
+        $vendaIds  = array_map('intval', $request->input('venda_ids', []));
+        $ajusteIds = array_map('intval', $request->input('ajuste_ids', []));
 
-        // Vendas elegíveis
-        $rows = DB::table('vendas as v')
-            ->join('users as u', 'u.id', '=', 'v.user_id')
-            ->join('comissionamento_configuracao as cfg', function ($j) use ($empresaId) {
-                $j->on('cfg.user_id', '=', 'v.user_id')->where('cfg.empresa_id', '=', $empresaId);
-            })
-            ->where('v.empresa_id', $empresaId)
-            ->where('v.user_id', $vendedorId)
-            ->whereBetween('v.data_implantacao', [$inicio, $fim])
-            ->whereNotNull('v.data_implantacao')
-            ->where('v.comissao_paga', 0)
-            ->whereIn('v.id', $ids)
-            ->select([
-                'v.id',
-                'v.user_id',
-                'u.name as vendedor',
-                DB::raw('COALESCE(v.valor_contrato,0) as valor_contrato'),
-                'v.data_implantacao',
-                DB::raw('LOWER(cfg.grade) as grade'),
-                'cfg.imposto',
-                'cfg.salario',
-                'cfg.percentual',
-                'v.angariacao_status',
-                DB::raw('COALESCE(v.angariacao_valor,0) as angariacao_valor'),
-            ])
-            ->orderBy('v.data_implantacao')
-            ->get();
-
-        if ($rows->isEmpty()) {
-            return response()->json(['message' => 'Nenhuma venda elegível para pagamento.'], 422);
+        /* ================== VENDAS ================== */
+        $rows = collect();
+        if (!empty($vendaIds)) {
+            $rows = DB::table('vendas as v')
+                ->join('users as u', 'u.id', '=', 'v.user_id')
+                ->join('comissionamento_configuracao as cfg', function ($j) use ($empresaId) {
+                    $j->on('cfg.user_id', '=', 'v.user_id')->where('cfg.empresa_id', '=', $empresaId);
+                })
+                ->where('v.empresa_id', $empresaId)
+                ->where('v.user_id', $vendedorId)
+                ->whereBetween('v.data_implantacao', [$inicio, $fim])
+                ->whereNotNull('v.data_implantacao')
+                ->where('v.comissao_paga', 0)
+                ->whereIn('v.id', $vendaIds)
+                ->select([
+                    'v.id',
+                    'v.user_id',
+                    'u.name as vendedor',
+                    DB::raw('COALESCE(v.valor_contrato,0) as valor_contrato'),
+                    'v.data_implantacao',
+                    DB::raw('LOWER(cfg.grade) as grade'),
+                    'cfg.imposto',
+                    'cfg.salario',
+                    'cfg.percentual',
+                    'v.angariacao_status',
+                    DB::raw('COALESCE(v.angariacao_valor,0) as angariacao_valor'),
+                ])
+                ->orderBy('v.data_implantacao')
+                ->get();
         }
 
         $enriched = $rows->map(function ($r) {
@@ -609,96 +612,183 @@ public function getFaturamentoComissionamento(Request $request)
             // imposto: se angariação, é 0%
             $impP = $isAng ? 0.0 : (isset($r->imposto) ? (float) $r->imposto : 10.0);
 
-            $bruto = round($base * ($perc / 100), 2);
-            $impVal = $isAng ? 0.0 : round($bruto * ($impP / 100), 2);
+            $bruto   = round($base * ($perc / 100), 2);
+            $impVal  = $isAng ? 0.0 : round($bruto * ($impP / 100), 2);
             $liquido = round($bruto - $impVal, 2);
 
-            // sobrescreve os campos usados adiante
-            $r->percentual = $perc;
-            $r->imposto_perc = $impP;
-            $r->bruto = $bruto;
-            $r->imposto_valor = $impVal;
-            $r->liquido = $liquido;
-
-            // opcionalmente, guarde a base usada para persistir no item
+            $r->percentual        = $perc;
+            $r->imposto_perc      = $impP;
+            $r->bruto             = $bruto;
+            $r->imposto_valor     = $impVal;
+            $r->liquido           = $liquido;
             $r->valor_base_para_item = $base;
 
             return $r;
         });
 
+        /* ================== AJUSTES ================== */
+        $ajustes = collect();
+        if (!empty($ajusteIds)) {
+            $ajustes = DB::table('lancamentos_debito_credito as a')
+                ->where('a.empresa_id', $empresaId)
+                ->where('a.vendedor_id', $vendedorId)
+                ->where('a.mes', $mes)
+                ->where('a.status', 'pendente')
+                ->whereIn('a.id', $ajusteIds)
+                ->select([
+                    'a.id',
+                    'a.natureza',        // DEBITO | CREDITO
+                    'a.categoria',       // MOTIVACIONAL | AJUSTE | DESCONTO | OUTRO
+                    'a.descricao',
+                    'a.imposto_perc',
+                    'a.valor_bruto',
+                    'a.imposto_valor',
+                    'a.valor_liquido',   // com sinal: débito negativo
+                ])->get();
+        }
 
-        $totais = [
-            'bruto' => (float) $enriched->sum('bruto'),
+        if ($enriched->isEmpty() && $ajustes->isEmpty()) {
+            return response()->json(['message' => 'Nenhum item selecionado para pagamento.'], 422);
+        }
+
+        /* ================== TOTAIS ================== */
+        $totVendas = [
+            'bruto'   => (float) $enriched->sum('bruto'),
             'imposto' => (float) $enriched->sum('imposto_valor'),
             'liquido' => (float) $enriched->sum('liquido'),
         ];
 
-        // Snapshot de config vigente (pega do primeiro registro)
-        $cfg = $rows->first();
-        $salario = (float) ($cfg->salario ?? 0);
-        $percCom = (float) ($cfg->percentual ?? 0);
-        $percImp = (float) ($cfg->imposto ?? 10);
-        $totalRec = $salario + $totais['liquido'];
-        $vendedor = $rows->first()->vendedor ?? 'Vendedor';
+        $totAjustes = [
+            'bruto'   => (float) $ajustes->sum('valor_bruto'),
+            'imposto' => (float) $ajustes->sum('imposto_valor'),
+            'liquido' => (float) $ajustes->sum('valor_liquido'), // já vem com sinal
+        ];
 
-        $pagamentoId = DB::transaction(function () use ($empresaId, $vendedorId, $adminUserId, $mes, $request, $enriched, $totais, $salario, $totalRec, $percCom, $percImp) {
+        $totais = [
+            'bruto'   => round($totVendas['bruto']   + $totAjustes['bruto'], 2),
+            'imposto' => round($totVendas['imposto'] + $totAjustes['imposto'], 2),
+            'liquido' => round($totVendas['liquido'] + $totAjustes['liquido'], 2),
+        ];
+
+        // Snapshot de config: se não houver vendas, ainda podemos pegar salário/imposto/percentual do perfil
+        $cfgRow  = $rows->first();
+        $salario = (float) ($cfgRow->salario ?? 0);
+        $percCom = (float) ($cfgRow->percentual ?? 0);
+        $percImp = (float) ($cfgRow->imposto ?? 10);
+
+        $totalRec = round($salario + $totais['liquido'], 2);
+        $vendedor = $rows->first()->vendedor ?? DB::table('users')->where('id', $vendedorId)->value('name') ?? 'Vendedor';
+
+        /* ================== TRANSAÇÃO ================== */
+        $pagamentoId = DB::transaction(function () use (
+            $empresaId, $vendedorId, $adminUserId, $mes, $dataPagto,
+            $enriched, $ajustes, $totais, $salario, $totalRec, $percCom, $percImp
+        ) {
+            // Header
             $headerId = DB::table('comissao_pagamentos')->insertGetId([
-                'empresa_id' => $empresaId,
-                'vendedor_id' => $vendedorId,
-                'mes' => $mes,
-                'data_pagamento' => Carbon::parse($request->input('data_pagamento'))->toDateString(),
-                'percentual_comissao' => $percCom,
-                'percentual_imposto' => $percImp,
-                'total_bruto' => $totais['bruto'],
-                'total_imposto' => $totais['imposto'],
-                'total_liquido' => $totais['liquido'],
-                'salario' => $salario,
-                'total_receber' => $totalRec,
-                'created_by' => $adminUserId,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'empresa_id'           => $empresaId,
+                'vendedor_id'          => $vendedorId,
+                'mes'                  => $mes,
+                'data_pagamento'       => $dataPagto,
+                // quando mistura vendas + ajustes, estes percentuais perdem sentido de "médio"
+                // mantenha snapshot do perfil (ou use 0.00 se preferir)
+                'percentual_comissao'  => $percCom,
+                'percentual_imposto'   => $percImp,
+                'total_bruto'          => $totais['bruto'],
+                'total_imposto'        => $totais['imposto'],
+                'total_liquido'        => $totais['liquido'],
+                'salario'              => $salario,
+                'total_receber'        => $totalRec,
+                'created_by'           => $adminUserId,
+                'created_at'           => now(),
+                'updated_at'           => now(),
             ]);
 
-            $itens = $enriched->map(function ($r) use ($headerId) {
-                return [
-                    'comissao_pagamento_id' => $headerId,
-                    'venda_id' => $r->id,
-                    'valor_contrato' => $r->valor_base_para_item,
-                    'percentual' => $r->percentual,
-                    'imposto_perc' => $r->imposto_perc,
-                    'bruto' => $r->bruto,
-                    'imposto_valor' => $r->imposto_valor,
-                    'liquido' => $r->liquido,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            })->toArray();
+            // Itens de VENDAS
+            if ($enriched->isNotEmpty()) {
+                $itensV = $enriched->map(function ($r) use ($headerId) {
+                    return [
+                        'comissao_pagamento_id' => $headerId,
+                        'venda_id'              => $r->id,
+                        'ajuste_id'             => null,
+                        'is_adicional'          => 0,
+                        'tipo_lancamento'       => 'OUTRO',
+                        'descricao'             => null,
+                        'valor_contrato'        => $r->valor_base_para_item,
+                        'percentual'            => $r->percentual,
+                        'imposto_perc'          => $r->imposto_perc,
+                        'bruto'                 => $r->bruto,
+                        'imposto_valor'         => $r->imposto_valor,
+                        'liquido'               => $r->liquido,
+                        'created_at'            => now(),
+                        'updated_at'            => now(),
+                    ];
+                })->toArray();
 
+                DB::table('comissao_pagamento_itens')->insert($itensV);
 
-            DB::table('comissao_pagamento_itens')->insert($itens);
+                // marca vendas como pagas
+                DB::table('vendas')
+                    ->whereIn('id', $enriched->pluck('id'))
+                    ->update([
+                        'comissao_paga'            => 1,
+                        'data_pagamento_comissao'  => now(),
+                        'updated_at'               => now(),
+                    ]);
+            }
 
-            DB::table('vendas')
-                ->whereIn('id', $enriched->pluck('id'))
-                ->update([
-                    'comissao_paga' => 1,
-                    'data_pagamento_comissao' => now(),
-                    'updated_at' => now(),
-                ]);
+            // Itens de AJUSTES
+            if ($ajustes->isNotEmpty()) {
+                $itensA = $ajustes->map(function ($a) use ($headerId) {
+                    // Mapear categoria do lançamento para enum do item (se tiver diferença, ajuste aqui)
+                    $tipo = in_array($a->categoria, ['MOTIVACIONAL','AJUSTE','BONUS','OUTRO']) ? $a->categoria : 'AJUSTE';
+
+                    return [
+                        'comissao_pagamento_id' => $headerId,
+                        'venda_id'              => null,
+                        'ajuste_id'             => $a->id,
+                        'is_adicional'          => 1,
+                        'tipo_lancamento'       => $tipo,
+                        'descricao'             => $a->descricao,
+                        'valor_contrato'        => (float) $a->valor_bruto,
+                        'percentual'            => 0,
+                        'imposto_perc'          => (float) $a->imposto_perc,
+                        'bruto'                 => (float) $a->valor_bruto,
+                        'imposto_valor'         => (float) $a->imposto_valor,
+                        'liquido'               => (float) $a->valor_liquido, // pode ser NEGATIVO (débito)
+                        'created_at'            => now(),
+                        'updated_at'            => now(),
+                    ];
+                })->toArray();
+
+                DB::table('comissao_pagamento_itens')->insert($itensA);
+
+                // marcar ajustes como pagos e vincular ao header
+                DB::table('lancamentos_debito_credito')
+                    ->whereIn('id', $ajustes->pluck('id'))
+                    ->update([
+                        'status'                 => 'pago',
+                        'comissao_pagamento_id'  => $headerId,
+                        'pago_em'                => now(),
+                        'updated_at'             => now(),
+                    ]);
+            }
 
             return $headerId;
         });
 
         return response()->json([
-            'message' => "Pagamento registrado para {$vendedor}.",
-            'pagamento_id' => $pagamentoId,
-            'pdf_url' => route('comissionamento.pagamento.pdf', $pagamentoId),
-            'totais' => $totais,
-            'salario' => $salario,
-            'percentual_comissao' => $percCom,
-            'percentual_imposto' => $percImp,
-            'total_receber' => $totalRec,
+            'message'               => "Pagamento registrado para {$vendedor}.",
+            'pagamento_id'          => $pagamentoId,
+            'pdf_url'               => route('comissionamento.pagamento.pdf', $pagamentoId),
+            'totais'                => $totais,
+            'salario'               => $salario,
+            'percentual_comissao'   => $percCom,
+            'percentual_imposto'    => $percImp,
+            'total_receber'         => $totalRec,
         ]);
     }
+
 
 
     public function pdfPagamento($pagamentoId)

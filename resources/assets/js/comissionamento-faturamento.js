@@ -270,10 +270,20 @@
         const vend = btn.getAttribute('data-vendedor');
         const dateInput = document.querySelector(`.js-data-pagamento[data-vendedor="${vend}"]`);
         const dataPagamento = dateInput?.value;
-        const selecionados = Array.from(document.querySelectorAll(`tr[data-vendedor="${vend}"] .js-select-row:checked`))
-          .map(cb => Number(cb.closest('tr').getAttribute('data-id')));
 
-        if (!selecionados.length) { toastr.info('Selecione ao menos um contrato para pagar.'); return; }
+        const selecionadosRows = Array.from(
+          document.querySelectorAll(`tr[data-vendedor="${vend}"] .js-select-row:checked`)
+        ).map(cb => cb.closest('tr'));
+
+        const vendaIds = selecionadosRows
+          .filter(tr => tr.getAttribute('data-ajuste') !== '1')
+          .map(tr => Number(tr.getAttribute('data-id')));
+
+        const ajusteIds = selecionadosRows
+          .filter(tr => tr.getAttribute('data-ajuste') === '1')
+          .map(tr => Number(tr.getAttribute('data-id')));
+
+        if (!vendaIds.length && !ajusteIds.length) { toastr.info('Selecione ao menos um item (contrato ou ajuste).'); return; }
         if (!dataPagamento) { toastr.warning('Informe a data do pagamento da comissão.'); return; }
 
         try {
@@ -291,7 +301,8 @@
               mes,
               vendedor_id: Number(vend),
               data_pagamento: dataPagamento,
-              venda_ids: selecionados
+              venda_ids: vendaIds,
+              ajuste_ids: ajusteIds
             })
           });
 
@@ -303,7 +314,6 @@
           const json = await res.json();
           toastr.success(json.message || 'Pagamento registrado com sucesso.');
 
-          // Abre recibo
           if (json.pdf_url) window.open(json.pdf_url, '_blank');
 
           // Recarrega lista após pagar
@@ -316,6 +326,7 @@
         }
       });
     });
+
   }
 
   // ======== Modal de Ajuste (Crédito / Despesa) ========
