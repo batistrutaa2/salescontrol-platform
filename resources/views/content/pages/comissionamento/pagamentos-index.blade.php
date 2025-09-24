@@ -72,9 +72,8 @@
                             <th class="text-end">Bruto</th>
                             <th class="text-end">Imposto</th>
                             <th class="text-end">Líquido</th>
-                            <th class="text-end">Salário</th>
                             <th class="text-end">Total a Receber</th>
-                            <th>Criado por</th>
+                            <th>Lançado por</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -85,7 +84,6 @@
                             <td id="ft-bruto" class="text-end">R$ 0,00</td>
                             <td id="ft-imp" class="text-end">R$ 0,00</td>
                             <td id="ft-liq" class="text-end">R$ 0,00</td>
-                            <td id="ft-sal" class="text-end">R$ 0,00</td>
                             <td id="ft-total" class="text-end">R$ 0,00</td>
                             <td colspan="2"></td>
                         </tr>

@@ -48,7 +48,6 @@
             { data: 'total_bruto', className: 'text-end', render: fmtBRL },
             { data: 'total_imposto', className: 'text-end', render: fmtBRL },
             { data: 'total_liquido', className: 'text-end', render: fmtBRL },
-            { data: 'salario', className: 'text-end', render: fmtBRL },
             { data: 'total_receber', className: 'text-end', render: fmtBRL },
             { data: 'criado_por' },
             {
