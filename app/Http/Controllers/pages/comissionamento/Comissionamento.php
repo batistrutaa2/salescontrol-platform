@@ -804,54 +804,123 @@ public function getFaturamentoComissionamento(Request $request)
 
         abort_if(!$p, 404);
 
+        // Agora buscamos itens de venda (venda_id) E ajustes (ajuste_id)
         $itens = DB::table('comissao_pagamento_itens as i')
-            ->join('vendas as v', 'v.id', '=', 'i.venda_id')
+            ->leftJoin('vendas as v', 'v.id', '=', 'i.venda_id')
+            ->leftJoin('lancamentos_debito_credito as a', 'a.id', '=', 'i.ajuste_id')
             ->where('i.comissao_pagamento_id', $pagamentoId)
-            ->select('i.*', 'v.nome_contrato', 'v.data_implantacao', 'v.angariacao_valor', 'v.angariacao_status')
-            ->orderBy('v.data_implantacao')
+            ->select([
+                'i.*',
+                'v.nome_contrato',
+                'v.data_implantacao',
+                'v.angariacao_valor',
+                'v.angariacao_status',
+                // Campos do ajuste:
+                'a.natureza as ajuste_natureza',     // DEBITO | CREDITO
+                'a.categoria as ajuste_categoria',   // MOTIVACIONAL | AJUSTE | DESCONTO | OUTRO
+                'a.descricao as ajuste_descricao',
+            ])
+            ->orderByRaw('COALESCE(v.data_implantacao, i.created_at) asc')
             ->get();
 
+        // Monta linhas para a view
         $linhas = $itens->map(function ($i) {
+            $isAjuste = !is_null($i->ajuste_id) || is_null($i->venda_id);
+
+            if ($isAjuste) {
+                // Linha de AJUSTE
+                return (object) [
+                    'is_ajuste'         => true,
+                    'tipo_label'        => strtoupper($i->ajuste_natureza) === 'DEBITO'
+                                            ? 'Ajuste (Débito)'
+                                            : 'Ajuste (Crédito)',
+                    'tipo_categoria'    => $i->ajuste_categoria,
+                    'descricao'         => $i->ajuste_descricao,
+                    'data_implantacao'  => null,    // não se aplica
+                    'nome_contrato'     => sprintf(
+                                            '%s · %s%s',
+                                            strtoupper($i->ajuste_natureza ?? 'AJUSTE'),
+                                            strtoupper($i->ajuste_categoria ?? 'OUTRO'),
+                                            $i->ajuste_descricao ? (' — ' . $i->ajuste_descricao) : ''
+                                        ),
+                    'valor_contrato'    => (float) $i->valor_contrato, // usamos como "base" exibida
+                    'percentual'        => null,    // não se aplica
+                    'bruto'             => (float) $i->bruto,
+                    'imposto_valor'     => (float) $i->imposto_valor,
+                    'liquido'           => (float) $i->liquido,        // pode ser NEGATIVO
+                    'angariacao_valor'  => 0,
+                    'angariacao_status' => null,
+                ];
+            }
+
+            // Linha de VENDA
             return (object) [
-                'data_implantacao' => $i->data_implantacao,
-                'nome_contrato' => $i->nome_contrato,
-                'valor_contrato' => $i->valor_contrato,
-                'percentual' => $i->percentual,
-                'bruto' => $i->bruto,
-                'imposto_valor' => $i->imposto_valor,
-                'liquido' => $i->liquido,
-                'angariacao_valor' => $i->angariacao_valor,
+                'is_ajuste'         => false,
+                'tipo_label'        => (strtoupper((string) $i->angariacao_status) === 'SIM') ? 'Angariação' : 'Venda',
+                'tipo_categoria'    => null,
+                'descricao'         => null,
+                'data_implantacao'  => $i->data_implantacao,
+                'nome_contrato'     => $i->nome_contrato,
+                'valor_contrato'    => (float) $i->valor_contrato, // OBS: no item já está a base usada no cálculo
+                'percentual'        => (float) $i->percentual,
+                'bruto'             => (float) $i->bruto,
+                'imposto_valor'     => (float) $i->imposto_valor,
+                'liquido'           => (float) $i->liquido,
+                'angariacao_valor'  => (float) $i->angariacao_valor,
                 'angariacao_status' => $i->angariacao_status,
             ];
         });
 
+        // Totais do header (vêm prontos do pagamento)
         $totais = [
-            'bruto' => (float) $p->total_bruto,
+            'bruto'   => (float) $p->total_bruto,
             'imposto' => (float) $p->total_imposto,
             'liquido' => (float) $p->total_liquido,
         ];
 
-        $perfil = [
-            'grade' => null,
-            'percentual' => $p->percentual_comissao,
-            'salario' => (float) $p->salario,
-            'imposto' => (float) $p->percentual_imposto,
+        // Quebra dos totais (Vendas vs Ajustes)
+        $linVendas  = $linhas->where('is_ajuste', false);
+        $linAjustes = $linhas->where('is_ajuste', true);
+
+        $totVendas = [
+            'bruto'   => (float) $linVendas->sum('bruto'),
+            'imposto' => (float) $linVendas->sum('imposto_valor'),
+            'liquido' => (float) $linVendas->sum('liquido'),
         ];
 
-        $periodo = Carbon::createFromFormat('Y-m-d', "{$p->mes}-01")->locale('pt_BR')->isoFormat('MMMM [de] YYYY');
+        $totAjustes = [
+            'bruto'   => (float) $linAjustes->sum('bruto'),
+            'imposto' => (float) $linAjustes->sum('imposto_valor'),
+            'liquido' => (float) $linAjustes->sum('liquido'), // com sinal
+            'creditos'=> (float) $linAjustes->filter(fn($r) => $r->liquido > 0)->sum('liquido'),
+            'debitos' => (float) abs($linAjustes->filter(fn($r) => $r->liquido < 0)->sum('liquido')),
+        ];
+
+        $perfil = [
+            'grade'      => null,
+            'percentual' => $p->percentual_comissao,
+            'salario'    => (float) $p->salario,
+            'imposto'    => (float) $p->percentual_imposto,
+        ];
+
+        $periodo = Carbon::createFromFormat('Y-m-d', "{$p->mes}-01")
+                    ->locale('pt_BR')->isoFormat('MMMM [de] YYYY');
 
         $pdf = Pdf::loadView('pdf.comissionamento-vendedor', [
-            'mes' => $p->mes,
-            'periodo' => mb_convert_case($periodo, MB_CASE_TITLE, 'UTF-8'),
-            'vendedor' => $p->vendedor,
-            'linhas' => $linhas,
-            'totais' => $totais,
-            'perfil' => $perfil,
-            'totalReceber' => (float) $p->total_receber,
+            'mes'           => $p->mes,
+            'periodo'       => mb_convert_case($periodo, MB_CASE_TITLE, 'UTF-8'),
+            'vendedor'      => $p->vendedor,
+            'linhas'        => $linhas,
+            'totais'        => $totais,
+            'totVendas'     => $totVendas,
+            'totAjustes'    => $totAjustes, // <<< para mostrar créditos e débitos
+            'perfil'        => $perfil,
+            'totalReceber'  => (float) $p->total_receber,
         ])->setPaper('a4', 'landscape');
 
         return $pdf->stream("pagamento_comissao_{$p->mes}_{$p->vendedor}.pdf");
     }
+
 
     public function pagamentosIndex()
     {
