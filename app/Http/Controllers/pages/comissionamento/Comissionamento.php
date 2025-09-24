@@ -593,7 +593,6 @@ public function getFaturamentoComissionamento(Request $request)
                     'v.data_implantacao',
                     DB::raw('LOWER(cfg.grade) as grade'),
                     'cfg.imposto',
-                    'cfg.salario',
                     'cfg.percentual',
                     'v.angariacao_status',
                     DB::raw('COALESCE(v.angariacao_valor,0) as angariacao_valor'),
@@ -616,11 +615,11 @@ public function getFaturamentoComissionamento(Request $request)
             $impVal  = $isAng ? 0.0 : round($bruto * ($impP / 100), 2);
             $liquido = round($bruto - $impVal, 2);
 
-            $r->percentual        = $perc;
-            $r->imposto_perc      = $impP;
-            $r->bruto             = $bruto;
-            $r->imposto_valor     = $impVal;
-            $r->liquido           = $liquido;
+            $r->percentual           = $perc;
+            $r->imposto_perc         = $impP;
+            $r->bruto                = $bruto;
+            $r->imposto_valor        = $impVal;
+            $r->liquido              = $liquido;
             $r->valor_base_para_item = $base;
 
             return $r;
@@ -638,12 +637,12 @@ public function getFaturamentoComissionamento(Request $request)
                 ->select([
                     'a.id',
                     'a.natureza',        // DEBITO | CREDITO
-                    'a.categoria',       // MOTIVACIONAL | AJUSTE | DESCONTO | OUTRO
+                    'a.categoria',       // MOTIVACIONAL | AJUSTE | BONUS | OUTRO
                     'a.descricao',
                     'a.imposto_perc',
                     'a.valor_bruto',
                     'a.imposto_valor',
-                    'a.valor_liquido',   // com sinal: débito negativo
+                    'a.valor_liquido',   // já vem com sinal (débito negativo)
                 ])->get();
         }
 
@@ -661,7 +660,7 @@ public function getFaturamentoComissionamento(Request $request)
         $totAjustes = [
             'bruto'   => (float) $ajustes->sum('valor_bruto'),
             'imposto' => (float) $ajustes->sum('imposto_valor'),
-            'liquido' => (float) $ajustes->sum('valor_liquido'), // já vem com sinal
+            'liquido' => (float) $ajustes->sum('valor_liquido'), // já com sinal
         ];
 
         $totais = [
@@ -670,13 +669,13 @@ public function getFaturamentoComissionamento(Request $request)
             'liquido' => round($totVendas['liquido'] + $totAjustes['liquido'], 2),
         ];
 
-        // Snapshot de config: se não houver vendas, ainda podemos pegar salário/imposto/percentual do perfil
-        $cfgRow  = $rows->first();
-        $salario = (float) ($cfgRow->salario ?? 0);
-        $percCom = (float) ($cfgRow->percentual ?? 0);
-        $percImp = (float) ($cfgRow->imposto ?? 10);
+        // Snapshot de perfil (para header): se não houver vendas, usa 0
+        $cfg      = $rows->first();
+        $salario  = 0.0; // <<< SALÁRIO FORA DO CÁLCULO
+        $percCom  = (float) ($cfg->percentual ?? 0);
+        $percImp  = (float) ($cfg->imposto ?? 10);
+        $totalRec = round($totais['liquido'], 2); // <<< TOTAL A RECEBER = APENAS LÍQUIDO
 
-        $totalRec = round($salario + $totais['liquido'], 2);
         $vendedor = $rows->first()->vendedor ?? DB::table('users')->where('id', $vendedorId)->value('name') ?? 'Vendedor';
 
         /* ================== TRANSAÇÃO ================== */
@@ -690,15 +689,14 @@ public function getFaturamentoComissionamento(Request $request)
                 'vendedor_id'          => $vendedorId,
                 'mes'                  => $mes,
                 'data_pagamento'       => $dataPagto,
-                // quando mistura vendas + ajustes, estes percentuais perdem sentido de "médio"
-                // mantenha snapshot do perfil (ou use 0.00 se preferir)
+                // snapshot do perfil (0 se só ajustes)
                 'percentual_comissao'  => $percCom,
                 'percentual_imposto'   => $percImp,
                 'total_bruto'          => $totais['bruto'],
                 'total_imposto'        => $totais['imposto'],
                 'total_liquido'        => $totais['liquido'],
-                'salario'              => $salario,
-                'total_receber'        => $totalRec,
+                'salario'              => 0,              // <<< zera no header
+                'total_receber'        => $totalRec,      // <<< só líquido
                 'created_by'           => $adminUserId,
                 'created_at'           => now(),
                 'updated_at'           => now(),
@@ -740,7 +738,6 @@ public function getFaturamentoComissionamento(Request $request)
             // Itens de AJUSTES
             if ($ajustes->isNotEmpty()) {
                 $itensA = $ajustes->map(function ($a) use ($headerId) {
-                    // Mapear categoria do lançamento para enum do item (se tiver diferença, ajuste aqui)
                     $tipo = in_array($a->categoria, ['MOTIVACIONAL','AJUSTE','BONUS','OUTRO']) ? $a->categoria : 'AJUSTE';
 
                     return [
@@ -755,7 +752,7 @@ public function getFaturamentoComissionamento(Request $request)
                         'imposto_perc'          => (float) $a->imposto_perc,
                         'bruto'                 => (float) $a->valor_bruto,
                         'imposto_valor'         => (float) $a->imposto_valor,
-                        'liquido'               => (float) $a->valor_liquido, // pode ser NEGATIVO (débito)
+                        'liquido'               => (float) $a->valor_liquido, // pode ser negativo (débito)
                         'created_at'            => now(),
                         'updated_at'            => now(),
                     ];
@@ -763,7 +760,6 @@ public function getFaturamentoComissionamento(Request $request)
 
                 DB::table('comissao_pagamento_itens')->insert($itensA);
 
-                // marcar ajustes como pagos e vincular ao header
                 DB::table('lancamentos_debito_credito')
                     ->whereIn('id', $ajustes->pluck('id'))
                     ->update([
@@ -782,14 +778,12 @@ public function getFaturamentoComissionamento(Request $request)
             'pagamento_id'          => $pagamentoId,
             'pdf_url'               => route('comissionamento.pagamento.pdf', $pagamentoId),
             'totais'                => $totais,
-            'salario'               => $salario,
+            'salario'               => 0.0,                // <<< retorna 0
             'percentual_comissao'   => $percCom,
             'percentual_imposto'    => $percImp,
-            'total_receber'         => $totalRec,
+            'total_receber'         => $totalRec,          // <<< líquido
         ]);
     }
-
-
 
     public function pdfPagamento($pagamentoId)
     {
@@ -804,56 +798,54 @@ public function getFaturamentoComissionamento(Request $request)
 
         abort_if(!$p, 404);
 
-        // Agora buscamos itens de venda (venda_id) E ajustes (ajuste_id)
+        // Vendas (venda_id) + Ajustes (ajuste_id)
         $itens = DB::table('comissao_pagamento_itens as i')
             ->leftJoin('vendas as v', 'v.id', '=', 'i.venda_id')
             ->leftJoin('lancamentos_debito_credito as a', 'a.id', '=', 'i.ajuste_id')
             ->where('i.comissao_pagamento_id', $pagamentoId)
             ->select([
                 'i.*',
+                // venda
                 'v.nome_contrato',
                 'v.data_implantacao',
                 'v.angariacao_valor',
                 'v.angariacao_status',
-                // Campos do ajuste:
-                'a.natureza as ajuste_natureza',     // DEBITO | CREDITO
-                'a.categoria as ajuste_categoria',   // MOTIVACIONAL | AJUSTE | DESCONTO | OUTRO
+                // ajuste
+                'a.natureza as ajuste_natureza',
+                'a.categoria as ajuste_categoria',
                 'a.descricao as ajuste_descricao',
             ])
             ->orderByRaw('COALESCE(v.data_implantacao, i.created_at) asc')
             ->get();
 
-        // Monta linhas para a view
+        // Linhas para a view
         $linhas = $itens->map(function ($i) {
             $isAjuste = !is_null($i->ajuste_id) || is_null($i->venda_id);
 
             if ($isAjuste) {
-                // Linha de AJUSTE
                 return (object) [
                     'is_ajuste'         => true,
-                    'tipo_label'        => strtoupper($i->ajuste_natureza) === 'DEBITO'
-                                            ? 'Ajuste (Débito)'
-                                            : 'Ajuste (Crédito)',
+                    'tipo_label'        => strtoupper($i->ajuste_natureza) === 'DEBITO' ? 'Ajuste (Débito)' : 'Ajuste (Crédito)',
                     'tipo_categoria'    => $i->ajuste_categoria,
                     'descricao'         => $i->ajuste_descricao,
-                    'data_implantacao'  => null,    // não se aplica
+                    'data_implantacao'  => null,
                     'nome_contrato'     => sprintf(
-                                            '%s · %s%s',
-                                            strtoupper($i->ajuste_natureza ?? 'AJUSTE'),
-                                            strtoupper($i->ajuste_categoria ?? 'OUTRO'),
-                                            $i->ajuste_descricao ? (' — ' . $i->ajuste_descricao) : ''
-                                        ),
-                    'valor_contrato'    => (float) $i->valor_contrato, // usamos como "base" exibida
-                    'percentual'        => null,    // não se aplica
+                        '%s · %s%s',
+                        strtoupper($i->ajuste_natureza ?? 'AJUSTE'),
+                        strtoupper($i->ajuste_categoria ?? 'OUTRO'),
+                        $i->ajuste_descricao ? (' — ' . $i->ajuste_descricao) : ''
+                    ),
+                    'valor_contrato'    => (float) $i->valor_contrato,
+                    'percentual'        => null,
                     'bruto'             => (float) $i->bruto,
                     'imposto_valor'     => (float) $i->imposto_valor,
-                    'liquido'           => (float) $i->liquido,        // pode ser NEGATIVO
+                    'liquido'           => (float) $i->liquido, // pode ser negativo
                     'angariacao_valor'  => 0,
                     'angariacao_status' => null,
                 ];
             }
 
-            // Linha de VENDA
+            // Venda
             return (object) [
                 'is_ajuste'         => false,
                 'tipo_label'        => (strtoupper((string) $i->angariacao_status) === 'SIM') ? 'Angariação' : 'Venda',
@@ -861,7 +853,7 @@ public function getFaturamentoComissionamento(Request $request)
                 'descricao'         => null,
                 'data_implantacao'  => $i->data_implantacao,
                 'nome_contrato'     => $i->nome_contrato,
-                'valor_contrato'    => (float) $i->valor_contrato, // OBS: no item já está a base usada no cálculo
+                'valor_contrato'    => (float) $i->valor_contrato, // base usada no cálculo
                 'percentual'        => (float) $i->percentual,
                 'bruto'             => (float) $i->bruto,
                 'imposto_valor'     => (float) $i->imposto_valor,
@@ -871,14 +863,14 @@ public function getFaturamentoComissionamento(Request $request)
             ];
         });
 
-        // Totais do header (vêm prontos do pagamento)
+        // Totais do header
         $totais = [
             'bruto'   => (float) $p->total_bruto,
             'imposto' => (float) $p->total_imposto,
             'liquido' => (float) $p->total_liquido,
         ];
 
-        // Quebra dos totais (Vendas vs Ajustes)
+        // Quebra Vendas vs Ajustes
         $linVendas  = $linhas->where('is_ajuste', false);
         $linAjustes = $linhas->where('is_ajuste', true);
 
@@ -889,22 +881,23 @@ public function getFaturamentoComissionamento(Request $request)
         ];
 
         $totAjustes = [
-            'bruto'   => (float) $linAjustes->sum('bruto'),
-            'imposto' => (float) $linAjustes->sum('imposto_valor'),
-            'liquido' => (float) $linAjustes->sum('liquido'), // com sinal
-            'creditos'=> (float) $linAjustes->filter(fn($r) => $r->liquido > 0)->sum('liquido'),
-            'debitos' => (float) abs($linAjustes->filter(fn($r) => $r->liquido < 0)->sum('liquido')),
+            'bruto'    => (float) $linAjustes->sum('bruto'),
+            'imposto'  => (float) $linAjustes->sum('imposto_valor'),
+            'liquido'  => (float) $linAjustes->sum('liquido'), // com sinal
+            'creditos' => (float) $linAjustes->filter(fn($r) => $r->liquido > 0)->sum('liquido'),
+            'debitos'  => (float) abs($linAjustes->filter(fn($r) => $r->liquido < 0)->sum('liquido')),
         ];
 
+        // Perfil para exibição (salário fora do PDF)
         $perfil = [
             'grade'      => null,
             'percentual' => $p->percentual_comissao,
-            'salario'    => (float) $p->salario,
+            'salario'    => 0.0, // <<< não exibir salário
             'imposto'    => (float) $p->percentual_imposto,
         ];
 
         $periodo = Carbon::createFromFormat('Y-m-d', "{$p->mes}-01")
-                    ->locale('pt_BR')->isoFormat('MMMM [de] YYYY');
+            ->locale('pt_BR')->isoFormat('MMMM [de] YYYY');
 
         $pdf = Pdf::loadView('pdf.comissionamento-vendedor', [
             'mes'           => $p->mes,
@@ -913,13 +906,14 @@ public function getFaturamentoComissionamento(Request $request)
             'linhas'        => $linhas,
             'totais'        => $totais,
             'totVendas'     => $totVendas,
-            'totAjustes'    => $totAjustes, // <<< para mostrar créditos e débitos
+            'totAjustes'    => $totAjustes,
             'perfil'        => $perfil,
-            'totalReceber'  => (float) $p->total_receber,
+            'totalReceber'  => (float) $p->total_liquido, // <<< somente líquido
         ])->setPaper('a4', 'landscape');
 
         return $pdf->stream("pagamento_comissao_{$p->mes}_{$p->vendedor}.pdf");
     }
+
 
 
     public function pagamentosIndex()
