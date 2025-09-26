@@ -153,7 +153,7 @@ $totAjustes = $totAjustes ?? ['bruto'=>0,'imposto'=>0,'liquido'=>0,'creditos'=>0
         <div><span class="pay-label">Agência/Conta:</span>
           <span class="pay-value">{{ $agenciaConta ?? '0000 / 000000-0' }}</span></div>
         <div><span class="pay-label">Pix:</span>
-          <span class="pay-value">{{ $chavePix ?? 'chave@pix.com' }}</span></div>
+          <span class="pay-value">{{ $chavePix ?? 'sem pix cadastrado' }}</span></div>
       </div>
     </div>
   </div>
