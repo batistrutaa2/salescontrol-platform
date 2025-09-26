@@ -802,7 +802,7 @@ public function getFaturamentoComissionamento(Request $request)
 
         abort_if(!$p, 404);
 
-        // Vendas (venda_id) + Ajustes (ajuste_id)
+        // Itens (Vendas + Ajustes)
         $itens = DB::table('comissao_pagamento_itens as i')
             ->leftJoin('vendas as v', 'v.id', '=', 'i.venda_id')
             ->leftJoin('lancamentos_debito_credito as a', 'a.id', '=', 'i.ajuste_id')
@@ -814,6 +814,7 @@ public function getFaturamentoComissionamento(Request $request)
                 'v.data_implantacao',
                 'v.angariacao_valor',
                 'v.angariacao_status',
+                'v.operadora',
                 // ajuste
                 'a.natureza as ajuste_natureza',
                 'a.categoria as ajuste_categoria',
@@ -829,7 +830,7 @@ public function getFaturamentoComissionamento(Request $request)
             if ($isAjuste) {
                 return (object) [
                     'is_ajuste'         => true,
-                    'tipo_label'        => strtoupper($i->ajuste_natureza) === 'DEBITO' ? 'Ajuste (Débito)' : 'Ajuste (Crédito)',
+                    'tipo_label'        => strtoupper($i->ajuste_natureza ?? '') === 'DEBITO' ? 'Ajuste (Débito)' : 'Ajuste (Crédito)',
                     'tipo_categoria'    => $i->ajuste_categoria,
                     'descricao'         => $i->ajuste_descricao,
                     'data_implantacao'  => null,
@@ -857,6 +858,7 @@ public function getFaturamentoComissionamento(Request $request)
                 'descricao'         => null,
                 'data_implantacao'  => $i->data_implantacao,
                 'nome_contrato'     => $i->nome_contrato,
+                'operadora'         => $i->operadora,
                 'valor_contrato'    => (float) $i->valor_contrato, // base usada no cálculo
                 'percentual'        => (float) $i->percentual,
                 'bruto'             => (float) $i->bruto,
@@ -895,13 +897,38 @@ public function getFaturamentoComissionamento(Request $request)
         // Perfil para exibição (salário fora do PDF)
         $perfil = [
             'grade'      => null,
-            'percentual' => $p->percentual_comissao,
-            'salario'    => 0.0, // <<< não exibir salário
+            'percentual' => (float) $p->percentual_comissao,
+            'salario'    => 0.0, // não exibir salário
             'imposto'    => (float) $p->percentual_imposto,
         ];
 
+        // Período
         $periodo = Carbon::createFromFormat('Y-m-d', "{$p->mes}-01")
-            ->locale('pt_BR')->isoFormat('MMMM [de] YYYY');
+            ->locale('pt_BR')
+            ->isoFormat('MMMM [de] YYYY');
+
+        // >>> Data de pagamento formatada (flag)
+        $pagoEmFmt = $p->pago_em ? Carbon::parse($p->pago_em)->format('d/m/Y') : null;
+
+        // >>> Conta de pagamento (do registro ou padrão do vendedor)
+        $conta = null;
+        if (!empty($p->conta_pagamento_id)) {
+            $conta = DB::table('contas_pagamento')
+                ->where('id', $p->conta_pagamento_id)
+                ->where('user_id', $p->vendedor_id)
+                ->first();
+        }
+        if (!$conta) {
+            $conta = DB::table('contas_pagamento')
+                ->where('user_id', $p->vendedor_id)
+                ->where('is_default', 1)
+                ->first();
+        }
+
+        $agenciaConta = $conta
+            ? trim(($conta->agencia ?? '') . ' / ' . ($conta->conta ?? '') . (!empty($conta->digito) ? '-' . $conta->digito : ''))
+            : null;
+        $chavePix = $conta->chave_pix ?? null;
 
         $pdf = Pdf::loadView('pdf.comissionamento-vendedor', [
             'mes'           => $p->mes,
@@ -912,7 +939,12 @@ public function getFaturamentoComissionamento(Request $request)
             'totVendas'     => $totVendas,
             'totAjustes'    => $totAjustes,
             'perfil'        => $perfil,
-            'totalReceber'  => (float) $p->total_liquido, // <<< somente líquido
+            'totalReceber'  => (float) $p->total_liquido, // somente líquido
+
+            // >>> novos dados para a view
+            'pagoEm'        => $pagoEmFmt,     // "DD/MM/AAAA" ou null
+            'agenciaConta'  => $agenciaConta,  // string ou null
+            'chavePix'      => $chavePix,      // string ou null
         ])->setPaper('a4', 'landscape');
 
         return $pdf->stream("pagamento_comissao_{$p->mes}_{$p->vendedor}.pdf");
