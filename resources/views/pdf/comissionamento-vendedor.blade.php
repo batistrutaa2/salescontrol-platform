@@ -383,7 +383,6 @@
                         class="pay-value">{{ $chavePix ?? 'chave@pix.com' }}</span></div>
             </div>
         </div>
-
     </div>
 
     <!-- Contexto -->
@@ -398,13 +397,6 @@
             <div class="ctx-value ctx-lines">
                 <div class="line">
                     Grade: <span class="gold">{{ $grade }}</span>
-                    &nbsp;&middot;&nbsp;
-                    @if ($hasAng)
-                        % Comissão (média): <span class="gold">{{ pct($avgPercent) }}</span>
-                        <span class="ctx-chip">Regras mistas (inclui Angariação 50%)</span>
-                    @else
-                        % Comissão: {{ pct($percentual) }}
-                    @endif
                 </div>
                 <div class="line">Imposto: {{ pct($impPerc) }}</div>
             </div>

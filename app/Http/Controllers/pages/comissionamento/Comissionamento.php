@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\LancamentoDebitoCredito;
+use App\Models\ContaPagamento;
+use App\Models\ComissaoPagamento;
 
 
 
@@ -995,6 +997,9 @@ public function getFaturamentoComissionamento(Request $request)
             'p.total_liquido',
             'p.salario',
             'p.total_receber',
+            'p.pago_em',
+            'p.vendedor_id',
+            'p.conta_pagamento_id',
             'v.name as vendedor',
             'c.name as criado_por',
             'p.created_at',
@@ -1038,5 +1043,37 @@ public function getFaturamentoComissionamento(Request $request)
 
         return response()->json(['message' => 'Pagamento estornado com sucesso.']);
     }
+
+    public function byUser(Request $request) {
+
+        $userId = (int) $request->query('user_id');
+        $contas = ContaPagamento::where('user_id', $userId)
+            ->orderByDesc('is_default')
+            ->get(['id','banco','agencia','conta','digito','chave_pix','descricao','is_default']);
+        return response()->json($contas);
+    }
+
+    public function pagar(Request $request, int $id) {
+        $pag = ComissaoPagamento::findOrFail($id);
+
+        $pagoEm  = \Carbon\Carbon::parse($request->input('pago_em', now('America/Sao_Paulo')))->toDateString();
+        $contaId = $request->input('conta_pagamento_id');
+
+        if (!$contaId) {
+            $contaId = ContaPagamento::where('user_id', $pag->user_id)->where('is_default', true)->value('id');
+        }
+
+        $pag->update([
+            'pago_em'            => $pagoEm,
+            'conta_pagamento_id' => $contaId,
+        ]);
+
+        return response()->json([
+            'ok'                  => true,
+            'pago_em'             => $pag->pago_em,
+            'conta_pagamento_id'  => $pag->conta_pagamento_id,
+        ]);
+    }
+
 
 }

@@ -213,6 +213,11 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comissionamento/pagamentos/{id}/estornar', [Comissionamento::class, 'pagamentosEstornar'])->name('comissionamento.pagamentos.estornar');
   Route::post('/comissionamento/lancamentos',[Comissionamento::class, 'storeLancamentoDebitoCredito'])->name('comissionamento.ajuste.store');
 
+  // contas do usuário
+  Route::get('/contas-pagamento', [Comissionamento::class, 'byUser'])->name('contas.byUser');
+  // pagar
+  Route::post('/comissao-pagamentos/{id}/pagar', [Comissionamento::class, 'pagar'])->name('comissao.pagar');
+
   /** ESTUDO */
   Route::get('/estudo-lista', [Estudo::class, 'index'])->name('estudo.index');
   Route::get('/estudo-criar', [Estudo::class, 'create'])->name('estudo.create');
