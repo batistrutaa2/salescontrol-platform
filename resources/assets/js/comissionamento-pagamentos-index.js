@@ -81,20 +81,21 @@
           `;
 
           if (!isPago) {
-            html += `
-              <button type="button"
-                      class="btn btn-success js-pagar"
-                      data-id="${row.id}"
-                      data-user="${userId}"
-                      title="Registrar pagamento"
-                      data-bs-toggle="tooltip"
-                      data-bs-placement="top">
-                <i class="ri-bank-card-line"></i>
-                <span class="d-none d-md-inline ms-1">Pagar</span>
-              </button>
-            `;
+             if (estornoUrl && USER_ROLE !== '1') {
+                html += `
+                  <button type="button"
+                          class="btn btn-success js-pagar"
+                          data-id="${row.id}"
+                          data-user="${userId}"
+                          title="Registrar pagamento"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="top">
+                    <i class="ri-bank-card-line"></i>
+                    <span class="d-none d-md-inline ms-1">Pagar</span>
+                  </button>
+                `;
+             }
           } else {
-            // ícone sem data; data só no tooltip
             const dt = moment(row.pago_em).format('DD/MM/YYYY');
             html += `
               <button type="button"
