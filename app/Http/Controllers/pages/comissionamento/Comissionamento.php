@@ -815,13 +815,11 @@ public function getFaturamentoComissionamento(Request $request)
             ->where('i.comissao_pagamento_id', $pagamentoId)
             ->select([
                 'i.*',
-                // venda
                 'v.nome_contrato',
                 'v.data_implantacao',
                 'v.angariacao_valor',
                 'v.angariacao_status',
                 'v.operadora',
-                // ajuste
                 'a.natureza as ajuste_natureza',
                 'a.categoria as ajuste_categoria',
                 'a.descricao as ajuste_descricao',
