@@ -840,6 +840,7 @@ public function getFaturamentoComissionamento(Request $request)
                         strtoupper($i->ajuste_categoria ?? 'OUTRO'),
                         $i->ajuste_descricao ? (' — ' . $i->ajuste_descricao) : ''
                     ),
+                    'operadora'         => "-",
                     'valor_contrato'    => (float) $i->valor_contrato,
                     'percentual'        => null,
                     'bruto'             => (float) $i->bruto,
