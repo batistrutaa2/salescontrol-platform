@@ -800,6 +800,12 @@ public function getFaturamentoComissionamento(Request $request)
             ->select('p.*', 'u.name as vendedor')
             ->first();
 
+
+        $gradeAtual = DB::table('comissionamento_configuracao')
+            ->where('user_id', $p->vendedor_id)
+            ->select(DB::raw('LOWER(grade) as grade'))
+            ->value('grade');
+
         abort_if(!$p, 404);
 
         // Itens (Vendas + Ajustes)
@@ -897,7 +903,7 @@ public function getFaturamentoComissionamento(Request $request)
 
         // Perfil para exibição (salário fora do PDF)
         $perfil = [
-            'grade'      => null,
+            'grade'      => $gradeAtual,
             'percentual' => (float) $p->percentual_comissao,
             'salario'    => 0.0, // não exibir salário
             'imposto'    => (float) $p->percentual_imposto,
