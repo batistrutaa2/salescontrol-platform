@@ -59,8 +59,8 @@ $(function () {
       ajax: {
         url: 'usuarios/getUsers',
         dataSrc: 'data',
-        complete: function (jqXHR, textStatus) {},
-        error: function (jqXHR, textStatus, errorThrown) {}
+        complete: function (jqXHR, textStatus) { },
+        error: function (jqXHR, textStatus, errorThrown) { }
       },
       columns: [
         { data: 'id' },
@@ -120,13 +120,18 @@ $(function () {
               '<div class="d-flex align-items-center">' +
               '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line ri-22px"></i></button>' +
               '<div class="dropdown-menu dropdown-menu-end m-0">' +
-              '<a href="usuarios/editar-usuario/' +
-              full['id'] +
-              '" class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Edit</span></a>' +
+              // ✳️ NOVO: botão para modal de conta
+              '<button type="button" class="dropdown-item js-open-conta" data-user-id="' + full['id'] + '" data-user-name="' + (full['name'] || '') + '">' +
+              '<i class="ri-bank-card-line me-2"></i><span>Nova conta bancária</span>' +
+              '</button>' +
+              '<a href="usuarios/editar-usuario/' + full['id'] + '" class="dropdown-item">' +
+              '<i class="ri-edit-box-line me-2"></i><span>Edit</span>' +
+              '</a>' +
               '</div>' +
               '</div>'
             );
           }
+
         }
       ],
       order: [[2, 'desc']],
@@ -304,18 +309,18 @@ $(function () {
             var data = $.map(columns, function (col, i) {
               return col.title !== '' // Não mostrar linha no popup modal se o título estiver vazio (para check box)
                 ? '<tr data-dt-row="' +
-                    col.rowIndex +
-                    '" data-dt-column="' +
-                    col.columnIndex +
-                    '">' +
-                    '<td>' +
-                    col.title +
-                    ':' +
-                    '</td> ' +
-                    '<td>' +
-                    col.data +
-                    '</td>' +
-                    '</tr>'
+                col.rowIndex +
+                '" data-dt-column="' +
+                col.columnIndex +
+                '">' +
+                '<td>' +
+                col.title +
+                ':' +
+                '</td> ' +
+                '<td>' +
+                col.data +
+                '</td>' +
+                '</tr>'
                 : '';
             }).join('');
 
@@ -429,6 +434,94 @@ $(function () {
             toastr.error(error, errorMessage);
           }
         });
+      }
+    });
+  });
+
+
+  const $rootContas = $('#contas-root');
+  if (!$rootContas.length) return;
+
+  const SAVE_CONTA_BASE = String($rootContas.data('save-conta-base') || ''); // .../usuarios/USER_ID/contas/salvar
+  const modalEl = document.getElementById('modalConta');
+  const modal = new bootstrap.Modal(modalEl);
+
+  const inpUserId = document.getElementById('conta_user_id');
+  const lblUserName = document.getElementById('conta_user_name');
+
+  const inpDescricao = document.getElementById('conta_descricao');
+  const inpBanco = document.getElementById('conta_banco');
+  const inpPix = document.getElementById('conta_pix');
+  const inpAgencia = document.getElementById('conta_agencia');
+  const inpConta = document.getElementById('conta_conta');
+  const inpDigito = document.getElementById('conta_digito');
+
+  // Abre modal a partir da linha do usuário
+  $(document).on('click', '.js-open-conta', function() {
+    const userId = this.getAttribute('data-user-id');
+    const userName = this.getAttribute('data-user-name') || '—';
+
+    // limpa campos
+    inpUserId.value = userId;
+    lblUserName.textContent = userName;
+    inpDescricao.value = '';
+    inpBanco.value = '';
+    inpPix.value = '';
+    inpAgencia.value = '';
+    inpConta.value = '';
+    inpDigito.value = '';
+
+    modal.show();
+  });
+
+  // Envia formulário
+  document.getElementById('formConta').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const userId = inpUserId.value;
+    if (!userId) {
+      toastr.error('Usuário inválido.');
+      return;
+    }
+
+    // Regras mínimas: precisa ter PIX OU (Agência e Conta)
+    const hasPix = (inpPix.value || '').trim().length > 0;
+    const hasBank = (inpAgencia.value || '').trim().length > 0 && (inpConta.value || '').trim().length > 0;
+
+    if (!hasPix && !hasBank) {
+      toastr.warning('Informe uma Chave PIX ou Agência + Conta.');
+      return;
+    }
+
+    const url = SAVE_CONTA_BASE.replace('USER_ID', encodeURIComponent(userId));
+    const payload = {
+      // sempre default = 1
+      is_default: 1,
+      descricao: (inpDescricao.value || '').trim() || null,
+      banco: (inpBanco.value || '').trim() || null,
+      chave_pix: (inpPix.value || '').trim() || null,
+      agencia: (inpAgencia.value || '').trim() || null,
+      conta: (inpConta.value || '').trim() || null,
+      digito: (inpDigito.value || '').trim() || null
+    };
+
+    // CSRF
+    const CSRF = $('meta[name="csrf-token"]').attr('content');
+
+    $.ajax({
+      url: url,
+      method: 'POST',
+      headers: { 'X-CSRF-TOKEN': CSRF },
+      data: payload, // form-urlencoded
+      success: function(resp) {
+        toastr.success(resp?.message || 'Conta salva com sucesso.');
+        modal.hide();
+        // se quiser, recarrega a tabela de usuários:
+        // if (window.table?.ajax) table.ajax.reload(null, false);
+      },
+      error: function(xhr) {
+        const msg = xhr?.responseJSON?.message || 'Falha ao salvar a conta.';
+        toastr.error(msg);
       }
     });
   });

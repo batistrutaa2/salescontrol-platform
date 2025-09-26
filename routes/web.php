@@ -60,6 +60,10 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/usuarios/getUsers', [Usuarios::class, 'getUsers'])->name('usuarios.getUsers');
   Route::post('/usuarios/createUser', [Usuarios::class, 'createUser'])->name('usuarios.createUser');
   Route::post('/usuarios/editUser', [Usuarios::class, 'updateUser'])->name('usuarios.updateUser');
+  Route::post('/usuarios/{user}/contas/salvar', [Usuarios::class, 'save'])
+    ->name('contasPagamento.save')
+    ->middleware('auth');
+
 
   /** MAILING */
   Route::get('/mailing/importar', [Mailing::class, 'index'])->name('mailing.importMailing');

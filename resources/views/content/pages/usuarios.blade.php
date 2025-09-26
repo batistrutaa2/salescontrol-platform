@@ -15,6 +15,10 @@
 @endsection
 
 @section('content')
+
+    <div id="contas-root" data-save-conta-base="{{ route('contasPagamento.save', ['user' => 'USER_ID']) }}">
+    </div>
+
     @if (session('status') == 'success')
         <div class="alert alert-solid-success d-flex align-items-center" role="alert">
             <span class="alert-icon rounded">
@@ -114,5 +118,66 @@
             </div>
         </div>
     </div>
+
+
+    {{-- Modal: Nova conta bancária --}}
+<div class="modal fade" id="modalConta" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="formConta" class="modal-content">
+      @csrf
+      <div class="modal-header">
+        <h5 class="modal-title">
+          Nova conta bancária <small class="text-muted d-block fs-6">para <span id="conta_user_name">—</span></small>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="conta_user_id">
+
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Descrição (opcional)</label>
+            <input type="text" class="form-control" id="conta_descricao" placeholder="Ex.: Conta principal, PJ, etc.">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Banco</label>
+            <input type="text" class="form-control" id="conta_banco" placeholder="Ex.: Nubank, Itaú…">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Chave PIX</label>
+            <input type="text" class="form-control" id="conta_pix" placeholder="E-mail, CPF/CNPJ ou chave aleatória">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Agência</label>
+            <input type="text" class="form-control" id="conta_agencia" placeholder="0000">
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">Conta</label>
+            <input type="text" class="form-control" id="conta_conta" placeholder="000000">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Dígito</label>
+            <input type="text" class="form-control" id="conta_digito" placeholder="0">
+          </div>
+          <div class="col-md-12">
+            <div class="alert alert-info mb-0">
+              Esta conta será marcada como <strong>padrão</strong> (default = 1). Caso exista uma conta padrão anterior para este usuário, o backend deve desmarcá-la.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-success">
+          <i class="ri-bank-card-line me-1"></i> Salvar conta
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 
 @endsection

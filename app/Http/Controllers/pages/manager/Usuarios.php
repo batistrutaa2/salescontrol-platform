@@ -10,6 +10,7 @@ use App\UseCases\UsuarioUseCase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class Usuarios extends Controller
 {
@@ -80,4 +81,34 @@ class Usuarios extends Controller
     return $this->useCaseUsuarios->updateUser($request->all());
   }
 
+  public function save(Request $req, $userId)
+    {
+        $empresaId = auth()->user()->empresa_id;
+
+        DB::transaction(function () use ($req, $userId, $empresaId) {
+            DB::table('contas_pagamento')
+                ->where('user_id', $userId)
+                ->update(['is_default' => 0]);
+
+            DB::table('contas_pagamento')->updateOrInsert(
+                [
+                  'id' => $userId
+                ],
+                [
+                    'user_id'    => $userId,
+                    'descricao'  => $req->input('descricao'),
+                    'banco'      => $req->input('banco'),
+                    'agencia'    => $req->input('agencia'),
+                    'conta'      => $req->input('conta'),
+                    'digito'     => $req->input('digito'),
+                    'chave_pix'  => $req->input('chave_pix'),
+                    'is_default' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        });
+
+        return response()->json(['message' => 'Conta cadastrada como padrão com sucesso.']);
+    }
 }
