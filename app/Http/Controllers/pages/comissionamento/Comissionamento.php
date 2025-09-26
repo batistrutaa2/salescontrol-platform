@@ -150,11 +150,12 @@ public function getFaturamentoComissionamento(Request $request)
         $impostoCfg = (float) $r->imposto;
         $grade      = strtolower((string) $r->grade);
         $angVal     = (float) $r->angariacao_valor;
+        $percentualAngariacao = $r->grade == 'junior' ? 30.0 : 50.0;
 
         // Regra angariação
         $isAng           = strtoupper((string) $r->angariacao_status) === 'SIM';
         $baseAplicada    = $isAng ? $angVal : $valor;
-        $percentualAplic = $isAng ? 50.0 : (float) $r->percentual;
+        $percentualAplic = $isAng ? $percentualAngariacao : (float) $r->percentual;
         $impostoAplic    = $isAng ? 0.0  : $impostoCfg;
 
         if ($percentualAplic > 0) {
@@ -603,10 +604,11 @@ public function getFaturamentoComissionamento(Request $request)
 
         $enriched = $rows->map(function ($r) {
             $isAng = strtoupper((string) $r->angariacao_status) === 'SIM';
+            $percentualAngariacao = $r->grade == 'junior' ? 30.0 : 50.0;
 
             // Base e % de comissão conforme regra
             $base = $isAng ? (float) $r->angariacao_valor : (float) $r->valor_contrato;
-            $perc = $isAng ? 50.0 : (isset($r->percentual) ? (float) $r->percentual : 0.0);
+            $perc = $isAng ? $percentualAngariacao : (isset($r->percentual) ? (float) $r->percentual : 0.0);
 
             // imposto: se angariação, é 0%
             $impP = $isAng ? 0.0 : (isset($r->imposto) ? (float) $r->imposto : 10.0);
