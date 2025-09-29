@@ -950,6 +950,8 @@ public function getFaturamentoComissionamento(Request $request)
             'pagoEm'        => $pagoEmFmt,     // "DD/MM/AAAA" ou null
             'agenciaConta'  => $agenciaConta,  // string ou null
             'chavePix'      => $chavePix,      // string ou null
+            'empresaNome' => 'LK Brokers consultoria em seguros',
+            'empresaCnpj' => '42.294.064/0001-92',
         ])->setPaper('a4', 'landscape');
 
         return $pdf->stream("pagamento_comissao_{$p->mes}_{$p->vendedor}.pdf");

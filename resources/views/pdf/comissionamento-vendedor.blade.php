@@ -134,7 +134,20 @@ $totAjustes = $totAjustes ?? ['bruto'=>0,'imposto'=>0,'liquido'=>0,'creditos'=>0
     <div class="h-left">
       <div class="brand">Extrato de Comissões</div>
       <div class="subtitle">Relatório de comissionamento individual</div>
+
+      <!-- Nome e CNPJ da Empresa -->
+      <div class="ctx-lines" style="margin-top:4px;">
+        <div class="line">
+          <span class="ctx-label">Empresa:</span>
+          <span class="ctx-value">{{ $empresaNome ?? 'LK Brokers' }}</span>
+        </div>
+        <div class="line">
+          <span class="ctx-label">CNPJ:</span>
+          <span class="ctx-value">{{ $empresaCnpj ?? '00.000.000/0000-00' }}</span>
+        </div>
+      </div>
     </div>
+
     <div class="h-right">
       <span class="badge">{{ $periodo }}</span>
       <span class="badge">Gerado em {{ \Carbon\Carbon::now('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
