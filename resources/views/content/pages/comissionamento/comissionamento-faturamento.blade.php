@@ -221,6 +221,7 @@
                                 <option value="MOTIVACIONAL">MOTIVACIONAL</option>
                                 <option value="AJUSTE">AJUSTE</option>
                                 <option value="DESCONTO">ESTORNO</option>
+                                <option value="ANGARIACAO">ANGARIAÇÃO</option>
                                 <option value="OUTRO">OUTROS</option>
                             </select>
                         </div>

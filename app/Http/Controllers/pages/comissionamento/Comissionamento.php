@@ -515,7 +515,7 @@ public function getFaturamentoComissionamento(Request $request)
                 'vendedor_id'  => ['required','integer','exists:users,id'],
                 'mes'          => ['required','regex:/^\d{4}-\d{2}$/'], // YYYY-MM
                 'natureza'     => ['required','in:DEBITO,CREDITO'],
-                'categoria'    => ['required','in:MOTIVACIONAL,AJUSTE,DESCONTO,OUTRO'],
+                'categoria'    => ['required','in:MOTIVACIONAL,AJUSTE,DESCONTO,OUTRO,ANGARIACAO'],
                 'imposto_perc' => ['required','numeric','min:0','max:100'],
                 'valor_bruto'  => ['required','numeric','min:0.01'],
                 'descricao'    => ['nullable','string','max:255'],
