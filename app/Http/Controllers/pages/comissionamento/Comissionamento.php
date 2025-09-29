@@ -742,7 +742,7 @@ public function getFaturamentoComissionamento(Request $request)
             // Itens de AJUSTES
             if ($ajustes->isNotEmpty()) {
                 $itensA = $ajustes->map(function ($a) use ($headerId) {
-                    $tipo = in_array($a->categoria, ['MOTIVACIONAL','AJUSTE','BONUS','OUTRO']) ? $a->categoria : 'AJUSTE';
+                    $tipo = in_array($a->categoria, ['MOTIVACIONAL','AJUSTE','BONUS','OUTRO', 'ANGARIACAO']) ? $a->categoria : 'AJUSTE';
 
                     return [
                         'comissao_pagamento_id' => $headerId,
