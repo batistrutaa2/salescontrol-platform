@@ -18,6 +18,7 @@ use App\Http\Controllers\pages\backoffice\Backoffice;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
 use App\Http\Controllers\pages\comercial\ReunioesComercial;
+use App\Http\Controllers\pages\financeiro\Financeiro;
 use App\Http\Controllers\pages\comercial\ConsultaController;
 use App\Http\Controllers\pages\estudo\Estudo;
 
@@ -233,6 +234,11 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/planos/{operadoraId}', [Estudo::class, 'getByOperadora']);
   Route::post('/estudos', [Estudo::class, 'store'])->name('comissionamento.store');
   Route::delete('/estudo-delete/{id}', [Estudo::class, 'delete'])->name('comissionamento.delete');
+
+
+  /**FINANCEIRO */
+  Route::get('/financeiro/regras-recebimento', [Financeiro::class, 'regrasRecebimentos']);
+
 
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');

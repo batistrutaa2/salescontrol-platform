@@ -13,6 +13,49 @@
       ]
     },
     {
+      "menuHeader": "Financeiro",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER"
+      ]
+    },
+    {
+      "name": "Financeiro",
+      "icon": "menu-icon tf-icons ri-money-dollar-circle-line",
+      "slug": "financeiro",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER"
+      ],
+      "submenu": [
+        {
+          "url": "/financeiro/regras-recebimento",
+          "name": "Regras de Recebimento",
+          "slug": "financeiro-regras"
+        },
+        {
+          "url": "/financeiro/recebiveis",
+          "name": "Recebíveis",
+          "slug": "financeiro-recebiveis"
+        },
+        {
+          "url": "/financeiro/conciliacao",
+          "name": "Conciliação",
+          "slug": "financeiro-conciliacao"
+        },
+        {
+          "url": "/financeiro/borderos",
+          "name": "Borderôs",
+          "slug": "financeiro-borderos"
+        },
+        {
+          "url": "/financeiro/notas-fiscais",
+          "name": "Notas Fiscais",
+          "slug": "financeiro-notas"
+        }
+      ]
+    },
+    {
       "menuHeader": "Manager",
       "rules": [
         "DEVELOPER"
