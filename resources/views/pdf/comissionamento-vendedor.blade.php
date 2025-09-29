@@ -300,6 +300,11 @@ $totAjustes = $totAjustes ?? ['bruto'=>0,'imposto'=>0,'liquido'=>0,'creditos'=>0
     </tfoot>
   </table>
 
+  <!-- Valor da Nota Fiscal -->
+  <div style="text-align:center; color:#b91c1c; font-weight:700; font-size:12px; margin-top:20px;">
+    VALOR DA NOTA FISCAL: {{ brl($totalReceber) }}
+  </div>
+
   <!-- Assinatura -->
   <div class="sign">
     <div class="line"></div>
