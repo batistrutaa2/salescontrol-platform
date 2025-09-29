@@ -30,7 +30,7 @@
       ],
       "submenu": [
         {
-          "url": "/financeiro/regras-recebimento",
+          "url": "/financeiro/regras-recebimentos",
           "name": "Regras de Recebimento",
           "slug": "financeiro-regras"
         }
