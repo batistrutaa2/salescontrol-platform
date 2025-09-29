@@ -25,33 +25,14 @@
       "slug": "financeiro",
       "rules": [
         "ADMINISTRATIVO",
-        "DEVELOPER"
+        "DEVELOPER",
+        "BACKOFFICE"
       ],
       "submenu": [
         {
           "url": "/financeiro/regras-recebimento",
           "name": "Regras de Recebimento",
           "slug": "financeiro-regras"
-        },
-        {
-          "url": "/financeiro/recebiveis",
-          "name": "Recebíveis",
-          "slug": "financeiro-recebiveis"
-        },
-        {
-          "url": "/financeiro/conciliacao",
-          "name": "Conciliação",
-          "slug": "financeiro-conciliacao"
-        },
-        {
-          "url": "/financeiro/borderos",
-          "name": "Borderôs",
-          "slug": "financeiro-borderos"
-        },
-        {
-          "url": "/financeiro/notas-fiscais",
-          "name": "Notas Fiscais",
-          "slug": "financeiro-notas"
         }
       ]
     },
