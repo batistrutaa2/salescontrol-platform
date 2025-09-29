@@ -237,7 +237,23 @@ Route::middleware(['auth'])->group(function () {
 
 
   /**FINANCEIRO */
-  Route::get('/financeiro/regras-recebimento', [Financeiro::class, 'regrasRecebimentos']);
+  Route::get('/financeiro/regras-recebimentos', [Financeiro::class, 'regrasRecebimentos'])
+      ->name('financeiro.regras-recebimentos');
+
+  // API das regras
+  Route::prefix('financeiro/regras')->group(function () {
+      Route::get('/', [Financeiro::class, 'regrasIndex'])->name('financeiro.regras.index');
+      Route::post('/', [Financeiro::class, 'regrasStore'])->name('financeiro.regras.store');
+      Route::put('/{id}', [Financeiro::class, 'regrasUpdate'])->name('financeiro.regras.update');
+      Route::delete('/{id}', [Financeiro::class, 'regrasDestroy'])->name('financeiro.regras.destroy');
+
+      // Parcelas
+      Route::get('/{ruleId}/parcelas', [Financeiro::class, 'parcelasIndex'])->name('financeiro.regras.parcelas.index');
+      Route::post('/parcelas', [Financeiro::class, 'parcelasStore'])->name('financeiro.regras.parcelas.store');
+      Route::put('/parcelas/{id}', [Financeiro::class, 'parcelasUpdate'])->name('financeiro.regras.parcelas.update');
+      Route::delete('/parcelas/{id}', [Financeiro::class, 'parcelasDestroy'])->name('financeiro.regras.parcelas.destroy');
+  });
+
 
 
 });

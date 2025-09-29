@@ -52,62 +52,40 @@ $(function () {
   }
 
   // ---------------------------
-  // Filtros
-  // ---------------------------
-  const $fOperadora = $('#filtroOperadora');
-  const $fModalidade = $('#filtroModalidade');
-  $('#btnLimparFiltros').on('click', function () {
-    $fOperadora.val('');
-    $fModalidade.val('');
-    rulesDT.ajax.reload(null, false);
-  });
-  $('#btnAplicarFiltros').on('click', function () {
-    rulesDT.ajax.reload();
-  });
-
-  // ---------------------------
   // DataTable de Regras
   // ---------------------------
   const $table = $('#rulesTable');
   const rulesDT = $table.DataTable({
     processing: true,
     serverSide: true,
-    ajax: {
-      url: ROUTES.index,
-      data: function (d) {
-        d.operadora_id = $fOperadora.val() || '';
-        d.modalidade = $fModalidade.val() || '';
-      }
-    },
+    ajax: { url: ROUTES.index },
     order: [[1, 'asc']],
     columns: [
       { data: 'id', name: 'id', width: 40 },
       { data: 'operadora_nome', name: 'operadoras.nome' },
-      { data: 'modalidade', name: 'modalidade', render: (val) => {
+      {
+        data: 'categoria', name: 'categoria', render: (val) => {
           if (!val) return '';
-          const label = val.toUpperCase() === 'PME' ? 'PME' : 'ADESÃO';
           const cls = val.toUpperCase() === 'PME' ? 'badge-pme' : 'badge-adesao';
-          return `<span class="badge ${cls}">${label}</span>`;
+          return `<span class="badge ${cls}">${val.toUpperCase()}</span>`;
         }
       },
-      { data: null, orderable: false, render: (row) => {
-          if (!row.vitalicio_active) return '<span class="badge bg-secondary">Inativo</span>';
-          const pct = parseFloat(row.vitalicio_percent || 0).toFixed(2).replace('.', ',');
-          const start = row.vitalicio_starts_at_installment || '-';
-          return `<span class="badge bg-success">Ativo</span> <small>${pct}% a partir da ${start}ª</small>`;
-        }
+      { data: 'total_percentual', name: 'total_percentual', render: (v) => v ? `${parseFloat(v).toFixed(2)}%` : '-' },
+      {
+        data: 'vitalicio', name: 'vitalicio', render: (v) =>
+          v ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>'
       },
-      { data: 'observacao', name: 'observacao', defaultContent: '' },
-      { data: null, orderable: false, width: 140, render: (row) => {
+      { data: 'descricao', name: 'descricao', defaultContent: '' },
+      {
+        data: null, orderable: false, width: 140, render: (row) => {
           const dataAttr = [
             `data-id="${row.id}"`,
             `data-operadora_id="${row.operadora_id}"`,
             `data-operadora_nome="${(row.operadora_nome || '').replace(/"/g, '&quot;')}"`,
-            `data-modalidade="${row.modalidade}"`,
-            `data-vitalicio_active="${row.vitalicio_active ? 1 : 0}"`,
-            `data-vitalicio_percent="${row.vitalicio_percent || ''}"`,
-            `data-vitalicio_starts="${row.vitalicio_starts_at_installment || ''}"`,
-            `data-observacao="${(row.observacao || '').replace(/"/g, '&quot;')}"`
+            `data-categoria="${row.categoria}"`,
+            `data-total_percentual="${row.total_percentual || ''}"`,
+            `data-vitalicio="${row.vitalicio}"`,
+            `data-descricao="${(row.descricao || '').replace(/"/g, '&quot;')}"`
           ].join(' ');
 
           return `
@@ -118,7 +96,7 @@ $(function () {
               <button type="button" class="btn btn-outline-danger btn-del" data-id="${row.id}">
                 <i class="ri-delete-bin-6-line"></i>
               </button>
-              <button type="button" class="btn btn-outline-dark btn-parcelas" data-id="${row.id}" data-title="${(row.operadora_nome || '').replace(/"/g,'&quot;')} - ${row.modalidade}">
+              <button type="button" class="btn btn-outline-dark btn-parcelas" data-id="${row.id}" data-title="${(row.operadora_nome || '').replace(/"/g, '&quot;')} - ${row.categoria}">
                 <i class="ri-list-ordered-2"></i>
               </button>
             </div>
@@ -127,12 +105,30 @@ $(function () {
       }
     ],
     language: {
-      url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
+      decimal: ",",
+      thousands: ".",
+      processing: "Processando...",
+      search: "Buscar:",
+      lengthMenu: "Mostrar _MENU_ registros",
+      info: "Mostrando de _START_ até _END_ de _TOTAL_ registros",
+      infoEmpty: "Mostrando 0 até 0 de 0 registros",
+      infoFiltered: "(filtrado de _MAX_ registros no total)",
+      infoPostFix: "",
+      loadingRecords: "Carregando...",
+      zeroRecords: "Nenhum registro encontrado",
+      emptyTable: "Nenhum dado disponível nesta tabela",
+      paginate: {
+        first: "Primeiro",
+        previous: "Anterior",
+        next: "Próximo",
+        last: "Último"
+      },
+      aria: {
+        sortAscending: ": ativar para ordenar a coluna de forma ascendente",
+        sortDescending: ": ativar para ordenar a coluna de forma descendente"
+      }
     }
-  });
 
-  $('#btnRecarregar').on('click', function () {
-    rulesDT.ajax.reload(null, false);
   });
 
   // ---------------------------
@@ -141,55 +137,40 @@ $(function () {
   const $modalRegra = $('#modalRegra');
   const $formRegra = $('#formRegra');
 
-  function openCreateRule() {
+  $('#btnNovaRegra').on('click', function () {
     $('#tituloModalRegra').text('Nova Regra');
     $('#regraId').val('');
     $('#regraOperadora').val('');
-    $('#regraModalidade').val('');
-    $('#regraVitalicioAtivo').val('0');
-    $('#regraVitalicioPercent').val('');
-    $('#regraVitalicioStart').val('');
-    $('#regraObs').val('');
+    $('#regraCategoria').val('PME');
+    $('#regraTotalPercentual').val('');
+    $('#regraVitalicio').val('0');
+    $('#regraDescricao').val('');
     $('#btnExcluirRegra').hide();
     $formRegra.attr('action', ROUTES.store);
     $modalRegra.modal('show');
-  }
+  });
 
-  function openEditRule(btn) {
-    const $b = $(btn);
+  $table.on('click', '.btn-edit', function () {
+    const $b = $(this);
     $('#tituloModalRegra').text('Editar Regra');
     $('#regraId').val($b.data('id'));
     $('#regraOperadora').val($b.data('operadora_id'));
-    $('#regraModalidade').val($b.data('modalidade'));
-    $('#regraVitalicioAtivo').val(String($b.data('vitalicio_active') || 0));
-    $('#regraVitalicioPercent').val($b.data('vitalicio_percent') || '');
-    $('#regraVitalicioStart').val($b.data('vitalicio_starts') || '');
-    $('#regraObs').val($b.data('observacao') || '');
-
-    const destroyUrl = subst(ROUTES.destroy, { '__ID__': String($b.data('id')) });
-    $('#btnExcluirRegra').data('href', destroyUrl).show();
-
+    $('#regraCategoria').val($b.data('categoria'));
+    $('#regraTotalPercentual').val($b.data('total_percentual'));
+    $('#regraVitalicio').val($b.data('vitalicio'));
+    $('#regraDescricao').val($b.data('descricao'));
     const updateUrl = subst(ROUTES.update, { '__ID__': String($b.data('id')) });
     $formRegra.attr('action', updateUrl);
+    $('#btnExcluirRegra').data('href', subst(ROUTES.destroy, { '__ID__': String($b.data('id')) })).show();
     $modalRegra.modal('show');
-  }
-
-  $('#btnNovaRegra').on('click', openCreateRule);
-
-  $table.on('click', '.btn-edit', function () {
-    openEditRule(this);
   });
 
-  // Salvar (create/update)
   $formRegra.on('submit', async function (e) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const action = form.getAttribute('action');
+    const action = this.getAttribute('action');
     const id = $('#regraId').val();
     const method = id ? 'PUT' : 'POST';
-
-    const fd = new FormData(form);
-    // Laravel espera _method para PUT via form-data
+    const fd = new FormData(this);
     if (method === 'PUT') fd.append('_method', 'PUT');
 
     try {
@@ -198,91 +179,72 @@ $(function () {
       swal({ icon: 'success', title: 'Salvo!', timer: 1500, showConfirmButton: false });
       rulesDT.ajax.reload(null, false);
     } catch (err) {
-      console.error(err);
-      swal({ icon: 'error', title: 'Erro ao salvar', html: `<pre class="text-start">${(err.message || '').substring(0, 1000)}</pre>` });
+      swal({ icon: 'error', title: 'Erro ao salvar', text: err.message || '' });
     }
   });
 
-  // Excluir Regra (dentro do modal)
   $('#btnExcluirRegra').on('click', async function () {
     const href = $(this).data('href');
     if (!href) return;
-
     const ok = await swalConfirm('Excluir regra?', 'Essa ação não pode ser desfeita.');
     if (!ok.isConfirmed) return;
-
     try {
-      const fd = new FormData();
-      fd.append('_method', 'DELETE');
+      const fd = new FormData(); fd.append('_method', 'DELETE');
       await http('POST', href, fd);
       $modalRegra.modal('hide');
       swal({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false });
       rulesDT.ajax.reload(null, false);
     } catch (err) {
-      console.error(err);
-      swal({ icon: 'error', title: 'Erro ao excluir', text: err.message || 'Falha ao excluir' });
+      swal({ icon: 'error', title: 'Erro ao excluir', text: err.message || '' });
     }
   });
 
-  // Excluir via botão da linha
   $table.on('click', '.btn-del', async function () {
     const id = $(this).data('id');
     const href = subst(ROUTES.destroy, { '__ID__': String(id) });
-
     const ok = await swalConfirm('Excluir regra?', 'Essa ação não pode ser desfeita.');
     if (!ok.isConfirmed) return;
-
     try {
-      const fd = new FormData();
-      fd.append('_method', 'DELETE');
+      const fd = new FormData(); fd.append('_method', 'DELETE');
       await http('POST', href, fd);
       swal({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false });
       rulesDT.ajax.reload(null, false);
     } catch (err) {
-      console.error(err);
-      swal({ icon: 'error', title: 'Erro ao excluir', text: err.message || 'Falha ao excluir' });
+      swal({ icon: 'error', title: 'Erro ao excluir', text: err.message || '' });
     }
   });
 
   // ---------------------------
-  // Parcelas (lista + CRUD)
+  // Parcelas
   // ---------------------------
   const $modalParcelas = $('#modalParcelas');
   const $parcelasTbody = $('#parcelasTable tbody');
-  const $parcelasLegenda = $('#parcelasLegenda');
+  const $modalParcelaForm = $('#modalParcelaForm');
+  const $formParcela = $('#formParcela');
   let currentRuleId = null;
 
   async function carregarParcelas(ruleId) {
     const url = subst(ROUTES.instIndex, { '__RULE_ID__': String(ruleId) });
     const data = await http('GET', url);
-    // Espera-se um array [{id, installment_number, percent, payer, month_offset, note}]
     $parcelasTbody.empty();
-    if (!Array.isArray(data) || data.length === 0) {
-      $parcelasTbody.append(`<tr><td colspan="6" class="text-center text-muted">Sem parcelas cadastradas.</td></tr>`);
+    if (!Array.isArray(data) || !data.length) {
+      $parcelasTbody.append('<tr><td colspan="5" class="text-center text-muted">Sem parcelas cadastradas.</td></tr>');
       return;
     }
-    data.sort((a, b) => (a.installment_number ?? 999) - (b.installment_number ?? 999));
-
+    data.sort((a, b) => (a.parcela ?? 0) - (b.parcela ?? 0));
     for (const it of data) {
-      const pct = Number(it.percent || 0).toFixed(2).replace('.', ',');
-      const num = it.installment_number ?? '—';
-      const note = it.note ? String(it.note) : '';
       $parcelasTbody.append(`
         <tr data-id="${it.id}">
-          <td>${num}</td>
-          <td>${pct}</td>
-          <td>${it.payer || ''}</td>
-          <td>${it.month_offset ?? 0}</td>
-          <td>${note.replace(/</g,'&lt;')}</td>
+          <td>${it.parcela}</td>
+          <td>${Number(it.percentual).toFixed(2)}%</td>
+          <td>${it.pagador || ''}</td>
           <td>
             <div class="btn-group btn-group-sm">
               <button class="btn btn-outline-primary btn-parcela-edit"
                 data-id="${it.id}"
-                data-num="${it.installment_number || ''}"
-                data-percent="${it.percent || ''}"
-                data-payer="${it.payer || ''}"
-                data-offset="${it.month_offset || 0}"
-                data-note="${(it.note || '').replace(/"/g,'&quot;')}">
+                data-num="${it.parcela}"
+                data-percent="${it.percentual}"
+                data-payer="${it.pagador || ''}">
                 <i class="ri-edit-2-line"></i>
               </button>
               <button class="btn btn-outline-danger btn-parcela-del" data-id="${it.id}">
@@ -295,128 +257,85 @@ $(function () {
     }
   }
 
-  // Abrir modal Parcelas
   $table.on('click', '.btn-parcelas', async function () {
     currentRuleId = $(this).data('id');
-    const titulo = $(this).data('title') || '';
-    $parcelasLegenda.text(titulo);
-    try {
-      await carregarParcelas(currentRuleId);
-      $modalParcelas.modal('show');
-    } catch (err) {
-      console.error(err);
-      swal({ icon: 'error', title: 'Erro ao carregar parcelas', text: err.message || '' });
-    }
+    await carregarParcelas(currentRuleId);
+    $modalParcelas.modal('show');
   });
-
-  // ---------------------------
-  // Form de Parcela (add/edit)
-  // ---------------------------
-  const $modalParcelaForm = $('#modalParcelaForm');
-  const $formParcela = $('#formParcela');
-
-  function openParcelaCreate() {
-    $('#tituloModalParcela').text('Adicionar Parcela');
-    $('#parcelaRuleId').val(currentRuleId);
-    $('#parcelaId').val('');
-    $('#parcelaNumero').val('');
-    $('#parcelaPercent').val('');
-    $('#parcelaOffset').val('0');
-    $('#parcelaPagador').val('');
-    $('#parcelaObs').val('');
-    $('#btnExcluirParcela').hide().data('href', '');
-    $formParcela.attr('action', ROUTES.instStore);
-    $modalParcelaForm.modal('show');
-  }
-
-  function openParcelaEdit(btn) {
-    const $b = $(btn);
-    $('#tituloModalParcela').text('Editar Parcela');
-    $('#parcelaRuleId').val(currentRuleId);
-    $('#parcelaId').val($b.data('id'));
-    $('#parcelaNumero').val($b.data('num') || '');
-    $('#parcelaPercent').val($b.data('percent') || '');
-    $('#parcelaOffset').val($b.data('offset') || 0);
-    $('#parcelaPagador').val($b.data('payer') || '');
-    $('#parcelaObs').val($b.data('note') || '');
-
-    const hrefDel = subst(ROUTES.instDestroy, { '__ID__': String($b.data('id')) });
-    $('#btnExcluirParcela').show().data('href', hrefDel);
-
-    const hrefUpd = subst(ROUTES.instUpdate, { '__ID__': String($b.data('id')) });
-    $formParcela.attr('action', hrefUpd);
-    $modalParcelaForm.modal('show');
-  }
 
   $('#btnAddParcela').on('click', function () {
     if (!currentRuleId) {
       swal({ icon: 'info', title: 'Selecione uma regra primeiro.' });
       return;
     }
-    openParcelaCreate();
+    $('#tituloModalParcela').text('Adicionar Parcela');
+    $('#parcelaRuleId').val(currentRuleId);
+    $('#parcelaId').val('');
+    $('#parcelaNumero').val('');
+    $('#parcelaPercent').val('');
+    $('#parcelaPagador').val('');
+    $('#btnExcluirParcela').hide();
+    $formParcela.attr('action', ROUTES.instStore);
+    $modalParcelaForm.modal('show');
   });
 
   $parcelasTbody.on('click', '.btn-parcela-edit', function () {
-    openParcelaEdit(this);
+    const $b = $(this);
+    $('#tituloModalParcela').text('Editar Parcela');
+    $('#parcelaRuleId').val(currentRuleId);
+    $('#parcelaId').val($b.data('id'));
+    $('#parcelaNumero').val($b.data('num'));
+    $('#parcelaPercent').val($b.data('percent'));
+    $('#parcelaPagador').val($b.data('payer'));
+    $formParcela.attr('action', subst(ROUTES.instUpdate, { '__ID__': String($b.data('id')) }));
+    $('#btnExcluirParcela').data('href', subst(ROUTES.instDestroy, { '__ID__': String($b.data('id')) })).show();
+    $modalParcelaForm.modal('show');
   });
 
-  // Salvar parcela (create/update)
   $formParcela.on('submit', async function (e) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const action = form.getAttribute('action');
+    const action = this.getAttribute('action');
     const id = $('#parcelaId').val();
     const method = id ? 'PUT' : 'POST';
-
-    const fd = new FormData(form);
+    const fd = new FormData(this);
     if (method === 'PUT') fd.append('_method', 'PUT');
-
     try {
       await http('POST', action, fd);
       $modalParcelaForm.modal('hide');
       await carregarParcelas(currentRuleId);
       swal({ icon: 'success', title: 'Parcela salva!', timer: 1200, showConfirmButton: false });
     } catch (err) {
-      console.error(err);
-      swal({ icon: 'error', title: 'Erro ao salvar parcela', html: `<pre class="text-start">${(err.message || '').substring(0, 1000)}</pre>` });
+      swal({ icon: 'error', title: 'Erro ao salvar parcela', text: err.message || '' });
     }
   });
 
-  // Excluir parcela
   $('#btnExcluirParcela').on('click', async function () {
     const href = $(this).data('href');
     if (!href) return;
     const ok = await swalConfirm('Excluir parcela?', 'Essa ação não pode ser desfeita.');
     if (!ok.isConfirmed) return;
-
     try {
-      const fd = new FormData();
-      fd.append('_method', 'DELETE');
+      const fd = new FormData(); fd.append('_method', 'DELETE');
       await http('POST', href, fd);
       $modalParcelaForm.modal('hide');
       await carregarParcelas(currentRuleId);
       swal({ icon: 'success', title: 'Parcela excluída!', timer: 1200, showConfirmButton: false });
     } catch (err) {
-      console.error(err);
       swal({ icon: 'error', title: 'Erro ao excluir parcela', text: err.message || '' });
     }
   });
 
-  // Excluir parcela direto na linha
   $parcelasTbody.on('click', '.btn-parcela-del', async function () {
     const id = $(this).data('id');
     const href = subst(ROUTES.instDestroy, { '__ID__': String(id) });
     const ok = await swalConfirm('Excluir parcela?', 'Essa ação não pode ser desfeita.');
     if (!ok.isConfirmed) return;
-
     try {
-      const fd = new FormData();
-      fd.append('_method', 'DELETE');
+      const fd = new FormData(); fd.append('_method', 'DELETE');
       await http('POST', href, fd);
       await carregarParcelas(currentRuleId);
       swal({ icon: 'success', title: 'Parcela excluída!', timer: 1200, showConfirmButton: false });
     } catch (err) {
-      console.error(err);
       swal({ icon: 'error', title: 'Erro ao excluir parcela', text: err.message || '' });
     }
   });
