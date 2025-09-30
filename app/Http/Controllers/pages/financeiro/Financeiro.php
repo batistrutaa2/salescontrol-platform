@@ -8,6 +8,7 @@ use App\Models\RegrasComissionamento;
 use App\Models\RegrasComissionamentoParcela;
 use App\Models\Operadora;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\Recebivel;
 
 
 class Financeiro extends Controller
@@ -153,4 +154,135 @@ class Financeiro extends Controller
 
         return response()->json(['success' => true]);
     }
+
+
+        /**
+     * 📑 Listagem geral de recebíveis
+     */
+    public function indexRecebiveis(Request $request)
+    {
+        $query = Recebivel::with(['venda', 'vendedor', 'empresa'])
+            ->orderBy('data_prevista', 'asc');
+
+        // Filtros opcionais
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('empresa_id')) {
+            $query->where('empresa_id', $request->empresa_id);
+        }
+
+        $recebiveis = $query->get();
+
+        // Calcular totais
+        $totais = [
+            'pago'     => $recebiveis->where('status', 'PAGO')->sum('valor'),
+            'pendente' => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
+            'atraso'   => $recebiveis->where('status', 'PENDENTE')
+                            ->where('data_prevista', '<', now())->sum('valor'),
+        ];
+
+        // Agrupar por contrato
+        $contratos = $recebiveis->groupBy('venda_id')->map(function ($parcelas) {
+            $valorTotal = $parcelas->sum('valor');
+            $valorPago = $parcelas->where('status', 'PAGO')->sum('valor');
+            $valorPendente = $valorTotal - $valorPago;
+
+            return (object)[
+                'empresa'        => $parcelas->first()->empresa,
+                'venda'          => $parcelas->first()->venda,
+                'vendedor'       => $parcelas->first()->vendedor,
+                'operadora'      => $parcelas->first()->operadora,
+                'valor_total'    => $valorTotal,
+                'valor_pago'     => $valorPago,
+                'valor_pendente' => $valorPendente,
+                'em_atraso'      => $parcelas->where('status', 'PENDENTE')
+                                            ->where('data_prevista', '<', now())->count() > 0,
+            ];
+        });
+
+        return view('content.pages.financeiro.recebiveis', [
+            'contratos' => $contratos,
+            'totais'    => $totais,
+        ]);
+    }
+
+
+    /**
+     * 🔍 Mostrar todas as parcelas de um contrato específico
+     */
+    public function showContratoRecebiveis(int $vendaId)
+    {
+        $venda = Vendas::findOrFail($vendaId);
+
+        $parcelas = Recebivel::where('venda_id', $vendaId)
+            ->orderBy('parcela', 'asc')
+            ->get();
+
+        // Insights
+        $total = $parcelas->sum('valor');
+        $totalPago = $parcelas->where('status', 'PAGO')->sum('valor');
+        $totalPendente = $parcelas->where('status', 'PENDENTE')->sum('valor');
+        $totalCancelado = $parcelas->where('status', 'CANCELADO')->sum('valor');
+
+        return view('financeiro.recebiveis.show', compact(
+            'venda',
+            'parcelas',
+            'total',
+            'totalPago',
+            'totalPendente',
+            'totalCancelado'
+        ));
+    }
+
+    /**
+     * ✅ Marcar parcela como recebida
+     */
+    public function pagarRecebivel(Request $request, Recebivel $recebivel)
+    {
+        $recebivel->update([
+            'status' => 'PAGO',
+            'data_recebimento' => now(),
+        ]);
+
+        return back()->with('status', 'success')->with('message', 'Parcela marcada como PAGA.');
+    }
+
+    /**
+     * ❌ Cancelar parcela
+     */
+    public function cancelarRecebivel(Request $request, Recebivel $recebivel)
+    {
+        $recebivel->update([
+            'status' => 'CANCELADO',
+        ]);
+
+        return back()->with('status', 'warning')->with('message', 'Parcela CANCELADA.');
+    }
+
+    public function getParcelas($vendaId)
+    {
+        $parcelas = Recebivel::where('venda_id', $vendaId)
+            ->orderBy('parcela')
+            ->get()
+            ->map(fn($p) => [
+                'id'            => $p->id,
+                'parcela'       => $p->parcela,
+                'valor'         => $p->valor,
+                'data_prevista' => \Carbon\Carbon::parse($p->data_prevista)->format('d/m/Y'),
+                'status'        => $p->status,
+            ]);
+
+        return response()->json($parcelas);
+    }
+
+    public function pagarParcela($id)
+    {
+        $parcela = Recebivel::findOrFail($id);
+        $parcela->update(['status' => 'PAGO']);
+
+        return response()->json(['success' => true]);
+    }
+
 }

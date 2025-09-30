@@ -21,7 +21,7 @@
     },
     {
       "name": "Financeiro",
-      "icon": "menu-icon tf-icons ri-money-dollar-circle-line",
+      "icon": "menu-icon tf-icons ri-bank-line",
       "slug": "financeiro",
       "rules": [
         "ADMINISTRATIVO",
@@ -31,8 +31,13 @@
       "submenu": [
         {
           "url": "/financeiro/regras-recebimentos",
-          "name": "Regras de Recebimento",
+          "name": " Regras de Comissão",
           "slug": "financeiro-regras"
+        },
+        {
+          "url": "/financeiro/recebiveis",
+          "name": " Recebíveis",
+          "slug": "financeiro-recebiveis"
         }
       ]
     },

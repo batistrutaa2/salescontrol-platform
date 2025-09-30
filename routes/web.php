@@ -254,6 +254,23 @@ Route::middleware(['auth'])->group(function () {
       Route::delete('/parcelas/{id}', [Financeiro::class, 'parcelasDestroy'])->name('financeiro.regras.parcelas.destroy');
   });
 
+  Route::prefix('financeiro/recebiveis')->group(function () {
+      // 📑 Listagem geral de recebíveis
+      Route::get('/', [Financeiro::class, 'indexRecebiveis'])
+          ->name('financeiro.recebiveis.index');
+
+      // 🔍 Filtro por contrato/venda específica
+      Route::get('/contrato/{vendaId}', [Financeiro::class, 'showContratoRecebiveis'])
+          ->name('financeiro.recebiveis.contrato');
+
+    // Listar parcelas de uma venda específica (usado no modal)
+    Route::get('/{venda}/parcelas', [Financeiro::class, 'getParcelas'])
+        ->name('financeiro.recebiveis.parcelas');
+
+    // Marcar uma parcela como paga
+    Route::post('/parcelas/{id}/pagar', [Financeiro::class, 'pagarParcela'])
+        ->name('financeiro.recebiveis.pagar');
+  });
 
 
 });

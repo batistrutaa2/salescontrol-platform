@@ -24,6 +24,14 @@ class Recebivel extends Model
         'status',
     ];
 
+    protected $casts = [
+        'data_prevista'   => 'date',
+        'data_recebimento'=> 'date',
+        'created_at'      => 'datetime',
+        'updated_at'      => 'datetime',
+    ];
+
+
     // ========================
     // 🔗 Relacionamentos
     // ========================
@@ -35,7 +43,7 @@ class Recebivel extends Model
 
     public function venda()
     {
-        return $this->belongsTo(Venda::class, 'venda_id');
+        return $this->belongsTo(Vendas::class, 'venda_id');
     }
 
     public function vendedor()
