@@ -285,4 +285,57 @@ class Financeiro extends Controller
         return response()->json(['success' => true]);
     }
 
+
+    public function relatorioFinanceiro()
+    {
+        $operadoras = Operadora::orderBy('nome')->get();
+        return view('content.pages.financeiro.relatorio-financeiro', compact('operadoras'));
+    }
+
+    public function relatorioFinanceiroFetch(Request $request)
+    {
+        $query = Recebivel::query();
+
+        if ($request->filled('data_inicial')) {
+            $query->whereDate('data_prevista', '>=', $request->data_inicial);
+        }
+        if ($request->filled('data_final')) {
+            $query->whereDate('data_prevista', '<=', $request->data_final);
+        }
+        if ($request->filled('operadora_id')) {
+            $query->where('operadora', Operadora::find($request->operadora_id)?->nome);
+        }
+
+        $recebiveis = $query->get();
+
+        $resumo = [
+            'previsto' => $recebiveis->sum('valor'),
+            'recebido' => $recebiveis->where('status', 'PAGO')->sum('valor'),
+            'aberto'   => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
+        ];
+
+        $porOperadora = $recebiveis->groupBy('operadora')->map(function ($items, $operadora) {
+            return [
+                'operadora' => $operadora,
+                'previsto'  => $items->sum('valor'),
+                'recebido'  => $items->where('status', 'PAGO')->sum('valor'),
+                'aberto'    => $items->where('status', 'PENDENTE')->sum('valor'),
+            ];
+        })->values();
+
+        return response()->json([
+            'resumo'       => [
+                'previsto' => (float) $resumo['previsto'],
+                'recebido' => (float) $resumo['recebido'],
+                'aberto'   => (float) $resumo['aberto'],
+            ],
+            'porOperadora' => $porOperadora->map(fn($op) => [
+                'operadora' => $op['operadora'],
+                'previsto'  => (float) $op['previsto'],
+                'recebido'  => (float) $op['recebido'],
+                'aberto'    => (float) $op['aberto'],
+            ]),
+        ]);
+    }
+
 }

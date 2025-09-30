@@ -31,13 +31,18 @@
       "submenu": [
         {
           "url": "/financeiro/regras-recebimentos",
-          "name": " Regras de Comissão",
+          "name": "Regras de Comissão",
           "slug": "financeiro-regras"
         },
         {
           "url": "/financeiro/recebiveis",
-          "name": " Recebíveis",
+          "name": "Recebíveis",
           "slug": "financeiro-recebiveis"
+        },
+        {
+          "url": "/financeiro/recebiveis/relatorio-financeiro",
+          "name": "Relatório Financeiro",
+          "slug": "financeiro-relatorio"
         }
       ]
     },

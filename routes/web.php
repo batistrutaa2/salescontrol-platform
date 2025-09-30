@@ -270,9 +270,14 @@ Route::middleware(['auth'])->group(function () {
     // Marcar uma parcela como paga
     Route::post('/parcelas/{id}/pagar', [Financeiro::class, 'pagarParcela'])
         ->name('financeiro.recebiveis.pagar');
+
+    // 📊 Relatório financeiro
+    Route::get('/relatorio-financeiro', [Financeiro::class, 'relatorioFinanceiro'])
+        ->name('financeiro.relatorio');
+
+    Route::post('/relatorio-financeiro/fetch', [Financeiro::class, 'relatorioFinanceiroFetch'])
+        ->name('financeiro.relatorio.fetch');
   });
-
-
 });
 Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
 
