@@ -23,6 +23,7 @@ use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Jobs\GerarRecebiveisJob;
 class Backoffice extends Controller
 {
   protected VendasRepository $vendasRepository;
@@ -138,6 +139,7 @@ class Backoffice extends Controller
         Storage::putFileAs($directory, $file, $fileName);
 
         $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao, $request->motivo_pendencia ?? null);
+        dispatch(new GerarRecebiveisJob($sale->id));
       }
 
       if ($request->tabulacao_id == Tabulations::BOLETO_DISPONIVEL) {
@@ -170,6 +172,7 @@ class Backoffice extends Controller
         return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
       }
     } catch (\Throwable $th) {
+      dd($th);
       return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
     }
 
