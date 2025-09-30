@@ -280,7 +280,7 @@ class Financeiro extends Controller
     public function pagarParcela($id)
     {
         $parcela = Recebivel::findOrFail($id);
-        $parcela->update(['status' => 'PAGO']);
+        $parcela->update(['status' => 'PAGO', 'data_recebimento' => now()]);
 
         return response()->json(['success' => true]);
     }
