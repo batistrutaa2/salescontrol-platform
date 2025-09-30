@@ -156,6 +156,11 @@
                                 <input type="date" id="data_implantacao" name="data_implantacao" class="form-control"
                                     required>
                             </div>
+                            <div id="proof-group-numero_proposta" class="mt-3" style="display: none;">
+                                <label for="numero_proposta" class="form-label">Numero da Proposta</label>
+                                <input type="text" id="numero_proposta" name="numero_proposta" class="form-control"
+                                    required>
+                            </div>
                             <div id="proof-group-data-pendencia" class="mt-3" style="display: none;">
                                 <label for="data_pendencia" class="form-label">Motivo da pendência</label>
                                 <textarea id="data_pendencia" name="motivo_pendencia" class="form-control" rows="5"

@@ -228,12 +228,16 @@ $(function () {
             $('#proof-group').show();
             $('#comprovante').prop('required', true);
             $('#proof-group-data-implantacao').show();
+            $('#proof-group-numero_proposta').show();
             $('#data_implantacao').prop('required', true);
+            $('#numero_proposta').prop('required', true);
         } else {
             $('#proof-group').hide();
             $('#comprovante').prop('required', false).val('');
             $('#proof-group-data-implantacao').hide();
+            $('#proof-group-numero_proposta').hide();
             $('#data_implantacao').prop('required', false).val('');
+            $('#numero_proposta').prop('required', false).val('');
         }
 
         if ($(this).val() === '55' || $(this).val() === '17' || $(this).val() === '53') {

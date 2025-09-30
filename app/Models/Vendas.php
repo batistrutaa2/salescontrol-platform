@@ -14,6 +14,7 @@ class Vendas extends Model
 
   protected $fillable = [
     'id',
+    'numero_proposta',
     'empresa_id',
     'user_id',
     'contato_id',

@@ -138,7 +138,8 @@ class Backoffice extends Controller
         $fileName = 'comprovante_pagamento.' . $file->getClientOriginalExtension();
         Storage::putFileAs($directory, $file, $fileName);
 
-        $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao, $request->motivo_pendencia ?? null);
+     
+        $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao, $request->motivo_pendencia ?? null, null, $request->numero_proposta);
         dispatch(new GerarRecebiveisJob($sale->id));
       }
 
@@ -155,7 +156,7 @@ class Backoffice extends Controller
       }
 
       if ($request->tabulacao_id != Tabulations::IMPLANTADO && $request->tabulacao_id != Tabulations::BOLETO_DISPONIVEL) {
-        $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, NULL, $request->motivo_pendencia ?? null);
+        $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, NULL, $request->motivo_pendencia ?? null, null, $request->numero_proposta);
       }
 
       if ($updateContract) {

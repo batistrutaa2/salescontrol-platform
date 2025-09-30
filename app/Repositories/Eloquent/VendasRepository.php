@@ -579,18 +579,22 @@ class VendasRepository implements VendasRepositoryInterface
     }
   }
 
-  public function updateDataImplantacao($id, $dataImplantacao, $motivo_pendencia = null, $path_ticket = null)
+  public function updateDataImplantacao($id, $dataImplantacao, $motivo_pendencia = null, $path_ticket = null, $numero_proposta)
   {
     try {
+
       $contract = $this->model::find($id);
       if ($contract) {
         $contract->data_implantacao = $dataImplantacao;
         $contract->motivo_pendencia = $motivo_pendencia;
+        $contract->numero_proposta = $numero_proposta ?? "";
         $contract->updated_at = now();
         return $contract->save();
       }
+            dd($id, $dataImplantacao, $motivo_pendencia, $path_ticket, $numero_proposta);
       return false;
     } catch (\Throwable $th) {
+      dd($th);
       return false;
     }
   }
