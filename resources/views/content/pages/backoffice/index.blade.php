@@ -40,6 +40,170 @@
             color: #dc3545 !important;
             font-weight: bold;
         }
+
+        /* Cards modernos */
+        .modern-card {
+            border-radius: 16px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="light"] .modern-card {
+            background: white;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        [data-theme="dark"] .modern-card {
+            background: #2d3748;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        }
+
+        .modern-card:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        /* Metric cards */
+        .metric-card {
+            border-radius: 12px;
+            border: none;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        [data-theme="light"] .metric-card {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        [data-theme="dark"] .metric-card {
+            background: #2d3748;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .metric-card.primary::before { background: linear-gradient(90deg, #5a67d8, #667eea); }
+        .metric-card.success::before { background: linear-gradient(90deg, #28a745, #20c997); }
+        .metric-card.warning::before { background: linear-gradient(90deg, #ffc107, #fd7e14); }
+        .metric-card.danger::before { background: linear-gradient(90deg, #dc3545, #e83e8c); }
+        .metric-card.info::before { background: linear-gradient(90deg, #17a2b8, #20c997); }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-card.primary .metric-icon {
+            background: linear-gradient(135deg, rgba(90, 103, 216, 0.1), rgba(102, 126, 234, 0.15));
+            color: #5a67d8;
+        }
+        .metric-card.success .metric-icon {
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(32, 201, 151, 0.15));
+            color: #28a745;
+        }
+        .metric-card.warning .metric-icon {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(253, 126, 20, 0.15));
+            color: #ffc107;
+        }
+        .metric-card.danger .metric-icon {
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(232, 62, 140, 0.15));
+            color: #dc3545;
+        }
+        .metric-card.info .metric-icon {
+            background: linear-gradient(135deg, rgba(23, 162, 184, 0.1), rgba(32, 201, 151, 0.15));
+            color: #17a2b8;
+        }
+
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0.25rem 0;
+            line-height: 1;
+        }
+
+        .metric-card.primary .metric-value { color: #5a67d8; }
+        .metric-card.success .metric-value { color: #28a745; }
+        .metric-card.warning .metric-value { color: #ffc107; }
+        .metric-card.danger .metric-value { color: #dc3545; }
+        .metric-card.info .metric-value { color: #17a2b8; }
+
+        .metric-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+        }
+
+        [data-theme="light"] .metric-label {
+            color: #6c757d;
+        }
+
+        [data-theme="dark"] .metric-label {
+            color: #a1a5b7;
+        }
+
+        /* Modal moderno */
+        .modal-modern .modal-content {
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-modern .modal-header {
+            border-radius: 16px 16px 0 0;
+            padding: 1.5rem;
+            border: none;
+        }
+
+        [data-theme="light"] .modal-modern .modal-header {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        [data-theme="dark"] .modal-modern .modal-header {
+            background: #5a67d8;
+            color: white;
+        }
+
+        [data-theme="dark"] .modal-modern .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .modal-modern .modal-body {
+            padding: 2rem;
+        }
+
+        /* Badges modernos */
+        .status-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
     </style>
 
 
@@ -57,7 +221,47 @@
         </div>
     @endif
 
-    <div class="card mb-3">
+    <!-- Cards de Indicadores -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card primary">
+                <div class="metric-icon">
+                    <i class="ri-file-list-3-line"></i>
+                </div>
+                <div class="metric-value" id="total-contratos">0</div>
+                <div class="metric-label">Total de Contratos</div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card success">
+                <div class="metric-icon">
+                    <i class="ri-checkbox-circle-line"></i>
+                </div>
+                <div class="metric-value" id="total-implantado">0</div>
+                <div class="metric-label">Implantados</div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card warning">
+                <div class="metric-icon">
+                    <i class="ri-time-line"></i>
+                </div>
+                <div class="metric-value" id="total-analise">0</div>
+                <div class="metric-label">Em Análise</div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card danger">
+                <div class="metric-icon">
+                    <i class="ri-alert-line"></i>
+                </div>
+                <div class="metric-value" id="total-atrasados">0</div>
+                <div class="metric-label">Atrasados</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card modern-card mb-3">
         <div class="card-body row g-3 align-items-end">
             <div class="col-12 col-md-4">
                 <label class="form-label">Status</label>
@@ -104,8 +308,11 @@
 
 
     <!-- Ajax Sourced Server-side -->
-    <div class="card mt-5">
-        <h5 class="card-header">Contratos</h5>
+    <div class="card modern-card mt-4">
+        <h5 class="card-header">
+            <i class="ri-folder-open-line me-2"></i>
+            Fila de Contratos
+        </h5>
         <div class="card-datatable text-nowrap">
             <table class="datatables-ajax table table-bordered">
                 <thead>
@@ -127,15 +334,17 @@
     <!--/ Ajax Sourced Server-side -->
 
 
-    <div class="modal fade" id="modalcomments" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-simple">
+    <div class="modal fade modal-modern" id="modalcomments" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-body p-0">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="ri-refresh-line me-2"></i>
+                        Alterar Status do Contrato
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    <div class="text-center mb-6">
-                        <h4 class="mb-2">Alterar Status</h4>
-                        <p>Selecione o status atual do contrato</p>
-                    </div>
+                </div>
+                <div class="modal-body">
                     <form id="transferLead" class="row" action="{{ route('backoffice.alterStatusContract') }}"
                         method="POST" enctype="multipart/form-data">
                         @csrf

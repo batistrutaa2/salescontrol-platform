@@ -195,6 +195,7 @@ $(function () {
         // reativa tooltips após cada draw
         drawCallback: function () {
             initTooltipsInTable();
+            updateMetrics();
         }
     });
 
@@ -269,4 +270,40 @@ $(function () {
             buttonsStyling: false
         });
     });
+
+    // ================= Atualizar Métricas =================
+    function updateMetrics() {
+        if (!table) return;
+
+        const allData = table.rows({ search: 'applied' }).data().toArray();
+        const total = allData.length;
+
+        // Contar por status
+        const implantado = allData.filter(d => d.descricao === 'IMPLANTADO').length;
+        const analise = allData.filter(d =>
+            d.descricao === 'ANALISE DOCUMENTO' ||
+            d.descricao === 'ANALISE OPERADORA'
+        ).length;
+
+        // Contar atrasados
+        let atrasados = 0;
+        allData.forEach(data => {
+            const role = data.descricao || '';
+            const updatedAt = parseBrDateTime(data.updated_at);
+            if (updatedAt && !isNaN(updatedAt)) {
+                const diffHours = (new Date() - updatedAt) / 36e5;
+                const diffDays = diffHours / 24;
+
+                if (role === 'ANALISE DOCUMENTO' && diffHours > 48) atrasados++;
+                else if (role === 'ANALISE OPERADORA' && diffDays > 10) atrasados++;
+                else if (role === 'PENDENCIA' && diffHours > 48) atrasados++;
+            }
+        });
+
+        // Atualizar os cards
+        $('#total-contratos').text(total);
+        $('#total-implantado').text(implantado);
+        $('#total-analise').text(analise);
+        $('#total-atrasados').text(atrasados);
+    }
 });
