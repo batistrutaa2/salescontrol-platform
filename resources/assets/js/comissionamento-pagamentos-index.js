@@ -99,12 +99,13 @@
             const dt = moment(row.pago_em).format('DD/MM/YYYY');
             html += `
               <button type="button"
-                      class="btn btn-outline-success disabled"
+                      class="btn btn-success disabled"
                       tabindex="-1"
                       title="Pago em ${dt}"
                       data-bs-toggle="tooltip"
                       data-bs-placement="top">
-                <i class="ri-bank-card-2-fill"></i>
+                <i class="ri-check-line"></i>
+                <span class="d-none d-md-inline ms-1">Pago</span>
               </button>
             `;
           }
@@ -135,10 +136,17 @@
       const data = table.rows({ search: 'applied' }).data().toArray();
       const sum = (key) => data.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
 
+      // Atualiza footer da tabela
       $('#ft-bruto').text(fmtBRL(sum('total_bruto')));
       $('#ft-imp').text(fmtBRL(sum('total_imposto')));
       $('#ft-liq').text(fmtBRL(sum('total_liquido')));
       $('#ft-total').text(fmtBRL(sum('total_receber')));
+
+      // Atualiza cards de métricas no topo
+      $('#total-bruto').text(fmtBRL(sum('total_bruto')));
+      $('#total-imposto').text(fmtBRL(sum('total_imposto')));
+      $('#total-liquido').text(fmtBRL(sum('total_liquido')));
+      $('#total-receber').text(fmtBRL(sum('total_receber')));
 
       // Tooltips Bootstrap (re-init a cada draw)
       document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
