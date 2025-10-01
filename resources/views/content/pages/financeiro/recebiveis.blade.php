@@ -198,6 +198,55 @@
         .modal-modern .modal-body {
             padding: 2rem;
         }
+
+        .filter-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-filter {
+            padding: 0.5rem 1.25rem;
+            border-radius: 20px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            color: #6c757d;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-filter:hover {
+            border-color: #5a67d8;
+            color: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-filter.active {
+            background: #5a67d8;
+            border-color: #5a67d8;
+            color: white;
+            box-shadow: 0 4px 12px rgba(90, 103, 216, 0.3);
+        }
+
+        [data-theme="dark"] .btn-filter {
+            background: #2d3748;
+            border-color: #4a5568;
+            color: #a1a5b7;
+        }
+
+        [data-theme="dark"] .btn-filter:hover {
+            border-color: #5a67d8;
+            color: #5a67d8;
+        }
+
+        [data-theme="dark"] .btn-filter.active {
+            background: #5a67d8;
+            border-color: #5a67d8;
+            color: white;
+        }
     </style>
 @endsection
 
@@ -234,6 +283,22 @@
             <span>Em Atraso</span>
         </div>
     </div>
+</div>
+
+<!-- Filtros -->
+<div class="filter-buttons">
+    <button class="btn-filter active" data-status="todos">
+        <i class="ri-list-check me-1"></i> Todos
+    </button>
+    <button class="btn-filter" data-status="Quitado">
+        <i class="ri-checkbox-circle-line me-1"></i> Quitado
+    </button>
+    <button class="btn-filter" data-status="Pendente">
+        <i class="ri-time-line me-1"></i> Pendente
+    </button>
+    <button class="btn-filter" data-status="Atrasado">
+        <i class="ri-alert-line me-1"></i> Atrasado
+    </button>
 </div>
 
 <!-- DataTable -->

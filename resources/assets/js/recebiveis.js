@@ -5,7 +5,26 @@ $(function () {
   let table = $('#recebiveisTable').DataTable({
     pageLength: 10,
     responsive: true,
-    order: [[4, 'desc']]
+    order: [[4, 'desc']],
+    language: {
+      url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+    }
+  });
+
+  // Filtro por status
+  $('.btn-filter').on('click', function () {
+    let status = $(this).data('status');
+
+    // Atualizar botão ativo
+    $('.btn-filter').removeClass('active');
+    $(this).addClass('active');
+
+    // Aplicar filtro
+    if (status === 'todos') {
+      table.column(7).search('').draw(); // Coluna 7 = Status
+    } else {
+      table.column(7).search(status).draw();
+    }
   });
 
   // Ao clicar em "Ver Parcelas"
