@@ -181,7 +181,8 @@
                   <th class="text-end">% Comissão</th>
                   <th class="text-end">Valor comissão (líquida)</th>
                   <th class="text-end">Implantação</th>
-                  <th class="text-end">Origem</th> <!-- <<< era "Angariação" -->
+                  <th class="text-end">Origem</th>
+                  <th style="width:60px;"></th>
                 </tr>
               </thead>
               <tbody>
@@ -210,6 +211,15 @@
                     origemHtml = `<span class="badge bg-success">Angariação</span>`;
                   }
 
+                  // Botão excluir (apenas para ajustes)
+                  const btnExcluir = isAjuste
+                    ? `<button type="button" class="btn btn-sm btn-outline-danger js-excluir-ajuste"
+                              data-id="${it.id}" data-vendedor="${v.user_id}"
+                              title="Excluir lançamento">
+                         <i class="ri-delete-bin-line"></i>
+                       </button>`
+                    : '';
+
                   return `
                     <tr data-id="${it.id}" data-vendedor="${v.user_id}" data-ajuste="${isAjuste ? '1' : '0'}">
                       <td><input type="checkbox" class="form-check-input js-select-row"></td>
@@ -219,6 +229,7 @@
                       <td class="text-end">${liqHtml}</td>
                       <td class="text-end">${isAjuste ? '-' : esc(it.data_implantacao)}</td>
                       <td class="text-end">${origemHtml}</td>
+                      <td class="text-end">${btnExcluir}</td>
                     </tr>
                   `;
                 }).join('')}
@@ -253,6 +264,7 @@
 
     bindEventsVendedores();
     bindAjusteButtons(); // <<< importante: vincula os botões Crédito/Despesa recém-renderizados
+    bindExcluirButtons(); // <<< vincula botões de excluir ajustes
   }
 
   function bindEventsVendedores() {
@@ -703,6 +715,50 @@
     const modal = new bootstrap.Modal($avModal);
     modal.show();
   });
+
+  // ======== Excluir Ajuste ========
+  function bindExcluirButtons() {
+    document.querySelectorAll('.js-excluir-ajuste').forEach(btn => {
+      btn._excluirBound && btn.removeEventListener('click', btn._excluirBound);
+      btn._excluirBound = async () => {
+        const ajusteId = btn.getAttribute('data-id');
+        const vendedorId = btn.getAttribute('data-vendedor');
+
+        if (!confirm('Tem certeza que deseja excluir este lançamento?')) {
+          return;
+        }
+
+        try {
+          btn.disabled = true;
+
+          const res = await fetch(`/comissionamento/lancamentos/${ajusteId}`, {
+            method: 'DELETE',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || 'Falha ao excluir lançamento.');
+          }
+
+          const json = await res.json();
+          toastr.success(json.message || 'Lançamento excluído com sucesso.');
+
+          // Recarrega lista
+          document.getElementById('btn-aplicar-filtro')?.click();
+
+        } catch (e) {
+          toastr.error(e.message || 'Erro ao excluir lançamento.');
+          btn.disabled = false;
+        }
+      };
+      btn.addEventListener('click', btn._excluirBound);
+    });
+  }
 
   // Salvar lançamento avulso
   document.getElementById('btn-confirm-avulso')?.addEventListener('click', async () => {

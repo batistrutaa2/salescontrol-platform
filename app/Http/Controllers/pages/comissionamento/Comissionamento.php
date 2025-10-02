@@ -563,6 +563,39 @@ public function getFaturamentoComissionamento(Request $request)
                 'lancamento' => $lanc,
             ], 201);
         }
+
+    public function deleteLancamentoDebitoCredito($id)
+    {
+        $user = Auth::user();
+
+        // Buscar lançamento
+        $lancamento = LancamentoDebitoCredito::where('id', $id)
+            ->where('empresa_id', $user->empresa_id)
+            ->first();
+
+        if (!$lancamento) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lançamento não encontrado.'
+            ], 404);
+        }
+
+        // Verificar se já foi pago
+        if ($lancamento->status === LancamentoDebitoCredito::ST_PAGO) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Não é possível excluir um lançamento que já foi pago.'
+            ], 422);
+        }
+
+        // Excluir
+        $lancamento->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lançamento excluído com sucesso.'
+        ]);
+    }
     
 
 
