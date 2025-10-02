@@ -28,7 +28,8 @@ class Financeiro extends Controller
     public function regrasIndex(Request $request)
     {
         if ($request->ajax()) {
-            $query = RegrasComissionamento::with('operadoras')->select('regras_comissionamento.*');
+            $query = RegrasComissionamento::with('operadoras')->select('regras_comissionamento.*')
+            ->where('regras_comissionamento.empresa_id', auth()->user()->empresa_id);
 
             return DataTables::of($query)
                 ->addColumn('operadora_nome', function ($row) {
