@@ -832,12 +832,13 @@ class Relatorios extends Controller
 
     private function getAnosDisponiveisImplantacao($filtros)
     {
-        $query = VendasModel::select(DB::raw('YEAR(data_implantacao) as ano'));
+        $query = VendasModel::select(DB::raw('YEAR(COALESCE(data_implantacao, vendas.created_at)) as ano'));
 
         $query = $this->aplicarFiltroEmpresa($query);
         $query = $this->aplicarFiltroStatusImplantado($query);
 
         return $query->distinct()
+            ->whereNotNull(DB::raw('YEAR(COALESCE(data_implantacao, vendas.created_at))'))
             ->orderBy('ano', 'desc')
             ->pluck('ano');
     }
