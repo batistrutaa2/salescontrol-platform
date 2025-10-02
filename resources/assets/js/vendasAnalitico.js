@@ -15,6 +15,7 @@ $(function () {
   $(document).on('submit', '#filtrosForm', handleFiltroSubmit);
   $(document).on('click', '#exportarBtn', exportarRelatorio);
   $(document).on('click', '.pagination a', handlePaginationClick);
+  $(document).on('change', '#filtroStatusTabela', handleFiltroStatusTabela);
 
   function init() {
     // Verificar se os elementos existem antes de inicializar
@@ -101,6 +102,17 @@ $(function () {
           });
         }
       }
+
+      // Popular status da tabela
+      const $filtroStatusTabela = $('#filtroStatusTabela');
+      if ($filtroStatusTabela.length) {
+        $filtroStatusTabela.empty().append('<option value="">Todos os status</option>');
+        if (data.status_disponiveis && Array.isArray(data.status_disponiveis)) {
+          data.status_disponiveis.forEach(status => {
+            $filtroStatusTabela.append(`<option value="${status.id}">${status.descricao}</option>`);
+          });
+        }
+      }
     } catch (error) {
       console.error('Erro ao popular filtros:', error);
     }
@@ -143,7 +155,12 @@ $(function () {
   }
 
   function carregarVendas() {
-    const params = currentFilters + `&page=${currentPage}`;
+    const statusTabela = $('#filtroStatusTabela').val();
+    let params = currentFilters + `&page=${currentPage}`;
+
+    if (statusTabela) {
+      params += `&status=${statusTabela}`;
+    }
 
     $.ajax({
       url: '/vendas/listar',
@@ -164,6 +181,11 @@ $(function () {
         showToast('Erro ao carregar lista de vendas', 'error');
       }
     });
+  }
+
+  function handleFiltroStatusTabela() {
+    currentPage = 1;
+    carregarVendas();
   }
 
   function exportarRelatorio() {
@@ -426,6 +448,10 @@ $(function () {
     }
 
     vendas.forEach(venda => {
+      const status = venda.contato_corretor && venda.contato_corretor.tabulacao
+        ? venda.contato_corretor.tabulacao.descricao
+        : '-';
+
       const row = `
                 <tr>
                     <td>${formatDate(venda.data_vigencia)}</td>
@@ -435,7 +461,7 @@ $(function () {
                     <td>${venda.operadora || '-'}</td>
                     <td>${venda.nome_plano || '-'}</td>
                     <td>${formatCurrency(venda.valor_contrato)}</td>
-                    <td>${venda.vidas || 0}</td>
+                    <td>${status}</td>
                 </tr>
             `;
       $tbody.append(row);

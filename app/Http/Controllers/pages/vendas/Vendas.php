@@ -15,6 +15,7 @@ use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Enums\Tabulations;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Tabulacoes;
 
 class Vendas extends Controller
 {
@@ -105,7 +106,8 @@ class Vendas extends Controller
                 'resumo_geral' => $this->getResumoGeral($filtros),
                 'vendedores' => $this->getVendedoresPorEmpresa(),
                 'anos_disponiveis' => $this->getAnosDisponiveis($filtros),
-                'operadoras' => $this->getOperadoras($filtros)
+                'operadoras' => $this->getOperadoras($filtros),
+                'status_disponiveis' => $this->getStatusDisponiveis()
             ]
         ]);
     }
@@ -113,6 +115,7 @@ class Vendas extends Controller
     public function listarVendas(Request $request)
     {
         $filtros = $this->aplicarFiltros($request);
+        $filtros['status'] = $request->get('status'); // Filtro de status apenas para listagem
         $perPage = $request->get('per_page', 20);
 
         $vendas = $this->getVendasTotais($filtros, $perPage);
@@ -190,7 +193,8 @@ class Vendas extends Controller
         $query = VendasModel::with([
             'user' => function ($query) {
                 $query->select('id', 'name', 'empresa_id');
-            }
+            },
+            'contatoCorretor.tabulacao'
         ]);
 
         // Aplicar filtro por empresa PRIMEIRO
@@ -213,6 +217,12 @@ class Vendas extends Controller
 
         if ($filtros['operadora']) {
             $query->where('operadora', $filtros['operadora']);
+        }
+
+        if (isset($filtros['status']) && $filtros['status']) {
+            $query->whereHas('contatoCorretor', function ($q) use ($filtros) {
+                $q->where('tabulacao_id', $filtros['status']);
+            });
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
@@ -450,6 +460,24 @@ class Vendas extends Controller
             ->distinct()
             ->orderBy('operadora')
             ->pluck('operadora');
+    }
+
+    private function getStatusDisponiveis()
+    {
+        return Tabulacoes::whereIn('id', [
+            Tabulations::VENDA,
+            Tabulations::IMPLANTADO,
+            Tabulations::PENDENCIA,
+            Tabulations::ANALISE_OPERADORA,
+            Tabulations::BOLETO_DISPONIVEL,
+            Tabulations::REGULARIZADO,
+            Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+            Tabulations::ANALISE_DOCUMENTOS,
+            Tabulations::AGUARD_ASSINATURA_DS,
+        ])
+        ->select('id', 'descricao')
+        ->orderBy('descricao')
+        ->get();
     }
 
 

@@ -226,6 +226,11 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Lista de Vendas</h5>
+                    <div class="col-md-3">
+                        <select id="filtroStatusTabela" class="form-select">
+                            <option value="">Todos os status</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -239,7 +244,7 @@
                                     <th>Operadora</th>
                                     <th>Plano</th>
                                     <th>Valor</th>
-                                    <th>Vidas</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody id="vendasTableBody">
