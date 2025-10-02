@@ -79,6 +79,7 @@
                                 @if ($tipo_usuario === 'DEVELOPER')
                                     <option value="4">DEVELOPER</option>
                                 @endif
+                                <option value="5">SUPERVISOR</option>
                             </select>
                             <label for="tipo_user">Tipo de Acesso</label>
                         </div>

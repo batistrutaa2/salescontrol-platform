@@ -1047,10 +1047,12 @@ class Comercial extends Controller
   public function list(Request $request)
   {
     $q = Demanda::with(['criador:id,name', 'responsavel:id,name'])
-      ->when($request->status && $request->status !== 'TODOS', fn($s) => $s->where('status', $request->status))
-      ->when($request->prioridade && $request->prioridade !== 'TODAS', fn($s) => $s->where('prioridade', $request->prioridade))
-      ->when($request->assigned_to, fn($s) => $s->where('assigned_to', $request->assigned_to))
-      ->orderByDesc('created_at');
+        ->when($request->has('status') && $request->status !== 'TODOS', fn($s) => $s->where('status', $request->status))
+        ->when($request->has('prioridade') && $request->prioridade !== 'TODAS', fn($s) => $s->where('prioridade', $request->prioridade))
+        ->when($request->has('assigned_to') && $request->assigned_to, fn($s) => $s->where('assigned_to', $request->assigned_to))
+        ->orderByDesc('created_at');
+
+     
 
     return response()->json([
       'data' => $q->get()->map(function ($d) {
