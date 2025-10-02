@@ -205,6 +205,7 @@ Route::middleware(['auth'])->group(function () {
   Route::delete('/comissionamento/{id}', [Comissionamento::class, 'destroy'])->name('comissionamento.destroy');
   Route::get('/comissionamento/faturar', [Comissionamento::class, 'invoiceCommission'])->name('comissionamento.invoiceCommission');
   Route::get('/comissionamento/faturamento', [Comissionamento::class, 'getFaturamentoComissionamento'])->name('comissionamento.faturamento');
+  Route::get('/comissionamento/vendedores', [Comissionamento::class, 'getVendedores'])->name('comissionamento.vendedores');
 
   Route::get('/comissionamento-vendedor', [Comissionamento::class, 'sellerCommission'])->name('comissionamento.vendedor');
   Route::get('/comissionamento/getCommissioningBySeller', [Comissionamento::class, 'getCommissioningBySeller'])->name('comissionamento.getCommissioningBySeller');

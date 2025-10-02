@@ -57,10 +57,15 @@
             </div>
 
             <div class="row mt-2">
-                <div class="col text-end">
+                <div class="col">
                     <div class="text-muted small">
                         Somente contratos <strong>sem comissão paga</strong> no período selecionado.
                     </div>
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-lanc-avulso">
+                        <i class="ri-add-circle-line me-1"></i> Novo Lançamento
+                    </button>
                 </div>
             </div>
         </div>
@@ -264,6 +269,100 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" id="btn-confirm-ajuste">Salvar ajuste</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Modal: Lançamento Avulso (com seleção de vendedor) --}}
+    <div class="modal fade" id="modalLancAvulso" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <form class="modal-content" id="form-lanc-avulso" action="#" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="ri-file-add-line me-2"></i>Novo Lançamento
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <input type="hidden" id="avNatureza" name="natureza">
+                        <input type="hidden" id="avImpVal" name="imposto_valor">
+                        <input type="hidden" id="avLiqVal" name="valor_liquido">
+
+                        <div class="col-md-4">
+                            <label class="form-label">Mês de referência</label>
+                            <input type="month" class="form-control" id="avMes" name="mes"
+                                value="{{ \Carbon\Carbon::now('America/Sao_Paulo')->format('Y-m') }}" required>
+                        </div>
+
+                        <div class="col-md-8">
+                            <label class="form-label">Vendedor <span class="text-danger">*</span></label>
+                            <select class="form-select select2" id="avVendedor" name="vendedor_id" required>
+                                <option value="">Selecione um vendedor</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                            <select class="form-select" id="avTipo" required>
+                                <option value="">Selecione</option>
+                                <option value="CREDITO">Crédito</option>
+                                <option value="DEBITO">Débito</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Categoria</label>
+                            <select class="form-select" id="avCategoria" name="categoria" required>
+                                <option value="MOTIVACIONAL">MOTIVACIONAL</option>
+                                <option value="AJUSTE">AJUSTE</option>
+                                <option value="DESCONTO">ESTORNO</option>
+                                <option value="ANGARIACAO">ANGARIAÇÃO</option>
+                                <option value="OUTRO">OUTROS</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">% Imposto</label>
+                            <input type="number" step="0.01" class="form-control" id="avImpPerc"
+                                name="imposto_perc" value="0.00" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Valor (R$) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" id="avValor" name="valor_bruto"
+                                required>
+                        </div>
+
+                        <div class="col-md-8">
+                            <label class="form-label">Descrição/observação</label>
+                            <input type="text" class="form-control" id="avDesc" name="descricao"
+                                placeholder="Ex.: Bônus por meta ou desconto por atraso">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label">Imposto (R$)</label>
+                            <input type="text" class="form-control" id="avImpValView" disabled>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Líquido (R$)</label>
+                            <input type="text" class="form-control" id="avLiqView" disabled>
+                        </div>
+                        <div class="col-md-8 d-flex align-items-end">
+                            <div class="small text-muted">
+                                * Para <strong>Crédito</strong>, o líquido será somado ao total do vendedor. Para
+                                <strong>Débito</strong>, será subtraído.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-confirm-avulso">Salvar lançamento</button>
                 </div>
             </form>
         </div>

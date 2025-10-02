@@ -96,6 +96,23 @@ class Comissionamento extends Controller
     {
         return view('content.pages.comissionamento.comissionamento-faturamento', );
     }
+
+    public function getVendedores(Request $request)
+    {
+        $empresaId = $request->input('empresa_id') ?? Auth::user()->empresa_id;
+
+        $vendedores = User::where('empresa_id', $empresaId)
+            ->where('ativo', 'Y')
+            ->where('user_role_id', UserRole::VENDEDOR)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'vendedores' => $vendedores
+        ]);
+    }
     
 public function getFaturamentoComissionamento(Request $request)
 {

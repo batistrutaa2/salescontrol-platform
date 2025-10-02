@@ -600,6 +600,164 @@
 
   $aplicar.addEventListener('click', carregarEExibir);
 
+  // ======== Modal de Lançamento Avulso ========
+  const $avModal    = document.getElementById('modalLancAvulso');
+  const $avForm     = document.getElementById('form-lanc-avulso');
+  const $avVendedor = $('#avVendedor');
+  const $avTipo     = document.getElementById('avTipo');
+  const $avMes      = document.getElementById('avMes');
+  const $avNatureza = document.getElementById('avNatureza');
+  const $avCategoria= document.getElementById('avCategoria');
+  const $avImpPerc  = document.getElementById('avImpPerc');
+  const $avValor    = document.getElementById('avValor');
+  const $avDesc     = document.getElementById('avDesc');
+  const $avImpVal   = document.getElementById('avImpVal');
+  const $avLiqVal   = document.getElementById('avLiqVal');
+  const $avImpView  = document.getElementById('avImpValView');
+  const $avLiqView  = document.getElementById('avLiqView');
+
+  function recalcAvulso() {
+    const bruto   = parseFloat($avValor?.value || '0');
+    const impPerc = parseFloat($avImpPerc?.value || '0');
+    const natureza = $avNatureza?.value || 'CREDITO';
+
+    const impVal  = +(bruto * (impPerc/100)).toFixed(2);
+    const liqPos  = +(bruto - impVal).toFixed(2);
+    const liqSign = (natureza === 'DEBITO') ? -liqPos : liqPos;
+
+    if ($avImpVal)  $avImpVal.value  = impVal.toFixed(2);
+    if ($avLiqVal)  $avLiqVal.value  = liqSign.toFixed(2);
+    if ($avImpView) $avImpView.value = brl(impVal);
+    if ($avLiqView) $avLiqView.value = brl(liqSign);
+  }
+
+  $avValor?.addEventListener('input', recalcAvulso);
+  $avImpPerc?.addEventListener('input', recalcAvulso);
+  $avTipo?.addEventListener('change', function() {
+    if ($avNatureza) $avNatureza.value = this.value;
+    recalcAvulso();
+  });
+
+  // Carregar lista de vendedores para o select
+  async function carregarVendedoresAvulso() {
+    try {
+      const res = await fetch(`/comissionamento/vendedores?empresa_id=${EMPRESA_ID}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (!res.ok) {
+        throw new Error('Erro ao buscar vendedores');
+      }
+
+      const data = await res.json();
+      const vendedores = data.vendedores || [];
+
+      $avVendedor.empty().append('<option value="">Selecione um vendedor</option>');
+      vendedores.forEach(v => {
+        $avVendedor.append(`<option value="${v.id}">${v.name}</option>`);
+      });
+
+    } catch (error) {
+      console.error('Erro ao carregar vendedores:', error);
+      toastr.error('Erro ao carregar lista de vendedores');
+
+      // Fallback: popula com vendedores da tela atual
+      $avVendedor.empty().append('<option value="">Selecione um vendedor</option>');
+      const vendOpts = document.querySelectorAll('#filtro-vendedor option');
+      vendOpts.forEach(opt => {
+        if (opt.value) {
+          $avVendedor.append(`<option value="${opt.value}">${opt.textContent}</option>`);
+        }
+      });
+    }
+  }
+
+  document.getElementById('btn-lanc-avulso')?.addEventListener('click', function() {
+    if (!$avModal) return;
+
+    // Resetar formulário
+    if ($avMes) $avMes.value = document.getElementById('filtro-mes').value || $avMes.value;
+    if ($avTipo) $avTipo.value = '';
+    if ($avNatureza) $avNatureza.value = 'CREDITO';
+    if ($avCategoria) $avCategoria.value = 'MOTIVACIONAL';
+    if ($avImpPerc) $avImpPerc.value = '0.00';
+    if ($avValor) $avValor.value = '';
+    if ($avDesc) $avDesc.value = '';
+
+    // Carregar vendedores
+    carregarVendedoresAvulso();
+
+    // Reinicializar select2
+    if ($avVendedor.data('select2')) {
+      $avVendedor.val('').trigger('change');
+    } else {
+      $avVendedor.select2({
+        width: '100%',
+        placeholder: 'Selecione um vendedor',
+        dropdownParent: $($avModal)
+      });
+    }
+
+    recalcAvulso();
+
+    const modal = new bootstrap.Modal($avModal);
+    modal.show();
+  });
+
+  // Salvar lançamento avulso
+  document.getElementById('btn-confirm-avulso')?.addEventListener('click', async () => {
+    try {
+      const vendedorId = $avVendedor.val();
+      if (!vendedorId) throw new Error('Selecione um vendedor.');
+      if (!$avMes?.value) throw new Error('Informe o mês de referência.');
+      if (!$avTipo?.value) throw new Error('Selecione o tipo (Crédito/Débito).');
+      if (!Number($avValor?.value)) throw new Error('Informe um valor válido.');
+
+      if (!AJUSTE_URL) {
+        toastr.warning('Configure data-ajuste-url no #comissionamento-root para salvar no backend.');
+        bootstrap.Modal.getInstance($avModal)?.hide();
+        return;
+      }
+
+      const payload = {
+        vendedor_id: Number(vendedorId),
+        mes: $avMes.value,
+        natureza: $avNatureza.value,
+        categoria: $avCategoria.value,
+        imposto_perc: Number($avImpPerc.value),
+        valor_bruto: Number($avValor.value),
+        imposto_valor: Number($avImpVal.value),
+        valor_liquido: Number($avLiqVal.value),
+        descricao: $avDesc.value || null
+      };
+
+      const res = await fetch(AJUSTE_URL, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Falha ao salvar lançamento.');
+      }
+
+      const json = await res.json().catch(() => ({}));
+      toastr.success(json.message || 'Lançamento salvo com sucesso.');
+      bootstrap.Modal.getInstance($avModal)?.hide();
+
+      // Recarrega lista
+      document.getElementById('btn-aplicar-filtro')?.click();
+
+    } catch (e) {
+      toastr.error(e.message || 'Erro ao salvar lançamento.');
+    }
+  });
+
   // Primeira carga
   carregarEExibir();
 })();
