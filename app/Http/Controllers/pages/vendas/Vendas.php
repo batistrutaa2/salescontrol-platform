@@ -404,9 +404,16 @@ class Vendas extends Controller
             $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
+        // Query para vendas implantadas
+        $queryImplantadas = clone $query;
+        $queryImplantadas->whereHas('contatoCorretor', function ($q) {
+            $q->where('tabulacao_id', Tabulations::IMPLANTADO);
+        });
+
         return [
             'total_contratos' => $query->count(),
             'valor_total' => $query->sum('valor_contrato') ?? 0,
+            'valor_implantado' => $queryImplantadas->sum('valor_contrato') ?? 0,
             'total_vidas' => $query->sum('vidas') ?? 0,
             'ticket_medio' => $query->avg('valor_contrato') ?? 0,
             'vidas_por_contrato' => $query->avg('vidas') ?? 0

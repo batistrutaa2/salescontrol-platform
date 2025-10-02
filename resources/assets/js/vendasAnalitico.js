@@ -177,6 +177,7 @@ $(function () {
       if (data.resumo_geral) {
         $('#totalContratos').text(formatNumber(data.resumo_geral.total_contratos || 0));
         $('#valorTotal').text(formatCurrency(data.resumo_geral.valor_total || 0));
+        $('#valorImplantado').text(formatCurrency(data.resumo_geral.valor_implantado || 0));
         $('#totalVidas').text(formatNumber(data.resumo_geral.total_vidas || 0));
         $('#ticketMedio').text(formatCurrency(data.resumo_geral.ticket_medio || 0));
       }

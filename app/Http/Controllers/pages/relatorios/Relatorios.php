@@ -556,10 +556,26 @@ class Relatorios extends Controller
 
     private function aplicarFiltroStatusImplantado($query)
     {
-        return $query->whereNotNull('data_implantacao')
-            ->whereHas('contatoCorretor', function ($q) {
-                $q->where('tabulacao_id', Tabulations::IMPLANTADO);
-            });
+        return $query->whereHas('contatoCorretor', function ($q) {
+            $q->where('tabulacao_id', Tabulations::IMPLANTADO);
+        });
+    }
+
+    private function aplicarFiltroStatusVenda($query)
+    {
+        return $query->whereHas('contatoCorretor', function ($q) {
+            $q->whereIn('tabulacao_id', [
+                Tabulations::VENDA,
+                Tabulations::IMPLANTADO,
+                Tabulations::PENDENCIA,
+                Tabulations::ANALISE_OPERADORA,
+                Tabulations::BOLETO_DISPONIVEL,
+                Tabulations::REGULARIZADO,
+                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                Tabulations::ANALISE_DOCUMENTOS,
+                Tabulations::AGUARD_ASSINATURA_DS,
+            ]);
+        });
     }
 
     private function getImplantacoesTotais($filtros, $perPage = null)
@@ -770,9 +786,35 @@ class Relatorios extends Controller
             $query->whereBetween('data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
+        // Query para vendas cadastradas no mesmo período
+        $queryCadastradas = VendasModel::query();
+        $queryCadastradas = $this->aplicarFiltroEmpresa($queryCadastradas);
+        $queryCadastradas = $this->aplicarFiltroStatusVenda($queryCadastradas);
+
+        if ($filtros['ano']) {
+            $queryCadastradas->whereYear('vendas.created_at', $filtros['ano']);
+        }
+
+        if ($filtros['mes']) {
+            $queryCadastradas->whereMonth('vendas.created_at', $filtros['mes']);
+        }
+
+        if ($filtros['vendedor_id']) {
+            $queryCadastradas->where('user_id', $filtros['vendedor_id']);
+        }
+
+        if ($filtros['operadora']) {
+            $queryCadastradas->where('operadora', $filtros['operadora']);
+        }
+
+        if ($filtros['data_inicio'] && $filtros['data_fim']) {
+            $queryCadastradas->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+        }
+
         return [
             'total_contratos' => $query->count(),
             'valor_total' => $query->sum('valor_contrato') ?? 0,
+            'valor_cadastrado' => $queryCadastradas->sum('valor_contrato') ?? 0,
             'total_vidas' => $query->sum('vidas') ?? 0,
             'ticket_medio' => $query->avg('valor_contrato') ?? 0,
             'vidas_por_contrato' => $query->avg('vidas') ?? 0

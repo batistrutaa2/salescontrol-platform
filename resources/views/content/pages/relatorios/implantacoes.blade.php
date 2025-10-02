@@ -121,7 +121,7 @@
 
         <!-- Cards de Resumo -->
         <div class="row mt-4">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="card bg-primary text-white">
                     <div class="card-body text-center">
                         <h5 class="card-title text-white">Total de Contratos</h5>
@@ -132,12 +132,20 @@
             <div class="col-md-3">
                 <div class="card bg-success text-white">
                     <div class="card-body text-center">
-                        <h5 class="card-title text-white">Valor Total</h5>
+                        <h5 class="card-title text-white">Valor Implantado</h5>
                         <h2 class="text-white" id="valorTotal">R$ 0,00</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
+                <div class="card bg-success text-white" style="background-color: #28a745 !important; opacity: 0.85;">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-white">Valor Cadastrado</h5>
+                        <h2 class="text-white" id="valorCadastrado">R$ 0,00</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
                 <div class="card bg-info text-white">
                     <div class="card-body text-center">
                         <h5 class="card-title text-white">Total de Vidas</h5>
@@ -145,7 +153,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="card bg-warning text-white">
                     <div class="card-body text-center">
                         <h5 class="card-title text-white">Ticket Médio</h5>

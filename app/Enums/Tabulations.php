@@ -4,6 +4,7 @@ namespace App\Enums;
 
 class Tabulations
 {
+  // Tabulações de Vendas
   const PROSPECCAO = 1;
   const REUNIÃO = 2;
   const NEGOCIAÇÃO = 3;
@@ -11,20 +12,24 @@ class Tabulations
   const NEGOCIO_FECHADO = 5;
   const NEGOCIO_NAO_FECHADO = 6;
   const REMARKETING = 10;
-  const VENDA = 16;
-  const IMPLANTADO = 18;
   const SEM_CONTATO = 19;
-  const ESTORNO = 17;
   const AGENDAMENTO = 29;
   const FOLLOWUP = 13;
+
+  // Tabulações de Pós-Vendas - conta como cadastrado
+  const VENDA = 16;
+  const IMPLANTADO = 18;
   const PENDENCIA = 55;
   const ANALISE_OPERADORA = 59;
   const BOLETO_DISPONIVEL = 58;
   const REGULARIZADO = 57;
   const CONTR_GERADO_AGUARDANDO_ASSINATURA = 56;
   const ANALISE_DOCUMENTOS = 54;
-  const DECLINIO = 53;
   const AGUARD_ASSINATURA_DS = 60;
+
+  // Tabulações de Suporte - não conta como cadastrado
+  const ESTORNO = 17;
+  const DECLINIO = 53;
 
 
   private static array $ids_rules = [
