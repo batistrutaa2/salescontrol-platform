@@ -1111,7 +1111,8 @@ public function getFaturamentoComissionamento(Request $request)
         $q = DB::table('comissao_pagamentos as p')
             ->join('users as v', 'v.id', '=', 'p.vendedor_id')
             ->join('users as c', 'c.id', '=', 'p.created_by')
-            ->where('p.empresa_id', $empresaId);
+            ->where('p.empresa_id', $empresaId)
+            ->whereNotNull('p.data_pagamento'); // Filtra apenas pagamentos concluídos
 
         if ($isVendedor) {
             $q->where('p.vendedor_id', $user->id);
@@ -1200,6 +1201,7 @@ public function getFaturamentoComissionamento(Request $request)
             DB::table('comissao_pagamentos')
                 ->where('id', $id)
                 ->update([
+                    'data_pagamento' => null,
                     'updated_at' => now(),
                 ]);
         });
