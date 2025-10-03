@@ -597,8 +597,6 @@ public function getFaturamentoComissionamento(Request $request)
         ]);
     }
     
-
-
     public function pagarVendedor(Request $request)
     {
         $request->validate([
@@ -737,29 +735,60 @@ public function getFaturamentoComissionamento(Request $request)
             $empresaId, $vendedorId, $adminUserId, $mes, $dataPagto,
             $enriched, $ajustes, $totais, $salario, $totalRec, $percCom, $percImp
         ) {
-            // Header
-            $headerId = DB::table('comissao_pagamentos')->insertGetId([
-                'empresa_id'           => $empresaId,
-                'vendedor_id'          => $vendedorId,
-                'mes'                  => $mes,
-                'data_pagamento'       => $dataPagto,
-                // snapshot do perfil (0 se só ajustes)
-                'percentual_comissao'  => $percCom,
-                'percentual_imposto'   => $percImp,
-                'total_bruto'          => $totais['bruto'],
-                'total_imposto'        => $totais['imposto'],
-                'total_liquido'        => $totais['liquido'],
-                'salario'              => 0,              // <<< zera no header
-                'total_receber'        => $totalRec,      // <<< só líquido
-                'created_by'           => $adminUserId,
-                'created_at'           => now(),
-                'updated_at'           => now(),
-            ]);
+            // Verifica se já existe um pagamento para este mês/vendedor
+            $headerExistente = DB::table('comissao_pagamentos')
+                ->where('empresa_id', $empresaId)
+                ->where('vendedor_id', $vendedorId)
+                ->where('mes', $mes)
+                ->first();
+
+            if ($headerExistente) {
+                // ATUALIZA o header existente
+                DB::table('comissao_pagamentos')
+                    ->where('id', $headerExistente->id)
+                    ->update([
+                        'data_pagamento'       => $dataPagto,
+                        'percentual_comissao'  => $percCom,
+                        'percentual_imposto'   => $percImp,
+                        'total_bruto'          => $totais['bruto'],
+                        'total_imposto'        => $totais['imposto'],
+                        'total_liquido'        => $totais['liquido'],
+                        'salario'              => 0,
+                        'total_receber'        => $totalRec,
+                        'updated_at'           => now(),
+                    ]);
+
+                $headerId = $headerExistente->id;
+            } else {
+                // CRIA novo header
+                $headerId = DB::table('comissao_pagamentos')->insertGetId([
+                    'empresa_id'           => $empresaId,
+                    'vendedor_id'          => $vendedorId,
+                    'mes'                  => $mes,
+                    'data_pagamento'       => $dataPagto,
+                    'percentual_comissao'  => $percCom,
+                    'percentual_imposto'   => $percImp,
+                    'total_bruto'          => $totais['bruto'],
+                    'total_imposto'        => $totais['imposto'],
+                    'total_liquido'        => $totais['liquido'],
+                    'salario'              => 0,
+                    'total_receber'        => $totalRec,
+                    'created_by'           => $adminUserId,
+                    'created_at'           => now(),
+                    'updated_at'           => now(),
+                ]);
+            }
 
             // Itens de VENDAS
             if ($enriched->isNotEmpty()) {
-                $itensV = $enriched->map(function ($r) use ($headerId) {
-                    return [
+                foreach ($enriched as $r) {
+                    // Verifica se já existe item para esta venda
+                    $itemExistente = DB::table('comissao_pagamento_itens')
+                        ->where('comissao_pagamento_id', $headerId)
+                        ->where('venda_id', $r->id)
+                        ->first();
+
+                    $dadosItem = [
                         'comissao_pagamento_id' => $headerId,
                         'venda_id'              => $r->id,
                         'ajuste_id'             => null,
@@ -772,12 +801,20 @@ public function getFaturamentoComissionamento(Request $request)
                         'bruto'                 => $r->bruto,
                         'imposto_valor'         => $r->imposto_valor,
                         'liquido'               => $r->liquido,
-                        'created_at'            => now(),
                         'updated_at'            => now(),
                     ];
-                })->toArray();
 
-                DB::table('comissao_pagamento_itens')->insert($itensV);
+                    if ($itemExistente) {
+                        // ATUALIZA item existente
+                        DB::table('comissao_pagamento_itens')
+                            ->where('id', $itemExistente->id)
+                            ->update($dadosItem);
+                    } else {
+                        // CRIA novo item
+                        $dadosItem['created_at'] = now();
+                        DB::table('comissao_pagamento_itens')->insert($dadosItem);
+                    }
+                }
 
                 // marca vendas como pagas
                 DB::table('vendas')
@@ -791,10 +828,16 @@ public function getFaturamentoComissionamento(Request $request)
 
             // Itens de AJUSTES
             if ($ajustes->isNotEmpty()) {
-                $itensA = $ajustes->map(function ($a) use ($headerId) {
+                foreach ($ajustes as $a) {
+                    // Verifica se já existe item para este ajuste
+                    $itemExistente = DB::table('comissao_pagamento_itens')
+                        ->where('comissao_pagamento_id', $headerId)
+                        ->where('ajuste_id', $a->id)
+                        ->first();
+
                     $tipo = in_array($a->categoria, ['MOTIVACIONAL','AJUSTE','BONUS','OUTRO', 'ANGARIACAO']) ? $a->categoria : 'AJUSTE';
 
-                    return [
+                    $dadosItem = [
                         'comissao_pagamento_id' => $headerId,
                         'venda_id'              => null,
                         'ajuste_id'             => $a->id,
@@ -806,13 +849,21 @@ public function getFaturamentoComissionamento(Request $request)
                         'imposto_perc'          => (float) $a->imposto_perc,
                         'bruto'                 => (float) $a->valor_bruto,
                         'imposto_valor'         => (float) $a->imposto_valor,
-                        'liquido'               => (float) $a->valor_liquido, // pode ser negativo (débito)
-                        'created_at'            => now(),
+                        'liquido'               => (float) $a->valor_liquido,
                         'updated_at'            => now(),
                     ];
-                })->toArray();
 
-                DB::table('comissao_pagamento_itens')->insert($itensA);
+                    if ($itemExistente) {
+                        // ATUALIZA item existente
+                        DB::table('comissao_pagamento_itens')
+                            ->where('id', $itemExistente->id)
+                            ->update($dadosItem);
+                    } else {
+                        // CRIA novo item
+                        $dadosItem['created_at'] = now();
+                        DB::table('comissao_pagamento_itens')->insert($dadosItem);
+                    }
+                }
 
                 DB::table('lancamentos_debito_credito')
                     ->whereIn('id', $ajustes->pluck('id'))
@@ -832,12 +883,14 @@ public function getFaturamentoComissionamento(Request $request)
             'pagamento_id'          => $pagamentoId,
             'pdf_url'               => route('comissionamento.pagamento.pdf', $pagamentoId),
             'totais'                => $totais,
-            'salario'               => 0.0,                // <<< retorna 0
+            'salario'               => 0.0,
             'percentual_comissao'   => $percCom,
             'percentual_imposto'    => $percImp,
-            'total_receber'         => $totalRec,          // <<< líquido
+            'total_receber'         => $totalRec,
         ]);
     }
+
+
 
     public function pdfPagamento($pagamentoId)
     {
@@ -1116,18 +1169,39 @@ public function getFaturamentoComissionamento(Request $request)
         }
 
         DB::transaction(function () use ($id) {
+            // Busca os IDs das vendas relacionadas
             $vendaIds = DB::table('comissao_pagamento_itens')
                 ->where('comissao_pagamento_id', $id)
                 ->pluck('venda_id');
 
+            // Atualiza as vendas para remover a marcação de comissão paga
             DB::table('vendas')->whereIn('id', $vendaIds)->update([
                 'comissao_paga' => 0,
                 'data_pagamento_comissao' => null,
                 'updated_at' => now(),
             ]);
 
-            DB::table('comissao_pagamento_itens')->where('comissao_pagamento_id', $id)->delete();
-            DB::table('comissao_pagamentos')->where('id', $id)->delete();
+            DB::table('comissao_pagamento_itens')
+                ->where('comissao_pagamento_id', $id)
+                ->update([
+                    'updated_at' => now(),
+                ]);
+
+
+            DB::table('lancamentos_debito_credito')
+                ->where('comissao_pagamento_id', $id)
+                ->update([
+                    'status' => 'pendente',
+                    'pago_em' => null,
+                    'updated_at' => now(),
+                ]);
+
+            // Atualiza o header para status PENDENTE
+            DB::table('comissao_pagamentos')
+                ->where('id', $id)
+                ->update([
+                    'updated_at' => now(),
+                ]);
         });
 
         return response()->json(['message' => 'Pagamento estornado com sucesso.']);
