@@ -227,6 +227,7 @@
                                 <option value="AJUSTE">AJUSTE</option>
                                 <option value="DESCONTO">ESTORNO</option>
                                 <option value="ANGARIACAO">ANGARIAÇÃO</option>
+                                <option value="PRESTACAO">PRESTAÇÃO</option>
                                 <option value="OUTRO">OUTROS</option>
                             </select>
                         </div>
@@ -321,6 +322,7 @@
                                 <option value="AJUSTE">AJUSTE</option>
                                 <option value="DESCONTO">ESTORNO</option>
                                 <option value="ANGARIACAO">ANGARIAÇÃO</option>
+                                <option value="PRESTACAO">PRESTAÇÃO</option>
                                 <option value="OUTRO">OUTROS</option>
                             </select>
                         </div>

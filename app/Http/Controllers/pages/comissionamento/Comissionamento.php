@@ -532,7 +532,7 @@ public function getFaturamentoComissionamento(Request $request)
                 'vendedor_id'  => ['required','integer','exists:users,id'],
                 'mes'          => ['required','regex:/^\d{4}-\d{2}$/'], // YYYY-MM
                 'natureza'     => ['required','in:DEBITO,CREDITO'],
-                'categoria'    => ['required','in:MOTIVACIONAL,AJUSTE,DESCONTO,OUTRO,ANGARIACAO'],
+                'categoria'    => ['required','in:MOTIVACIONAL,AJUSTE,DESCONTO,OUTRO,ANGARIACAO,PRESTACAO'],
                 'imposto_perc' => ['required','numeric','min:0','max:100'],
                 'valor_bruto'  => ['required','numeric','min:0.01'],
                 'descricao'    => ['nullable','string','max:255'],
@@ -835,7 +835,7 @@ public function getFaturamentoComissionamento(Request $request)
                         ->where('ajuste_id', $a->id)
                         ->first();
 
-                    $tipo = in_array($a->categoria, ['MOTIVACIONAL','AJUSTE','BONUS','OUTRO', 'ANGARIACAO']) ? $a->categoria : 'AJUSTE';
+                    $tipo = in_array($a->categoria, ['MOTIVACIONAL','AJUSTE','BONUS','OUTRO', 'ANGARIACAO', 'PRESTACAO']) ? $a->categoria : 'AJUSTE';
 
                     $dadosItem = [
                         'comissao_pagamento_id' => $headerId,
