@@ -114,271 +114,271 @@ class Comissionamento extends Controller
         ]);
     }
     
-public function getFaturamentoComissionamento(Request $request)
-{
-    $empresaId = Auth::user()->empresa_id;
+    public function getFaturamentoComissionamento(Request $request)
+    {
+        $empresaId = Auth::user()->empresa_id;
 
-    $mes = $request->input('mes') ?: Carbon::now('America/Sao_Paulo')->format('Y-m');
-    [$y, $m] = explode('-', $mes);
+        $mes = $request->input('mes') ?: Carbon::now('America/Sao_Paulo')->format('Y-m');
+        [$y, $m] = explode('-', $mes);
 
-    $inicio = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->startOfMonth()->toDateString();
-    $fim    = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->endOfMonth()->toDateString();
-    $vendedorId = $request->input('vendedor_id');
+        $inicio = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->startOfMonth()->toDateString();
+        $fim    = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->endOfMonth()->toDateString();
+        $vendedorId = $request->input('vendedor_id');
 
-    // ========== BASE DE VENDAS ==========
-    $rows = DB::table('vendas as v')
-        ->join('users as u', 'u.id', '=', 'v.user_id')
-        ->join('comissionamento_configuracao as cfg', function ($j) use ($empresaId) {
-            $j->on('cfg.user_id', '=', 'v.user_id')
-              ->where('cfg.empresa_id', '=', $empresaId);
-        })
-        ->where('v.empresa_id', $empresaId)
-        ->whereBetween('v.data_implantacao', [$inicio, $fim])
-        ->whereNotNull('v.data_implantacao')
-        ->where('v.comissao_paga', 0)
-        ->when($vendedorId, fn($q) => $q->where('v.user_id', $vendedorId))
-        ->select([
-            'v.id',
-            'v.user_id',
-            'u.name as vendedor',
-            'v.nome_contrato',
-            'v.angariacao_valor',
-            'v.angariacao_status',
-            DB::raw('COALESCE(v.valor_contrato,0) as valor_contrato'),
-            'v.data_implantacao',
-            DB::raw('LOWER(cfg.grade) as grade'),
-            'cfg.imposto',
-            'cfg.salario',
-            'cfg.percentual',
-        ])
-        ->orderBy('u.name')
-        ->orderBy('v.data_implantacao')
-        ->get();
+        // ========== BASE DE VENDAS ==========
+        $rows = DB::table('vendas as v')
+            ->join('users as u', 'u.id', '=', 'v.user_id')
+            ->join('comissionamento_configuracao as cfg', function ($j) use ($empresaId) {
+                $j->on('cfg.user_id', '=', 'v.user_id')
+                ->where('cfg.empresa_id', '=', $empresaId);
+            })
+            ->where('v.empresa_id', $empresaId)
+            ->whereBetween('v.data_implantacao', [$inicio, $fim])
+            ->whereNotNull('v.data_implantacao')
+            ->where('v.comissao_paga', 0)
+            ->when($vendedorId, fn($q) => $q->where('v.user_id', $vendedorId))
+            ->select([
+                'v.id',
+                'v.user_id',
+                'u.name as vendedor',
+                'v.nome_contrato',
+                'v.angariacao_valor',
+                'v.angariacao_status',
+                DB::raw('COALESCE(v.valor_contrato,0) as valor_contrato'),
+                'v.data_implantacao',
+                DB::raw('LOWER(cfg.grade) as grade'),
+                'cfg.imposto',
+                'cfg.salario',
+                'cfg.percentual',
+            ])
+            ->orderBy('u.name')
+            ->orderBy('v.data_implantacao')
+            ->get();
 
-    // ========== CÁLCULOS ==========
-    $porVendedor = [];
-    $kpiContratos = 0;
-    $kpiTotalContratos = 0.0;
-    $kpiTotalComissao = 0.0;
+        // ========== CÁLCULOS ==========
+        $porVendedor = [];
+        $kpiContratos = 0;
+        $kpiTotalContratos = 0.0;
+        $kpiTotalComissao = 0.0;
 
-    $totalVendasAllGrades = 0.0; // base ADMIN
-    $totalVendasJunior    = 0.0; // base COMERCIAL
+        $totalVendasAllGrades = 0.0; // base ADMIN
+        $totalVendasJunior    = 0.0; // base COMERCIAL
 
-    foreach ($rows as $r) {
-        $valor      = (float) $r->valor_contrato;
-        $impostoCfg = (float) $r->imposto;
-        $grade      = strtolower((string) $r->grade);
-        $angVal     = (float) $r->angariacao_valor;
-        $percentualAngariacao = $r->grade == 'junior' ? 30.0 : 50.0;
+        foreach ($rows as $r) {
+            $valor      = (float) $r->valor_contrato;
+            $impostoCfg = (float) $r->imposto;
+            $grade      = strtolower((string) $r->grade);
+            $angVal     = (float) $r->angariacao_valor;
+            $percentualAngariacao = $r->grade == 'junior' ? 30.0 : 50.0;
 
-        // Regra angariação
-        $isAng           = strtoupper((string) $r->angariacao_status) === 'SIM';
-        $baseAplicada    = $isAng ? $angVal : $valor;
-        $percentualAplic = $isAng ? $percentualAngariacao : (float) $r->percentual;
-        $impostoAplic    = $isAng ? 0.0  : $impostoCfg;
+            // Regra angariação
+            $isAng           = strtoupper((string) $r->angariacao_status) === 'SIM';
+            $baseAplicada    = $isAng ? $angVal : $valor;
+            $percentualAplic = $isAng ? $percentualAngariacao : (float) $r->percentual;
+            $impostoAplic    = $isAng ? 0.0  : $impostoCfg;
 
-        if ($percentualAplic > 0) {
-            $valorComissaoBruta  = round($baseAplicada * ($percentualAplic / 100.0), 2);
-            $valorComissaoLiquida= round($valorComissaoBruta * (1.0 - ($impostoAplic / 100.0)), 2);
+            if ($percentualAplic > 0) {
+                $valorComissaoBruta  = round($baseAplicada * ($percentualAplic / 100.0), 2);
+                $valorComissaoLiquida= round($valorComissaoBruta * (1.0 - ($impostoAplic / 100.0)), 2);
 
-            $totalVendasAllGrades += $baseAplicada;
-            if ($grade === 'junior') $totalVendasJunior += $baseAplicada;
+                $totalVendasAllGrades += $baseAplicada;
+                if ($grade === 'junior') $totalVendasJunior += $baseAplicada;
 
-            if (!isset($porVendedor[$r->user_id])) {
-                $porVendedor[$r->user_id] = [
-                    'user_id'   => $r->user_id,
-                    'vendedor'  => $r->vendedor,
-                    'percentual'=> (float) $r->percentual,
+                if (!isset($porVendedor[$r->user_id])) {
+                    $porVendedor[$r->user_id] = [
+                        'user_id'   => $r->user_id,
+                        'vendedor'  => $r->vendedor,
+                        'percentual'=> (float) $r->percentual,
+                        'totais'    => ['qtd' => 0, 'contratos' => 0.0, 'comissao' => 0.0],
+                        'contratos' => [],
+                    ];
+                }
+
+                $porVendedor[$r->user_id]['contratos'][] = [
+                    'id'                     => $r->id,
+                    'is_ajuste'              => false, // CONTRATO
+                    'nome_contrato'          => $r->nome_contrato,
+                    'valor_contrato'         => round($valor, 2),
+                    'valor_base'             => round($baseAplicada, 2),
+                    'percentual_aplicado'    => round($percentualAplic, 2),
+                    'imposto_aplicado'       => round($impostoAplic, 2),
+                    'valor_comissao_bruta'   => round($valorComissaoBruta, 2),
+                    'valor_comissao'         => round($valorComissaoLiquida, 2),
+                    'data_implantacao'       => Carbon::parse($r->data_implantacao)->format('d/m/Y'),
+                    'angariacao_valor'       => round($angVal, 2),
+                    'angariacao_status'      => $r->angariacao_status,
+                ];
+
+                $porVendedor[$r->user_id]['totais']['qtd']         += 1;
+                $porVendedor[$r->user_id]['totais']['contratos']   += $baseAplicada;
+                $porVendedor[$r->user_id]['totais']['comissao']    += $valorComissaoLiquida;
+
+                $kpiContratos       += 1;
+                $kpiTotalContratos  += $baseAplicada;
+                $kpiTotalComissao   += $valorComissaoLiquida;
+            }
+        }
+
+        /* ===== AJUSTES (pendentes) para o mês/empresa, e opcionalmente vendedor ===== */
+        $ajustes = DB::table('lancamentos_debito_credito as a')
+            ->join('users as u', 'u.id', '=', 'a.vendedor_id')
+            ->where('a.empresa_id', $empresaId)
+            ->where('a.mes', $mes)
+            ->where('a.status', 'pendente')
+            ->when($vendedorId, fn($q) => $q->where('a.vendedor_id', $vendedorId))
+            ->select([
+                'a.id',
+                'a.vendedor_id as user_id',
+                'u.name as vendedor',
+                'a.natureza',
+                'a.categoria',
+                'a.descricao',
+                'a.imposto_perc',
+                'a.valor_bruto',
+                'a.imposto_valor',
+                'a.valor_liquido', // já com sinal (+ crédito / - débito)
+            ])
+            ->orderBy('u.name')
+            ->get();
+
+        foreach ($ajustes as $aj) {
+            if (!isset($porVendedor[$aj->user_id])) {
+                $porVendedor[$aj->user_id] = [
+                    'user_id'   => $aj->user_id,
+                    'vendedor'  => $aj->vendedor,
+                    'percentual'=> 0.0,
                     'totais'    => ['qtd' => 0, 'contratos' => 0.0, 'comissao' => 0.0],
                     'contratos' => [],
                 ];
             }
 
-            $porVendedor[$r->user_id]['contratos'][] = [
-                'id'                     => $r->id,
-                'is_ajuste'              => false, // CONTRATO
-                'nome_contrato'          => $r->nome_contrato,
-                'valor_contrato'         => round($valor, 2),
-                'valor_base'             => round($baseAplicada, 2),
-                'percentual_aplicado'    => round($percentualAplic, 2),
-                'imposto_aplicado'       => round($impostoAplic, 2),
-                'valor_comissao_bruta'   => round($valorComissaoBruta, 2),
-                'valor_comissao'         => round($valorComissaoLiquida, 2),
-                'data_implantacao'       => Carbon::parse($r->data_implantacao)->format('d/m/Y'),
-                'angariacao_valor'       => round($angVal, 2),
-                'angariacao_status'      => $r->angariacao_status,
+            $nomeSintetico = ($aj->natureza === 'CREDITO' ? 'Crédito' : 'Despesa')
+                .' · '.ucfirst(strtolower($aj->categoria))
+                .($aj->descricao ? ' — '.$aj->descricao : '');
+
+            $porVendedor[$aj->user_id]['contratos'][] = [
+                'id'                   => $aj->id,
+                'is_ajuste'            => true,                 // FLAG para o front
+                'nome_contrato'        => $nomeSintetico,
+                'valor_contrato'       => round((float)$aj->valor_bruto, 2),
+                'valor_base'           => round((float)$aj->valor_bruto, 2),
+                'percentual_aplicado'  => 0,
+                'imposto_aplicado'     => round((float)$aj->imposto_perc, 2),
+                'valor_comissao_bruta' => round((float)$aj->valor_bruto, 2),
+                'valor_comissao'       => round((float)$aj->valor_liquido, 2), // LÍQUIDO COM SINAL
+                'data_implantacao'     => '',    // não se aplica
+                'angariacao_valor'     => 0,
+                'angariacao_status'    => 'NAO',
             ];
 
-            $porVendedor[$r->user_id]['totais']['qtd']         += 1;
-            $porVendedor[$r->user_id]['totais']['contratos']   += $baseAplicada;
-            $porVendedor[$r->user_id]['totais']['comissao']    += $valorComissaoLiquida;
-
-            $kpiContratos       += 1;
-            $kpiTotalContratos  += $baseAplicada;
-            $kpiTotalComissao   += $valorComissaoLiquida;
+            // Ajuste entra SOMENTE na soma da comissão líquida (com sinal)
+            $porVendedor[$aj->user_id]['totais']['comissao'] += (float)$aj->valor_liquido;
+            $kpiTotalComissao += (float)$aj->valor_liquido;
         }
-    }
 
-    /* ===== AJUSTES (pendentes) para o mês/empresa, e opcionalmente vendedor ===== */
-    $ajustes = DB::table('lancamentos_debito_credito as a')
-        ->join('users as u', 'u.id', '=', 'a.vendedor_id')
-        ->where('a.empresa_id', $empresaId)
-        ->where('a.mes', $mes)
-        ->where('a.status', 'pendente')
-        ->when($vendedorId, fn($q) => $q->where('a.vendedor_id', $vendedorId))
-        ->select([
-            'a.id',
-            'a.vendedor_id as user_id',
-            'u.name as vendedor',
-            'a.natureza',
-            'a.categoria',
-            'a.descricao',
-            'a.imposto_perc',
-            'a.valor_bruto',
-            'a.imposto_valor',
-            'a.valor_liquido', // já com sinal (+ crédito / - débito)
-        ])
-        ->orderBy('u.name')
-        ->get();
+        // (Opcional) ordenar vendedores por nome depois de injetar ajustes
+        if (!empty($porVendedor)) {
+            $porVendedor = array_values(
+                collect($porVendedor)->sortBy('vendedor', SORT_NATURAL|SORT_FLAG_CASE)->toArray()
+            );
+        } else {
+            $porVendedor = [];
+        }
 
-    foreach ($ajustes as $aj) {
-        if (!isset($porVendedor[$aj->user_id])) {
-            $porVendedor[$aj->user_id] = [
-                'user_id'   => $aj->user_id,
-                'vendedor'  => $aj->vendedor,
-                'percentual'=> 0.0,
-                'totais'    => ['qtd' => 0, 'contratos' => 0.0, 'comissao' => 0.0],
-                'contratos' => [],
+        // ========== ADMIN ==========
+        $admins = DB::table('comissionamento_configuracao as cfg')
+            ->join('users as u', 'u.id', '=', 'cfg.user_id')
+            ->where('cfg.empresa_id', $empresaId)
+            ->whereRaw('LOWER(cfg.grade) = "admin"')
+            ->select('cfg.user_id', 'u.name as nome', 'cfg.imposto', 'cfg.percentual')
+            ->get();
+
+        $adminUsuarios = [];
+        foreach ($admins as $ad) {
+            $bruta  = $totalVendasAllGrades * ((float) $ad->percentual / 100.0);
+            $liquida= $bruta * (1.0 - ((float) $ad->imposto / 100.0));
+            $adminUsuarios[] = [
+                'user_id'          => $ad->user_id,
+                'nome'             => $ad->nome,
+                'percentual_base'  => (float) $ad->percentual,
+                'comissao_bruta'   => round($bruta, 2),
+                'comissao_liquida' => round($liquida, 2),
+                'imposto'          => (float) $ad->imposto,
             ];
         }
 
-        $nomeSintetico = ($aj->natureza === 'CREDITO' ? 'Crédito' : 'Despesa')
-            .' · '.ucfirst(strtolower($aj->categoria))
-            .($aj->descricao ? ' — '.$aj->descricao : '');
+        // ========== COMERCIAL (supervisores) ==========
+        $salariosJuniorTot = (float) DB::table('comissionamento_configuracao')
+            ->where('empresa_id', $empresaId)
+            ->whereRaw('LOWER(grade) = "junior"')
+            ->sum('salario');
 
-        $porVendedor[$aj->user_id]['contratos'][] = [
-            'id'                   => $aj->id,
-            'is_ajuste'            => true,                 // FLAG para o front
-            'nome_contrato'        => $nomeSintetico,
-            'valor_contrato'       => round((float)$aj->valor_bruto, 2),
-            'valor_base'           => round((float)$aj->valor_bruto, 2),
-            'percentual_aplicado'  => 0,
-            'imposto_aplicado'     => round((float)$aj->imposto_perc, 2),
-            'valor_comissao_bruta' => round((float)$aj->valor_bruto, 2),
-            'valor_comissao'       => round((float)$aj->valor_liquido, 2), // LÍQUIDO COM SINAL
-            'data_implantacao'     => '',    // não se aplica
-            'angariacao_valor'     => 0,
-            'angariacao_status'    => 'NAO',
+        $custoAdm5 = $totalVendasJunior * 0.05;
+
+        $poolFinal = $totalVendasJunior - $salariosJuniorTot - $custoAdm5;
+        $desconto  = $poolFinal * 0.10;
+        $poolFinal = $poolFinal - $desconto;
+
+        $gestores = DB::table('comissionamento_configuracao as cfg')
+            ->join('users as u', 'u.id', '=', 'cfg.user_id')
+            ->where('cfg.empresa_id', $empresaId)
+            ->whereRaw('LOWER(cfg.grade) = "comercial"')
+            ->select('cfg.user_id', 'u.name as nome')
+            ->get();
+
+        $qtdGestores = $gestores->count();
+        $quota = $qtdGestores > 0 ? ($poolFinal / $qtdGestores) : 0.0;
+
+        $gestoresArr = [];
+        foreach ($gestores as $g) {
+            $gestoresArr[] = [
+                'user_id' => $g->user_id,
+                'nome'    => $g->nome,
+                'quota'   => round($quota, 2),
+            ];
+        }
+
+        // ========== PAYLOAD ==========
+        $payload = [
+            'empresa_id' => $empresaId,
+            'mes'        => $mes,
+            'filtro'     => [
+                'inicio'      => $inicio,
+                'fim'         => $fim,
+                'vendedor_id' => $vendedorId ? (int) $vendedorId : null,
+            ],
+            'kpis'       => [
+                'vendedores'       => count($porVendedor),
+                'contratos'        => $kpiContratos,
+                'total_contratos'  => round($kpiTotalContratos, 2),
+                'total_comissao'   => round($kpiTotalComissao, 2),
+            ],
+            'vendedores' => $porVendedor, // já ordenado
+
+            'grades' => [
+                'bases' => [
+                    'total_vendas_all_grades' => round($totalVendasAllGrades, 2),
+                    'total_vendas_junior'     => round($totalVendasJunior, 2),
+                ],
+                'admin' => [
+                    'usuarios'      => $adminUsuarios,
+                    'total_liquido' => round(array_sum(array_column($adminUsuarios, 'comissao_liquida')), 2),
+                ],
+                'comercial' => [
+                    'qtd_gestores'        => $qtdGestores,
+                    'base_junior'         => round($totalVendasJunior, 2),
+                    'salarios_junior_tot' => round($salariosJuniorTot, 2),
+                    'custo_admin_5'       => round($custoAdm5, 2),
+                    'pool_final'          => round($poolFinal, 2),
+                    'quota'               => round($quota, 2),
+                    'gestores'            => $gestoresArr,
+                    'total_distribuido'   => round($quota * $qtdGestores, 2),
+                ],
+            ],
         ];
 
-        // Ajuste entra SOMENTE na soma da comissão líquida (com sinal)
-        $porVendedor[$aj->user_id]['totais']['comissao'] += (float)$aj->valor_liquido;
-        $kpiTotalComissao += (float)$aj->valor_liquido;
+        return response()->json($payload);
     }
-
-    // (Opcional) ordenar vendedores por nome depois de injetar ajustes
-    if (!empty($porVendedor)) {
-        $porVendedor = array_values(
-            collect($porVendedor)->sortBy('vendedor', SORT_NATURAL|SORT_FLAG_CASE)->toArray()
-        );
-    } else {
-        $porVendedor = [];
-    }
-
-    // ========== ADMIN ==========
-    $admins = DB::table('comissionamento_configuracao as cfg')
-        ->join('users as u', 'u.id', '=', 'cfg.user_id')
-        ->where('cfg.empresa_id', $empresaId)
-        ->whereRaw('LOWER(cfg.grade) = "admin"')
-        ->select('cfg.user_id', 'u.name as nome', 'cfg.imposto', 'cfg.percentual')
-        ->get();
-
-    $adminUsuarios = [];
-    foreach ($admins as $ad) {
-        $bruta  = $totalVendasAllGrades * ((float) $ad->percentual / 100.0);
-        $liquida= $bruta * (1.0 - ((float) $ad->imposto / 100.0));
-        $adminUsuarios[] = [
-            'user_id'          => $ad->user_id,
-            'nome'             => $ad->nome,
-            'percentual_base'  => (float) $ad->percentual,
-            'comissao_bruta'   => round($bruta, 2),
-            'comissao_liquida' => round($liquida, 2),
-            'imposto'          => (float) $ad->imposto,
-        ];
-    }
-
-    // ========== COMERCIAL (supervisores) ==========
-    $salariosJuniorTot = (float) DB::table('comissionamento_configuracao')
-        ->where('empresa_id', $empresaId)
-        ->whereRaw('LOWER(grade) = "junior"')
-        ->sum('salario');
-
-    $custoAdm5 = $totalVendasJunior * 0.05;
-
-    $poolFinal = $totalVendasJunior - $salariosJuniorTot - $custoAdm5;
-    $desconto  = $poolFinal * 0.10;
-    $poolFinal = $poolFinal - $desconto;
-
-    $gestores = DB::table('comissionamento_configuracao as cfg')
-        ->join('users as u', 'u.id', '=', 'cfg.user_id')
-        ->where('cfg.empresa_id', $empresaId)
-        ->whereRaw('LOWER(cfg.grade) = "comercial"')
-        ->select('cfg.user_id', 'u.name as nome')
-        ->get();
-
-    $qtdGestores = $gestores->count();
-    $quota = $qtdGestores > 0 ? ($poolFinal / $qtdGestores) : 0.0;
-
-    $gestoresArr = [];
-    foreach ($gestores as $g) {
-        $gestoresArr[] = [
-            'user_id' => $g->user_id,
-            'nome'    => $g->nome,
-            'quota'   => round($quota, 2),
-        ];
-    }
-
-    // ========== PAYLOAD ==========
-    $payload = [
-        'empresa_id' => $empresaId,
-        'mes'        => $mes,
-        'filtro'     => [
-            'inicio'      => $inicio,
-            'fim'         => $fim,
-            'vendedor_id' => $vendedorId ? (int) $vendedorId : null,
-        ],
-        'kpis'       => [
-            'vendedores'       => count($porVendedor),
-            'contratos'        => $kpiContratos,
-            'total_contratos'  => round($kpiTotalContratos, 2),
-            'total_comissao'   => round($kpiTotalComissao, 2),
-        ],
-        'vendedores' => $porVendedor, // já ordenado
-
-        'grades' => [
-            'bases' => [
-                'total_vendas_all_grades' => round($totalVendasAllGrades, 2),
-                'total_vendas_junior'     => round($totalVendasJunior, 2),
-            ],
-            'admin' => [
-                'usuarios'      => $adminUsuarios,
-                'total_liquido' => round(array_sum(array_column($adminUsuarios, 'comissao_liquida')), 2),
-            ],
-            'comercial' => [
-                'qtd_gestores'        => $qtdGestores,
-                'base_junior'         => round($totalVendasJunior, 2),
-                'salarios_junior_tot' => round($salariosJuniorTot, 2),
-                'custo_admin_5'       => round($custoAdm5, 2),
-                'pool_final'          => round($poolFinal, 2),
-                'quota'               => round($quota, 2),
-                'gestores'            => $gestoresArr,
-                'total_distribuido'   => round($quota * $qtdGestores, 2),
-            ],
-        ],
-    ];
-
-    return response()->json($payload);
-}
 
 
 
@@ -735,60 +735,59 @@ public function getFaturamentoComissionamento(Request $request)
             $empresaId, $vendedorId, $adminUserId, $mes, $dataPagto,
             $enriched, $ajustes, $totais, $salario, $totalRec, $percCom, $percImp
         ) {
-            // Verifica se já existe um pagamento para este mês/vendedor
-            $headerExistente = DB::table('comissao_pagamentos')
-                ->where('empresa_id', $empresaId)
-                ->where('vendedor_id', $vendedorId)
-                ->where('mes', $mes)
-                ->first();
+            // Verifica se alguma venda já foi paga em outro pagamento
+            if ($enriched->isNotEmpty()) {
+                $vendasJaPagas = DB::table('vendas')
+                    ->whereIn('id', $enriched->pluck('id'))
+                    ->where('comissao_paga', 1)
+                    ->pluck('id')
+                    ->toArray();
 
-            if ($headerExistente) {
-                // ATUALIZA o header existente
-                DB::table('comissao_pagamentos')
-                    ->where('id', $headerExistente->id)
-                    ->update([
-                        'data_pagamento'       => $dataPagto,
-                        'percentual_comissao'  => $percCom,
-                        'percentual_imposto'   => $percImp,
-                        'total_bruto'          => $totais['bruto'],
-                        'total_imposto'        => $totais['imposto'],
-                        'total_liquido'        => $totais['liquido'],
-                        'salario'              => 0,
-                        'total_receber'        => $totalRec,
-                        'updated_at'           => now(),
-                    ]);
-
-                $headerId = $headerExistente->id;
-            } else {
-                // CRIA novo header
-                $headerId = DB::table('comissao_pagamentos')->insertGetId([
-                    'empresa_id'           => $empresaId,
-                    'vendedor_id'          => $vendedorId,
-                    'mes'                  => $mes,
-                    'data_pagamento'       => $dataPagto,
-                    'percentual_comissao'  => $percCom,
-                    'percentual_imposto'   => $percImp,
-                    'total_bruto'          => $totais['bruto'],
-                    'total_imposto'        => $totais['imposto'],
-                    'total_liquido'        => $totais['liquido'],
-                    'salario'              => 0,
-                    'total_receber'        => $totalRec,
-                    'created_by'           => $adminUserId,
-                    'created_at'           => now(),
-                    'updated_at'           => now(),
-                ]);
+                if (!empty($vendasJaPagas)) {
+                    throw new \Exception("As vendas IDs [" . implode(', ', $vendasJaPagas) . "] já foram pagas em outro lançamento.");
+                }
             }
+
+            // Verifica se algum ajuste já foi pago em outro pagamento
+            if ($ajustes->isNotEmpty()) {
+                $ajustesJaPagos = DB::table('lancamentos_debito_credito')
+                    ->whereIn('id', $ajustes->pluck('id'))
+                    ->where('status', 'pago')
+                    ->pluck('id')
+                    ->toArray();
+
+                if (!empty($ajustesJaPagos)) {
+                    throw new \Exception("Os ajustes IDs [" . implode(', ', $ajustesJaPagos) . "] já foram pagos em outro lançamento.");
+                }
+            }
+
+            // SEMPRE CRIA um novo pagamento (header)
+            $headerId = DB::table('comissao_pagamentos')->insertGetId([
+                'empresa_id'           => $empresaId,
+                'vendedor_id'          => $vendedorId,
+                'mes'                  => $mes,
+                'data_pagamento'       => $dataPagto,
+                'percentual_comissao'  => $percCom,
+                'percentual_imposto'   => $percImp,
+                'total_bruto'          => $totais['bruto'],
+                'total_imposto'        => $totais['imposto'],
+                'total_liquido'        => $totais['liquido'],
+                'salario'              => 0,
+                'total_receber'        => $totalRec,
+                'created_by'           => $adminUserId,
+                'created_at'           => now(),
+                'updated_at'           => now(),
+            ]);
 
             // Itens de VENDAS
             if ($enriched->isNotEmpty()) {
                 foreach ($enriched as $r) {
                     // Verifica se já existe item para esta venda
                     $itemExistente = DB::table('comissao_pagamento_itens')
-                        ->where('comissao_pagamento_id', $headerId)
                         ->where('venda_id', $r->id)
                         ->first();
 
-                    $dadosItem = [
+                    $dados = [
                         'comissao_pagamento_id' => $headerId,
                         'venda_id'              => $r->id,
                         'ajuste_id'             => null,
@@ -805,14 +804,14 @@ public function getFaturamentoComissionamento(Request $request)
                     ];
 
                     if ($itemExistente) {
-                        // ATUALIZA item existente
+                        // Atualiza o item existente
                         DB::table('comissao_pagamento_itens')
                             ->where('id', $itemExistente->id)
-                            ->update($dadosItem);
+                            ->update($dados);
                     } else {
-                        // CRIA novo item
-                        $dadosItem['created_at'] = now();
-                        DB::table('comissao_pagamento_itens')->insert($dadosItem);
+                        // Cria novo item
+                        $dados['created_at'] = now();
+                        DB::table('comissao_pagamento_itens')->insert($dados);
                     }
                 }
 
@@ -831,13 +830,12 @@ public function getFaturamentoComissionamento(Request $request)
                 foreach ($ajustes as $a) {
                     // Verifica se já existe item para este ajuste
                     $itemExistente = DB::table('comissao_pagamento_itens')
-                        ->where('comissao_pagamento_id', $headerId)
                         ->where('ajuste_id', $a->id)
                         ->first();
 
                     $tipo = in_array($a->categoria, ['MOTIVACIONAL','AJUSTE','BONUS','OUTRO', 'ANGARIACAO', 'PRESTACAO']) ? $a->categoria : 'AJUSTE';
 
-                    $dadosItem = [
+                    $dados = [
                         'comissao_pagamento_id' => $headerId,
                         'venda_id'              => null,
                         'ajuste_id'             => $a->id,
@@ -854,14 +852,14 @@ public function getFaturamentoComissionamento(Request $request)
                     ];
 
                     if ($itemExistente) {
-                        // ATUALIZA item existente
+                        // Atualiza o item existente
                         DB::table('comissao_pagamento_itens')
                             ->where('id', $itemExistente->id)
-                            ->update($dadosItem);
+                            ->update($dados);
                     } else {
-                        // CRIA novo item
-                        $dadosItem['created_at'] = now();
-                        DB::table('comissao_pagamento_itens')->insert($dadosItem);
+                        // Cria novo item
+                        $dados['created_at'] = now();
+                        DB::table('comissao_pagamento_itens')->insert($dados);
                     }
                 }
 
@@ -1239,6 +1237,4 @@ public function getFaturamentoComissionamento(Request $request)
             'conta_pagamento_id'  => $pag->conta_pagamento_id,
         ]);
     }
-
-
 }
