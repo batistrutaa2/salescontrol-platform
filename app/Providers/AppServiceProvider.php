@@ -73,6 +73,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Forçar HTTPS se vier através de proxy (Nginx)
         if (
             isset($_SERVER['HTTP_X_FORWARDED_PROTO']) &&
             $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'
@@ -80,6 +81,9 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        // Remover esse bloco de redirecionamento forçado
+        // Isso impede que funcione em outros domínios
+        /*
         if (
             app()->environment('production') &&
             request()->getHost() !== 'brsolution.tech' &&
@@ -88,8 +92,7 @@ class AppServiceProvider extends ServiceProvider
             redirect()->to('https://brsolution.tech' . request()->getRequestUri())->send();
             exit;
         }
-
-
+        */
 
         View::composer('*', function ($view) {
             if (Auth::check()) {
