@@ -931,11 +931,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
   // Evento para abrir a modal e buscar cliente
-  btnFilaPreditiva.addEventListener('click', function () {
-    resetarModal();
-    modalFilaPreditiva.show();
-    buscarClientePreditiva();
-  });
+  if (btnFilaPreditiva != null) {
+      btnFilaPreditiva.addEventListener('click', function () {
+      resetarModal();
+      modalFilaPreditiva.show();
+      buscarClientePreditiva();
+    });
+  }
+
 
   // Evento para habilitar/desabilitar botão de descartar
   tabulacaoSelect.addEventListener('change', function () {
