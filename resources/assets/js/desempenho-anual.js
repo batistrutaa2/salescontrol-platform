@@ -248,6 +248,9 @@ $(document).ready(function () {
       chartTaxaConversao.destroy();
     }
 
+    // Remover texto central existente antes de recriar
+    $('#chartTaxaConversao').parent().find('.chart-center-text').remove();
+
     // Calcular média anual
     const mediaAnual = taxas.reduce((sum, item) => sum + item.taxa, 0) / taxas.length;
 
@@ -265,7 +268,7 @@ $(document).ready(function () {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             display: false
@@ -284,18 +287,15 @@ $(document).ready(function () {
 
     // Adicionar texto no centro
     const centerText = `
-      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;">
         <div style="font-size: 28px; font-weight: bold; color: #71dd37;">${mediaAnual.toFixed(2)}%</div>
         <div style="font-size: 12px; color: #999;">Taxa Média</div>
       </div>
     `;
 
-    if (!$('#chartTaxaConversao').parent().find('.chart-center-text').length) {
-      $('#chartTaxaConversao')
-        .parent()
-        .css('position', 'relative')
-        .append(`<div class="chart-center-text">${centerText}</div>`);
-    }
+    $('#chartTaxaConversao')
+      .parent()
+      .append(`<div class="chart-center-text">${centerText}</div>`);
   }
 
   function renderizarTopPlanos(planos) {

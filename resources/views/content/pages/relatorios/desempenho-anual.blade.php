@@ -162,7 +162,7 @@
             <div class="row mb-4">
                 <!-- Evolução Mensal -->
                 <div class="col-md-8 mb-3">
-                    <div class="card">
+                    <div class="card h-100">
                         <div class="card-header">
                             <h5 class="card-title mb-0">Evolução Mensal</h5>
                         </div>
@@ -174,12 +174,12 @@
 
                 <!-- Taxa de Conversão -->
                 <div class="col-md-4 mb-3">
-                    <div class="card">
+                    <div class="card h-100">
                         <div class="card-header">
                             <h5 class="card-title mb-0">Taxa de Conversão</h5>
                         </div>
-                        <div class="card-body">
-                            <canvas id="chartTaxaConversao" height="200"></canvas>
+                        <div class="card-body d-flex align-items-center justify-content-center" style="position: relative; min-height: 300px;">
+                            <canvas id="chartTaxaConversao"></canvas>
                         </div>
                     </div>
                 </div>
