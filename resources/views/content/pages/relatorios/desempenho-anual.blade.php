@@ -189,7 +189,7 @@
             <div class="row mb-4">
                 <!-- Top 10 Planos Mais Vendidos -->
                 <div class="col-md-6 mb-3">
-                    <div class="card">
+                    <div class="card h-100">
                         <div class="card-header">
                             <h5 class="card-title mb-0">Top 10 Planos Mais Vendidos</h5>
                         </div>
@@ -215,12 +215,12 @@
 
                 <!-- Distribuição por Operadora -->
                 <div class="col-md-6 mb-3">
-                    <div class="card">
+                    <div class="card h-100">
                         <div class="card-header">
                             <h5 class="card-title mb-0">Distribuição por Operadora</h5>
                         </div>
-                        <div class="card-body">
-                            <canvas id="chartOperadoras" height="200"></canvas>
+                        <div class="card-body d-flex align-items-center">
+                            <canvas id="chartOperadoras"></canvas>
                         </div>
                     </div>
                 </div>
