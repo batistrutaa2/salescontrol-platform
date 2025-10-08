@@ -405,7 +405,7 @@ class Relatorios extends Controller
             ->orderBy('name')
             ->get();
     }
-    
+
     public function getLeadComentarios($leadId)
     {
         try {
@@ -863,8 +863,9 @@ class Relatorios extends Controller
 
         // Buscar vendedores da empresa
         $vendedores = User::where('empresa_id', $empresaId)
-            ->where('ativo', 1)
             ->select('id', 'name')
+            ->where('user_role_id', 1)
+            ->where('ativo', "Y")
             ->orderBy('name')
             ->get();
 
@@ -915,6 +916,7 @@ class Relatorios extends Controller
             // 7. Ranking de vendedores (se não filtrou por vendedor específico)
             $rankingVendedores = null;
             if (!$vendedorId) {
+
                 $rankingVendedores = $this->getRankingVendedoresAno($empresaId, $ano);
             }
 
@@ -1169,27 +1171,43 @@ class Relatorios extends Controller
 
     private function getRankingVendedoresAno($empresaId, $ano)
     {
+        // Subquery para leads únicos por vendedor
+        $leadsSubquery = DB::table('lead_atividades as la')
+            ->select('user_id', DB::raw('COUNT(DISTINCT contato_id) as total_leads'))
+            ->whereYear('created_at', $ano)
+            ->where('empresa_id', $empresaId)
+            ->groupBy('user_id');
+
+        // Subquery para vendas por vendedor
+        $vendasSubquery = DB::table('vendas as v')
+            ->select(
+                'user_id',
+                DB::raw('COUNT(DISTINCT v.id) as total_vendas'),
+                DB::raw('SUM(v.valor_contrato) as valor_total'),
+                DB::raw('AVG(v.valor_contrato) as ticket_medio')
+            )
+            ->whereYear('created_at', $ano)
+            ->groupBy('user_id');
+
         return DB::table('users as u')
-            ->leftJoin('vendas as v', function ($join) use ($ano) {
-                $join->on('v.user_id', '=', 'u.id')
-                    ->whereYear('v.created_at', '=', $ano);
+            ->leftJoinSub($leadsSubquery, 'leads', function ($join) {
+                $join->on('leads.user_id', '=', 'u.id');
             })
-            ->leftJoin('lead_atividades as la', function ($join) use ($ano) {
-                $join->on('la.user_id', '=', 'u.id')
-                    ->whereYear('la.created_at', '=', $ano);
+            ->leftJoinSub($vendasSubquery, 'vendas', function ($join) {
+                $join->on('vendas.user_id', '=', 'u.id');
             })
             ->where('u.empresa_id', $empresaId)
-            ->where('u.ativo', 1)
+            ->where('u.ativo', 'Y')
+            ->where('u.user_role_id', 1)
             ->select(
                 'u.id',
                 'u.name as vendedor',
-                DB::raw('COUNT(DISTINCT la.contato_id) as total_leads'),
-                DB::raw('COUNT(DISTINCT v.id) as total_vendas'),
-                DB::raw('COALESCE(SUM(v.valor_contrato), 0) as valor_total'),
-                DB::raw('COALESCE(AVG(v.valor_contrato), 0) as ticket_medio'),
-                DB::raw('CASE WHEN COUNT(DISTINCT la.contato_id) > 0 THEN ROUND((COUNT(DISTINCT v.id) / COUNT(DISTINCT la.contato_id)) * 100, 2) ELSE 0 END as taxa_conversao')
+                DB::raw('COALESCE(leads.total_leads, 0) as total_leads'),
+                DB::raw('COALESCE(vendas.total_vendas, 0) as total_vendas'),
+                DB::raw('COALESCE(vendas.valor_total, 0) as valor_total'),
+                DB::raw('COALESCE(vendas.ticket_medio, 0) as ticket_medio'),
+                DB::raw('CASE WHEN COALESCE(leads.total_leads, 0) > 0 THEN ROUND((COALESCE(vendas.total_vendas, 0) / leads.total_leads) * 100, 2) ELSE 0 END as taxa_conversao')
             )
-            ->groupBy('u.id', 'u.name')
             ->orderBy('valor_total', 'desc')
             ->get();
     }
