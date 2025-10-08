@@ -227,6 +227,11 @@
           "url": "/relatorios/atividade",
           "name": "Atividade Vendedor",
           "slug": "pages-users-atividade"
+        },
+        {
+          "url": "/relatorios/desempenho-anual",
+          "name": "Desempenho Anual",
+          "slug": "pages-desempenho-anual"
         }
       ]
     },
@@ -257,6 +262,11 @@
           "url": "/relatorios/atividade",
           "name": "Atividade Vendedor",
           "slug": "pages-users-atividade"
+        },
+        {
+          "url": "/relatorios/desempenho-anual",
+          "name": "Desempenho Anual",
+          "slug": "pages-desempenho-anual"
         }
       ]
     },

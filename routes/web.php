@@ -189,6 +189,8 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/relatorios/implantacoes', [Relatorios::class, 'implantacoes'])->name('relatorios.implantacoes');
   Route::get('/relatorios/implantacoes/dados', [Relatorios::class, 'implantacoesData'])->name('relatorios.implantacoes.dados');
   Route::get('/relatorios/implantacoes/listar', [Relatorios::class, 'implantacoesList'])->name('relatorios.implantacoes.listar');
+  Route::get('/relatorios/desempenho-anual', [Relatorios::class, 'desempenhoAnual'])->name('relatorios.desempenhoAnual');
+  Route::get('/relatorios/desempenho-anual/dados', [Relatorios::class, 'desempenhoAnualData'])->name('relatorios.desempenhoAnual.dados');
 
   /** RANKING DE VENDAS */
   Route::get('/ranking', [RankingVendas::class, 'index'])->name('ranking.index');

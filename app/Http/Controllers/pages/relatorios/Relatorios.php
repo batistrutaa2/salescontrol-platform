@@ -857,4 +857,369 @@ class Relatorios extends Controller
             ->pluck('operadora');
     }
 
+    public function desempenhoAnual()
+    {
+        $empresaId = Auth::user()->empresa_id;
+
+        // Buscar vendedores da empresa
+        $vendedores = User::where('empresa_id', $empresaId)
+            ->where('ativo', 1)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        // Buscar anos disponíveis
+        $anos = VendasModel::whereHas('user', function ($q) use ($empresaId) {
+                $q->where('empresa_id', $empresaId);
+            })
+            ->select(DB::raw('YEAR(created_at) as ano'))
+            ->distinct()
+            ->orderBy('ano', 'desc')
+            ->pluck('ano');
+
+        return view('content.pages.relatorios.desempenho-anual', [
+            'vendedores' => $vendedores,
+            'anos' => $anos
+        ]);
+    }
+
+    public function desempenhoAnualData(Request $request)
+    {
+        try {
+            $empresaId = Auth::user()->empresa_id;
+            $ano = $request->get('ano', date('Y'));
+            $vendedorId = $request->get('vendedor_id');
+
+            // Definir intervalo do ano
+            $dataInicio = Carbon::create($ano, 1, 1)->startOfDay();
+            $dataFim = Carbon::create($ano, 12, 31)->endOfDay();
+
+            // 1. Estatísticas gerais do ano
+            $estatisticasGerais = $this->getEstatisticasGeraisAno($empresaId, $ano, $vendedorId);
+
+            // 2. Dados por trimestre
+            $dadosTrimestre = $this->getDadosPorTrimestre($empresaId, $ano, $vendedorId);
+
+            // 3. Evolução mensal
+            $evolucaoMensal = $this->getEvolucaoMensal($empresaId, $ano, $vendedorId);
+
+            // 4. Top planos mais vendidos
+            $topPlanos = $this->getTopPlanosVendidos($empresaId, $ano, $vendedorId);
+
+            // 5. Distribuição por operadora
+            $distribuicaoOperadora = $this->getDistribuicaoPorOperadora($empresaId, $ano, $vendedorId);
+
+            // 6. Taxa de conversão (leads trabalhados vs vendas)
+            $taxaConversao = $this->getTaxaConversao($empresaId, $ano, $vendedorId);
+
+            // 7. Ranking de vendedores (se não filtrou por vendedor específico)
+            $rankingVendedores = null;
+            if (!$vendedorId) {
+                $rankingVendedores = $this->getRankingVendedoresAno($empresaId, $ano);
+            }
+
+            // 8. Detalhes do vendedor (se filtrou)
+            $detalhesVendedor = null;
+            if ($vendedorId) {
+                $detalhesVendedor = $this->getDetalhesVendedor($empresaId, $ano, $vendedorId);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'estatisticas_gerais' => $estatisticasGerais,
+                    'dados_trimestre' => $dadosTrimestre,
+                    'evolucao_mensal' => $evolucaoMensal,
+                    'top_planos' => $topPlanos,
+                    'distribuicao_operadora' => $distribuicaoOperadora,
+                    'taxa_conversao' => $taxaConversao,
+                    'ranking_vendedores' => $rankingVendedores,
+                    'detalhes_vendedor' => $detalhesVendedor
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao carregar dados: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function getEstatisticasGeraisAno($empresaId, $ano, $vendedorId = null)
+    {
+        // Leads únicos trabalhados no ano
+        $queryLeads = DB::table('lead_atividades as la')
+            ->join('contatos as c', 'c.id', '=', 'la.contato_id')
+            ->where('la.empresa_id', $empresaId)
+            ->whereYear('la.created_at', $ano);
+
+        if ($vendedorId) {
+            $queryLeads->where('la.user_id', $vendedorId);
+        }
+
+        $totalLeadsUnicos = $queryLeads->distinct('la.contato_id')->count('la.contato_id');
+
+        // Vendas realizadas
+        $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
+                $q->where('empresa_id', $empresaId);
+            })
+            ->whereYear('vendas.created_at', $ano);
+
+        if ($vendedorId) {
+            $queryVendas->where('user_id', $vendedorId);
+        }
+
+        $totalVendas = $queryVendas->count();
+        $valorTotal = $queryVendas->sum('valor_contrato') ?? 0;
+        $ticketMedio = $totalVendas > 0 ? $valorTotal / $totalVendas : 0;
+
+        // Taxa de conversão
+        $taxaConversao = $totalLeadsUnicos > 0 ? round(($totalVendas / $totalLeadsUnicos) * 100, 2) : 0;
+
+        return [
+            'total_leads_unicos' => $totalLeadsUnicos,
+            'total_vendas' => $totalVendas,
+            'valor_total' => $valorTotal,
+            'ticket_medio' => $ticketMedio,
+            'taxa_conversao' => $taxaConversao
+        ];
+    }
+
+    private function getDadosPorTrimestre($empresaId, $ano, $vendedorId = null)
+    {
+        $trimestres = [];
+
+        for ($trimestre = 1; $trimestre <= 4; $trimestre++) {
+            $mesInicio = ($trimestre - 1) * 3 + 1;
+            $mesFim = $trimestre * 3;
+
+            // Leads únicos do trimestre
+            $queryLeads = DB::table('lead_atividades as la')
+                ->where('la.empresa_id', $empresaId)
+                ->whereYear('la.created_at', $ano)
+                ->whereRaw('MONTH(la.created_at) BETWEEN ? AND ?', [$mesInicio, $mesFim]);
+
+            if ($vendedorId) {
+                $queryLeads->where('la.user_id', $vendedorId);
+            }
+
+            $leadsUnicos = $queryLeads->distinct('la.contato_id')->count('la.contato_id');
+
+            // Vendas do trimestre
+            $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
+                    $q->where('empresa_id', $empresaId);
+                })
+                ->whereYear('vendas.created_at', $ano)
+                ->whereRaw('MONTH(vendas.created_at) BETWEEN ? AND ?', [$mesInicio, $mesFim]);
+
+            if ($vendedorId) {
+                $queryVendas->where('user_id', $vendedorId);
+            }
+
+            $totalVendas = $queryVendas->count();
+            $valorTotal = $queryVendas->sum('valor_contrato') ?? 0;
+            $ticketMedio = $totalVendas > 0 ? $valorTotal / $totalVendas : 0;
+            $taxaConversao = $leadsUnicos > 0 ? round(($totalVendas / $leadsUnicos) * 100, 2) : 0;
+
+            $trimestres[] = [
+                'trimestre' => $trimestre,
+                'periodo' => "Q{$trimestre} ({$ano})",
+                'leads_unicos' => $leadsUnicos,
+                'total_vendas' => $totalVendas,
+                'valor_total' => $valorTotal,
+                'ticket_medio' => $ticketMedio,
+                'taxa_conversao' => $taxaConversao
+            ];
+        }
+
+        return $trimestres;
+    }
+
+    private function getEvolucaoMensal($empresaId, $ano, $vendedorId = null)
+    {
+        $meses = [];
+        $nomesMeses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+        for ($mes = 1; $mes <= 12; $mes++) {
+            // Leads únicos do mês
+            $queryLeads = DB::table('lead_atividades as la')
+                ->where('la.empresa_id', $empresaId)
+                ->whereYear('la.created_at', $ano)
+                ->whereMonth('la.created_at', $mes);
+
+            if ($vendedorId) {
+                $queryLeads->where('la.user_id', $vendedorId);
+            }
+
+            $leadsUnicos = $queryLeads->distinct('la.contato_id')->count('la.contato_id');
+
+            // Vendas do mês
+            $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
+                    $q->where('empresa_id', $empresaId);
+                })
+                ->whereYear('vendas.created_at', $ano)
+                ->whereMonth('vendas.created_at', $mes);
+
+            if ($vendedorId) {
+                $queryVendas->where('user_id', $vendedorId);
+            }
+
+            $totalVendas = $queryVendas->count();
+            $valorTotal = $queryVendas->sum('valor_contrato') ?? 0;
+
+            $meses[] = [
+                'mes' => $mes,
+                'nome_mes' => $nomesMeses[$mes - 1],
+                'leads_unicos' => $leadsUnicos,
+                'total_vendas' => $totalVendas,
+                'valor_total' => $valorTotal
+            ];
+        }
+
+        return $meses;
+    }
+
+    private function getTopPlanosVendidos($empresaId, $ano, $vendedorId = null)
+    {
+        $query = VendasModel::select(
+                'nome_plano',
+                'operadora',
+                DB::raw('COUNT(*) as total_vendas'),
+                DB::raw('SUM(valor_contrato) as valor_total')
+            )
+            ->whereHas('user', function ($q) use ($empresaId) {
+                $q->where('empresa_id', $empresaId);
+            })
+            ->whereYear('vendas.created_at', $ano);
+
+        if ($vendedorId) {
+            $query->where('user_id', $vendedorId);
+        }
+
+        return $query->whereNotNull('nome_plano')
+            ->groupBy('nome_plano', 'operadora')
+            ->orderBy('total_vendas', 'desc')
+            ->limit(10)
+            ->get();
+    }
+
+    private function getDistribuicaoPorOperadora($empresaId, $ano, $vendedorId = null)
+    {
+        $query = VendasModel::select(
+                'operadora',
+                DB::raw('COUNT(*) as total_vendas'),
+                DB::raw('SUM(valor_contrato) as valor_total'),
+                DB::raw('AVG(valor_contrato) as ticket_medio')
+            )
+            ->whereHas('user', function ($q) use ($empresaId) {
+                $q->where('empresa_id', $empresaId);
+            })
+            ->whereYear('vendas.created_at', $ano);
+
+        if ($vendedorId) {
+            $query->where('user_id', $vendedorId);
+        }
+
+        return $query->whereNotNull('operadora')
+            ->groupBy('operadora')
+            ->orderBy('valor_total', 'desc')
+            ->get();
+    }
+
+    private function getTaxaConversao($empresaId, $ano, $vendedorId = null)
+    {
+        $taxasPorMes = [];
+
+        for ($mes = 1; $mes <= 12; $mes++) {
+            $queryLeads = DB::table('lead_atividades as la')
+                ->where('la.empresa_id', $empresaId)
+                ->whereYear('la.created_at', $ano)
+                ->whereMonth('la.created_at', $mes);
+
+            if ($vendedorId) {
+                $queryLeads->where('la.user_id', $vendedorId);
+            }
+
+            $leadsUnicos = $queryLeads->distinct('la.contato_id')->count('la.contato_id');
+
+            $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
+                    $q->where('empresa_id', $empresaId);
+                })
+                ->whereYear('vendas.created_at', $ano)
+                ->whereMonth('vendas.created_at', $mes);
+
+            if ($vendedorId) {
+                $queryVendas->where('user_id', $vendedorId);
+            }
+
+            $totalVendas = $queryVendas->count();
+            $taxa = $leadsUnicos > 0 ? round(($totalVendas / $leadsUnicos) * 100, 2) : 0;
+
+            $taxasPorMes[] = [
+                'mes' => $mes,
+                'leads' => $leadsUnicos,
+                'vendas' => $totalVendas,
+                'taxa' => $taxa
+            ];
+        }
+
+        return $taxasPorMes;
+    }
+
+    private function getRankingVendedoresAno($empresaId, $ano)
+    {
+        return DB::table('users as u')
+            ->leftJoin('vendas as v', function ($join) use ($ano) {
+                $join->on('v.user_id', '=', 'u.id')
+                    ->whereYear('v.created_at', '=', $ano);
+            })
+            ->leftJoin('lead_atividades as la', function ($join) use ($ano) {
+                $join->on('la.user_id', '=', 'u.id')
+                    ->whereYear('la.created_at', '=', $ano);
+            })
+            ->where('u.empresa_id', $empresaId)
+            ->where('u.ativo', 1)
+            ->select(
+                'u.id',
+                'u.name as vendedor',
+                DB::raw('COUNT(DISTINCT la.contato_id) as total_leads'),
+                DB::raw('COUNT(DISTINCT v.id) as total_vendas'),
+                DB::raw('COALESCE(SUM(v.valor_contrato), 0) as valor_total'),
+                DB::raw('COALESCE(AVG(v.valor_contrato), 0) as ticket_medio'),
+                DB::raw('CASE WHEN COUNT(DISTINCT la.contato_id) > 0 THEN ROUND((COUNT(DISTINCT v.id) / COUNT(DISTINCT la.contato_id)) * 100, 2) ELSE 0 END as taxa_conversao')
+            )
+            ->groupBy('u.id', 'u.name')
+            ->orderBy('valor_total', 'desc')
+            ->get();
+    }
+
+    private function getDetalhesVendedor($empresaId, $ano, $vendedorId)
+    {
+        $vendedor = User::find($vendedorId);
+
+        if (!$vendedor) {
+            return null;
+        }
+
+        // Planos mais vendidos pelo vendedor
+        $planosVendedor = VendasModel::select(
+                'nome_plano',
+                'operadora',
+                DB::raw('COUNT(*) as total')
+            )
+            ->where('user_id', $vendedorId)
+            ->whereYear('created_at', $ano)
+            ->whereNotNull('nome_plano')
+            ->groupBy('nome_plano', 'operadora')
+            ->orderBy('total', 'desc')
+            ->limit(5)
+            ->get();
+
+        return [
+            'nome' => $vendedor->name,
+            'planos_favoritos' => $planosVendedor
+        ];
+    }
+
 }
