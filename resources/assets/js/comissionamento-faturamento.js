@@ -18,7 +18,8 @@
     return;
   }
 
-  const $mes = document.getElementById('filtro-mes');
+  const $dataInicio = document.getElementById('filtro-data-inicio');
+  const $dataFim = document.getElementById('filtro-data-fim');
   const $vendedor = $('#filtro-vendedor');
   const $grade = $('#filtro-grade');
   const $aplicar = document.getElementById('btn-aplicar-filtro');
@@ -63,8 +64,10 @@
     }
   }
 
-  async function fetchFaturamento({ mes, vendedorId = '', grade = '' }) {
-    const params = new URLSearchParams({ empresa_id: EMPRESA_ID, mes: mes || '' });
+  async function fetchFaturamento({ dataInicio, dataFim, vendedorId = '', grade = '' }) {
+    const params = new URLSearchParams({ empresa_id: EMPRESA_ID });
+    if (dataInicio) params.set('data_inicio', dataInicio);
+    if (dataFim) params.set('data_fim', dataFim);
     if (vendedorId) params.set('vendedor_id', vendedorId);
     if (grade) params.set('grade', grade);
     const url = `${API_URL}?${params.toString()}`;
@@ -300,7 +303,9 @@
 
         try {
           btn.disabled = true;
-          const mes = document.getElementById('filtro-mes').value;
+          // Usa o mês do filtro como referência (data de início)
+          const dataIni = $dataInicio.value;
+          const mes = dataIni ? dataIni.substring(0, 7) : new Date().toISOString().substring(0, 7);
 
           const res = await fetch(PAY_URL, {
             method: 'POST',
@@ -383,7 +388,11 @@
 
     if ($ajVendId)   $ajVendId.value   = vendedorId;
     if ($ajVendNome) $ajVendNome.value = vendedorNome || `Vendedor #${vendedorId}`;
-    if ($ajMes)      $ajMes.value      = document.getElementById('filtro-mes').value || $ajMes.value;
+    // Mantém o mês atual como padrão se não houver filtro de datas
+    if ($ajMes && $dataInicio?.value) {
+      const dataIni = new Date($dataInicio.value);
+      $ajMes.value = `${dataIni.getFullYear()}-${String(dataIni.getMonth() + 1).padStart(2, '0')}`;
+    }
     if ($ajNatureza) $ajNatureza.value = natureza; // CREDITO | DEBITO
 
     if ($ajCategoria) $ajCategoria.value = 'MOTIVACIONAL';
@@ -571,13 +580,19 @@
 
   // ======== Carregar e exibir ========
   async function carregarEExibir() {
-    const mes = $mes.value;
+    const dataInicio = $dataInicio.value;
+    const dataFim = $dataFim.value;
     const vendedorId = $vendedor.val() || '';
     const grade = ($grade.val() || '').toLowerCase();
 
+    if (!dataInicio || !dataFim) {
+      toastr.warning('Por favor, informe o período (data início e data fim).');
+      return;
+    }
+
     try {
       setLoading(true);
-      const payload = await fetchFaturamento({ mes, vendedorId, grade });
+      const payload = await fetchFaturamento({ dataInicio, dataFim, vendedorId, grade });
 
       // Filtro de vendedor (apenas quem veio no payload)
       const vendOpts = (payload?.vendedores || []).map(v => ({ user_id: v.user_id, vendedor: v.vendedor }));
@@ -604,7 +619,11 @@
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-    $mes.value = `${yyyy}-${mm}`;
+
+    // Define o período padrão como o mês atual
+    $dataInicio.value = `${yyyy}-${mm}-01`;
+    const ultimoDia = new Date(yyyy, now.getMonth() + 1, 0).getDate();
+    $dataFim.value = `${yyyy}-${mm}-${String(ultimoDia).padStart(2, '0')}`;
 
     $vendedor.select2({ width: '100%', placeholder: 'Todos' });
     $grade.select2({ width: '100%', placeholder: 'Todas' });
@@ -688,7 +707,10 @@
     if (!$avModal) return;
 
     // Resetar formulário
-    if ($avMes) $avMes.value = document.getElementById('filtro-mes').value || $avMes.value;
+    if ($avMes && $dataInicio?.value) {
+      const dataIni = new Date($dataInicio.value);
+      $avMes.value = `${dataIni.getFullYear()}-${String(dataIni.getMonth() + 1).padStart(2, '0')}`;
+    }
     if ($avTipo) $avTipo.value = '';
     if ($avNatureza) $avNatureza.value = 'CREDITO';
     if ($avCategoria) $avCategoria.value = 'MOTIVACIONAL';

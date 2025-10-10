@@ -25,9 +25,14 @@
     <div class="card mb-6">
         <div class="card-body">
             <div class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label for="filtro-mes" class="form-label">Mês de referência</label>
-                    <input type="month" id="filtro-mes" class="form-control">
+                <div class="col-md-2">
+                    <label for="filtro-data-inicio" class="form-label">Data Início</label>
+                    <input type="date" id="filtro-data-inicio" class="form-control">
+                </div>
+
+                <div class="col-md-2">
+                    <label for="filtro-data-fim" class="form-label">Data Fim</label>
+                    <input type="date" id="filtro-data-fim" class="form-control">
                 </div>
 
                 <div class="col-md-3">
@@ -49,7 +54,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <button id="btn-aplicar-filtro" class="btn btn-primary w-100">
                         <i class="ri-filter-3-line me-1"></i> Aplicar
                     </button>

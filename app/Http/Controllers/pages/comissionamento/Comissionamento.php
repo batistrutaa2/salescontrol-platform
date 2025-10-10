@@ -118,11 +118,20 @@ class Comissionamento extends Controller
     {
         $empresaId = Auth::user()->empresa_id;
 
-        $mes = $request->input('mes') ?: Carbon::now('America/Sao_Paulo')->format('Y-m');
-        [$y, $m] = explode('-', $mes);
+        // Aceita range de datas ou mês (para retrocompatibilidade)
+        if ($request->has('data_inicio') && $request->has('data_fim')) {
+            $inicio = Carbon::parse($request->input('data_inicio'))->toDateString();
+            $fim = Carbon::parse($request->input('data_fim'))->toDateString();
+            // Calcula o mês de referência baseado na data de início
+            $mes = Carbon::parse($inicio)->format('Y-m');
+        } else {
+            // Retrocompatibilidade com filtro por mês
+            $mes = $request->input('mes') ?: Carbon::now('America/Sao_Paulo')->format('Y-m');
+            [$y, $m] = explode('-', $mes);
+            $inicio = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->startOfMonth()->toDateString();
+            $fim    = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->endOfMonth()->toDateString();
+        }
 
-        $inicio = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->startOfMonth()->toDateString();
-        $fim    = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->endOfMonth()->toDateString();
         $vendedorId = $request->input('vendedor_id');
 
         // ========== BASE DE VENDAS ==========
@@ -343,8 +352,10 @@ class Comissionamento extends Controller
             'empresa_id' => $empresaId,
             'mes'        => $mes,
             'filtro'     => [
-                'inicio'      => $inicio,
-                'fim'         => $fim,
+                'data_inicio' => $inicio,
+                'data_fim'    => $fim,
+                'inicio'      => $inicio, // Mantido para retrocompatibilidade
+                'fim'         => $fim,    // Mantido para retrocompatibilidade
                 'vendedor_id' => $vendedorId ? (int) $vendedorId : null,
             ],
             'kpis'       => [
@@ -600,7 +611,7 @@ class Comissionamento extends Controller
     public function pagarVendedor(Request $request)
     {
         $request->validate([
-            'mes'             => ['required', 'regex:/^\d{4}\-\d{2}$/'],
+            'mes'             => ['nullable', 'regex:/^\d{4}\-\d{2}$/'],
             'vendedor_id'     => ['required', 'integer', 'exists:users,id'],
             'data_pagamento'  => ['required', 'date'],
             'venda_ids'       => ['array'],
@@ -612,12 +623,8 @@ class Comissionamento extends Controller
         $empresaId   = Auth::user()->empresa_id;
         $adminUserId = Auth::id();
         $vendedorId  = (int) $request->integer('vendedor_id');
-        $mes         = $request->input('mes');
+        $mes         = $request->input('mes'); // Mantido para compatibilidade com o registro
         $dataPagto   = Carbon::parse($request->input('data_pagamento'))->toDateString();
-
-        [$y, $m] = explode('-', $mes);
-        $inicio = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->startOfMonth()->toDateString();
-        $fim    = Carbon::createFromDate((int) $y, (int) $m, 1, 'America/Sao_Paulo')->endOfMonth()->toDateString();
 
         $vendaIds  = array_map('intval', $request->input('venda_ids', []));
         $ajusteIds = array_map('intval', $request->input('ajuste_ids', []));
@@ -632,7 +639,6 @@ class Comissionamento extends Controller
                 })
                 ->where('v.empresa_id', $empresaId)
                 ->where('v.user_id', $vendedorId)
-                ->whereBetween('v.data_implantacao', [$inicio, $fim])
                 ->whereNotNull('v.data_implantacao')
                 ->where('v.comissao_paga', 0)
                 ->whereIn('v.id', $vendaIds)
@@ -683,7 +689,6 @@ class Comissionamento extends Controller
             $ajustes = DB::table('lancamentos_debito_credito as a')
                 ->where('a.empresa_id', $empresaId)
                 ->where('a.vendedor_id', $vendedorId)
-                ->where('a.mes', $mes)
                 ->where('a.status', 'pendente')
                 ->whereIn('a.id', $ajusteIds)
                 ->select([
