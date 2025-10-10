@@ -201,6 +201,11 @@
                     ? `<span class="text-danger">- ${brl(Math.abs(liq))}</span>`
                     : brl(liq);
 
+                  // Coluna Implantação: mostra mês de lançamento se for ajuste
+                  const implantacaoHtml = isAjuste && it.mes_lancamento
+                    ? `Ref: ${it.mes_lancamento}`
+                    : (isAjuste ? '-' : esc(it.data_implantacao));
+
                   // última coluna (Origem): Ajuste Crédito/Débito, Angariação, ou "-"
                   let origemHtml = '-';
                   if (isAjuste) {
@@ -230,7 +235,7 @@
                       <td class="text-end">${brl(base)}</td>
                       <td class="text-end">${isAjuste ? '-' : pApplied.toFixed(0) + '%'}</td>
                       <td class="text-end">${liqHtml}</td>
-                      <td class="text-end">${isAjuste ? '-' : esc(it.data_implantacao)}</td>
+                      <td class="text-end">${implantacaoHtml}</td>
                       <td class="text-end">${origemHtml}</td>
                       <td class="text-end">${btnExcluir}</td>
                     </tr>

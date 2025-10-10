@@ -228,11 +228,10 @@ class Comissionamento extends Controller
             }
         }
 
-        /* ===== AJUSTES (pendentes) para o mês/empresa, e opcionalmente vendedor ===== */
+        /* ===== AJUSTES (pendentes) para a empresa, e opcionalmente vendedor ===== */
         $ajustes = DB::table('lancamentos_debito_credito as a')
             ->join('users as u', 'u.id', '=', 'a.vendedor_id')
             ->where('a.empresa_id', $empresaId)
-            ->where('a.mes', $mes)
             ->where('a.status', 'pendente')
             ->when($vendedorId, fn($q) => $q->where('a.vendedor_id', $vendedorId))
             ->select([
@@ -246,6 +245,7 @@ class Comissionamento extends Controller
                 'a.valor_bruto',
                 'a.imposto_valor',
                 'a.valor_liquido', // já com sinal (+ crédito / - débito)
+                'a.mes', // Incluir o mês para referência no frontend
             ])
             ->orderBy('u.name')
             ->get();
@@ -278,6 +278,8 @@ class Comissionamento extends Controller
                 'data_implantacao'     => '',    // não se aplica
                 'angariacao_valor'     => 0,
                 'angariacao_status'    => 'NAO',
+                'categoria'            => $aj->categoria,
+                'mes_lancamento'       => $aj->mes, // Mês de referência do lançamento
             ];
 
             // Ajuste entra SOMENTE na soma da comissão líquida (com sinal)
