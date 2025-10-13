@@ -845,6 +845,13 @@ class Comercial extends Controller
         $query->whereNull('lp.descartes')
           ->orWhere('lp.descartes', '<', 5);
       })
+      ->whereNotExists(function ($query) use ($userId) {
+        $query->select(DB::raw(1))
+          ->from('log_preditiva')
+          ->whereColumn('log_preditiva.contato_id', 'p.contato_id')
+          ->where('log_preditiva.user_id', $userId)
+          ->where('log_preditiva.acao', 'DESCARTE');
+      })
       ->orderBy('lp.ultimo_descarte', 'asc')
       ->orderBy('p.created_at', 'asc')
       ->limit(1)
