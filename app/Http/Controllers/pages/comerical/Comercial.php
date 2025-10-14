@@ -1057,9 +1057,17 @@ class Comercial extends Controller
         ->when($request->has('status') && $request->status !== 'TODOS', fn($s) => $s->where('status', $request->status))
         ->when($request->has('prioridade') && $request->prioridade !== 'TODAS', fn($s) => $s->where('prioridade', $request->prioridade))
         ->when($request->has('assigned_to') && $request->assigned_to, fn($s) => $s->where('assigned_to', $request->assigned_to))
+        ->where(function($query) {
+            // Mostrar demandas não concluídas OU concluídas há menos de 30 dias
+            $query->where('status', '!=', 'CONCLUIDA')
+                  ->orWhere(function($q) {
+                      $q->where('status', 'CONCLUIDA')
+                        ->where('concluida_em', '>=', now()->subDays(30));
+                  });
+        })
         ->orderByDesc('created_at');
 
-     
+
 
     return response()->json([
       'data' => $q->get()->map(function ($d) {
