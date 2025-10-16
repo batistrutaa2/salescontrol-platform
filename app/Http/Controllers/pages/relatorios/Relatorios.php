@@ -589,12 +589,13 @@ class Relatorios extends Controller
         $query = $this->aplicarFiltroEmpresa($query);
         $query = $this->aplicarFiltroStatusImplantado($query);
 
+        // Filtra por data de implantação, não por data de criação
         if ($filtros['ano']) {
-            $query->whereYear('vendas.created_at', $filtros['ano']);
+            $query->whereYear('vendas.data_implantacao', $filtros['ano']);
         }
 
         if ($filtros['mes']) {
-            $query->whereMonth('vendas.created_at', $filtros['mes']);
+            $query->whereMonth('vendas.data_implantacao', $filtros['mes']);
         }
 
         if ($filtros['vendedor_id']) {
@@ -606,10 +607,10 @@ class Relatorios extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
-        $query->orderBy('vendas.created_at', 'desc');
+        $query->orderBy('vendas.data_implantacao', 'desc');
 
         if ($perPage) {
             return $query->paginate($perPage);
@@ -621,8 +622,8 @@ class Relatorios extends Controller
     private function getImplantacoesPorMes($filtros)
     {
         $query = VendasModel::select(
-            DB::raw('MONTH(vendas.created_at) as mes'),
-            DB::raw('YEAR(vendas.created_at) as ano'),
+            DB::raw('MONTH(vendas.data_implantacao) as mes'),
+            DB::raw('YEAR(vendas.data_implantacao) as ano'),
             DB::raw('COUNT(*) as total_vendas'),
             DB::raw('SUM(valor_contrato) as valor_total'),
             DB::raw('SUM(vidas) as total_vidas')
@@ -632,7 +633,7 @@ class Relatorios extends Controller
         $query = $this->aplicarFiltroStatusImplantado($query);
 
         if ($filtros['ano']) {
-            $query->whereYear('vendas.created_at', $filtros['ano']);
+            $query->whereYear('vendas.data_implantacao', $filtros['ano']);
         }
 
         if ($filtros['vendedor_id']) {
@@ -644,7 +645,7 @@ class Relatorios extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
         return $query->groupBy('ano', 'mes')
@@ -666,11 +667,11 @@ class Relatorios extends Controller
             ->where('users.empresa_id', $empresaId);
 
         if ($filtros['ano']) {
-            $query->whereYear('vendas.created_at', $filtros['ano']);
+            $query->whereYear('vendas.data_implantacao', $filtros['ano']);
         }
 
         if ($filtros['mes']) {
-            $query->whereMonth('vendas.created_at', $filtros['mes']);
+            $query->whereMonth('vendas.data_implantacao', $filtros['mes']);
         }
 
         if ($filtros['operadora']) {
@@ -678,7 +679,7 @@ class Relatorios extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
         $query = $this->aplicarFiltroStatusImplantado($query);
@@ -701,11 +702,11 @@ class Relatorios extends Controller
         $query = $this->aplicarFiltroStatusImplantado($query);
 
         if ($filtros['ano']) {
-            $query->whereYear('vendas.created_at', $filtros['ano']);
+            $query->whereYear('vendas.data_implantacao', $filtros['ano']);
         }
 
         if ($filtros['mes']) {
-            $query->whereMonth('vendas.created_at', $filtros['mes']);
+            $query->whereMonth('vendas.data_implantacao', $filtros['mes']);
         }
 
         if ($filtros['vendedor_id']) {
@@ -713,7 +714,7 @@ class Relatorios extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
         return $query->whereNotNull('operadora')
@@ -734,11 +735,11 @@ class Relatorios extends Controller
         $query = $this->aplicarFiltroStatusImplantado($query);
 
         if ($filtros['ano']) {
-            $query->whereYear('vendas.created_at', $filtros['ano']);
+            $query->whereYear('vendas.data_implantacao', $filtros['ano']);
         }
 
         if ($filtros['mes']) {
-            $query->whereMonth('vendas.created_at', $filtros['mes']);
+            $query->whereMonth('vendas.data_implantacao', $filtros['mes']);
         }
 
         if ($filtros['vendedor_id']) {
@@ -750,7 +751,7 @@ class Relatorios extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
         return $query->whereNotNull('nome_plano')
@@ -767,11 +768,11 @@ class Relatorios extends Controller
         $query = $this->aplicarFiltroStatusImplantado($query);
 
         if ($filtros['ano']) {
-            $query->whereYear('vendas.created_at', $filtros['ano']);
+            $query->whereYear('vendas.data_implantacao', $filtros['ano']);
         }
 
         if ($filtros['mes']) {
-            $query->whereMonth('vendas.created_at', $filtros['mes']);
+            $query->whereMonth('vendas.data_implantacao', $filtros['mes']);
         }
 
         if ($filtros['vendedor_id']) {
@@ -783,10 +784,10 @@ class Relatorios extends Controller
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
-            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereBetween('vendas.data_implantacao', [$filtros['data_inicio'], $filtros['data_fim']]);
         }
 
-        // Query para vendas cadastradas no mesmo período
+        // Query para vendas cadastradas no mesmo período (mantém created_at)
         $queryCadastradas = VendasModel::query();
         $queryCadastradas = $this->aplicarFiltroEmpresa($queryCadastradas);
         $queryCadastradas = $this->aplicarFiltroStatusVenda($queryCadastradas);
