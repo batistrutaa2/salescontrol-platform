@@ -677,6 +677,12 @@
       return;
     }
 
+    // Validação: data fim não pode ser menor que data início
+    if (new Date(dataFim) < new Date(dataInicio)) {
+      toastr.error('A data fim não pode ser menor que a data início.');
+      return;
+    }
+
     try {
       setLoading(true);
       const payload = await fetchFaturamento({ dataInicio, dataFim, vendedorId, grade });
@@ -717,6 +723,28 @@
   })();
 
   $aplicar.addEventListener('click', carregarEExibir);
+
+  // Validação visual em tempo real das datas
+  $dataFim?.addEventListener('change', function() {
+    if ($dataInicio.value && $dataFim.value) {
+      if (new Date($dataFim.value) < new Date($dataInicio.value)) {
+        $dataFim.classList.add('is-invalid');
+        toastr.error('A data fim não pode ser menor que a data início.');
+      } else {
+        $dataFim.classList.remove('is-invalid');
+      }
+    }
+  });
+
+  $dataInicio?.addEventListener('change', function() {
+    if ($dataInicio.value && $dataFim.value) {
+      if (new Date($dataFim.value) < new Date($dataInicio.value)) {
+        $dataFim.classList.add('is-invalid');
+      } else {
+        $dataFim.classList.remove('is-invalid');
+      }
+    }
+  });
 
   // ======== Modal de Lançamento Avulso ========
   const $avModal    = document.getElementById('modalLancAvulso');
