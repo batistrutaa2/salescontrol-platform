@@ -34,6 +34,11 @@ class LancamentoDebitoCredito extends Model
         'status',             // pendente | pago | cancelado
         'comissao_pagamento_id',
         'pago_em',
+        'parcelado',          // boolean
+        'parcela_atual',      // 1, 2, 3...
+        'parcelas_total',     // 10, 12...
+        'valor_total_original', // valor total antes de parcelar
+        'lancamento_principal_id', // FK para primeira parcela
     ];
 
     protected $casts = [
@@ -41,6 +46,8 @@ class LancamentoDebitoCredito extends Model
         'imposto_perc'       => 'decimal:2',
         'imposto_valor'      => 'decimal:2',
         'valor_liquido'      => 'decimal:2',
+        'valor_total_original' => 'decimal:2',
+        'parcelado'          => 'boolean',
         'pago_em'            => 'datetime',
         'created_at'         => 'datetime',
         'updated_at'         => 'datetime',
@@ -69,6 +76,16 @@ class LancamentoDebitoCredito extends Model
     {
         // Ajuste o Model se usar outro nome (ex.: ComissaoPagamento)
         return $this->belongsTo(\App\Models\ComissaoPagamento::class, 'comissao_pagamento_id');
+    }
+
+    public function lancamentoPrincipal()
+    {
+        return $this->belongsTo(self::class, 'lancamento_principal_id');
+    }
+
+    public function parcelas()
+    {
+        return $this->hasMany(self::class, 'lancamento_principal_id');
     }
 
     /* -----------------------------------------------------------------
@@ -188,5 +205,31 @@ class LancamentoDebitoCredito extends Model
     {
         $this->status = self::ST_CANCEL;
         $this->save();
+    }
+
+    public function isParcelado(): bool
+    {
+        return (bool) $this->parcelado;
+    }
+
+    public function getDescricaoCompleta(): string
+    {
+        $desc = $this->descricao ?? '';
+
+        if ($this->isParcelado() && $this->parcela_atual && $this->parcelas_total) {
+            $parcela = sprintf('Parcela %d/%d', $this->parcela_atual, $this->parcelas_total);
+            return $desc ? "{$desc} - {$parcela}" : $parcela;
+        }
+
+        return $desc;
+    }
+
+    public function getParcelaFormatada(): ?string
+    {
+        if (!$this->isParcelado() || !$this->parcela_atual || !$this->parcelas_total) {
+            return null;
+        }
+
+        return sprintf('%d/%d', $this->parcela_atual, $this->parcelas_total);
     }
 }

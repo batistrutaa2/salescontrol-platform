@@ -229,10 +229,16 @@ class Comissionamento extends Controller
         }
 
         /* ===== AJUSTES (pendentes) para a empresa, e opcionalmente vendedor ===== */
+        // Filtra ajustes pelo período selecionado (campo 'mes' em formato YYYY-MM)
+        // Converte data_inicio e data_fim para YYYY-MM para comparar com o campo 'mes'
+        $mesInicio = substr($inicio, 0, 7); // '2025-03-01' -> '2025-03'
+        $mesFim = substr($fim, 0, 7);       // '2025-03-31' -> '2025-03'
+
         $ajustes = DB::table('lancamentos_debito_credito as a')
             ->join('users as u', 'u.id', '=', 'a.vendedor_id')
             ->where('a.empresa_id', $empresaId)
             ->where('a.status', 'pendente')
+            ->whereBetween('a.mes', [$mesInicio, $mesFim])
             ->when($vendedorId, fn($q) => $q->where('a.vendedor_id', $vendedorId))
             ->select([
                 'a.id',
@@ -246,6 +252,10 @@ class Comissionamento extends Controller
                 'a.imposto_valor',
                 'a.valor_liquido', // já com sinal (+ crédito / - débito)
                 'a.mes', // Incluir o mês para referência no frontend
+                'a.parcelado',
+                'a.parcela_atual',
+                'a.parcelas_total',
+                'a.valor_total_original',
             ])
             ->orderBy('u.name')
             ->get();
@@ -261,9 +271,15 @@ class Comissionamento extends Controller
                 ];
             }
 
+            // Monta o nome sintético com informação de parcela
+            $parcela = ($aj->parcelado && $aj->parcela_atual && $aj->parcelas_total)
+                ? sprintf(' [%d/%d]', $aj->parcela_atual, $aj->parcelas_total)
+                : '';
+
             $nomeSintetico = ($aj->natureza === 'CREDITO' ? 'Crédito' : 'Despesa')
                 .' · '.ucfirst(strtolower($aj->categoria))
-                .($aj->descricao ? ' — '.$aj->descricao : '');
+                .($aj->descricao ? ' — '.$aj->descricao : '')
+                .$parcela;
 
             $porVendedor[$aj->user_id]['contratos'][] = [
                 'id'                   => $aj->id,
@@ -280,6 +296,10 @@ class Comissionamento extends Controller
                 'angariacao_status'    => 'NAO',
                 'categoria'            => $aj->categoria,
                 'mes_lancamento'       => $aj->mes, // Mês de referência do lançamento
+                'parcelado'            => (bool) $aj->parcelado,
+                'parcela_atual'        => (int) ($aj->parcela_atual ?? 0),
+                'parcelas_total'       => (int) ($aj->parcelas_total ?? 0),
+                'valor_total_original' => round((float) ($aj->valor_total_original ?? 0), 2),
             ];
 
             // Ajuste entra SOMENTE na soma da comissão líquida (com sinal)
@@ -549,6 +569,9 @@ class Comissionamento extends Controller
                 'imposto_perc' => ['required','numeric','min:0','max:100'],
                 'valor_bruto'  => ['required','numeric','min:0.01'],
                 'descricao'    => ['nullable','string','max:255'],
+                // Parcelamento
+                'parcelado'    => ['nullable','boolean'],
+                'parcelas'     => ['nullable','integer','min:2','max:60'],
                 // Os campos abaixo vêm do front, mas serão ignorados p/ segurança:
                 'imposto_valor'=> ['nullable'],
                 'valor_liquido'=> ['nullable'],
@@ -557,24 +580,90 @@ class Comissionamento extends Controller
             // (opcional) garantir que vendedor pertence à mesma empresa do usuário logado
             // abort_if(!User::where('id',$data['vendedor_id'])->where('empresa_id',$user->empresa_id)->exists(), 403);
 
-            // Cria: o Model recalcula imposto_valor e valor_liquido no saving()
-            $lanc = LancamentoDebitoCredito::create([
-                'empresa_id'   => $user->empresa_id,
-                'vendedor_id'  => (int)$data['vendedor_id'],
-                'created_by'   => $user->id,
-                'natureza'     => $data['natureza'],
-                'categoria'    => $data['categoria'],
-                'valor_bruto'  => (float)$data['valor_bruto'],
-                'imposto_perc' => (float)$data['imposto_perc'],
-                'mes'          => $data['mes'],                  // YYYY-MM
-                'descricao'    => $data['descricao'] ?? null,
-                'status'       => LancamentoDebitoCredito::ST_PENDENTE,
-            ]);
+            $parcelado = (bool) ($data['parcelado'] ?? false);
+            $parcelas = (int) ($data['parcelas'] ?? 1);
 
-            return response()->json([
-                'message' => 'Ajuste lançado com sucesso.',
-                'lancamento' => $lanc,
-            ], 201);
+            if ($parcelado && $parcelas > 1) {
+                // ========== LANÇAMENTO PARCELADO ==========
+                $valorTotal = (float) $data['valor_bruto'];
+                $valorParcela = round($valorTotal / $parcelas, 2);
+
+                // Ajuste da última parcela para compensar arredondamento
+                $totalParcelas = $valorParcela * $parcelas;
+                $diferenca = round($valorTotal - $totalParcelas, 2);
+
+                $mesBase = Carbon::createFromFormat('Y-m', $data['mes']);
+                $lancamentoPrincipal = null;
+                $lancamentos = [];
+
+                DB::transaction(function () use (
+                    $user, $data, $parcelas, $valorTotal, $valorParcela, $diferenca, $mesBase,
+                    &$lancamentoPrincipal, &$lancamentos
+                ) {
+                    for ($i = 1; $i <= $parcelas; $i++) {
+                        // Primeira parcela (1/3) no mês ATUAL (mês base = hoje), demais nos meses seguintes
+                        // Exemplo: hoje = outubro/2025, 3 parcelas de R$ 100
+                        //   Parcela 1/3 → 2025-10 (outubro)  [addMonths(0)]
+                        //   Parcela 2/3 → 2025-11 (novembro) [addMonths(1)]
+                        //   Parcela 3/3 → 2025-12 (dezembro) [addMonths(2)]
+                        $mesAtual = $mesBase->copy()->addMonths($i - 1)->format('Y-m');
+
+                        // Última parcela recebe ajuste para compensar arredondamento
+                        $valorAtual = ($i === $parcelas) ? ($valorParcela + $diferenca) : $valorParcela;
+
+                        $lanc = LancamentoDebitoCredito::create([
+                            'empresa_id'            => $user->empresa_id,
+                            'vendedor_id'           => (int) $data['vendedor_id'],
+                            'created_by'            => $user->id,
+                            'natureza'              => $data['natureza'],
+                            'categoria'             => $data['categoria'],
+                            'valor_bruto'           => $valorAtual,
+                            'imposto_perc'          => (float) $data['imposto_perc'],
+                            'mes'                   => $mesAtual,
+                            'descricao'             => $data['descricao'] ?? null,
+                            'status'                => LancamentoDebitoCredito::ST_PENDENTE,
+                            'parcelado'             => true,
+                            'parcela_atual'         => $i,
+                            'parcelas_total'        => $parcelas,
+                            'valor_total_original'  => $valorTotal,
+                            'lancamento_principal_id' => $lancamentoPrincipal?->id,
+                        ]);
+
+                        if ($i === 1) {
+                            $lancamentoPrincipal = $lanc;
+                        }
+
+                        $lancamentos[] = $lanc;
+                    }
+                });
+
+                return response()->json([
+                    'message' => "Lançamento parcelado criado com sucesso ({$parcelas} parcelas).",
+                    'lancamentos' => $lancamentos,
+                    'total_parcelas' => $parcelas,
+                ], 201);
+
+            } else {
+                // ========== LANÇAMENTO À VISTA ==========
+                $lanc = LancamentoDebitoCredito::create([
+                    'empresa_id'   => $user->empresa_id,
+                    'vendedor_id'  => (int) $data['vendedor_id'],
+                    'created_by'   => $user->id,
+                    'natureza'     => $data['natureza'],
+                    'categoria'    => $data['categoria'],
+                    'valor_bruto'  => (float) $data['valor_bruto'],
+                    'imposto_perc' => (float) $data['imposto_perc'],
+                    'mes'          => $data['mes'],
+                    'descricao'    => $data['descricao'] ?? null,
+                    'status'       => LancamentoDebitoCredito::ST_PENDENTE,
+                    'parcelado'    => false,
+                ]);
+
+                return response()->json([
+                    'message' => 'Ajuste lançado com sucesso.',
+                    'lancamento' => $lanc,
+                ], 201);
+            }
         }
 
     public function deleteLancamentoDebitoCredito($id)

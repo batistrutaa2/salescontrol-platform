@@ -255,6 +255,37 @@
                                 placeholder="Ex.: Bônus por meta ou desconto por atraso">
                         </div>
 
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="ajParcelado" name="parcelado">
+                                <label class="form-check-label" for="ajParcelado">Parcelar lançamento</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 js-parcelas-fields" style="display: none;">
+                            <label class="form-label">Número de parcelas</label>
+                            <input type="number" class="form-control" id="ajParcelas" name="parcelas"
+                                min="2" max="60" value="2">
+                        </div>
+
+                        <div class="col-md-8 js-parcelas-fields" style="display: none;">
+                            <div class="alert alert-info mb-0 small">
+                                <i class="ri-information-line me-1"></i>
+                                As parcelas serão criadas automaticamente nos meses subsequentes
+                            </div>
+                        </div>
+
+                        <div class="col-md-12 js-parcelas-fields" style="display: none;">
+                            <label class="form-label">Detalhamento das parcelas:</label>
+                            <div class="card">
+                                <div class="card-body p-3">
+                                    <div id="ajDetalheParcelas" class="small text-muted">
+                                        Informe o valor e número de parcelas para visualizar o detalhamento
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-md-2">
                             <label class="form-label">Imposto (R$)</label>
                             <input type="text" class="form-control" id="ajImpValView" disabled>
@@ -348,6 +379,37 @@
                             <label class="form-label">Descrição/observação</label>
                             <input type="text" class="form-control" id="avDesc" name="descricao"
                                 placeholder="Ex.: Bônus por meta ou desconto por atraso">
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="avParcelado" name="parcelado">
+                                <label class="form-check-label" for="avParcelado">Parcelar lançamento</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 js-parcelas-fields-av" style="display: none;">
+                            <label class="form-label">Número de parcelas</label>
+                            <input type="number" class="form-control" id="avParcelas" name="parcelas"
+                                min="2" max="60" value="2">
+                        </div>
+
+                        <div class="col-md-8 js-parcelas-fields-av" style="display: none;">
+                            <div class="alert alert-info mb-0 small">
+                                <i class="ri-information-line me-1"></i>
+                                As parcelas serão criadas automaticamente nos meses subsequentes
+                            </div>
+                        </div>
+
+                        <div class="col-md-12 js-parcelas-fields-av" style="display: none;">
+                            <label class="form-label">Detalhamento das parcelas:</label>
+                            <div class="card">
+                                <div class="card-body p-3">
+                                    <div id="avDetalheParcelas" class="small text-muted">
+                                        Informe o valor e número de parcelas para visualizar o detalhamento
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="col-md-2">

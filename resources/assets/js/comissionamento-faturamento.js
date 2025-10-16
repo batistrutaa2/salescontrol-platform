@@ -212,9 +212,15 @@
                     // tenta inferir pelo sinal do líquido
                     const isDeb = liq < 0;
                     const cat   = (it.categoria || '').toString().toUpperCase(); // se vier do backend
+
+                    // Adiciona informação de parcela se houver
+                    const parcelaInfo = (it.parcelado && it.parcela_atual && it.parcelas_total)
+                      ? ` <small>[${it.parcela_atual}/${it.parcelas_total}]</small>`
+                      : '';
+
                     origemHtml  = isDeb
-                      ? `<span class="badge bg-danger">Ajuste (Débito${cat ? ' · '+cat : ''})</span>`
-                      : `<span class="badge bg-success">Ajuste (Crédito${cat ? ' · '+cat : ''})</span>`;
+                      ? `<span class="badge bg-danger">Ajuste (Débito${cat ? ' · '+cat : ''})${parcelaInfo}</span>`
+                      : `<span class="badge bg-success">Ajuste (Crédito${cat ? ' · '+cat : ''})${parcelaInfo}</span>`;
                   } else if (isAng) {
                     origemHtml = `<span class="badge bg-success">Angariação</span>`;
                   }
@@ -383,20 +389,84 @@
     if ($ajLiqVal)  $ajLiqVal.value  = liqSign.toFixed(2);
     if ($ajImpView) $ajImpView.value = brl(impVal);
     if ($ajLiqView) $ajLiqView.value = brl(liqSign);
+
+    // Atualiza detalhamento de parcelas
+    atualizarDetalheParcelas('aj');
+  }
+
+  function atualizarDetalheParcelas(prefix) {
+    const $parcelado = document.getElementById(`${prefix}Parcelado`);
+    const $parcelas = document.getElementById(`${prefix}Parcelas`);
+    const $valor = document.getElementById(`${prefix}Valor`);
+    const $mes = document.getElementById(`${prefix}Mes`);
+    const $detalhe = document.getElementById(`${prefix}DetalheParcelas`);
+
+    if (!$parcelado?.checked || !$detalhe) return;
+
+    const valorTotal = parseFloat($valor?.value || '0');
+    const numParcelas = parseInt($parcelas?.value || '2');
+    const mesBase = $mes?.value || new Date().toISOString().slice(0, 7);
+
+    if (!valorTotal || valorTotal <= 0 || numParcelas < 2) {
+      $detalhe.innerHTML = '<span class="text-muted">Informe o valor e número de parcelas para visualizar o detalhamento</span>';
+      return;
+    }
+
+    const valorParcela = Math.floor((valorTotal / numParcelas) * 100) / 100;
+    const diferenca = +(valorTotal - (valorParcela * numParcelas)).toFixed(2);
+
+    const [ano, mes] = mesBase.split('-').map(Number);
+    const dataBase = new Date(ano, mes - 1, 1);
+
+    let html = '<table class="table table-sm table-borderless mb-0">';
+    html += '<thead><tr><th>Parcela</th><th>Mês</th><th class="text-end">Valor</th></tr></thead><tbody>';
+
+    for (let i = 1; i <= numParcelas; i++) {
+      const mesAtual = new Date(dataBase);
+      mesAtual.setMonth(dataBase.getMonth() + (i - 1));
+
+      const mesFormatado = mesAtual.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
+        .replace('.', '')
+        .replace(/^\w/, c => c.toUpperCase());
+
+      const valorAtual = (i === numParcelas) ? (valorParcela + diferenca) : valorParcela;
+
+      html += `<tr>
+        <td><strong>${i}/${numParcelas}</strong></td>
+        <td>${mesFormatado}</td>
+        <td class="text-end">${brl(valorAtual)}</td>
+      </tr>`;
+    }
+
+    html += '</tbody></table>';
+    $detalhe.innerHTML = html;
   }
 
   $ajValor?.addEventListener('input', recalcAjuste);
   $ajImpPerc?.addEventListener('input', recalcAjuste);
+
+  // Toggle para exibir/ocultar campos de parcelamento
+  const $ajParcelado = document.getElementById('ajParcelado');
+  const $ajParcelas = document.getElementById('ajParcelas');
+
+  $ajParcelado?.addEventListener('change', function() {
+    const fields = document.querySelectorAll('.js-parcelas-fields');
+    fields.forEach(f => f.style.display = this.checked ? '' : 'none');
+    if (this.checked) atualizarDetalheParcelas('aj');
+  });
+
+  $ajParcelas?.addEventListener('input', () => atualizarDetalheParcelas('aj'));
 
   function openAjusteModal({ vendedorId, vendedorNome, natureza }) {
     if (!$ajModal) return;
 
     if ($ajVendId)   $ajVendId.value   = vendedorId;
     if ($ajVendNome) $ajVendNome.value = vendedorNome || `Vendedor #${vendedorId}`;
-    // Mantém o mês atual como padrão se não houver filtro de datas
-    if ($ajMes && $dataInicio?.value) {
-      const dataIni = new Date($dataInicio.value);
-      $ajMes.value = `${dataIni.getFullYear()}-${String(dataIni.getMonth() + 1).padStart(2, '0')}`;
+
+    // SEMPRE usa o mês ATUAL como referência (primeira parcela no mês corrente)
+    if ($ajMes) {
+      const hoje = new Date();
+      $ajMes.value = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
     }
     if ($ajNatureza) $ajNatureza.value = natureza; // CREDITO | DEBITO
 
@@ -404,6 +474,13 @@
     if ($ajImpPerc)   $ajImpPerc.value   = '0.00';
     if ($ajValor)     $ajValor.value     = '';
     if ($ajDesc)      $ajDesc.value      = '';
+
+    // Reset parcelamento
+    const $ajParcelado = document.getElementById('ajParcelado');
+    const $ajParcelas = document.getElementById('ajParcelas');
+    if ($ajParcelado) $ajParcelado.checked = false;
+    if ($ajParcelas) $ajParcelas.value = '2';
+    document.querySelectorAll('.js-parcelas-fields').forEach(f => f.style.display = 'none');
 
     recalcAjuste();
     // Título da modal
@@ -447,6 +524,9 @@
         return;
       }
 
+      const $ajParcelado = document.getElementById('ajParcelado');
+      const $ajParcelas = document.getElementById('ajParcelas');
+
       const payload = {
         vendedor_id: Number($ajVendId.value),
         mes: $ajMes.value,
@@ -456,7 +536,9 @@
         valor_bruto: Number($ajValor.value),
         imposto_valor: Number($ajImpVal.value),
         valor_liquido: Number($ajLiqVal.value),
-        descricao: $ajDesc.value || null
+        descricao: $ajDesc.value || null,
+        parcelado: $ajParcelado?.checked || false,
+        parcelas: $ajParcelado?.checked ? Number($ajParcelas?.value || 1) : 1
       };
 
       const res = await fetch(AJUSTE_URL, {
@@ -665,6 +747,9 @@
     if ($avLiqVal)  $avLiqVal.value  = liqSign.toFixed(2);
     if ($avImpView) $avImpView.value = brl(impVal);
     if ($avLiqView) $avLiqView.value = brl(liqSign);
+
+    // Atualiza detalhamento de parcelas
+    atualizarDetalheParcelas('av');
   }
 
   $avValor?.addEventListener('input', recalcAvulso);
@@ -673,6 +758,18 @@
     if ($avNatureza) $avNatureza.value = this.value;
     recalcAvulso();
   });
+
+  // Toggle para exibir/ocultar campos de parcelamento (modal avulsa)
+  const $avParcelado = document.getElementById('avParcelado');
+  const $avParcelas = document.getElementById('avParcelas');
+
+  $avParcelado?.addEventListener('change', function() {
+    const fields = document.querySelectorAll('.js-parcelas-fields-av');
+    fields.forEach(f => f.style.display = this.checked ? '' : 'none');
+    if (this.checked) atualizarDetalheParcelas('av');
+  });
+
+  $avParcelas?.addEventListener('input', () => atualizarDetalheParcelas('av'));
 
   // Carregar lista de vendedores para o select
   async function carregarVendedoresAvulso() {
@@ -711,10 +808,10 @@
   document.getElementById('btn-lanc-avulso')?.addEventListener('click', function() {
     if (!$avModal) return;
 
-    // Resetar formulário
-    if ($avMes && $dataInicio?.value) {
-      const dataIni = new Date($dataInicio.value);
-      $avMes.value = `${dataIni.getFullYear()}-${String(dataIni.getMonth() + 1).padStart(2, '0')}`;
+    // Resetar formulário - SEMPRE usa o mês ATUAL
+    if ($avMes) {
+      const hoje = new Date();
+      $avMes.value = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
     }
     if ($avTipo) $avTipo.value = '';
     if ($avNatureza) $avNatureza.value = 'CREDITO';
@@ -722,6 +819,13 @@
     if ($avImpPerc) $avImpPerc.value = '0.00';
     if ($avValor) $avValor.value = '';
     if ($avDesc) $avDesc.value = '';
+
+    // Reset parcelamento (modal avulsa)
+    const $avParcelado = document.getElementById('avParcelado');
+    const $avParcelas = document.getElementById('avParcelas');
+    if ($avParcelado) $avParcelado.checked = false;
+    if ($avParcelas) $avParcelas.value = '2';
+    document.querySelectorAll('.js-parcelas-fields-av').forEach(f => f.style.display = 'none');
 
     // Carregar vendedores
     carregarVendedoresAvulso();
@@ -802,6 +906,9 @@
         return;
       }
 
+      const $avParcelado = document.getElementById('avParcelado');
+      const $avParcelas = document.getElementById('avParcelas');
+
       const payload = {
         vendedor_id: Number(vendedorId),
         mes: $avMes.value,
@@ -811,7 +918,9 @@
         valor_bruto: Number($avValor.value),
         imposto_valor: Number($avImpVal.value),
         valor_liquido: Number($avLiqVal.value),
-        descricao: $avDesc.value || null
+        descricao: $avDesc.value || null,
+        parcelado: $avParcelado?.checked || false,
+        parcelas: $avParcelado?.checked ? Number($avParcelas?.value || 1) : 1
       };
 
       const res = await fetch(AJUSTE_URL, {
