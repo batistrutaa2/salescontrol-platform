@@ -571,7 +571,12 @@ class Comissionamento extends Controller
                 'descricao'    => ['nullable','string','max:255'],
                 // Parcelamento
                 'parcelado'    => ['nullable','boolean'],
-                'parcelas'     => ['nullable','integer','min:2','max:60'],
+                'parcelas'     => ['nullable','integer','min:1','max:60', function ($attribute, $value, $fail) use ($request) {
+                    // Valida min:2 apenas se parcelado estiver marcado
+                    if ($request->input('parcelado') && $value < 2) {
+                        $fail('O número de parcelas deve ser no mínimo 2 quando parcelado.');
+                    }
+                }],
                 // Os campos abaixo vêm do front, mas serão ignorados p/ segurança:
                 'imposto_valor'=> ['nullable'],
                 'valor_liquido'=> ['nullable'],

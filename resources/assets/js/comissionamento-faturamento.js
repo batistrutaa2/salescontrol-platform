@@ -452,6 +452,8 @@
   $ajParcelado?.addEventListener('change', function() {
     const fields = document.querySelectorAll('.js-parcelas-fields');
     fields.forEach(f => f.style.display = this.checked ? '' : 'none');
+    // Desabilita o campo de parcelas quando não está marcado
+    if ($ajParcelas) $ajParcelas.disabled = !this.checked;
     if (this.checked) atualizarDetalheParcelas('aj');
   });
 
@@ -479,7 +481,10 @@
     const $ajParcelado = document.getElementById('ajParcelado');
     const $ajParcelas = document.getElementById('ajParcelas');
     if ($ajParcelado) $ajParcelado.checked = false;
-    if ($ajParcelas) $ajParcelas.value = '2';
+    if ($ajParcelas) {
+      $ajParcelas.value = '2';
+      $ajParcelas.disabled = true; // Desabilita por padrão
+    }
     document.querySelectorAll('.js-parcelas-fields').forEach(f => f.style.display = 'none');
 
     recalcAjuste();
@@ -794,6 +799,8 @@
   $avParcelado?.addEventListener('change', function() {
     const fields = document.querySelectorAll('.js-parcelas-fields-av');
     fields.forEach(f => f.style.display = this.checked ? '' : 'none');
+    // Desabilita o campo de parcelas quando não está marcado
+    if ($avParcelas) $avParcelas.disabled = !this.checked;
     if (this.checked) atualizarDetalheParcelas('av');
   });
 
@@ -852,7 +859,10 @@
     const $avParcelado = document.getElementById('avParcelado');
     const $avParcelas = document.getElementById('avParcelas');
     if ($avParcelado) $avParcelado.checked = false;
-    if ($avParcelas) $avParcelas.value = '2';
+    if ($avParcelas) {
+      $avParcelas.value = '2';
+      $avParcelas.disabled = true; // Desabilita por padrão
+    }
     document.querySelectorAll('.js-parcelas-fields-av').forEach(f => f.style.display = 'none');
 
     // Carregar vendedores
