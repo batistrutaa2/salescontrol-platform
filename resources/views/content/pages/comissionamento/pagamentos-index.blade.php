@@ -6,32 +6,36 @@
     @vite([
         'resources/assets/vendor/libs/toastr/toastr.scss',
         'resources/assets/vendor/libs/animate-css/animate.scss',
-        'resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss',
-        'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss',
         'resources/assets/vendor/libs/select2/select2.scss'
     ])
     <style>
-      /* Mantém ações numa linha e garante clique nos botões/ícones */
-      #tabela-pagamentos td:last-child { white-space: nowrap; }
-      #tabela-pagamentos .btn i { pointer-events: none; }
-      #tabela-pagamentos .btn, #tabela-pagamentos .btn * { pointer-events: auto !important; }
-      #tabela-pagamentos .btn { cursor: pointer; }
-
       /* Cards de métricas */
       .card-metric {
           text-align: center;
           padding: 1.5rem;
           border-radius: 12px;
           border: none;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
           transition: transform 0.2s, box-shadow 0.2s;
           position: relative;
           overflow: hidden;
       }
-      .card-metric:hover {
+
+      [data-style="light"] .card-metric {
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      }
+      [data-style="dark"] .card-metric {
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      }
+
+      [data-style="light"] .card-metric:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 20px rgba(0,0,0,0.12);
       }
+      [data-style="dark"] .card-metric:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      }
+
       .card-metric::before {
           content: '';
           position: absolute;
@@ -55,21 +59,41 @@
           margin-bottom: 1rem;
           font-size: 1.5rem;
       }
-      .card-metric.primary .card-metric-icon {
+
+      [data-style="light"] .card-metric.primary .card-metric-icon {
           background: linear-gradient(135deg, rgba(90, 103, 216, 0.1), rgba(102, 126, 234, 0.2));
           color: #5a67d8;
       }
-      .card-metric.warning .card-metric-icon {
+      [data-style="dark"] .card-metric.primary .card-metric-icon {
+          background: linear-gradient(135deg, rgba(90, 103, 216, 0.2), rgba(102, 126, 234, 0.3));
+          color: #8b95e8;
+      }
+
+      [data-style="light"] .card-metric.warning .card-metric-icon {
           background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(253, 126, 20, 0.2));
           color: #ffc107;
       }
-      .card-metric.success .card-metric-icon {
+      [data-style="dark"] .card-metric.warning .card-metric-icon {
+          background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(253, 126, 20, 0.3));
+          color: #ffd54f;
+      }
+
+      [data-style="light"] .card-metric.success .card-metric-icon {
           background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(32, 201, 151, 0.2));
           color: #28a745;
       }
-      .card-metric.info .card-metric-icon {
+      [data-style="dark"] .card-metric.success .card-metric-icon {
+          background: linear-gradient(135deg, rgba(40, 167, 69, 0.2), rgba(32, 201, 151, 0.3));
+          color: #66bb6a;
+      }
+
+      [data-style="light"] .card-metric.info .card-metric-icon {
           background: linear-gradient(135deg, rgba(23, 162, 184, 0.1), rgba(32, 201, 151, 0.2));
           color: #17a2b8;
+      }
+      [data-style="dark"] .card-metric.info .card-metric-icon {
+          background: linear-gradient(135deg, rgba(23, 162, 184, 0.2), rgba(32, 201, 151, 0.3));
+          color: #4dd0e1;
       }
 
       .card-metric h4 {
@@ -77,10 +101,18 @@
           font-weight: 700;
           font-size: 1.5rem;
       }
-      .card-metric h4.text-primary { color: #5a67d8 !important; }
-      .card-metric h4.text-warning { color: #ffc107 !important; }
-      .card-metric h4.text-success { color: #28a745 !important; }
-      .card-metric h4.text-info { color: #17a2b8 !important; }
+
+      [data-style="light"] .card-metric h4.text-primary { color: #5a67d8 !important; }
+      [data-style="dark"] .card-metric h4.text-primary { color: #8b95e8 !important; }
+
+      [data-style="light"] .card-metric h4.text-warning { color: #ffc107 !important; }
+      [data-style="dark"] .card-metric h4.text-warning { color: #ffd54f !important; }
+
+      [data-style="light"] .card-metric h4.text-success { color: #28a745 !important; }
+      [data-style="dark"] .card-metric h4.text-success { color: #66bb6a !important; }
+
+      [data-style="light"] .card-metric h4.text-info { color: #17a2b8 !important; }
+      [data-style="dark"] .card-metric h4.text-info { color: #4dd0e1 !important; }
 
       .card-metric span {
           font-size: 0.875rem;
@@ -89,58 +121,155 @@
           letter-spacing: 0.5px;
       }
 
-      [data-theme="light"] .card-metric span {
+      [data-style="light"] .card-metric span {
           color: #6c757d;
       }
-      [data-theme="dark"] .card-metric span {
+      [data-style="dark"] .card-metric span {
           color: #a1a5b7;
       }
 
-      /* Tabela moderna */
-      .table-modern {
-          border-radius: 8px;
-          overflow: hidden;
+      /* Card de filtros */
+      .filter-card {
+          border-radius: 12px;
+          border: none;
       }
-      .table-modern thead th {
+
+      [data-style="light"] .filter-card {
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      }
+      [data-style="dark"] .filter-card {
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      }
+
+      /* Cards de pagamento */
+      .payment-card {
+          border-radius: 12px;
+          border: none;
+          transition: all 0.3s;
+          margin-bottom: 1rem;
+      }
+
+      [data-style="light"] .payment-card {
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      }
+      [data-style="dark"] .payment-card {
+          box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      }
+
+      [data-style="light"] .payment-card:hover {
+          box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+          transform: translateY(-2px);
+      }
+      [data-style="dark"] .payment-card:hover {
+          box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+          transform: translateY(-2px);
+      }
+
+      .payment-card-header {
+          padding: 1.25rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 1rem;
+      }
+
+      [data-style="light"] .payment-card-header {
+          border-bottom: 2px solid #f0f0f0;
+      }
+      [data-style="dark"] .payment-card-header {
+          border-bottom: 2px solid rgba(255,255,255,0.1);
+      }
+
+      .payment-card-body {
+          padding: 1.25rem;
+      }
+
+      .payment-info {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+      }
+
+      .payment-avatar {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #5a67d8, #667eea);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 700;
+          font-size: 1.25rem;
+      }
+
+      .payment-details h5 {
+          margin: 0;
           font-weight: 600;
-          text-transform: uppercase;
+          font-size: 1.1rem;
+      }
+
+      .payment-details small {
+          font-size: 0.875rem;
+      }
+
+      [data-style="light"] .payment-details small {
+          color: #6c757d;
+      }
+      [data-style="dark"] .payment-details small {
+          color: #a1a5b7;
+      }
+
+      .payment-values {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 1rem;
+      }
+
+      .payment-value-item {
+          text-align: center;
+      }
+
+      .payment-value-item label {
+          display: block;
           font-size: 0.75rem;
+          text-transform: uppercase;
           letter-spacing: 0.5px;
-          border: none;
-          padding: 1rem;
+          margin-bottom: 0.25rem;
       }
 
-      [data-theme="light"] .table-modern thead th {
-          background: #f8f9fa;
-          color: #495057 !important;
-          border-bottom: 2px solid #dee2e6;
+      [data-style="light"] .payment-value-item label {
+          color: #6c757d;
+      }
+      [data-style="dark"] .payment-value-item label {
+          color: #a1a5b7;
       }
 
-      [data-theme="dark"] .table-modern thead th {
-          background: #5a67d8;
-          color: white !important;
+      .payment-value-item .value {
+          font-size: 1.1rem;
+          font-weight: 700;
       }
 
-      .table-modern tbody tr {
-          transition: all 0.2s;
-          border-bottom: 1px solid #f0f0f0;
-      }
-      .table-modern tbody tr:hover {
-          background: #f8f9ff;
-          transform: scale(1.005);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      }
-      .table-modern tbody td {
-          padding: 1rem;
-          vertical-align: middle;
-          border: none;
+      [data-style="light"] .payment-value-item.primary .value { color: #5a67d8; }
+      [data-style="dark"] .payment-value-item.primary .value { color: #8b95e8; }
+
+      [data-style="light"] .payment-value-item.warning .value { color: #ffc107; }
+      [data-style="dark"] .payment-value-item.warning .value { color: #ffd54f; }
+
+      [data-style="light"] .payment-value-item.success .value { color: #28a745; }
+      [data-style="dark"] .payment-value-item.success .value { color: #66bb6a; }
+
+      [data-style="light"] .payment-value-item.info .value { color: #17a2b8; }
+      [data-style="dark"] .payment-value-item.info .value { color: #4dd0e1; }
+
+      .payment-actions {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
       }
 
-      [data-theme="light"] .table-modern tbody td {
-          color: #4b5563;
-      }
-
-      .badge-modern {
+      .badge-payment {
           padding: 0.5rem 1rem;
           border-radius: 20px;
           font-weight: 600;
@@ -149,11 +278,143 @@
           letter-spacing: 0.5px;
       }
 
-      /* Card de filtros */
-      .filter-card {
+      /* Date group header */
+      .date-group-header {
+          padding: 1rem 1.5rem;
           border-radius: 12px;
-          border: none;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+          margin-bottom: 1rem;
+          cursor: pointer;
+          transition: all 0.3s;
+          user-select: none;
+      }
+
+      /* Tema Claro - Fundo claro com bordas e texto escuro */
+      [data-style="light"] .date-group-header {
+          background: linear-gradient(135deg, #f8f9fa, #e9ecef) !important;
+          border: 2px solid #dee2e6;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      /* Tema Escuro - Fundo escuro com gradiente azulado */
+      [data-style="dark"] .date-group-header {
+          background: linear-gradient(135deg, #2c3e50, #34495e) !important;
+          border: 2px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      [data-style="light"] .date-group-header:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+          border-color: #17a2b8;
+      }
+      [data-style="dark"] .date-group-header:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+          border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .date-group-header h4 {
+          margin: 0;
+          font-weight: 700;
+          font-size: 1.25rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+      }
+
+      /* Tema Claro - Texto e ícones em azul escuro */
+      [data-style="light"] .date-group-header,
+      [data-style="light"] .date-group-header h4,
+      [data-style="light"] .date-group-header .date-info,
+      [data-style="light"] .date-group-header .date-info i,
+      [data-style="light"] .date-group-header .toggle-icon {
+          color: #2c3e50 !important;
+      }
+
+      /* Tema Escuro - Texto e ícones em branco */
+      [data-style="dark"] .date-group-header,
+      [data-style="dark"] .date-group-header h4,
+      [data-style="dark"] .date-group-header .date-info,
+      [data-style="dark"] .date-group-header .date-info i,
+      [data-style="dark"] .date-group-header .toggle-icon {
+          color: #ffffff !important;
+      }
+
+      .date-group-header .date-info {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+      }
+
+      .date-group-header .badge {
+          padding: 0.35rem 0.75rem;
+          border-radius: 15px;
+          font-size: 0.85rem;
+          font-weight: 600;
+      }
+
+      /* Badges no tema claro - destaque com info */
+      [data-style="light"] .date-group-header .badge {
+          background: linear-gradient(135deg, #17a2b8, #20c997) !important;
+          color: #ffffff !important;
+      }
+
+      /* Badges no tema escuro - destaque sutil */
+      [data-style="dark"] .date-group-header .badge {
+          background: linear-gradient(135deg, rgba(23, 162, 184, 0.4), rgba(32, 201, 151, 0.4)) !important;
+          color: #ffffff !important;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .date-group-header .toggle-icon {
+          font-size: 1.5rem;
+          transition: transform 0.3s;
+      }
+
+      .date-group-header.collapsed .toggle-icon {
+          transform: rotate(180deg);
+      }
+
+      .date-group-content {
+          overflow: hidden;
+          transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+      }
+
+      .date-group-content.collapsed {
+          max-height: 0 !important;
+          opacity: 0;
+      }
+
+      .date-group {
+          margin-bottom: 1.5rem;
+      }
+
+      /* Loading state */
+      .loading-container {
+          min-height: 300px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+      }
+
+      .empty-state {
+          text-align: center;
+          padding: 3rem;
+      }
+
+      [data-style="light"] .empty-state {
+          color: #6c757d;
+      }
+      [data-style="dark"] .empty-state {
+          color: #a1a5b7;
+      }
+
+      .empty-state i {
+          font-size: 4rem;
+          opacity: 0.3;
+          margin-bottom: 1rem;
       }
 
       /* Modal moderno */
@@ -168,18 +429,18 @@
           border: none;
       }
 
-      [data-theme="light"] .modal-modern .modal-header {
+      [data-style="light"] .modal-modern .modal-header {
           background: #f8f9fa;
           color: #495057;
           border-bottom: 2px solid #dee2e6;
       }
 
-      [data-theme="dark"] .modal-modern .modal-header {
+      [data-style="dark"] .modal-modern .modal-header {
           background: #5a67d8;
           color: white;
       }
 
-      [data-theme="dark"] .modal-modern .modal-header .btn-close {
+      [data-style="dark"] .modal-modern .modal-header .btn-close {
           filter: brightness(0) invert(1);
       }
 
@@ -197,7 +458,6 @@
     @vite([
         'resources/assets/vendor/libs/toastr/toastr.js',
         'resources/assets/vendor/libs/moment/moment.js',
-        'resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js',
         'resources/assets/vendor/libs/select2/select2.js'
     ])
 @endsection
@@ -262,12 +522,12 @@
     <div class="card mb-4 filter-card">
         <div class="card-body">
             <div class="row g-3 align-items-end">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">Mês</label>
                     <input type="month" id="filtro-mes" class="form-control"
                         value="{{ \Carbon\Carbon::now('America/Sao_Paulo')->format('Y-m') }}">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">Vendedor</label>
                     <select id="filtro-vendedor" class="form-select select2" data-placeholder="Todos">
                         <option value="">Todos</option>
@@ -276,13 +536,21 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">Criado por</label>
                     <select id="filtro-criado-por" class="form-select select2" data-placeholder="Todos">
                         <option value="">Todos</option>
                         @foreach ($criadores as $c)
                             <option value="{{ $c->id }}">{{ $c->name }}</option>
                         @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select id="filtro-status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="pago">Pago</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -294,41 +562,8 @@
         </div>
     </div>
 
-    <div class="card filter-card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table id="tabela-pagamentos" class="table table-modern w-100">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Vendedor</th>
-                            <th>Mês</th>
-                            <th>Data Pagto</th> {{-- agora é pago_em --}}
-                            <th class="text-end">% Com.</th>
-                            <th class="text-end">% Imp.</th>
-                            <th class="text-end">Bruto</th>
-                            <th class="text-end">Imposto</th>
-                            <th class="text-end">Líquido</th>
-                            <th class="text-end">Total a Receber</th>
-                            <th>Lançado por</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                    <tfoot>
-                        <tr class="fw-semibold">
-                            <td colspan="6" class="text-end">Totais:</td>
-                            <td id="ft-bruto" class="text-end">R$ 0,00</td>
-                            <td id="ft-imp" class="text-end">R$ 0,00</td>
-                            <td id="ft-liq" class="text-end">R$ 0,00</td>
-                            <td id="ft-total" class="text-end">R$ 0,00</td>
-                            <td colspan="2"></td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    </div>
+    {{-- Container de Pagamentos --}}
+    <div id="pagamentos-container"></div>
 
     {{-- Modal: Registrar Pagamento --}}
     <div class="modal fade modal-modern" id="modalPagar" tabindex="-1" aria-hidden="true">

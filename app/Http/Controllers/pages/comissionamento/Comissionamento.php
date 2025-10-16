@@ -1201,12 +1201,13 @@ class Comissionamento extends Controller
         $mes = $request->input('mes');
         $vendedorId = $request->integer('vendedor_id');
         $criadorId = $request->integer('created_by');
+        $status = $request->input('status'); // 'pago', 'pendente' ou '' (todos)
 
         $q = DB::table('comissao_pagamentos as p')
             ->join('users as v', 'v.id', '=', 'p.vendedor_id')
             ->join('users as c', 'c.id', '=', 'p.created_by')
             ->where('p.empresa_id', $empresaId)
-            ->whereNotNull('p.data_pagamento'); // Filtra apenas pagamentos concluídos
+            ->whereNotNull('p.data_pagamento'); // Filtra apenas pagamentos com data definida
 
         if ($isVendedor) {
             $q->where('p.vendedor_id', $user->id);
@@ -1220,8 +1221,20 @@ class Comissionamento extends Controller
         }
 
         if (!empty($mes)) {
-            $q->where('p.mes', $mes);
+            // Filtra pelo mês da data_pagamento (quando será/foi pago), não pelo campo 'mes' (referência)
+            // Exemplo: mes='2025-11' → busca data_pagamento BETWEEN '2025-11-01' AND '2025-11-30'
+            $mesInicio = $mes . '-01';
+            $mesFim = date('Y-m-t', strtotime($mesInicio)); // último dia do mês
+            $q->whereBetween('p.data_pagamento', [$mesInicio, $mesFim]);
         }
+
+        // Filtro de status: pago (pago_em preenchido) ou pendente (pago_em null)
+        if ($status === 'pago') {
+            $q->whereNotNull('p.pago_em');
+        } elseif ($status === 'pendente') {
+            $q->whereNull('p.pago_em');
+        }
+        // Se status vazio ou 'todos', não filtra (mostra ambos)
 
         $rows = $q->select([
             'p.id',
@@ -1264,43 +1277,43 @@ class Comissionamento extends Controller
         }
 
         DB::transaction(function () use ($id) {
-            // Busca os IDs das vendas relacionadas
+            // 1. Busca os IDs das vendas relacionadas
             $vendaIds = DB::table('comissao_pagamento_itens')
                 ->where('comissao_pagamento_id', $id)
                 ->pluck('venda_id');
 
-            // Atualiza as vendas para remover a marcação de comissão paga
-            DB::table('vendas')->whereIn('id', $vendaIds)->update([
-                'comissao_paga' => 0,
-                'data_pagamento_comissao' => null,
-                'updated_at' => now(),
-            ]);
-
-            DB::table('comissao_pagamento_itens')
-                ->where('comissao_pagamento_id', $id)
-                ->update([
+            // 2. Atualiza as vendas para remover a marcação de comissão paga
+            //    (volta para pendente de faturamento)
+            if ($vendaIds->isNotEmpty()) {
+                DB::table('vendas')->whereIn('id', $vendaIds)->update([
+                    'comissao_paga' => 0,
+                    'data_pagamento_comissao' => null,
                     'updated_at' => now(),
                 ]);
+            }
 
-
+            // 3. Volta ajustes para status pendente (FK com SET NULL, então apenas marca pendente)
             DB::table('lancamentos_debito_credito')
                 ->where('comissao_pagamento_id', $id)
                 ->update([
                     'status' => 'pendente',
+                    'comissao_pagamento_id' => null,
                     'pago_em' => null,
                     'updated_at' => now(),
                 ]);
 
-            // Atualiza o header para status PENDENTE
+            // 4. DELETE dos itens (CASCADE automático, mas fazemos explícito para clareza)
+            DB::table('comissao_pagamento_itens')
+                ->where('comissao_pagamento_id', $id)
+                ->delete();
+
+            // 5. DELETE do header (registro principal)
             DB::table('comissao_pagamentos')
                 ->where('id', $id)
-                ->update([
-                    'data_pagamento' => null,
-                    'updated_at' => now(),
-                ]);
+                ->delete();
         });
 
-        return response()->json(['message' => 'Pagamento estornado com sucesso.']);
+        return response()->json(['message' => 'Pagamento estornado e registro excluído com sucesso.']);
     }
 
     public function byUser(Request $request) {
