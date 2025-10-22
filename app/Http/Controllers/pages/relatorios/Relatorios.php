@@ -1343,13 +1343,26 @@ class Relatorios extends Controller
             ->orderBy('total', 'desc')
             ->get();
 
-        // Distribuição Comercial (tipo_tabulacao = 'C')
+        // Distribuição Comercial - Tabulações específicas de custódia do vendedor
+        $tabulacoesComerciais = [
+            'PROSPECÇÃO',
+            'REUNIÃO',
+            'NEGOCIAÇÃO',
+            'DOCUMENTO',
+            'NEGOCIO FECHADO',
+            'NEGOCIO NAO FECHADO',
+            'FOLLOW-UP',
+            'SEM CONTATO',
+            'NOVOS CLIENTES',
+            'AGENDAMENTO'
+        ];
+
         $distribuicaoComercial = DB::table('contatos_corretores')
             ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
             ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
             ->where('contatos_corretores.empresa_id', $empresaId)
-            ->where('tabulacoes.tipo_tabulacao', 'C');
+            ->whereIn('tabulacoes.descricao', $tabulacoesComerciais);
 
         if ($dataInicial && $dataFinal) {
             $distribuicaoComercial->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
@@ -1360,19 +1373,53 @@ class Relatorios extends Controller
             ->orderBy('total', 'desc')
             ->get();
 
-        // Distribuição Administrativa (tipo_tabulacao = 'A')
+        // Distribuição Administrativa - Tabulações específicas de custódia administrativa
+        $tabulacoesAdministrativas = [
+            'VENDA',
+            'ESTORNO',
+            'IMPLANTADO',
+            'DECLINADO',
+            'ANALISE DE DOCUMENTOS',
+            'PENDENCIA',
+            'CONTR. GERADO - AGUARDANDO ASSINATURA',
+            'REGULARIZADO',
+            'BOLETO DISPONIVEL',
+            'ANALISE OPERADORA',
+            'AGUARD. ASSINATURA DA DS'
+        ];
+
         $distribuicaoAdministrativa = DB::table('contatos_corretores')
             ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
             ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
             ->where('contatos_corretores.empresa_id', $empresaId)
-            ->where('tabulacoes.tipo_tabulacao', 'A');
+            ->whereIn('tabulacoes.descricao', $tabulacoesAdministrativas);
 
         if ($dataInicial && $dataFinal) {
             $distribuicaoAdministrativa->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
         }
 
         $distribuicaoAdministrativa = $distribuicaoAdministrativa
+            ->groupBy('tabulacoes.descricao')
+            ->orderBy('total', 'desc')
+            ->get();
+
+        // Distribuição de Descarte - sub_tabulacao = 'Y' + REMARKETING
+        $distribuicaoDescarte = DB::table('contatos_corretores')
+            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where(function($query) {
+                $query->where('tabulacoes.sub_tabulacao', 'Y')
+                      ->orWhere('tabulacoes.descricao', 'REMARKETING');
+            });
+
+        if ($dataInicial && $dataFinal) {
+            $distribuicaoDescarte->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $distribuicaoDescarte = $distribuicaoDescarte
             ->groupBy('tabulacoes.descricao')
             ->orderBy('total', 'desc')
             ->get();
@@ -1399,7 +1446,8 @@ class Relatorios extends Controller
             ],
             'distribuicao_status' => $distribuicaoPorStatus,
             'distribuicao_comercial' => $distribuicaoComercial,
-            'distribuicao_administrativa' => $distribuicaoAdministrativa
+            'distribuicao_administrativa' => $distribuicaoAdministrativa,
+            'distribuicao_descarte' => $distribuicaoDescarte
         ]);
     }
 

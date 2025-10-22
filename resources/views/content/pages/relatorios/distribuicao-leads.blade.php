@@ -217,11 +217,11 @@
     <!-- Primeira Dobra - Gráficos de Distribuição -->
     <div class="row g-3 mb-4">
         <!-- Gráfico de Barras - Leads Comerciais -->
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card modern-card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="ri-bar-chart-line me-2"></i>Leads Comerciais por Status
+                        <i class="ri-bar-chart-line me-2"></i>Leads Comerciais
                     </h5>
                 </div>
                 <div class="card-body">
@@ -231,15 +231,29 @@
         </div>
 
         <!-- Gráfico de Barras - Leads Administrativos -->
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card modern-card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="ri-bar-chart-line me-2"></i>Leads Administrativos por Status
+                        <i class="ri-bar-chart-line me-2"></i>Leads Administrativos
                     </h5>
                 </div>
                 <div class="card-body">
                     <div id="chart-administrativo" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Barras - Leads Descarte -->
+        <div class="col-md-4">
+            <div class="card modern-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ri-bar-chart-line me-2"></i>Leads Descarte
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="chart-descarte" class="chart-container"></div>
                 </div>
             </div>
         </div>
