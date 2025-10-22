@@ -83,9 +83,39 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
 
+        .metric-card {
+            cursor: pointer;
+        }
+
         .metric-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+        }
+
+        .metric-card.active-filter {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            border: 2px solid;
+        }
+
+        .metric-card.primary.active-filter {
+            border-color: #5a67d8;
+        }
+
+        .metric-card.success.active-filter {
+            border-color: #28a745;
+        }
+
+        .metric-card.warning.active-filter {
+            border-color: #ffc107;
+        }
+
+        .metric-card.danger.active-filter {
+            border-color: #dc3545;
+        }
+
+        .metric-card.info.active-filter {
+            border-color: #17a2b8;
         }
 
         .metric-card::before {

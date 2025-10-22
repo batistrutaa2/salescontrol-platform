@@ -306,4 +306,35 @@ $(function () {
         $('#total-analise').text(analise);
         $('#total-atrasados').text(atrasados);
     }
+
+    // ================= Click nos Cards para Filtrar =================
+    $('.metric-card').on('click', function() {
+        const cardElement = $(this);
+
+        // Remover classe active de todos os cards
+        $('.metric-card').removeClass('active-filter');
+
+        // Adicionar classe active no card clicado
+        cardElement.addClass('active-filter');
+
+        // Identificar qual card foi clicado e aplicar filtro correspondente
+        if (cardElement.find('#total-contratos').length) {
+            // Card "Total de Contratos" - limpar todos os filtros
+            $('#status_filter').val('');
+            $('#periodo_mes').val('');
+            $('#periodo_ano').val('');
+        } else if (cardElement.find('#total-implantado').length) {
+            // Card "Implantados"
+            $('#status_filter').val('IMPLANTADO');
+        } else if (cardElement.find('#total-analise').length) {
+            // Card "Em Análise" - filtrar apenas ANALISE OPERADORA
+            $('#status_filter').val('ANALISE OPERADORA');
+        } else if (cardElement.find('#total-atrasados').length) {
+            // Card "Atrasados" - limpar filtro (atrasados é calculado dinamicamente)
+            $('#status_filter').val('');
+        }
+
+        // Aplicar o filtro
+        table.draw();
+    });
 });
