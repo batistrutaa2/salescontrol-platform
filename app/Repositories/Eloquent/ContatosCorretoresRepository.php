@@ -304,11 +304,14 @@ public function getClientInfo($idMailing)
         'b.telefone1',
         'contatos_corretores.updated_at',
         'b.plano',
+        'b.nome_base',
+        'b.created_at as data_importacao',
         DB::raw('COALESCE(sub.descricao, "REMARKETING") AS motivo_remarketing'), // Se subTabulacao for null, retorna "REMARKETING"
         'b.entidade'
       )
       ->where('contatos_corretores.empresa_id', $empresa_id)
       ->where('c.descricao', 'REMARKETING')
+      ->orderBy('contatos_corretores.updated_at', 'desc')
       ->get();
 
     return $results;

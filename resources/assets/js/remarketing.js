@@ -70,7 +70,10 @@ $(function () {
       ajax: {
         url: 'getRemarketingLeads',
         dataSrc: '',
-        complete: function (jqXHR, textStatus) { },
+        complete: function (jqXHR, textStatus) {
+          updateMetrics();
+          populateBaseFilter();
+        },
         error: function (jqXHR, textStatus, errorThrown) { }
       },
       columns: [
@@ -88,30 +91,42 @@ $(function () {
         { data: 'id' },
         { data: 'nome_cliente' },
         {
-          // User email
           data: 'motivo_remarketing',
           render: function (data, type, full, meta) {
             var $motivo = full['motivo_remarketing'];
-
             if ($motivo == null) {
               $motivo = 'SEM REGISTRO';
             } else {
               $motivo = full['motivo_remarketing'];
             }
-
-            return '<span >' + $motivo + '</span>';
+            return '<span>' + $motivo + '</span>';
+          }
+        },
+        { data: 'telefone1' },
+        { data: 'plano' },
+        { data: 'entidade' },
+        {
+          data: 'nome_base',
+          render: function (data, type, full, meta) {
+            return data ? data : '<span class="text-muted">N/D</span>';
           }
         },
         {
-          data: 'telefone1'
+          data: 'data_importacao',
+          render: function (data, type, full, meta) {
+            if (!data) return '<span class="text-muted">N/D</span>';
+            // Data já vem formatada do backend, apenas exibir
+            return data;
+          }
         },
         {
-          data: 'plano'
+          data: 'updated_at',
+          render: function (data, type, full, meta) {
+            if (!data) return '<span class="text-muted">N/D</span>';
+            // Data já vem formatada do backend, apenas exibir
+            return data;
+          }
         },
-        {
-          data: 'entidade'
-        },
-        { data: 'updated_at' },
         {
           // Actions
           targets: -1,
@@ -143,18 +158,22 @@ $(function () {
               '</div>'
             );
           }
-
         }
       ],
       lengthMenu: [
         [10, 25, 50, 100, -1],
         [10, 25, 50, 100, 'TODOS']
       ],
-      order: [[2, 'desc']],
+      order: [[9, 'desc']],
       language: {
         sLengthMenu: '_MENU_',
         search: '',
-        searchPlaceholder: 'Pesquisar Usuario'
+        searchPlaceholder: 'Pesquisar leads...'
+      },
+      drawCallback: function(settings) {
+        if (table) {
+          updateFilteredMetrics();
+        }
       },
       // Para popup responsivo
       responsive: {
@@ -162,13 +181,13 @@ $(function () {
           display: $.fn.dataTable.Responsive.display.modal({
             header: function (row) {
               var data = row.data();
-              return 'Details of ' + data['nome_fantasia'];
+              return 'Detalhes de ' + data['nome_cliente'];
             }
           }),
           type: 'column',
           renderer: function (api, rowIdx, columns) {
             var data = $.map(columns, function (col, i) {
-              return col.title !== '' // Não mostrar linha no popup modal se o título estiver vazio (para check box)
+              return col.title !== ''
                 ? '<tr data-dt-row="' +
                 col.rowIndex +
                 '" data-dt-column="' +
@@ -379,6 +398,146 @@ $(function () {
       event.preventDefault();
     }
   });
+
+  // Inicializar flatpickr para período personalizado
+  if (document.querySelector('#filtro_periodo')) {
+    flatpickr('#filtro_periodo', {
+      mode: 'range',
+      dateFormat: 'd/m/Y',
+      locale: 'pt'
+    });
+  }
+
+  // Função para atualizar métricas gerais
+  function updateMetrics() {
+    if (!table || !table.rows) return;
+    const allData = table.rows().data().toArray();
+    const totalRemarketing = allData.length;
+
+    // Contar leads do mês atual
+    const currentMonth = moment().month();
+    const currentYear = moment().year();
+    const totalMesAtual = allData.filter(row => {
+      if (!row.data_importacao) return false;
+      const rowDate = moment(row.data_importacao);
+      return rowDate.month() === currentMonth && rowDate.year() === currentYear;
+    }).length;
+
+    // Contar bases únicas
+    const basesUnicas = new Set();
+    allData.forEach(row => {
+      if (row.nome_base) {
+        basesUnicas.add(row.nome_base);
+      }
+    });
+
+    $('#total-remarketing').text(totalRemarketing);
+    $('#total-mes-atual').text(totalMesAtual);
+    $('#total-bases').text(basesUnicas.size);
+  }
+
+  // Função para atualizar métricas de filtros
+  function updateFilteredMetrics() {
+    if (!table || !table.rows) return;
+    const filteredData = table.rows({ search: 'applied' }).data().toArray();
+    $('#total-filtrado').text(filteredData.length);
+  }
+
+  // Função para popular filtro de bases
+  function populateBaseFilter() {
+    if (!table || !table.rows) return;
+    const allData = table.rows().data().toArray();
+    const basesUnicas = new Set();
+
+    allData.forEach(row => {
+      if (row.nome_base) {
+        basesUnicas.add(row.nome_base);
+      }
+    });
+
+    const baseSelect = $('#filtro_base');
+    baseSelect.find('option:not(:first)').remove();
+
+    Array.from(basesUnicas).sort().forEach(base => {
+      baseSelect.append(`<option value="${base}">${base}</option>`);
+    });
+  }
+
+  // Função customizada de filtro do DataTable
+  $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+    if (settings.nTable.id !== 'DataTables_Table_0') {
+      return true;
+    }
+
+    const mes = $('#filtro_mes').val();
+    const ano = $('#filtro_ano').val();
+    const base = $('#filtro_base').val();
+    const periodoRange = $('#filtro_periodo').val();
+
+    const dataImportacao = data[8]; // índice da coluna data_importacao
+    const nomeBase = data[7]; // índice da coluna nome_base
+
+    // Filtro por base
+    if (base && nomeBase !== base && !nomeBase.includes('N/D')) {
+      return false;
+    }
+
+    // Filtro por mês/ano
+    if ((mes || ano) && dataImportacao && !dataImportacao.includes('N/D')) {
+      const dataParts = dataImportacao.split('/');
+      if (dataParts.length === 3) {
+        const rowMes = parseInt(dataParts[1]);
+        const rowAno = parseInt(dataParts[2]);
+
+        if (mes && rowMes !== parseInt(mes)) {
+          return false;
+        }
+        if (ano && rowAno !== parseInt(ano)) {
+          return false;
+        }
+      }
+    }
+
+    // Filtro por período personalizado
+    if (periodoRange && dataImportacao && !dataImportacao.includes('N/D')) {
+      const dates = periodoRange.split(' to ');
+      if (dates.length === 2) {
+        const startDate = moment(dates[0], 'DD/MM/YYYY');
+        const endDate = moment(dates[1], 'DD/MM/YYYY');
+        const rowDate = moment(dataImportacao, 'DD/MM/YYYY');
+
+        if (!rowDate.isBetween(startDate, endDate, 'day', '[]')) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
+
+  // Event listeners para os filtros
+  $('#filtro_mes, #filtro_ano, #filtro_base').on('change', function() {
+    if (table) table.draw();
+  });
+
+  $('#filtro_periodo').on('change', function() {
+    if (table) table.draw();
+  });
+
+  // Limpar filtros
+  $('#limpar_filtros').on('click', function() {
+    $('#filtro_mes').val('');
+    $('#filtro_ano').val('');
+    $('#filtro_base').val('');
+    $('#filtro_periodo').val('');
+    if (document.querySelector('#filtro_periodo')._flatpickr) {
+      document.querySelector('#filtro_periodo')._flatpickr.clear();
+    }
+    if (table) {
+      table.search('').draw();
+    }
+  });
+
 });
 
 // Validation & Phone mask

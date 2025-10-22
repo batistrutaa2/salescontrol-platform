@@ -311,11 +311,12 @@ class Mailing extends Controller
   }
 
   public function getLeadsDescartados()
-  {                           
+  {
     $empresaId = Auth::user()->empresa_id;
-    $leadsDescartados = Contatos::select(['id', 'nome_cliente', 'cpf', 'telefone1', 'valor_plano_atual', 'created_at'])
+    $leadsDescartados = Contatos::select(['id', 'nome_cliente', 'cpf', 'telefone1', 'valor_plano_atual', 'created_at', 'nome_base', 'updated_at'])
       ->where('empresa_id', $empresaId)
       ->where('status', 'N')
+      ->orderBy('updated_at', 'desc')
       ->get();
 
     return response()->json(['data' => $leadsDescartados]);
