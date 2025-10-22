@@ -3,6 +3,21 @@
 let chartDistribuicaoGeral, chartComercial, chartAdministrativo;
 
 (function () {
+    // Configurar cores baseadas no tema
+    let cardColor, labelColor, headingColor, borderColor;
+
+    if (isDarkStyle) {
+        cardColor = config.colors_dark.cardColor;
+        labelColor = config.colors_dark.textMuted;
+        headingColor = config.colors_dark.headingColor;
+        borderColor = config.colors_dark.borderColor;
+    } else {
+        cardColor = config.colors.cardColor;
+        labelColor = config.colors.textMuted;
+        headingColor = config.colors.headingColor;
+        borderColor = config.colors.borderColor;
+    }
+
     $(function () {
         // Inicializar flatpickr com modo range
         if (document.querySelector('.flatpickr-range')) {
@@ -103,12 +118,19 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo;
             legend: {
                 position: 'bottom',
                 fontSize: '14px',
-                fontFamily: 'inherit'
+                fontFamily: 'inherit',
+                labels: {
+                    colors: labelColor,
+                    useSeriesColors: false
+                }
             },
             dataLabels: {
                 enabled: true,
                 formatter: function (val, opts) {
                     return opts.w.config.series[opts.seriesIndex];
+                },
+                style: {
+                    colors: ['#fff']
                 }
             },
             tooltip: {
@@ -175,7 +197,7 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo;
                 offsetY: -20,
                 style: {
                     fontSize: '12px',
-                    colors: ['#304758']
+                    colors: ['#fff']
                 }
             },
             xaxis: {
@@ -184,13 +206,22 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo;
                     rotate: -45,
                     rotateAlways: true,
                     style: {
-                        fontSize: '11px'
+                        fontSize: '11px',
+                        colors: labelColor
                     }
                 }
             },
             yaxis: {
                 title: {
-                    text: 'Quantidade de Leads'
+                    text: 'Quantidade de Leads',
+                    style: {
+                        color: headingColor
+                    }
+                },
+                labels: {
+                    style: {
+                        colors: labelColor
+                    }
                 }
             },
             colors: ['#17a2b8'],
@@ -250,7 +281,7 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo;
                 offsetY: -20,
                 style: {
                     fontSize: '12px',
-                    colors: ['#304758']
+                    colors: ['#fff']
                 }
             },
             xaxis: {
@@ -259,13 +290,22 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo;
                     rotate: -45,
                     rotateAlways: true,
                     style: {
-                        fontSize: '11px'
+                        fontSize: '11px',
+                        colors: labelColor
                     }
                 }
             },
             yaxis: {
                 title: {
-                    text: 'Quantidade de Leads'
+                    text: 'Quantidade de Leads',
+                    style: {
+                        color: headingColor
+                    }
+                },
+                labels: {
+                    style: {
+                        colors: labelColor
+                    }
                 }
             },
             colors: ['#ffc107'],
