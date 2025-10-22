@@ -384,3 +384,151 @@ Excel::import(new ContatosImport, $file);
 ## Modules
 
 The `app/Modules/` directory contains feature-specific modules that encapsulate related functionality. When adding features related to existing modules, place code within the appropriate module structure.
+
+## Frontend Guidelines
+
+### ApexCharts Theme Configuration
+
+When creating charts with ApexCharts, **ALWAYS** configure them to support both light and dark themes. Follow this pattern:
+
+```javascript
+'use strict';
+
+let chartVariable;
+
+(function () {
+    // Configure colors based on current theme
+    let cardColor, labelColor, headingColor, borderColor;
+
+    if (isDarkStyle) {
+        cardColor = config.colors_dark.cardColor;
+        labelColor = config.colors_dark.textMuted;
+        headingColor = config.colors_dark.headingColor;
+        borderColor = config.colors_dark.borderColor;
+    } else {
+        cardColor = config.colors.cardColor;
+        labelColor = config.colors.textMuted;
+        headingColor = config.colors.headingColor;
+        borderColor = config.colors.borderColor;
+    }
+
+    // Example chart configuration
+    const chartOptions = {
+        chart: {
+            type: 'bar',
+            height: 350
+        },
+        // Use labelColor for axis labels
+        xaxis: {
+            labels: {
+                style: {
+                    colors: labelColor  // Adapts to theme
+                }
+            }
+        },
+        yaxis: {
+            title: {
+                style: {
+                    color: headingColor  // Adapts to theme
+                }
+            },
+            labels: {
+                style: {
+                    colors: labelColor  // Adapts to theme
+                }
+            }
+        },
+        // Use white for data labels (contrast with chart colors)
+        dataLabels: {
+            enabled: true,
+            style: {
+                colors: ['#fff']
+            }
+        },
+        // Use labelColor for legends
+        legend: {
+            labels: {
+                colors: labelColor,
+                useSeriesColors: false
+            }
+        }
+    };
+})();
+```
+
+**Key Points:**
+- `isDarkStyle` is a global variable that detects current theme
+- `config.colors` and `config.colors_dark` provide theme-specific color palettes
+- Use `labelColor` for all axis labels and legend text
+- Use `headingColor` for chart titles and axis titles
+- Use `#fff` (white) for data labels inside/on chart elements for contrast
+- **NEVER** hardcode colors like `#304758` for text elements - always use theme variables
+
+**Common Variables:**
+- `labelColor` - For secondary text (axis labels, legend)
+- `headingColor` - For primary text (titles, headings)
+- `borderColor` - For borders and grid lines
+- `cardColor` - For card backgrounds
+
+This ensures charts remain readable in both light and dark modes.
+
+### Flatpickr Date Configuration
+
+When using Flatpickr for date inputs, configure for Brazilian format:
+
+```javascript
+// Single date picker
+flatpickr('.flatpickr-date', {
+    dateFormat: 'd/m/Y',  // Brazilian format (DD/MM/YYYY)
+    locale: 'pt'
+});
+
+// Date range picker
+flatpickr('.flatpickr-range', {
+    mode: 'range',
+    dateFormat: 'd/m/Y',
+    locale: 'pt',
+    altInput: true,
+    altFormat: 'd/m/Y'
+});
+```
+
+**Converting dates for backend:**
+```javascript
+function converterDataParaBackend(dataBrasileira) {
+    // Converts dd/mm/yyyy to yyyy-mm-dd for Laravel
+    if (!dataBrasileira) return '';
+
+    const partes = dataBrasileira.split('/');
+    if (partes.length !== 3) return '';
+
+    const dia = partes[0].padStart(2, '0');
+    const mes = partes[1].padStart(2, '0');
+    const ano = partes[2];
+
+    return `${ano}-${mes}-${dia}`;
+}
+```
+
+### DataTables Date Formatting
+
+Dates from backend come pre-formatted as `'DD/MM/YYYY HH:mm:ss'`. **DO NOT** format them again with Moment.js:
+
+```javascript
+// CORRECT - dates already formatted
+{
+    data: 'created_at',
+    render: function (data) {
+        if (!data) return '<span class="text-muted">N/D</span>';
+        return data;  // Already formatted by backend
+    }
+}
+
+// WRONG - do not use moment()
+{
+    data: 'created_at',
+    render: function (data) {
+        return moment(data).format('DD/MM/YYYY HH:mm:ss');  // ❌ Don't do this
+    }
+}
+```
