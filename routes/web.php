@@ -180,6 +180,8 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/pabx/clickToCall', [Pabx::class, 'clickToCall'])->name('pabx.clickToCall');
 
   /** RELATORIOS */
+  Route::get('/relatorios/distribuicao-leads', [Relatorios::class, 'distribuicaoLeads'])->name('relatorios.distribuicaoLeads');
+  Route::get('/relatorios/distribuicao-leads/dados', [Relatorios::class, 'distribuicaoLeadsData'])->name('relatorios.distribuicaoLeads.dados');
   Route::get('/relatorios/ligacoes', [Relatorios::class, 'index'])->name('pabx.getLigacoess');
   Route::get('/relatorios/getList/{id_user}/{data_inicial}/{data_final}', [Relatorios::class, 'getLigacoes'])->name('pabx.getLigacoes');
   Route::get('/relatorios/preditiva', [Relatorios::class, 'predictiveReport'])->name('relatorios.preditiva.predictiveReport');

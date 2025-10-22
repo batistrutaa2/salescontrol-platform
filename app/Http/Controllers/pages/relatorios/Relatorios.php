@@ -1241,4 +1241,166 @@ class Relatorios extends Controller
         ];
     }
 
+    /**
+     * Relatório de Distribuição de Leads
+     */
+    public function distribuicaoLeads()
+    {
+        return view('content.pages.relatorios.distribuicao-leads');
+    }
+
+    /**
+     * Dados do Relatório de Distribuição de Leads
+     */
+    public function distribuicaoLeadsData(Request $request)
+    {
+        $empresaId = Auth::user()->empresa_id;
+        $dataInicial = $request->input('data_inicial');
+        $dataFinal = $request->input('data_final');
+
+        // Total de leads no sistema
+        $totalLeadsQuery = DB::table('contatos')
+            ->where('empresa_id', $empresaId);
+
+        if ($dataInicial && $dataFinal) {
+            $totalLeadsQuery->whereBetween('created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $totalLeads = $totalLeadsQuery->count();
+
+        // Leads em contatos_corretores (distribuídos aos vendedores)
+        $leadsDistribuidosQuery = DB::table('contatos_corretores')
+            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->where('contatos_corretores.empresa_id', $empresaId);
+
+        if ($dataInicial && $dataFinal) {
+            $leadsDistribuidosQuery->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $leadsDistribuidos = $leadsDistribuidosQuery->distinct()->count('contatos_corretores.contato_id');
+
+        // Leads sendo trabalhados por vendedores (tipo_tabulacao = 'C')
+        $leadsComercialQuery = DB::table('contatos_corretores')
+            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('tabulacoes.tipo_tabulacao', 'C');
+
+        if ($dataInicial && $dataFinal) {
+            $leadsComercialQuery->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $leadsComercial = $leadsComercialQuery->distinct()->count('contatos_corretores.contato_id');
+
+        // Leads sob custódia administrativa (tipo_tabulacao = 'A')
+        $leadsAdministrativoQuery = DB::table('contatos_corretores')
+            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('tabulacoes.tipo_tabulacao', 'A');
+
+        if ($dataInicial && $dataFinal) {
+            $leadsAdministrativoQuery->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $leadsAdministrativo = $leadsAdministrativoQuery->distinct()->count('contatos_corretores.contato_id');
+
+        // Leads na preditiva
+        $leadsPreditivaQuery = DB::table('preditiva')
+            ->join('contatos', 'preditiva.contato_id', '=', 'contatos.id')
+            ->where('preditiva.empresa_id', $empresaId);
+
+        if ($dataInicial && $dataFinal) {
+            $leadsPreditivaQuery->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $leadsPreditiva = $leadsPreditivaQuery->count();
+
+        // Leads descartados (status = 'N')
+        $leadsDescartadosQuery = DB::table('contatos')
+            ->where('empresa_id', $empresaId)
+            ->where('status', 'N');
+
+        if ($dataInicial && $dataFinal) {
+            $leadsDescartadosQuery->whereBetween('created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $leadsDescartados = $leadsDescartadosQuery->count();
+
+        // Distribuição por status (tabulações) - Todos
+        $distribuicaoPorStatus = DB::table('contatos_corretores')
+            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
+            ->where('contatos_corretores.empresa_id', $empresaId);
+
+        if ($dataInicial && $dataFinal) {
+            $distribuicaoPorStatus->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $distribuicaoPorStatus = $distribuicaoPorStatus
+            ->groupBy('tabulacoes.descricao')
+            ->orderBy('total', 'desc')
+            ->get();
+
+        // Distribuição Comercial (tipo_tabulacao = 'C')
+        $distribuicaoComercial = DB::table('contatos_corretores')
+            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('tabulacoes.tipo_tabulacao', 'C');
+
+        if ($dataInicial && $dataFinal) {
+            $distribuicaoComercial->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $distribuicaoComercial = $distribuicaoComercial
+            ->groupBy('tabulacoes.descricao')
+            ->orderBy('total', 'desc')
+            ->get();
+
+        // Distribuição Administrativa (tipo_tabulacao = 'A')
+        $distribuicaoAdministrativa = DB::table('contatos_corretores')
+            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('tabulacoes.tipo_tabulacao', 'A');
+
+        if ($dataInicial && $dataFinal) {
+            $distribuicaoAdministrativa->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $distribuicaoAdministrativa = $distribuicaoAdministrativa
+            ->groupBy('tabulacoes.descricao')
+            ->orderBy('total', 'desc')
+            ->get();
+
+        // Tentativas de contato na preditiva
+        $tentativasPreditiva = DB::table('log_preditiva')
+            ->where('empresa_id', $empresaId);
+
+        if ($dataInicial && $dataFinal) {
+            $tentativasPreditiva->whereBetween('created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $tentativasPreditiva = $tentativasPreditiva->count();
+
+        return response()->json([
+            'resumo' => [
+                'total_leads' => $totalLeads,
+                'leads_distribuidos' => $leadsDistribuidos,
+                'leads_comercial' => $leadsComercial,
+                'leads_administrativo' => $leadsAdministrativo,
+                'leads_preditiva' => $leadsPreditiva,
+                'leads_descartados' => $leadsDescartados,
+                'tentativas_preditiva' => $tentativasPreditiva
+            ],
+            'distribuicao_status' => $distribuicaoPorStatus,
+            'distribuicao_comercial' => $distribuicaoComercial,
+            'distribuicao_administrativa' => $distribuicaoAdministrativa
+        ]);
+    }
+
 }

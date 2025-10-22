@@ -204,6 +204,11 @@
       ],
       "submenu": [
         {
+          "url": "/relatorios/distribuicao-leads",
+          "name": "Distribuição de Leads",
+          "slug": "pages-relatorio-distribuicao-leads"
+        },
+        {
           "url": "/vendas/analitico",
           "name": "Relatorio de Vendas",
           "slug": "pages-mailing-importar"
@@ -243,6 +248,11 @@
         "SUPERVISOR"
       ],
       "submenu": [
+        {
+          "url": "/relatorios/distribuicao-leads",
+          "name": "Distribuição de Leads",
+          "slug": "pages-relatorio-distribuicao-leads"
+        },
         {
           "url": "/vendas/analitico",
           "name": "Relatorio de Vendas",
