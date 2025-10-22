@@ -1424,6 +1424,35 @@ class Relatorios extends Controller
             ->orderBy('total', 'desc')
             ->get();
 
+        // Motivos de Descarte - distribuição por subtabulação dos leads descartados
+        $motivosDescarte = DB::table('contatos_corretores')
+            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->leftJoin('tabulacoes as sub_tab', 'contatos_corretores.sub_tabulacao_id', '=', 'sub_tab.id')
+            ->select(
+                DB::raw('CASE
+                    WHEN sub_tab.descricao IS NOT NULL THEN sub_tab.descricao
+                    WHEN tabulacoes.descricao = "REMARKETING" THEN "REMARKETING"
+                    WHEN tabulacoes.sub_tabulacao = "Y" THEN "Sem motivo especificado"
+                    ELSE "Sem motivo"
+                END as motivo'),
+                DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total')
+            )
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where(function($query) {
+                $query->where('tabulacoes.sub_tabulacao', 'Y')
+                      ->orWhere('tabulacoes.descricao', 'REMARKETING');
+            });
+
+        if ($dataInicial && $dataFinal) {
+            $motivosDescarte->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+        }
+
+        $motivosDescarte = $motivosDescarte
+            ->groupBy('motivo')
+            ->orderBy('total', 'desc')
+            ->get();
+
         // Tentativas de contato na preditiva
         $tentativasPreditiva = DB::table('log_preditiva')
             ->where('empresa_id', $empresaId);
@@ -1447,7 +1476,8 @@ class Relatorios extends Controller
             'distribuicao_status' => $distribuicaoPorStatus,
             'distribuicao_comercial' => $distribuicaoComercial,
             'distribuicao_administrativa' => $distribuicaoAdministrativa,
-            'distribuicao_descarte' => $distribuicaoDescarte
+            'distribuicao_descarte' => $distribuicaoDescarte,
+            'motivos_descarte' => $motivosDescarte
         ]);
     }
 

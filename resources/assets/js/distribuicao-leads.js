@@ -1,6 +1,6 @@
 'use strict';
 
-let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte;
+let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, chartMotivosDescarte;
 
 (function () {
     // Configurar cores baseadas no tema
@@ -94,6 +94,7 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte;
         renderizarGraficoAdministrativo(data.distribuicao_administrativa);
         renderizarGraficoDescarte(data.distribuicao_descarte);
         renderizarGraficoDistribuicaoGeral(data.resumo);
+        renderizarGraficoMotivosDescarte(data.motivos_descarte);
     }
 
     function renderizarGraficoDistribuicaoGeral(resumo) {
@@ -107,6 +108,7 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte;
             chart: {
                 type: 'pie',
                 height: 350,
+                width: '100%',
                 toolbar: {
                     show: true,
                     tools: {
@@ -141,6 +143,11 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte;
                         const percentual = ((value / total) * 100).toFixed(1);
                         return value + ' (' + percentual + '%)';
                     }
+                }
+            },
+            plotOptions: {
+                pie: {
+                    customScale: 0.9
                 }
             },
             responsive: [{
@@ -417,6 +424,99 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte;
             options
         );
         chartDescarte.render();
+    }
+
+    function renderizarGraficoMotivosDescarte(motivos) {
+        const categorias = motivos.map(item => item.motivo || 'Sem motivo');
+        const valores = motivos.map(item => item.total);
+
+        const options = {
+            series: [{
+                name: 'Leads Descartados',
+                data: valores
+            }],
+            chart: {
+                type: 'bar',
+                height: 350,
+                width: '100%',
+                toolbar: {
+                    show: true
+                }
+            },
+            plotOptions: {
+                bar: {
+                    borderRadius: 8,
+                    horizontal: true,
+                    barHeight: '50%',
+                    dataLabels: {
+                        position: 'top'
+                    }
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                offsetX: 30,
+                style: {
+                    fontSize: '11px',
+                    colors: ['#fff']
+                }
+            },
+            xaxis: {
+                categories: categorias,
+                labels: {
+                    style: {
+                        colors: labelColor,
+                        fontSize: '11px'
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        colors: labelColor,
+                        fontSize: '11px'
+                    }
+                }
+            },
+            colors: ['#9b59b6'],
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: 'light',
+                    type: 'horizontal',
+                    shadeIntensity: 0.5,
+                    gradientToColors: ['#8e44ad'],
+                    inverseColors: false,
+                    opacityFrom: 0.85,
+                    opacityTo: 0.85
+                }
+            },
+            tooltip: {
+                y: {
+                    formatter: function(value) {
+                        return value + ' leads';
+                    }
+                }
+            },
+            grid: {
+                padding: {
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0
+                }
+            }
+        };
+
+        if (chartMotivosDescarte) {
+            chartMotivosDescarte.destroy();
+        }
+
+        chartMotivosDescarte = new ApexCharts(
+            document.querySelector("#chart-motivos-descarte"),
+            options
+        );
+        chartMotivosDescarte.render();
     }
 
     function formatarNumero(numero) {

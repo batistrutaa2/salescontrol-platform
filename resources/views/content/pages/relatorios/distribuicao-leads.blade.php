@@ -128,7 +128,16 @@
     }
 
     .chart-container {
-        min-height: 350px;
+        height: 400px !important;
+        width: 100% !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chart-container > div {
+        width: 100% !important;
+        height: 100% !important;
     }
 </style>
 @endsection
@@ -209,7 +218,7 @@
                     <i class="ri-close-circle-line"></i>
                 </div>
                 <div class="metric-value" id="leads-descartados">0</div>
-                <div class="metric-label">Descartados</div>
+                <div class="metric-label">Desativados</div>
             </div>
         </div>
     </div>
@@ -259,10 +268,10 @@
         </div>
     </div>
 
-    <!-- Segunda Dobra - Gráfico Geral -->
+    <!-- Segunda Dobra - Gráficos Gerais -->
     <div class="row g-3 mb-4">
         <!-- Gráfico de Pizza - Distribuição Geral -->
-        <div class="col-md-12">
+        <div class="col-md-6">
             <div class="card modern-card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
@@ -271,6 +280,20 @@
                 </div>
                 <div class="card-body">
                     <div id="chart-distribuicao-geral" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Barras - Motivos de Descarte -->
+        <div class="col-md-6">
+            <div class="card modern-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ri-bar-chart-line me-2"></i>Motivos de Descarte
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="chart-motivos-descarte" class="chart-container"></div>
                 </div>
             </div>
         </div>
