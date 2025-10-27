@@ -151,6 +151,7 @@ class Comissionamento extends Controller
                 'v.user_id',
                 'u.name as vendedor',
                 'v.nome_contrato',
+                'v.operadora',
                 'v.angariacao_valor',
                 'v.angariacao_status',
                 DB::raw('COALESCE(v.valor_contrato,0) as valor_contrato'),
@@ -207,6 +208,7 @@ class Comissionamento extends Controller
                     'id'                     => $r->id,
                     'is_ajuste'              => false, // CONTRATO
                     'nome_contrato'          => $r->nome_contrato,
+                    'operadora'              => $r->operadora ?? '-',
                     'valor_contrato'         => round($valor, 2),
                     'valor_base'             => round($baseAplicada, 2),
                     'percentual_aplicado'    => round($percentualAplic, 2),

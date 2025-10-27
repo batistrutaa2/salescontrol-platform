@@ -234,10 +234,15 @@
                        </button>`
                     : '';
 
+                  // Nome do contrato com operadora (se não for ajuste)
+                  const nomeContratoHtml = isAjuste
+                    ? esc(it.nome_contrato)
+                    : `${esc(it.nome_contrato)} <small class="text-muted">(${esc(it.operadora || '-')})</small>`;
+
                   return `
                     <tr data-id="${it.id}" data-vendedor="${v.user_id}" data-ajuste="${isAjuste ? '1' : '0'}">
                       <td><input type="checkbox" class="form-check-input js-select-row"></td>
-                      <td class="fw-medium">${esc(it.nome_contrato)}</td>
+                      <td class="fw-medium">${nomeContratoHtml}</td>
                       <td class="text-end">${brl(base)}</td>
                       <td class="text-end">${isAjuste ? '-' : pApplied.toFixed(0) + '%'}</td>
                       <td class="text-end">${liqHtml}</td>
