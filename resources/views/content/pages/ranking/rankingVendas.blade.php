@@ -19,55 +19,119 @@
 @endsection
 
 @section('content')
-    <div class="row mb-4" id="meta-resumo">
-        <div class="col-md-4">
-            <div class="card border shadow-sm text-center">
+    <!-- KPIs Melhorados -->
+    <div class="row g-4 mb-6" id="meta-resumo">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card h-100">
                 <div class="card-body">
-                    <h6 class="text-muted mb-1">Total Vendido</h6>
-                    <h5 class="fw-bold mb-0 text-success js-total-vendido">R$ 0,00</h5>
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Total Vendido</h6>
+                            <h3 class="mb-0 text-success js-total-vendido">
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                            </h3>
+                        </div>
+                        <div class="avatar">
+                            <div class="avatar-initial bg-label-success rounded">
+                                <i class="ri-money-dollar-circle-line ri-26px"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card border shadow-sm text-center">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card h-100">
                 <div class="card-body">
-                    <h6 class="text-muted mb-1">Meta Atual</h6>
-                    <h5 class="fw-bold mb-0 text-primary js-meta-total">R$ 0,00</h5>
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Meta Atual</h6>
+                            <h3 class="mb-0 text-primary js-meta-total">
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                            </h3>
+                        </div>
+                        <div class="avatar">
+                            <div class="avatar-initial bg-label-primary rounded">
+                                <i class="ri-flag-line ri-26px"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card border shadow-sm text-center">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card h-100">
                 <div class="card-body">
-                    <h6 class="text-muted mb-1">Falta Para Atingir</h6>
-                    <h5 class="fw-bold mb-0 text-danger js-meta-restante">R$ 0,00</h5>
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Falta Para Atingir</h6>
+                            <h3 class="mb-0 js-meta-restante js-meta-restante-color">
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                            </h3>
+                        </div>
+                        <div class="avatar">
+                            <div class="avatar-initial bg-label-warning rounded">
+                                <i class="ri-arrow-up-circle-line ri-26px"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card h-100 js-progresso-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Progresso</h6>
+                            <h3 class="mb-0 js-progresso-percent">0%</h3>
+                        </div>
+                        <div class="avatar">
+                            <div class="avatar-initial bg-label-info rounded">
+                                <i class="ri-pie-chart-line ri-26px"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar js-progresso-bar" role="progressbar" style="width: 0%"
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
 
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <!-- Pódio e Ranking -->
+    <div class="card mb-6">
+        <div class="card-header d-flex justify-content-between align-items-center pb-0">
             <h5 class="mb-0 js-meta-nome">🏆 Ranking de Vendas - Mês Atual</h5>
+            <small class="text-muted">Atualização automática a cada 5s</small>
         </div>
 
         <div class="card-body">
-            {{-- Pódio --}}
-            <div class="row justify-content-center text-center mb-5" id="ranking-podio">
+            {{-- Pódio Melhorado --}}
+            <div class="row justify-content-center g-4 mb-6" id="ranking-podio">
                 {{-- JS renderiza aqui --}}
             </div>
 
-            <h6 class="text-muted mb-3">Outros vendedores</h6>
+            <hr class="my-5">
+
+            <h6 class="text-muted mb-4 d-flex align-items-center">
+                <i class="ri-trophy-line me-2"></i>
+                Ranking Completo
+            </h6>
             <div class="table-responsive">
-                <table class="table table-bordered table-striped align-middle" id="ranking-tabela">
-                    <thead class="table-light">
+                <table class="table align-middle" id="ranking-tabela">
+                    <thead>
                         <tr>
-                            <th>#</th>
+                            <th style="width: 80px;">Posição</th>
                             <th>Vendedor</th>
-                            <th>Total Vendido</th>
+                            <th class="text-end" style="width: 150px;">Total Vendido</th>
+                            <th style="width: 200px;">Progresso</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -79,13 +143,16 @@
     </div>
 
     {{-- Vendas do mês (gráfico) --}}
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">📈 Vendas do Mês</h5>
-            <small class="text-muted">Valores confirmados no mês corrente</small>
+    <div class="card mb-6">
+        <div class="card-header d-flex justify-content-between align-items-center pb-0">
+            <div>
+                <h5 class="mb-1">📈 Desempenho Individual</h5>
+                <p class="text-muted mb-0 small">Valores vendidos no mês atual</p>
+            </div>
+            <small class="text-muted">Atualizado a cada 1 min</small>
         </div>
         <div class="card-body">
-            <div id="chart-vendas-mes" style="min-height: 320px;"></div>
+            <div id="chart-vendas-mes" style="min-height: 380px;"></div>
         </div>
     </div>
 
