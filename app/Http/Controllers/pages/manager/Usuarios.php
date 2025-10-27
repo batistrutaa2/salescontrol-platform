@@ -111,4 +111,61 @@ class Usuarios extends Controller
 
         return response()->json(['message' => 'Conta cadastrada como padrão com sucesso.']);
     }
+
+  public function toggleStatus($userId)
+    {
+        $empresaId = auth()->user()->empresa_id;
+
+        // Busca o usuário da mesma empresa
+        $user = $this->usuariosRepository->find($userId);
+
+        if (!$user || $user->empresa_id != $empresaId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuário não encontrado ou não pertence à sua empresa.'
+            ], 404);
+        }
+
+        // Não permitir desativar o próprio usuário logado
+        if ($user->id == auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Você não pode desativar sua própria conta.'
+            ], 422);
+        }
+
+        // Alterna o status
+        $novoStatus = $user->ativo === 'Y' ? 'N' : 'Y';
+        $user->ativo = $novoStatus;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $novoStatus === 'Y' ? 'Usuário ativado com sucesso.' : 'Usuário desativado com sucesso.',
+            'status' => $novoStatus
+        ]);
+    }
+
+  public function getStats()
+    {
+        $empresaId = auth()->user()->empresa_id;
+
+        $total = DB::table('users')->where('empresa_id', $empresaId)->count();
+        $ativos = DB::table('users')->where('empresa_id', $empresaId)->where('ativo', 'Y')->count();
+        $inativos = DB::table('users')->where('empresa_id', $empresaId)->where('ativo', 'N')->count();
+
+        // Novos usuários este mês
+        $inicioMes = now()->startOfMonth();
+        $novosEsteMes = DB::table('users')
+            ->where('empresa_id', $empresaId)
+            ->where('created_at', '>=', $inicioMes)
+            ->count();
+
+        return response()->json([
+            'total' => $total,
+            'ativos' => $ativos,
+            'inativos' => $inativos,
+            'novos_mes' => $novosEsteMes
+        ]);
+    }
 }

@@ -32,8 +32,104 @@
         </div>
     @endif
 
+    <!-- KPIs -->
+    <div class="row g-4 mb-6" id="usuarios-kpis">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-1">Total de Usuários</h6>
+                            <h3 class="mb-0" id="kpi-total">
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                            </h3>
+                        </div>
+                        <div class="avatar">
+                            <div class="avatar-initial bg-label-primary rounded">
+                                <i class="ri-group-line ri-26px"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-1">Usuários Ativos</h6>
+                            <h3 class="mb-0 text-success" id="kpi-ativos">
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                            </h3>
+                        </div>
+                        <div class="avatar">
+                            <div class="avatar-initial bg-label-success rounded">
+                                <i class="ri-user-follow-line ri-26px"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-1">Usuários Inativos</h6>
+                            <h3 class="mb-0 text-secondary" id="kpi-inativos">
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                            </h3>
+                        </div>
+                        <div class="avatar">
+                            <div class="avatar-initial bg-label-secondary rounded">
+                                <i class="ri-user-unfollow-line ri-26px"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-1">Novos este Mês</h6>
+                            <h3 class="mb-0 text-info" id="kpi-novos">
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                            </h3>
+                        </div>
+                        <div class="avatar">
+                            <div class="avatar-initial bg-label-info rounded">
+                                <i class="ri-user-add-line ri-26px"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- customers List Table -->
     <div class="card">
+        <div class="card-header pb-0">
+            <h5 class="card-title mb-3">Lista de Usuários</h5>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex gap-2" id="status-filter-buttons">
+                    <button type="button" class="btn btn-sm btn-primary" data-status="all">
+                        <i class="ri-user-line me-1"></i>Todos
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-success" data-status="Y">
+                        <i class="ri-user-follow-line me-1"></i>Ativos
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-status="N">
+                        <i class="ri-user-unfollow-line me-1"></i>Inativos
+                    </button>
+                </div>
+            </div>
+        </div>
         <div class="card-datatable table-responsive">
             <table class="datatables-customers table">
                 <thead>

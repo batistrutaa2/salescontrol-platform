@@ -34,7 +34,7 @@ class UsuariosRepository implements UsuariosRepositoryInterface
     ->where('empresa_id', $idCompany)
     ->where('users.id', '!=', $idUser)
     ->join('user_roles', 'users.user_role_id', '=', 'user_roles.id')
-    ->select('users.id', 'users.name', 'users.email', 'user_roles.tipo_usuario', 'users.ativo', 'user_roles.created_at')
+    ->select('users.id', 'users.name', 'users.email', 'user_roles.tipo_usuario', 'users.ativo', 'users.created_at')
     ->get();
   }
 

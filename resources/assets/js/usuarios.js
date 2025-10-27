@@ -23,6 +23,44 @@ toastr.options = {
   hideMethod: 'fadeOut' // Método de ocultação
 };
 
+// ========== Carregar KPIs ==========
+function loadKPIs() {
+  $.ajax({
+    url: '/usuarios/stats',
+    method: 'GET',
+    success: function(data) {
+      $('#kpi-total').text(data.total);
+      $('#kpi-ativos').text(data.ativos);
+      $('#kpi-inativos').text(data.inativos);
+      $('#kpi-novos').text(data.novos_mes);
+    },
+    error: function() {
+      $('#kpi-total, #kpi-ativos, #kpi-inativos, #kpi-novos').text('—');
+      toastr.error('Erro ao carregar estatísticas');
+    }
+  });
+}
+
+// Carregar KPIs ao iniciar
+$(document).ready(function() {
+  loadKPIs();
+});
+
+// ========== Helper para gerar avatar com iniciais ==========
+function getInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+}
+
+function getAvatarColor(index) {
+  const colors = ['primary', 'success', 'danger', 'warning', 'info', 'secondary'];
+  return colors[index % colors.length];
+}
+
 // Datatable (jquery)
 $(function () {
   let borderColor, bodyBg, headingColor;
@@ -64,13 +102,32 @@ $(function () {
       },
       columns: [
         { data: 'id' },
-        { data: 'name' },
+        {
+          // Nome com avatar
+          targets: 1,
+          render: function (data, type, full, meta) {
+            var $name = full['name'];
+            var initials = getInitials($name);
+            var colorClass = getAvatarColor(meta.row);
+
+            return (
+              '<div class="d-flex align-items-center">' +
+              '<div class="avatar avatar-sm me-3">' +
+              '<span class="avatar-initial rounded-circle bg-label-' + colorClass + '">' + initials + '</span>' +
+              '</div>' +
+              '<div class="d-flex flex-column">' +
+              '<span class="fw-medium text-heading">' + $name + '</span>' +
+              '</div>' +
+              '</div>'
+            );
+          }
+        },
         {
           // User email
           targets: 3,
           render: function (data, type, full, meta) {
             var $email = full['email'];
-            return '<span >' + $email + '</span>';
+            return '<span class="text-muted">' + $email + '</span>';
           }
         },
         {
@@ -98,13 +155,45 @@ $(function () {
           targets: 6,
           render: function (data, type, full, meta) {
             var $status = full['ativo'];
+            var $userId = full['id'];
+            var $userName = full['name'];
+
+            // Debug: verificar o valor exato que está vindo do banco
+            // Remover após confirmar que está funcionando
+            if (meta.row === 0) {
+              console.log('Debug Status - Primeiro usuário:', {
+                nome: $userName,
+                status_raw: $status,
+                status_type: typeof $status,
+                status_trim: String($status).trim(),
+                is_Y: $status === 'Y',
+                is_Y_loose: $status == 'Y'
+              });
+            }
+
+            // Normaliza o status (trim para remover espaços em branco)
+            $status = String($status).trim().toUpperCase();
+            var isChecked = $status === 'Y' ? 'checked' : '';
+
+            // Label e badge baseado no status
+            var statusLabel = $status === 'Y' ? 'ATIVO' : 'INATIVO';
+            var statusClass = $status === 'Y' ? 'text-success' : 'text-muted';
+            var badgeClass = $status === 'Y' ? 'bg-label-success' : 'bg-label-secondary';
+            var icon = $status === 'Y' ? 'ri-checkbox-circle-line' : 'ri-close-circle-line';
 
             return (
-              '<span class="badge rounded-pill ' +
-              statusObj[$status].class +
-              '" text-capitalized>' +
-              statusObj[$status].title +
-              '</span>'
+              '<div class="d-flex align-items-center gap-2">' +
+              '<div class="form-check form-switch mb-0">' +
+              '<input class="form-check-input js-toggle-status" type="checkbox" ' +
+              'data-user-id="' + $userId + '" ' +
+              'data-user-name="' + $userName + '" ' +
+              'data-current-status="' + $status + '" ' +
+              isChecked + '>' +
+              '</div>' +
+              '<span class="badge rounded-pill ' + badgeClass + '">' +
+              '<i class="' + icon + ' me-1"></i>' + statusLabel +
+              '</span>' +
+              '</div>'
             );
           }
         },
@@ -334,6 +423,98 @@ $(function () {
     $('.dataTables_filter input').addClass('ms-0');
     $('.dt-buttons').addClass('d-flex flex-wrap');
   }
+
+  // ========== Event: Toggle Status ==========
+  $(document).on('change', '.js-toggle-status', function() {
+    const $switch = $(this);
+    const userId = $switch.data('user-id');
+    const userName = $switch.data('user-name');
+    const currentStatus = String($switch.data('current-status')).trim().toUpperCase();
+    const newStatus = $switch.is(':checked') ? 'Y' : 'N';
+
+    console.log('Toggle Status:', {
+      userId: userId,
+      currentStatus: currentStatus,
+      newStatus: newStatus,
+      isChecked: $switch.is(':checked')
+    });
+
+    // Confirmação ao desativar usuário
+    if (newStatus === 'N') {
+      if (!confirm(`Tem certeza que deseja desativar o usuário "${userName}"?`)) {
+        // Reverte o switch se o usuário cancelar
+        $switch.prop('checked', true);
+        return;
+      }
+    }
+
+    // Desabilita o switch enquanto processa
+    $switch.prop('disabled', true);
+
+    $.ajax({
+      url: `/usuarios/${userId}/toggle-status`,
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      },
+      success: function(response) {
+        if (response.success) {
+          toastr.success(response.message);
+          // Atualiza o data attribute
+          $switch.data('current-status', response.status);
+
+          // Recarrega a tabela e os KPIs
+          if (table) {
+            table.ajax.reload(null, false);
+          }
+          loadKPIs();
+        } else {
+          toastr.error(response.message || 'Erro ao alterar status do usuário');
+          // Reverte o switch em caso de erro
+          $switch.prop('checked', currentStatus === 'Y');
+        }
+      },
+      error: function(xhr) {
+        const errorMsg = xhr?.responseJSON?.message || 'Erro ao alterar status do usuário';
+        toastr.error(errorMsg);
+        // Reverte o switch em caso de erro
+        $switch.prop('checked', currentStatus === 'Y');
+      },
+      complete: function() {
+        // Reabilita o switch
+        $switch.prop('disabled', false);
+      }
+    });
+  });
+
+  // ========== Event: Filtros de Status ==========
+  $('#status-filter-buttons button').on('click', function() {
+    const $btn = $(this);
+    const status = $btn.data('status');
+
+    // Atualiza visual dos botões
+    $('#status-filter-buttons button').each(function() {
+      const $thisBtn = $(this);
+      if ($thisBtn.data('status') === status) {
+        $thisBtn.removeClass('btn-outline-success btn-outline-secondary btn-outline-primary')
+                .addClass('btn-' + ($thisBtn.data('status') === 'Y' ? 'success' : ($thisBtn.data('status') === 'N' ? 'secondary' : 'primary')));
+      } else {
+        const originalClass = $thisBtn.data('status') === 'Y' ? 'success' : ($thisBtn.data('status') === 'N' ? 'secondary' : 'primary');
+        $thisBtn.removeClass('btn-success btn-secondary btn-primary')
+                .addClass('btn-outline-' + originalClass);
+      }
+    });
+
+    // Aplica filtro na tabela
+    if (table) {
+      if (status === 'all') {
+        table.column(4).search('').draw(); // Coluna de status é a 5ª (índice 4)
+      } else {
+        const searchText = status === 'Y' ? 'ATIVO' : 'INATIVO';
+        table.column(4).search(searchText).draw();
+      }
+    }
+  });
 });
 
 // Validation & Phone mask

@@ -59,8 +59,10 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/usuarios', [Usuarios::class, 'index'])->name('usuarios.index');
   Route::get('/usuarios/editar-usuario/{idUser}', [Usuarios::class, 'editUser'])->name('usuarios.editUser');
   Route::get('/usuarios/getUsers', [Usuarios::class, 'getUsers'])->name('usuarios.getUsers');
+  Route::get('/usuarios/stats', [Usuarios::class, 'getStats'])->name('usuarios.getStats');
   Route::post('/usuarios/createUser', [Usuarios::class, 'createUser'])->name('usuarios.createUser');
   Route::post('/usuarios/editUser', [Usuarios::class, 'updateUser'])->name('usuarios.updateUser');
+  Route::post('/usuarios/{id}/toggle-status', [Usuarios::class, 'toggleStatus'])->name('usuarios.toggleStatus');
   Route::post('/usuarios/{user}/contas/salvar', [Usuarios::class, 'save'])
     ->name('contasPagamento.save')
     ->middleware('auth');
