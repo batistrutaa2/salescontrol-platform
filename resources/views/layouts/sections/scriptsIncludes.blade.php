@@ -127,7 +127,7 @@
         .toast-critical {
             animation: sonnerSlideIn 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) !important;
             border-radius: 12px !important;
-            padding: 16px 20px 16px 48px !important;
+            padding: 16px 20px !important;
             margin-bottom: 12px !important;
             box-shadow:
                 0 4px 12px rgba(0, 0, 0, 0.15),
@@ -141,13 +141,15 @@
             overflow: hidden !important;
         }
 
-        /* Esconder ícones padrão do Toastr para evitar duplicação */
-        .toast-critical .toast-success,
-        .toast-critical .toast-info,
-        .toast-critical .toast-warning,
-        .toast-critical .toast-error {
-            background-image: none !important;
-            padding-left: 0 !important;
+        /* Ajustar ícones padrão do Toastr */
+        .toast-critical.toast-success,
+        .toast-critical.toast-info,
+        .toast-critical.toast-warning,
+        .toast-critical.toast-error {
+            padding-left: 50px !important;
+            background-repeat: no-repeat !important;
+            background-position: 16px center !important;
+            background-size: 20px 20px !important;
         }
 
         /* Tema claro */
@@ -165,48 +167,6 @@
                 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
         }
 
-        /* Ícone - estilo Sonner (apenas 1 ícone circular) */
-        .toast-critical::before {
-            content: '';
-            position: absolute;
-            left: 16px;
-            top: 16px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 700;
-            line-height: 20px;
-            text-align: center;
-        }
-
-        /* Cores por tipo - estilo Sonner */
-        .toast-critical.toast-success::before {
-            content: '✓';
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-        }
-
-        .toast-critical.toast-info::before {
-            content: 'i';
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-        }
-
-        .toast-critical.toast-warning::before {
-            content: '!';
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white;
-        }
-
-        .toast-critical.toast-error::before {
-            content: '✕';
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-        }
 
         /* Barra de indicação lateral - estilo Sonner */
         .toast-critical::after {
@@ -353,14 +313,6 @@
         /* Garante layout limpo e sem duplicação */
         .toast-critical .toast-message > div:first-child {
             margin-top: 0;
-        }
-
-        /* Remove ícones inline do Toastr */
-        .toast-critical.toast-success:before,
-        .toast-critical.toast-info:before,
-        .toast-critical.toast-warning:before,
-        .toast-critical.toast-error:before {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif !important;
         }
 
         /* Força estrutura correta do container */
