@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\pages\backoffice;
 
 use App\Enums\Tabulations;
+use App\Events\ContratoImplantado;
 use App\Helpers\Helpers;
 use App\Models\Operadora;
 use App\Models\Plano;
@@ -138,9 +139,19 @@ class Backoffice extends Controller
         $fileName = 'comprovante_pagamento.' . $file->getClientOriginalExtension();
         Storage::putFileAs($directory, $file, $fileName);
 
-     
+
         $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao, $request->motivo_pendencia ?? null, null, $request->numero_proposta);
         dispatch(new GerarRecebiveisJob($sale->id));
+
+        // Dispara evento de broadcast para usuários administrativos
+        event(new ContratoImplantado(
+          contratoId: $sale->id,
+          nomeContrato: $sale->nome_contrato,
+          numeroProposta: $request->numero_proposta ?? $sale->numero_proposta ?? 'N/A',
+          operadora: $sale->operadora ?? 'N/A',
+          empresaId: $sale->empresa_id,
+          alteradoPorNome: Auth::user()->name ?? 'Sistema'
+        ));
       }
 
       if ($request->tabulacao_id == Tabulations::BOLETO_DISPONIVEL) {
