@@ -250,7 +250,7 @@ class Mailing extends Controller
     ]);
   }
 
-  public function getPreditiva()
+  public function getPreditiva(Request $request)
   {
     $empresaId = Auth::user()->empresa_id;
 
@@ -281,20 +281,42 @@ class Mailing extends Controller
       ->count();
 
 
-    $leads = DB::table('preditiva as p')
+    // Query otimizada: buscar última tabulação por contato usando GROUP BY simples
+    $query = DB::table('preditiva as p')
       ->join('contatos as c', 'c.id', '=', 'p.contato_id')
-      ->leftJoin('log_preditiva as l', 'l.contato_id', '=', 'p.contato_id')
+      ->leftJoin('log_preditiva as l', function($join) use ($empresaId) {
+        $join->on('l.contato_id', '=', 'p.contato_id')
+             ->where('l.empresa_id', '=', $empresaId);
+      })
       ->where('p.status', 'Y')
-      ->where('p.empresa_id', $empresaId)
-      ->select(
+      ->where('p.empresa_id', $empresaId);
+
+    // Filtro por nome do cliente
+    if ($request->has('nome_cliente') && $request->nome_cliente !== '') {
+      $query->where('c.nome_cliente', 'LIKE', '%' . $request->nome_cliente . '%');
+    }
+
+    // Buscar os dados com última tabulação
+    $leadsData = $query->select(
         'p.id as preditiva_id',
         'c.nome_cliente',
         'c.valor_plano_atual',
+        'c.telefone1',
         'p.contato_id',
-        DB::raw('COUNT(l.id) as tentativas')
+        DB::raw('COUNT(DISTINCT l.id) as tentativas'),
+        DB::raw('(SELECT tabulacao FROM log_preditiva WHERE contato_id = p.contato_id AND empresa_id = ' . $empresaId . ' ORDER BY id DESC LIMIT 1) as ultima_tabulacao')
       )
-      ->groupBy('p.id', 'c.nome_cliente', 'c.valor_plano_atual', 'p.contato_id')
+      ->groupBy('p.id', 'c.nome_cliente', 'c.valor_plano_atual', 'c.telefone1', 'p.contato_id')
       ->get();
+
+    // Aplicar filtro de última tabulação na coleção
+    $leads = $leadsData;
+
+    if ($request->has('ultima_tabulacao') && $request->ultima_tabulacao !== '') {
+      $leads = $leads->filter(function($lead) use ($request) {
+        return $lead->ultima_tabulacao === $request->ultima_tabulacao;
+      })->values();
+    }
 
     return response()->json([
       'total_leads_fila' => $totalLeadsFila,
@@ -336,8 +358,153 @@ class Mailing extends Controller
     return response()->json($comentarios);
   }
 
+  public function desativarLeadPreditiva($contatoId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
 
+      DB::beginTransaction();
 
+      // Remove da preditiva
+      Preditiva::where('contato_id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->update(['status' => 'N']);
 
+      // Registra no log
+      LogPreditiva::create([
+        'empresa_id' => $empresaId,
+        'user_id' => Auth::id(),
+        'contato_id' => $contatoId,
+        'tabulacao' => 'DESATIVADO',
+        'acao' => 'DESCARTE'
+      ]);
+
+      DB::commit();
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Lead desativado da preditiva com sucesso.'
+      ]);
+    } catch (\Throwable $th) {
+      DB::rollBack();
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao desativar lead: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  public function excluirLeadPreditiva($contatoId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      // Verifica se existe venda cadastrada
+      $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($contatoId);
+
+      if ($searchForLaunchedSale) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Esse Lead possui venda cadastrada, exclusão cancelada.'
+        ], 422);
+      }
+
+      DB::beginTransaction();
+
+      // Desativa o contato
+      Contatos::where('id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->update(['status' => 'N']);
+
+      // Remove da preditiva
+      Preditiva::where('contato_id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->delete();
+
+      // Registra no log
+      LogPreditiva::create([
+        'empresa_id' => $empresaId,
+        'user_id' => Auth::id(),
+        'contato_id' => $contatoId,
+        'tabulacao' => 'EXCLUIDO',
+        'acao' => 'DESCARTE'
+      ]);
+
+      DB::commit();
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Lead excluído permanentemente com sucesso.'
+      ]);
+    } catch (\Throwable $th) {
+      DB::rollBack();
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao excluir lead: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  public function removerDaPreditiva($contatoId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      DB::beginTransaction();
+
+      // Remove apenas da preditiva, mantém o contato ativo
+      Preditiva::where('contato_id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->delete();
+
+      // Registra no log
+      LogPreditiva::create([
+        'empresa_id' => $empresaId,
+        'user_id' => Auth::id(),
+        'contato_id' => $contatoId,
+        'tabulacao' => 'REMOVIDO DA FILA',
+        'acao' => 'DESCARTE'
+      ]);
+
+      DB::commit();
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Lead removido da fila preditiva com sucesso.'
+      ]);
+    } catch (\Throwable $th) {
+      DB::rollBack();
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao remover lead: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  public function getTabulacoesDistintas()
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $tabulacoes = DB::table('log_preditiva')
+        ->where('empresa_id', $empresaId)
+        ->whereNotNull('tabulacao')
+        ->where('tabulacao', '!=', '')
+        ->distinct()
+        ->orderBy('tabulacao')
+        ->pluck('tabulacao')
+        ->values();
+
+      return response()->json([
+        'success' => true,
+        'tabulacoes' => $tabulacoes
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar tabulações: ' . $th->getMessage()
+      ], 500);
+    }
+  }
 
 }

@@ -886,14 +886,47 @@ class Comercial extends Controller
       'acao' => 'DESCARTE'
     ]);
 
-    // Liberar o cliente
+    // Contar total de descartes deste lead
+    $totalDescartes = DB::table('log_preditiva')
+      ->where('contato_id', $contatoId)
+      ->where('empresa_id', $empresaId)
+      ->where('acao', 'DESCARTE')
+      ->count();
+
+    // Se atingiu 5 ou mais descartes, desativar permanentemente
+    if ($totalDescartes >= 5) {
+      // Remover da preditiva
+      Preditiva::where('contato_id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->delete();
+
+      // Desativar o contato
+      Contatos::where('id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->update([
+          'status' => 'N',
+          'updated_at' => now()
+        ]);
+
+      return response()->json([
+        'success' => true,
+        'desativado' => true,
+        'message' => 'Lead atingiu 5 descartes e foi removido automaticamente da preditiva.'
+      ]);
+    }
+
+    // Se não atingiu o limite, apenas liberar para outros corretores
     Preditiva::where('contato_id', $contatoId)
       ->update([
         'user_id' => null,
         'data_atribuicao' => null
       ]);
 
-    return response()->json(['success' => true]);
+    return response()->json([
+      'success' => true,
+      'desativado' => false,
+      'tentativas_restantes' => 5 - $totalDescartes
+    ]);
   }
 
   public function converterClientePreditiva(Request $request)
@@ -988,26 +1021,35 @@ class Comercial extends Controller
   {
     $ids = $request->input('ids');
     $clearPreditiva = $request->input('clearPreditiva');
+    $empresaId = Auth::user()->empresa_id;
+
     try {
-      DB::transaction(function () use ($ids, $clearPreditiva) {
+      DB::transaction(function () use ($ids, $clearPreditiva, $empresaId) {
         foreach ($ids as $id) {
           if ($clearPreditiva) {
-            $existePreditiva = DB::table('preditiva')
+            // Remove da preditiva
+            DB::table('preditiva')
               ->where('contato_id', $id)
-              ->exists();
+              ->where('empresa_id', $empresaId)
+              ->delete();
 
-            if ($existePreditiva) {
-              DB::table('preditiva')->where('contato_id', $id)->delete();
-              DB::table('log_preditiva')->where('contato_id', $id)->delete();
-            }
+            // Remove todos os logs da preditiva
+            DB::table('log_preditiva')
+              ->where('contato_id', $id)
+              ->where('empresa_id', $empresaId)
+              ->delete();
           }
 
+          // Remove da tabela contatos_corretores
           $this->repositoryContatosCorretores->deleteMailing($id);
 
-          Contatos::where('id', $id)->update([
-            'status' => 'N',
-            'updated_at' => now()
-          ]);
+          // Desativa o contato
+          Contatos::where('id', $id)
+            ->where('empresa_id', $empresaId)
+            ->update([
+              'status' => 'N',
+              'updated_at' => now()
+            ]);
         }
       });
 

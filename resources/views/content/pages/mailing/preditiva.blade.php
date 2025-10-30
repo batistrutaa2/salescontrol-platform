@@ -93,11 +93,37 @@
     </div>
 
     <div class="card mt-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Leads na Fila Preditiva</h5>
-            <button id="btnLimparFila" class="btn btn-danger btn-sm">
-                Limpar Fila Selecionada
-            </button>
+        <div class="card-header">
+            <h5 class="mb-3">Leads na Fila Preditiva</h5>
+
+            <!-- Filtros Avançados -->
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nome do Cliente</label>
+                    <input type="text" class="form-control" id="filtroNomeCliente" placeholder="Buscar por nome">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Última Tabulação</label>
+                    <select class="form-select" id="filtroUltimaTabulacao">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-12 d-flex gap-2">
+                    <button id="btnAplicarFiltros" class="btn btn-primary">
+                        <i class="ri-filter-3-line me-1"></i> Aplicar Filtros
+                    </button>
+                    <button id="btnLimparFiltros" class="btn btn-outline-secondary">
+                        <i class="ri-refresh-line me-1"></i> Limpar Filtros
+                    </button>
+                    <button id="btnLimparFila" class="btn btn-danger ms-auto">
+                        <i class="ri-delete-bin-line me-1"></i> Limpar Fila Selecionada
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -108,9 +134,11 @@
                                 <input type="checkbox" id="select-all-leads">
                             </th>
                             <th>Cliente</th>
-                            <th style="width: 160px;">Valor Plano Atual</th>
+                            <th style="width: 140px;">Telefone</th>
+                            <th style="width: 140px;">Valor Plano Atual</th>
                             <th style="width: 100px;">Tentativas</th>
-                            <th style="width: 200px;">Ações</th>
+                            <th style="width: 180px;">Última Tabulação</th>
+                            <th style="width: 120px;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
