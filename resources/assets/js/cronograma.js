@@ -8,6 +8,9 @@ $(function () {
   let agendamentosData = [];
   let filtroAtivo = 'todos';
 
+  // Carregar contagem de agendamentos de hoje ao carregar a página
+  carregarContagemHoje();
+
   // Carregar dados quando a aba for mostrada
   $('button[data-bs-target="#tab-cronograma"]').on('shown.bs.tab', function () {
     carregarAgendamentos();
@@ -16,6 +19,49 @@ $(function () {
   // Verificar se a tab já está ativa ao carregar a página
   if ($('#tab-cronograma').hasClass('active') || $('#tab-cronograma').hasClass('show')) {
     carregarAgendamentos();
+  }
+
+  /**
+   * Carregar contagem de agendamentos de hoje
+   */
+  function carregarContagemHoje() {
+    $.ajax({
+      url: '/comercial/getSchedules',
+      method: 'GET',
+      dataType: 'json',
+      success: function (response) {
+        const dados = response.data || response;
+
+        // Contar agendamentos de hoje
+        const agora = new Date();
+        const dataHoje = new Date();
+        dataHoje.setHours(0, 0, 0, 0);
+
+        let countHoje = 0;
+
+        dados.forEach(agendamento => {
+          const dataAgendamento = new Date(agendamento.horario_agendamento);
+          const dataAgendamentoSemHora = new Date(dataAgendamento);
+          dataAgendamentoSemHora.setHours(0, 0, 0, 0);
+
+          if (dataAgendamentoSemHora.getTime() === dataHoje.getTime()) {
+            countHoje++;
+          }
+        });
+
+        // Atualizar badge
+        const badge = $('#badge-cronograma-hoje');
+        if (countHoje > 0) {
+          badge.html(countHoje).removeClass('bg-label-info').addClass('bg-info');
+        } else {
+          badge.html('0').removeClass('bg-info').addClass('bg-label-secondary');
+        }
+      },
+      error: function () {
+        // Em caso de erro, mostrar 0
+        $('#badge-cronograma-hoje').html('0').removeClass('bg-label-info bg-info').addClass('bg-label-secondary');
+      }
+    });
   }
 
   /**
@@ -420,6 +466,9 @@ $(function () {
 
   // Recarregar timeline após ações de agendamento
   $('#scheduleModal, #completarContatoModal, #discardModal').on('hidden.bs.modal', function () {
+    // Recarregar contagem do badge
+    carregarContagemHoje();
+
     // Recarregar apenas se a tab cronograma estiver ativa
     if ($('#tab-cronograma').hasClass('active') || $('#tab-cronograma').hasClass('show')) {
       setTimeout(() => {

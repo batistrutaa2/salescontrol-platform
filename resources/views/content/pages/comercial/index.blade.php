@@ -178,6 +178,20 @@
         .timeline-item {
             animation: fadeInUp 0.4s ease-out;
         }
+
+        /* Badge contador cronograma */
+        #badge-cronograma-hoje {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 7px;
+            min-width: 20px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        #badge-cronograma-hoje .ri-spin {
+            font-size: 12px;
+        }
     </style>
 @endsection
 
@@ -218,7 +232,9 @@
             <button type="button" class="nav-link" id="cronograma-tab" data-bs-toggle="tab" data-bs-target="#tab-cronograma" role="tab" aria-controls="tab-cronograma" aria-selected="false">
                 <i class="ri-calendar-check-line me-1"></i>
                 Cronograma
-                <span class="badge rounded-pill badge-center h-px-20 w-px-20 bg-danger ms-1" id="badge-cronograma-atrasados" style="display: none;">0</span>
+                <span class="badge bg-label-info ms-1" id="badge-cronograma-hoje">
+                    <i class="ri-loader-4-line ri-spin"></i>
+                </span>
             </button>
         </li>
     </ul>
