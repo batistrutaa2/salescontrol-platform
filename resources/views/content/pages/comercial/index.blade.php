@@ -47,6 +47,137 @@
             background: transparent;
             /* Cor de fundo da área de rolagem */
         }
+
+        /* Estilos para Timeline do Cronograma */
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(to bottom, #e0e0e0 0%, #e0e0e0 100%);
+            transform: translateX(-50%);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            width: 100%;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .timeline-item-left {
+            justify-content: flex-end;
+            padding-right: calc(50% + 30px);
+        }
+
+        .timeline-item-right {
+            justify-content: flex-start;
+            padding-left: calc(50% + 30px);
+        }
+
+        .timeline-indicator {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            z-index: 2;
+            box-shadow: 0 0 0 4px #fff, 0 0 0 6px currentColor;
+        }
+
+        .timeline-indicator-danger {
+            background: linear-gradient(135deg, #ff4757 0%, #ff6348 100%);
+            color: white;
+        }
+
+        .timeline-indicator-info {
+            background: linear-gradient(135deg, #00d4ff 0%, #0abde3 100%);
+            color: white;
+        }
+
+        .timeline-indicator-warning {
+            background: linear-gradient(135deg, #ffa502 0%, #ff7f50 100%);
+            color: white;
+        }
+
+        .timeline-indicator-success {
+            background: linear-gradient(135deg, #26de81 0%, #20bf6b 100%);
+            color: white;
+        }
+
+        .timeline-indicator-secondary {
+            background: linear-gradient(135deg, #a4b0be 0%, #747d8c 100%);
+            color: white;
+        }
+
+        .timeline-event {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-event:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .timeline-event .card-header {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1rem 1.25rem;
+        }
+
+        .timeline-event .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .timeline::before {
+                left: 30px;
+            }
+
+            .timeline-item-left,
+            .timeline-item-right {
+                justify-content: flex-start;
+                padding-left: 70px;
+                padding-right: 0;
+            }
+
+            .timeline-indicator {
+                left: 30px;
+            }
+        }
+
+        /* Animação de entrada */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .timeline-item {
+            animation: fadeInUp 0.4s ease-out;
+        }
     </style>
 @endsection
 
@@ -56,6 +187,7 @@
 
 @section('page-script')
     @vite('resources/assets/js/comercialkanban.js')
+    @vite('resources/assets/js/cronograma.js')
     @vite('resources/assets/js/consulta.js')
 @endsection
 
@@ -74,7 +206,27 @@
         </div>
     @endif
 
-    <div class="app-kanban mt-5">
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <button type="button" class="nav-link active" id="funil-tab" data-bs-toggle="tab" data-bs-target="#tab-funil" role="tab" aria-controls="tab-funil" aria-selected="true">
+                <i class="ri-kanban-view me-1"></i>
+                Funil de Vendas
+            </button>
+        </li>
+        <li class="nav-item">
+            <button type="button" class="nav-link" id="cronograma-tab" data-bs-toggle="tab" data-bs-target="#tab-cronograma" role="tab" aria-controls="tab-cronograma" aria-selected="false">
+                <i class="ri-calendar-check-line me-1"></i>
+                Cronograma
+                <span class="badge rounded-pill badge-center h-px-20 w-px-20 bg-danger ms-1" id="badge-cronograma-atrasados" style="display: none;">0</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Tab Funil de Vendas -->
+        <div class="tab-pane fade show active" id="tab-funil" role="tabpanel" aria-labelledby="funil-tab">
+                <div class="app-kanban mt-5">
         <!-- Add new board -->
         <div class="row">
             <div class="col-12">
@@ -294,6 +446,68 @@
             </div>
         </div>
     </div>
+        </div>
+        <!-- Fim Tab Funil de Vendas -->
+
+        <!-- Tab Cronograma -->
+        <div class="tab-pane fade" id="tab-cronograma" role="tabpanel" aria-labelledby="cronograma-tab">
+                <div class="card">
+                    <!-- Filtros Rápidos -->
+                    <div class="card-header border-bottom">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <h5 class="mb-0">
+                                <i class="ri-calendar-check-line me-2"></i>
+                                Cronograma de Contatos
+                                <span class="badge bg-label-primary ms-2" id="total-agendamentos">0</span>
+                            </h5>
+
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary filtro-cronograma active" data-filter="todos">
+                                    <i class="ri-list-check me-1"></i>Todos
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger filtro-cronograma" data-filter="atrasados">
+                                    <i class="ri-alarm-warning-line me-1"></i>Atrasados <span class="badge bg-danger ms-1" id="count-atrasados">0</span>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-info filtro-cronograma" data-filter="hoje">
+                                    <i class="ri-calendar-today-line me-1"></i>Hoje <span class="badge bg-info ms-1" id="count-hoje">0</span>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success filtro-cronograma" data-filter="semana">
+                                    <i class="ri-calendar-week-line me-1"></i>Esta Semana <span class="badge bg-success ms-1" id="count-semana">0</span>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary filtro-cronograma" data-filter="futuro">
+                                    <i class="ri-calendar-line me-1"></i>Futuro <span class="badge bg-secondary ms-1" id="count-futuro">0</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline Cronograma -->
+                    <div class="card-body">
+                        <!-- Loading -->
+                        <div id="cronograma-loading" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                            <p class="mt-3 text-muted">Carregando agendamentos...</p>
+                        </div>
+
+                        <!-- Mensagem vazia -->
+                        <div id="cronograma-empty" class="text-center py-5 d-none">
+                            <i class="ri-calendar-line ri-48px text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhum agendamento encontrado</h5>
+                            <p class="text-muted">Não há agendamentos para o filtro selecionado.</p>
+                        </div>
+
+                        <!-- Timeline Container -->
+                        <div id="cronograma-timeline" class="timeline timeline-center d-none">
+                            <!-- Os itens serão inseridos aqui dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+        </div>
+        <!-- Fim Tab Cronograma -->
+    </div>
+    <!-- Fim Tab Content -->
 
 
     <!-- Add New Address Modal -->
@@ -434,6 +648,7 @@
         </div>
     </div>
 
+    <!-- Modal Criar Agendamento -->
     <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="sheduleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -460,6 +675,60 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-success">Agendar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Marcar como Realizado (do Cronograma) -->
+    <div class="modal fade" id="completarContatoModal" tabindex="-1" aria-labelledby="completarContatoLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="completarContatoLabel">
+                        <i class="ri-check-double-line me-2"></i>Concluir Contato Agendado
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('comercial.backqueue') }}" method="POST" id="form-completar-contato">
+                    @csrf
+                    <input type="hidden" id="contatoIdCompletar" name="contato_id" value="">
+                    <div class="modal-body">
+                        <div class="alert alert-info d-flex align-items-center mb-4">
+                            <i class="ri-information-line ri-22px me-2"></i>
+                            <div>
+                                <strong>Cliente:</strong> <span id="nomeClienteCompletar">-</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="anotacaoResultado" class="form-label">
+                                <i class="ri-file-text-line me-1"></i>Resultado do Contato
+                            </label>
+                            <textarea class="form-control" id="anotacaoResultado" name="anotacao" rows="4" placeholder="Descreva o que foi conversado, acordado ou observado durante o contato..." required></textarea>
+                            <small class="text-muted">Esta anotação será salva no histórico do cliente</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="tabulacaoDestino" class="form-label">
+                                <i class="ri-folder-transfer-line me-1"></i>Para qual etapa do funil esse cliente vai?
+                            </label>
+                            <select class="form-select" id="tabulacaoDestino" name="tabulacao_id" required>
+                                <option value="">Selecione a tabulação...</option>
+                                @foreach ($tabulacoes as $tabulation)
+                                    <option value="{{ $tabulation->id }}">{{ $tabulation->descricao }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <i class="ri-close-line me-1"></i>Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="ri-check-line me-1"></i>Concluir e Retornar ao Funil
+                        </button>
                     </div>
                 </form>
             </div>

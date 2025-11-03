@@ -46,22 +46,28 @@ class AgendamentoRepository implements AgendamentoRepositoryInterface
   public function getSchedules($rulerUser)
   {
     try {
-
-
       if ($rulerUser == UserRole::ADMINISTRATIVO || $rulerUser == UserRole::DEVELOPER || $rulerUser == UserRole::SUPERVISOR) {
-        return $this->model->select('c.id', 'b.name AS nome_corretor', 'c.nome_cliente', 'agendamentos.horario_agendamento', 'agendamentos.notificado')
+        $results = $this->model->select('c.id', 'b.name AS nome_corretor', 'c.nome_cliente', 'agendamentos.horario_agendamento', 'agendamentos.observacao', 'agendamentos.notificado')
           ->leftJoin('users AS b', 'b.id', '=', 'agendamentos.user_id')
           ->leftJoin('contatos AS c', 'c.id', '=', 'agendamentos.contato_id')
           ->where('agendamentos.empresa_id', Auth::user()->empresa_id)
           ->get();
       } else {
-        return $this->model->select('c.id', 'b.name AS nome_corretor', 'c.nome_cliente', 'agendamentos.horario_agendamento', 'agendamentos.notificado')
+        $results = $this->model->select('c.id', 'b.name AS nome_corretor', 'c.nome_cliente', 'agendamentos.horario_agendamento', 'agendamentos.observacao', 'agendamentos.notificado')
           ->leftJoin('users AS b', 'b.id', '=', 'agendamentos.user_id')
           ->leftJoin('contatos AS c', 'c.id', '=', 'agendamentos.contato_id')
           ->where('agendamentos.empresa_id', Auth::user()->empresa_id)
           ->where('b.id', Auth::user()->id)
           ->get();
       }
+
+      // Formatar as datas para o formato MySQL (YYYY-MM-DD HH:mm:ss)
+      return $results->map(function ($item) {
+        if ($item->horario_agendamento) {
+          $item->horario_agendamento = Carbon::parse($item->horario_agendamento)->format('Y-m-d H:i:s');
+        }
+        return $item;
+      });
     } catch (\Throwable $th) {
       throw $th;
     }

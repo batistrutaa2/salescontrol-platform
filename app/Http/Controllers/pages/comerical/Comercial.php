@@ -109,10 +109,13 @@ class Comercial extends Controller
 
     $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
 
+    $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
+
     return view('content.pages.comercial.index', [
       'vendedores' => $vendedores,
       'typeUserLogeed' => Auth::user()->role->tipo_usuario,
-      'subTabulacoes' => $subTabulacoes
+      'subTabulacoes' => $subTabulacoes,
+      'tabulacoes' => $tabulacoes
     ]);
   }
 
@@ -680,16 +683,28 @@ class Comercial extends Controller
   public function backQueue(Request $request)
   {
     try {
+      // Se houver anotação (vindo do cronograma), salvar no histórico do cliente
+      if ($request->filled('anotacao')) {
+        $this->comentariosRepository->createComment(
+          Auth::user()->empresa_id,
+          Auth::user()->id,
+          $request->anotacao,
+          $request->contato_id
+        );
+      }
+
       $deleteSchedule = $this->agendamentoRepository->deleteSchedule($request->contato_id);
       $backQueueLead = $this->repositoryContatosCorretores->changeStatusLead($request->all());
 
       if ($deleteSchedule && $backQueueLead) {
-        return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', "Status atualizado");
+        return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', "Contato concluído e retornado ao funil com sucesso");
       } else {
         return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao enviar para fila, contate nosso suporte.");
       }
     } catch (\Throwable $th) {
-      return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar para fila");
+      // Log do erro para debug
+      \Log::error('Erro ao concluir agendamento: ' . $th->getMessage());
+      return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar para fila: " . $th->getMessage());
     }
   }
 
