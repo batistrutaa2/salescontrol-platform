@@ -777,43 +777,89 @@
 
                     <div id="cliente-preditiva-container" class="d-none">
                         <!-- Card com dados básicos do cliente -->
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">
-                                    <i class="ri-user-line me-2"></i>
-                                    Informações do Cliente
-                                </h6>
+                        <div class="card border-primary">
+                            <div class="card-header bg-label-primary d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="ri-user-3-line me-2"></i>
+                                    <span id="cliente-nome-header">Cliente</span>
+                                </h5>
                                 <!-- Botão de consulta no header do card -->
                                 <button type="button" class="btn btn-sm btn-info" id="btn-consultar-dados-cliente">
                                     <span class="spinner-border spinner-border-sm d-none"
                                         id="loading-consulta-cliente"></span>
-                                    <i class="ri-search-line ri-16px me-1"></i>
+                                    <i class="ri-search-line me-1"></i>
                                     Consultar Dados Completos
                                 </button>
                             </div>
                             <div class="card-body">
-                                <div class="row">
+                                <div class="row g-3">
                                     <div class="col-md-6">
-                                        <h4 id="cliente-nome">-</h4>
-                                        <p class="mb-1"><strong>Email:</strong> <span id="cliente-email">-</span></p>
-                                        <p class="mb-1"><strong>Telefone:</strong> <span id="cliente-telefone">-</span>
-                                        </p>
-                                        <p class="mb-1"><strong>CPF:</strong> <span id="cliente-cpf">-</span></p>
-                                        <p class="mb-1"><strong>Data de Nascimento:</strong> 
-                                        <span id="cliente-nascimento">-</span></p>
+                                        <div class="mb-3">
+                                            <small class="text-muted d-block mb-1">Titular do Plano</small>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <i class="ri-mail-line me-2 text-primary ri-lg"></i>
+                                            <span id="cliente-email" class="fs-6">-</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <i class="ri-phone-line me-2 text-primary ri-lg"></i>
+                                            <span id="cliente-telefone" class="fs-6">-</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <i class="ri-id-card-line me-2 text-primary ri-lg"></i>
+                                            <span id="cliente-cpf" class="fs-6">-</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <i class="ri-calendar-line me-2 text-primary ri-lg"></i>
+                                            <span id="cliente-nascimento" class="fs-6">-</span>
+                                        </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <p class="mb-1"><strong>Plano:</strong> <span id="cliente-plano">-</span></p>
-                                        <p class="mb-1"><strong>Categoria:</strong> <span
-                                                id="cliente-categoria">-</span></p>
-                                        <p class="mb-1"><strong>Entidade:</strong> <span id="cliente-entidade">-</span>
-                                        </p>
-                                        <p class="mb-1"><strong>Valor Atual:</strong> <span id="cliente-valor">-</span>
-                                        </p>
+                                        <div class="card mb-3 border-0 shadow-sm">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-title text-primary mb-3">
+                                                    <i class="ri-shield-check-line me-1"></i>
+                                                    Plano Atual
+                                                </h6>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Plano:</small>
+                                                    <strong class="d-block" id="cliente-plano">-</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Categoria:</small>
+                                                    <strong class="d-block" id="cliente-categoria">-</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Operadora:</small>
+                                                    <strong class="d-block" id="cliente-entidade">-</strong>
+                                                </div>
+                                                <div class="mb-0">
+                                                    <small class="text-muted">Valor:</small>
+                                                    <h5 class="text-success mb-0" id="cliente-valor">-</h5>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <input type="hidden" id="cliente-id" value="">
+                            </div>
+                        </div>
+
+                        <!-- Card de Dependentes -->
+                        <div class="card mt-3 d-none" id="card-dependentes">
+                            <div class="card-header bg-label-info">
+                                <h6 class="mb-0">
+                                    <i class="ri-group-line me-2"></i>
+                                    Dependentes
+                                    <span class="badge bg-info ms-2" id="count-dependentes">0</span>
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="lista-dependentes" class="row g-3">
+                                    <!-- Dependentes serão inseridos aqui -->
+                                </div>
                             </div>
                         </div>
 

@@ -880,7 +880,15 @@ class Comercial extends Controller
           'data_atribuicao' => now()
         ]);
 
-      return response()->json([$cliente]);
+      // Buscar dependentes do cliente
+      $dependentes = Dependentes::where('contato_id', $cliente->id)
+        ->select('id', 'nome', 'cpf', 'idade', 'parentesco', 'telefone_1', 'telefone_2', 'telefone_3', 'valor_plano')
+        ->get();
+
+      $clienteData = (array) $cliente;
+      $clienteData['dependentes'] = $dependentes;
+
+      return response()->json([$clienteData]);
     }
     return response()->json([]);
   }

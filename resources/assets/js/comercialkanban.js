@@ -1008,7 +1008,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Função para preencher dados do cliente
   function preencherDadosCliente(cliente) {
     clienteId.value = cliente.id;
-    clienteNome.textContent = cliente.nome || '-';
+    document.getElementById('cliente-nome-header').textContent = cliente.nome || 'Cliente';
     clienteEmail.textContent = cliente.email || '-';
     clientecpf.textContent = cliente.cpf || '-';
     clienteTelefone.textContent = cliente.telefone || '-';
@@ -1017,6 +1017,83 @@ document.addEventListener('DOMContentLoaded', function () {
     clienteCategoria.textContent = cliente.categoria || '-';
     clienteEntidade.textContent = cliente.entidade || '-';
     clienteValor.textContent = formatarMoeda(cliente.valor_plano_atual) || '-';
+
+    // Preencher dependentes
+    preencherDependentes(cliente.dependentes || []);
+  }
+
+  // Função para preencher dependentes
+  function preencherDependentes(dependentes) {
+    const cardDependentes = document.getElementById('card-dependentes');
+    const listaDependentes = document.getElementById('lista-dependentes');
+    const countDependentes = document.getElementById('count-dependentes');
+
+    if (!dependentes || dependentes.length === 0) {
+      cardDependentes.classList.add('d-none');
+      return;
+    }
+
+    countDependentes.textContent = dependentes.length;
+    listaDependentes.innerHTML = '';
+
+    dependentes.forEach((dep, index) => {
+      const depCard = `
+        <div class="col-md-6">
+          <div class="card border">
+            <div class="card-body p-3">
+              <div class="d-flex align-items-start mb-2">
+                <div class="avatar avatar-sm flex-shrink-0 me-2">
+                  <span class="avatar-initial rounded bg-label-info">
+                    <i class="ri-user-line"></i>
+                  </span>
+                </div>
+                <div class="flex-grow-1">
+                  <h6 class="mb-0">${dep.nome || 'Sem nome'}</h6>
+                  <small class="text-muted">${dep.parentesco || 'Dependente'}</small>
+                </div>
+              </div>
+              ${dep.cpf ? `
+                <div class="mb-1">
+                  <small class="text-muted">
+                    <i class="ri-id-card-line me-1"></i>${dep.cpf}
+                  </small>
+                </div>
+              ` : ''}
+              ${dep.idade ? `
+                <div class="mb-1">
+                  <small class="text-muted">
+                    <i class="ri-calendar-line me-1"></i>${dep.idade} anos
+                  </small>
+                </div>
+              ` : ''}
+              ${dep.telefone_1 ? `
+                <div class="mb-1">
+                  <small class="text-muted">
+                    <i class="ri-phone-line me-1"></i>${dep.telefone_1}
+                  </small>
+                </div>
+              ` : ''}
+              ${dep.telefone_2 ? `
+                <div class="mb-1">
+                  <small class="text-muted">
+                    <i class="ri-phone-line me-1"></i>${dep.telefone_2}
+                  </small>
+                </div>
+              ` : ''}
+              ${dep.valor_plano ? `
+                <div class="mt-2">
+                  <span class="badge bg-label-success">${formatarMoeda(dep.valor_plano)}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+
+      listaDependentes.innerHTML += depCard;
+    });
+
+    cardDependentes.classList.remove('d-none');
   }
 
   // Função para descartar cliente
@@ -1101,7 +1178,7 @@ document.addEventListener('DOMContentLoaded', function () {
     tabulacaoSelect.value = '';
     btnDescartar.disabled = true;
     clienteId.value = '';
-    clienteNome.textContent = '-';
+    document.getElementById('cliente-nome-header').textContent = 'Cliente';
     clienteEmail.textContent = '-';
     clienteTelefone.textContent = '-';
     clienteNascimento.textContent = '-';
@@ -1109,6 +1186,11 @@ document.addEventListener('DOMContentLoaded', function () {
     clienteCategoria.textContent = '-';
     clienteEntidade.textContent = '-';
     clienteValor.textContent = '-';
+
+    // Limpar dependentes
+    document.getElementById('card-dependentes').classList.add('d-none');
+    document.getElementById('lista-dependentes').innerHTML = '';
+    document.getElementById('count-dependentes').textContent = '0';
   }
 
   // Função para formatar data
