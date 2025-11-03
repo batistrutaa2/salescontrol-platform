@@ -576,4 +576,30 @@ class Vendas extends Controller
         }
     }
 
+    public function detalhesVenda($id)
+    {
+        try {
+            $venda = DB::table('vendas')
+                ->leftJoin('users', 'vendas.user_id', '=', 'users.id')
+                ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
+                ->leftJoin('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+                ->where('vendas.id', $id)
+                ->where('vendas.empresa_id', Auth::user()->empresa_id)
+                ->select(
+                    'vendas.*',
+                    'users.name as vendedor_nome',
+                    'tabulacoes.descricao'
+                )
+                ->first();
+
+            if (!$venda) {
+                return response()->json(['error' => 'Venda não encontrada'], 404);
+            }
+
+            return response()->json($venda);
+        } catch (\Throwable $th) {
+            return response()->json(['error' => 'Erro ao buscar detalhes da venda: ' . $th->getMessage()], 500);
+        }
+    }
+
 }

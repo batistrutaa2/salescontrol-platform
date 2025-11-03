@@ -179,12 +179,161 @@
                             <th>Nome do Contrato</th>
                             <th>Status</th>
                             <th>Valor</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {{-- Preenchido via DataTables --}}
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Visualizar Venda -->
+    <div class="modal fade" id="modalVisualizarVenda" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-bottom" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h5 class="modal-title text-white">
+                        <i class="ri-file-list-3-line me-2"></i>
+                        Detalhes da Venda #<span id="venda-modal-id">-</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" style="background-color: #f8f9fa;">
+                    <!-- Loading -->
+                    <div id="venda-loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-3 fw-medium">Carregando detalhes da venda...</p>
+                    </div>
+
+                    <!-- Conteúdo -->
+                    <div id="venda-content" class="d-none">
+                        <!-- Card Informações do Contrato -->
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                <h6 class="mb-0 text-white">
+                                    <i class="ri-file-text-line me-2"></i>
+                                    Informações do Contrato
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <!-- Nome e Status em destaque -->
+                                <div class="row mb-4">
+                                    <div class="col-md-8">
+                                        <h5 class="mb-1" id="venda-nome-contrato">-</h5>
+                                        <small class="text-muted">
+                                            <i class="ri-id-card-line me-1"></i>
+                                            <span id="venda-cpf-cnpj">-</span>
+                                        </small>
+                                    </div>
+                                    <div class="col-md-4 text-md-end">
+                                        <span class="badge fs-6" id="venda-status-badge">-</span>
+                                    </div>
+                                </div>
+
+                                <div class="row g-4">
+                                    <!-- Plano e Operadora -->
+                                    <div class="col-md-6">
+                                        <div class="border-start border-primary border-3 ps-3">
+                                            <small class="text-muted d-block">Plano</small>
+                                            <p class="mb-1 fw-semibold" id="venda-plano">-</p>
+                                            <small class="text-muted d-block mt-2">Operadora</small>
+                                            <p class="mb-0 fw-semibold" id="venda-operadora">-</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Valor e Vidas -->
+                                    <div class="col-md-6">
+                                        <div class="border-start border-success border-3 ps-3">
+                                            <small class="text-muted d-block">Valor do Contrato</small>
+                                            <h4 class="mb-1 text-success" id="venda-valor">-</h4>
+                                            <small class="text-muted d-block mt-2">Quantidade de Vidas</small>
+                                            <p class="mb-0 fw-semibold" id="venda-vidas">-</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Datas -->
+                                    <div class="col-md-4">
+                                        <i class="ri-calendar-line text-primary me-1"></i>
+                                        <small class="text-muted">Data Vigência</small>
+                                        <p class="mb-0 fw-medium" id="venda-data-vigencia">-</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <i class="ri-calendar-check-line text-success me-1"></i>
+                                        <small class="text-muted">Data Implantação</small>
+                                        <p class="mb-0 fw-medium" id="venda-data-implantacao">-</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <i class="ri-price-tag-3-line text-info me-1"></i>
+                                        <small class="text-muted">Tipo</small>
+                                        <p class="mb-0"><span class="badge bg-info" id="venda-angariacao">-</span></p>
+                                    </div>
+
+                                    <!-- Vendedor e Proposta -->
+                                    <div class="col-md-6">
+                                        <i class="ri-user-star-line text-warning me-1"></i>
+                                        <small class="text-muted">Vendedor</small>
+                                        <p class="mb-0 fw-medium" id="venda-vendedor">-</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <i class="ri-file-list-2-line text-secondary me-1"></i>
+                                        <small class="text-muted">Número da Proposta</small>
+                                        <p class="mb-0 fw-medium" id="venda-numero-proposta">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Comissão -->
+                        <div class="card shadow-sm">
+                            <div class="card-header" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                <h6 class="mb-0 text-white">
+                                    <i class="ri-money-dollar-circle-line me-2"></i>
+                                    Informações de Comissão
+                                </h6>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row g-4">
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar flex-shrink-0 me-3">
+                                                <span class="avatar-initial rounded" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                                    <i class="ri-currency-line ri-lg text-white"></i>
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted d-block mb-1">Valor da Comissão</small>
+                                                <h5 class="mb-0 fw-bold" id="venda-comissao-valor" style="color: #f5576c;">-</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar flex-shrink-0 me-3">
+                                                <span class="avatar-initial rounded" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                                    <i class="ri-percent-line ri-lg text-white"></i>
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted d-block mb-1">Percentual</small>
+                                                <h5 class="mb-0 fw-bold" id="venda-comissao-percentual">-</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="ri-close-line me-1"></i>Fechar
+                    </button>
+                </div>
             </div>
         </div>
     </div>

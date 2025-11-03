@@ -119,6 +119,20 @@ $(document).ready(function () {
               { data: 'nome_contrato' },
               { data: 'descricao', render: renderStatus },
               { data: 'valor_contrato', render: (d) => formatMoeda(d) },
+              {
+                data: null,
+                orderable: false,
+                render: function (data, type, row) {
+                  return `
+                    <button type="button" class="btn btn-sm btn-icon btn-info btn-visualizar-venda"
+                            data-venda-id="${row.id}"
+                            data-bs-toggle="tooltip"
+                            title="Visualizar Detalhes">
+                      <i class="ri-eye-line"></i>
+                    </button>
+                  `;
+                }
+              }
             ],
             language: {
               url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json'
@@ -162,4 +176,85 @@ $(document).ready(function () {
   $('#select-month').val(currentMonth);
   $('#select-year').val(currentYear);
   fetchData(currentMonth, currentYear);
+
+  // Handler para visualizar venda
+  $(document).on('click', '.btn-visualizar-venda', function () {
+    const vendaId = $(this).data('venda-id');
+    abrirModalVisualizarVenda(vendaId);
+  });
+
+  // Função para abrir modal e carregar dados da venda
+  function abrirModalVisualizarVenda(vendaId) {
+    const modal = new bootstrap.Modal(document.getElementById('modalVisualizarVenda'));
+    modal.show();
+
+    // Mostrar loading
+    $('#venda-loading').removeClass('d-none');
+    $('#venda-content').addClass('d-none');
+    $('#venda-modal-id').text(vendaId);
+
+    // Carregar dados da venda
+    $.ajax({
+      url: `/vendas/detalhes/${vendaId}`,
+      method: 'GET',
+      success: function (data) {
+        preencherModalVenda(data);
+        $('#venda-loading').addClass('d-none');
+        $('#venda-content').removeClass('d-none');
+      },
+      error: function (err) {
+        toastr.error('Erro ao carregar detalhes da venda.');
+        $('#venda-loading').addClass('d-none');
+        modal.hide();
+      }
+    });
+  }
+
+  // Função para preencher modal com dados da venda
+  function preencherModalVenda(venda) {
+    // Informações do Contrato
+    $('#venda-nome-contrato').text(venda.nome_contrato || '-');
+    $('#venda-cpf-cnpj').text(venda.cpf_cnpj || '-');
+
+    // Status badge
+    const statusBadge = $('#venda-status-badge');
+    statusBadge.removeClass().addClass('badge');
+    switch ((venda.descricao || '').toUpperCase()) {
+      case 'IMPLANTADO':
+        statusBadge.addClass('bg-success').text('IMPLANTADO');
+        break;
+      case 'PENDENTE':
+        statusBadge.addClass('bg-warning').text('PENDENTE');
+        break;
+      case 'CANCELADO':
+        statusBadge.addClass('bg-danger').text('CANCELADO');
+        break;
+      default:
+        statusBadge.addClass('bg-secondary').text(venda.descricao || 'N/D');
+    }
+
+    $('#venda-operadora').text(venda.operadora || '-');
+    $('#venda-plano').text(venda.nome_plano || '-');
+    $('#venda-angariacao').text(venda.angariacao || '-');
+    $('#venda-data-vigencia').text(venda.data_vigencia ? formatarData(venda.data_vigencia) : '-');
+    $('#venda-data-implantacao').text(venda.data_implantacao ? formatarData(venda.data_implantacao) : '-');
+    $('#venda-vidas').text(venda.vidas || '-');
+    $('#venda-valor').text(formatMoeda(venda.valor_contrato));
+    $('#venda-vendedor').text(venda.vendedor_nome || '-');
+    $('#venda-numero-proposta').text(venda.numero_proposta || '-');
+
+    // Comissão
+    $('#venda-comissao-valor').text(formatMoeda(venda.comissao_valor));
+    $('#venda-comissao-percentual').text(venda.comissao_percentual ? venda.comissao_percentual + '%' : '-');
+  }
+
+  // Função para formatar data
+  function formatarData(dataStr) {
+    if (!dataStr) return '-';
+    const data = new Date(dataStr);
+    const dia = String(data.getDate()).padStart(2, '0');
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const ano = data.getFullYear();
+    return `${dia}/${mes}/${ano}`;
+  }
 });
