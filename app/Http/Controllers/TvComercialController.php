@@ -37,33 +37,27 @@ class TvComercialController extends Controller
 
         $data = $request->query('data', Carbon::today()->format('Y-m-d'));
 
-        // Buscar todos os vendedores ATIVOS
-        $vendedores = User::where('empresa_id', $empresaId)
-            ->where('ativo', 'Y')
-            ->where('user_role_id', 1) // Apenas vendedores
-            ->orderBy('name')
-            ->get();
-
-        // Buscar metas existentes para a data
-        $metasExistentes = MetaDiaria::where('empresa_id', $empresaId)
+        // Buscar apenas metas cadastradas para a data
+        $metas = MetaDiaria::with('user')
+            ->where('empresa_id', $empresaId)
             ->where('data', $data)
+            ->whereHas('user', function($query) {
+                $query->where('ativo', 'Y')
+                      ->where('user_role_id', 1);
+            })
+            ->orderByDesc('cotacoes_realizadas')
             ->get()
-            ->keyBy('user_id');
-
-        // Combinar vendedores com suas metas
-        $metas = $vendedores->map(function ($vendedor) use ($metasExistentes) {
-            $meta = $metasExistentes->get($vendedor->id);
-
-            return [
-                'id' => $meta ? $meta->id : null,
-                'user_id' => $vendedor->id,
-                'vendedor' => $vendedor->name,
-                'meta_cotacoes' => $meta ? $meta->meta_cotacoes : 0,
-                'cotacoes_realizadas' => $meta ? $meta->cotacoes_realizadas : 0,
-                'percentual_concluido' => $meta ? $meta->percentual_concluido : 0,
-                'status' => $meta ? $meta->status : 'critico',
-            ];
-        })->sortByDesc('cotacoes_realizadas')->values();
+            ->map(function ($meta) {
+                return [
+                    'id' => $meta->id,
+                    'user_id' => $meta->user_id,
+                    'vendedor' => $meta->user->name,
+                    'meta_cotacoes' => $meta->meta_cotacoes,
+                    'cotacoes_realizadas' => $meta->cotacoes_realizadas,
+                    'percentual_concluido' => $meta->percentual_concluido,
+                    'status' => $meta->status,
+                ];
+            });
 
         $totais = [
             'total_meta' => $metas->sum('meta_cotacoes'),
@@ -108,30 +102,22 @@ class TvComercialController extends Controller
         $empresaId = Auth::user()->empresa_id;
         $data = $request->query('data', Carbon::today()->format('Y-m-d'));
 
-        // Buscar todos os vendedores
-        $vendedores = User::where('empresa_id', $empresaId)
-            ->where('ativo', 'Y')
-            ->where('user_role_id', 1)
-            ->orderBy('name')
+        // Buscar apenas metas cadastradas para a data
+        $metas = MetaDiaria::with('user')
+            ->where('empresa_id', $empresaId)
+            ->where('data', $data)
+            ->orderBy('cotacoes_realizadas', 'desc')
             ->get();
 
-        // Buscar metas existentes para a data
-        $metasExistentes = MetaDiaria::where('empresa_id', $empresaId)
-            ->where('data', $data)
-            ->get()
-            ->keyBy('user_id');
-
-        $resultado = $vendedores->map(function ($vendedor) use ($metasExistentes) {
-            $meta = $metasExistentes->get($vendedor->id);
-
+        $resultado = $metas->map(function ($meta) {
             return [
-                'id' => $meta ? $meta->id : null,
-                'user_id' => $vendedor->id,
-                'vendedor' => $vendedor->name,
-                'meta_cotacoes' => $meta ? $meta->meta_cotacoes : 0,
-                'cotacoes_realizadas' => $meta ? $meta->cotacoes_realizadas : 0,
-                'percentual_concluido' => $meta ? $meta->percentual_concluido : 0,
-                'status' => $meta ? $meta->status : 'critico',
+                'id' => $meta->id,
+                'user_id' => $meta->user_id,
+                'vendedor' => $meta->user->name,
+                'meta_cotacoes' => $meta->meta_cotacoes,
+                'cotacoes_realizadas' => $meta->cotacoes_realizadas,
+                'percentual_concluido' => $meta->percentual_concluido,
+                'status' => $meta->status,
             ];
         });
 
@@ -195,6 +181,51 @@ class TvComercialController extends Controller
             'message' => 'Cotações atualizadas com sucesso!',
             'percentual_concluido' => $meta->percentual_concluido,
             'status' => $meta->status,
+        ]);
+    }
+
+    /**
+     * Atualiza a meta de cotações
+     */
+    public function atualizarMeta(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'meta_id' => 'required|exists:metas_diarias,id',
+            'meta_cotacoes' => 'required|integer|min:0',
+        ]);
+
+        $meta = MetaDiaria::where('id', $validated['meta_id'])
+            ->where('empresa_id', Auth::user()->empresa_id)
+            ->firstOrFail();
+
+        $meta->update([
+            'meta_cotacoes' => $validated['meta_cotacoes']
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Meta atualizada com sucesso!',
+        ]);
+    }
+
+    /**
+     * Deleta uma meta
+     */
+    public function deletarMeta(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'meta_id' => 'required|exists:metas_diarias,id',
+        ]);
+
+        $meta = MetaDiaria::where('id', $validated['meta_id'])
+            ->where('empresa_id', Auth::user()->empresa_id)
+            ->firstOrFail();
+
+        $meta->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Meta excluída com sucesso!',
         ]);
     }
 }

@@ -46,6 +46,25 @@
       ]
     },
     {
+      "menuHeader": "TV Comercial",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "SUPERVISOR"
+      ]
+    },
+    {
+      "url": "/tv-comercial/gerenciar",
+      "name": "Gerenciar Metas",
+      "icon": "menu-icon tf-icons ri-tv-line",
+      "slug": "tv-comercial-gerenciar",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "SUPERVISOR"
+      ]
+    },
+    {
       "menuHeader": "Manager",
       "rules": [
         "DEVELOPER"

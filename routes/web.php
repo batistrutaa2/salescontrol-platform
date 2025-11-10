@@ -63,6 +63,8 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/tv-comercial/listar-metas', [\App\Http\Controllers\TvComercialController::class, 'listarMetas'])->name('tv-comercial.listar-metas');
   Route::post('/tv-comercial/salvar-metas', [\App\Http\Controllers\TvComercialController::class, 'salvarMetas'])->name('tv-comercial.salvar-metas');
   Route::post('/tv-comercial/atualizar-cotacoes', [\App\Http\Controllers\TvComercialController::class, 'atualizarCotacoes'])->name('tv-comercial.atualizar-cotacoes');
+  Route::post('/tv-comercial/atualizar-meta', [\App\Http\Controllers\TvComercialController::class, 'atualizarMeta'])->name('tv-comercial.atualizar-meta');
+  Route::post('/tv-comercial/deletar-meta', [\App\Http\Controllers\TvComercialController::class, 'deletarMeta'])->name('tv-comercial.deletar-meta');
 
   /** CADASTRO DE USUARIOS */
   Route::get('/usuarios', [Usuarios::class, 'index'])->name('usuarios.index');
