@@ -32,6 +32,9 @@ Route::post('autentication', [Auth::class, 'login'])->name('login.autentication'
 
 Route::get('/visualizar-estudo/{uuid}', [Estudo::class, 'showStudy'])->name('estudo.show');
 
+// Rotas públicas para TV Comercial
+Route::get('/tv-comercial/painel', [\App\Http\Controllers\TvComercialController::class, 'painelTv'])->name('tv-comercial.painel');
+Route::get('/tv-comercial/dados', [\App\Http\Controllers\TvComercialController::class, 'getDadosTv'])->name('tv-comercial.dados');
 
 Route::middleware(['auth'])->group(function () {
 
@@ -54,6 +57,12 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/empresas', [Empresa::class, 'index'])->name('empresa.empresa');
   Route::get('/empresas/getAllCompanies', [Empresa::class, 'getAllCompanies'])->name('empresa.getAllCompanies');
   Route::post('/empresas/createCompanies', [Empresa::class, 'createCompanies'])->name('empresa.createCompanies');
+
+  /** TV COMERCIAL - GERENCIAMENTO DE METAS */
+  Route::get('/tv-comercial/gerenciar', [\App\Http\Controllers\TvComercialController::class, 'gerenciar'])->name('tv-comercial.gerenciar');
+  Route::get('/tv-comercial/listar-metas', [\App\Http\Controllers\TvComercialController::class, 'listarMetas'])->name('tv-comercial.listar-metas');
+  Route::post('/tv-comercial/salvar-metas', [\App\Http\Controllers\TvComercialController::class, 'salvarMetas'])->name('tv-comercial.salvar-metas');
+  Route::post('/tv-comercial/atualizar-cotacoes', [\App\Http\Controllers\TvComercialController::class, 'atualizarCotacoes'])->name('tv-comercial.atualizar-cotacoes');
 
   /** CADASTRO DE USUARIOS */
   Route::get('/usuarios', [Usuarios::class, 'index'])->name('usuarios.index');
