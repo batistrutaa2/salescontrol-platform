@@ -53,11 +53,18 @@ class Comissionamento extends Controller
 
         $empresaId = auth()->user()->empresa_id;
 
+        // Converter salário do formato brasileiro (3.500,00) para decimal (3500.00)
+        $salario = $request->salario;
+        if (is_string($salario)) {
+            $salario = str_replace('.', '', $salario); // Remove milhares
+            $salario = str_replace(',', '.', $salario); // Troca vírgula por ponto
+        }
+
         $dados = [
             'percentual' => $request->percentual,
             'imposto' => $request->imposto,
             'grade' => $request->grade,
-            'salario' => $request->salario,
+            'salario' => floatval($salario),
             'periodicidade' => $request->periodicidade
         ];
 
@@ -77,6 +84,42 @@ class Comissionamento extends Controller
         ]);
     }
 
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'percentual' => 'required|numeric|min:0',
+            'periodicidade' => 'required|in:mensal,trimestral,semestral,anual',
+        ]);
+
+        $empresaId = auth()->user()->empresa_id;
+
+        $config = ComissionamentoConfiguracoes::where('empresa_id', $empresaId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        // Converter salário do formato brasileiro (3.500,00) para decimal (3500.00)
+        $salario = $request->salario;
+        if (is_string($salario)) {
+            $salario = str_replace('.', '', $salario); // Remove milhares
+            $salario = str_replace(',', '.', $salario); // Troca vírgula por ponto
+        }
+
+        $config->update([
+            'user_id' => $request->user_id,
+            'percentual' => $request->percentual,
+            'imposto' => $request->imposto,
+            'grade' => $request->grade,
+            'salario' => floatval($salario),
+            'periodicidade' => $request->periodicidade
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Comissão atualizada com sucesso.'
+        ]);
+    }
 
     public function destroy($id)
     {
@@ -179,7 +222,7 @@ class Comissionamento extends Controller
             $impostoCfg = (float) $r->imposto;
             $grade      = strtolower((string) $r->grade);
             $angVal     = (float) $r->angariacao_valor;
-            $percentualAngariacao = $r->grade == 'junior' ? 30.0 : 50.0;
+            $percentualAngariacao = $r->grade == 'junior' ? 10.0 : 50.0;
 
             // Regra angariação
             $isAng           = strtoupper((string) $r->angariacao_status) === 'SIM';
@@ -758,7 +801,7 @@ class Comissionamento extends Controller
 
         $enriched = $rows->map(function ($r) {
             $isAng = strtoupper((string) $r->angariacao_status) === 'SIM';
-            $percentualAngariacao = $r->grade == 'junior' ? 30.0 : 50.0;
+            $percentualAngariacao = $r->grade == 'junior' ? 10.0 : 50.0;
 
             // Base e % de comissão conforme regra
             $base = $isAng ? (float) $r->angariacao_valor : (float) $r->valor_contrato;
