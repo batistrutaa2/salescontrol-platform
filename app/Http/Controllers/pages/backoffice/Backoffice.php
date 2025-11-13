@@ -184,10 +184,8 @@ class Backoffice extends Controller
         return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
       }
     } catch (\Throwable $th) {
-      dd($th);
       return redirect()->route(route: 'backoffice.index')->with('status', 'error')->with('message', "Erro ao atualizar contrato ,contate nosso suporte");
     }
-
   }
 
   public function downloadPaymentProof($id)

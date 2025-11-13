@@ -873,6 +873,26 @@ class Comercial extends Controller
       ->first();
 
     if ($cliente) {
+      // Validar se o CPF está preenchido
+      if (empty($cliente->cpf) || is_null($cliente->cpf)) {
+        // Desativar o lead da preditiva automaticamente
+        Preditiva::where('contato_id', $cliente->id)
+          ->where('empresa_id', $empresaId)
+          ->update(['status' => 'N']);
+
+        // Registrar no log o motivo da desativação
+        LogPreditiva::create([
+          'empresa_id' => $empresaId,
+          'user_id' => $userId,
+          'contato_id' => $cliente->id,
+          'tabulacao' => 'CPF VAZIO/INVÁLIDO',
+          'acao' => 'DESCARTE'
+        ]);
+
+        // Buscar o próximo lead recursivamente
+        return $this->getClientesPreditiva($request);
+      }
+
       // Atribuir o cliente ao usuário atual
       Preditiva::where('contato_id', $cliente->id)
         ->update([
