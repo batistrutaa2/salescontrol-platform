@@ -68,9 +68,9 @@ class ReunioesComercial extends Controller
             $empresaId = Auth::user()->empresa_id;
 
             // Verificar se o usuário selecionado é realmente um gestor
-            $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO', 'SUPERVISOR')->first()->id;
             $manager = User::where('id', $request->manager_id)
-                ->where('user_role_id', $managerRoleId)
+                ->whereIn('user_role_id', ['2', '5'])
+                ->where('empresa_id', $empresaId)
                 ->first();
 
             if (!$manager) {
@@ -98,7 +98,7 @@ class ReunioesComercial extends Controller
             $reuniao->save();
 
 
-            $admins = User::where('user_role_id', $managerRoleId)
+            $admins = User::whereIn('user_role_id', ['2', '5'])
                 ->where('empresa_id', $empresaId)
                 ->get();
 
@@ -127,7 +127,10 @@ class ReunioesComercial extends Controller
                 ]
             ]);
         } catch (\Throwable $th) {
-            dd($th);
+            return response()->json([
+                'status' => 'error',
+                'message' => $th->getMessage()
+            ], 404);
         }
     }
 
@@ -158,9 +161,9 @@ class ReunioesComercial extends Controller
         }
 
         // Verificar se o usuário selecionado é realmente um gestor
-        $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO', 'SUPERVISOR')->first()->id;
         $manager = User::where('id', $request->manager_id)
-            ->where('user_role_id', $managerRoleId)
+            ->whereIn('user_role_id', ['2', '5'])
+            ->where('empresa_id', $empresaId)
             ->first();
 
         if (!$manager) {
@@ -235,9 +238,8 @@ class ReunioesComercial extends Controller
         $empresaId = Auth::user()->empresa_id;
 
         // Verificar se o gestor pertence à mesma empresa do usuário
-        $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO','SUPERVISOR')->first()->id;
         $manager = User::where('id', $managerId)
-            ->where('user_role_id', $managerRoleId)
+            ->whereIn('user_role_id', ['2', '5'])
             ->where('empresa_id', $empresaId)
             ->first();
 
