@@ -16,9 +16,7 @@ class ReunioesComercial extends Controller
 {
     public function index()
     {
-        $managerRoleId = UserRole::where('tipo_usuario', 'ADMINISTRATIVO', 'SUPERVISOR')->first()->id;
-
-        $managers = User::where('user_role_id', $managerRoleId)
+        $managers = User::whereIn('user_role_id', ['2', '5'])
             ->where('ativo', 'Y')
             ->where('empresa_id', Auth::user()->empresa_id)
             ->get();
