@@ -335,6 +335,11 @@
           "slug": "comercial-preditiva"
         },
         {
+          "url": "/comercial/preditiva/importar",
+          "name": "Importar Preditiva",
+          "slug": "comercial-preditiva-importar"
+        },
+        {
           "url": "/mailing/leads-descartados",
           "name": "Leads Descartados",
           "slug": "pages-mailing-leads-descartados"

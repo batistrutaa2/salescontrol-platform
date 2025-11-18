@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Validator;
 use App\Imports\ContatosImportDependencies;
+use App\Imports\ContatosImportPreditiva;
 use App\Repositories\Eloquent\VendasRepository;
 use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
@@ -505,6 +506,94 @@ class Mailing extends Controller
         'message' => 'Erro ao buscar tabulações: ' . $th->getMessage()
       ], 500);
     }
+  }
+
+  public function importarParaPreditiva(Request $request)
+  {
+    try {
+      $request->validate([
+        'file' => 'required|file|mimes:xlsx,csv',
+        'base' => 'required|string',
+      ]);
+
+      $empresaId = Auth::user()->empresa_id;
+      $ignorarDuplicados = $request->input('ignorar_duplicados', false);
+
+      // Gerar ID único para a operação (usado como id_operacao)
+      $uniqueIdBase = uniqid('preditiva_', true);
+
+      // Primeira passada: ler o arquivo e extrair os CPFs válidos
+      // Usar ContatosImport temporariamente para ler com cabeçalho
+      $rows = Excel::toArray(new ContatosImportPreditiva($request->base, $uniqueIdBase, []), $request->file('file'));
+      $cpfsParaValidar = [];
+
+      foreach ($rows[0] as $row) {
+        // CPF vem pela chave 'cpf' devido ao WithHeadingRow
+        if (!empty($row['cpf'])) {
+          $cpfLimpo = Helpers::cleanSpecialCharacters($row['cpf']);
+          // Aceitar qualquer CPF não vazio após limpeza
+          if (!empty($cpfLimpo)) {
+            $cpfsParaValidar[] = $cpfLimpo;
+          }
+        }
+      }
+
+      // Buscar CPFs que já existem na base
+      $cpfsExistentes = [];
+      if (count($cpfsParaValidar) > 0) {
+        $cpfsExistentes = Contatos::where('empresa_id', $empresaId)
+          ->whereIn('cpf', $cpfsParaValidar)
+          ->pluck('cpf')
+          ->toArray();
+      }
+
+      // Se houver duplicados e o usuário não confirmou ignorá-los
+      if (count($cpfsExistentes) > 0 && !$ignorarDuplicados) {
+        $totalLeads = count($cpfsParaValidar);
+        $totalDuplicados = count($cpfsExistentes);
+        $totalNaoDuplicados = $totalLeads - $totalDuplicados;
+
+        return response()->json([
+          'error' => true,
+          'duplicados_encontrados' => true,
+          'message' => $totalDuplicados . ' CPF(s) duplicado(s) encontrado(s). ' . $totalNaoDuplicados . ' lead(s) podem ser importados.',
+          'cpfs' => $cpfsExistentes,
+          'total_leads' => $totalLeads,
+          'total_duplicados' => $totalDuplicados,
+          'total_nao_duplicados' => $totalNaoDuplicados,
+        ], 422);
+      }
+
+      // Segunda passada: importar os dados (ignorando duplicados se solicitado)
+      Excel::import(
+        new ContatosImportPreditiva($request->base, $uniqueIdBase, $cpfsExistentes),
+        $request->file('file')
+      );
+
+      $totalImportados = count($cpfsParaValidar) - count($cpfsExistentes);
+      $mensagem = $totalImportados . ' lead(s) importado(s) para a preditiva com sucesso.';
+
+      if (count($cpfsExistentes) > 0) {
+        $mensagem .= ' ' . count($cpfsExistentes) . ' CPF(s) duplicado(s) foram ignorados.';
+      }
+
+      return response()->json([
+        'error' => false,
+        'message' => $mensagem,
+        'total_importados' => $totalImportados,
+        'total_ignorados' => count($cpfsExistentes),
+      ], 201);
+    } catch (\Throwable $th) {
+      return response()->json([
+        'error' => true,
+        'message' => 'Erro ao importar leads: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  public function indexImportarPreditiva()
+  {
+    return view('content.pages.mailing.importarPreditiva');
   }
 
 }

@@ -89,6 +89,8 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/mailing/excluir-lead/{id}', [Mailing::class, 'deleteMailing'])->name('mailing.deleteMailing');
   Route::get('/comercial/leads-ads', [Mailing::class, 'contactsAdvertisement'])->name('mailing.contactsAdvertisement');
   Route::get('/comercial/preditiva', action: [Mailing::class, 'preditiva'])->name('mailing.preditiva');
+  Route::get('/comercial/preditiva/importar', [Mailing::class, 'indexImportarPreditiva'])->name('preditiva.importar');
+  Route::post('/comercial/preditiva/importar', [Mailing::class, 'importarParaPreditiva'])->name('preditiva.upload');
   Route::get('/getPreditiva', [Mailing::class, 'getPreditiva'])->name('mailing.getPreditiva');
   Route::post('/comercial/preditiva/desativar/{id}', [Mailing::class, 'desativarLeadPreditiva'])->name('preditiva.desativar');
   Route::post('/comercial/preditiva/excluir/{id}', [Mailing::class, 'excluirLeadPreditiva'])->name('preditiva.excluir');

@@ -94,7 +94,12 @@
 
     <div class="card mt-4">
         <div class="card-header">
-            <h5 class="mb-3">Leads na Fila Preditiva</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Leads na Fila Preditiva</h5>
+                <a href="{{ route('preditiva.importar') }}" class="btn btn-primary">
+                    <i class="mdi mdi-upload me-1"></i>Importar Leads
+                </a>
+            </div>
 
             <!-- Filtros Avançados -->
             <div class="row g-3">
