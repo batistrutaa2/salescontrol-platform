@@ -253,6 +253,7 @@ class Mailing extends Controller
 
   public function getPreditiva(Request $request)
   {
+
     $empresaId = Auth::user()->empresa_id;
 
     $hoje = Carbon::today();
@@ -310,12 +311,24 @@ class Mailing extends Controller
       ->groupBy('p.id', 'c.nome_cliente', 'c.valor_plano_atual', 'c.telefone1', 'p.contato_id')
       ->get();
 
-    // Aplicar filtro de última tabulação na coleção
+    // Aplicar filtros na coleção
     $leads = $leadsData;
 
-    if ($request->has('ultima_tabulacao') && $request->ultima_tabulacao !== '') {
+    if ($request->filled('ultima_tabulacao')) {
       $leads = $leads->filter(function($lead) use ($request) {
         return $lead->ultima_tabulacao === $request->ultima_tabulacao;
+      })->values();
+    }
+
+    // Filtro por quantidade de tentativas
+    if ($request->filled('tentativas')) {
+      $tentativasFiltro = $request->tentativas;
+
+      $leads = $leads->filter(function($lead) use ($tentativasFiltro) {
+        if ($tentativasFiltro === '5+') {
+          return $lead->tentativas >= 5;
+        }
+        return $lead->tentativas == $tentativasFiltro;
       })->values();
     }
 

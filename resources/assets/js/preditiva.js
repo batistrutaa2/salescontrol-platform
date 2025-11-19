@@ -40,6 +40,7 @@ $(function () {
   }
 
   function atualizarPreditiva() {
+    console.log('Enviando filtros para backend:', filtrosAtivos);
     $.ajax({
       url: '/getPreditiva',
       method: 'GET',
@@ -158,7 +159,8 @@ $(function () {
   $('#btnAplicarFiltros').on('click', function () {
     filtrosAtivos = {
       nome_cliente: $('#filtroNomeCliente').val().trim(),
-      ultima_tabulacao: $('#filtroUltimaTabulacao').val()
+      ultima_tabulacao: $('#filtroUltimaTabulacao').val(),
+      tentativas: $('#filtroTentativas').val()
     };
 
     console.log('Filtros aplicados:', filtrosAtivos);
@@ -170,6 +172,7 @@ $(function () {
   $('#btnLimparFiltros').on('click', function () {
     $('#filtroNomeCliente').val('');
     $('#filtroUltimaTabulacao').val('');
+    $('#filtroTentativas').val('');
 
     filtrosAtivos = {};
     atualizarPreditiva();

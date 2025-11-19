@@ -103,15 +103,28 @@
 
             <!-- Filtros Avançados -->
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label">Nome do Cliente</label>
                     <input type="text" class="form-control" id="filtroNomeCliente" placeholder="Buscar por nome">
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label">Última Tabulação</label>
                     <select class="form-select" id="filtroUltimaTabulacao">
                         <option value="">Todas</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Quantidade de Tentativas</label>
+                    <select class="form-select" id="filtroTentativas">
+                        <option value="">Todas</option>
+                        <option value="0">0 tentativas</option>
+                        <option value="1">1 tentativa</option>
+                        <option value="2">2 tentativas</option>
+                        <option value="3">3 tentativas</option>
+                        <option value="4">4 tentativas</option>
+                        <option value="5+">5 ou mais tentativas</option>
                     </select>
                 </div>
             </div>
