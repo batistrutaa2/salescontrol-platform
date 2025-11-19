@@ -24,8 +24,6 @@ $(function () {
           const select = $('#filtroUltimaTabulacao');
           select.find('option:not(:first)').remove();
 
-          console.log('Tabulações carregadas:', response.tabulacoes);
-
           response.tabulacoes.forEach(tabulacao => {
             if (tabulacao && tabulacao.trim() !== '') {
               select.append(`<option value="${tabulacao}">${tabulacao}</option>`);
@@ -40,14 +38,11 @@ $(function () {
   }
 
   function atualizarPreditiva() {
-    console.log('Enviando filtros para backend:', filtrosAtivos);
     $.ajax({
       url: '/getPreditiva',
       method: 'GET',
       data: filtrosAtivos,
       success: function (response) {
-        console.log('Resposta da API:', response);
-        console.log('Total de leads retornados:', response.leads.length);
 
         animarAtualizacao('#total-leads', response.total_leads_fila);
         animarAtualizacao('#tentativas-hoje', response.tentativas_hoje);
@@ -163,7 +158,6 @@ $(function () {
       tentativas: $('#filtroTentativas').val()
     };
 
-    console.log('Filtros aplicados:', filtrosAtivos);
     atualizarPreditiva();
     toastr.info('Filtros aplicados!');
   });
