@@ -25,6 +25,17 @@ class ContatosImportPreditiva implements ToModel, SkipsEmptyRows, WithHeadingRow
     }
 
     /**
+     * Converte \N para null
+     */
+    private function normalizeValue($value)
+    {
+        if ($value === '\N' || $value === '\\N') {
+            return null;
+        }
+        return $value;
+    }
+
+    /**
      * Layout esperado (cabeçalho do Excel):
      * NOME | DATA DE NASCIMENTO | CPF | PLANO | CARTEGORIA | ENTIDADE | CONTATO 1 | CONTATO 2 | CONTATO 3 | EMAIL | IDADES | VALOR
      *
@@ -33,6 +44,9 @@ class ContatosImportPreditiva implements ToModel, SkipsEmptyRows, WithHeadingRow
      */
     public function model(array $row)
     {
+        // Normalizar todos os valores do array (converter \N para null)
+        $row = array_map([$this, 'normalizeValue'], $row);
+
         // Verificar se CPF existe antes de processar
         if (empty($row['cpf'])) {
             return null;
