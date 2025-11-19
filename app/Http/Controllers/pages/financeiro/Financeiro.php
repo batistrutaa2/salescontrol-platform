@@ -70,20 +70,19 @@ class Financeiro extends Controller
         $rule = RegrasComissionamento::findOrFail($id);
 
         $data = $request->validate([
-            'operadora_id' => 'required|exists:operadoras,id',
-            'modalidade'   => 'required|in:PME,ADESAO',
-            'descricao'    => 'nullable|string|max:255',
-            'vitalicio_active' => 'boolean',
-            'vitalicio_percent' => 'nullable|numeric',
-            'vitalicio_starts_at_installment' => 'nullable|integer|min:1',
+            'operadora_id'     => 'required|exists:operadoras,id',
+            'categoria'        => 'required|in:PME,ADESAO',
+            'total_percentual' => 'nullable|numeric',
+            'descricao'        => 'nullable|string|max:255',
+            'vitalicio'        => 'boolean',
         ]);
 
         $rule->update([
-            'operadora_id' => $data['operadora_id'],
-            'categoria' => $data['modalidade'],
-            'descricao' => $data['descricao'] ?? null,
-            'vitalicio' => $data['vitalicio_active'] ?? 0,
-            'total_percentual' => $data['vitalicio_percent'] ?? null,
+            'operadora_id'     => $data['operadora_id'],
+            'categoria'        => $data['categoria'],
+            'total_percentual' => $data['total_percentual'] ?? null,
+            'descricao'        => $data['descricao'] ?? null,
+            'vitalicio'        => $data['vitalicio'] ?? 0,
         ]);
 
         return response()->json($rule);
