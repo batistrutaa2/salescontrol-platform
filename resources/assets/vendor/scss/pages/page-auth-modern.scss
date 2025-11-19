@@ -1,0 +1,95 @@
+// Import Animate.css
+@import 'animate.css/animate.css';
+
+// Modern Auth Styles
+.auth-modern-cover {
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+
+  .auth-left-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    color: white;
+    overflow: hidden;
+    
+    // Animated Gradient Background
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3); // Overlay for better text readability
+      z-index: 1;
+    }
+
+    .auth-illustration-wrapper {
+        z-index: 2;
+        position: relative;
+        margin-bottom: 2rem;
+        img {
+            max-width: 80%;
+            height: auto;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
+        }
+    }
+
+    .quote-container {
+      z-index: 2;
+      position: relative;
+      text-align: center;
+      max-width: 600px;
+      
+      .quote-text {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        line-height: 1.4;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      }
+      
+      .quote-author {
+        font-size: 1rem;
+        opacity: 0.9;
+        font-style: italic;
+      }
+    }
+  }
+
+  .auth-right-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bs-body-bg);
+    position: relative;
+
+    .login-form-wrapper {
+      width: 100%;
+      max-width: 450px;
+      padding: 2rem;
+    }
+  }
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+// Custom Animation Delays for Staggered Entrance
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
