@@ -2,8 +2,8 @@
 // Variables
 return [
   "creatorName" => "Brsolutions",
-  "creatorUrl" => "https://themeselection.com",
-  "templateName" => "S & C",
+  "creatorUrl" => "https://brsolution.tech",
+  "templateName" => "L & K",
   "templateSuffix" => "Gestão de clientes e mailing para corretores",
   "templateVersion" => "2.0.0",
   "templateFree" => false,
