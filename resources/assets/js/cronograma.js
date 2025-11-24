@@ -328,6 +328,9 @@ $(function () {
 
           <!-- Ações -->
           <div class="task-actions">
+            <a href="/comercial/abrir-cliente/${agendamento.id}" class="btn btn-outline-info btn-abrir-cliente">
+              <i class="ri-user-line me-1"></i>Abrir
+            </a>
             <button class="btn btn-outline-primary btn-reagendar" data-id="${agendamento.id}">
               <i class="ri-calendar-schedule-line me-1"></i>Reagendar
             </button>
