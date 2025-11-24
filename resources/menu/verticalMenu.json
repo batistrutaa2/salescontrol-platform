@@ -398,6 +398,15 @@
       ]
     },
     {
+      "url": "/dashboard-vendedor",
+      "name": "Dashboard",
+      "icon": "menu-icon tf-icons ri-pie-chart-2-line",
+      "slug": "dashboard-vendedor",
+      "rules": [
+        "VENDEDOR"
+      ]
+    },
+    {
       "url": "/comercial/calendario-reunioes",
       "name": "Reuniões Comercial",
       "icon": "menu-icon ri-restart-line",

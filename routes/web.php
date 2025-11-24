@@ -6,6 +6,7 @@ use App\Http\Controllers\pages\comissionamento\Comissionamento;
 use App\Http\Controllers\pages\ranking\RankingVendas;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\pages\HomePage;
+use App\Http\Controllers\pages\DashboardController;
 use App\Http\Controllers\manager\Manager;
 use App\Http\Controllers\pages\pabx\Pabx;
 use App\Http\Controllers\pages\vendas\Vendas;
@@ -51,6 +52,8 @@ Route::middleware(['auth'])->group(function () {
 
   /** PAGINA INICIAL */
   Route::get('dashboard', [HomePage::class, 'index'])->name('home.dashboard');
+  Route::get('dashboard-vendedor', [DashboardController::class, 'index'])->name('dashboard.vendedor');
+  Route::get('dashboard-vendedor/metrics', [DashboardController::class, 'getMetrics'])->name('dashboard.vendedor.metrics');
   Route::get('searchMetrics/{month}/{year}', [HomePage::class, 'searchMetrics'])->name('home.searchMetrics');
 
   /** CADASTRO DE EMPRESAS */

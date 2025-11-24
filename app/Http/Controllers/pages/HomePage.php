@@ -32,7 +32,7 @@ class HomePage extends Controller
   public function index()
   {
     if (Auth::user()->user_role_id == UserRole::VENDEDOR) {
-      return redirect()->route('comercial.kanban');
+      return redirect()->route('dashboard.vendedor');
     }
 
 
