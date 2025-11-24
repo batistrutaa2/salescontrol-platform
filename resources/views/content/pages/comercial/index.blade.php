@@ -9,6 +9,356 @@
 @section('page-style')
     @vite('resources/assets/vendor/scss/pages/app-kanban.scss')
     <style>
+        /* ========================================
+           CRONOGRAMA - DAILY TIMELINE LAYOUT
+        ======================================== */
+
+        /* Filter pills modernos */
+        .filtro-cronograma {
+            border-radius: 20px;
+            font-weight: 600;
+            padding: 8px 16px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .filtro-cronograma.active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(105, 108, 255, 0.3);
+        }
+
+        .filtro-cronograma .badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            font-weight: 700;
+        }
+
+        /* Timeline container */
+        .daily-timeline {
+            padding: 20px 0;
+        }
+
+        /* Day section */
+        .timeline-day-section {
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        /* Day header */
+        .timeline-day-header {
+            position: sticky;
+            top: 70px;
+            z-index: 10;
+            margin-bottom: 24px;
+            padding: 16px 24px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        [data-bs-theme="light"] .timeline-day-header {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid rgba(105, 108, 255, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-bs-theme="dark"] .timeline-day-header {
+            background: rgba(43, 44, 64, 0.95);
+            border: 2px solid rgba(105, 108, 255, 0.2);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .timeline-day-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .timeline-day-icon.status-danger {
+            background: linear-gradient(135deg, #ff3e1d, #ff6348);
+            color: #fff;
+        }
+
+        .timeline-day-icon.status-info {
+            background: linear-gradient(135deg, #03c3ec, #0abde3);
+            color: #fff;
+        }
+
+        .timeline-day-icon.status-warning {
+            background: linear-gradient(135deg, #ffab00, #ff9f43);
+            color: #fff;
+        }
+
+        .timeline-day-icon.status-success {
+            background: linear-gradient(135deg, #71dd37, #5ec425);
+            color: #fff;
+        }
+
+        .timeline-day-icon.status-secondary {
+            background: linear-gradient(135deg, #8592a3, #a1acb8);
+            color: #fff;
+        }
+
+        .timeline-day-info {
+            flex: 1;
+        }
+
+        .timeline-day-date {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .timeline-day-label {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        .timeline-day-count {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        /* Task cards grid within day */
+        .timeline-day-tasks {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+            padding-left: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .timeline-day-tasks {
+                grid-template-columns: 1fr;
+                padding-left: 0;
+            }
+
+            .timeline-day-header {
+                position: relative;
+                top: 0;
+            }
+        }
+
+        /* Task card moderna */
+        .task-card {
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            border: none;
+            position: relative;
+        }
+
+        [data-bs-theme="light"] .task-card {
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-bs-theme="dark"] .task-card {
+            background: #2b2c40;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .task-card:hover {
+            transform: translateY(-4px);
+        }
+
+        [data-bs-theme="light"] .task-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        [data-bs-theme="dark"] .task-card:hover {
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Status bar no topo do card */
+        .task-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .task-card.status-danger::before {
+            background: linear-gradient(90deg, #ff3e1d, #ff6348);
+        }
+
+        .task-card.status-info::before {
+            background: linear-gradient(90deg, #03c3ec, #0abde3);
+        }
+
+        .task-card.status-warning::before {
+            background: linear-gradient(90deg, #ffab00, #ff9f43);
+        }
+
+        .task-card.status-success::before {
+            background: linear-gradient(90deg, #71dd37, #5ec425);
+        }
+
+        .task-card.status-secondary::before {
+            background: linear-gradient(90deg, #8592a3, #a1acb8);
+        }
+
+        /* Card header */
+        .task-card .card-header {
+            padding: 16px 20px;
+            border-bottom: none;
+        }
+
+        [data-bs-theme="light"] .task-card .card-header {
+            background: linear-gradient(135deg, rgba(105, 108, 255, 0.03) 0%, rgba(105, 108, 255, 0.01) 100%);
+        }
+
+        [data-bs-theme="dark"] .task-card .card-header {
+            background: linear-gradient(135deg, rgba(105, 108, 255, 0.08) 0%, rgba(105, 108, 255, 0.04) 100%);
+        }
+
+        .task-client-name {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-broker-name {
+            font-size: 0.875rem;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Card body */
+        .task-card .card-body {
+            padding: 20px;
+        }
+
+        /* Datetime display */
+        .task-datetime {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        [data-bs-theme="light"] .task-datetime {
+            background: rgba(105, 108, 255, 0.06);
+        }
+
+        [data-bs-theme="dark"] .task-datetime {
+            background: rgba(105, 108, 255, 0.12);
+        }
+
+        .task-datetime-icon {
+            font-size: 1.5rem;
+        }
+
+        .task-datetime-info {
+            flex: 1;
+        }
+
+        .task-date {
+            font-size: 0.9375rem;
+            margin-bottom: 2px;
+        }
+
+        .task-time {
+            font-size: 1.125rem;
+        }
+
+        .task-relative-time {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        /* Observation */
+        .task-observation {
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        [data-bs-theme="light"] .task-observation {
+            background: rgba(0, 0, 0, 0.02);
+            border-left: 3px solid #696cff;
+        }
+
+        [data-bs-theme="dark"] .task-observation {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid #696cff;
+        }
+
+        /* Actions */
+        .task-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .task-actions .btn {
+            flex: 1;
+            min-width: 110px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.8125rem;
+            padding: 8px 12px;
+        }
+
+        /* Status badges modernos */
+        .task-status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Empty state moderno */
+        .cronograma-empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .cronograma-empty-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .cronograma-empty-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .cronograma-empty-text {
+            opacity: 0.7;
+        }
+
+        /* ========================================
+           KANBAN STYLES
+        ======================================== */
         .kanban-wrapper {
             display: inline-flex;
             flex: 1;
@@ -18,34 +368,25 @@
         .kanban-board {
             flex: 1;
             min-width: 300px;
-            /* Largura mínima para cada coluna */
             max-width: 300px;
-            /* Largura máxima para cada coluna */
             overflow-y: auto;
-            /* Adiciona scroll vertical a cada coluna */
             height: calc(100vh - 200px);
-            /* Ajuste a altura conforme necessário */
             padding-right: 10px;
-            /* Espaço adicional para evitar que o conteúdo seja ocultado pelo scrollbar */
             position: relative;
         }
 
         /* Estilo para a barra de rolagem vertical */
         .kanban-board::-webkit-scrollbar {
             width: 6px;
-            /* Largura da barra de rolagem */
         }
 
         .kanban-board::-webkit-scrollbar-thumb {
             background-color: rgba(0, 0, 0, 0.2);
-            /* Cor da barra de rolagem */
             border-radius: 10px;
-            /* Cantos arredondados da barra de rolagem */
         }
 
         .kanban-board::-webkit-scrollbar-track {
             background: transparent;
-            /* Cor de fundo da área de rolagem */
         }
 
         /* Estilos para Timeline do Cronograma */
@@ -220,19 +561,19 @@
         </div>
     @endif
 
-    <!-- Tabs Navigation -->
-    <ul class="nav nav-tabs mb-3" role="tablist">
+    <!-- Modern Futuristic Tabs Navigation -->
+    <ul class="nav nav-tabs nav-tabs-modern" role="tablist">
         <li class="nav-item">
             <button type="button" class="nav-link active" id="funil-tab" data-bs-toggle="tab" data-bs-target="#tab-funil" role="tab" aria-controls="tab-funil" aria-selected="true">
-                <i class="ri-kanban-view me-1"></i>
-                Funil de Vendas
+                <i class="ri-kanban-view"></i>
+                <span>Funil de Vendas</span>
             </button>
         </li>
         <li class="nav-item">
             <button type="button" class="nav-link" id="cronograma-tab" data-bs-toggle="tab" data-bs-target="#tab-cronograma" role="tab" aria-controls="tab-cronograma" aria-selected="false">
-                <i class="ri-calendar-check-line me-1"></i>
-                Cronograma
-                <span class="badge bg-label-info ms-1" id="badge-cronograma-hoje">
+                <i class="ri-calendar-check-line"></i>
+                <span>Cronograma</span>
+                <span class="badge badge-pulse" id="badge-cronograma-hoje">
                     <i class="ri-loader-4-line ri-spin"></i>
                 </span>
             </button>
@@ -467,59 +808,62 @@
 
         <!-- Tab Cronograma -->
         <div class="tab-pane fade" id="tab-cronograma" role="tabpanel" aria-labelledby="cronograma-tab">
-                <div class="card">
-                    <!-- Filtros Rápidos -->
-                    <div class="card-header border-bottom">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                            <h5 class="mb-0">
-                                <i class="ri-calendar-check-line me-2"></i>
-                                Cronograma de Contatos
-                                <span class="badge bg-label-primary ms-2" id="total-agendamentos">0</span>
-                            </h5>
-
-                            <div class="d-flex gap-2 flex-wrap">
-                                <button type="button" class="btn btn-sm btn-outline-primary filtro-cronograma active" data-filter="todos">
-                                    <i class="ri-list-check me-1"></i>Todos
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger filtro-cronograma" data-filter="atrasados">
-                                    <i class="ri-alarm-warning-line me-1"></i>Atrasados <span class="badge bg-danger ms-1" id="count-atrasados">0</span>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-info filtro-cronograma" data-filter="hoje">
-                                    <i class="ri-calendar-today-line me-1"></i>Hoje <span class="badge bg-info ms-1" id="count-hoje">0</span>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-success filtro-cronograma" data-filter="semana">
-                                    <i class="ri-calendar-week-line me-1"></i>Esta Semana <span class="badge bg-success ms-1" id="count-semana">0</span>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary filtro-cronograma" data-filter="futuro">
-                                    <i class="ri-calendar-line me-1"></i>Futuro <span class="badge bg-secondary ms-1" id="count-futuro">0</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Timeline Cronograma -->
-                    <div class="card-body">
-                        <!-- Loading -->
-                        <div id="cronograma-loading" class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Carregando...</span>
-                            </div>
-                            <p class="mt-3 text-muted">Carregando agendamentos...</p>
-                        </div>
-
-                        <!-- Mensagem vazia -->
-                        <div id="cronograma-empty" class="text-center py-5 d-none">
-                            <i class="ri-calendar-line ri-48px text-muted mb-3"></i>
-                            <h5 class="text-muted">Nenhum agendamento encontrado</h5>
-                            <p class="text-muted">Não há agendamentos para o filtro selecionado.</p>
-                        </div>
-
-                        <!-- Timeline Container -->
-                        <div id="cronograma-timeline" class="timeline timeline-center d-none">
-                            <!-- Os itens serão inseridos aqui dinamicamente -->
-                        </div>
-                    </div>
+            <!-- Header com filtros -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <div>
+                    <h4 class="mb-1">
+                        <i class="ri-calendar-check-line me-2"></i>
+                        Cronograma de Contatos
+                    </h4>
+                    <p class="text-muted mb-0">
+                        Total: <span class="fw-bold" id="total-agendamentos">0</span> agendamentos
+                    </p>
                 </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-sm btn-primary filtro-cronograma active" data-filter="todos">
+                        <i class="ri-list-check me-1"></i>Todos
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger filtro-cronograma" data-filter="atrasados">
+                        <i class="ri-alarm-warning-line me-1"></i>Atrasados
+                        <span class="badge bg-danger ms-1" id="count-atrasados">0</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-info filtro-cronograma" data-filter="hoje">
+                        <i class="ri-calendar-today-line me-1"></i>Hoje
+                        <span class="badge bg-info ms-1" id="count-hoje">0</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-success filtro-cronograma" data-filter="semana">
+                        <i class="ri-calendar-week-line me-1"></i>Esta Semana
+                        <span class="badge bg-success ms-1" id="count-semana">0</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary filtro-cronograma" data-filter="futuro">
+                        <i class="ri-calendar-line me-1"></i>Futuro
+                        <span class="badge bg-secondary ms-1" id="count-futuro">0</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="cronograma-loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <p class="mt-3 text-muted">Carregando agendamentos...</p>
+            </div>
+
+            <!-- Mensagem vazia -->
+            <div id="cronograma-empty" class="cronograma-empty-state d-none">
+                <div class="cronograma-empty-icon">
+                    <i class="ri-calendar-line"></i>
+                </div>
+                <h5 class="cronograma-empty-title">Nenhum agendamento encontrado</h5>
+                <p class="cronograma-empty-text">Não há agendamentos para o filtro selecionado.</p>
+            </div>
+
+            <!-- Daily Timeline Container -->
+            <div id="cronograma-timeline" class="daily-timeline d-none">
+                <!-- As seções de dias serão inseridas aqui dinamicamente -->
+            </div>
         </div>
         <!-- Fim Tab Cronograma -->
     </div>
