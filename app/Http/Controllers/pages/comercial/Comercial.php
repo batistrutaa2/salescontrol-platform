@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\pages\comerical;
+namespace App\Http\Controllers\pages\comercial;
 
 use App\Models\Comentarios;
 use App\Models\Contatos;

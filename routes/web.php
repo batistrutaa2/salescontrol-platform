@@ -12,7 +12,7 @@ use App\Http\Controllers\pages\vendas\Vendas;
 use App\Http\Controllers\pages\mailing\Mailing;
 use App\Http\Controllers\pages\manager\Empresa;
 use App\Http\Controllers\pages\manager\Usuarios;
-use App\Http\Controllers\pages\comerical\Comercial;
+use App\Http\Controllers\pages\comercial\Comercial;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
 
