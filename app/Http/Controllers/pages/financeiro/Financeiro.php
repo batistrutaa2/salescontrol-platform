@@ -294,7 +294,8 @@ class Financeiro extends Controller
 
     public function relatorioFinanceiroFetch(Request $request)
     {
-        $query = Recebivel::query();
+        $empresaId = auth()->user()->empresa_id;
+        $query = Recebivel::where('empresa_id', $empresaId);
 
         if ($request->filled('data_inicial')) {
             $query->whereDate('data_prevista', '>=', $request->data_inicial);
@@ -308,33 +309,86 @@ class Financeiro extends Controller
 
         $recebiveis = $query->get();
 
+        // Resumo geral
         $resumo = [
-            'previsto' => $recebiveis->sum('valor'),
-            'recebido' => $recebiveis->where('status', 'PAGO')->sum('valor'),
-            'aberto'   => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
+            'total_previsto' => $recebiveis->sum('valor'),
+            'total_recebido' => $recebiveis->where('status', 'PAGO')->sum('valor'),
+            'total_aberto'   => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
+            'total_cancelado' => $recebiveis->where('status', 'CANCELADO')->sum('valor'),
+            'taxa_recebimento' => $recebiveis->sum('valor') > 0
+                ? ($recebiveis->where('status', 'PAGO')->sum('valor') / $recebiveis->sum('valor')) * 100
+                : 0,
         ];
 
+        // Dados por operadora
         $porOperadora = $recebiveis->groupBy('operadora')->map(function ($items, $operadora) {
             return [
-                'operadora' => $operadora,
+                'operadora' => $operadora ?: 'Não informado',
                 'previsto'  => $items->sum('valor'),
                 'recebido'  => $items->where('status', 'PAGO')->sum('valor'),
                 'aberto'    => $items->where('status', 'PENDENTE')->sum('valor'),
+                'cancelado' => $items->where('status', 'CANCELADO')->sum('valor'),
             ];
         })->values();
 
+        // Evolução mensal
+        $evolucaoMensal = $recebiveis->groupBy(function($item) {
+            return \Carbon\Carbon::parse($item->data_prevista)->format('Y-m');
+        })->map(function($items, $mes) {
+            return [
+                'mes'      => \Carbon\Carbon::parse($mes . '-01')->format('m/Y'),
+                'previsto' => $items->sum('valor'),
+                'recebido' => $items->where('status', 'PAGO')->sum('valor'),
+                'aberto'   => $items->where('status', 'PENDENTE')->sum('valor'),
+            ];
+        })->sortKeys()->values();
+
+        // Status distribution
+        $statusDistribuicao = [
+            ['status' => 'Recebido', 'valor' => $recebiveis->where('status', 'PAGO')->sum('valor')],
+            ['status' => 'Pendente', 'valor' => $recebiveis->where('status', 'PENDENTE')->sum('valor')],
+            ['status' => 'Cancelado', 'valor' => $recebiveis->where('status', 'CANCELADO')->sum('valor')],
+        ];
+
+        // Recebíveis em atraso
+        $emAtraso = $recebiveis->where('status', 'PENDENTE')
+            ->where('data_prevista', '<', now())
+            ->sum('valor');
+
+        // Top vendedores
+        $topVendedores = $recebiveis->where('status', 'PAGO')
+            ->groupBy('vendedor_id')
+            ->map(function($items) {
+                $vendedor = $items->first()->vendedor;
+                return [
+                    'vendedor' => $vendedor ? $vendedor->name : 'Não informado',
+                    'valor' => $items->sum('valor'),
+                    'quantidade' => $items->count(),
+                ];
+            })
+            ->sortByDesc('valor')
+            ->take(10)
+            ->values();
+
         return response()->json([
-            'resumo'       => [
-                'previsto' => (float) $resumo['previsto'],
-                'recebido' => (float) $resumo['recebido'],
-                'aberto'   => (float) $resumo['aberto'],
+            'resumo' => [
+                'total_previsto' => (float) $resumo['total_previsto'],
+                'total_recebido' => (float) $resumo['total_recebido'],
+                'total_aberto'   => (float) $resumo['total_aberto'],
+                'total_cancelado' => (float) $resumo['total_cancelado'],
+                'taxa_recebimento' => round($resumo['taxa_recebimento'], 2),
+                'em_atraso' => (float) $emAtraso,
             ],
             'porOperadora' => $porOperadora->map(fn($op) => [
                 'operadora' => $op['operadora'],
                 'previsto'  => (float) $op['previsto'],
                 'recebido'  => (float) $op['recebido'],
                 'aberto'    => (float) $op['aberto'],
+                'cancelado' => (float) $op['cancelado'],
             ]),
+            'evolucaoMensal' => $evolucaoMensal,
+            'statusDistribuicao' => $statusDistribuicao,
+            'topVendedores' => $topVendedores,
         ]);
     }
 
