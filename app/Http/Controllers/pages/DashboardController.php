@@ -81,7 +81,7 @@ class DashboardController extends Controller
             ->select(DB::raw('MONTH(a.created_at) as month'), DB::raw('SUM(a.valor_contrato) as total'))
             ->where('a.user_id', $user->id)
             ->where('a.empresa_id', $empresaId)
-            ->whereYear('a.created_at', $year) 
+            ->whereYear('a.created_at', $year)
             ->groupBy(DB::raw('MONTH(a.created_at)'))
             ->orderBy('month')
             ->get();
