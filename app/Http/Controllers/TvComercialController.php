@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MetaDiaria;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -226,6 +227,77 @@ class TvComercialController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Meta excluída com sucesso!',
+        ]);
+    }
+
+    /**
+     * Retorna o ranking de cotações por vendedor em um período
+     * Dados vindos da tabela metas_diarias (cotacoes_realizadas)
+     */
+    public function rankingCotacoes(Request $request): JsonResponse
+    {
+        $empresaId = Auth::user()->empresa_id;
+        $periodo = $request->query('periodo', 'semana');
+
+        // Determinar datas baseado no período
+        $dataInicio = null;
+        $dataFim = Carbon::today();
+
+        switch ($periodo) {
+            case 'hoje':
+                $dataInicio = Carbon::today();
+                $dataFim = Carbon::today();
+                break;
+            case 'semana':
+                $dataInicio = Carbon::today()->startOfWeek();
+                $dataFim = Carbon::today()->endOfWeek();
+                break;
+            case 'mes':
+                $dataInicio = Carbon::today()->startOfMonth();
+                $dataFim = Carbon::today()->endOfMonth();
+                break;
+            case 'personalizado':
+                $dataInicio = $request->query('data_inicio')
+                    ? Carbon::parse($request->query('data_inicio'))
+                    : Carbon::today()->startOfWeek();
+                $dataFim = $request->query('data_fim')
+                    ? Carbon::parse($request->query('data_fim'))
+                    : Carbon::today();
+                break;
+            default:
+                $dataInicio = Carbon::today()->startOfWeek();
+                $dataFim = Carbon::today()->endOfWeek();
+        }
+
+        // Buscar cotações realizadas agrupadas por vendedor no período
+        $ranking = MetaDiaria::select('user_id', DB::raw('SUM(cotacoes_realizadas) as total'))
+            ->where('empresa_id', $empresaId)
+            ->whereBetween('data', [$dataInicio->format('Y-m-d'), $dataFim->format('Y-m-d')])
+            ->groupBy('user_id')
+            ->orderByDesc('total')
+            ->get();
+
+        // Mapear com nomes dos vendedores
+        $resultado = $ranking->map(function ($item) {
+            $user = User::find($item->user_id);
+            return [
+                'user_id' => $item->user_id,
+                'vendedor' => $user ? $user->name : 'Desconhecido',
+                'total' => (int) $item->total,
+            ];
+        });
+
+        $total = $resultado->sum('total');
+
+        return response()->json([
+            'success' => true,
+            'data' => $resultado,
+            'total' => $total,
+            'periodo' => [
+                'tipo' => $periodo,
+                'data_inicio' => $dataInicio->format('d/m/Y'),
+                'data_fim' => $dataFim->format('d/m/Y'),
+            ]
         ]);
     }
 }

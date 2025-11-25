@@ -1,18 +1,20 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'Gerenciar Metas Diárias - TV Comercial')
+@section('title', 'Gerenciar TV Comercial')
 
 @section('vendor-style')
     @vite(['resources/assets/vendor/libs/toastr/toastr.scss',
            'resources/assets/vendor/libs/animate-css/animate.scss',
            'resources/assets/vendor/libs/flatpickr/flatpickr.scss',
-           'resources/assets/vendor/libs/select2/select2.scss'])
+           'resources/assets/vendor/libs/select2/select2.scss',
+           'resources/assets/vendor/libs/apex-charts/apex-charts.scss'])
 @endsection
 
 @section('vendor-script')
     @vite(['resources/assets/vendor/libs/toastr/toastr.js',
            'resources/assets/vendor/libs/flatpickr/flatpickr.js',
-           'resources/assets/vendor/libs/select2/select2.js'])
+           'resources/assets/vendor/libs/select2/select2.js',
+           'resources/assets/vendor/libs/apex-charts/apexcharts.js'])
 @endsection
 
 @section('content')
@@ -21,7 +23,7 @@
     <div class="col-12">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Gerenciar Metas Diárias - TV Comercial</h5>
+                <h5 class="mb-0">TV Comercial</h5>
                 <div>
                     <a href="#" id="btn-copiar-url" class="btn btn-sm btn-info">
                         <i class="bx bx-copy me-1"></i> Copiar URL da TV
@@ -29,84 +31,176 @@
                 </div>
             </div>
             <div class="card-body">
-                <div class="alert alert-info">
+                <div class="alert alert-info mb-4">
                     <strong>URL para TV:</strong>
                     <code id="url-tv">{{ url('/tv-comercial/painel?empresa_id=' . auth()->user()->empresa_id) }}</code>
                     <br>
                     <small>Abra esta URL no navegador da TV para exibir o painel. Os dados serão atualizados automaticamente a cada 30 segundos.</small>
                 </div>
 
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <label class="form-label">Selecionar Data</label>
-                        <input type="text" class="form-control flatpickr-date" id="data-metas" value="{{ date('d/m/Y') }}">
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <button type="button" class="btn btn-primary" id="btn-carregar-metas">
-                            <i class="bx bx-search me-1"></i> Carregar Metas
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-4" role="tablist">
+                    <li class="nav-item">
+                        <button type="button" class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#tab-metas">
+                            <i class="bx bx-target-lock me-1"></i> Gerenciar Metas
                         </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-ranking">
+                            <i class="bx bx-bar-chart-alt-2 me-1"></i> Ranking de Cotações
+                        </button>
+                    </li>
+                </ul>
 
-<div class="row">
-    <div class="col-md-5">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Adicionar Nova Meta</h5>
-            </div>
-            <div class="card-body">
-                <form id="form-nova-meta">
-                    <div class="mb-3">
-                        <label class="form-label">Vendedor</label>
-                        <select class="form-select select2" id="select-vendedor" required>
-                            <option value="">Selecione um vendedor</option>
-                            @foreach($vendedores as $vendedor)
-                            <option value="{{ $vendedor->id }}">{{ $vendedor->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Meta de Cotações</label>
-                        <input type="number" class="form-control" id="input-nova-meta" min="0" value="0" required>
-                    </div>
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="bx bx-plus me-1"></i> Adicionar Meta
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Tab: Gerenciar Metas -->
+                    <div class="tab-pane fade show active" id="tab-metas" role="tabpanel">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label">Selecionar Data</label>
+                                <input type="text" class="form-control flatpickr-date" id="data-metas" value="{{ date('d/m/Y') }}">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary" id="btn-carregar-metas">
+                                    <i class="bx bx-search me-1"></i> Carregar Metas
+                                </button>
+                            </div>
+                        </div>
 
-    <div class="col-md-7">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Metas Cadastradas</h5>
-            </div>
-            <div class="card-body">
-                <div id="metas-vazio" class="text-center py-5" style="display: none;">
-                    <i class="bx bx-list-ul" style="font-size: 4em; opacity: 0.3;"></i>
-                    <p class="text-muted mt-3">Nenhuma meta cadastrada para esta data</p>
-                </div>
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Adicionar Nova Meta</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="form-nova-meta">
+                                            <div class="mb-3">
+                                                <label class="form-label">Vendedor</label>
+                                                <select class="form-select select2" id="select-vendedor" required>
+                                                    <option value="">Selecione um vendedor</option>
+                                                    @foreach($vendedores as $vendedor)
+                                                    <option value="{{ $vendedor->id }}">{{ $vendedor->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Meta de Cotações</label>
+                                                <input type="number" class="form-control" id="input-nova-meta" min="0" value="0" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-success w-100">
+                                                <i class="bx bx-plus me-1"></i> Adicionar Meta
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
 
-                <div class="table-responsive" id="tabela-metas-container">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th width="40%">Vendedor</th>
-                                <th width="20%" class="text-center">Meta</th>
-                                <th width="20%" class="text-center">Realizado</th>
-                                <th width="10%" class="text-center">%</th>
-                                <th width="10%" class="text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-metas">
-                            <!-- Dados serão inseridos aqui -->
-                        </tbody>
-                    </table>
+                            <div class="col-md-7">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Metas Cadastradas</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="metas-vazio" class="text-center py-5" style="display: none;">
+                                            <i class="bx bx-list-ul" style="font-size: 4em; opacity: 0.3;"></i>
+                                            <p class="text-muted mt-3">Nenhuma meta cadastrada para esta data</p>
+                                        </div>
+
+                                        <div class="table-responsive" id="tabela-metas-container">
+                                            <table class="table table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th width="40%">Vendedor</th>
+                                                        <th width="20%" class="text-center">Meta</th>
+                                                        <th width="20%" class="text-center">Realizado</th>
+                                                        <th width="10%" class="text-center">%</th>
+                                                        <th width="10%" class="text-center">Ações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tbody-metas">
+                                                    <!-- Dados serão inseridos aqui -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Ranking de Cotações -->
+                    <div class="tab-pane fade" id="tab-ranking" role="tabpanel">
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <label class="form-label">Período</label>
+                                <select class="form-select" id="ranking-periodo">
+                                    <option value="hoje">Hoje</option>
+                                    <option value="semana" selected>Esta Semana</option>
+                                    <option value="mes">Este Mês</option>
+                                    <option value="personalizado">Personalizado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="ranking-data-inicio-container" style="display: none;">
+                                <label class="form-label">Data Início</label>
+                                <input type="text" class="form-control flatpickr-date" id="ranking-data-inicio">
+                            </div>
+                            <div class="col-md-3" id="ranking-data-fim-container" style="display: none;">
+                                <label class="form-label">Data Fim</label>
+                                <input type="text" class="form-control flatpickr-date" id="ranking-data-fim">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary" id="btn-carregar-ranking">
+                                    <i class="bx bx-refresh me-1"></i> Atualizar Ranking
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="bx bx-bar-chart-alt-2 me-2"></i>Cotações por Vendedor</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="chart-ranking-cotacoes" style="min-height: 400px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="bx bx-trophy me-2"></i>Top Vendedores</h5>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Vendedor</th>
+                                                        <th class="text-center">Cotações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tbody-ranking">
+                                                    <!-- Dados serão inseridos aqui -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card mt-4">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted mb-2">Total de Cotações</h6>
+                                        <h2 class="mb-0" id="total-cotacoes-periodo">0</h2>
+                                        <small class="text-muted" id="periodo-label">Esta Semana</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -115,6 +209,23 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Variáveis globais
+    let chartRanking = null;
+    let cardColor, labelColor, headingColor, borderColor;
+
+    // Configurar cores baseado no tema
+    if (typeof isDarkStyle !== 'undefined' && isDarkStyle) {
+        cardColor = config.colors_dark.cardColor;
+        labelColor = config.colors_dark.textMuted;
+        headingColor = config.colors_dark.headingColor;
+        borderColor = config.colors_dark.borderColor;
+    } else {
+        cardColor = config.colors.cardColor;
+        labelColor = config.colors.textMuted;
+        headingColor = config.colors.headingColor;
+        borderColor = config.colors.borderColor;
+    }
+
     // Inicializar Flatpickr
     flatpickr('.flatpickr-date', {
         dateFormat: 'd/m/Y',
@@ -146,6 +257,10 @@ document.addEventListener('DOMContentLoaded', function() {
             toastr.success('URL copiada para a área de transferência!');
         });
     });
+
+    // ========================
+    // TAB 1: GERENCIAR METAS
+    // ========================
 
     // Carregar metas
     document.getElementById('btn-carregar-metas').addEventListener('click', carregarMetas);
@@ -364,6 +479,164 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Erro:', error);
             toastr.error('Erro ao excluir meta');
         });
+    }
+
+    // ========================
+    // TAB 2: RANKING COTAÇÕES
+    // ========================
+
+    // Toggle campos de data personalizada
+    document.getElementById('ranking-periodo').addEventListener('change', function() {
+        const isPersonalizado = this.value === 'personalizado';
+        document.getElementById('ranking-data-inicio-container').style.display = isPersonalizado ? 'block' : 'none';
+        document.getElementById('ranking-data-fim-container').style.display = isPersonalizado ? 'block' : 'none';
+
+        // Atualizar label do período
+        const labels = {
+            'hoje': 'Hoje',
+            'semana': 'Esta Semana',
+            'mes': 'Este Mês',
+            'personalizado': 'Período Personalizado'
+        };
+        document.getElementById('periodo-label').textContent = labels[this.value];
+    });
+
+    // Carregar ranking
+    document.getElementById('btn-carregar-ranking').addEventListener('click', carregarRanking);
+
+    // Carregar ranking ao trocar para a aba
+    document.querySelector('[data-bs-target="#tab-ranking"]').addEventListener('shown.bs.tab', function() {
+        if (!chartRanking) {
+            carregarRanking();
+        }
+    });
+
+    function carregarRanking() {
+        const periodo = document.getElementById('ranking-periodo').value;
+        let dataInicio = '';
+        let dataFim = '';
+
+        if (periodo === 'personalizado') {
+            dataInicio = converterDataParaBackend(document.getElementById('ranking-data-inicio').value);
+            dataFim = converterDataParaBackend(document.getElementById('ranking-data-fim').value);
+
+            if (!dataInicio || !dataFim) {
+                toastr.error('Selecione as datas de início e fim');
+                return;
+            }
+        }
+
+        const params = new URLSearchParams({
+            periodo: periodo,
+            data_inicio: dataInicio,
+            data_fim: dataFim
+        });
+
+        fetch(`/tv-comercial/ranking-cotacoes?${params}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    renderizarRanking(result.data);
+                    document.getElementById('total-cotacoes-periodo').textContent = result.total;
+                } else {
+                    toastr.error('Erro ao carregar ranking');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar ranking:', error);
+                toastr.error('Erro ao carregar ranking');
+            });
+    }
+
+    function renderizarRanking(dados) {
+        // Preencher tabela
+        const tbody = document.getElementById('tbody-ranking');
+        tbody.innerHTML = '';
+
+        if (!dados || dados.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Nenhuma cotação encontrada no período</td></tr>';
+            return;
+        }
+
+        dados.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            let medalha = '';
+            if (index === 0) medalha = '<span class="badge bg-warning text-dark me-1">🥇</span>';
+            else if (index === 1) medalha = '<span class="badge bg-secondary me-1">🥈</span>';
+            else if (index === 2) medalha = '<span class="badge bg-danger me-1">🥉</span>';
+
+            tr.innerHTML = `
+                <td class="text-center">${medalha}${index + 1}º</td>
+                <td><strong>${item.vendedor}</strong></td>
+                <td class="text-center"><span class="badge bg-primary">${item.total}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Renderizar gráfico
+        const vendedores = dados.map(d => d.vendedor);
+        const totais = dados.map(d => d.total);
+
+        const chartOptions = {
+            series: [{
+                name: 'Cotações',
+                data: totais
+            }],
+            chart: {
+                type: 'bar',
+                height: 400,
+                toolbar: {
+                    show: false
+                }
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                    borderRadius: 4,
+                    dataLabels: {
+                        position: 'top'
+                    }
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                offsetX: -10,
+                style: {
+                    fontSize: '12px',
+                    colors: ['#fff']
+                }
+            },
+            colors: ['#7367f0'],
+            xaxis: {
+                categories: vendedores,
+                labels: {
+                    style: {
+                        colors: labelColor
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        colors: labelColor
+                    }
+                }
+            },
+            grid: {
+                borderColor: borderColor
+            },
+            tooltip: {
+                theme: typeof isDarkStyle !== 'undefined' && isDarkStyle ? 'dark' : 'light'
+            }
+        };
+
+        // Destruir gráfico anterior se existir
+        if (chartRanking) {
+            chartRanking.destroy();
+        }
+
+        chartRanking = new ApexCharts(document.getElementById('chart-ranking-cotacoes'), chartOptions);
+        chartRanking.render();
     }
 });
 </script>

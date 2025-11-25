@@ -68,6 +68,7 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/tv-comercial/atualizar-cotacoes', [\App\Http\Controllers\TvComercialController::class, 'atualizarCotacoes'])->name('tv-comercial.atualizar-cotacoes');
   Route::post('/tv-comercial/atualizar-meta', [\App\Http\Controllers\TvComercialController::class, 'atualizarMeta'])->name('tv-comercial.atualizar-meta');
   Route::post('/tv-comercial/deletar-meta', [\App\Http\Controllers\TvComercialController::class, 'deletarMeta'])->name('tv-comercial.deletar-meta');
+  Route::get('/tv-comercial/ranking-cotacoes', [\App\Http\Controllers\TvComercialController::class, 'rankingCotacoes'])->name('tv-comercial.ranking-cotacoes');
 
   /** CADASTRO DE USUARIOS */
   Route::get('/usuarios', [Usuarios::class, 'index'])->name('usuarios.index');
