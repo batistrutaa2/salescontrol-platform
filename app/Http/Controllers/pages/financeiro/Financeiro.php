@@ -9,6 +9,10 @@ use App\Models\RegrasComissionamentoParcela;
 use App\Models\Operadora;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\Recebivel;
+use App\Models\Vendas;
+use App\Models\Plano;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 
 class Financeiro extends Controller
@@ -267,11 +271,12 @@ class Financeiro extends Controller
             ->orderBy('parcela')
             ->get()
             ->map(fn($p) => [
-                'id'            => $p->id,
-                'parcela'       => $p->parcela,
-                'valor'         => $p->valor,
-                'data_prevista' => \Carbon\Carbon::parse($p->data_prevista)->format('d/m/Y'),
-                'status'        => $p->status,
+                'id'              => $p->id,
+                'parcela'         => $p->parcela,
+                'valor'           => $p->valor,
+                'data_prevista'   => \Carbon\Carbon::parse($p->data_prevista)->format('d/m/Y'),
+                'data_recebimento'=> $p->data_recebimento ? \Carbon\Carbon::parse($p->data_recebimento)->format('d/m/Y') : null,
+                'status'          => $p->status,
             ]);
 
         return response()->json($parcelas);
@@ -390,6 +395,135 @@ class Financeiro extends Controller
             'statusDistribuicao' => $statusDistribuicao,
             'topVendedores' => $topVendedores,
         ]);
+    }
+
+    /**
+     * Recalcular valores dos recebíveis com a regra atual
+     * Mantém: status, data_prevista, data_recebimento
+     * Atualiza: valor (baseado na nova regra)
+     */
+    public function recalcularRecebiveis(int $vendaId)
+    {
+        $venda = Vendas::findOrFail($vendaId);
+
+        // Verificar permissão (empresa_id)
+        if ($venda->empresa_id !== auth()->user()->empresa_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sem permissão para acessar este contrato.'
+            ], 403);
+        }
+
+        // Buscar operadora pelo nome
+        $operadora = Operadora::where('nome', $venda->operadora)->first();
+
+        if (!$operadora) {
+            return response()->json([
+                'success' => false,
+                'message' => "Operadora '{$venda->operadora}' não encontrada."
+            ], 404);
+        }
+
+        // Buscar regra atual de comissionamento
+        $regra = RegrasComissionamento::with('parcelas')
+            ->where('empresa_id', $venda->empresa_id)
+            ->where('operadora_id', $operadora->id)
+            ->first();
+
+        if (!$regra) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nenhuma regra de comissionamento encontrada para esta operadora.'
+            ], 404);
+        }
+
+        // Buscar parcelas da regra
+        $parcelasRegra = $regra->parcelas()->orderBy('parcela')->get()->keyBy('parcela');
+
+        if ($parcelasRegra->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'A regra de comissionamento não possui parcelas configuradas.'
+            ], 404);
+        }
+
+        // Buscar recebíveis atuais do contrato
+        $recebiveisAtuais = Recebivel::where('venda_id', $vendaId)
+            ->orderBy('parcela')
+            ->get();
+
+        if ($recebiveisAtuais->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este contrato não possui recebíveis para recalcular.'
+            ], 404);
+        }
+
+        $alteracoes = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($recebiveisAtuais as $recebivel) {
+                // Verificar se existe parcela correspondente na regra
+                $parcelaRegra = $parcelasRegra->get($recebivel->parcela);
+
+                if ($parcelaRegra) {
+                    // Calcular novo valor
+                    $valorAntigo = $recebivel->valor;
+                    $valorNovo = ($parcelaRegra->percentual / 100) * $venda->valor_contrato;
+
+                    // Só atualiza se o valor for diferente
+                    if (abs($valorAntigo - $valorNovo) > 0.01) {
+                        $recebivel->update(['valor' => $valorNovo]);
+
+                        $alteracoes[] = [
+                            'parcela' => $recebivel->parcela,
+                            'valor_antigo' => $valorAntigo,
+                            'valor_novo' => $valorNovo,
+                            'diferenca' => $valorNovo - $valorAntigo,
+                            'status' => $recebivel->status
+                        ];
+                    }
+                } else {
+                    // Parcela não existe na regra atual (manter sem alteração)
+                    Log::warning("Recebível parcela {$recebivel->parcela} não encontrada na regra atual", [
+                        'venda_id' => $vendaId,
+                        'recebivel_id' => $recebivel->id
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            $totalAnterior = collect($alteracoes)->sum('valor_antigo');
+            $totalNovo = collect($alteracoes)->sum('valor_novo');
+
+            return response()->json([
+                'success' => true,
+                'message' => count($alteracoes) > 0
+                    ? 'Valores recalculados com sucesso.'
+                    : 'Nenhuma alteração necessária. Os valores já estão atualizados.',
+                'alteracoes' => $alteracoes,
+                'resumo' => [
+                    'parcelas_atualizadas' => count($alteracoes),
+                    'total_anterior' => $totalAnterior,
+                    'total_novo' => $totalNovo,
+                    'diferenca' => $totalNovo - $totalAnterior
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao recalcular recebíveis', [
+                'venda_id' => $vendaId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao recalcular valores: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
 }

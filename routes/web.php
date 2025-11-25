@@ -301,6 +301,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/parcelas/{id}/pagar', [Financeiro::class, 'pagarParcela'])
         ->name('financeiro.recebiveis.pagar');
 
+    // Recalcular valores com nova regra
+    Route::post('/{vendaId}/recalcular', [Financeiro::class, 'recalcularRecebiveis'])
+        ->name('financeiro.recebiveis.recalcular');
+
     // 📊 Relatório financeiro
     Route::get('/relatorio-financeiro', [Financeiro::class, 'relatorioFinanceiro'])
         ->name('financeiro.relatorio');

@@ -362,12 +362,18 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-warning btn-modern" id="btnRecalcular">
+                    <i class="ri-refresh-line me-1"></i> Recalcular com Nova Regra
+                </button>
+            </div>
             <table class="table table-modern" id="parcelasTable">
                 <thead>
                     <tr>
                         <th>Parcela</th>
                         <th>Valor</th>
                         <th>Vencimento</th>
+                        <th>Recebimento</th>
                         <th>Status</th>
                         <th>Ação</th>
                     </tr>
