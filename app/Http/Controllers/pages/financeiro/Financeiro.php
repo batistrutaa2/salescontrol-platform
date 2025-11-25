@@ -401,6 +401,7 @@ class Financeiro extends Controller
      * Recalcular valores dos recebíveis com a regra atual
      * Mantém: status, data_prevista, data_recebimento
      * Atualiza: valor (baseado na nova regra)
+     * Cria: novas parcelas se a regra tiver mais parcelas que as existentes
      */
     public function recalcularRecebiveis(int $vendaId)
     {
@@ -447,37 +448,41 @@ class Financeiro extends Controller
             ], 404);
         }
 
-        // Buscar recebíveis atuais do contrato
+        // Buscar recebíveis atuais do contrato (indexados por número da parcela)
         $recebiveisAtuais = Recebivel::where('venda_id', $vendaId)
             ->orderBy('parcela')
-            ->get();
+            ->get()
+            ->keyBy('parcela');
 
-        if ($recebiveisAtuais->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Este contrato não possui recebíveis para recalcular.'
-            ], 404);
+        // Resolver nome do plano
+        $planoNome = 'N/A';
+        if (!empty($venda->plano_id)) {
+            $plano = Plano::find($venda->plano_id);
+            $planoNome = $plano?->nome ?? $venda->nome_plano ?? 'N/A';
+        } elseif (!empty($venda->nome_plano)) {
+            $planoNome = $venda->nome_plano;
         }
 
         $alteracoes = [];
+        $novasParcelas = [];
 
         DB::beginTransaction();
         try {
-            foreach ($recebiveisAtuais as $recebivel) {
-                // Verificar se existe parcela correspondente na regra
-                $parcelaRegra = $parcelasRegra->get($recebivel->parcela);
+            // Iterar sobre todas as parcelas da regra atual
+            foreach ($parcelasRegra as $numeroParcela => $parcelaRegra) {
+                $valorNovo = ($parcelaRegra->percentual / 100) * $venda->valor_contrato;
 
-                if ($parcelaRegra) {
-                    // Calcular novo valor
+                if ($recebiveisAtuais->has($numeroParcela)) {
+                    // Parcela já existe - atualizar valor se diferente
+                    $recebivel = $recebiveisAtuais->get($numeroParcela);
                     $valorAntigo = $recebivel->valor;
-                    $valorNovo = ($parcelaRegra->percentual / 100) * $venda->valor_contrato;
 
-                    // Só atualiza se o valor for diferente
                     if (abs($valorAntigo - $valorNovo) > 0.01) {
                         $recebivel->update(['valor' => $valorNovo]);
 
                         $alteracoes[] = [
-                            'parcela' => $recebivel->parcela,
+                            'parcela' => $numeroParcela,
+                            'acao' => 'atualizado',
                             'valor_antigo' => $valorAntigo,
                             'valor_novo' => $valorNovo,
                             'diferenca' => $valorNovo - $valorAntigo,
@@ -485,30 +490,63 @@ class Financeiro extends Controller
                         ];
                     }
                 } else {
-                    // Parcela não existe na regra atual (manter sem alteração)
-                    Log::warning("Recebível parcela {$recebivel->parcela} não encontrada na regra atual", [
-                        'venda_id' => $vendaId,
-                        'recebivel_id' => $recebivel->id
+                    // Parcela não existe - criar nova
+                    $dataPrevista = \Carbon\Carbon::parse($venda->data_implantacao)
+                        ->addMonths($numeroParcela);
+
+                    Recebivel::create([
+                        'empresa_id'    => $venda->empresa_id,
+                        'venda_id'      => $venda->id,
+                        'vendedor_id'   => $venda->user_id,
+                        'operadora'     => $operadora->nome,
+                        'plano'         => $planoNome,
+                        'parcela'       => $numeroParcela,
+                        'valor'         => $valorNovo,
+                        'data_prevista' => $dataPrevista,
+                        'status'        => 'PENDENTE',
                     ]);
+
+                    $novasParcelas[] = [
+                        'parcela' => $numeroParcela,
+                        'acao' => 'criado',
+                        'valor_novo' => $valorNovo,
+                        'data_prevista' => $dataPrevista->format('d/m/Y')
+                    ];
                 }
             }
 
             DB::commit();
 
-            $totalAnterior = collect($alteracoes)->sum('valor_antigo');
-            $totalNovo = collect($alteracoes)->sum('valor_novo');
+            // Calcular totais
+            $totalAnteriorAlteracoes = collect($alteracoes)->sum('valor_antigo');
+            $totalNovoAlteracoes = collect($alteracoes)->sum('valor_novo');
+            $totalNovasParcelas = collect($novasParcelas)->sum('valor_novo');
+
+            $totalAlteracoes = count($alteracoes) + count($novasParcelas);
+
+            // Montar mensagem
+            $mensagens = [];
+            if (count($alteracoes) > 0) {
+                $mensagens[] = count($alteracoes) . ' parcela(s) atualizada(s)';
+            }
+            if (count($novasParcelas) > 0) {
+                $mensagens[] = count($novasParcelas) . ' parcela(s) criada(s)';
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => count($alteracoes) > 0
-                    ? 'Valores recalculados com sucesso.'
+                'message' => $totalAlteracoes > 0
+                    ? 'Recebíveis atualizados: ' . implode(', ', $mensagens) . '.'
                     : 'Nenhuma alteração necessária. Os valores já estão atualizados.',
                 'alteracoes' => $alteracoes,
+                'novas_parcelas' => $novasParcelas,
                 'resumo' => [
                     'parcelas_atualizadas' => count($alteracoes),
-                    'total_anterior' => $totalAnterior,
-                    'total_novo' => $totalNovo,
-                    'diferenca' => $totalNovo - $totalAnterior
+                    'parcelas_criadas' => count($novasParcelas),
+                    'total_anterior' => $totalAnteriorAlteracoes,
+                    'total_novo' => $totalNovoAlteracoes,
+                    'diferenca_atualizacoes' => $totalNovoAlteracoes - $totalAnteriorAlteracoes,
+                    'total_novas_parcelas' => $totalNovasParcelas
                 ]
             ]);
 

@@ -139,42 +139,72 @@ $(function () {
           success: function (response) {
             if (response.success) {
               let mensagem = response.message;
+              let temAlteracoes = response.alteracoes && response.alteracoes.length > 0;
+              let temNovasParcelas = response.novas_parcelas && response.novas_parcelas.length > 0;
 
-              // Se houve alterações, mostrar detalhes
-              if (response.alteracoes && response.alteracoes.length > 0) {
-                let detalhes = '<div class="text-start mt-3"><table class="table table-sm"><thead><tr><th>Parcela</th><th>Anterior</th><th>Novo</th><th>Dif.</th></tr></thead><tbody>';
+              // Se houve alterações ou novas parcelas, mostrar detalhes
+              if (temAlteracoes || temNovasParcelas) {
+                let detalhes = '';
 
-                response.alteracoes.forEach(alt => {
-                  let corDif = alt.diferenca >= 0 ? 'text-success' : 'text-danger';
-                  let sinalDif = alt.diferenca >= 0 ? '+' : '';
-                  detalhes += `
-                    <tr>
-                      <td>${alt.parcela}</td>
-                      <td>R$ ${parseFloat(alt.valor_antigo).toFixed(2).replace('.', ',')}</td>
-                      <td>R$ ${parseFloat(alt.valor_novo).toFixed(2).replace('.', ',')}</td>
-                      <td class="${corDif}">${sinalDif}R$ ${parseFloat(alt.diferenca).toFixed(2).replace('.', ',')}</td>
-                    </tr>
-                  `;
-                });
+                // Tabela de parcelas atualizadas
+                if (temAlteracoes) {
+                  detalhes += '<div class="text-start mt-3"><h6 class="mb-2">Parcelas Atualizadas:</h6><table class="table table-sm"><thead><tr><th>Parcela</th><th>Anterior</th><th>Novo</th><th>Dif.</th></tr></thead><tbody>';
 
-                detalhes += '</tbody></table></div>';
+                  response.alteracoes.forEach(alt => {
+                    let corDif = alt.diferenca >= 0 ? 'text-success' : 'text-danger';
+                    let sinalDif = alt.diferenca >= 0 ? '+' : '';
+                    detalhes += `
+                      <tr>
+                        <td>${alt.parcela}</td>
+                        <td>R$ ${parseFloat(alt.valor_antigo).toFixed(2).replace('.', ',')}</td>
+                        <td>R$ ${parseFloat(alt.valor_novo).toFixed(2).replace('.', ',')}</td>
+                        <td class="${corDif}">${sinalDif}R$ ${parseFloat(alt.diferenca).toFixed(2).replace('.', ',')}</td>
+                      </tr>
+                    `;
+                  });
 
+                  detalhes += '</tbody></table></div>';
+                }
+
+                // Tabela de novas parcelas criadas
+                if (temNovasParcelas) {
+                  detalhes += '<div class="text-start mt-3"><h6 class="mb-2 text-success"><i class="ri-add-circle-line me-1"></i>Novas Parcelas Criadas:</h6><table class="table table-sm"><thead><tr><th>Parcela</th><th>Valor</th><th>Vencimento</th></tr></thead><tbody>';
+
+                  response.novas_parcelas.forEach(nova => {
+                    detalhes += `
+                      <tr class="table-success">
+                        <td>${nova.parcela}</td>
+                        <td>R$ ${parseFloat(nova.valor_novo).toFixed(2).replace('.', ',')}</td>
+                        <td>${nova.data_prevista}</td>
+                      </tr>
+                    `;
+                  });
+
+                  detalhes += '</tbody></table></div>';
+                }
+
+                // Resumo
                 if (response.resumo) {
-                  let corTotal = response.resumo.diferenca >= 0 ? 'text-success' : 'text-danger';
-                  let sinalTotal = response.resumo.diferenca >= 0 ? '+' : '';
-                  detalhes += `
-                    <div class="alert alert-info mt-2 mb-0">
-                      <strong>Diferença total:</strong>
-                      <span class="${corTotal}">${sinalTotal}R$ ${parseFloat(response.resumo.diferenca).toFixed(2).replace('.', ',')}</span>
-                    </div>
-                  `;
+                  detalhes += '<div class="alert alert-info mt-3 mb-0 text-start">';
+
+                  if (temAlteracoes) {
+                    let corDif = response.resumo.diferenca_atualizacoes >= 0 ? 'text-success' : 'text-danger';
+                    let sinalDif = response.resumo.diferenca_atualizacoes >= 0 ? '+' : '';
+                    detalhes += `<div><strong>Diferença nas atualizações:</strong> <span class="${corDif}">${sinalDif}R$ ${parseFloat(response.resumo.diferenca_atualizacoes).toFixed(2).replace('.', ',')}</span></div>`;
+                  }
+
+                  if (temNovasParcelas) {
+                    detalhes += `<div><strong>Total novas parcelas:</strong> <span class="text-success">+R$ ${parseFloat(response.resumo.total_novas_parcelas).toFixed(2).replace('.', ',')}</span></div>`;
+                  }
+
+                  detalhes += '</div>';
                 }
 
                 Swal.fire({
-                  title: 'Valores recalculados!',
+                  title: 'Recebíveis atualizados!',
                   html: mensagem + detalhes,
                   icon: 'success',
-                  width: 600
+                  width: 650
                 }).then(() => {
                   // Recarregar parcelas no modal
                   carregarParcelas(currentVendaId);
