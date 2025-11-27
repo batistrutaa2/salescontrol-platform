@@ -182,6 +182,8 @@ Route::middleware(['auth'])->group(function () {
   Route::get(uri: '/back-office/getPlans', action: [Backoffice::class, 'getPlans'])->name('backoffice.getPlans');
   Route::put('/backoffice/titulares/{id}', [Backoffice::class, 'updateTitular'])->name('backoffice.titulares.update');
   Route::post('/backoffice/titulares', [Backoffice::class, 'storeTitular'])->name('backoffice.titulares.store');
+  Route::get('/back-office/verificar-recebiveis/{vendaId}', [Backoffice::class, 'verificarRecebiveis'])->name('backoffice.verificarRecebiveis');
+  Route::post('/back-office/gerar-recebivel/{vendaId}', [Backoffice::class, 'gerarRecebivelContrato'])->name('backoffice.gerarRecebivelContrato');
 
   /** VENDAS */
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');

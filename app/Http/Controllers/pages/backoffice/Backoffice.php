@@ -25,6 +25,10 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Jobs\GerarRecebiveisJob;
+use App\Models\Recebivel;
+use App\Models\RegrasComissionamento;
+use Carbon\Carbon;
+
 class Backoffice extends Controller
 {
   protected VendasRepository $vendasRepository;
@@ -430,6 +434,161 @@ class Backoffice extends Controller
     }
   }
 
+  /**
+   * Gera ou atualiza recebíveis para um contrato específico
+   */
+  public function gerarRecebivelContrato(int $vendaId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
 
+      // Buscar a venda e validar
+      $venda = Vendas::select('vendas.*')
+        ->join('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+        ->where('vendas.id', $vendaId)
+        ->where('vendas.empresa_id', $empresaId)
+        ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
+        ->first();
 
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Contrato não encontrado ou não está implantado.'
+        ], 404);
+      }
+
+      if (!$venda->data_implantacao) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Contrato não possui data de implantação definida.'
+        ], 400);
+      }
+
+      // Buscar operadora
+      $operadora = Operadora::where('nome', $venda->operadora)->first();
+
+      if (!$operadora) {
+        return response()->json([
+          'success' => false,
+          'message' => "Operadora não encontrada: {$venda->operadora}"
+        ], 400);
+      }
+
+      // Buscar regra de comissionamento
+      $regra = RegrasComissionamento::with('parcelas')
+        ->where('empresa_id', $venda->empresa_id)
+        ->where('operadora_id', $operadora->id)
+        ->first();
+
+      if (!$regra) {
+        return response()->json([
+          'success' => false,
+          'message' => "Nenhuma regra de comissionamento encontrada para a operadora {$operadora->nome}"
+        ], 400);
+      }
+
+      // Resolver nome do plano
+      $planoNome = 'N/A';
+      if (!empty($venda->plano_id)) {
+        $plano = Plano::find($venda->plano_id);
+        $planoNome = $plano?->nome ?? $venda->nome_plano ?? 'N/A';
+      } elseif (!empty($venda->nome_plano)) {
+        $planoNome = $venda->nome_plano;
+      }
+
+      // Verificar se já existem recebíveis
+      $recebiveisExistentes = Recebivel::where('venda_id', $vendaId)->count();
+
+      // Gerar ou atualizar recebíveis conforme parcelas da regra
+      $criados = 0;
+      $atualizados = 0;
+
+      foreach ($regra->parcelas()->orderBy('parcela')->get() as $parcela) {
+        $valorParcela = ($parcela->percentual / 100) * $venda->valor_contrato;
+
+        $recebivel = Recebivel::updateOrCreate(
+          [
+            'venda_id' => $venda->id,
+            'parcela'  => $parcela->parcela,
+          ],
+          [
+            'empresa_id'    => $venda->empresa_id,
+            'vendedor_id'   => $venda->user_id,
+            'operadora'     => $operadora->nome,
+            'plano'         => $planoNome,
+            'valor'         => $valorParcela,
+            'data_prevista' => Carbon::parse($venda->data_implantacao)->addMonths($parcela->parcela),
+            'status'        => 'PENDENTE',
+          ]
+        );
+
+        if ($recebivel->wasRecentlyCreated) {
+          $criados++;
+        } else {
+          $atualizados++;
+        }
+      }
+
+      // Montar mensagem de retorno
+      $mensagem = '';
+      if ($criados > 0 && $atualizados > 0) {
+        $mensagem = "{$criados} recebível(is) criado(s) e {$atualizados} atualizado(s) com sucesso.";
+      } elseif ($criados > 0) {
+        $mensagem = "{$criados} recebível(is) gerado(s) com sucesso.";
+      } else {
+        $mensagem = "{$atualizados} recebível(is) atualizado(s) com sucesso.";
+      }
+
+      return response()->json([
+        'success' => true,
+        'message' => $mensagem,
+        'criados' => $criados,
+        'atualizados' => $atualizados,
+        'ja_existia' => $recebiveisExistentes > 0
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao gerar recebíveis: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Verifica se um contrato possui recebíveis
+   */
+  public function verificarRecebiveis(int $vendaId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $venda = Vendas::where('id', $vendaId)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Contrato não encontrado.'
+        ], 404);
+      }
+
+      $recebiveis = Recebivel::where('venda_id', $vendaId)->get();
+      $totalRecebiveis = $recebiveis->count();
+      $valorTotal = $recebiveis->sum('valor');
+
+      return response()->json([
+        'success' => true,
+        'possui_recebiveis' => $totalRecebiveis > 0,
+        'quantidade' => $totalRecebiveis,
+        'valor_total' => $valorTotal,
+        'nome_contrato' => $venda->nome_contrato
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao verificar recebíveis: ' . $e->getMessage()
+      ], 500);
+    }
+  }
 }

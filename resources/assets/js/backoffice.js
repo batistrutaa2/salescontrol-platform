@@ -182,6 +182,9 @@ $(function () {
 
                     if (full['descricao'] === 'IMPLANTADO') {
                         actions += '<a href="/back-office/comprovante/' + full['id'] + '" class="dropdown-item"><i class="ri-download-line me-2"></i><span>Baixar comprovante</span></a>';
+                        actions += '<button type="button" class="dropdown-item js-gerar-recebivel" data-id="' + full['id'] + '" data-nome="' + escapeHtml(full['nome_contrato']) + '">' +
+                            '<i class="ri-money-dollar-circle-line me-2"></i><span>Gerar Recebíveis</span>' +
+                            '</button>';
                     }
 
                     actions +=
@@ -270,6 +273,166 @@ $(function () {
             buttonsStyling: false
         });
     });
+
+    // ====== Gerar Recebível para um Contrato Específico ======
+    $(document).on('click', '.js-gerar-recebivel', function () {
+        const vendaId = $(this).data('id');
+        const nomeContrato = $(this).data('nome') || 'este contrato';
+
+        // Primeiro, verificar se já existem recebíveis
+        Swal.fire({
+            title: 'Verificando...',
+            text: 'Consultando informações do contrato',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: `/back-office/verificar-recebiveis/${vendaId}`,
+            method: 'GET'
+        }).then(response => {
+            Swal.close();
+
+            if (response.possui_recebiveis) {
+                // Já possui recebíveis - mostrar alerta de atualização
+                const valorFormatado = new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                }).format(response.valor_total);
+
+                Swal.fire({
+                    title: '<i class="ri-error-warning-line text-warning"></i> Atenção!',
+                    html: `
+                        <div class="text-start">
+                            <p class="mb-3">O contrato <strong>"${escapeHtml(nomeContrato)}"</strong> já possui recebíveis cadastrados:</p>
+                            <div class="alert alert-warning d-flex align-items-center mb-3">
+                                <i class="ri-information-line me-2 fs-4"></i>
+                                <div>
+                                    <strong>${response.quantidade} parcela(s)</strong> no valor total de <strong>${valorFormatado}</strong>
+                                </div>
+                            </div>
+                            <p class="text-primary fw-bold mb-2">
+                                <i class="ri-refresh-line me-1"></i>
+                                Os valores serão ATUALIZADOS conforme as regras de comissionamento atuais.
+                            </p>
+                            <p class="text-muted small">Deseja continuar?</p>
+                        </div>
+                    `,
+                    icon: null,
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="ri-refresh-line me-1"></i> Atualizar Recebíveis',
+                    cancelButtonText: 'Cancelar',
+                    customClass: {
+                        popup: 'swal-wide',
+                        confirmButton: 'btn btn-warning me-2',
+                        cancelButton: 'btn btn-secondary'
+                    },
+                    buttonsStyling: false,
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        executarGeracaoRecebiveis(vendaId, nomeContrato);
+                    }
+                });
+            } else {
+                // Não possui recebíveis - confirmação simples
+                Swal.fire({
+                    title: 'Gerar Recebíveis',
+                    html: `
+                        <div class="text-start">
+                            <p>Deseja gerar os recebíveis para o contrato:</p>
+                            <p class="fw-bold text-primary">"${escapeHtml(nomeContrato)}"</p>
+                            <p class="text-muted small mt-3">Os recebíveis serão gerados com base nas regras de comissionamento configuradas.</p>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="ri-check-line me-1"></i> Gerar Recebíveis',
+                    cancelButtonText: 'Cancelar',
+                    customClass: {
+                        confirmButton: 'btn btn-success me-2',
+                        cancelButton: 'btn btn-secondary'
+                    },
+                    buttonsStyling: false,
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        executarGeracaoRecebiveis(vendaId, nomeContrato);
+                    }
+                });
+            }
+        }).catch(error => {
+            Swal.fire({
+                title: 'Erro',
+                text: error.responseJSON?.message || 'Não foi possível verificar os recebíveis do contrato.',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                customClass: { confirmButton: 'btn btn-primary' },
+                buttonsStyling: false
+            });
+        });
+    });
+
+    // Função auxiliar para executar a geração de recebíveis
+    function executarGeracaoRecebiveis(vendaId, nomeContrato) {
+        Swal.fire({
+            title: 'Processando...',
+            html: `Gerando recebíveis para <strong>"${escapeHtml(nomeContrato)}"</strong>`,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: `/back-office/gerar-recebivel/${vendaId}`,
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        }).then(response => {
+            let iconHtml = '<i class="ri-checkbox-circle-line text-success"></i>';
+            let alertClass = 'alert-success';
+
+            if (response.atualizados > 0 && response.criados === 0) {
+                iconHtml = '<i class="ri-refresh-line text-warning"></i>';
+                alertClass = 'alert-warning';
+            }
+
+            Swal.fire({
+                title: `${iconHtml} Sucesso!`,
+                html: `
+                    <div class="text-start">
+                        <p>${escapeHtml(response.message)}</p>
+                        <div class="alert ${alertClass} mt-3">
+                            ${response.criados > 0 ? `<div><i class="ri-add-line me-1"></i> <strong>${response.criados}</strong> parcela(s) criada(s)</div>` : ''}
+                            ${response.atualizados > 0 ? `<div><i class="ri-refresh-line me-1"></i> <strong>${response.atualizados}</strong> parcela(s) atualizada(s)</div>` : ''}
+                        </div>
+                    </div>
+                `,
+                icon: null,
+                confirmButtonText: 'OK',
+                customClass: { confirmButton: 'btn btn-success' },
+                buttonsStyling: false
+            });
+
+            // Atualizar tabela
+            table.ajax.reload();
+        }).catch(error => {
+            Swal.fire({
+                title: 'Erro',
+                text: error.responseJSON?.message || 'Falha ao gerar recebíveis.',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                customClass: { confirmButton: 'btn btn-primary' },
+                buttonsStyling: false
+            });
+        });
+    }
 
     // ================= Atualizar Métricas =================
     function updateMetrics() {
