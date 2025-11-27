@@ -492,8 +492,8 @@ class Comercial extends Controller
   public function transferContact(Request $request)
   {
     try {
-      $existePreditiva = DB::table('preditiva') // ajuste o nome da tabela
-        ->where('contato_id', $request->idMailing) // ajuste o campo
+      $existePreditiva = DB::table('preditiva') 
+        ->where('contato_id', $request->idMailing) 
         ->exists();
 
       if ($existePreditiva) {
@@ -683,7 +683,6 @@ class Comercial extends Controller
   public function backQueue(Request $request)
   {
     try {
-      // Se houver anotação (vindo do cronograma), salvar no histórico do cliente
       if ($request->filled('anotacao')) {
         $this->comentariosRepository->createComment(
           Auth::user()->empresa_id,
@@ -873,14 +872,11 @@ class Comercial extends Controller
       ->first();
 
     if ($cliente) {
-      // Validar se o CPF está preenchido
       if (empty($cliente->cpf) || is_null($cliente->cpf)) {
-        // Desativar o lead da preditiva automaticamente
         Preditiva::where('contato_id', $cliente->id)
           ->where('empresa_id', $empresaId)
           ->update(['status' => 'N']);
 
-        // Registrar no log o motivo da desativação
         LogPreditiva::create([
           'empresa_id' => $empresaId,
           'user_id' => $userId,
@@ -889,18 +885,15 @@ class Comercial extends Controller
           'acao' => 'DESCARTE'
         ]);
 
-        // Buscar o próximo lead recursivamente
         return $this->getClientesPreditiva($request);
       }
 
-      // Atribuir o cliente ao usuário atual
       Preditiva::where('contato_id', $cliente->id)
         ->update([
           'user_id' => $userId,
           'data_atribuicao' => now()
         ]);
 
-      // Buscar dependentes do cliente
       $dependentes = Dependentes::where('contato_id', $cliente->id)
         ->select('id', 'nome', 'cpf', 'idade', 'parentesco', 'telefone_1', 'telefone_2', 'telefone_3', 'valor_plano')
         ->get();
@@ -920,7 +913,6 @@ class Comercial extends Controller
     $contatoId = $request->contato_id;
     $tabulacao = $request->tabulacao ?? 'SEM TABULAÇÃO';
 
-    // Registrar o descarte
     LogPreditiva::create([
       'empresa_id' => $empresaId,
       'user_id' => $userId,
@@ -929,21 +921,17 @@ class Comercial extends Controller
       'acao' => 'DESCARTE'
     ]);
 
-    // Contar total de descartes deste lead
     $totalDescartes = DB::table('log_preditiva')
       ->where('contato_id', $contatoId)
       ->where('empresa_id', $empresaId)
       ->where('acao', 'DESCARTE')
       ->count();
 
-    // Se atingiu 5 ou mais descartes, desativar permanentemente
     if ($totalDescartes >= 5) {
-      // Remover da preditiva
       Preditiva::where('contato_id', $contatoId)
         ->where('empresa_id', $empresaId)
         ->delete();
 
-      // Desativar o contato
       Contatos::where('id', $contatoId)
         ->where('empresa_id', $empresaId)
         ->update([
@@ -958,7 +946,6 @@ class Comercial extends Controller
       ]);
     }
 
-    // Se não atingiu o limite, apenas liberar para outros corretores
     Preditiva::where('contato_id', $contatoId)
       ->update([
         'user_id' => null,
@@ -978,7 +965,6 @@ class Comercial extends Controller
     $empresaId = Auth::user()->empresa_id;
     $contatoId = $request->contato_id;
 
-    // Registrar a conversão no log
     LogPreditiva::create([
       'empresa_id' => $empresaId,
       'user_id' => $userId,
@@ -987,7 +973,6 @@ class Comercial extends Controller
       'acao' => 'CONVERSAO'
     ]);
 
-    // Buscar a tabulação "PROSPECÇÃO" da empresa
     $tabulacaoProspeccao = DB::table('tabulacoes')
       ->where('empresa_id', $empresaId)
       ->where('descricao', 'PROSPECÇÃO')
@@ -995,14 +980,12 @@ class Comercial extends Controller
       ->first();
 
     if ($tabulacaoProspeccao) {
-      // Verificar se já existe um registro para este contato
       $existingRecord = DB::table('contatos_corretores')
         ->where('contato_id', $contatoId)
         ->where('user_id', $userId)
         ->first();
 
       if (!$existingRecord) {
-        // Criar registro na tabela contatos_corretores
         DB::table('contatos_corretores')->insert([
           'empresa_id' => $empresaId,
           'contato_id' => $contatoId,
@@ -1016,10 +999,8 @@ class Comercial extends Controller
       }
     }
 
-    // Remover da fila preditiva
     Preditiva::where('contato_id', $contatoId)->delete();
 
-    // Todos os comentarios anteriores que o vendedor fez será ocutado
     Comentarios::where('user_id', $userId)
       ->where('contato_id', $contatoId)
       ->where('empresa_id', $empresaId)
@@ -1070,23 +1051,19 @@ class Comercial extends Controller
       DB::transaction(function () use ($ids, $clearPreditiva, $empresaId) {
         foreach ($ids as $id) {
           if ($clearPreditiva) {
-            // Remove da preditiva
             DB::table('preditiva')
               ->where('contato_id', $id)
               ->where('empresa_id', $empresaId)
               ->delete();
 
-            // Remove todos os logs da preditiva
             DB::table('log_preditiva')
               ->where('contato_id', $id)
               ->where('empresa_id', $empresaId)
               ->delete();
           }
 
-          // Remove da tabela contatos_corretores
           $this->repositoryContatosCorretores->deleteMailing($id);
 
-          // Desativa o contato
           Contatos::where('id', $id)
             ->where('empresa_id', $empresaId)
             ->update([
@@ -1143,7 +1120,6 @@ class Comercial extends Controller
         ->when($request->has('prioridade') && $request->prioridade !== 'TODAS', fn($s) => $s->where('prioridade', $request->prioridade))
         ->when($request->has('assigned_to') && $request->assigned_to, fn($s) => $s->where('assigned_to', $request->assigned_to))
         ->where(function($query) {
-            // Mostrar demandas não concluídas OU concluídas há menos de 30 dias
             $query->where('status', '!=', 'CONCLUIDA')
                   ->orWhere(function($q) {
                       $q->where('status', 'CONCLUIDA')
