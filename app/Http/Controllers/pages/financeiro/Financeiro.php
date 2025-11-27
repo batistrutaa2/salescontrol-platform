@@ -290,6 +290,39 @@ class Financeiro extends Controller
         return response()->json(['success' => true]);
     }
 
+    /**
+     * Atualiza a data de recebimento de uma parcela (para parcelas já pagas ou para registrar pagamento retroativo)
+     */
+    public function atualizarDataRecebimento(Request $request, $id)
+    {
+        $request->validate([
+            'data_recebimento' => 'required|date',
+        ]);
+
+        $parcela = Recebivel::findOrFail($id);
+
+        // Verificar se pertence à empresa do usuário
+        if ($parcela->empresa_id !== auth()->user()->empresa_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acesso negado.'
+            ], 403);
+        }
+
+        $dataRecebimento = \Carbon\Carbon::parse($request->data_recebimento);
+
+        $parcela->update([
+            'status' => 'PAGO',
+            'data_recebimento' => $dataRecebimento
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data de recebimento atualizada com sucesso.',
+            'data_recebimento' => $dataRecebimento->format('d/m/Y')
+        ]);
+    }
+
 
     public function relatorioFinanceiro()
     {

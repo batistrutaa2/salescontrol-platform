@@ -43,11 +43,36 @@ $(function () {
             ? `<span class="badge bg-secondary">Cancelado</span>`
             : `<span class="badge bg-warning">Pendente</span>`;
 
-        let actionBtn = parcela.status === 'PAGO'
-          ? '—'
-          : `<button class="btn btn-sm btn-success pagar-parcela" data-id="${parcela.id}">
-               <i class="ri-check-line"></i> Marcar como Pago
-             </button>`;
+        // Botões de ação
+        let actionBtns = '';
+        if (parcela.status === 'PAGO') {
+          // Parcela paga: mostrar botão para editar data
+          actionBtns = `
+            <button class="btn btn-sm btn-outline-primary editar-data-recebimento"
+                    data-id="${parcela.id}"
+                    data-parcela="${parcela.parcela}"
+                    data-data="${parcela.data_recebimento || ''}"
+                    title="Editar data de recebimento">
+              <i class="ri-edit-line"></i> Editar
+            </button>`;
+        } else if (parcela.status !== 'CANCELADO') {
+          // Parcela pendente: botões para marcar como pago ou definir data
+          actionBtns = `
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-success pagar-parcela" data-id="${parcela.id}" title="Marcar como pago (hoje)">
+                <i class="ri-check-line"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-primary editar-data-recebimento"
+                      data-id="${parcela.id}"
+                      data-parcela="${parcela.parcela}"
+                      data-data=""
+                      title="Definir data de pagamento">
+                <i class="ri-calendar-line"></i>
+              </button>
+            </div>`;
+        } else {
+          actionBtns = '<span class="text-muted">—</span>';
+        }
 
         let dataRecebimento = parcela.data_recebimento
           ? parcela.data_recebimento
@@ -60,7 +85,7 @@ $(function () {
             <td>${parcela.data_prevista}</td>
             <td>${dataRecebimento}</td>
             <td>${statusBadge}</td>
-            <td>${actionBtn}</td>
+            <td>${actionBtns}</td>
           </tr>
         `);
       });
@@ -75,12 +100,13 @@ $(function () {
     carregarParcelas(currentVendaId);
   });
 
-  // Marcar como Pago
+  // Marcar como Pago (com data de hoje)
   $(document).on('click', '.pagar-parcela', function () {
     let parcelaId = $(this).data('id');
 
     Swal.fire({
       title: 'Confirmar pagamento?',
+      text: 'A parcela será marcada como paga com a data de hoje.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sim, pagar',
@@ -95,6 +121,100 @@ $(function () {
           location.reload();
         }).fail(() => {
           Swal.fire('Erro!', 'Não foi possível marcar como paga.', 'error');
+        });
+      }
+    });
+  });
+
+  // Editar/Definir data de recebimento
+  $(document).on('click', '.editar-data-recebimento', function () {
+    let parcelaId = $(this).data('id');
+    let numeroParcela = $(this).data('parcela');
+    let dataAtual = $(this).data('data') || '';
+
+    // Converter data de dd/mm/yyyy para yyyy-mm-dd (formato do input date)
+    let dataFormatada = '';
+    if (dataAtual) {
+      let partes = dataAtual.split('/');
+      if (partes.length === 3) {
+        dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
+      }
+    }
+
+    Swal.fire({
+      title: `<i class="ri-calendar-check-line text-primary"></i> Parcela ${numeroParcela}`,
+      html: `
+        <div class="text-start">
+          <p class="mb-3">${dataAtual ? 'Edite a data de recebimento:' : 'Informe a data em que o pagamento foi recebido:'}</p>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Data de Recebimento</label>
+            <input type="date" id="swal-data-recebimento" class="form-control"
+                   value="${dataFormatada}" max="${new Date().toISOString().split('T')[0]}">
+          </div>
+          <p class="text-muted small mb-0">
+            <i class="ri-information-line me-1"></i>
+            ${dataAtual ? 'A parcela continuará marcada como paga.' : 'A parcela será marcada como paga na data informada.'}
+          </p>
+        </div>
+      `,
+      icon: null,
+      showCancelButton: true,
+      confirmButtonText: '<i class="ri-check-line me-1"></i> Salvar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        confirmButton: 'btn btn-primary me-2',
+        cancelButton: 'btn btn-secondary'
+      },
+      buttonsStyling: false,
+      preConfirm: () => {
+        const data = document.getElementById('swal-data-recebimento').value;
+        if (!data) {
+          Swal.showValidationMessage('Por favor, informe a data de recebimento.');
+          return false;
+        }
+        return data;
+      }
+    }).then(result => {
+      if (result.isConfirmed && result.value) {
+        // Mostrar loading
+        Swal.fire({
+          title: 'Salvando...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        $.ajax({
+          url: `/financeiro/recebiveis/parcelas/${parcelaId}/data-recebimento`,
+          method: 'PUT',
+          data: {
+            data_recebimento: result.value
+          },
+          headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+          },
+          success: function (response) {
+            Swal.fire({
+              title: 'Sucesso!',
+              text: response.message,
+              icon: 'success',
+              confirmButtonText: 'OK',
+              customClass: { confirmButton: 'btn btn-success' },
+              buttonsStyling: false
+            }).then(() => {
+              // Recarregar parcelas e página
+              $('#parcelasModal').modal('hide');
+              location.reload();
+            });
+          },
+          error: function (xhr) {
+            let errorMsg = 'Erro ao atualizar data de recebimento.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+              errorMsg = xhr.responseJSON.message;
+            }
+            Swal.fire('Erro!', errorMsg, 'error');
+          }
         });
       }
     });

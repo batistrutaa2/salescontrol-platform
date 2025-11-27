@@ -304,6 +304,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/parcelas/{id}/pagar', [Financeiro::class, 'pagarParcela'])
         ->name('financeiro.recebiveis.pagar');
 
+    // Atualizar data de recebimento de uma parcela
+    Route::put('/parcelas/{id}/data-recebimento', [Financeiro::class, 'atualizarDataRecebimento'])
+        ->name('financeiro.recebiveis.atualizarData');
+
     // Recalcular valores com nova regra
     Route::post('/{vendaId}/recalcular', [Financeiro::class, 'recalcularRecebiveis'])
         ->name('financeiro.recebiveis.recalcular');
