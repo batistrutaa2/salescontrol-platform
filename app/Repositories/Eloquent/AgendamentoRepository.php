@@ -51,6 +51,11 @@ class AgendamentoRepository implements AgendamentoRepositoryInterface
           ->leftJoin('users AS b', 'b.id', '=', 'agendamentos.user_id')
           ->leftJoin('contatos AS c', 'c.id', '=', 'agendamentos.contato_id')
           ->where('agendamentos.empresa_id', Auth::user()->empresa_id)
+          ->whereNotExists(function ($query) {
+            $query->select(DB::raw(1))
+              ->from('vendas')
+              ->whereColumn('vendas.contato_id', 'agendamentos.contato_id');
+          })
           ->get();
       } else {
         $results = $this->model->select('c.id', 'b.name AS nome_corretor', 'c.nome_cliente', 'agendamentos.horario_agendamento', 'agendamentos.observacao', 'agendamentos.notificado')
@@ -58,6 +63,11 @@ class AgendamentoRepository implements AgendamentoRepositoryInterface
           ->leftJoin('contatos AS c', 'c.id', '=', 'agendamentos.contato_id')
           ->where('agendamentos.empresa_id', Auth::user()->empresa_id)
           ->where('b.id', Auth::user()->id)
+          ->whereNotExists(function ($query) {
+            $query->select(DB::raw(1))
+              ->from('vendas')
+              ->whereColumn('vendas.contato_id', 'agendamentos.contato_id');
+          })
           ->get();
       }
 

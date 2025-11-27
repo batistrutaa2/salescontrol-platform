@@ -114,6 +114,7 @@ public function getClientComercial(string $rulerUser, string $empresa_id)
             ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
             ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
             ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+            ->where('tabulacoes.tipo_tabulacao', 'C') // Apenas tabulações comerciais (exclui pós-venda)
             ->groupBy(
                 'tabulacoes.id',
                 'tabulacoes.descricao',
@@ -172,6 +173,7 @@ public function getClientComercial(string $rulerUser, string $empresa_id)
             ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
             ->where('contatos_corretores.user_id', Auth::user()->id)
             ->where('contatos_corretores.empresa_id', $empresa_id)
+            ->where('tabulacoes.tipo_tabulacao', 'C') // Apenas tabulações comerciais (exclui pós-venda)
             ->groupBy(
                 'tabulacoes.id',
                 'tabulacoes.descricao',
