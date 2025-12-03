@@ -1210,19 +1210,23 @@ class Comissionamento extends Controller
     {
         $empresaId = auth()->user()->empresa_id;
 
-        if (Auth::user()->user_role_id === UserRole::VENDEDOR) {
+        // Apenas ADMINISTRATIVO e DEVELOPER podem ver todos os lançamentos
+        $podeVerTodos = in_array(Auth::user()->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER]);
+
+        if ($podeVerTodos) {
             $vendedores = DB::table('users as u')
                 ->join('comissao_pagamentos as p', 'p.vendedor_id', '=', 'u.id')
                 ->where('p.empresa_id', $empresaId)
-                ->where('u.id', Auth::user()->id)
                 ->select('u.id', 'u.name')
                 ->distinct()
                 ->orderBy('u.name')
                 ->get();
         } else {
+            // VENDEDOR, BACKOFFICE, SUPERVISOR só veem os próprios lançamentos
             $vendedores = DB::table('users as u')
                 ->join('comissao_pagamentos as p', 'p.vendedor_id', '=', 'u.id')
                 ->where('p.empresa_id', $empresaId)
+                ->where('u.id', Auth::user()->id)
                 ->select('u.id', 'u.name')
                 ->distinct()
                 ->orderBy('u.name')
@@ -1246,7 +1250,8 @@ class Comissionamento extends Controller
         $user = auth()->user();
         $empresaId = $user->empresa_id;
 
-        $isVendedor = $user->user_role_id == UserRole::VENDEDOR;
+        // Apenas ADMINISTRATIVO e DEVELOPER podem ver todos os lançamentos
+        $podeVerTodos = in_array($user->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER]);
 
         $mes = $request->input('mes');
         $vendedorId = $request->integer('vendedor_id');
@@ -1259,15 +1264,17 @@ class Comissionamento extends Controller
             ->where('p.empresa_id', $empresaId)
             ->whereNotNull('p.data_pagamento'); // Filtra apenas pagamentos com data definida
 
-        if ($isVendedor) {
-            $q->where('p.vendedor_id', $user->id);
-        } else {
+        if ($podeVerTodos) {
+            // ADMINISTRATIVO e DEVELOPER podem filtrar por qualquer vendedor/criador
             if (!empty($vendedorId)) {
                 $q->where('p.vendedor_id', $vendedorId);
             }
             if (!empty($criadorId)) {
                 $q->where('p.created_by', $criadorId);
             }
+        } else {
+            // VENDEDOR, BACKOFFICE, SUPERVISOR só veem os próprios lançamentos
+            $q->where('p.vendedor_id', $user->id);
         }
 
         if (!empty($mes)) {
