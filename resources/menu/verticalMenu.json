@@ -475,7 +475,8 @@
       "slug": "comissionamento",
       "rules": [
         "DEVELOPER",
-        "VENDEDOR"
+        "VENDEDOR",
+        "BACKOFFICE"
       ],
       "submenu": [
         {

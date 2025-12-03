@@ -146,7 +146,7 @@ class Comissionamento extends Controller
 
         $vendedores = User::where('empresa_id', $empresaId)
             ->where('ativo', 'Y')
-            ->where('user_role_id', UserRole::VENDEDOR)
+            ->whereIn('user_role_id', [UserRole::VENDEDOR, UserRole::BACKOFFICE])
             ->select('id', 'name')
             ->orderBy('name')
             ->get();
