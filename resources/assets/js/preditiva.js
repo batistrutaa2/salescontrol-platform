@@ -276,6 +276,39 @@ $(function () {
     row.toggleClass('selected', this.checked);
   });
 
+  $('#btnLimparLogsLeads').on('click', function () {
+    const selecionados = [];
+
+    $('#tabela-fila-preditiva tbody input.select-lead:checked').each(function () {
+      selecionados.push($(this).val());
+    });
+
+    if (selecionados.length === 0) {
+      return toastr.warning('Nenhum lead selecionado.');
+    }
+
+    if (!confirm(`Deseja reiniciar as tentativas de ${selecionados.length} lead(s)? Os logs serão apagados e a contagem de tentativas voltará a zero.`)) {
+      return;
+    }
+
+    $.ajax({
+      url: '/comercial/preditiva/limpar-logs',
+      method: 'POST',
+      data: {
+        ids: selecionados,
+        _token: $('meta[name="csrf-token"]').attr('content')
+      },
+      success: function (response) {
+        toastr.success(response.message || 'Tentativas reiniciadas com sucesso!');
+        atualizarPreditiva();
+      },
+      error: function (xhr) {
+        const msg = xhr.responseJSON?.message || 'Erro ao limpar logs.';
+        toastr.error(msg);
+      }
+    });
+  });
+
   $('#btnLimparFila').on('click', function () {
     const selecionados = [];
 

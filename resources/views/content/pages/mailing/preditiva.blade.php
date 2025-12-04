@@ -137,7 +137,10 @@
                     <button id="btnLimparFiltros" class="btn btn-outline-secondary">
                         <i class="ri-refresh-line me-1"></i> Limpar Filtros
                     </button>
-                    <button id="btnLimparFila" class="btn btn-danger ms-auto">
+                    <button id="btnLimparLogsLeads" class="btn btn-warning ms-auto">
+                        <i class="ri-restart-line me-1"></i> Reiniciar Tentativas
+                    </button>
+                    <button id="btnLimparFila" class="btn btn-danger">
                         <i class="ri-delete-bin-line me-1"></i> Limpar Fila Selecionada
                     </button>
                 </div>

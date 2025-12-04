@@ -100,6 +100,7 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/preditiva/excluir/{id}', [Mailing::class, 'excluirLeadPreditiva'])->name('preditiva.excluir');
   Route::post('/comercial/preditiva/remover/{id}', [Mailing::class, 'removerDaPreditiva'])->name('preditiva.remover');
   Route::get('/comercial/preditiva/tabulacoes', [Mailing::class, 'getTabulacoesDistintas'])->name('preditiva.tabulacoes');
+  Route::post('/comercial/preditiva/limpar-logs', [Mailing::class, 'limparLogsPreditiva'])->name('preditiva.limparLogs');
   Route::get('/mailing/leads-descartados', [Mailing::class, 'leadDescartados'])->name('mailing.leadDescartados');
   Route::get('/mailing/get-leads-descartados', [Mailing::class, 'getLeadsDescartados'])->name('comercial.getLeadsDescartados');
   Route::get('/mailing/getComentariosLead/{id}', [Mailing::class, 'getComentariosLead'])->name('comercial.getComentariosLead');

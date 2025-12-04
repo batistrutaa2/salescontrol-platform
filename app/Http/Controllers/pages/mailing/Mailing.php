@@ -521,6 +521,29 @@ class Mailing extends Controller
     }
   }
 
+  public function limparLogsPreditiva(Request $request)
+  {
+    $ids = $request->input('ids', []);
+    $empresaId = Auth::user()->empresa_id;
+
+    if (empty($ids)) {
+      return response()->json(['success' => false, 'message' => 'Nenhum lead selecionado.'], 400);
+    }
+
+    try {
+      $deleted = LogPreditiva::whereIn('contato_id', $ids)
+        ->where('empresa_id', $empresaId)
+        ->delete();
+
+      return response()->json([
+        'success' => true,
+        'message' => "Logs de {$deleted} registros limpos com sucesso. As tentativas foram reiniciadas."
+      ]);
+    } catch (\Exception $e) {
+      return response()->json(['success' => false, 'message' => 'Erro ao limpar logs.'], 500);
+    }
+  }
+
   public function importarParaPreditiva(Request $request)
   {
     try {
