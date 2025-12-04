@@ -128,17 +128,45 @@
     }
 
     .chart-container {
-        height: 400px !important;
-        width: 100% !important;
+        min-height: 380px;
+        width: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
     .chart-container > div {
-        width: 100% !important;
-        height: 100% !important;
+        width: 100%;
+        height: 100%;
     }
+
+    .chart-container .text-muted {
+        font-size: 14px;
+    }
+
+    /* Animação suave nos cards */
+    .metric-card {
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Delay para animação em cascata */
+    .col-lg-2:nth-child(1) .metric-card { animation-delay: 0.05s; }
+    .col-lg-2:nth-child(2) .metric-card { animation-delay: 0.1s; }
+    .col-lg-2:nth-child(3) .metric-card { animation-delay: 0.15s; }
+    .col-lg-2:nth-child(4) .metric-card { animation-delay: 0.2s; }
+    .col-lg-2:nth-child(5) .metric-card { animation-delay: 0.25s; }
+    .col-lg-2:nth-child(6) .metric-card { animation-delay: 0.3s; }
 </style>
 @endsection
 
@@ -223,59 +251,14 @@
         </div>
     </div>
 
-    <!-- Primeira Dobra - Gráficos de Distribuição -->
+    <!-- Primeira Linha - Visão Geral -->
     <div class="row g-3 mb-4">
-        <!-- Gráfico de Barras - Leads Comerciais -->
-        <div class="col-md-4">
-            <div class="card modern-card">
+        <!-- Gráfico Donut - Distribuição Geral -->
+        <div class="col-lg-5 col-md-12">
+            <div class="card modern-card h-100">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="ri-bar-chart-line me-2"></i>Leads Comerciais
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div id="chart-comercial" class="chart-container"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gráfico de Barras - Leads Administrativos -->
-        <div class="col-md-4">
-            <div class="card modern-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ri-bar-chart-line me-2"></i>Leads Administrativos
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div id="chart-administrativo" class="chart-container"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gráfico de Barras - Leads Descarte -->
-        <div class="col-md-4">
-            <div class="card modern-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ri-bar-chart-line me-2"></i>Leads Descarte
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div id="chart-descarte" class="chart-container"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Segunda Dobra - Gráficos Gerais -->
-    <div class="row g-3 mb-4">
-        <!-- Gráfico de Pizza - Distribuição Geral -->
-        <div class="col-md-6">
-            <div class="card modern-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="ri-pie-chart-2-line me-2"></i>Distribuição Geral de Leads
+                        <i class="ri-pie-chart-2-line me-2 text-primary"></i>Distribuição Geral de Leads
                     </h5>
                 </div>
                 <div class="card-body">
@@ -284,16 +267,64 @@
             </div>
         </div>
 
-        <!-- Gráfico de Barras - Motivos de Descarte -->
-        <div class="col-md-6">
-            <div class="card modern-card">
+        <!-- Gráfico de Barras Horizontal - Motivos de Descarte -->
+        <div class="col-lg-7 col-md-12">
+            <div class="card modern-card h-100">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="ri-bar-chart-line me-2"></i>Motivos de Descarte
+                        <i class="ri-bar-chart-horizontal-line me-2 text-purple"></i>Motivos de Descarte
                     </h5>
                 </div>
                 <div class="card-body">
                     <div id="chart-motivos-descarte" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Segunda Linha - Detalhamento por Status -->
+    <div class="row g-3 mb-4">
+        <!-- Gráfico de Barras - Leads Comerciais -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card modern-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ri-bar-chart-grouped-line me-2 text-info"></i>Leads Comerciais
+                    </h5>
+                    <small class="text-muted">Por status de tabulação</small>
+                </div>
+                <div class="card-body">
+                    <div id="chart-comercial" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Barras - Leads Administrativos -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card modern-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ri-bar-chart-grouped-line me-2 text-warning"></i>Leads Administrativos
+                    </h5>
+                    <small class="text-muted">Por status de tabulação</small>
+                </div>
+                <div class="card-body">
+                    <div id="chart-administrativo" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Barras - Leads Descarte -->
+        <div class="col-lg-4 col-md-12">
+            <div class="card modern-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ri-bar-chart-grouped-line me-2 text-danger"></i>Leads Descartados
+                    </h5>
+                    <small class="text-muted">Por categoria de descarte</small>
+                </div>
+                <div class="card-body">
+                    <div id="chart-descarte" class="chart-container"></div>
                 </div>
             </div>
         </div>

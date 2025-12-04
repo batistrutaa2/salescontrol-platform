@@ -18,6 +18,30 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
         borderColor = config.colors.borderColor;
     }
 
+    // Paleta de cores moderna
+    const chartColors = {
+        comercial: {
+            primary: '#696cff',
+            gradient: '#8592ff'
+        },
+        administrativo: {
+            primary: '#ffab00',
+            gradient: '#ffd666'
+        },
+        descarte: {
+            primary: '#ff4c51',
+            gradient: '#ff8a8d'
+        },
+        preditiva: {
+            primary: '#28c76f',
+            gradient: '#55dd92'
+        },
+        motivos: {
+            primary: '#7367f0',
+            gradient: '#9e95f5'
+        }
+    };
+
     $(function () {
         // Inicializar flatpickr com modo range
         if (document.querySelector('.flatpickr-range')) {
@@ -86,18 +110,19 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
         $('#leads-administrativo').text(formatarNumero(resumo.leads_administrativo));
         $('#leads-preditiva').text(formatarNumero(resumo.leads_preditiva));
         $('#leads-descartados').text(formatarNumero(resumo.leads_descartados));
-        // Mantendo tentativas_preditiva no response para análise futura
     }
 
     function renderizarGraficos(data) {
+        renderizarGraficoDistribuicaoGeral(data.resumo);
         renderizarGraficoComercial(data.distribuicao_comercial);
         renderizarGraficoAdministrativo(data.distribuicao_administrativa);
         renderizarGraficoDescarte(data.distribuicao_descarte);
-        renderizarGraficoDistribuicaoGeral(data.resumo);
         renderizarGraficoMotivosDescarte(data.motivos_descarte);
     }
 
     function renderizarGraficoDistribuicaoGeral(resumo) {
+        const total = resumo.leads_comercial + resumo.leads_administrativo + resumo.leads_preditiva + resumo.leads_descartados;
+
         const options = {
             series: [
                 resumo.leads_comercial,
@@ -106,58 +131,152 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
                 resumo.leads_descartados
             ],
             chart: {
-                type: 'pie',
-                height: 350,
+                type: 'donut',
+                height: 380,
                 width: '100%',
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800,
+                    animateGradually: {
+                        enabled: true,
+                        delay: 150
+                    },
+                    dynamicAnimation: {
+                        enabled: true,
+                        speed: 350
+                    }
+                },
                 toolbar: {
                     show: true,
                     tools: {
                         download: true
                     }
+                },
+                dropShadow: {
+                    enabled: true,
+                    top: 2,
+                    left: 0,
+                    blur: 4,
+                    opacity: 0.12
                 }
             },
             labels: ['Com Vendedores', 'Administrativo', 'Na Preditiva', 'Descartados'],
-            colors: ['#17a2b8', '#ffc107', '#28a745', '#dc3545'],
+            colors: [chartColors.comercial.primary, chartColors.administrativo.primary, chartColors.preditiva.primary, chartColors.descarte.primary],
+            stroke: {
+                width: 0
+            },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '70%',
+                        labels: {
+                            show: true,
+                            name: {
+                                show: true,
+                                fontSize: '14px',
+                                fontWeight: 600,
+                                color: headingColor,
+                                offsetY: -10
+                            },
+                            value: {
+                                show: true,
+                                fontSize: '26px',
+                                fontWeight: 700,
+                                color: headingColor,
+                                offsetY: 5,
+                                formatter: function (val) {
+                                    return formatarNumero(parseInt(val));
+                                }
+                            },
+                            total: {
+                                show: true,
+                                label: 'Total',
+                                fontSize: '14px',
+                                fontWeight: 500,
+                                color: labelColor,
+                                formatter: function (w) {
+                                    const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                    return formatarNumero(total);
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             legend: {
+                show: true,
                 position: 'bottom',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontFamily: 'inherit',
+                fontWeight: 500,
                 labels: {
                     colors: labelColor,
                     useSeriesColors: false
+                },
+                markers: {
+                    width: 12,
+                    height: 12,
+                    radius: 12,
+                    offsetX: -3
+                },
+                itemMargin: {
+                    horizontal: 12,
+                    vertical: 8
                 }
             },
             dataLabels: {
                 enabled: true,
                 formatter: function (val, opts) {
-                    return opts.w.config.series[opts.seriesIndex];
+                    return val.toFixed(1) + '%';
                 },
                 style: {
+                    fontSize: '12px',
+                    fontWeight: 600,
                     colors: ['#fff']
+                },
+                dropShadow: {
+                    enabled: true,
+                    top: 1,
+                    left: 1,
+                    blur: 2,
+                    opacity: 0.3
                 }
             },
             tooltip: {
+                enabled: true,
+                fillSeriesColor: false,
+                theme: isDarkStyle ? 'dark' : 'light',
                 y: {
                     formatter: function(value) {
-                        const total = resumo.total_leads;
-                        const percentual = ((value / total) * 100).toFixed(1);
-                        return value + ' (' + percentual + '%)';
+                        const percentual = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                        return formatarNumero(value) + ' leads (' + percentual + '%)';
                     }
                 }
             },
-            plotOptions: {
-                pie: {
-                    customScale: 0.9
+            states: {
+                hover: {
+                    filter: {
+                        type: 'darken',
+                        value: 0.9
+                    }
+                },
+                active: {
+                    filter: {
+                        type: 'darken',
+                        value: 0.85
+                    }
                 }
             },
             responsive: [{
                 breakpoint: 480,
                 options: {
                     chart: {
-                        width: 300
+                        height: 320
                     },
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        fontSize: '11px'
                     }
                 }
             }]
@@ -175,8 +294,14 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
     }
 
     function renderizarGraficoComercial(distribuicao) {
+        if (!distribuicao || distribuicao.length === 0) {
+            document.querySelector("#chart-comercial").innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted"><span>Sem dados para exibir</span></div>';
+            return;
+        }
+
         const categorias = distribuicao.map(item => item.descricao);
         const valores = distribuicao.map(item => item.total);
+        const maxValue = Math.max(...valores);
 
         const options = {
             series: [{
@@ -185,64 +310,115 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
             }],
             chart: {
                 type: 'bar',
-                height: 350,
+                height: 380,
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800
+                },
                 toolbar: {
-                    show: true
+                    show: true,
+                    tools: {
+                        download: true,
+                        selection: false,
+                        zoom: false,
+                        zoomin: false,
+                        zoomout: false,
+                        pan: false,
+                        reset: false
+                    }
+                },
+                dropShadow: {
+                    enabled: true,
+                    top: 2,
+                    left: 0,
+                    blur: 4,
+                    opacity: 0.1
                 }
             },
             plotOptions: {
                 bar: {
-                    borderRadius: 8,
+                    borderRadius: 6,
                     horizontal: false,
-                    columnWidth: '60%',
+                    columnWidth: categorias.length <= 3 ? '40%' : '65%',
+                    distributed: true,
                     dataLabels: {
                         position: 'top'
                     }
                 }
             },
+            colors: gerarGradienteCores(chartColors.comercial.primary, chartColors.comercial.gradient, categorias.length),
             dataLabels: {
                 enabled: true,
-                offsetY: -20,
+                offsetY: -22,
                 style: {
                     fontSize: '12px',
-                    colors: ['#fff']
+                    fontWeight: 600,
+                    colors: [labelColor]
+                },
+                formatter: function(val) {
+                    return formatarNumero(val);
                 }
+            },
+            legend: {
+                show: false
             },
             xaxis: {
                 categories: categorias,
                 labels: {
-                    rotate: -45,
-                    rotateAlways: true,
+                    rotate: categorias.length > 4 ? -45 : 0,
+                    rotateAlways: categorias.length > 4,
+                    trim: true,
+                    maxHeight: 80,
                     style: {
                         fontSize: '11px',
+                        fontWeight: 500,
                         colors: labelColor
                     }
+                },
+                axisBorder: {
+                    show: false
+                },
+                axisTicks: {
+                    show: false
                 }
             },
             yaxis: {
-                title: {
-                    text: 'Quantidade de Leads',
-                    style: {
-                        color: headingColor
-                    }
-                },
                 labels: {
                     style: {
+                        fontSize: '11px',
                         colors: labelColor
+                    },
+                    formatter: function(val) {
+                        return formatarNumero(val);
                     }
                 }
             },
-            colors: ['#17a2b8'],
-            fill: {
-                type: 'gradient',
-                gradient: {
-                    shade: 'light',
-                    type: 'vertical',
-                    shadeIntensity: 0.5,
-                    gradientToColors: ['#20c997'],
-                    inverseColors: false,
-                    opacityFrom: 0.85,
-                    opacityTo: 0.85
+            grid: {
+                borderColor: borderColor,
+                strokeDashArray: 4,
+                padding: {
+                    top: 0,
+                    bottom: 0,
+                    left: 10,
+                    right: 10
+                }
+            },
+            tooltip: {
+                enabled: true,
+                theme: isDarkStyle ? 'dark' : 'light',
+                y: {
+                    formatter: function(val) {
+                        return formatarNumero(val) + ' leads';
+                    }
+                }
+            },
+            states: {
+                hover: {
+                    filter: {
+                        type: 'darken',
+                        value: 0.88
+                    }
                 }
             }
         };
@@ -259,6 +435,11 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
     }
 
     function renderizarGraficoAdministrativo(distribuicao) {
+        if (!distribuicao || distribuicao.length === 0) {
+            document.querySelector("#chart-administrativo").innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted"><span>Sem dados para exibir</span></div>';
+            return;
+        }
+
         const categorias = distribuicao.map(item => item.descricao);
         const valores = distribuicao.map(item => item.total);
 
@@ -269,64 +450,115 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
             }],
             chart: {
                 type: 'bar',
-                height: 350,
+                height: 380,
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800
+                },
                 toolbar: {
-                    show: true
+                    show: true,
+                    tools: {
+                        download: true,
+                        selection: false,
+                        zoom: false,
+                        zoomin: false,
+                        zoomout: false,
+                        pan: false,
+                        reset: false
+                    }
+                },
+                dropShadow: {
+                    enabled: true,
+                    top: 2,
+                    left: 0,
+                    blur: 4,
+                    opacity: 0.1
                 }
             },
             plotOptions: {
                 bar: {
-                    borderRadius: 8,
+                    borderRadius: 6,
                     horizontal: false,
-                    columnWidth: '60%',
+                    columnWidth: categorias.length <= 3 ? '40%' : '65%',
+                    distributed: true,
                     dataLabels: {
                         position: 'top'
                     }
                 }
             },
+            colors: gerarGradienteCores(chartColors.administrativo.primary, chartColors.administrativo.gradient, categorias.length),
             dataLabels: {
                 enabled: true,
-                offsetY: -20,
+                offsetY: -22,
                 style: {
                     fontSize: '12px',
-                    colors: ['#fff']
+                    fontWeight: 600,
+                    colors: [labelColor]
+                },
+                formatter: function(val) {
+                    return formatarNumero(val);
                 }
+            },
+            legend: {
+                show: false
             },
             xaxis: {
                 categories: categorias,
                 labels: {
-                    rotate: -45,
-                    rotateAlways: true,
+                    rotate: categorias.length > 4 ? -45 : 0,
+                    rotateAlways: categorias.length > 4,
+                    trim: true,
+                    maxHeight: 80,
                     style: {
                         fontSize: '11px',
+                        fontWeight: 500,
                         colors: labelColor
                     }
+                },
+                axisBorder: {
+                    show: false
+                },
+                axisTicks: {
+                    show: false
                 }
             },
             yaxis: {
-                title: {
-                    text: 'Quantidade de Leads',
-                    style: {
-                        color: headingColor
-                    }
-                },
                 labels: {
                     style: {
+                        fontSize: '11px',
                         colors: labelColor
+                    },
+                    formatter: function(val) {
+                        return formatarNumero(val);
                     }
                 }
             },
-            colors: ['#ffc107'],
-            fill: {
-                type: 'gradient',
-                gradient: {
-                    shade: 'light',
-                    type: 'vertical',
-                    shadeIntensity: 0.5,
-                    gradientToColors: ['#fd7e14'],
-                    inverseColors: false,
-                    opacityFrom: 0.85,
-                    opacityTo: 0.85
+            grid: {
+                borderColor: borderColor,
+                strokeDashArray: 4,
+                padding: {
+                    top: 0,
+                    bottom: 0,
+                    left: 10,
+                    right: 10
+                }
+            },
+            tooltip: {
+                enabled: true,
+                theme: isDarkStyle ? 'dark' : 'light',
+                y: {
+                    formatter: function(val) {
+                        return formatarNumero(val) + ' leads';
+                    }
+                }
+            },
+            states: {
+                hover: {
+                    filter: {
+                        type: 'darken',
+                        value: 0.88
+                    }
                 }
             }
         };
@@ -343,6 +575,11 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
     }
 
     function renderizarGraficoDescarte(distribuicao) {
+        if (!distribuicao || distribuicao.length === 0) {
+            document.querySelector("#chart-descarte").innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted"><span>Sem dados para exibir</span></div>';
+            return;
+        }
+
         const categorias = distribuicao.map(item => item.descricao);
         const valores = distribuicao.map(item => item.total);
 
@@ -353,64 +590,115 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
             }],
             chart: {
                 type: 'bar',
-                height: 350,
+                height: 380,
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800
+                },
                 toolbar: {
-                    show: true
+                    show: true,
+                    tools: {
+                        download: true,
+                        selection: false,
+                        zoom: false,
+                        zoomin: false,
+                        zoomout: false,
+                        pan: false,
+                        reset: false
+                    }
+                },
+                dropShadow: {
+                    enabled: true,
+                    top: 2,
+                    left: 0,
+                    blur: 4,
+                    opacity: 0.1
                 }
             },
             plotOptions: {
                 bar: {
-                    borderRadius: 8,
+                    borderRadius: 6,
                     horizontal: false,
-                    columnWidth: '60%',
+                    columnWidth: categorias.length <= 3 ? '40%' : '65%',
+                    distributed: true,
                     dataLabels: {
                         position: 'top'
                     }
                 }
             },
+            colors: gerarGradienteCores(chartColors.descarte.primary, chartColors.descarte.gradient, categorias.length),
             dataLabels: {
                 enabled: true,
-                offsetY: -20,
+                offsetY: -22,
                 style: {
                     fontSize: '12px',
-                    colors: ['#fff']
+                    fontWeight: 600,
+                    colors: [labelColor]
+                },
+                formatter: function(val) {
+                    return formatarNumero(val);
                 }
+            },
+            legend: {
+                show: false
             },
             xaxis: {
                 categories: categorias,
                 labels: {
-                    rotate: -45,
-                    rotateAlways: true,
+                    rotate: categorias.length > 4 ? -45 : 0,
+                    rotateAlways: categorias.length > 4,
+                    trim: true,
+                    maxHeight: 80,
                     style: {
                         fontSize: '11px',
+                        fontWeight: 500,
                         colors: labelColor
                     }
+                },
+                axisBorder: {
+                    show: false
+                },
+                axisTicks: {
+                    show: false
                 }
             },
             yaxis: {
-                title: {
-                    text: 'Quantidade de Leads',
-                    style: {
-                        color: headingColor
-                    }
-                },
                 labels: {
                     style: {
+                        fontSize: '11px',
                         colors: labelColor
+                    },
+                    formatter: function(val) {
+                        return formatarNumero(val);
                     }
                 }
             },
-            colors: ['#dc3545'],
-            fill: {
-                type: 'gradient',
-                gradient: {
-                    shade: 'light',
-                    type: 'vertical',
-                    shadeIntensity: 0.5,
-                    gradientToColors: ['#e83e8c'],
-                    inverseColors: false,
-                    opacityFrom: 0.85,
-                    opacityTo: 0.85
+            grid: {
+                borderColor: borderColor,
+                strokeDashArray: 4,
+                padding: {
+                    top: 0,
+                    bottom: 0,
+                    left: 10,
+                    right: 10
+                }
+            },
+            tooltip: {
+                enabled: true,
+                theme: isDarkStyle ? 'dark' : 'light',
+                y: {
+                    formatter: function(val) {
+                        return formatarNumero(val) + ' leads';
+                    }
+                }
+            },
+            states: {
+                hover: {
+                    filter: {
+                        type: 'darken',
+                        value: 0.88
+                    }
                 }
             }
         };
@@ -427,8 +715,14 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
     }
 
     function renderizarGraficoMotivosDescarte(motivos) {
+        if (!motivos || motivos.length === 0) {
+            document.querySelector("#chart-motivos-descarte").innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted"><span>Sem dados para exibir</span></div>';
+            return;
+        }
+
         const categorias = motivos.map(item => item.motivo || 'Sem motivo');
         const valores = motivos.map(item => item.total);
+        const total = valores.reduce((a, b) => a + b, 0);
 
         const options = {
             series: [{
@@ -437,73 +731,138 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
             }],
             chart: {
                 type: 'bar',
-                height: 350,
-                width: '100%',
+                height: 380,
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800
+                },
                 toolbar: {
-                    show: true
+                    show: true,
+                    tools: {
+                        download: true,
+                        selection: false,
+                        zoom: false,
+                        zoomin: false,
+                        zoomout: false,
+                        pan: false,
+                        reset: false
+                    }
+                },
+                dropShadow: {
+                    enabled: true,
+                    top: 2,
+                    left: 0,
+                    blur: 4,
+                    opacity: 0.1
                 }
             },
             plotOptions: {
                 bar: {
-                    borderRadius: 8,
+                    borderRadius: 6,
                     horizontal: true,
-                    barHeight: '50%',
+                    barHeight: categorias.length <= 3 ? '35%' : '60%',
+                    distributed: true,
                     dataLabels: {
-                        position: 'top'
+                        position: 'center'
                     }
                 }
             },
+            colors: gerarGradienteCores(chartColors.motivos.primary, chartColors.motivos.gradient, categorias.length),
             dataLabels: {
                 enabled: true,
-                offsetX: 30,
+                textAnchor: 'middle',
                 style: {
                     fontSize: '11px',
+                    fontWeight: 600,
                     colors: ['#fff']
+                },
+                formatter: function(val, opts) {
+                    const percent = total > 0 ? ((val / total) * 100).toFixed(0) : 0;
+                    return formatarNumero(val) + ' (' + percent + '%)';
+                },
+                dropShadow: {
+                    enabled: true,
+                    top: 1,
+                    left: 1,
+                    blur: 2,
+                    opacity: 0.3
                 }
+            },
+            legend: {
+                show: false
             },
             xaxis: {
                 categories: categorias,
                 labels: {
                     style: {
-                        colors: labelColor,
-                        fontSize: '11px'
+                        fontSize: '11px',
+                        colors: labelColor
+                    },
+                    formatter: function(val) {
+                        return formatarNumero(val);
                     }
+                },
+                axisBorder: {
+                    show: false
+                },
+                axisTicks: {
+                    show: false
                 }
             },
             yaxis: {
                 labels: {
                     style: {
-                        colors: labelColor,
-                        fontSize: '11px'
-                    }
-                }
-            },
-            colors: ['#9b59b6'],
-            fill: {
-                type: 'gradient',
-                gradient: {
-                    shade: 'light',
-                    type: 'horizontal',
-                    shadeIntensity: 0.5,
-                    gradientToColors: ['#8e44ad'],
-                    inverseColors: false,
-                    opacityFrom: 0.85,
-                    opacityTo: 0.85
-                }
-            },
-            tooltip: {
-                y: {
-                    formatter: function(value) {
-                        return value + ' leads';
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        colors: labelColor
+                    },
+                    maxWidth: 150,
+                    formatter: function(val) {
+                        // Truncar textos longos
+                        if (val && val.length > 20) {
+                            return val.substring(0, 18) + '...';
+                        }
+                        return val;
                     }
                 }
             },
             grid: {
+                borderColor: borderColor,
+                strokeDashArray: 4,
+                xaxis: {
+                    lines: {
+                        show: true
+                    }
+                },
+                yaxis: {
+                    lines: {
+                        show: false
+                    }
+                },
                 padding: {
                     top: 0,
                     bottom: 0,
-                    left: 0,
-                    right: 0
+                    left: 10,
+                    right: 10
+                }
+            },
+            tooltip: {
+                enabled: true,
+                theme: isDarkStyle ? 'dark' : 'light',
+                y: {
+                    formatter: function(val) {
+                        const percent = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                        return formatarNumero(val) + ' leads (' + percent + '%)';
+                    }
+                }
+            },
+            states: {
+                hover: {
+                    filter: {
+                        type: 'darken',
+                        value: 0.88
+                    }
                 }
             }
         };
@@ -517,6 +876,42 @@ let chartDistribuicaoGeral, chartComercial, chartAdministrativo, chartDescarte, 
             options
         );
         chartMotivosDescarte.render();
+    }
+
+    // Função auxiliar para gerar cores em gradiente
+    function gerarGradienteCores(corInicial, corFinal, quantidade) {
+        if (quantidade <= 1) return [corInicial];
+        if (quantidade === 2) return [corInicial, corFinal];
+
+        const cores = [];
+        const hexToRgb = (hex) => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        };
+
+        const rgbToHex = (r, g, b) => {
+            return '#' + [r, g, b].map(x => {
+                const hex = Math.round(x).toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        };
+
+        const inicio = hexToRgb(corInicial);
+        const fim = hexToRgb(corFinal);
+
+        for (let i = 0; i < quantidade; i++) {
+            const ratio = i / (quantidade - 1);
+            const r = inicio.r + (fim.r - inicio.r) * ratio;
+            const g = inicio.g + (fim.g - inicio.g) * ratio;
+            const b = inicio.b + (fim.b - inicio.b) * ratio;
+            cores.push(rgbToHex(r, g, b));
+        }
+
+        return cores;
     }
 
     function formatarNumero(numero) {
