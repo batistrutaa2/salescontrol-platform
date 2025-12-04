@@ -104,7 +104,7 @@ $(function () {
         },
         { data: 'telefone1' },
         { data: 'plano' },
-        { data: 'entidade' },
+        { data: 'categoria' },
         {
           data: 'nome_base',
           render: function (data, type, full, meta) {

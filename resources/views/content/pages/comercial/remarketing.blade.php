@@ -259,7 +259,7 @@
                             <th>MOTIVO</th>
                             <th>TELEFONE PRINCIPAL</th>
                             <th>PLANO</th>
-                            <th>ENTIDADE</th>
+                            <th>CATEGORIA</th>
                             <th>BASE ORIGEM</th>
                             <th>DATA IMPORTAÇÃO</th>
                             <th>ÚLTIMA ATUALIZAÇÃO</th>

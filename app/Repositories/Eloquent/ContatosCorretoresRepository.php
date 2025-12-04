@@ -309,7 +309,7 @@ public function getClientInfo($idMailing)
         'b.nome_base',
         'b.created_at as data_importacao',
         DB::raw('COALESCE(sub.descricao, "REMARKETING") AS motivo_remarketing'), // Se subTabulacao for null, retorna "REMARKETING"
-        'b.entidade'
+        'b.categoria'
       )
       ->where('contatos_corretores.empresa_id', $empresa_id)
       ->where('c.descricao', 'REMARKETING')
