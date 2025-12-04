@@ -248,6 +248,7 @@
                             <th>CPF</th>
                             <th>Telefone</th>
                             <th>Valor do Plano</th>
+                            <th>Categoria</th>
                             <th>Base Origem</th>
                             <th>Data Criação</th>
                             <th>Última Atualização</th>

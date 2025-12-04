@@ -31,6 +31,7 @@ let table;
                         return 'R$ ' + valor.toFixed(2).replace('.', ',');
                     }
                 },
+                { data: 'categoria' },
                 {
                     data: 'nome_base',
                     render: function (data) {
