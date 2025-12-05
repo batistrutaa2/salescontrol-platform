@@ -517,7 +517,7 @@ class Backoffice extends Controller
             'operadora'     => $operadora->nome,
             'plano'         => $planoNome,
             'valor'         => $valorParcela,
-            'data_prevista' => Carbon::parse($venda->data_implantacao)->addMonths($parcela->parcela),
+            'data_prevista' => Carbon::parse($venda->data_implantacao)->addMonths($parcela->parcela - 1),
             'status'        => 'PENDENTE',
           ]
         );
