@@ -161,27 +161,46 @@ $(function () {
   }
 
   /**
-   * Criar seção de dia
+   * Criar seção de dia - Modern Timeline Design
    */
   function criarSecaoDia(dia) {
     const statusDia = calcularStatusDia(dia.data);
     const dataFormatada = formatarDataCompleta(dia.data);
     const totalTarefas = dia.agendamentos.length;
 
+    // Determine special classes
+    const isToday = statusDia.label === 'Hoje';
+    const isOverdue = statusDia.label === 'Atrasado';
+    let headerClasses = `timeline-day-header status-${statusDia.color}`;
+    if (isToday) headerClasses += ' is-today';
+    if (isOverdue) headerClasses += ' is-overdue';
+
     let html = `
       <div class="timeline-day-section" data-date="${dia.dataKey}">
-        <div class="timeline-day-header">
-          <div class="timeline-day-icon status-${statusDia.color}">
-            <i class="${statusDia.icon}"></i>
-          </div>
-          <div class="timeline-day-info">
-            <span class="timeline-day-date">${dataFormatada.diaMes}</span>
-            <span class="timeline-day-label">${dataFormatada.diaSemana} • ${statusDia.label}</span>
-          </div>
-          <span class="timeline-day-count bg-label-${statusDia.color}">
-            ${totalTarefas} ${totalTarefas === 1 ? 'agendamento' : 'agendamentos'}
-          </span>
+        <!-- Timeline marker -->
+        <div class="timeline-day-marker status-${statusDia.color}">
+          <i class="${statusDia.icon}"></i>
         </div>
+
+        <!-- Day header -->
+        <div class="${headerClasses}">
+          <div class="timeline-day-info">
+            <div class="timeline-day-date">
+              ${dataFormatada.diaMes}
+              <span class="timeline-day-badge bg-${statusDia.color}">
+                <i class="${statusDia.icon}"></i>
+                ${statusDia.label}
+              </span>
+            </div>
+            <div class="timeline-day-label">${dataFormatada.diaSemana}</div>
+          </div>
+          <div class="timeline-day-count bg-label-${statusDia.color}">
+            <i class="ri-phone-line"></i>
+            ${totalTarefas} ${totalTarefas === 1 ? 'ligação' : 'ligações'}
+          </div>
+        </div>
+
+        <!-- Tasks -->
         <div class="timeline-day-tasks">
     `;
 
@@ -271,7 +290,7 @@ $(function () {
   }
 
   /**
-   * Criar card moderno de agendamento
+   * Criar card moderno de agendamento - New Schedule Card Design
    */
   function criarCardAgendamento(agendamento, index) {
     const statusInfo = calcularStatusAgendamento(agendamento.horario_agendamento);
@@ -279,65 +298,59 @@ $(function () {
     const observacao = agendamento.observacao || '';
 
     return `
-      <div class="card task-card status-${statusInfo.color}" data-agendamento-id="${agendamento.id}">
-        <div class="card-header">
-          <div class="d-flex justify-content-between align-items-start">
-            <div class="flex-grow-1">
-              <div class="task-client-name">
-                <i class="ri-user-line"></i>
-                <span>${agendamento.nome_cliente}</span>
-              </div>
-              <div class="task-broker-name">
-                <i class="ri-user-star-line"></i>
-                <span>${agendamento.nome_corretor}</span>
-              </div>
-            </div>
-            <span class="task-status-badge bg-${statusInfo.color}">${statusInfo.label}</span>
-          </div>
-        </div>
-
-        <div class="card-body">
-          <!-- Data e Hora -->
-          <div class="task-datetime">
-            <i class="${statusInfo.icon} task-datetime-icon text-${statusInfo.color}"></i>
-            <div class="task-datetime-info">
-              <div class="task-date">${dataFormatada.data}</div>
-              <div class="task-time">${dataFormatada.hora}</div>
-            </div>
+      <div class="schedule-card status-${statusInfo.color}" data-agendamento-id="${agendamento.id}">
+        <div class="schedule-card-inner">
+          <!-- Time Block -->
+          <div class="schedule-time-block">
+            <div class="schedule-time text-${statusInfo.color}">${dataFormatada.hora}</div>
+            <div class="schedule-time-label">Horário</div>
           </div>
 
-          <!-- Tempo relativo -->
-          ${statusInfo.tempoRelativo ? `
-            <div class="mb-3">
-              <span class="task-relative-time bg-label-${statusInfo.color} text-${statusInfo.color}">
-                <i class="ri-time-line me-1"></i>${statusInfo.tempoRelativo}
+          <!-- Client Info -->
+          <div class="schedule-client-info">
+            <div class="schedule-client-name">
+              <i class="ri-user-3-line"></i>
+              ${agendamento.nome_cliente}
+            </div>
+            <div class="schedule-broker">
+              <i class="ri-user-star-line"></i>
+              ${agendamento.nome_corretor}
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="schedule-status bg-${statusInfo.color}">
+                <i class="${statusInfo.icon}"></i>
+                ${statusInfo.label}
               </span>
+              ${statusInfo.tempoRelativo ? `
+                <span class="schedule-relative bg-label-${statusInfo.color} text-${statusInfo.color}">
+                  <i class="ri-time-line"></i>
+                  ${statusInfo.tempoRelativo}
+                </span>
+              ` : ''}
             </div>
-          ` : ''}
-
-          <!-- Observação -->
-          ${observacao ? `
-            <div class="task-observation">
-              <div class="mb-1">
-                <i class="ri-file-text-line me-1"></i>
-                <small class="fw-semibold">Observação:</small>
+            ${observacao ? `
+              <div class="schedule-observation">
+                <i class="ri-chat-quote-line"></i>
+                <span>${observacao}</span>
               </div>
-              ${observacao}
-            </div>
-          ` : ''}
+            ` : ''}
+          </div>
 
-          <!-- Ações -->
-          <div class="task-actions">
-            <a href="/comercial/abrir-cliente/${agendamento.id}" class="btn btn-outline-info btn-abrir-cliente">
-              <i class="ri-user-line me-1"></i>Abrir
+          <!-- Actions -->
+          <div class="schedule-actions">
+            <a href="/comercial/abrir-cliente/${agendamento.id}" class="btn btn-outline-primary">
+              <i class="ri-eye-line"></i>
+              Abrir
             </a>
-            <button class="btn btn-outline-primary btn-reagendar" data-id="${agendamento.id}">
-              <i class="ri-calendar-schedule-line me-1"></i>Reagendar
+            <button class="btn btn-outline-secondary btn-reagendar" data-id="${agendamento.id}">
+              <i class="ri-calendar-schedule-line"></i>
+              Reagendar
             </button>
             <button class="btn btn-success btn-completar"
                     data-id="${agendamento.id}"
                     data-cliente="${agendamento.nome_cliente}">
-              <i class="ri-check-double-line me-1"></i>Concluir
+              <i class="ri-check-line"></i>
+              Concluir
             </button>
           </div>
         </div>

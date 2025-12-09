@@ -10,99 +10,236 @@
     @vite('resources/assets/vendor/scss/pages/app-kanban.scss')
     <style>
         /* ========================================
-           CRONOGRAMA - DAILY TIMELINE LAYOUT
+           CRONOGRAMA - MODERN TIMELINE DESIGN
         ======================================== */
+
+        /* Cronograma Header */
+        .cronograma-header {
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+        }
+
+        .light-style .cronograma-header {
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .dark-style .cronograma-header {
+            background: #2b2c40;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .cronograma-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .cronograma-subtitle {
+            font-size: 0.9375rem;
+            opacity: 0.7;
+        }
+
+        /* Filter pills container */
+        .cronograma-filters {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding: 0.75rem;
+            border-radius: 12px;
+        }
+
+        .light-style .cronograma-filters {
+            background: rgba(105, 108, 255, 0.04);
+        }
+
+        .dark-style .cronograma-filters {
+            background: rgba(105, 108, 255, 0.08);
+        }
 
         /* Filter pills modernos */
         .filtro-cronograma {
-            border-radius: 20px;
+            border-radius: 25px;
             font-weight: 600;
-            padding: 8px 16px;
-            transition: all 0.3s ease;
+            padding: 10px 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filtro-cronograma i {
+            font-size: 1.125rem;
         }
 
         .filtro-cronograma.active {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(105, 108, 255, 0.3);
+            box-shadow: 0 4px 16px rgba(105, 108, 255, 0.35);
         }
 
         .filtro-cronograma .badge {
             font-size: 0.7rem;
-            padding: 2px 6px;
+            padding: 4px 8px;
             font-weight: 700;
+            border-radius: 12px;
+            min-width: 24px;
         }
 
         /* Timeline container */
         .daily-timeline {
-            padding: 20px 0;
+            padding: 1.5rem 0;
+            position: relative;
+        }
+
+        /* Vertical line connecting days */
+        .daily-timeline::before {
+            content: '';
+            position: absolute;
+            left: 32px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            border-radius: 3px;
+        }
+
+        .light-style .daily-timeline::before {
+            background: linear-gradient(180deg, rgba(105, 108, 255, 0.15) 0%, rgba(105, 108, 255, 0.05) 100%);
+        }
+
+        .dark-style .daily-timeline::before {
+            background: linear-gradient(180deg, rgba(105, 108, 255, 0.25) 0%, rgba(105, 108, 255, 0.08) 100%);
         }
 
         /* Day section */
         .timeline-day-section {
-            margin-bottom: 40px;
+            margin-bottom: 2.5rem;
             position: relative;
+            padding-left: 80px;
         }
 
-        /* Day header */
-        .timeline-day-header {
-            position: sticky;
-            top: 70px;
-            z-index: 10;
-            margin-bottom: 24px;
-            padding: 16px 24px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            backdrop-filter: blur(10px);
-        }
-
-        .light-style .timeline-day-header {
-            background: rgba(255, 255, 255, 0.95);
-            border: 2px solid rgba(105, 108, 255, 0.1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-
-        .dark-style .timeline-day-header {
-            background: rgba(43, 44, 64, 0.95);
-            border: 2px solid rgba(105, 108, 255, 0.2);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-        }
-
-        .timeline-day-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+        /* Day marker (circle on timeline) */
+        .timeline-day-marker {
+            position: absolute;
+            left: 12px;
+            top: 0;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.25rem;
+            color: #fff;
+            z-index: 2;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
-        .timeline-day-icon.status-danger {
-            background: linear-gradient(135deg, #ff3e1d, #ff6348);
-            color: #fff;
+        .timeline-day-marker.status-danger {
+            background: linear-gradient(135deg, #ff3e1d 0%, #ff6348 100%);
         }
 
-        .timeline-day-icon.status-info {
-            background: linear-gradient(135deg, #03c3ec, #0abde3);
-            color: #fff;
+        .timeline-day-marker.status-info {
+            background: linear-gradient(135deg, #03c3ec 0%, #0abde3 100%);
         }
 
-        .timeline-day-icon.status-warning {
-            background: linear-gradient(135deg, #ffab00, #ff9f43);
-            color: #fff;
+        .timeline-day-marker.status-warning {
+            background: linear-gradient(135deg, #ffab00 0%, #ff9f43 100%);
         }
 
-        .timeline-day-icon.status-success {
-            background: linear-gradient(135deg, #71dd37, #5ec425);
-            color: #fff;
+        .timeline-day-marker.status-success {
+            background: linear-gradient(135deg, #71dd37 0%, #5ec425 100%);
         }
 
-        .timeline-day-icon.status-secondary {
-            background: linear-gradient(135deg, #8592a3, #a1acb8);
-            color: #fff;
+        .timeline-day-marker.status-secondary {
+            background: linear-gradient(135deg, #8592a3 0%, #a1acb8 100%);
+        }
+
+        /* Day header - PROMINENT */
+        .timeline-day-header {
+            padding: 1.25rem 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Gradient accent bar */
+        .timeline-day-header::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+        }
+
+        .timeline-day-header.status-danger::before {
+            background: linear-gradient(180deg, #ff3e1d, #ff6348);
+        }
+
+        .timeline-day-header.status-info::before {
+            background: linear-gradient(180deg, #03c3ec, #0abde3);
+        }
+
+        .timeline-day-header.status-warning::before {
+            background: linear-gradient(180deg, #ffab00, #ff9f43);
+        }
+
+        .timeline-day-header.status-success::before {
+            background: linear-gradient(180deg, #71dd37, #5ec425);
+        }
+
+        .timeline-day-header.status-secondary::before {
+            background: linear-gradient(180deg, #8592a3, #a1acb8);
+        }
+
+        .light-style .timeline-day-header {
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .dark-style .timeline-day-header {
+            background: #2b2c40;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* TODAY special highlight */
+        .timeline-day-header.is-today {
+            border: 2px solid;
+        }
+
+        .light-style .timeline-day-header.is-today {
+            border-color: #03c3ec;
+            background: linear-gradient(135deg, rgba(3, 195, 236, 0.08) 0%, rgba(3, 195, 236, 0.02) 100%);
+        }
+
+        .dark-style .timeline-day-header.is-today {
+            border-color: #03c3ec;
+            background: linear-gradient(135deg, rgba(3, 195, 236, 0.15) 0%, rgba(3, 195, 236, 0.05) 100%);
+        }
+
+        /* OVERDUE special highlight */
+        .timeline-day-header.is-overdue {
+            border: 2px solid;
+        }
+
+        .light-style .timeline-day-header.is-overdue {
+            border-color: #ff3e1d;
+            background: linear-gradient(135deg, rgba(255, 62, 29, 0.08) 0%, rgba(255, 62, 29, 0.02) 100%);
+        }
+
+        .dark-style .timeline-day-header.is-overdue {
+            border-color: #ff3e1d;
+            background: linear-gradient(135deg, rgba(255, 62, 29, 0.15) 0%, rgba(255, 62, 29, 0.05) 100%);
         }
 
         .timeline-day-info {
@@ -110,46 +247,55 @@
         }
 
         .timeline-day-date {
-            font-size: 1.25rem;
+            font-size: 1.375rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .timeline-day-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
             font-weight: 700;
-            margin-bottom: 2px;
-            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .timeline-day-label {
-            font-size: 0.875rem;
-            opacity: 0.8;
+            font-size: 0.9375rem;
+            opacity: 0.75;
+            font-weight: 500;
         }
 
         .timeline-day-count {
-            padding: 6px 16px;
-            border-radius: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
             font-weight: 700;
-            font-size: 0.875rem;
+            font-size: 0.9375rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        /* Task cards grid within day */
+        .timeline-day-count i {
+            font-size: 1.125rem;
+        }
+
+        /* Task cards container */
         .timeline-day-tasks {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 16px;
-            padding-left: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
 
-        @media (max-width: 768px) {
-            .timeline-day-tasks {
-                grid-template-columns: 1fr;
-                padding-left: 0;
-            }
-
-            .timeline-day-header {
-                position: relative;
-                top: 0;
-            }
-        }
-
-        /* Task card moderna */
-        .task-card {
+        /* Schedule card moderna */
+        .schedule-card {
             border-radius: 16px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
@@ -157,217 +303,318 @@
             position: relative;
         }
 
-        .light-style .task-card {
+        .light-style .schedule-card {
             background: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
-        .dark-style .task-card {
+        .dark-style .schedule-card {
             background: #2b2c40;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
         }
 
-        .task-card:hover {
-            transform: translateY(-4px);
+        .schedule-card:hover {
+            transform: translateX(8px);
         }
 
-        .light-style .task-card:hover {
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        .light-style .schedule-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         }
 
-        .dark-style .task-card:hover {
-            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+        .dark-style .schedule-card:hover {
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
         }
 
-        /* Status bar no topo do card */
-        .task-card::before {
+        /* Status indicator left border */
+        .schedule-card::before {
             content: '';
             position: absolute;
-            top: 0;
             left: 0;
-            right: 0;
-            height: 4px;
+            top: 0;
+            bottom: 0;
+            width: 5px;
         }
 
-        .task-card.status-danger::before {
-            background: linear-gradient(90deg, #ff3e1d, #ff6348);
+        .schedule-card.status-danger::before {
+            background: linear-gradient(180deg, #ff3e1d, #ff6348);
         }
 
-        .task-card.status-info::before {
-            background: linear-gradient(90deg, #03c3ec, #0abde3);
+        .schedule-card.status-info::before {
+            background: linear-gradient(180deg, #03c3ec, #0abde3);
         }
 
-        .task-card.status-warning::before {
-            background: linear-gradient(90deg, #ffab00, #ff9f43);
+        .schedule-card.status-warning::before {
+            background: linear-gradient(180deg, #ffab00, #ff9f43);
         }
 
-        .task-card.status-success::before {
-            background: linear-gradient(90deg, #71dd37, #5ec425);
+        .schedule-card.status-success::before {
+            background: linear-gradient(180deg, #71dd37, #5ec425);
         }
 
-        .task-card.status-secondary::before {
-            background: linear-gradient(90deg, #8592a3, #a1acb8);
+        .schedule-card.status-secondary::before {
+            background: linear-gradient(180deg, #8592a3, #a1acb8);
         }
 
-        /* Card header */
-        .task-card .card-header {
-            padding: 16px 20px;
-            border-bottom: none;
-        }
-
-        .light-style .task-card .card-header {
-            background: linear-gradient(135deg, rgba(105, 108, 255, 0.03) 0%, rgba(105, 108, 255, 0.01) 100%);
-        }
-
-        .dark-style .task-card .card-header {
-            background: linear-gradient(135deg, rgba(105, 108, 255, 0.08) 0%, rgba(105, 108, 255, 0.04) 100%);
-        }
-
-        .task-client-name {
-            font-size: 1.125rem;
-            font-weight: 700;
-            margin-bottom: 4px;
+        .schedule-card-inner {
+            padding: 1.25rem 1.5rem;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 1.25rem;
         }
 
-        .task-broker-name {
-            font-size: 0.875rem;
-            opacity: 0.8;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* Card body */
-        .task-card .card-body {
-            padding: 20px;
-        }
-
-        /* Datetime display */
-        .task-datetime {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
+        /* Time block */
+        .schedule-time-block {
+            min-width: 80px;
+            text-align: center;
+            padding: 0.75rem;
             border-radius: 12px;
-            margin-bottom: 16px;
-            font-weight: 600;
         }
 
-        .light-style .task-datetime {
+        .light-style .schedule-time-block {
             background: rgba(105, 108, 255, 0.06);
         }
 
-        .dark-style .task-datetime {
+        .dark-style .schedule-time-block {
             background: rgba(105, 108, 255, 0.12);
         }
 
-        .task-datetime-icon {
+        .schedule-time {
             font-size: 1.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 4px;
         }
 
-        .task-datetime-info {
-            flex: 1;
-        }
-
-        .task-date {
-            font-size: 0.9375rem;
-            margin-bottom: 2px;
-        }
-
-        .task-time {
-            font-size: 1.125rem;
-        }
-
-        .task-relative-time {
-            font-size: 0.8125rem;
+        .schedule-time-label {
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.7;
             font-weight: 600;
+        }
+
+        /* Client info */
+        .schedule-client-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .schedule-client-name {
+            font-size: 1.0625rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .schedule-client-name i {
+            font-size: 1.125rem;
+            opacity: 0.7;
+        }
+
+        .schedule-broker {
+            font-size: 0.8125rem;
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .schedule-observation {
+            font-size: 0.8125rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .light-style .schedule-observation {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .dark-style .schedule-observation {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .schedule-observation i {
+            margin-top: 2px;
+            opacity: 0.6;
+        }
+
+        /* Status badge */
+        .schedule-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Relative time */
+        .schedule-relative {
+            font-size: 0.75rem;
             padding: 4px 10px;
             border-radius: 8px;
-            display: inline-block;
-        }
-
-        /* Observation */
-        .task-observation {
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            font-size: 0.875rem;
-            line-height: 1.5;
-        }
-
-        .light-style .task-observation {
-            background: rgba(0, 0, 0, 0.02);
-            border-left: 3px solid #696cff;
-        }
-
-        .dark-style .task-observation {
-            background: rgba(255, 255, 255, 0.03);
-            border-left: 3px solid #696cff;
+            font-weight: 600;
+            margin-top: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
 
         /* Actions */
-        .task-actions {
+        .schedule-actions {
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 120px;
         }
 
-        .task-actions .btn {
-            flex: 1;
-            min-width: 110px;
+        .schedule-actions .btn {
             border-radius: 10px;
             font-weight: 600;
             font-size: 0.8125rem;
-            padding: 8px 12px;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
-        /* Status badges modernos */
-        .task-status-badge {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .schedule-actions .btn i {
+            font-size: 1rem;
         }
 
         /* Empty state moderno */
         .cronograma-empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 20px;
+            border-radius: 20px;
+        }
+
+        .light-style .cronograma-empty-state {
+            background: linear-gradient(135deg, rgba(105, 108, 255, 0.04) 0%, rgba(105, 108, 255, 0.01) 100%);
+        }
+
+        .dark-style .cronograma-empty-state {
+            background: linear-gradient(135deg, rgba(105, 108, 255, 0.08) 0%, rgba(105, 108, 255, 0.02) 100%);
         }
 
         .cronograma-empty-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            opacity: 0.3;
+            font-size: 5rem;
+            margin-bottom: 24px;
+            opacity: 0.2;
         }
 
         .cronograma-empty-title {
-            font-size: 1.25rem;
-            font-weight: 600;
+            font-size: 1.5rem;
+            font-weight: 700;
             margin-bottom: 8px;
         }
 
         .cronograma-empty-text {
-            opacity: 0.7;
+            opacity: 0.6;
+            font-size: 1rem;
         }
 
         /* Badge contador cronograma */
         #badge-cronograma-hoje {
-            font-size: 11px;
-            font-weight: 600;
-            padding: 3px 7px;
-            min-width: 20px;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            min-width: 22px;
             display: inline-block;
             text-align: center;
+            border-radius: 12px;
         }
 
         #badge-cronograma-hoje .ri-spin {
             font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .schedule-card-inner {
+                flex-wrap: wrap;
+            }
+
+            .schedule-actions {
+                width: 100%;
+                flex-direction: row;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(0, 0, 0, 0.06);
+            }
+
+            .schedule-actions .btn {
+                flex: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .timeline-day-section {
+                padding-left: 0;
+            }
+
+            .daily-timeline::before {
+                display: none;
+            }
+
+            .timeline-day-marker {
+                display: none;
+            }
+
+            .timeline-day-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .timeline-day-count {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .cronograma-filters {
+                justify-content: center;
+            }
+
+            .filtro-cronograma {
+                padding: 8px 14px;
+                font-size: 0.8125rem;
+            }
+
+            .filtro-cronograma span:not(.badge) {
+                display: none;
+            }
+        }
+
+        /* Animation */
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .timeline-day-section {
+            animation: slideInRight 0.4s ease-out;
+        }
+
+        .schedule-card {
+            animation: slideInRight 0.3s ease-out;
         }
     </style>
 @endsection
@@ -641,56 +888,64 @@
 
         <!-- Tab Cronograma -->
         <div class="tab-pane fade" id="tab-cronograma" role="tabpanel" aria-labelledby="cronograma-tab">
-            <!-- Header com filtros -->
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-                <div>
-                    <h4 class="mb-1">
-                        <i class="ri-calendar-check-line me-2"></i>
-                        Cronograma de Contatos
-                    </h4>
-                    <p class="text-muted mb-0">
-                        Total: <span class="fw-bold" id="total-agendamentos">0</span> agendamentos
-                    </p>
-                </div>
+            <!-- Modern Header -->
+            <div class="cronograma-header">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-4">
+                    <div>
+                        <h4 class="cronograma-title">
+                            <i class="ri-calendar-schedule-line text-primary"></i>
+                            Cronograma de Ligações
+                        </h4>
+                        <p class="cronograma-subtitle mb-0">
+                            <span id="total-agendamentos">0</span> agendamentos programados
+                        </p>
+                    </div>
 
-                <div class="d-flex gap-2 flex-wrap">
-                    <button type="button" class="btn btn-sm btn-primary filtro-cronograma active" data-filter="todos">
-                        <i class="ri-list-check me-1"></i>Todos
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger filtro-cronograma" data-filter="atrasados">
-                        <i class="ri-alarm-warning-line me-1"></i>Atrasados
-                        <span class="badge bg-danger ms-1" id="count-atrasados">0</span>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-info filtro-cronograma" data-filter="hoje">
-                        <i class="ri-calendar-today-line me-1"></i>Hoje
-                        <span class="badge bg-info ms-1" id="count-hoje">0</span>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-success filtro-cronograma" data-filter="semana">
-                        <i class="ri-calendar-week-line me-1"></i>Esta Semana
-                        <span class="badge bg-success ms-1" id="count-semana">0</span>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary filtro-cronograma" data-filter="futuro">
-                        <i class="ri-calendar-line me-1"></i>Futuro
-                        <span class="badge bg-secondary ms-1" id="count-futuro">0</span>
-                    </button>
+                    <!-- Filters -->
+                    <div class="cronograma-filters">
+                        <button type="button" class="btn btn-primary filtro-cronograma active" data-filter="todos">
+                            <i class="ri-list-check-2"></i>
+                            <span>Todos</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger filtro-cronograma" data-filter="atrasados">
+                            <i class="ri-alarm-warning-line"></i>
+                            <span>Atrasados</span>
+                            <span class="badge bg-danger" id="count-atrasados">0</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-info filtro-cronograma" data-filter="hoje">
+                            <i class="ri-focus-3-line"></i>
+                            <span>Hoje</span>
+                            <span class="badge bg-info" id="count-hoje">0</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-success filtro-cronograma" data-filter="semana">
+                            <i class="ri-calendar-check-line"></i>
+                            <span>Esta Semana</span>
+                            <span class="badge bg-success" id="count-semana">0</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary filtro-cronograma" data-filter="futuro">
+                            <i class="ri-calendar-2-line"></i>
+                            <span>Futuro</span>
+                            <span class="badge bg-secondary" id="count-futuro">0</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <!-- Loading -->
             <div id="cronograma-loading" class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
+                <div class="spinner-border text-primary spinner-border-lg" role="status" style="width: 3rem; height: 3rem;">
                     <span class="visually-hidden">Carregando...</span>
                 </div>
-                <p class="mt-3 text-muted">Carregando agendamentos...</p>
+                <p class="mt-4 mb-0 fw-medium">Carregando seus agendamentos...</p>
             </div>
 
             <!-- Mensagem vazia -->
             <div id="cronograma-empty" class="cronograma-empty-state d-none">
                 <div class="cronograma-empty-icon">
-                    <i class="ri-calendar-line"></i>
+                    <i class="ri-calendar-check-line"></i>
                 </div>
                 <h5 class="cronograma-empty-title">Nenhum agendamento encontrado</h5>
-                <p class="cronograma-empty-text">Não há agendamentos para o filtro selecionado.</p>
+                <p class="cronograma-empty-text">Não há ligações agendadas para o filtro selecionado.</p>
             </div>
 
             <!-- Daily Timeline Container -->
