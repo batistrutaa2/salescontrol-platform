@@ -50,13 +50,9 @@
   function setLoading(isLoading) {
     if (isLoading) {
       $lista.innerHTML = `
-        <div class="col-12">
-          <div class="card">
-            <div class="card-body d-flex align-items-center">
-              <span class="spinner-border me-2" role="status" aria-hidden="true"></span>
-              Carregando faturamento de comissões...
-            </div>
-          </div>
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <span class="loading-text">Carregando faturamento de comissoes...</span>
         </div>
       `;
       if ($adminCard) $adminCard.style.display = 'none';
@@ -129,10 +125,17 @@
 
     if (!vendedores.length) {
       $lista.innerHTML = `
-        <div class="col-12">
-          <div class="alert alert-info mb-0">
-            Nenhum contrato pendente de comissão no período selecionado.
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
           </div>
+          <h5 class="empty-title">Nenhum contrato pendente</h5>
+          <p class="empty-description">Nenhum contrato pendente de comissao no periodo selecionado.</p>
         </div>
       `;
       return;
@@ -155,25 +158,24 @@
       const hasMix = lista.some(it => String(it.angariacao_status).toUpperCase() === 'SIM');
 
       const card = document.createElement('div');
-      card.className = 'col-12';
+      card.className = 'vendedor-card';
       card.innerHTML = `
-        <div class="card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-              <h5 class="mb-1">${esc(v.vendedor || ('Vendedor #' + v.user_id))}</h5>
-              <div class="text-muted small">
-                ${qtd} contrato(s) pendente(s) · Comissão: ${hasMix ? `${percMedio.toFixed(0)}% (média)` : `${percPerfil.toFixed(0)}%`}
+          <div class="vendedor-header">
+            <div class="vendedor-info">
+              <h5>${esc(v.vendedor || ('Vendedor #' + v.user_id))}</h5>
+              <div class="vendedor-meta">
+                ${qtd} contrato(s) pendente(s) · Comissao: ${hasMix ? `${percMedio.toFixed(0)}% (media)` : `${percPerfil.toFixed(0)}%`}
               </div>
             </div>
-            <div class="text-end">
-              <div class="small text-muted">Totais do vendedor</div>
-              <div class="fw-semibold">${brl(totContratos)} (base)</div>
-              <div class="fw-semibold">${brl(totComissao)} (comissão líquida)</div>
+            <div class="vendedor-totals">
+              <div class="totals-label">Totais do vendedor</div>
+              <div class="totals-value">${brl(totContratos)} (base)</div>
+              <div class="totals-value text-success">${brl(totComissao)} (comissao liquida)</div>
             </div>
           </div>
-          <div class="card-body">
+          <div class="vendedor-body">
             <div class="table-responsive">
-            <table class="table align-middle mb-4">
+            <table class="custom-table">
               <thead>
                 <tr>
                   <th style="width:40px;">
@@ -219,10 +221,10 @@
                       : '';
 
                     origemHtml  = isDeb
-                      ? `<span class="badge bg-danger">Ajuste (Débito${cat ? ' · '+cat : ''})${parcelaInfo}</span>`
-                      : `<span class="badge bg-success">Ajuste (Crédito${cat ? ' · '+cat : ''})${parcelaInfo}</span>`;
+                      ? `<span class="status-badge badge-danger">Ajuste (Debito${cat ? ' · '+cat : ''})${parcelaInfo}</span>`
+                      : `<span class="status-badge badge-success">Ajuste (Credito${cat ? ' · '+cat : ''})${parcelaInfo}</span>`;
                   } else if (isAng) {
-                    origemHtml = `<span class="badge bg-success">Angariação</span>`;
+                    origemHtml = `<span class="status-badge badge-success">Angariacao</span>`;
                   }
 
                   // Botão excluir (apenas para ajustes)
@@ -255,28 +257,35 @@
               </tbody>
             </table>
             </div>
-
-            <div class="row g-3 justify-content-end align-items-end">
-              <div class="col-auto d-flex gap-2">
-                <button type="button" class="btn btn-outline-success js-ajuste-credito" data-vendedor="${v.user_id}">
-                  Lançar Crédito
-                </button>
-                <button type="button" class="btn btn-outline-danger js-ajuste-debito" data-vendedor="${v.user_id}">
-                  Lançar Despesa
-                </button>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">Data do pagamento</label>
+          </div>
+          <div class="vendedor-footer">
+            <div class="footer-actions">
+              <button type="button" class="btn-dash btn-outline-success js-ajuste-credito" data-vendedor="${v.user_id}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                Lancar Credito
+              </button>
+              <button type="button" class="btn-dash btn-outline-danger js-ajuste-debito" data-vendedor="${v.user_id}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                Lancar Despesa
+              </button>
+            </div>
+            <div class="footer-payment">
+              <div class="payment-date">
+                <label>Data do pagamento</label>
                 <input type="date" class="form-control js-data-pagamento" data-vendedor="${v.user_id}">
               </div>
-              <div class="col-md-3 d-flex align-items-end">
-                <button class="btn btn-success w-100 js-pagar" data-vendedor="${v.user_id}">
-                  <i class="ri-hand-coin-fill me-1"></i> Pagar selecionados
-                </button>
-              </div>
+              <button class="btn-dash btn-success js-pagar" data-vendedor="${v.user_id}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                Pagar selecionados
+              </button>
             </div>
           </div>
-        </div>
       `;
       $lista.appendChild(card);
     });
@@ -634,29 +643,21 @@
       `Gestores: ${com.qtd_gestores} · Base Júnior: ${brl(com.base_junior)} · Pool final: ${brl(com.pool_final)}`;
 
     $comKpis.innerHTML = `
-      <div class="col-md-3">
-        <div class="card h-100"><div class="card-body">
-          <div class="text-muted small">Base Júnior</div>
-          <div class="h5 mb-0">${brl(com.base_junior)}</div>
-        </div></div>
+      <div class="grade-kpi">
+        <div class="kpi-label">Base Junior</div>
+        <div class="kpi-value">${brl(com.base_junior)}</div>
       </div>
-      <div class="col-md-3">
-        <div class="card h-100"><div class="card-body">
-          <div class="text-muted small">Salários (Júnior)</div>
-          <div class="h5 mb-0">${brl(com.salarios_junior_tot)}</div>
-        </div></div>
+      <div class="grade-kpi">
+        <div class="kpi-label">Salarios (Junior)</div>
+        <div class="kpi-value">${brl(com.salarios_junior_tot)}</div>
       </div>
-      <div class="col-md-3">
-        <div class="card h-100"><div class="card-body">
-          <div class="text-muted small">Custo Adm (5%)</div>
-          <div class="h5 mb-0">${brl(com.custo_admin_5)}</div>
-        </div></div>
+      <div class="grade-kpi">
+        <div class="kpi-label">Custo Adm (5%)</div>
+        <div class="kpi-value">${brl(com.custo_admin_5)}</div>
       </div>
-      <div class="col-md-3">
-        <div class="card h-100"><div class="card-body">
-          <div class="text-muted small">Quota por supervisor (com imposto)</div>
-          <div class="h5 mb-0">${brl(com.quota)}</div>
-        </div></div>
+      <div class="grade-kpi">
+        <div class="kpi-label">Quota por supervisor (com imposto)</div>
+        <div class="kpi-value">${brl(com.quota)}</div>
       </div>
     `;
 
@@ -718,15 +719,32 @@
   }
 
   // ======== Inicialização ========
+  let fpDataInicio, fpDataFim;
+
   (function initFiltros() {
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-
-    // Define o período padrão como o mês atual
-    $dataInicio.value = `${yyyy}-${mm}-01`;
     const ultimoDia = new Date(yyyy, now.getMonth() + 1, 0).getDate();
-    $dataFim.value = `${yyyy}-${mm}-${String(ultimoDia).padStart(2, '0')}`;
+
+    // Inicializar Flatpickr nos campos de data
+    const flatpickrConfig = {
+      dateFormat: 'Y-m-d',
+      altInput: true,
+      altFormat: 'd/m/Y',
+      locale: 'pt',
+      allowInput: true
+    };
+
+    fpDataInicio = flatpickr($dataInicio, {
+      ...flatpickrConfig,
+      defaultDate: `${yyyy}-${mm}-01`
+    });
+
+    fpDataFim = flatpickr($dataFim, {
+      ...flatpickrConfig,
+      defaultDate: `${yyyy}-${mm}-${String(ultimoDia).padStart(2, '0')}`
+    });
 
     $vendedor.select2({ width: '100%', placeholder: 'Todos' });
     $grade.select2({ width: '100%', placeholder: 'Todas' });
@@ -734,27 +752,31 @@
 
   $aplicar.addEventListener('click', carregarEExibir);
 
-  // Validação visual em tempo real das datas
-  $dataFim?.addEventListener('change', function() {
-    if ($dataInicio.value && $dataFim.value) {
-      if (new Date($dataFim.value) < new Date($dataInicio.value)) {
-        $dataFim.classList.add('is-invalid');
-        toastr.error('A data fim não pode ser menor que a data início.');
-      } else {
-        $dataFim.classList.remove('is-invalid');
-      }
-    }
-  });
+  // Validação visual em tempo real das datas (via Flatpickr onChange)
+  function validarDatas() {
+    const dataInicioVal = $dataInicio.value;
+    const dataFimVal = $dataFim.value;
 
-  $dataInicio?.addEventListener('change', function() {
-    if ($dataInicio.value && $dataFim.value) {
-      if (new Date($dataFim.value) < new Date($dataInicio.value)) {
-        $dataFim.classList.add('is-invalid');
+    if (dataInicioVal && dataFimVal) {
+      const altInput = $dataFim.nextElementSibling;
+      if (new Date(dataFimVal) < new Date(dataInicioVal)) {
+        if (altInput) altInput.classList.add('is-invalid');
+        return false;
       } else {
-        $dataFim.classList.remove('is-invalid');
+        if (altInput) altInput.classList.remove('is-invalid');
+        return true;
       }
     }
-  });
+    return true;
+  }
+
+  // Atualizar validação quando Flatpickr mudar
+  if (fpDataInicio) {
+    fpDataInicio.config.onChange.push(validarDatas);
+  }
+  if (fpDataFim) {
+    fpDataFim.config.onChange.push(validarDatas);
+  }
 
   // ======== Modal de Lançamento Avulso ========
   const $avModal    = document.getElementById('modalLancAvulso');

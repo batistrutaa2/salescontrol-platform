@@ -531,3 +531,243 @@ Dates from backend come pre-formatted as `'DD/MM/YYYY HH:mm:ss'`. **DO NOT** for
     }
 }
 ```
+## Design System - SalesControl UI
+
+### Visão Geral
+
+O projeto utiliza um Design System moderno baseado em **Glass Morphism + Gradient**. Todas as novas telas devem seguir este padrão para manter consistência visual.
+
+**Arquivo de referência:** `resources/assets/vendor/scss/pages/dashboard-analytics.scss`
+
+### Paleta de Cores
+
+```scss
+// Primary - Violet/Purple (cor principal do sistema)
+--dash-primary: #7C3AED;
+--dash-primary-light: #A78BFA;
+--dash-primary-rgb: 124, 58, 237;
+
+// Success - Green (implantado, sucesso, confirmado)
+--dash-success: #10B981;
+--dash-success-light: #34D399;
+--dash-success-rgb: 16, 185, 129;
+
+// Info - Cyan (informativo, leads, contatos)
+--dash-info: #06B6D4;
+--dash-info-light: #22D3EE;
+--dash-info-rgb: 6, 182, 212;
+
+// Warning - Amber (pendente, atenção)
+--dash-warning: #F59E0B;
+--dash-warning-light: #FBBF24;
+--dash-warning-rgb: 245, 158, 11;
+
+// Danger - Red (cancelado, erro)
+--dash-danger: #EF4444;
+--dash-danger-light: #F87171;
+--dash-danger-rgb: 239, 68, 68;
+```
+
+### Tipografia
+
+```scss
+// Importar fontes no início do SCSS
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+
+// Font principal para UI
+font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+// Font para valores monetários e números
+font-family: 'JetBrains Mono', monospace;
+```
+
+### Estrutura de Cards
+
+```scss
+// Card base
+--dash-card-bg: rgba(255, 255, 255, 0.95);
+--dash-card-border: rgba(255, 255, 255, 0.2);
+--dash-glass-bg: rgba(255, 255, 255, 0.7);
+--dash-glass-blur: 12px;
+
+// Border radius padrão
+--dash-border-radius: 16px;
+--dash-border-radius-sm: 12px;
+--dash-border-radius-lg: 24px;
+
+// Shadows
+--dash-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+--dash-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+--dash-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+--dash-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.15);
+```
+
+### Dark Theme
+
+```scss
+.dark-style {
+    --dash-card-bg: rgba(30, 32, 47, 0.95);
+    --dash-card-border: rgba(255, 255, 255, 0.08);
+    --dash-glass-bg: rgba(30, 32, 47, 0.8);
+
+    --dash-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --dash-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --dash-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
+    --dash-shadow-glow: 0 0 60px rgba(124, 58, 237, 0.25);
+
+    --dash-text-primary: #F9FAFB;
+    --dash-text-secondary: #D1D5DB;
+    --dash-text-muted: #9CA3AF;
+}
+```
+
+### KPI Cards Pattern
+
+Os KPI cards seguem este padrão visual:
+
+```html
+<div class="kpi-card kpi-primary">
+    <div class="kpi-icon-wrapper">
+        <div class="kpi-icon">
+            <svg><!-- Ícone SVG inline --></svg>
+        </div>
+        <div class="kpi-pulse"></div>
+    </div>
+    <div class="kpi-content">
+        <span class="kpi-label">Label do KPI</span>
+        <h2 class="kpi-value">R$ 0,00</h2>
+        <div class="kpi-trend trend-up">
+            <svg><!-- Ícone de tendência --></svg>
+            <span>+12%</span>
+        </div>
+    </div>
+    <div class="kpi-glow"></div>
+</div>
+```
+
+**Variantes de KPI:**
+- `kpi-primary` - Violet (valor principal, contratos)
+- `kpi-success` - Green (implantado, concluído)
+- `kpi-info` - Cyan (contatos, leads)
+- `kpi-warning` - Amber (conversão, pendente)
+
+**Características visuais:**
+- Ícone com gradient e cor branca
+- Efeito pulse no hover
+- Glow effect no hover
+- Valores em fonte monospace (JetBrains Mono)
+- Trend badges com cores de status
+
+### Ícones SVG
+
+Usar ícones SVG inline para melhor controle de cor. Exemplos:
+
+```html
+<!-- Dinheiro/Valor -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+</svg>
+
+<!-- Check/Implantado -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+    <polyline points="22 4 12 14.01 9 11.01"/>
+</svg>
+
+<!-- Usuários/Contatos -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+</svg>
+
+<!-- Gráfico/Conversão -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+    <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+</svg>
+
+<!-- Tendência Up -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+    <polyline points="17 6 23 6 23 12"/>
+</svg>
+```
+
+### Chart Cards Pattern
+
+```html
+<div class="chart-card chart-large">
+    <div class="chart-header">
+        <div class="chart-title-group">
+            <h3 class="chart-title">Título do Gráfico</h3>
+            <span class="chart-subtitle">Subtítulo descritivo</span>
+        </div>
+        <div class="chart-legend">
+            <span class="legend-item">
+                <span class="legend-dot primary"></span>
+                Cadastradas
+            </span>
+        </div>
+    </div>
+    <div class="chart-body">
+        <div id="chartContainer"></div>
+    </div>
+</div>
+```
+
+### Table Cards Pattern
+
+```html
+<div class="table-card">
+    <div class="table-header">
+        <div class="table-title-group">
+            <div class="table-icon cadastrados">
+                <svg><!-- Ícone --></svg>
+            </div>
+            <div>
+                <h3 class="table-title">Título da Tabela</h3>
+                <span class="table-subtitle">Subtítulo</span>
+            </div>
+        </div>
+        <div class="table-badge cadastrados">
+            <span>0</span> itens
+        </div>
+    </div>
+    <div class="table-body">
+        <table class="custom-table">...</table>
+    </div>
+</div>
+```
+
+### Animações e Transições
+
+```scss
+// Transição padrão
+--dash-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+--dash-transition-fast: all 0.15s ease;
+
+// Hover em cards
+&:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--dash-shadow-lg), var(--dash-shadow-glow);
+}
+
+// Stagger animation para KPIs
+.kpi-grid > *:nth-child(1) { animation-delay: 0ms; }
+.kpi-grid > *:nth-child(2) { animation-delay: 100ms; }
+.kpi-grid > *:nth-child(3) { animation-delay: 200ms; }
+.kpi-grid > *:nth-child(4) { animation-delay: 300ms; }
+```
+
+### Regras Importantes
+
+1. **SEMPRE** usar as CSS variables do design system
+2. **SEMPRE** suportar dark mode com `.dark-style`
+3. **SEMPRE** usar SVG inline para ícones (não Tabler Icons via classe)
+4. **SEMPRE** usar `JetBrains Mono` para valores monetários
+5. **SEMPRE** usar `Plus Jakarta Sans` para textos
+6. **NUNCA** hardcodar cores - usar as variáveis
+7. **SEMPRE** incluir efeitos hover nos cards
+8. **SEMPRE** usar border-radius de 16px para cards principais
