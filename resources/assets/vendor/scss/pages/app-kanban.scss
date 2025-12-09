@@ -1,4 +1,4 @@
-// * App Kanban
+// * App Kanban - Modern Design
 // *******************************************************************************
 
 @use '../_bootstrap-extended/include' as light;
@@ -6,113 +6,456 @@
 @import '../_components/include';
 @import '../_custom-variables/pages';
 
+// Variables
 $kanban-wrapper-height: calc(100vh - 12rem);
 $kanban-app-horizontal-height-diff: 3.5rem;
-$kanban-title-font-size: 1.125rem;
-$kanban-title-font-weight: light.$font-weight-medium;
-$kanban-title-max-width: 13rem;
+$kanban-board-width: 320px;
+$kanban-item-width: 300px;
 
-$kanban-drag-min-height: 1rem;
-$kanban-drag-min-width: 16.25rem;
-$kanban-drag-padding: 0;
+// Modern color palette
+$gradient-hot: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+$gradient-warm: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+$gradient-cold: linear-gradient(135deg, #00c6fb 0%, #005bea 100%);
+$gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
-$kanban-item-width: 16.25rem;
-$kanban-item-padding-y: 1.25rem;
-$kanban-item-padding-x: $kanban-item-padding-y;
-
-$kanban-add-new-board-padding: 1rem;
-
-// Kanban styles
+// Main app container
 .app-kanban {
+  // Header filters section
+  .kanban-filters {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1.5rem;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+
+    .filter-group {
+      flex: 1;
+      min-width: 200px;
+
+      .form-floating {
+        .form-control,
+        .form-select {
+          border-radius: 12px;
+          border: 2px solid transparent;
+          transition: all 0.3s ease;
+
+          &:focus {
+            border-color: rgba(105, 108, 255, 0.5);
+            box-shadow: 0 0 0 4px rgba(105, 108, 255, 0.1);
+          }
+        }
+      }
+    }
+  }
+
+  // Kanban wrapper
   .kanban-wrapper {
     width: 100%;
     height: $kanban-wrapper-height;
     overflow-x: auto;
-    overflow-y: auto;
+    overflow-y: hidden;
+    padding: 0.5rem;
+
     @include light.media-breakpoint-up($menu-collapsed-layout-breakpoint) {
       .layout-horizontal & {
         height: calc($kanban-wrapper-height - $kanban-app-horizontal-height-diff);
       }
     }
 
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 10px;
+    }
+
     // Kanban container
     .kanban-container {
       display: flex;
+      gap: 1.25rem;
       width: max-content !important;
+      padding-bottom: 1rem;
+
       .kanban-board {
-        width: auto !important;
+        width: $kanban-board-width !important;
+        min-width: $kanban-board-width;
         height: 100%;
         background: transparent;
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
 
         &:focus {
           outline: 0;
         }
 
+        // Board header
         .kanban-board-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 0 0 $kanban-add-new-board-padding 0;
+          padding: 1rem 1.25rem;
+          border-radius: 16px 16px 0 0;
+          margin-bottom: 0;
+          position: sticky;
+          top: 0;
+          z-index: 5;
+
           .kanban-title-board {
-            font-size: $kanban-title-font-size;
-            font-weight: $kanban-title-font-weight;
-            max-width: $kanban-title-max-width;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
             white-space: nowrap;
             overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+
             &:focus {
               outline: 0;
             }
-          }
-          .btn-default {
-            &.btn:active {
-              border-color: transparent;
+
+            // Count badge
+            &::after {
+              content: attr(data-count);
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              min-width: 24px;
+              height: 24px;
+              padding: 0 8px;
+              font-size: 0.75rem;
+              font-weight: 700;
+              border-radius: 20px;
             }
           }
+
           .dropdown {
-            .dropdown-toggle:after {
-              display: none;
+            .dropdown-toggle {
+              padding: 0.5rem;
+              border-radius: 8px;
+              transition: all 0.2s ease;
+
+              &:after {
+                display: none;
+              }
+
+              &:hover {
+                background: rgba(105, 108, 255, 0.1);
+              }
             }
           }
         }
+
+        // Drag area
         .kanban-drag {
-          min-height: $kanban-drag-min-height;
-          min-width: $kanban-drag-min-width;
-          padding: $kanban-drag-padding;
-        }
-        .kanban-title-button {
-          position: absolute;
-          left: -6px;
-          bottom: 0;
-          margin: -2rem 0;
-          &:focus {
-            box-shadow: none;
+          min-height: 100px;
+          padding: 0.75rem;
+          border-radius: 0 0 16px 16px;
+          flex: 1;
+          overflow-y: auto;
+
+          // Custom scrollbar for drag area
+          &::-webkit-scrollbar {
+            width: 4px;
+          }
+
+          &::-webkit-scrollbar-track {
+            background: transparent;
+          }
+
+          &::-webkit-scrollbar-thumb {
+            border-radius: 4px;
           }
         }
+
+        // Kanban item (card)
         .kanban-item {
           position: relative;
           display: flex;
           flex-direction: column;
-          width: $kanban-item-width;
-          padding: $kanban-item-padding-y $kanban-item-padding-x;
-          margin-bottom: 1rem;
-          border-radius: light.$border-radius-lg;
+          width: 100%;
+          padding: 0;
+          margin-bottom: 0.75rem;
+          border-radius: 14px;
+          overflow: hidden;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          // Card inner wrapper
+          .card-inner {
+            padding: 1rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+          }
+
+          // Temperature indicator bar
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            transition: height 0.3s ease;
+          }
+
+          &.temp-quente::before {
+            background: $gradient-hot;
+          }
+
+          &.temp-morno::before {
+            background: $gradient-warm;
+          }
+
+          &.temp-frio::before {
+            background: $gradient-cold;
+          }
+
+          // Hover state
+          &:hover {
+            transform: translateY(-4px);
+
+            &::before {
+              height: 6px;
+            }
+
+            .kanban-tasks-item-dropdown {
+              opacity: 1;
+              visibility: visible;
+            }
+          }
+
+          // Card header with badges
+          .card-header-badges {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+
+            .badges-left {
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              flex-wrap: wrap;
+            }
+          }
+
+          // Temperature badge
+          .temp-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+
+            i {
+              font-size: 0.875rem;
+            }
+
+            &.temp-quente {
+              background: rgba(255, 65, 108, 0.15);
+              color: #ff416c;
+            }
+
+            &.temp-morno {
+              background: rgba(247, 151, 30, 0.15);
+              color: #f7971e;
+            }
+
+            &.temp-frio {
+              background: rgba(0, 198, 251, 0.15);
+              color: #00c6fb;
+            }
+          }
+
+          // Stale badge
+          .stale-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 600;
+
+            i {
+              font-size: 0.75rem;
+            }
+
+            &.stale-warning {
+              background: rgba(255, 171, 0, 0.15);
+              color: #ffab00;
+            }
+
+            &.stale-danger {
+              background: rgba(255, 62, 29, 0.15);
+              color: #ff3e1d;
+            }
+
+            &.stale-critical {
+              background: rgba(255, 62, 29, 0.25);
+              color: #ff3e1d;
+              animation: pulse-warning 2s infinite;
+            }
+          }
+
+          // Client name
+          .client-name {
+            font-size: 0.9375rem;
+            font-weight: 700;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin: 0;
+          }
+
+          // Date info
+          .date-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            opacity: 0.7;
+
+            i {
+              font-size: 0.875rem;
+            }
+          }
+
+          // Card footer
+          .card-footer-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+
+            .broker-info {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 0.75rem;
+              opacity: 0.8;
+
+              .broker-avatar {
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.625rem;
+                font-weight: 700;
+              }
+            }
+
+            .action-buttons {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+
+              .action-btn {
+                width: 32px;
+                height: 32px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: none;
+                cursor: pointer;
+                transition: all 0.2s ease;
+
+                i {
+                  font-size: 1rem;
+                }
+
+                &.btn-comment {
+                  background: rgba(105, 108, 255, 0.1);
+                  color: #696cff;
+
+                  &:hover {
+                    background: rgba(105, 108, 255, 0.2);
+                  }
+                }
+
+                &.btn-schedule {
+                  background: rgba(3, 195, 236, 0.1);
+                  color: #03c3ec;
+
+                  &:hover {
+                    background: rgba(3, 195, 236, 0.2);
+                  }
+                }
+
+                &.btn-discard {
+                  background: rgba(255, 62, 29, 0.1);
+                  color: #ff3e1d;
+
+                  &:hover {
+                    background: rgba(255, 62, 29, 0.2);
+                  }
+                }
+              }
+            }
+          }
+
+          // View button (replaces dropdown)
+          .kanban-view-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0;
+            visibility: hidden;
+            text-decoration: none;
+            background: rgba(105, 108, 255, 0.1);
+            color: #696cff;
+
+            i {
+              font-size: 1.125rem;
+            }
+
+            &:hover {
+              background: rgba(105, 108, 255, 0.2);
+              transform: scale(1.1);
+            }
+          }
+
+          &:hover .kanban-view-btn {
+            opacity: 1;
+            visibility: visible;
+          }
+
+          // Legacy dropdown support
           .kanban-tasks-item-dropdown {
             display: none;
-            position: absolute;
-            right: 0.75rem;
-            cursor: pointer;
-            .dropdown-toggle:after {
-              display: none;
-            }
-          }
-          &:hover {
-            box-shadow: rgba(0, 0, 0, 0.1) 0 4px 20px 0;
-            .kanban-tasks-item-dropdown {
-              display: block;
-            }
-          }
-          .kanban-text {
-            font-size: 0.9375rem;
           }
         }
       }
@@ -122,14 +465,15 @@ $kanban-add-new-board-padding: 1rem;
   // Add new board styles
   .kanban-add-new-board {
     .kanban-add-board-btn {
-      padding-bottom: $kanban-add-new-board-padding;
+      padding-bottom: 1rem;
     }
     float: left;
-    padding: 0 $kanban-add-new-board-padding - 0.25rem;
+    padding: 0 0.75rem;
+
     label {
-      font-size: $kanban-title-font-size;
-      font-weight: $kanban-title-font-weight;
-      margin-bottom: $kanban-drag-padding;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0;
       cursor: pointer;
     }
   }
@@ -137,22 +481,56 @@ $kanban-add-new-board-padding: 1rem;
   // Update sidebar styles
   .kanban-update-item-sidebar {
     text-align: left;
+
+    .offcanvas-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid;
+    }
+
+    .offcanvas-body {
+      padding: 1.5rem;
+    }
+
+    .nav-tabs {
+      .nav-link {
+        border-radius: 10px;
+        padding: 0.75rem 1.25rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+
+        &.active {
+          background: rgba(105, 108, 255, 0.1);
+          color: #696cff;
+        }
+      }
+    }
+
     .comment-editor {
       &.ql-container {
-        @include light.border-top-radius(light.$border-radius);
+        border-radius: 12px 12px 0 0;
       }
       .ql-editor {
         min-height: 7rem;
         background: unset;
       }
     }
+
     .comment-toolbar.ql-toolbar {
       width: 100%;
       text-align: right;
       border-top: 0;
-      @include light.border-bottom-radius(light.$border-radius);
-      @include light.border-top-radius(0);
+      border-radius: 0 0 12px 12px;
     }
+  }
+}
+
+// Pulse animation for critical stale
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
   }
 }
 
@@ -165,19 +543,20 @@ $kanban-add-new-board-padding: 1rem;
   }
   .kanban-item {
     .kanban-tasks-item-dropdown {
-      .dropdown-toggle:after {
-        display: none;
-      }
+      display: none !important;
     }
   }
 }
+
 .kanban-item.gu-mirror {
+  transform: rotate(3deg);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+
   .kanban-tasks-item-dropdown {
-    .dropdown-toggle:after {
-      display: none;
-    }
+    display: none !important;
   }
 }
+
 .kanban-board.is-moving.gu-mirror .kanban-drag {
   padding-right: 20px;
   width: 100%;
@@ -187,22 +566,70 @@ $kanban-add-new-board-padding: 1rem;
 @if $enable-light-style {
   .light-style {
     .app-kanban {
-      .kanban-board {
-        .kanban-board-header {
-          color: light.$headings-color;
-        }
-        .kanban-item {
-          background-color: light.$card-bg;
-          box-shadow: light.$card-box-shadow;
+      .kanban-filters {
+        background: light.$card-bg;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        border: 1px solid light.$border-color;
+      }
 
-          .kanban-text {
+      .kanban-wrapper {
+        &::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        .kanban-board {
+          .kanban-board-header {
+            background: light.$card-bg;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
             color: light.$headings-color;
+
+            .kanban-title-board::after {
+              background: rgba(105, 108, 255, 0.1);
+              color: #696cff;
+            }
+          }
+
+          .kanban-drag {
+            background: rgba(0, 0, 0, 0.02);
+
+            &::-webkit-scrollbar-thumb {
+              background: rgba(0, 0, 0, 0.1);
+            }
+          }
+
+          .kanban-item {
+            background-color: light.$card-bg;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+            &:hover {
+              box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            }
+
+            .client-name {
+              color: light.$headings-color;
+            }
+
+            .card-footer-actions {
+              border-top-color: rgba(0, 0, 0, 0.06);
+
+              .broker-info .broker-avatar {
+                background: rgba(105, 108, 255, 0.1);
+                color: #696cff;
+              }
+            }
           }
         }
       }
+
       .kanban-add-new-board {
         label {
           color: light.$headings-color;
+        }
+      }
+
+      .kanban-update-item-sidebar {
+        .offcanvas-header {
+          border-bottom-color: light.$border-color;
         }
       }
     }
@@ -213,16 +640,57 @@ $kanban-add-new-board-padding: 1rem;
 @if $enable-dark-style {
   .dark-style {
     .app-kanban {
-      .kanban-board {
-        .kanban-board-header {
-          color: dark.$headings-color;
-        }
-        .kanban-item {
-          background-color: dark.$card-bg;
-          box-shadow: dark.$card-box-shadow;
+      .kanban-filters {
+        background: dark.$card-bg;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+        border: 1px solid dark.$border-color;
+      }
 
-          .kanban-text {
+      .kanban-wrapper {
+        &::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.15);
+        }
+
+        .kanban-board {
+          .kanban-board-header {
+            background: dark.$card-bg;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
             color: dark.$headings-color;
+
+            .kanban-title-board::after {
+              background: rgba(105, 108, 255, 0.2);
+              color: #8b8eff;
+            }
+          }
+
+          .kanban-drag {
+            background: rgba(255, 255, 255, 0.02);
+
+            &::-webkit-scrollbar-thumb {
+              background: rgba(255, 255, 255, 0.15);
+            }
+          }
+
+          .kanban-item {
+            background-color: dark.$card-bg;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+
+            &:hover {
+              box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+            }
+
+            .client-name {
+              color: dark.$headings-color;
+            }
+
+            .card-footer-actions {
+              border-top-color: rgba(255, 255, 255, 0.06);
+
+              .broker-info .broker-avatar {
+                background: rgba(105, 108, 255, 0.2);
+                color: #8b8eff;
+              }
+            }
           }
         }
       }
@@ -232,7 +700,14 @@ $kanban-add-new-board-padding: 1rem;
           color: dark.$headings-color;
         }
       }
+
+      .kanban-update-item-sidebar {
+        .offcanvas-header {
+          border-bottom-color: dark.$border-color;
+        }
+      }
     }
+
     // For when item is being dragged
     .kanban-item.gu-mirror {
       background-color: dark.$card-bg;
@@ -256,7 +731,7 @@ $kanban-add-new-board-padding: 1rem;
           }
         }
         .kanban-tasks-item-dropdown {
-          left: 1.2rem;
+          left: 0.75rem;
           right: auto !important;
         }
       }
@@ -264,6 +739,103 @@ $kanban-add-new-board-padding: 1rem;
         text-align: right;
         .comment-toolbar.ql-toolbar {
           text-align: right;
+        }
+      }
+    }
+  }
+}
+
+// Modern tabs navigation
+.nav-tabs-modern {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 16px;
+  border: none;
+  margin-bottom: 1.5rem;
+
+  .nav-item {
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.875rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      border: none;
+      transition: all 0.3s ease;
+
+      i {
+        font-size: 1.25rem;
+      }
+
+      .badge {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+        border-radius: 20px;
+      }
+
+      .badge-pulse {
+        animation: badge-pulse 2s infinite;
+      }
+    }
+  }
+}
+
+@keyframes badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+// Light style for tabs
+@if $enable-light-style {
+  .light-style {
+    .nav-tabs-modern {
+      background: light.$card-bg;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+      .nav-item .nav-link {
+        color: light.$body-color;
+
+        &:hover {
+          background: rgba(105, 108, 255, 0.08);
+          color: #696cff;
+        }
+
+        &.active {
+          background: linear-gradient(135deg, #696cff 0%, #7367f0 100%);
+          color: #fff;
+          box-shadow: 0 4px 12px rgba(105, 108, 255, 0.4);
+        }
+      }
+    }
+  }
+}
+
+// Dark style for tabs
+@if $enable-dark-style {
+  .dark-style {
+    .nav-tabs-modern {
+      background: dark.$card-bg;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+
+      .nav-item .nav-link {
+        color: dark.$body-color;
+
+        &:hover {
+          background: rgba(105, 108, 255, 0.15);
+          color: #8b8eff;
+        }
+
+        &.active {
+          background: linear-gradient(135deg, #696cff 0%, #7367f0 100%);
+          color: #fff;
+          box-shadow: 0 4px 16px rgba(105, 108, 255, 0.5);
         }
       }
     }

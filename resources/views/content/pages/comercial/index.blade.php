@@ -58,13 +58,13 @@
             backdrop-filter: blur(10px);
         }
 
-        [data-bs-theme="light"] .timeline-day-header {
+        .light-style .timeline-day-header {
             background: rgba(255, 255, 255, 0.95);
             border: 2px solid rgba(105, 108, 255, 0.1);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
-        [data-bs-theme="dark"] .timeline-day-header {
+        .dark-style .timeline-day-header {
             background: rgba(43, 44, 64, 0.95);
             border: 2px solid rgba(105, 108, 255, 0.2);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
@@ -157,12 +157,12 @@
             position: relative;
         }
 
-        [data-bs-theme="light"] .task-card {
+        .light-style .task-card {
             background: #fff;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
-        [data-bs-theme="dark"] .task-card {
+        .dark-style .task-card {
             background: #2b2c40;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
         }
@@ -171,11 +171,11 @@
             transform: translateY(-4px);
         }
 
-        [data-bs-theme="light"] .task-card:hover {
+        .light-style .task-card:hover {
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         }
 
-        [data-bs-theme="dark"] .task-card:hover {
+        .dark-style .task-card:hover {
             box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
         }
 
@@ -215,11 +215,11 @@
             border-bottom: none;
         }
 
-        [data-bs-theme="light"] .task-card .card-header {
+        .light-style .task-card .card-header {
             background: linear-gradient(135deg, rgba(105, 108, 255, 0.03) 0%, rgba(105, 108, 255, 0.01) 100%);
         }
 
-        [data-bs-theme="dark"] .task-card .card-header {
+        .dark-style .task-card .card-header {
             background: linear-gradient(135deg, rgba(105, 108, 255, 0.08) 0%, rgba(105, 108, 255, 0.04) 100%);
         }
 
@@ -256,11 +256,11 @@
             font-weight: 600;
         }
 
-        [data-bs-theme="light"] .task-datetime {
+        .light-style .task-datetime {
             background: rgba(105, 108, 255, 0.06);
         }
 
-        [data-bs-theme="dark"] .task-datetime {
+        .dark-style .task-datetime {
             background: rgba(105, 108, 255, 0.12);
         }
 
@@ -298,12 +298,12 @@
             line-height: 1.5;
         }
 
-        [data-bs-theme="light"] .task-observation {
+        .light-style .task-observation {
             background: rgba(0, 0, 0, 0.02);
             border-left: 3px solid #696cff;
         }
 
-        [data-bs-theme="dark"] .task-observation {
+        .dark-style .task-observation {
             background: rgba(255, 255, 255, 0.03);
             border-left: 3px solid #696cff;
         }
@@ -354,170 +354,6 @@
 
         .cronograma-empty-text {
             opacity: 0.7;
-        }
-
-        /* ========================================
-           KANBAN STYLES
-        ======================================== */
-        .kanban-wrapper {
-            display: inline-flex;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .kanban-board {
-            flex: 1;
-            min-width: 300px;
-            max-width: 300px;
-            overflow-y: auto;
-            height: calc(100vh - 200px);
-            padding-right: 10px;
-            position: relative;
-        }
-
-        /* Estilo para a barra de rolagem vertical */
-        .kanban-board::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .kanban-board::-webkit-scrollbar-thumb {
-            background-color: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-        }
-
-        .kanban-board::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        /* Estilos para Timeline do Cronograma */
-        .timeline {
-            position: relative;
-            padding: 20px 0;
-        }
-
-        .timeline::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            width: 3px;
-            height: 100%;
-            background: linear-gradient(to bottom, #e0e0e0 0%, #e0e0e0 100%);
-            transform: translateX(-50%);
-        }
-
-        .timeline-item {
-            position: relative;
-            margin-bottom: 30px;
-            width: 100%;
-            display: flex;
-            align-items: flex-start;
-        }
-
-        .timeline-item-left {
-            justify-content: flex-end;
-            padding-right: calc(50% + 30px);
-        }
-
-        .timeline-item-right {
-            justify-content: flex-start;
-            padding-left: calc(50% + 30px);
-        }
-
-        .timeline-indicator {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            color: white;
-            z-index: 2;
-            box-shadow: 0 0 0 4px #fff, 0 0 0 6px currentColor;
-        }
-
-        .timeline-indicator-danger {
-            background: linear-gradient(135deg, #ff4757 0%, #ff6348 100%);
-            color: white;
-        }
-
-        .timeline-indicator-info {
-            background: linear-gradient(135deg, #00d4ff 0%, #0abde3 100%);
-            color: white;
-        }
-
-        .timeline-indicator-warning {
-            background: linear-gradient(135deg, #ffa502 0%, #ff7f50 100%);
-            color: white;
-        }
-
-        .timeline-indicator-success {
-            background: linear-gradient(135deg, #26de81 0%, #20bf6b 100%);
-            color: white;
-        }
-
-        .timeline-indicator-secondary {
-            background: linear-gradient(135deg, #a4b0be 0%, #747d8c 100%);
-            color: white;
-        }
-
-        .timeline-event {
-            max-width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .timeline-event:hover {
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-            transform: translateY(-2px);
-        }
-
-        .timeline-event .card-header {
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 1rem 1.25rem;
-        }
-
-        .timeline-event .card-body {
-            padding: 1.25rem;
-        }
-
-        /* Responsivo */
-        @media (max-width: 768px) {
-            .timeline::before {
-                left: 30px;
-            }
-
-            .timeline-item-left,
-            .timeline-item-right {
-                justify-content: flex-start;
-                padding-left: 70px;
-                padding-right: 0;
-            }
-
-            .timeline-indicator {
-                left: 30px;
-            }
-        }
-
-        /* Animação de entrada */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .timeline-item {
-            animation: fadeInUp 0.4s ease-out;
         }
 
         /* Badge contador cronograma */
@@ -583,78 +419,75 @@
     <div class="tab-content">
         <!-- Tab Funil de Vendas -->
         <div class="tab-pane fade show active" id="tab-funil" role="tabpanel" aria-labelledby="funil-tab">
-                <div class="app-kanban mt-5">
-        <!-- Add new board -->
-        <div class="row">
-            <div class="col-12">
-                <form class="kanban-add-new-board">
-                    <input type="text" class="form-control w-px-250 kanban-add-board-input mb-4 d-none"
-                        placeholder="Add Board Title" id="kanban-add-board-input" required />
-                    <div class="mb-4 kanban-add-board-input d-none">
-                        <button class="btn btn-primary btn-sm me-3">Add</button>
-                        <button type="button"
-                            class="btn btn-outline-secondary btn-sm kanban-add-board-cancel-btn">Cancel</button>
-                    </div>
-                </form>
+                <div class="app-kanban">
+        <!-- Add new board (hidden) -->
+        <form class="kanban-add-new-board d-none">
+            <input type="text" class="form-control w-px-250 kanban-add-board-input mb-4 d-none"
+                placeholder="Add Board Title" id="kanban-add-board-input" required />
+            <div class="mb-4 kanban-add-board-input d-none">
+                <button class="btn btn-primary btn-sm me-3">Add</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm kanban-add-board-cancel-btn">Cancel</button>
             </div>
-        </div>
+        </form>
 
-        <div class="container mb-5">
-            <div class="d-flex justify-content-between">
-                <div class="form-floating form-floating-outline flex-fill me-2">
-                    <input type="text" id="kanban-search" class="form-control" placeholder="Pesquisar cliente.." />
-                    <label for="kanban-search-1">Pesquisar cliente..</label>
+        <!-- Modern Filters Section -->
+        <div class="kanban-filters">
+            <div class="filter-group" style="flex: 2;">
+                <div class="form-floating form-floating-outline">
+                    <input type="text" id="kanban-search" class="form-control" placeholder="Pesquisar cliente..." />
+                    <label for="kanban-search">
+                        <i class="ri-search-line me-1"></i>Pesquisar cliente...
+                    </label>
                 </div>
-                <div class="form-floating form-floating-outline flex-fill ms-2">
+            </div>
+
+            <div class="filter-group">
+                <div class="form-floating form-floating-outline">
                     <select class="form-select" id="type-lead" name="tipolead">
                         <option value="A">Ativo</option>
                         <option value="R">Receptivo</option>
                     </select>
-                    <label for="label">Tipo de lead</label>
+                    <label for="type-lead">Tipo de Lead</label>
                 </div>
-
-                @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER' || $typeUserLogeed == 'SUPERVISOR')
-                    <div class="form-floating form-floating-outline flex-fill ms-2">
-                        <select class="form-select" id="user-filter" name="temperatura">
-                            <option value="">
-                                Selecione o corretor
-                            </option>
-                            @foreach ($vendedores as $vendedor)
-                                <option value="{{ $vendedor->id }}">
-                                    {{ $vendedor->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <label for="label">Vendedores</label>
-                    </div>
-                @endif
-
-                <div class="form-floating form-floating-outline flex-fill ms-2">
-                    <select class="form-select" id="stale-filter">
-                        <option value="">Sem atualização (todos)</option>
-                        <option value="7">≥ 7 dias</option>
-                        <option value="14">≥ 14 dias</option>
-                        <option value="20+">20+ dias</option>
-                    </select>
-                    <label for="stale-filter">Sem atualização</label>
-                </div>
-
-
-                <!-- Botão para abrir a modal de fila preditiva -->
-                @if ($typeUserLogeed == 'VENDEDOR')
-                    <div class="ms-2 d-flex align-items-center">
-                        <button type="button" class="btn btn-primary" id="btn-fila-preditiva">
-                            <i class="ri-customer-service-line me-1"></i>Vitrini de clientes
-                        </button>
-                    </div>
-                @endif
             </div>
+
+            @if ($typeUserLogeed == 'ADMINISTRATIVO' || $typeUserLogeed == 'DEVELOPER' || $typeUserLogeed == 'SUPERVISOR')
+            <div class="filter-group">
+                <div class="form-floating form-floating-outline">
+                    <select class="form-select" id="user-filter" name="temperatura">
+                        <option value="">Todos os corretores</option>
+                        @foreach ($vendedores as $vendedor)
+                            <option value="{{ $vendedor->id }}">{{ $vendedor->name }}</option>
+                        @endforeach
+                    </select>
+                    <label for="user-filter">Corretor</label>
+                </div>
+            </div>
+            @endif
+
+            <div class="filter-group">
+                <div class="form-floating form-floating-outline">
+                    <select class="form-select" id="stale-filter">
+                        <option value="">Todos</option>
+                        <option value="7">≥ 7 dias sem atualização</option>
+                        <option value="14">≥ 14 dias sem atualização</option>
+                        <option value="20+">20+ dias sem atualização</option>
+                    </select>
+                    <label for="stale-filter">Estagnação</label>
+                </div>
+            </div>
+
+            @if ($typeUserLogeed == 'VENDEDOR')
+            <div class="filter-group" style="flex: 0 0 auto;">
+                <button type="button" class="btn btn-primary h-100 px-4" id="btn-fila-preditiva">
+                    <i class="ri-user-star-line me-2"></i>Vitrine de Clientes
+                </button>
+            </div>
+            @endif
         </div>
 
         <!-- Kanban Wrapper -->
-        <div class="container-fluid">
-            <div class="kanban-wrapper mt-5"></div>
-        </div>
+        <div class="kanban-wrapper"></div>
 
 
 

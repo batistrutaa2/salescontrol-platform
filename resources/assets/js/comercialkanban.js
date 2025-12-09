@@ -16,39 +16,7 @@
     select2 = $('.select2'),
     assetsPath = document.querySelector('html').getAttribute('data-assets-path');
 
-  // ===== ESTILO: injeta CSS para melhorar layout/tamanho do card =====
-  (function injectStaleStyles() {
-    if (document.getElementById('kanban-stale-styles')) return;
-    const css = `
-      .kanban-item{
-        padding: 14px 16px !important;
-        border-radius: 12px !important;
-        min-height: 118px;
-      }
-      .kanban-header-flex{
-        display:flex; align-items:center; justify-content:space-between; gap:8px;
-      }
-      .kanban-badges{
-        display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-      }
-      .kanban-title-text{
-        margin-top:8px; font-weight:700; font-size:0.98rem; letter-spacing:.2px;
-        color:var(--bs-body-color);
-        white-space:normal;
-      }
-      .kanban-date{
-        margin-top:6px; font-size:.78rem; opacity:.8;
-      }
-      .kanban-item .badge{
-        padding:6px 10px; font-size:.73rem; border-radius:999px;
-      }
-    `;
-    const style = document.createElement('style');
-    style.id = 'kanban-stale-styles';
-    style.textContent = css;
-    document.head.appendChild(style);
-  })();
-  // ====================================================================
+  // Styles are now in app-kanban.scss - no inline injection needed
 
   // Init kanban Offcanvas
   const kanbanOffcanvas = new bootstrap.Offcanvas(kanbanSidebar);
@@ -189,12 +157,49 @@
     const diff = daysSince(dt);
     if (diff === null || diff < 7) return '';
 
-    let tone = 'bg-label-warning';      // 7–13
-    if (diff >= 14 && diff < 20) tone = 'bg-label-primary'; // 14–19
-    if (diff >= 20) tone = 'bg-label-danger';               // 20+
+    let staleClass = 'stale-warning';     // 7–13
+    if (diff >= 14 && diff < 20) staleClass = 'stale-danger'; // 14–19
+    if (diff >= 20) staleClass = 'stale-critical';            // 20+
 
-    const label = `Sem atualização: ${diff}d`;
-    return `<div class='badge rounded-pill ${tone}'>${label}</div>`;
+    return `<span class="stale-badge ${staleClass}"><i class="ri-time-line"></i>${diff}d</span>`;
+  }
+
+  // Get temperature class for card
+  function getTempClass(temp) {
+    if (!temp) return 'temp-frio';
+    const t = temp.toUpperCase();
+    if (t === 'QUENTE') return 'temp-quente';
+    if (t === 'MORNO') return 'temp-morno';
+    return 'temp-frio';
+  }
+
+  // Get temperature badge HTML
+  function getTempBadge(temp) {
+    if (!temp) temp = 'FRIO';
+    const t = temp.toUpperCase();
+    let icon = 'ri-snowy-line';
+    let label = 'Frio';
+    let cls = 'temp-frio';
+
+    if (t === 'QUENTE') {
+      icon = 'ri-fire-line';
+      label = 'Quente';
+      cls = 'temp-quente';
+    } else if (t === 'MORNO') {
+      icon = 'ri-sun-line';
+      label = 'Morno';
+      cls = 'temp-morno';
+    }
+
+    return `<span class="temp-badge ${cls}"><i class="${icon}"></i>${label}</span>`;
+  }
+
+  // Get initials from name
+  function getInitials(name) {
+    if (!name) return '??';
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
   // ===================================================================
 
@@ -206,81 +211,101 @@
       '</div>'
     );
   }
-  // Render item dropdown
-  function renderDropdown(idMailing) {
+  // Render view button (replaces dropdown)
+  function renderViewButton(idMailing) {
     return (
-      "<div class='dropdown kanban-tasks-item-dropdown '>" +
-      "<i class='dropdown-toggle ri-more-2-line ri-20px text-muted' id='kanban-tasks-item-dropdown' data-bs-toggle='dropdown' aria-haspopup='true' aria-expanded='false'></i>" +
-      "<div class='dropdown-menu dropdown-menu-end' aria-labelledby='kanban-tasks-item-dropdown'>" +
-      "<a class='dropdown-item' href='/comercial/abrir-cliente/" +
-      idMailing +
-      "'>Abrir Cliente</a>" +
-      '</div>' +
-      '</div>'
+      "<a href='/comercial/abrir-cliente/" + idMailing + "' class='kanban-view-btn' title='Abrir Cliente' onclick='event.stopPropagation()'>" +
+      "<i class='ri-eye-line'></i>" +
+      "</a>"
     );
   }
 
-  // header + título + data
+  // Legacy function kept for compatibility
+  function renderDropdown(idMailing) {
+    return renderViewButton(idMailing);
+  }
+
+  // Render modern card content
+  function renderModernCard(el) {
+    const idMailing = el.getAttribute('data-eid');
+    const nameOnCard = (el.getAttribute('data-nome_cliente') || el.textContent || '').trim();
+    const temperatura = el.getAttribute('data-badge-text') || 'FRIO';
+    const dataCreate = el.getAttribute('data-data_create') || '';
+    const dataUpdate = el.getAttribute('data-data_update') || '';
+    const comments = el.getAttribute('data-comments') || '0';
+    const userName = el.getAttribute('data-user-name') || '';
+    const showNameCard = el.getAttribute('data-show-name-card') === 'true';
+
+    // Build stale badge
+    const staleBadge = buildStaleBadge(dataUpdate);
+
+    // Build card HTML
+    let html = '<div class="card-inner">';
+
+    // Header with badges
+    html += '<div class="card-header-badges">';
+    html += '<div class="badges-left">';
+    html += getTempBadge(temperatura);
+    if (staleBadge) html += staleBadge;
+    html += '</div>';
+    html += '</div>';
+
+    // Client name
+    html += `<h6 class="client-name">${nameOnCard}</h6>`;
+
+    // Date info
+    html += `<div class="date-info"><i class="ri-calendar-line"></i><span>${dataCreate}</span></div>`;
+
+    // Footer
+    html += '<div class="card-footer-actions">';
+
+    if (showNameCard && userName) {
+      // Admin view - show broker info
+      const initials = getInitials(userName);
+      const shortName = userName.length > 15 ? userName.substring(0, 15) + '...' : userName;
+      html += `<div class="broker-info">
+        <span class="broker-avatar">${initials}</span>
+        <span>${shortName}</span>
+      </div>`;
+    } else {
+      // Seller view - show comment count
+      html += `<div class="broker-info">
+        <i class="ri-chat-3-line"></i>
+        <span>${comments} anotações</span>
+      </div>`;
+    }
+
+    // Action buttons
+    html += '<div class="action-buttons">';
+    html += `<button type="button" class="action-btn btn-schedule" data-bs-toggle="modal" data-bs-target="#scheduleModal" onclick="event.stopPropagation(); setLeadId(${idMailing})" title="Agendar">
+      <i class="ri-calendar-check-line"></i>
+    </button>`;
+    html += `<button type="button" class="action-btn btn-discard" data-bs-toggle="modal" data-bs-target="#discardModal" onclick="event.stopPropagation(); setLeadId(${idMailing})" title="Descartar">
+      <i class="ri-close-circle-line"></i>
+    </button>`;
+    html += '</div>';
+
+    html += '</div>'; // footer
+    html += '</div>'; // card-inner
+
+    return html;
+  }
+
+  // Legacy functions kept for compatibility
   function renderHeader(color, text, idMailing, dataInsert, messageTime, staleHtml = '') {
-    return (
-      "<div class='kanban-header-flex mb-1'>" +
-      "<div class='kanban-badges'>" +
-      "<div class='badge rounded-pill bg-label-" + color + "'>" + text + "</div>" +
-      (staleHtml ? staleHtml : '') +
-      "</div>" +
-      renderDropdown(idMailing) +
-      "</div>" +
-      "<div class='kanban-date text-muted'>" + messageTime + "</div>"
-    );
+    return '';
   }
 
   function renderTitle(nameText) {
-    const safe = (nameText || '').toString();
-    return "<div class='kanban-title-text'>" + safe + "</div>";
+    return '';
   }
 
-  // Render footer
   function renderFooterAdmin(nameUser) {
-    return (
-      "<div class='d-flex justify-content-between align-items-center flex-wrap mt-2'>" +
-      "</span> <span class='align-middle'><i class='ri-user-line ri-20px me-1 text-primary'></i>" +
-      '<span> ' +
-      nameUser +
-      ' </span>' +
-      '</span></div>' +
-      '</div>'
-    );
+    return '';
   }
 
   function renderFooter(attachments, comments, assigned, members, leadId) {
-    return (
-      "<div class='d-flex justify-content-between align-items-center flex-wrap mt-2'>" +
-      "<span class='align-middle'>" +
-      "<i class='ri-wechat-line ri-20px me-1'></i>" +
-      '<span> ' +
-      comments +
-      ' </span>' +
-      '</span>' +
-      "<span class='ms-auto d-flex'>" +
-      "<button type='button' class='btn btn-link text-info p-0 me-2' " +
-      "data-bs-toggle='modal' " +
-      "data-bs-target='#scheduleModal' " +
-      "onclick='setLeadId(" +
-      leadId +
-      ")'>" +
-      "<i class='ri-time-line ri-20px'></i>" +
-      '</button>' +
-      "<button type='button' class='btn btn-link p-0 text-danger' " +
-      "data-bs-toggle='modal' " +
-      "data-bs-target='#discardModal' " +
-      "onclick='setLeadId(" +
-      leadId +
-      ")'>" +
-      "<i class='ri-delete-bin-5-fill ri-20px'></i>" +
-      '</button>' +
-      '</span>' +
-      '</div>'
-    );
+    return '';
   }
 
   // Definindo a função no escopo global
@@ -725,53 +750,23 @@
     title.setAttribute('data-original-title', originalTitle);
   });
 
-  // Render custom items
+  // Render custom items with modern design
   if (kanbanItem) {
     kanbanItem.forEach(function (el) {
-      let elementCard = el;
-      let colorTime = '';
-      let messageTime = '';
-      let idMailing = elementCard.getAttribute('data-eid');
-      let nameOnCard = (el.getAttribute('data-nome_cliente') || el.textContent || '').trim();
+      const idMailing = el.getAttribute('data-eid');
+      const temperatura = el.getAttribute('data-badge-text') || 'FRIO';
 
-      colorTime = 'secondary';
-      messageTime = el.getAttribute('data-data_create');
-
-      // badge de estagnação
-      const dataUpdateStr = el.getAttribute('data-data_update');
-      const staleBadge = buildStaleBadge(dataUpdateStr);
-
-      // re-render com ordem melhor
+      // Clear existing content
       el.textContent = '';
-      if (el.getAttribute('data-badge') !== undefined && el.getAttribute('data-badge-text') !== undefined) {
-        el.insertAdjacentHTML(
-          'afterbegin',
-          renderHeader(
-            el.getAttribute('data-badge'),
-            el.getAttribute('data-badge-text'),
-            idMailing,
-            colorTime,
-            messageTime,
-            staleBadge
-          ) +
-          renderTitle(nameOnCard)
-        );
-      }
 
-      if (el.getAttribute('data-show-name-card') == 'true') {
-        el.insertAdjacentHTML('beforeend', renderFooterAdmin(limitUserName(el.getAttribute('data-user-name'))));
-      } else {
-        el.insertAdjacentHTML(
-          'beforeend',
-          renderFooter(
-            el.getAttribute('data-attachments'),
-            el.getAttribute('data-comments'),
-            el.getAttribute('data-assigned'),
-            el.getAttribute('data-members'),
-            el.getAttribute('data-eid')
-          )
-        );
-      }
+      // Add temperature class to card
+      el.classList.add(getTempClass(temperatura));
+
+      // Render modern card
+      el.insertAdjacentHTML('afterbegin', renderModernCard(el));
+
+      // Add dropdown
+      el.insertAdjacentHTML('beforeend', renderDropdown(idMailing));
     });
   }
 
