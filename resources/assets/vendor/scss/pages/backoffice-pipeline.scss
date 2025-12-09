@@ -1,0 +1,1148 @@
+// * Backoffice Pipeline - Industrial Control Room Design
+// * Visual flow with arrows, lateral desvio, and separated negative exits
+// *******************************************************************************
+
+@use '../_bootstrap-extended/include' as light;
+@use '../_bootstrap-extended/include-dark' as dark;
+@import '../_components/include';
+@import '../_custom-variables/pages';
+
+// Variables
+$pipeline-wrapper-height: calc(100vh - 20rem);
+
+// Status Colors - Vibrant industrial palette
+$status-venda: #6366f1;
+$status-analise-docs: #0ea5e9;
+$status-pendencia: #ef4444;
+$status-regularizado: #22c55e;
+$status-analise-operadora: #f59e0b;
+$status-contrato-gerado: #a855f7;
+$status-aguard-assinatura: #eab308;
+$status-boleto-disponivel: #14b8a6;
+$status-implantado: #10b981;
+$status-estorno: #dc2626;
+$status-declinado: #64748b;
+
+// Gradients
+$gradient-venda: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+$gradient-analise-docs: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+$gradient-pendencia: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+$gradient-regularizado: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+$gradient-analise-operadora: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+$gradient-contrato-gerado: linear-gradient(135deg, #a855f7 0%, #c084fc 100%);
+$gradient-aguard-assinatura: linear-gradient(135deg, #eab308 0%, #facc15 100%);
+$gradient-boleto-disponivel: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%);
+$gradient-implantado: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+$gradient-estorno: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+$gradient-declinado: linear-gradient(135deg, #64748b 0%, #94a3b8 100%);
+
+// Main Pipeline Container
+.backoffice-pipeline {
+  position: relative;
+
+  // Header Section with Filters
+  .pipeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.25rem;
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      h4 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.25rem;
+        letter-spacing: -0.02em;
+      }
+
+      i {
+        font-size: 1.5rem;
+        color: $status-venda;
+      }
+    }
+
+    .header-filters {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+
+      .filter-item {
+        min-width: 160px;
+
+        .form-control,
+        .form-select {
+          border-radius: 8px;
+          font-size: 0.875rem;
+          padding: 0.5rem 0.75rem;
+          border: 2px solid transparent;
+          transition: all 0.2s ease;
+
+          &:focus {
+            border-color: rgba($status-venda, 0.5);
+            box-shadow: 0 0 0 3px rgba($status-venda, 0.1);
+          }
+        }
+      }
+
+      .btn-filter {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+
+        &:hover {
+          transform: translateY(-1px);
+        }
+      }
+    }
+  }
+
+  // KPIs Section
+  .pipeline-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+
+    @media (max-width: 1200px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 576px) {
+      grid-template-columns: 1fr;
+    }
+
+    .kpi-card {
+      padding: 1.25rem;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+
+      .kpi-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        i {
+          font-size: 1.375rem;
+          color: #fff;
+        }
+
+        &.icon-total { background: $gradient-venda; }
+        &.icon-andamento { background: $gradient-analise-operadora; }
+        &.icon-implantados { background: $gradient-implantado; }
+        &.icon-conversao { background: $gradient-contrato-gerado; }
+      }
+
+      .kpi-content {
+        flex: 1;
+        min-width: 0;
+
+        .kpi-value {
+          font-size: 1.5rem;
+          font-weight: 800;
+          line-height: 1.2;
+          letter-spacing: -0.02em;
+        }
+
+        .kpi-label {
+          font-size: 0.75rem;
+          opacity: 0.7;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+      }
+    }
+  }
+
+  // Pipeline Legend
+  .pipeline-legend {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+
+      .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+
+        &.legend-flow { background: $gradient-venda; }
+        &.legend-desvio { background: $gradient-pendencia; }
+        &.legend-exit { background: $gradient-declinado; }
+      }
+
+      .delay-indicator {
+        width: 16px;
+        height: 4px;
+        border-radius: 2px;
+
+        &.delay-ok-indicator { background: $status-implantado; }
+        &.delay-warning-indicator { background: $status-analise-operadora; }
+        &.delay-danger-indicator { background: $status-pendencia; }
+      }
+    }
+
+    .legend-separator {
+      width: 1px;
+      height: 20px;
+      opacity: 0.2;
+    }
+  }
+
+  // Pipeline Container
+  .pipeline-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 10px;
+    }
+
+    .stages-wrapper {
+      display: flex;
+      width: max-content;
+      min-height: 100%;
+    }
+
+    // Pipeline Flow (main container with stages and connectors)
+    .pipeline-flow {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+    }
+  }
+
+  // Flow Connector (arrows between stages)
+  .flow-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 2.5rem;
+    min-width: 40px;
+    position: relative;
+
+    .connector-line {
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, rgba($status-venda, 0.3) 0%, rgba($status-venda, 0.6) 100%);
+      position: relative;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 4px,
+          rgba($status-venda, 0.4) 4px,
+          rgba($status-venda, 0.4) 8px
+        );
+        transform: translateY(-50%);
+      }
+    }
+
+    .connector-arrow {
+      position: absolute;
+      right: -2px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $status-venda;
+      font-size: 1.25rem;
+      animation: pulse-arrow 2s infinite;
+    }
+
+    &.has-desvio {
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: calc(2.5rem + 3px);
+        left: 50%;
+        width: 3px;
+        height: 30px;
+        background: linear-gradient(180deg, rgba($status-pendencia, 0.6) 0%, rgba($status-pendencia, 0.3) 100%);
+        transform: translateX(-50%);
+      }
+    }
+  }
+
+  @keyframes pulse-arrow {
+    0%, 100% { opacity: 1; transform: translateY(-50%) translateX(0); }
+    50% { opacity: 0.6; transform: translateY(-50%) translateX(3px); }
+  }
+
+  // Individual Stage
+  .pipeline-stage {
+    width: 280px;
+    min-width: 280px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    animation: stage-enter 0.4s ease-out backwards;
+    animation-delay: calc(var(--stage-index, 0) * 0.08s);
+
+    &:hover {
+      transform: translateY(-3px);
+    }
+
+    &.final-stage {
+      .stage-header {
+        position: relative;
+        overflow: hidden;
+
+        &::after {
+          content: '✓';
+          position: absolute;
+          right: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 1.5rem;
+          opacity: 0.3;
+        }
+      }
+    }
+
+    &.desvio-stage {
+      width: 240px;
+      min-width: 240px;
+    }
+
+    &.exit-stage {
+      width: 240px;
+      min-width: 240px;
+      opacity: 0.9;
+    }
+
+    // Stage Header
+    .stage-header {
+      padding: 1rem 1.25rem;
+      color: #fff;
+      position: relative;
+
+      .stage-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+
+        .title-text {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.8125rem;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+          color: #fff;
+
+          i {
+            font-size: 1rem;
+            color: #fff;
+          }
+        }
+
+        .stage-badges {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .stage-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 28px;
+          height: 28px;
+          padding: 0 8px;
+          background: rgba(255, 255, 255, 0.25);
+          border-radius: 14px;
+          font-size: 0.875rem;
+          font-weight: 800;
+          color: #fff;
+        }
+
+        .stage-alert {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 8px;
+          background: rgba(255, 255, 255, 0.9);
+          color: $status-pendencia;
+          border-radius: 12px;
+          font-size: 0.6875rem;
+          font-weight: 700;
+
+          i { font-size: 0.75rem; }
+        }
+      }
+
+      .stage-progress {
+        height: 3px;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 3px;
+        overflow: hidden;
+
+        .progress-bar {
+          height: 100%;
+          background: rgba(255, 255, 255, 0.9);
+          border-radius: 3px;
+          transition: width 0.5s ease;
+        }
+      }
+
+      // Status gradients
+      &.status-venda { background: $gradient-venda; }
+      &.status-analise-docs { background: $gradient-analise-docs; }
+      &.status-pendencia { background: $gradient-pendencia; }
+      &.status-regularizado { background: $gradient-regularizado; }
+      &.status-analise-operadora { background: $gradient-analise-operadora; }
+      &.status-contrato-gerado { background: $gradient-contrato-gerado; }
+      &.status-aguard-assinatura { background: $gradient-aguard-assinatura; .title-text, .title-text i, .stage-count { color: #1e293b; } }
+      &.status-boleto-disponivel { background: $gradient-boleto-disponivel; }
+      &.status-implantado { background: $gradient-implantado; }
+      &.status-estorno { background: $gradient-estorno; }
+      &.status-declinado { background: $gradient-declinado; }
+    }
+
+    // Stage Body
+    .stage-body {
+      flex: 1;
+      padding: 0.75rem;
+      overflow-y: auto;
+      max-height: 400px;
+
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        border-radius: 4px;
+      }
+
+      .stage-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        text-align: center;
+        opacity: 0.5;
+
+        i {
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+        }
+
+        p {
+          margin: 0;
+          font-size: 0.8125rem;
+        }
+      }
+    }
+  }
+
+  @keyframes stage-enter {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  // Desvio Section (PENDÊNCIA/REGULARIZADO)
+  .pipeline-desvio {
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 12px;
+    border: 2px dashed rgba($status-pendencia, 0.3);
+    position: relative;
+    margin-left: calc(280px * 2 + 40px * 2 + 1rem); // Position under ANÁLISE OPERADORA
+
+    @media (max-width: 1200px) {
+      margin-left: 1rem;
+    }
+
+    .desvio-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+
+      .desvio-connector-up {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba($status-pendencia, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: $status-pendencia;
+        font-size: 1.25rem;
+        animation: bounce-arrow 1.5s infinite;
+      }
+
+      .desvio-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: $status-pendencia;
+      }
+    }
+
+    @keyframes bounce-arrow {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    .desvio-stages {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+    }
+
+    .desvio-flow-connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 0.5rem;
+      padding-top: 2.5rem;
+      color: rgba($status-pendencia, 0.6);
+      font-size: 1.25rem;
+
+      i {
+        animation: pulse-horizontal 2s infinite;
+      }
+    }
+
+    @keyframes pulse-horizontal {
+      0%, 100% { opacity: 1; transform: scaleX(1); }
+      50% { opacity: 0.5; transform: scaleX(1.2); }
+    }
+  }
+
+  // Negative Exits Section
+  .pipeline-exits {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 2px solid rgba($status-estorno, 0.2);
+
+    .exits-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: $status-estorno;
+
+      i { font-size: 1rem; }
+    }
+
+    .exits-stages {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+  }
+
+  // Contract Card
+  .contract-card {
+    padding: 0.875rem;
+    border-radius: 10px;
+    margin-bottom: 0.625rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      transition: width 0.2s ease;
+    }
+
+    &.delay-ok::before { background: $status-implantado; }
+    &.delay-warning::before { background: $status-analise-operadora; }
+    &.delay-danger::before { background: $status-pendencia; animation: pulse-danger 2s infinite; }
+
+    &:hover {
+      transform: translateX(3px);
+
+      &::before { width: 5px; }
+
+      .card-actions {
+        opacity: 1;
+        visibility: visible;
+      }
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .card-header-info {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.625rem;
+
+      .contract-name {
+        font-size: 0.875rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        color: inherit;
+      }
+
+      .delay-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 6px;
+        border-radius: 12px;
+        font-size: 0.625rem;
+        font-weight: 700;
+        white-space: nowrap;
+        flex-shrink: 0;
+
+        i { font-size: 0.6875rem; }
+
+        &.badge-ok {
+          background: rgba($status-implantado, 0.12);
+          color: $status-implantado;
+        }
+
+        &.badge-warning {
+          background: rgba($status-analise-operadora, 0.12);
+          color: $status-analise-operadora;
+        }
+
+        &.badge-danger {
+          background: rgba($status-pendencia, 0.12);
+          color: $status-pendencia;
+        }
+      }
+    }
+
+    .card-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      margin-bottom: 0.625rem;
+
+      .info-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+
+        i {
+          font-size: 0.875rem;
+          opacity: 0.6;
+          width: 16px;
+          flex-shrink: 0;
+        }
+
+        .info-label {
+          opacity: 0.6;
+        }
+
+        .info-value {
+          font-weight: 600;
+        }
+      }
+    }
+
+    .card-footer-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 0.625rem;
+
+      .broker-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.6875rem;
+
+        .broker-avatar {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.625rem;
+          font-weight: 700;
+        }
+      }
+
+      .card-actions {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.15s ease;
+
+        .action-btn {
+          width: 26px;
+          height: 26px;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          cursor: pointer;
+          transition: all 0.15s ease;
+
+          i { font-size: 0.875rem; }
+
+          &.btn-view {
+            background: rgba($status-venda, 0.1);
+            color: $status-venda;
+            &:hover { background: rgba($status-venda, 0.2); }
+          }
+
+          &.btn-history {
+            background: rgba($status-analise-docs, 0.1);
+            color: $status-analise-docs;
+            &:hover { background: rgba($status-analise-docs, 0.2); }
+          }
+
+          &.btn-status {
+            background: rgba($status-regularizado, 0.1);
+            color: $status-regularizado;
+            &:hover { background: rgba($status-regularizado, 0.2); }
+          }
+        }
+      }
+    }
+  }
+
+  @keyframes pulse-danger {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+}
+
+// History Timeline
+.history-timeline {
+  .timeline-item {
+    position: relative;
+    padding-left: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-left: 2px solid rgba(0, 0, 0, 0.1);
+
+    &:last-child {
+      border-left-color: transparent;
+      padding-bottom: 0;
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -7px;
+      top: 0;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid;
+    }
+
+    &.status-venda::before { border-color: $status-venda; background: rgba($status-venda, 0.2); }
+    &.status-analise-docs::before { border-color: $status-analise-docs; background: rgba($status-analise-docs, 0.2); }
+    &.status-pendencia::before { border-color: $status-pendencia; background: rgba($status-pendencia, 0.2); }
+    &.status-regularizado::before { border-color: $status-regularizado; background: rgba($status-regularizado, 0.2); }
+    &.status-analise-operadora::before { border-color: $status-analise-operadora; background: rgba($status-analise-operadora, 0.2); }
+    &.status-contrato-gerado::before { border-color: $status-contrato-gerado; background: rgba($status-contrato-gerado, 0.2); }
+    &.status-aguard-assinatura::before { border-color: $status-aguard-assinatura; background: rgba($status-aguard-assinatura, 0.2); }
+    &.status-boleto-disponivel::before { border-color: $status-boleto-disponivel; background: rgba($status-boleto-disponivel, 0.2); }
+    &.status-implantado::before { border-color: $status-implantado; background: rgba($status-implantado, 0.2); }
+    &.status-estorno::before { border-color: $status-estorno; background: rgba($status-estorno, 0.2); }
+    &.status-declinado::before { border-color: $status-declinado; background: rgba($status-declinado, 0.2); }
+
+    .timeline-content {
+      .timeline-status {
+        font-size: 0.875rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+
+      .timeline-date {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-bottom: 0.5rem;
+
+        .timeline-user {
+          font-weight: 600;
+        }
+      }
+
+      .timeline-duration {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+
+        i { font-size: 0.75rem; }
+      }
+
+      .timeline-obs {
+        font-size: 0.8125rem;
+        padding: 0.625rem;
+        border-radius: 8px;
+        margin-top: 0.5rem;
+        font-style: italic;
+      }
+
+      .timeline-pendencia {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba($status-pendencia, 0.1);
+        color: $status-pendencia;
+        margin-top: 0.5rem;
+      }
+    }
+  }
+}
+
+// Light style
+@if $enable-light-style {
+  .light-style {
+    .backoffice-pipeline {
+      .pipeline-header {
+        background: light.$card-bg;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        border: 1px solid light.$border-color;
+
+        .header-title h4 {
+          color: light.$headings-color;
+        }
+      }
+
+      .pipeline-kpis {
+        .kpi-card {
+          background: light.$card-bg;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+          border: 1px solid light.$border-color;
+
+          &:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          }
+
+          .kpi-content .kpi-value {
+            color: light.$headings-color;
+          }
+        }
+      }
+
+      .pipeline-legend {
+        background: rgba(0, 0, 0, 0.02);
+
+        .legend-separator {
+          background: light.$border-color;
+        }
+      }
+
+      .pipeline-container {
+        &::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        .pipeline-stage {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+          .stage-body {
+            background: rgba(0, 0, 0, 0.02);
+
+            &::-webkit-scrollbar-thumb {
+              background: rgba(0, 0, 0, 0.1);
+            }
+          }
+        }
+
+        .contract-card {
+          background: light.$card-bg;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+          &:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+
+          .card-header-info .contract-name {
+            color: light.$headings-color;
+          }
+
+          .card-footer-info {
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+
+            .broker-info .broker-avatar {
+              background: rgba($status-venda, 0.1);
+              color: $status-venda;
+            }
+          }
+        }
+      }
+
+      .pipeline-desvio {
+        background: rgba($status-pendencia, 0.02);
+      }
+
+      .pipeline-exits {
+        background: rgba($status-estorno, 0.02);
+      }
+    }
+
+    .history-timeline {
+      .timeline-item {
+        border-left-color: rgba(0, 0, 0, 0.1);
+
+        .timeline-content {
+          .timeline-status {
+            color: light.$headings-color;
+          }
+
+          .timeline-duration {
+            background: rgba(0, 0, 0, 0.05);
+          }
+
+          .timeline-obs {
+            background: rgba(0, 0, 0, 0.03);
+            color: light.$body-color;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Dark style
+@if $enable-dark-style {
+  .dark-style {
+    .backoffice-pipeline {
+      .pipeline-header {
+        background: dark.$card-bg;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        border: 1px solid dark.$border-color;
+
+        .header-title h4 {
+          color: dark.$headings-color;
+        }
+      }
+
+      .pipeline-kpis {
+        .kpi-card {
+          background: dark.$card-bg;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          border: 1px solid dark.$border-color;
+
+          &:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+          }
+
+          .kpi-content .kpi-value {
+            color: dark.$headings-color;
+          }
+        }
+      }
+
+      .pipeline-legend {
+        background: rgba(255, 255, 255, 0.02);
+
+        .legend-separator {
+          background: dark.$border-color;
+        }
+      }
+
+      .pipeline-container {
+        &::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.12);
+        }
+
+        .pipeline-stage {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+          .stage-body {
+            background: rgba(255, 255, 255, 0.02);
+
+            &::-webkit-scrollbar-thumb {
+              background: rgba(255, 255, 255, 0.12);
+            }
+          }
+        }
+
+        .contract-card {
+          background: dark.$card-bg;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+
+          &:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+          }
+
+          .card-header-info .contract-name {
+            color: dark.$headings-color;
+          }
+
+          .card-footer-info {
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+            .broker-info .broker-avatar {
+              background: rgba($status-venda, 0.15);
+              color: lighten($status-venda, 10%);
+            }
+          }
+        }
+      }
+
+      .pipeline-desvio {
+        background: rgba($status-pendencia, 0.05);
+      }
+
+      .pipeline-exits {
+        background: rgba($status-estorno, 0.05);
+      }
+    }
+
+    .history-timeline {
+      .timeline-item {
+        border-left-color: rgba(255, 255, 255, 0.1);
+
+        .timeline-content {
+          .timeline-status {
+            color: dark.$headings-color;
+          }
+
+          .timeline-duration {
+            background: rgba(255, 255, 255, 0.06);
+          }
+
+          .timeline-obs {
+            background: rgba(255, 255, 255, 0.04);
+            color: dark.$body-color;
+          }
+        }
+      }
+    }
+  }
+}
+
+// RTL Support
+@if $enable-rtl-support {
+  [dir='rtl'] {
+    .backoffice-pipeline {
+      .contract-card {
+        &::before {
+          left: auto;
+          right: 0;
+        }
+
+        &:hover {
+          transform: translateX(-3px);
+        }
+      }
+
+      .flow-connector {
+        .connector-arrow {
+          right: auto;
+          left: -2px;
+          transform: translateY(-50%) rotate(180deg);
+        }
+      }
+    }
+
+    .history-timeline {
+      .timeline-item {
+        padding-left: 0;
+        padding-right: 1.75rem;
+        border-left: none;
+        border-right: 2px solid rgba(0, 0, 0, 0.1);
+
+        &::before {
+          left: auto;
+          right: -7px;
+        }
+      }
+    }
+  }
+}

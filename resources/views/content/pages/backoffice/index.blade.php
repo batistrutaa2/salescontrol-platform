@@ -1,10 +1,10 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'Backoffice - Contratos')
+@section('title', 'Backoffice - Fila de Contratos')
 
 <!-- Vendor Styles -->
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/libs/quill/editor.scss'])
+    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss'])
 @endsection
 
 <!-- Vendor Scripts -->
@@ -48,13 +48,13 @@
             transition: all 0.3s ease;
         }
 
-        [data-theme="light"] .modern-card {
+        .light-style .modern-card {
             background: white;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
 
-        [data-theme="dark"] .modern-card {
-            background: #2d3748;
+        .dark-style .modern-card {
+            background: #2b2c40;
             box-shadow: 0 2px 12px rgba(0,0,0,0.3);
         }
 
@@ -73,49 +73,19 @@
             height: 100%;
         }
 
-        [data-theme="light"] .metric-card {
+        .light-style .metric-card {
             background: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
-        [data-theme="dark"] .metric-card {
-            background: #2d3748;
+        .dark-style .metric-card {
+            background: #2b2c40;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        }
-
-        .metric-card {
-            cursor: pointer;
         }
 
         .metric-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-        }
-
-        .metric-card.active-filter {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-            border: 2px solid;
-        }
-
-        .metric-card.primary.active-filter {
-            border-color: #5a67d8;
-        }
-
-        .metric-card.success.active-filter {
-            border-color: #28a745;
-        }
-
-        .metric-card.warning.active-filter {
-            border-color: #ffc107;
-        }
-
-        .metric-card.danger.active-filter {
-            border-color: #dc3545;
-        }
-
-        .metric-card.info.active-filter {
-            border-color: #17a2b8;
         }
 
         .metric-card::before {
@@ -127,11 +97,11 @@
             height: 3px;
         }
 
-        .metric-card.primary::before { background: linear-gradient(90deg, #5a67d8, #667eea); }
+        .metric-card.primary::before { background: linear-gradient(90deg, #696cff, #8b5cf6); }
         .metric-card.success::before { background: linear-gradient(90deg, #28a745, #20c997); }
-        .metric-card.warning::before { background: linear-gradient(90deg, #ffc107, #fd7e14); }
-        .metric-card.danger::before { background: linear-gradient(90deg, #dc3545, #e83e8c); }
-        .metric-card.info::before { background: linear-gradient(90deg, #17a2b8, #20c997); }
+        .metric-card.warning::before { background: linear-gradient(90deg, #ffab00, #fd7e14); }
+        .metric-card.danger::before { background: linear-gradient(90deg, #ff3e1d, #e83e8c); }
+        .metric-card.info::before { background: linear-gradient(90deg, #03c3ec, #20c997); }
 
         .metric-icon {
             width: 40px;
@@ -145,24 +115,20 @@
         }
 
         .metric-card.primary .metric-icon {
-            background: linear-gradient(135deg, rgba(90, 103, 216, 0.1), rgba(102, 126, 234, 0.15));
-            color: #5a67d8;
+            background: linear-gradient(135deg, rgba(105, 108, 255, 0.1), rgba(139, 92, 246, 0.15));
+            color: #696cff;
         }
         .metric-card.success .metric-icon {
             background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(32, 201, 151, 0.15));
             color: #28a745;
         }
         .metric-card.warning .metric-icon {
-            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(253, 126, 20, 0.15));
-            color: #ffc107;
+            background: linear-gradient(135deg, rgba(255, 171, 0, 0.1), rgba(253, 126, 20, 0.15));
+            color: #ffab00;
         }
         .metric-card.danger .metric-icon {
-            background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(232, 62, 140, 0.15));
-            color: #dc3545;
-        }
-        .metric-card.info .metric-icon {
-            background: linear-gradient(135deg, rgba(23, 162, 184, 0.1), rgba(32, 201, 151, 0.15));
-            color: #17a2b8;
+            background: linear-gradient(135deg, rgba(255, 62, 29, 0.1), rgba(232, 62, 140, 0.15));
+            color: #ff3e1d;
         }
 
         .metric-value {
@@ -172,11 +138,10 @@
             line-height: 1;
         }
 
-        .metric-card.primary .metric-value { color: #5a67d8; }
+        .metric-card.primary .metric-value { color: #696cff; }
         .metric-card.success .metric-value { color: #28a745; }
-        .metric-card.warning .metric-value { color: #ffc107; }
-        .metric-card.danger .metric-value { color: #dc3545; }
-        .metric-card.info .metric-value { color: #17a2b8; }
+        .metric-card.warning .metric-value { color: #ffab00; }
+        .metric-card.danger .metric-value { color: #ff3e1d; }
 
         .metric-label {
             font-size: 0.75rem;
@@ -186,12 +151,136 @@
             opacity: 0.8;
         }
 
-        [data-theme="light"] .metric-label {
-            color: #6c757d;
+        /* Fluxo Visual do Pipeline */
+        .pipeline-flow-diagram {
+            padding: 1.25rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
         }
 
-        [data-theme="dark"] .metric-label {
-            color: #a1a5b7;
+        .light-style .pipeline-flow-diagram {
+            background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+            border: 1px solid #e9ecef;
+        }
+
+        .dark-style .pipeline-flow-diagram {
+            background: linear-gradient(135deg, #2b2c40 0%, #32334a 100%);
+            border: 1px solid #3b3c54;
+        }
+
+        .flow-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+            opacity: 0.7;
+        }
+
+        .flow-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
+            min-width: max-content;
+        }
+
+        .flow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .flow-step-badge {
+            padding: 0.5rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.625rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .flow-step-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .flow-step-badge i {
+            font-size: 0.875rem;
+        }
+
+        .flow-step-badge.step-venda { background: linear-gradient(135deg, #696cff, #8b5cf6); }
+        .flow-step-badge.step-analise-docs { background: linear-gradient(135deg, #03c3ec, #06b6d4); }
+        .flow-step-badge.step-analise-operadora { background: linear-gradient(135deg, #ffab00, #fbbf24); color: #1e293b; }
+        .flow-step-badge.step-contrato { background: linear-gradient(135deg, #a855f7, #c084fc); }
+        .flow-step-badge.step-assinatura { background: linear-gradient(135deg, #eab308, #facc15); color: #1e293b; }
+        .flow-step-badge.step-boleto { background: linear-gradient(135deg, #14b8a6, #2dd4bf); }
+        .flow-step-badge.step-implantado { background: linear-gradient(135deg, #10b981, #34d399); }
+        .flow-step-badge.step-pendencia { background: linear-gradient(135deg, #ff3e1d, #f87171); }
+        .flow-step-badge.step-regularizado { background: linear-gradient(135deg, #22c55e, #4ade80); }
+        .flow-step-badge.step-estorno { background: linear-gradient(135deg, #dc2626, #ef4444); }
+        .flow-step-badge.step-declinado { background: linear-gradient(135deg, #64748b, #94a3b8); }
+
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 0.5rem;
+            color: #696cff;
+            font-size: 1.125rem;
+            opacity: 0.6;
+        }
+
+        .flow-desvio {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 2px dashed rgba(255, 62, 29, 0.3);
+        }
+
+        .flow-desvio-label {
+            font-size: 0.5625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #ff3e1d;
+            margin-bottom: 0.5rem;
+        }
+
+        .flow-desvio-steps {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .flow-exits {
+            margin-left: 1.5rem;
+            padding-left: 1.5rem;
+            border-left: 2px solid rgba(255, 62, 29, 0.2);
+        }
+
+        .flow-exits-label {
+            font-size: 0.5625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #dc2626;
+            margin-bottom: 0.5rem;
+        }
+
+        .flow-exits-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem;
         }
 
         /* Modal moderno */
@@ -205,19 +294,11 @@
             border-radius: 16px 16px 0 0;
             padding: 1.5rem;
             border: none;
-        }
-
-        [data-theme="light"] .modal-modern .modal-header {
-            background: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        [data-theme="dark"] .modal-modern .modal-header {
-            background: #5a67d8;
+            background: linear-gradient(135deg, #696cff 0%, #8b5cf6 100%);
             color: white;
         }
 
-        [data-theme="dark"] .modal-modern .modal-header .btn-close {
+        .modal-modern .modal-header .btn-close {
             filter: brightness(0) invert(1);
         }
 
@@ -235,7 +316,7 @@
             letter-spacing: 0.3px;
         }
     </style>
-
+@endsection
 
 @section('content')
     @if (session('status') == 'success')
@@ -250,6 +331,82 @@
             {{ session('message') }}
         </div>
     @endif
+
+    <!-- Fluxo Visual do Pipeline -->
+    <div class="pipeline-flow-diagram">
+        <div class="flow-title">
+            <i class="ri-flow-chart me-1"></i>
+            Fluxo do Processo de Implantação
+        </div>
+        <div class="d-flex align-items-start">
+            <div class="flow-container">
+                <div class="flow-step">
+                    <span class="flow-step-badge step-venda" onclick="filterByStatus('VENDA')">
+                        <i class="ri-shopping-cart-2-line"></i> Venda
+                    </span>
+                </div>
+                <div class="flow-arrow"><i class="ri-arrow-right-s-line"></i></div>
+                <div class="flow-step">
+                    <span class="flow-step-badge step-analise-docs" onclick="filterByStatus('ANALISE DE DOCUMENTOS')">
+                        <i class="ri-file-search-line"></i> Análise Docs
+                    </span>
+                </div>
+                <div class="flow-arrow"><i class="ri-arrow-right-s-line"></i></div>
+                <div class="flow-step">
+                    <span class="flow-step-badge step-analise-operadora" onclick="filterByStatus('ANALISE OPERADORA')">
+                        <i class="ri-building-line"></i> Análise Operadora
+                    </span>
+                    <div class="flow-desvio">
+                        <span class="flow-desvio-label"><i class="ri-arrow-down-s-line"></i> Desvio</span>
+                        <div class="flow-desvio-steps">
+                            <span class="flow-step-badge step-pendencia" onclick="filterByStatus('PENDENCIA')">
+                                <i class="ri-error-warning-line"></i> Pendência
+                            </span>
+                            <i class="ri-arrow-left-right-line" style="color: #ff3e1d; font-size: 0.875rem;"></i>
+                            <span class="flow-step-badge step-regularizado" onclick="filterByStatus('REGULARIZADO')">
+                                <i class="ri-checkbox-circle-line"></i> Regularizado
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flow-arrow"><i class="ri-arrow-right-s-line"></i></div>
+                <div class="flow-step">
+                    <span class="flow-step-badge step-contrato" onclick="filterByStatus('CONTR. GERADO - AGUARDANDO ASSINATURA')">
+                        <i class="ri-file-text-line"></i> Contrato Gerado
+                    </span>
+                </div>
+                <div class="flow-arrow"><i class="ri-arrow-right-s-line"></i></div>
+                <div class="flow-step">
+                    <span class="flow-step-badge step-assinatura" onclick="filterByStatus('AGUARD. ASSINATURA DA DS')">
+                        <i class="ri-edit-line"></i> Aguard. DS
+                    </span>
+                </div>
+                <div class="flow-arrow"><i class="ri-arrow-right-s-line"></i></div>
+                <div class="flow-step">
+                    <span class="flow-step-badge step-boleto" onclick="filterByStatus('BOLETO DISPONIVEL')">
+                        <i class="ri-bank-card-line"></i> Boleto Disponível
+                    </span>
+                </div>
+                <div class="flow-arrow"><i class="ri-arrow-right-s-line"></i></div>
+                <div class="flow-step">
+                    <span class="flow-step-badge step-implantado" onclick="filterByStatus('IMPLANTADO')">
+                        <i class="ri-check-double-line"></i> Implantado
+                    </span>
+                </div>
+            </div>
+            <div class="flow-exits">
+                <span class="flow-exits-label"><i class="ri-close-circle-line"></i> Saídas</span>
+                <div class="flow-exits-steps">
+                    <span class="flow-step-badge step-estorno" onclick="filterByStatus('ESTORNO')">
+                        <i class="ri-arrow-go-back-line"></i> Estorno
+                    </span>
+                    <span class="flow-step-badge step-declinado" onclick="filterByStatus('DECLINADO')">
+                        <i class="ri-close-circle-line"></i> Declinado
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Cards de Indicadores -->
     <div class="row g-3 mb-4">
@@ -297,15 +454,17 @@
                 <label class="form-label">Status</label>
                 <select id="status_filter" class="form-select">
                     <option value="">Todos</option>
-                    <option value="IMPLANTADO">IMPLANTADO</option>
                     <option value="VENDA">VENDA</option>
+                    <option value="ANALISE DE DOCUMENTOS">ANÁLISE DE DOCUMENTOS</option>
+                    <option value="ANALISE OPERADORA">ANÁLISE OPERADORA</option>
+                    <option value="PENDENCIA">PENDÊNCIA</option>
+                    <option value="REGULARIZADO">REGULARIZADO</option>
+                    <option value="CONTR. GERADO - AGUARDANDO ASSINATURA">CONTR. GERADO - AGUARDANDO ASSINATURA</option>
+                    <option value="AGUARD. ASSINATURA DA DS">AGUARD. ASSINATURA DA DS</option>
+                    <option value="BOLETO DISPONIVEL">BOLETO DISPONÍVEL</option>
+                    <option value="IMPLANTADO">IMPLANTADO</option>
                     <option value="ESTORNO">ESTORNO</option>
                     <option value="DECLINADO">DECLINADO</option>
-                    <option value="ANALISE DOCUMENTO">ANALISE DOCUMENTO</option>
-                    <option value="ANALISE OPERADORA">ANALISE OPERADORA</option>
-                    <option value="PENDENCIA">PENDENCIA</option>
-                    <option value="BOLETO DISPONIVEL">BOLETO DISPONIVEL</option>
-                    <option value="REGULARIZADO">REGULARIZADO</option>
                 </select>
             </div>
 
@@ -319,7 +478,6 @@
                 </select>
             </div>
 
-
             <div class="col-6 col-md-2">
                 <label class="form-label">Ano</label>
                 <select id="periodo_ano" class="form-select">
@@ -331,11 +489,12 @@
             </div>
 
             <div class="col-12 col-md-4 d-flex gap-2">
-                <button id="btn_limpar_filtro" class="btn btn-primary mb-3  " type="button">Limpar</button>
+                <button id="btn_limpar_filtro" class="btn btn-primary" type="button">
+                    <i class="ri-refresh-line me-1"></i> Limpar Filtros
+                </button>
             </div>
         </div>
     </div>
-
 
     <!-- Ajax Sourced Server-side -->
     <div class="card modern-card mt-4">
@@ -354,7 +513,7 @@
                         <th>Valor Contrato</th>
                         <th>Data Criação</th>
                         <th>Prazo</th>
-                        <th>ultima Atualização</th>
+                        <th>Última Atualização</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -363,7 +522,7 @@
     </div>
     <!--/ Ajax Sourced Server-side -->
 
-
+    <!-- Modal Alterar Status -->
     <div class="modal fade modal-modern" id="modalcomments" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -380,45 +539,49 @@
                         @csrf
                         <input type="hidden" id="idSale" name="idSale" value="">
                         <div class="col">
-                            <div class="form-floating form-floating-outline">
-                                <select class="select2  form-select" id="label" name="tabulacao_id">
+                            <div class="mb-3">
+                                <label for="label" class="form-label fw-semibold">Novo Status</label>
+                                <select class="form-select" id="label" name="tabulacao_id" required>
                                     <option value="">Selecione o Status</option>
                                     @foreach ($tabulacoes as $tabulation)
-                                        <option value="{{ $tabulation->id }}">{{ strtoupper($tabulation->descricao) }}
-                                        </option>
+                                        <option value="{{ $tabulation->id }}">{{ strtoupper($tabulation->descricao) }}</option>
                                     @endforeach
                                 </select>
-                                <label for="ecommerce-product-name">Selecione o status</label>
-                            </div>
-                            <div id="proof-group-data-implantacao" class="mt-3" style="display: none;">
-                                <label for="data_implantacao" class="form-label">Data de Implantação</label>
-                                <input type="date" id="data_implantacao" name="data_implantacao" class="form-control"
-                                    required>
-                            </div>
-                            <div id="proof-group-numero_proposta" class="mt-3" style="display: none;">
-                                <label for="numero_proposta" class="form-label">Numero da Proposta</label>
-                                <input type="text" id="numero_proposta" name="numero_proposta" class="form-control"
-                                    required>
-                            </div>
-                            <div id="proof-group-data-pendencia" class="mt-3" style="display: none;">
-                                <label for="data_pendencia" class="form-label">Motivo da pendência</label>
-                                <textarea id="data_pendencia" name="motivo_pendencia" class="form-control" rows="5"
-                                    placeholder="Descreva o motivo da pendência..." required style="min-height: 120px; resize: vertical;"></textarea>
                             </div>
 
-                            <div id="proof-group" class="mt-3" style="display: none;">
-                                <label for="comprovante" class="form-label">Comprovante de Pagamento</label>
+                            <div id="proof-group-data-implantacao" class="mb-3" style="display: none;">
+                                <label for="data_implantacao" class="form-label fw-semibold">Data de Implantação</label>
+                                <input type="date" id="data_implantacao" name="data_implantacao" class="form-control">
+                            </div>
+
+                            <div id="proof-group-numero_proposta" class="mb-3" style="display: none;">
+                                <label for="numero_proposta" class="form-label fw-semibold">Número da Proposta</label>
+                                <input type="text" id="numero_proposta" name="numero_proposta" class="form-control">
+                            </div>
+
+                            <div id="proof-group-data-pendencia" class="mb-3" style="display: none;">
+                                <label for="data_pendencia" class="form-label fw-semibold">Motivo da Pendência</label>
+                                <textarea id="data_pendencia" name="motivo_pendencia" class="form-control" rows="4"
+                                    placeholder="Descreva o motivo da pendência..." style="min-height: 120px; resize: vertical;"></textarea>
+                            </div>
+
+                            <div id="proof-group" class="mb-3" style="display: none;">
+                                <label for="comprovante" class="form-label fw-semibold">Comprovante de Pagamento</label>
                                 <input type="file" id="comprovante" name="comprovante" class="form-control"
                                     accept="image/*,application/pdf">
                             </div>
 
-                            <div id="proof-group-boleto-disponivel" class="mt-3" style="display: none;">
-                                <label for="boleto_pagamento" class="form-label">Boleto Disponivel</label>
+                            <div id="proof-group-boleto-disponivel" class="mb-3" style="display: none;">
+                                <label for="boleto_disponivel" class="form-label fw-semibold">Boleto Disponível</label>
                                 <input type="file" id="boleto_disponivel" name="boleto_disponivel" class="form-control"
                                     accept="image/*,application/pdf">
                             </div>
-                            <div>
-                                <button class="btn btn-danger btn--twitter mt-5">Alterar Status</button>
+
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="ri-check-line me-1"></i> Confirmar Alteração
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -427,5 +590,22 @@
         </div>
     </div>
 
-
+    <script>
+        // Função para filtrar por status ao clicar no fluxo
+        function filterByStatus(status) {
+            const select = document.getElementById('status_filter');
+            if (select) {
+                // Encontrar a opção que começa com o status (para lidar com variações)
+                for (let option of select.options) {
+                    if (option.value.toUpperCase().includes(status.toUpperCase()) ||
+                        status.toUpperCase().includes(option.value.toUpperCase())) {
+                        select.value = option.value;
+                        break;
+                    }
+                }
+                // Disparar evento change para atualizar a tabela
+                select.dispatchEvent(new Event('change'));
+            }
+        }
+    </script>
 @endsection

@@ -6,6 +6,8 @@ use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Models\ContatosCorretores;
 use App\Models\Tabulacoes;
+use App\Models\VendaHistorico;
+use App\Models\Vendas;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -394,17 +396,48 @@ public function getClientInfo($idMailing)
     }
   }
 
-  public function alterStatusContract($contato_id, $tabulacao_id): bool
+  public function alterStatusContract($contato_id, $tabulacao_id, $observacao = null, $motivo_pendencia = null): bool
   {
     try {
-      $update = $this->model::where('contato_id', $contato_id)->update(
-        [
-          'tabulacao_id' => $tabulacao_id,
-          'updated_at' => Carbon::now()
-        ]
-      );
+      DB::beginTransaction();
+
+      // Buscar o registro atual para pegar a tabulação anterior
+      $contatoCorretor = $this->model::where('contato_id', $contato_id)->first();
+
+      if (!$contatoCorretor) {
+        DB::rollBack();
+        return false;
+      }
+
+      $tabulacaoAnteriorId = $contatoCorretor->tabulacao_id;
+
+      // Atualizar o status
+      $update = $this->model::where('contato_id', $contato_id)->update([
+        'tabulacao_id' => $tabulacao_id,
+        'updated_at' => Carbon::now()
+      ]);
+
+      // Buscar a venda relacionada ao contato
+      $venda = Vendas::where('contato_id', $contato_id)->first();
+
+      // Registrar no histórico se existir uma venda
+      if ($venda) {
+        VendaHistorico::create([
+          'empresa_id' => Auth::user()->empresa_id,
+          'venda_id' => $venda->id,
+          'contato_corretor_id' => $contatoCorretor->id,
+          'user_id' => Auth::user()->id,
+          'tabulacao_anterior_id' => $tabulacaoAnteriorId,
+          'tabulacao_nova_id' => $tabulacao_id,
+          'observacao' => $observacao,
+          'motivo_pendencia' => $motivo_pendencia,
+        ]);
+      }
+
+      DB::commit();
       return $update;
     } catch (\Throwable $th) {
+      DB::rollBack();
       return false;
     }
   }

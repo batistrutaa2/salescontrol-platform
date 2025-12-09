@@ -124,7 +124,7 @@ $(document).ready(function () {
                 orderable: false,
                 render: function (data, type, row) {
                   return `
-                    <button type="button" class="btn btn-sm btn-icon btn-info btn-visualizar-venda"
+                    <button type="button" class="btn-view-sale btn-visualizar-venda"
                             data-venda-id="${row.id}"
                             data-bs-toggle="tooltip"
                             title="Visualizar Detalhes">
@@ -201,6 +201,9 @@ $(document).ready(function () {
         preencherModalVenda(data);
         $('#venda-loading').addClass('d-none');
         $('#venda-content').removeClass('d-none');
+
+        // Carregar histórico da venda
+        carregarHistoricoVenda(vendaId);
       },
       error: function (err) {
         toastr.error('Erro ao carregar detalhes da venda.');
@@ -216,25 +219,33 @@ $(document).ready(function () {
     $('#venda-nome-contrato').text(venda.nome_contrato || '-');
     $('#venda-cpf-cnpj').text(venda.cpf_cnpj || '-');
 
-    // Status badge
+    // Status badge com novo estilo
     const statusBadge = $('#venda-status-badge');
-    statusBadge.removeClass().addClass('badge');
-    switch ((venda.descricao || '').toUpperCase()) {
+    const statusText = (venda.descricao || 'N/D').toUpperCase();
+    statusBadge.removeClass('status-pill implantado pendente cancelado default');
+    statusBadge.addClass('status-pill');
+
+    switch (statusText) {
       case 'IMPLANTADO':
-        statusBadge.addClass('bg-success').text('IMPLANTADO');
+        statusBadge.addClass('implantado');
         break;
       case 'PENDENTE':
-        statusBadge.addClass('bg-warning').text('PENDENTE');
+      case 'PENDENCIA':
+        statusBadge.addClass('pendente');
         break;
       case 'CANCELADO':
-        statusBadge.addClass('bg-danger').text('CANCELADO');
+      case 'ESTORNO':
+      case 'DECLINADO':
+        statusBadge.addClass('cancelado');
         break;
       default:
-        statusBadge.addClass('bg-secondary').text(venda.descricao || 'N/D');
+        statusBadge.addClass('default');
     }
+    statusBadge.text(statusText);
 
     $('#venda-operadora').text(venda.operadora || '-');
     $('#venda-plano').text(venda.nome_plano || '-');
+    $('#venda-coparticipacao').text(formatCoparticipacao(venda.coparticipacao));
     $('#venda-angariacao').text(venda.angariacao || '-');
     $('#venda-data-vigencia').text(venda.data_vigencia ? formatarData(venda.data_vigencia) : '-');
     $('#venda-data-implantacao').text(venda.data_implantacao ? formatarData(venda.data_implantacao) : '-');
@@ -256,5 +267,166 @@ $(document).ready(function () {
     const mes = String(data.getMonth() + 1).padStart(2, '0');
     const ano = data.getFullYear();
     return `${dia}/${mes}/${ano}`;
+  }
+
+  // Função para formatar coparticipação
+  function formatCoparticipacao(value) {
+    if (!value) return '-';
+    const valueUpper = value.toUpperCase();
+    if (valueUpper === 'S' || valueUpper === 'SIM' || valueUpper === 'Y' || valueUpper === 'COM') return 'Sim';
+    if (valueUpper === 'N' || valueUpper === 'NAO' || valueUpper === 'NÃO' || valueUpper === 'SEM') return 'Não';
+    return value;
+  }
+
+  // Função para carregar histórico da venda
+  function carregarHistoricoVenda(vendaId) {
+    $('#historico-loading').removeClass('d-none');
+    $('#historico-content').addClass('d-none');
+
+    $.ajax({
+      url: `/back-office/historico/${vendaId}`,
+      method: 'GET',
+      success: function (response) {
+        $('#historico-loading').addClass('d-none');
+        $('#historico-content').removeClass('d-none');
+
+        if (response.success && response.historico && response.historico.length > 0) {
+          renderizarTimeline(response.historico);
+          $('#historico-timeline').removeClass('d-none');
+          $('#historico-vazio').addClass('d-none');
+        } else {
+          $('#historico-timeline').addClass('d-none');
+          $('#historico-vazio').removeClass('d-none');
+        }
+      },
+      error: function () {
+        $('#historico-loading').addClass('d-none');
+        $('#historico-content').removeClass('d-none');
+        $('#historico-timeline').addClass('d-none');
+        $('#historico-vazio').removeClass('d-none');
+      }
+    });
+  }
+
+  // Função para renderizar a timeline do histórico
+  function renderizarTimeline(historico) {
+    const container = $('#historico-timeline');
+    container.empty();
+
+    // Ordenar do mais recente para o mais antigo
+    const historicoOrdenado = [...historico].reverse();
+
+    historicoOrdenado.forEach((item, index) => {
+      const statusClass = getStatusClass(item.status_novo);
+      const statusIcon = getStatusIcon(item.status_novo);
+      const statusBadgeColor = getStatusBadgeColor(item.status_novo);
+
+      let html = `
+        <div class="timeline-item ${statusClass}">
+          <div class="timeline-card">
+            <div class="timeline-header">
+              <div class="timeline-status">
+                <i class="${statusIcon}"></i>
+                <span class="timeline-status-badge" style="background: ${statusBadgeColor}; color: #fff;">
+                  ${escapeHtml(item.status_novo || 'Status não informado')}
+                </span>
+                ${item.tempo_formatado ? `<span class="timeline-tempo"><i class="ri-time-line"></i> ${escapeHtml(item.tempo_formatado)}</span>` : ''}
+              </div>
+              <span class="timeline-date">
+                <i class="ri-calendar-line me-1"></i>${item.data || 'Data não informada'}
+              </span>
+            </div>
+      `;
+
+      // Mostrar transição de status (de → para)
+      if (item.status_anterior) {
+        html += `
+            <div class="timeline-transition">
+              <span class="status-from">${escapeHtml(item.status_anterior)}</span>
+              <span class="arrow"><i class="ri-arrow-right-line"></i></span>
+              <span class="status-to">${escapeHtml(item.status_novo)}</span>
+            </div>
+        `;
+      }
+
+      // Metadados (usuário)
+      html += `
+            <div class="timeline-meta">
+              <span><i class="ri-user-line me-1"></i> ${escapeHtml(item.usuario || 'Sistema')}</span>
+            </div>
+      `;
+
+      // Observação ou motivo de pendência
+      const observacao = item.motivo_pendencia || item.observacao;
+      if (observacao) {
+        html += `
+            <div class="timeline-observacao">
+              <i class="ri-chat-quote-line me-1 text-muted"></i>
+              ${escapeHtml(observacao)}
+            </div>
+        `;
+      }
+
+      html += `
+          </div>
+        </div>
+      `;
+
+      container.append(html);
+    });
+  }
+
+  // Função para obter classe CSS baseada no status
+  function getStatusClass(status) {
+    if (!status) return '';
+    const statusUpper = status.toUpperCase();
+
+    if (statusUpper.includes('IMPLANTADO')) return 'status-implantado';
+    if (statusUpper.includes('PENDENCIA') || statusUpper.includes('PENDÊNCIA')) return 'status-pendencia';
+    if (statusUpper.includes('ESTORNO')) return 'status-estorno';
+    if (statusUpper.includes('DECLINADO')) return 'status-declinado';
+    if (statusUpper.includes('VENDA')) return 'status-venda';
+    if (statusUpper.includes('ANALISE') || statusUpper.includes('ANÁLISE')) return 'status-analise';
+    if (statusUpper.includes('BOLETO')) return 'status-boleto';
+    if (statusUpper.includes('REGULARIZADO')) return 'status-regularizado';
+
+    return '';
+  }
+
+  // Função para obter ícone do status
+  function getStatusIcon(status) {
+    if (!status) return 'ri-checkbox-blank-circle-line';
+    const statusUpper = status.toUpperCase();
+
+    if (statusUpper.includes('IMPLANTADO')) return 'ri-checkbox-circle-line text-success';
+    if (statusUpper.includes('PENDENCIA') || statusUpper.includes('PENDÊNCIA')) return 'ri-error-warning-line text-danger';
+    if (statusUpper.includes('ESTORNO')) return 'ri-arrow-go-back-line text-danger';
+    if (statusUpper.includes('DECLINADO')) return 'ri-close-circle-line text-danger';
+    if (statusUpper.includes('VENDA')) return 'ri-shopping-cart-2-line text-primary';
+    if (statusUpper.includes('ANALISE DOCUMENTO')) return 'ri-file-search-line text-warning';
+    if (statusUpper.includes('ANALISE OPERADORA') || statusUpper.includes('ANÁLISE OPERADORA')) return 'ri-building-2-line text-warning';
+    if (statusUpper.includes('BOLETO')) return 'ri-bill-line text-info';
+    if (statusUpper.includes('REGULARIZADO')) return 'ri-checkbox-line text-success';
+    if (statusUpper.includes('CONTR') || statusUpper.includes('ASSINATURA')) return 'ri-file-text-line text-secondary';
+
+    return 'ri-checkbox-blank-circle-line text-secondary';
+  }
+
+  // Função para obter cor do badge do status
+  function getStatusBadgeColor(status) {
+    if (!status) return '#6c757d';
+    const statusUpper = status.toUpperCase();
+
+    if (statusUpper.includes('IMPLANTADO')) return '#28a745';
+    if (statusUpper.includes('PENDENCIA') || statusUpper.includes('PENDÊNCIA')) return '#dc3545';
+    if (statusUpper.includes('ESTORNO')) return '#dc3545';
+    if (statusUpper.includes('DECLINADO')) return '#6c757d';
+    if (statusUpper.includes('VENDA')) return '#696cff';
+    if (statusUpper.includes('ANALISE') || statusUpper.includes('ANÁLISE')) return '#ffab00';
+    if (statusUpper.includes('BOLETO')) return '#20c997';
+    if (statusUpper.includes('REGULARIZADO')) return '#71dd37';
+    if (statusUpper.includes('CONTR') || statusUpper.includes('ASSINATURA')) return '#8c57ff';
+
+    return '#6c757d';
   }
 });

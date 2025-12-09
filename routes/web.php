@@ -187,6 +187,9 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/back-office/gerar-recebivel/{vendaId}', [Backoffice::class, 'gerarRecebivelContrato'])->name('backoffice.gerarRecebivelContrato');
   Route::get('/back-office/relatorio-performance', [Backoffice::class, 'relatorioPerformance'])->name('backoffice.relatorioPerformance');
   Route::get('/back-office/relatorio-performance/data', [Backoffice::class, 'getPerformanceData'])->name('backoffice.getPerformanceData');
+  Route::get('/back-office/pipeline-data', [Backoffice::class, 'getPipelineData'])->name('backoffice.pipelineData');
+  Route::get('/back-office/contratos-por-status/{tabulacaoId}', [Backoffice::class, 'getContratosPorStatus'])->name('backoffice.contratosPorStatus');
+  Route::get('/back-office/historico/{vendaId}', [Backoffice::class, 'getHistorico'])->name('backoffice.historico');
 
   /** VENDAS */
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');

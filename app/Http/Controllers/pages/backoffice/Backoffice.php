@@ -11,6 +11,7 @@ use App\Models\Tabulacoes;
 use App\Models\User;
 use App\Models\Vendas;
 use App\Models\VendaTitular;
+use App\Models\VendaHistorico;
 use App\Notifications\StatusPropostaAlterada;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -895,5 +896,352 @@ class Backoffice extends Controller
         'message' => 'Erro ao buscar dados: ' . $e->getMessage()
       ], 500);
     }
+  }
+
+  /**
+   * Retorna dados para o pipeline visual
+   */
+  public function getPipelineData(Request $request)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+      $dataInicio = $request->input('data_inicio');
+      $dataFim = $request->input('data_fim');
+      $vendedorId = $request->input('vendedor_id');
+      $busca = $request->input('busca');
+
+      // Buscar vendas com status de backoffice
+      $query = DB::table('vendas')
+        ->select([
+          'vendas.id',
+          'vendas.numero_proposta',
+          'vendas.nome_contrato',
+          'vendas.operadora',
+          'vendas.nome_plano',
+          'vendas.valor_contrato',
+          'vendas.created_at as data_venda',
+          'vendas.data_implantacao',
+          'vendas.contato_id',
+          'vendas.motivo_pendencia',
+          'users.name as vendedor',
+          'users.id as vendedor_id',
+          'tabulacoes.id as tabulacao_id',
+          'tabulacoes.descricao as status_atual',
+          'tabulacoes.ordem_kanban',
+          'contatos_corretores.updated_at as status_updated_at',
+        ])
+        ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
+        ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+        ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+        ->where('vendas.empresa_id', $empresaId)
+        ->where('tabulacoes.tipo_tabulacao', 'A'); // Apenas tabulações de backoffice
+
+      if ($dataInicio) {
+        $query->whereDate('vendas.created_at', '>=', $dataInicio);
+      }
+      if ($dataFim) {
+        $query->whereDate('vendas.created_at', '<=', $dataFim);
+      }
+      if ($vendedorId) {
+        $query->where('vendas.user_id', $vendedorId);
+      }
+      if ($busca) {
+        $query->where(function ($q) use ($busca) {
+          $q->where('vendas.nome_contrato', 'like', "%{$busca}%")
+            ->orWhere('vendas.numero_proposta', 'like', "%{$busca}%")
+            ->orWhere('vendas.operadora', 'like', "%{$busca}%");
+        });
+      }
+
+      $vendas = $query->orderBy('vendas.created_at', 'desc')->get();
+
+      // Buscar tabulações do backoffice
+      $tabulacoes = Tabulacoes::where('empresa_id', $empresaId)
+        ->where('tipo_tabulacao', 'A')
+        ->where('status', 'Y')
+        ->orderBy('ordem_kanban')
+        ->get();
+
+      // Agrupar vendas por status
+      $pipeline = [];
+      foreach ($tabulacoes as $tab) {
+        $vendasNoStatus = $vendas->where('tabulacao_id', $tab->id);
+
+        // Calcular contratos atrasados neste status
+        $atrasados = 0;
+        $prazoMaximo = $this->getPrazoMaximo($tab->descricao);
+
+        foreach ($vendasNoStatus as $v) {
+          $diasNoStatus = Carbon::parse($v->status_updated_at)->diffInDays(now());
+          if ($prazoMaximo && $diasNoStatus > $prazoMaximo) {
+            $atrasados++;
+          }
+        }
+
+        $pipeline[] = [
+          'id' => $tab->id,
+          'nome' => $tab->descricao,
+          'ordem' => $tab->ordem_kanban,
+          'cor' => $this->getCorStatus($tab->descricao),
+          'icone' => $this->getIconeStatus($tab->descricao),
+          'quantidade' => $vendasNoStatus->count(),
+          'valor_total' => $vendasNoStatus->sum('valor_contrato'),
+          'atrasados' => $atrasados,
+          'contratos' => $vendasNoStatus->map(function ($v) {
+            $diasNoStatus = Carbon::parse($v->status_updated_at)->diffInDays(now());
+            $prazoMaximo = $this->getPrazoMaximo($v->status_atual);
+
+            return [
+              'id' => $v->id,
+              'venda_id' => $v->id, // Alias para compatibilidade
+              'numero_proposta' => $v->numero_proposta,
+              'nome_contrato' => $v->nome_contrato,
+              'operadora' => $v->operadora,
+              'plano' => $v->nome_plano,
+              'valor' => $v->valor_contrato,
+              'vendedor' => $v->vendedor,
+              'vendedor_id' => $v->vendedor_id,
+              'data_venda' => Carbon::parse($v->data_venda)->format('d/m/Y'),
+              'dias_no_status' => $diasNoStatus,
+              'prazo_maximo' => $prazoMaximo, // Para o badge de atraso
+              'atrasado' => $prazoMaximo && $diasNoStatus > $prazoMaximo,
+              'motivo_pendencia' => $v->motivo_pendencia,
+              'contato_id' => $v->contato_id,
+            ];
+          })->values(),
+        ];
+      }
+
+      // KPIs
+      $total = $vendas->count();
+      $implantados = $vendas->where('status_atual', 'IMPLANTADO')->count();
+      $emAndamento = $vendas->whereNotIn('status_atual', ['IMPLANTADO', 'ESTORNO', 'DECLINADO'])->count();
+      $perdidos = $vendas->whereIn('status_atual', ['ESTORNO', 'DECLINADO'])->count();
+
+      // Tempo médio de implantação
+      $temposImplantacao = [];
+      foreach ($vendas->where('status_atual', 'IMPLANTADO') as $v) {
+        if ($v->data_implantacao && $v->data_venda) {
+          $temposImplantacao[] = Carbon::parse($v->data_venda)->diffInDays(Carbon::parse($v->data_implantacao));
+        }
+      }
+      $tempoMedio = count($temposImplantacao) > 0 ? round(array_sum($temposImplantacao) / count($temposImplantacao), 1) : 0;
+
+      // Vendedores para filtro
+      $vendedores = User::where('empresa_id', $empresaId)
+        ->whereIn('user_role_id', [3, 4]) // Vendedores
+        ->where('ativo', 'Y')
+        ->orderBy('name')
+        ->get(['id', 'name']);
+
+      return response()->json([
+        'success' => true,
+        'pipeline' => $pipeline,
+        'kpis' => [
+          'total' => $total,
+          'implantados' => $implantados,
+          'em_andamento' => $emAndamento,
+          'perdidos' => $perdidos,
+          'taxa_conversao' => $total > 0 ? round(($implantados / $total) * 100, 1) : 0,
+          'tempo_medio' => $tempoMedio,
+          'valor_total' => $vendas->sum('valor_contrato'),
+          'valor_implantado' => $vendas->where('status_atual', 'IMPLANTADO')->sum('valor_contrato'),
+        ],
+        'vendedores' => $vendedores,
+        'tabulacoes' => $tabulacoes,
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar dados: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Retorna contratos de um status específico
+   */
+  public function getContratosPorStatus(Request $request, int $tabulacaoId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $contratos = DB::table('vendas')
+        ->select([
+          'vendas.id',
+          'vendas.numero_proposta',
+          'vendas.nome_contrato',
+          'vendas.operadora',
+          'vendas.nome_plano',
+          'vendas.valor_contrato',
+          'vendas.created_at as data_venda',
+          'vendas.contato_id',
+          'vendas.motivo_pendencia',
+          'users.name as vendedor',
+          'tabulacoes.descricao as status_atual',
+          'contatos_corretores.updated_at as status_updated_at',
+        ])
+        ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
+        ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+        ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+        ->where('vendas.empresa_id', $empresaId)
+        ->where('contatos_corretores.tabulacao_id', $tabulacaoId)
+        ->orderBy('contatos_corretores.updated_at', 'asc')
+        ->get();
+
+      $contratosFormatados = $contratos->map(function ($c) {
+        $diasNoStatus = Carbon::parse($c->status_updated_at)->diffInDays(now());
+        $prazoMaximo = $this->getPrazoMaximo($c->status_atual);
+
+        return [
+          'id' => $c->id,
+          'numero_proposta' => $c->numero_proposta,
+          'nome_contrato' => $c->nome_contrato,
+          'operadora' => $c->operadora,
+          'plano' => $c->nome_plano,
+          'valor' => $c->valor_contrato,
+          'vendedor' => $c->vendedor,
+          'data_venda' => Carbon::parse($c->data_venda)->format('d/m/Y'),
+          'dias_no_status' => $diasNoStatus,
+          'atrasado' => $prazoMaximo && $diasNoStatus > $prazoMaximo,
+          'motivo_pendencia' => $c->motivo_pendencia,
+          'contato_id' => $c->contato_id,
+        ];
+      });
+
+      return response()->json([
+        'success' => true,
+        'contratos' => $contratosFormatados,
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar contratos: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Retorna histórico de uma venda
+   */
+  public function getHistorico(int $vendaId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      // Verificar se a venda pertence à empresa
+      $venda = Vendas::where('id', $vendaId)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Venda não encontrada.'
+        ], 404);
+      }
+
+      // Buscar histórico
+      $historico = VendaHistorico::with(['usuario', 'tabulacaoAnterior', 'tabulacaoNova'])
+        ->where('venda_id', $vendaId)
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($h) {
+          return [
+            'id' => $h->id,
+            'data' => $h->created_at->format('d/m/Y H:i'),
+            'usuario' => $h->usuario->name ?? 'Sistema',
+            'status_anterior' => $h->tabulacaoAnterior->descricao ?? 'N/A',
+            'status_novo' => $h->tabulacaoNova->descricao ?? 'N/A',
+            'observacao' => $h->observacao,
+            'motivo_pendencia' => $h->motivo_pendencia,
+            'tempo_formatado' => $h->tempo_formatado,
+          ];
+        });
+
+      // Informações da venda
+      $infoVenda = [
+        'id' => $venda->id,
+        'numero_proposta' => $venda->numero_proposta,
+        'nome_contrato' => $venda->nome_contrato,
+        'operadora' => $venda->operadora,
+        'valor_contrato' => $venda->valor_contrato,
+        'data_criacao' => Carbon::parse($venda->created_at)->format('d/m/Y H:i'),
+        'data_implantacao' => $venda->data_implantacao ? Carbon::parse($venda->data_implantacao)->format('d/m/Y') : null,
+      ];
+
+      return response()->json([
+        'success' => true,
+        'venda' => $infoVenda,
+        'historico' => $historico,
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar histórico: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Retorna prazo máximo para cada status (em dias)
+   */
+  private function getPrazoMaximo($status)
+  {
+    $prazos = [
+      'ANALISE DE DOCUMENTOS' => 2,
+      'PENDENCIA' => 2,
+      'ANALISE OPERADORA' => 10,
+      'CONTR. GERADO - AGUARDANDO ASSINATURA' => 5,
+      'AGUARD. ASSINATURA DA DS' => 5,
+      'BOLETO DISPONIVEL' => 3,
+      'REGULARIZADO' => 2,
+    ];
+
+    return $prazos[$status] ?? null;
+  }
+
+  /**
+   * Retorna cor para cada status
+   */
+  private function getCorStatus($status)
+  {
+    $cores = [
+      'VENDA' => '#696cff',
+      'ANALISE DE DOCUMENTOS' => '#03c3ec',
+      'PENDENCIA' => '#ff3e1d',
+      'REGULARIZADO' => '#71dd37',
+      'ANALISE OPERADORA' => '#ffab00',
+      'CONTR. GERADO - AGUARDANDO ASSINATURA' => '#8c57ff',
+      'AGUARD. ASSINATURA DA DS' => '#ffc107',
+      'BOLETO DISPONIVEL' => '#20c997',
+      'IMPLANTADO' => '#198754',
+      'ESTORNO' => '#dc3545',
+      'DECLINADO' => '#6c757d',
+    ];
+
+    return $cores[$status] ?? '#8592a3';
+  }
+
+  /**
+   * Retorna ícone para cada status
+   */
+  private function getIconeStatus($status)
+  {
+    $icones = [
+      'VENDA' => 'ri-shopping-cart-line',
+      'ANALISE DE DOCUMENTOS' => 'ri-file-search-line',
+      'PENDENCIA' => 'ri-error-warning-line',
+      'REGULARIZADO' => 'ri-checkbox-circle-line',
+      'ANALISE OPERADORA' => 'ri-search-eye-line',
+      'CONTR. GERADO - AGUARDANDO ASSINATURA' => 'ri-draft-line',
+      'AGUARD. ASSINATURA DA DS' => 'ri-pen-nib-line',
+      'BOLETO DISPONIVEL' => 'ri-bank-card-line',
+      'IMPLANTADO' => 'ri-check-double-line',
+      'ESTORNO' => 'ri-arrow-go-back-line',
+      'DECLINADO' => 'ri-close-circle-line',
+    ];
+
+    return $icones[$status] ?? 'ri-question-line';
   }
 }

@@ -55,15 +55,14 @@ php artisan serve
 # Watch and compile frontend assets (development)
 npm run dev
 
-# Build assets for production
-npm run build
-
 # Run code formatting
 ./vendor/bin/pint
 
 # Run tests
 php artisan test
 ```
+
+**IMPORTANT:** Never run `npm run build` - the user handles asset compilation manually.
 
 ### Database Operations
 ```bash
