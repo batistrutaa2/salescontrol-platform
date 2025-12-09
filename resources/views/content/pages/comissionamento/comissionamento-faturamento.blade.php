@@ -19,8 +19,7 @@
         'resources/assets/vendor/libs/select2/select2.js',
         'resources/assets/vendor/libs/cleavejs/cleave.js',
         'resources/assets/vendor/libs/cleavejs/cleave-phone.js',
-        'resources/assets/vendor/libs/flatpickr/flatpickr.js',
-        'resources/assets/vendor/libs/flatpickr/flatpickr-pt.js'
+        'resources/assets/vendor/libs/flatpickr/flatpickr.js'
     ])
 @endsection
 

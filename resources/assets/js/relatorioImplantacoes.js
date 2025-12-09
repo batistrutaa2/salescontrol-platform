@@ -72,7 +72,6 @@
     function initFlatpickr() {
         const flatpickrConfig = {
             dateFormat: 'd/m/Y',
-            locale: 'pt',
             allowInput: true
         };
 

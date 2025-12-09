@@ -17,8 +17,7 @@
         'resources/assets/vendor/libs/toastr/toastr.js',
         'resources/assets/vendor/libs/moment/moment.js',
         'resources/assets/vendor/libs/select2/select2.js',
-        'resources/assets/vendor/libs/flatpickr/flatpickr.js',
-        'resources/assets/vendor/libs/flatpickr/flatpickr-pt.js'
+        'resources/assets/vendor/libs/flatpickr/flatpickr.js'
     ])
 @endsection
 

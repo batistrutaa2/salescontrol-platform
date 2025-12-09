@@ -732,7 +732,6 @@
       dateFormat: 'Y-m-d',
       altInput: true,
       altFormat: 'd/m/Y',
-      locale: 'pt',
       allowInput: true
     };
 
