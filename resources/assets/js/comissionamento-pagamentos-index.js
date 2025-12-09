@@ -88,10 +88,9 @@
     });
 
     $container.html(`
-      <div class="loading-container">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Carregando...</span>
-        </div>
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <span class="loading-text">Carregando pagamentos...</span>
       </div>
     `);
 
@@ -112,9 +111,15 @@
       console.error(err);
       $container.html(`
         <div class="empty-state">
-          <i class="ri-error-warning-line"></i>
-          <h5>Erro ao carregar pagamentos</h5>
-          <p>Tente novamente mais tarde</p>
+          <div class="empty-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <h5 class="empty-title">Erro ao carregar pagamentos</h5>
+          <p class="empty-description">Tente novamente mais tarde</p>
         </div>
       `);
       toastr?.error('Erro ao carregar pagamentos');
@@ -126,9 +131,16 @@
     if (!pagamentos.length) {
       $container.html(`
         <div class="empty-state">
-          <i class="ri-file-list-3-line"></i>
-          <h5>Nenhum pagamento encontrado</h5>
-          <p>Ajuste os filtros para ver mais resultados</p>
+          <div class="empty-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <h5 class="empty-title">Nenhum pagamento encontrado</h5>
+          <p class="empty-description">Ajuste os filtros para ver mais resultados</p>
         </div>
       `);
       return;
@@ -163,16 +175,23 @@
 
       html += `
         <div class="date-group">
-          <div class="date-group-header card collapsed" data-group="${groupId}">
+          <div class="date-group-header collapsed" data-group="${groupId}">
             <h4>
               <div class="date-info">
-                <i class="ri-calendar-line"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
                 ${dataFormatada}
                 ${diaSemana ? `<span class="badge">${diaSemana}</span>` : ''}
                 <span class="badge">${lista.length} pagamento(s)</span>
                 <span class="badge">Total: ${fmtBRL(totalLiquido)}</span>
               </div>
-              <i class="ri-arrow-up-s-line toggle-icon"></i>
+              <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"/>
+              </svg>
             </h4>
           </div>
           <div class="date-group-content collapsed" id="${groupId}" style="max-height: 0;">
@@ -228,20 +247,32 @@
 
     // Status badge
     const statusBadge = isPago
-      ? `<span class="badge badge-payment bg-success">
-           <i class="ri-checkbox-circle-line me-1"></i> Pago em ${moment(p.pago_em).format('DD/MM/YYYY')}
+      ? `<span class="status-badge badge-success">
+           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+             <polyline points="22 4 12 14.01 9 11.01"/>
+           </svg>
+           Pago em ${moment(p.pago_em).format('DD/MM/YYYY')}
          </span>`
-      : `<span class="badge badge-payment bg-warning">
-           <i class="ri-time-line me-1"></i> Pendente
+      : `<span class="status-badge badge-warning">
+           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <circle cx="12" cy="12" r="10"/>
+             <polyline points="12 6 12 12 16 14"/>
+           </svg>
+           Pendente
          </span>`;
 
-    // Botões de ação
+    // Botoes de acao
     let btnPagar = '';
     if (!isPago && estornoUrl && USER_ROLE !== '1') {
       btnPagar = `
-        <button type="button" class="btn btn-success btn-sm js-pagar"
+        <button type="button" class="btn-dash btn-success js-pagar"
                 data-id="${p.id}" data-user="${userId}">
-          <i class="ri-bank-card-line me-1"></i> Pagar
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+            <line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+          Pagar
         </button>
       `;
     }
@@ -249,24 +280,38 @@
     let btnEstornar = '';
     if (estornoUrl && USER_ROLE !== '1') {
       btnEstornar = `
-        <button type="button" class="btn btn-outline-danger btn-sm js-estornar"
+        <button type="button" class="btn-dash btn-outline-danger js-estornar"
                 data-url="${estornoUrl}">
-          <i class="ri-arrow-go-back-line me-1"></i> Estornar
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+          </svg>
+          Estornar
         </button>
       `;
     }
 
     return `
-      <div class="card payment-card" data-id="${p.id}">
+      <div class="payment-card" data-id="${p.id}">
         <div class="payment-card-header">
           <div class="payment-info">
             <div class="payment-avatar">${iniciais}</div>
             <div class="payment-details">
               <h5>${escapeHtml(p.vendedor)}</h5>
               <small>
-                <i class="ri-calendar-2-line me-1"></i> Mês ref: ${p.mes}
-                <span class="mx-2">|</span>
-                <i class="ri-user-line me-1"></i> Lançado por: ${escapeHtml(p.criado_por || 'N/A')}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Mes ref: ${p.mes}
+                <span style="margin: 0 0.5rem; opacity: 0.5;">|</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                Lancado por: ${escapeHtml(p.criado_por || 'N/A')}
               </small>
             </div>
           </div>
@@ -276,7 +321,7 @@
         </div>
 
         <div class="payment-card-body">
-          <div class="payment-values mb-3">
+          <div class="payment-values">
             <div class="payment-value-item primary">
               <label>Bruto</label>
               <div class="value">${fmtBRL(p.total_bruto)}</div>
@@ -286,7 +331,7 @@
               <div class="value">${fmtBRL(p.total_imposto)}</div>
             </div>
             <div class="payment-value-item success">
-              <label>Líquido</label>
+              <label>Liquido</label>
               <div class="value">${fmtBRL(p.total_liquido)}</div>
             </div>
             <div class="payment-value-item info">
@@ -296,8 +341,14 @@
           </div>
 
           <div class="payment-actions">
-            <a class="btn btn-outline-primary btn-sm" href="${pdfUrl}" target="_blank">
-              <i class="ri-file-pdf-line me-1"></i> Ver PDF
+            <a class="btn-dash btn-outline-primary" href="${pdfUrl}" target="_blank">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              Ver PDF
             </a>
             ${btnPagar}
             ${btnEstornar}
@@ -374,8 +425,15 @@
   const inpUserId = document.getElementById('pg_user_id');
   const alertNoAcc = document.getElementById('pg_alert_no_accounts');
 
-  const today = new Date();
-  inpPagoEm.value = today.toISOString().slice(0, 10);
+  // Inicializar Flatpickr no campo de data do modal
+  const fpPagoEm = flatpickr(inpPagoEm, {
+    dateFormat: 'Y-m-d',
+    altInput: true,
+    altFormat: 'd/m/Y',
+    locale: 'pt',
+    allowInput: true,
+    defaultDate: new Date()
+  });
 
   async function abrirModalPagar(pagamentoId, userId) {
     inpPagamentoId.value = pagamentoId;
