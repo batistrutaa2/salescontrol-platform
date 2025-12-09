@@ -185,6 +185,8 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/backoffice/titulares', [Backoffice::class, 'storeTitular'])->name('backoffice.titulares.store');
   Route::get('/back-office/verificar-recebiveis/{vendaId}', [Backoffice::class, 'verificarRecebiveis'])->name('backoffice.verificarRecebiveis');
   Route::post('/back-office/gerar-recebivel/{vendaId}', [Backoffice::class, 'gerarRecebivelContrato'])->name('backoffice.gerarRecebivelContrato');
+  Route::get('/back-office/relatorio-performance', [Backoffice::class, 'relatorioPerformance'])->name('backoffice.relatorioPerformance');
+  Route::get('/back-office/relatorio-performance/data', [Backoffice::class, 'getPerformanceData'])->name('backoffice.getPerformanceData');
 
   /** VENDAS */
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');

@@ -209,6 +209,11 @@
           "url": "/back-office/cadastrar-planos",
           "name": "Cadastrar Planos",
           "slug": "pages-cadastro-planos"
+        },
+        {
+          "url": "/back-office/relatorio-performance",
+          "name": "Relatorio de Performance",
+          "slug": "pages-backoffice-performance"
         }
       ]
     },

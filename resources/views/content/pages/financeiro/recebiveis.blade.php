@@ -1,253 +1,24 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'Financeiro - Recebíveis')
+@section('title', 'Recebiveis')
 
 @section('vendor-style')
     @vite([
         'resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss',
         'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss',
-        'resources/assets/vendor/libs/flatpickr/flatpickr.scss',
         'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss'
     ])
+@endsection
+
+@section('page-style')
+    @vite('resources/assets/vendor/scss/pages/recebiveis.scss')
 @endsection
 
 @section('vendor-script')
     @vite([
         'resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js',
-        'resources/assets/vendor/libs/moment/moment.js',
-        'resources/assets/vendor/libs/flatpickr/flatpickr.js',
         'resources/assets/vendor/libs/sweetalert2/sweetalert2.js'
     ])
-@endsection
-
-@section('page-style')
-    <style>
-        .card-metric {
-            text-align: center;
-            padding: 1.5rem;
-            border-radius: 12px;
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
-            overflow: hidden;
-        }
-        .card-metric:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-        }
-        .card-metric::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-        }
-        .card-metric.success::before { background: linear-gradient(90deg, #28a745, #20c997); }
-        .card-metric.warning::before { background: linear-gradient(90deg, #ffc107, #fd7e14); }
-        .card-metric.danger::before { background: linear-gradient(90deg, #dc3545, #e83e8c); }
-
-        .card-metric-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-        }
-        .card-metric.success .card-metric-icon {
-            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(32, 201, 151, 0.2));
-            color: #28a745;
-        }
-        .card-metric.warning .card-metric-icon {
-            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(253, 126, 20, 0.2));
-            color: #ffc107;
-        }
-        .card-metric.danger .card-metric-icon {
-            background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(232, 62, 140, 0.2));
-            color: #dc3545;
-        }
-
-        .card-metric h4 {
-            margin: 0.5rem 0;
-            font-weight: 700;
-            font-size: 1.75rem;
-        }
-        .card-metric h4.text-success { color: #28a745 !important; }
-        .card-metric h4.text-warning { color: #ffc107 !important; }
-        .card-metric h4.text-danger { color: #dc3545 !important; }
-
-        .card-metric span {
-            font-size: 0.875rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        [data-theme="light"] .card-metric span {
-            color: #6c757d;
-        }
-        [data-theme="dark"] .card-metric span {
-            color: #a1a5b7;
-        }
-
-        .table-modern {
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .table-modern thead th {
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
-            border: none;
-            padding: 1rem;
-        }
-
-        [data-theme="light"] .table-modern thead th {
-            background: #f8f9fa;
-            color: #495057 !important;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        [data-theme="dark"] .table-modern thead th {
-            background: #5a67d8;
-            color: white !important;
-        }
-        .table-modern tbody tr {
-            transition: all 0.2s;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .table-modern tbody tr:hover {
-            background: #f8f9ff;
-            transform: scale(1.01);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .table-modern tbody td {
-            padding: 1rem;
-            vertical-align: middle;
-            border: none;
-        }
-
-        [data-theme="light"] .table-modern tbody td {
-            color: #4b5563;
-        }
-        [data-theme="light"] .table-modern tbody td strong {
-            color: #1f2937;
-        }
-        [data-theme="light"] .table-modern tbody td.text-success {
-            color: #28a745 !important;
-        }
-        [data-theme="light"] .table-modern tbody td.text-warning {
-            color: #ffc107 !important;
-        }
-
-        .badge-modern {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-modern {
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            font-weight: 600;
-            transition: all 0.2s;
-            border: none;
-        }
-        .btn-modern:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .modal-modern .modal-content {
-            border-radius: 16px;
-            border: none;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-        .modal-modern .modal-header {
-            border-radius: 16px 16px 0 0;
-            padding: 1.5rem;
-            border: none;
-        }
-
-        [data-theme="light"] .modal-modern .modal-header {
-            background: #f8f9fa;
-            color: #495057;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        [data-theme="dark"] .modal-modern .modal-header {
-            background: #5a67d8;
-            color: white;
-        }
-
-        [data-theme="dark"] .modal-modern .modal-header .btn-close {
-            filter: brightness(0) invert(1);
-        }
-        .modal-modern .modal-title {
-            font-weight: 700;
-            font-size: 1.25rem;
-        }
-        .modal-modern .modal-body {
-            padding: 2rem;
-        }
-
-        .filter-buttons {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            margin-bottom: 1.5rem;
-        }
-
-        .btn-filter {
-            padding: 0.5rem 1.25rem;
-            border-radius: 20px;
-            border: 2px solid #e0e0e0;
-            background: white;
-            color: #6c757d;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-
-        .btn-filter:hover {
-            border-color: #5a67d8;
-            color: #5a67d8;
-            transform: translateY(-2px);
-        }
-
-        .btn-filter.active {
-            background: #5a67d8;
-            border-color: #5a67d8;
-            color: white;
-            box-shadow: 0 4px 12px rgba(90, 103, 216, 0.3);
-        }
-
-        [data-theme="dark"] .btn-filter {
-            background: #2d3748;
-            border-color: #4a5568;
-            color: #a1a5b7;
-        }
-
-        [data-theme="dark"] .btn-filter:hover {
-            border-color: #5a67d8;
-            color: #5a67d8;
-        }
-
-        [data-theme="dark"] .btn-filter.active {
-            background: #5a67d8;
-            border-color: #5a67d8;
-            color: white;
-        }
-    </style>
 @endsection
 
 @section('page-script')
@@ -255,135 +26,338 @@
 @endsection
 
 @section('content')
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card card-metric success">
-            <div class="card-metric-icon">
-                <i class="ri-checkbox-circle-line"></i>
+<div class="recebiveis-page">
+    {{-- Page Header --}}
+    <header class="page-header">
+        <div class="header-content">
+            <div class="header-title-section">
+                <div class="breadcrumb-nav">
+                    <span class="breadcrumb-item">Financeiro</span>
+                    <svg class="breadcrumb-separator" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                    <span class="breadcrumb-item active">Recebiveis</span>
+                </div>
+                <h1 class="page-title">Gestao de Recebiveis</h1>
+                <p class="page-description">Acompanhe e gerencie os recebimentos de comissoes</p>
             </div>
-            <h4 class="text-success">R$ {{ number_format($totais['pago'], 2, ',', '.') }}</h4>
-            <span>Valor Pago</span>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card card-metric warning">
-            <div class="card-metric-icon">
-                <i class="ri-time-line"></i>
+            <div class="header-actions">
+                <div class="last-update">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Atualizado agora</span>
+                </div>
             </div>
-            <h4 class="text-warning">R$ {{ number_format($totais['pendente'], 2, ',', '.') }}</h4>
-            <span>Valor Pendente</span>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card card-metric danger">
-            <div class="card-metric-icon">
-                <i class="ri-alert-line"></i>
+    </header>
+
+    {{-- KPI Cards --}}
+    <section class="kpi-section">
+        <div class="kpi-grid">
+            {{-- Total Recebido --}}
+            <article class="kpi-card kpi-success">
+                <div class="kpi-background">
+                    <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <div class="kpi-header">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <span class="kpi-badge">Recebido</span>
+                </div>
+                <div class="kpi-body">
+                    <span class="kpi-value" data-value="{{ $totais['pago'] }}">
+                        R$ {{ number_format($totais['pago'], 2, ',', '.') }}
+                    </span>
+                    <span class="kpi-label">Valor Total Pago</span>
+                </div>
+                <div class="kpi-footer">
+                    <div class="kpi-indicator positive">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                            <polyline points="17 6 23 6 23 12"/>
+                        </svg>
+                        <span>Atualizado</span>
+                    </div>
+                </div>
+            </article>
+
+            {{-- Pendente --}}
+            <article class="kpi-card kpi-warning">
+                <div class="kpi-background">
+                    <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <div class="kpi-header">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <span class="kpi-badge">Aguardando</span>
+                </div>
+                <div class="kpi-body">
+                    <span class="kpi-value" data-value="{{ $totais['pendente'] }}">
+                        R$ {{ number_format($totais['pendente'], 2, ',', '.') }}
+                    </span>
+                    <span class="kpi-label">Valor Pendente</span>
+                </div>
+                <div class="kpi-footer">
+                    <div class="kpi-indicator neutral">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span>A receber</span>
+                    </div>
+                </div>
+            </article>
+
+            {{-- Em Atraso --}}
+            <article class="kpi-card kpi-danger">
+                <div class="kpi-background">
+                    <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div class="kpi-header">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <span class="kpi-badge">Atencao</span>
+                </div>
+                <div class="kpi-body">
+                    <span class="kpi-value" data-value="{{ $totais['atraso'] }}">
+                        R$ {{ number_format($totais['atraso'], 2, ',', '.') }}
+                    </span>
+                    <span class="kpi-label">Valor em Atraso</span>
+                </div>
+                <div class="kpi-footer">
+                    <div class="kpi-indicator negative">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span>Requer acao</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    {{-- Filters & Table Section --}}
+    <section class="data-section">
+        <div class="data-card">
+            {{-- Card Header with Filters --}}
+            <div class="data-card-header">
+                <div class="header-left">
+                    <h2 class="section-title">Contratos</h2>
+                    <span class="contracts-count">{{ count($contratos) }} registros</span>
+                </div>
+                <div class="header-right">
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-status="todos">
+                            <span class="tab-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="7" height="7"/>
+                                    <rect x="14" y="3" width="7" height="7"/>
+                                    <rect x="14" y="14" width="7" height="7"/>
+                                    <rect x="3" y="14" width="7" height="7"/>
+                                </svg>
+                            </span>
+                            <span class="tab-label">Todos</span>
+                        </button>
+                        <button class="filter-tab" data-status="Quitado">
+                            <span class="tab-icon success">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                            </span>
+                            <span class="tab-label">Quitado</span>
+                        </button>
+                        <button class="filter-tab" data-status="Pendente">
+                            <span class="tab-icon warning">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                            </span>
+                            <span class="tab-label">Pendente</span>
+                        </button>
+                        <button class="filter-tab" data-status="Atrasado">
+                            <span class="tab-icon danger">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                            </span>
+                            <span class="tab-label">Atrasado</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <h4 class="text-danger">R$ {{ number_format($totais['atraso'], 2, ',', '.') }}</h4>
-            <span>Em Atraso</span>
+
+            {{-- Data Table --}}
+            <div class="data-card-body">
+                <div class="table-wrapper">
+                    <table id="recebiveisTable" class="recebiveis-table">
+                        <thead>
+                            <tr>
+                                <th class="col-contract">Contrato</th>
+                                <th class="col-operator">Operadora</th>
+                                <th class="col-seller">Vendedor</th>
+                                <th class="col-policy">Valor Apolice</th>
+                                <th class="col-total">Total Recebiveis</th>
+                                <th class="col-paid">Pago</th>
+                                <th class="col-pending">Pendente</th>
+                                <th class="col-status">Status</th>
+                                <th class="col-actions">Acoes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($contratos as $contrato)
+                            <tr class="contract-row">
+                                <td class="col-contract">
+                                    <div class="contract-info">
+                                        <span class="contract-name">{{ $contrato->venda->nome_contrato ?? 'N/A' }}</span>
+                                        <span class="contract-id">#{{ $contrato->venda->id ?? '' }}</span>
+                                    </div>
+                                </td>
+                                <td class="col-operator">
+                                    <span class="operator-badge">{{ $contrato->operadora }}</span>
+                                </td>
+                                <td class="col-seller">
+                                    <div class="seller-info">
+                                        <div class="seller-avatar">
+                                            {{ strtoupper(substr($contrato->vendedor->name ?? 'N', 0, 1)) }}
+                                        </div>
+                                        <span class="seller-name">{{ $contrato->vendedor->name ?? 'N/A' }}</span>
+                                    </div>
+                                </td>
+                                <td class="col-policy">
+                                    <span class="value-policy">R$ {{ number_format($contrato->venda->valor_contrato ?? 0, 2, ',', '.') }}</span>
+                                </td>
+                                <td class="col-total">
+                                    <span class="value-total">R$ {{ number_format($contrato->valor_total, 2, ',', '.') }}</span>
+                                </td>
+                                <td class="col-paid">
+                                    <span class="value-paid">R$ {{ number_format($contrato->valor_pago, 2, ',', '.') }}</span>
+                                </td>
+                                <td class="col-pending">
+                                    <span class="value-pending">R$ {{ number_format($contrato->valor_pendente, 2, ',', '.') }}</span>
+                                </td>
+                                <td class="col-status">
+                                    @if($contrato->valor_pendente == 0)
+                                        <span class="status-badge status-success">
+                                            <span class="status-dot"></span>
+                                            Quitado
+                                        </span>
+                                    @elseif($contrato->em_atraso)
+                                        <span class="status-badge status-danger">
+                                            <span class="status-dot"></span>
+                                            Atrasado
+                                        </span>
+                                    @else
+                                        <span class="status-badge status-warning">
+                                            <span class="status-dot"></span>
+                                            Pendente
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="col-actions">
+                                    <button class="btn-view-parcelas view-parcelas" data-id="{{ $contrato->venda->id }}" title="Ver parcelas">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                        <span>Parcelas</span>
+                                    </button>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-    </div>
+    </section>
 </div>
 
-<!-- Filtros -->
-<div class="filter-buttons">
-    <button class="btn-filter active" data-status="todos">
-        <i class="ri-list-check me-1"></i> Todos
-    </button>
-    <button class="btn-filter" data-status="Quitado">
-        <i class="ri-checkbox-circle-line me-1"></i> Quitado
-    </button>
-    <button class="btn-filter" data-status="Pendente">
-        <i class="ri-time-line me-1"></i> Pendente
-    </button>
-    <button class="btn-filter" data-status="Atrasado">
-        <i class="ri-alert-line me-1"></i> Atrasado
-    </button>
-</div>
-
-<!-- DataTable -->
-<div class="card" style="border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
-    <div class="card-datatable table-responsive">
-        <table id="recebiveisTable" class="table table-modern">
-            <thead>
-                <tr>
-                    <th>Contrato</th>
-                    <th>Operadora</th>
-                    <th>Vendedor</th>
-                    <th>Valor Apolice</th>
-                    <th>Valor Total</th>
-                    <th>Pago</th>
-                    <th>Pendente</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($contratos as $contrato)
-                    <tr>
-                        <td><strong>{{ $contrato->venda->nome_contrato ?? '—' }}</strong></td>
-                        <td>{{ $contrato->operadora }}</td>
-                        <td>{{ $contrato->vendedor->name ?? '—' }}</td>
-                        <td>R$ {{ number_format($contrato->venda->valor_contrato, 2, ',', '.') }}</td>
-                        <td><strong>R$ {{ number_format($contrato->valor_total, 2, ',', '.') }}</strong></td>
-                        <td class="text-success">R$ {{ number_format($contrato->valor_pago, 2, ',', '.') }}</td>
-                        <td class="text-warning">R$ {{ number_format($contrato->valor_pendente, 2, ',', '.') }}</td>
-                        <td>
-                            @if($contrato->valor_pendente == 0)
-                                <span class="badge badge-modern bg-success">Quitado</span>
-                            @elseif($contrato->em_atraso)
-                                <span class="badge badge-modern bg-danger">Atrasado</span>
-                            @else
-                                <span class="badge badge-modern bg-warning">Pendente</span>
-                            @endif
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-primary btn-modern view-parcelas"
-                                data-id="{{ $contrato->venda->id }}">
-                                <i class="ri-eye-line"></i> Ver Parcelas
-                            </button>
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Modal Parcelas -->
-<div class="modal fade modal-modern" id="parcelasModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">
-                <i class="ri-file-list-3-line me-2"></i>
-                Parcelas do Contrato
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-            <div class="d-flex justify-content-end mb-3">
-                <button class="btn btn-warning btn-modern" id="btnRecalcular">
-                    <i class="ri-refresh-line me-1"></i> Recalcular com Nova Regra
+{{-- Modal Parcelas --}}
+<div class="modal fade parcelas-modal" id="parcelasModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-header-content">
+                    <div class="modal-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <div class="modal-title-group">
+                        <h5 class="modal-title">Detalhes das Parcelas</h5>
+                        <span class="modal-subtitle">Gerencie os recebimentos do contrato</span>
+                    </div>
+                </div>
+                <button type="button" class="modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
                 </button>
             </div>
-            <table class="table table-modern" id="parcelasTable">
-                <thead>
-                    <tr>
-                        <th>Parcela</th>
-                        <th>Valor</th>
-                        <th>Vencimento</th>
-                        <th>Recebimento</th>
-                        <th>Status</th>
-                        <th>Ação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- preenchido via JS -->
-                </tbody>
-            </table>
+            <div class="modal-body">
+                <div class="modal-actions">
+                    <button class="btn-recalcular" id="btnRecalcular">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <polyline points="1 20 1 14 7 14"/>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                        <span>Recalcular Valores</span>
+                    </button>
+                </div>
+                <div class="parcelas-table-wrapper">
+                    <table class="parcelas-table" id="parcelasTable">
+                        <thead>
+                            <tr>
+                                <th>Parcela</th>
+                                <th>Valor</th>
+                                <th>Vencimento</th>
+                                <th>Recebimento</th>
+                                <th>Status</th>
+                                <th>Acao</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{-- Populated via JS --}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
-  </div>
 </div>
 @endsection

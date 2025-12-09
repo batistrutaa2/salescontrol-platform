@@ -467,6 +467,9 @@ class Backoffice extends Controller
       // Buscar operadora
       $operadora = Operadora::where('nome', $venda->operadora)->first();
 
+
+
+
       if (!$operadora) {
         return response()->json([
           'success' => false,
@@ -479,6 +482,8 @@ class Backoffice extends Controller
         ->where('empresa_id', $venda->empresa_id)
         ->where('operadora_id', $operadora->id)
         ->first();
+
+       
 
       if (!$regra) {
         return response()->json([
@@ -588,6 +593,306 @@ class Backoffice extends Controller
       return response()->json([
         'success' => false,
         'message' => 'Erro ao verificar recebíveis: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Relatório de Performance do Backoffice
+   * Analisa tempo médio entre status e gargalos no pipeline
+   */
+  public function relatorioPerformance()
+  {
+    return view('content.pages.backoffice.relatorio-performance');
+  }
+
+  /**
+   * Busca dados do relatório de performance do backoffice
+   */
+  public function getPerformanceData(Request $request)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      // Suporta tanto start_date/end_date quanto mes/ano
+      if ($request->has('mes') && $request->has('ano')) {
+        $mes = $request->input('mes');
+        $ano = $request->input('ano');
+        $startDate = Carbon::create($ano, $mes, 1)->startOfMonth()->format('Y-m-d');
+        $endDate = Carbon::create($ano, $mes, 1)->endOfMonth()->format('Y-m-d');
+      } else {
+        $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
+      }
+
+      // Status do backoffice em ordem de pipeline
+      $statusPipeline = [
+        'VENDA' => ['ordem' => 1, 'tipo' => 'entrada'],
+        'ANALISE DE DOCUMENTOS' => ['ordem' => 2, 'tipo' => 'processo'],
+        'PENDENCIA' => ['ordem' => 3, 'tipo' => 'bloqueio'],
+        'REGULARIZADO' => ['ordem' => 4, 'tipo' => 'processo'],
+        'ANALISE OPERADORA' => ['ordem' => 5, 'tipo' => 'processo'],
+        'CONTR. GERADO - AGUARDANDO ASSINATURA' => ['ordem' => 6, 'tipo' => 'processo'],
+        'AGUARD. ASSINATURA DA DS' => ['ordem' => 7, 'tipo' => 'processo'],
+        'BOLETO DISPONIVEL' => ['ordem' => 8, 'tipo' => 'processo'],
+        'IMPLANTADO' => ['ordem' => 9, 'tipo' => 'sucesso'],
+        'ESTORNO' => ['ordem' => 10, 'tipo' => 'falha'],
+        'DECLINADO' => ['ordem' => 11, 'tipo' => 'falha'],
+      ];
+
+      // Buscar vendas com seus status e datas
+      $vendas = DB::table('vendas')
+        ->select([
+          'vendas.id',
+          'vendas.numero_proposta',
+          'vendas.nome_contrato',
+          'vendas.operadora',
+          'vendas.valor_contrato',
+          'vendas.created_at as data_venda',
+          'vendas.data_implantacao',
+          'vendas.updated_at',
+          'users.name as vendedor',
+          'tabulacoes.descricao as status_atual',
+          'contatos_corretores.updated_at as status_updated_at',
+          'vendas.motivo_pendencia'
+        ])
+        ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
+        ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+        ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+        ->where('vendas.empresa_id', $empresaId)
+        ->whereBetween('vendas.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->orderBy('vendas.created_at', 'desc')
+        ->get();
+
+      // Métricas gerais
+      $totalVendas = $vendas->count();
+      $vendasImplantadas = $vendas->where('status_atual', 'IMPLANTADO')->count();
+      $vendasEmAndamento = $vendas->whereNotIn('status_atual', ['IMPLANTADO', 'ESTORNO', 'DECLINADO'])->count();
+      $vendasPerdidas = $vendas->whereIn('status_atual', ['ESTORNO', 'DECLINADO'])->count();
+
+      // Calcular tempo médio até implantação (apenas para implantados)
+      $vendasImplantadasComData = $vendas->filter(function ($v) {
+        return $v->status_atual === 'IMPLANTADO' && $v->data_implantacao && $v->data_venda;
+      });
+
+      $tempoMedioImplantacao = 0;
+      $tempoMinImplantacao = 0;
+      $tempoMaxImplantacao = 0;
+      $temposImplantacao = [];
+
+      foreach ($vendasImplantadasComData as $v) {
+        $dataVenda = Carbon::parse($v->data_venda);
+        $dataImpl = Carbon::parse($v->data_implantacao);
+        $dias = $dataVenda->diffInDays($dataImpl);
+        $temposImplantacao[] = $dias;
+      }
+
+      if (count($temposImplantacao) > 0) {
+        $tempoMedioImplantacao = round(array_sum($temposImplantacao) / count($temposImplantacao), 1);
+        $tempoMinImplantacao = min($temposImplantacao);
+        $tempoMaxImplantacao = max($temposImplantacao);
+      }
+
+      // Calcular tempo médio em cada status (baseado em updated_at)
+      $tempoMedioPorStatus = [];
+      foreach ($vendas->whereNotNull('status_atual') as $v) {
+        $status = $v->status_atual;
+        if (!isset($tempoMedioPorStatus[$status])) {
+          $tempoMedioPorStatus[$status] = ['total_dias' => 0, 'count' => 0, 'em_aberto' => 0];
+        }
+
+        if (!in_array($status, ['IMPLANTADO', 'ESTORNO', 'DECLINADO'])) {
+          // Status em aberto - calcular dias desde o update
+          $diasEmStatus = Carbon::parse($v->status_updated_at)->diffInDays(now());
+          $tempoMedioPorStatus[$status]['total_dias'] += $diasEmStatus;
+          $tempoMedioPorStatus[$status]['em_aberto']++;
+        }
+        $tempoMedioPorStatus[$status]['count']++;
+      }
+
+      // Distribuição por status
+      $distribuicaoStatus = $vendas->groupBy('status_atual')->map(function ($items, $status) use ($totalVendas, $statusPipeline) {
+        $count = $items->count();
+        $valorTotal = $items->sum('valor_contrato');
+        $info = $statusPipeline[$status] ?? ['ordem' => 99, 'tipo' => 'desconhecido'];
+
+        return [
+          'status' => $status,
+          'quantidade' => $count,
+          'percentual' => $totalVendas > 0 ? round(($count / $totalVendas) * 100, 1) : 0,
+          'valor_total' => $valorTotal,
+          'ordem' => $info['ordem'],
+          'tipo' => $info['tipo'],
+        ];
+      })->sortBy('ordem')->values();
+
+      // Gargalos - Status com mais tempo de espera
+      $gargalos = [];
+      foreach ($vendas->whereNotIn('status_atual', ['IMPLANTADO', 'ESTORNO', 'DECLINADO', null]) as $v) {
+        $diasEmStatus = Carbon::parse($v->status_updated_at)->diffInDays(now());
+
+        if ($diasEmStatus >= 3) { // Considerar gargalo após 3 dias
+          $gargalos[] = [
+            'id' => $v->id,
+            'numero_proposta' => $v->numero_proposta ?? '-',
+            'nome_contrato' => $v->nome_contrato,
+            'status_atual' => $v->status_atual,
+            'dias_parado' => $diasEmStatus,
+            'vendedor' => $v->vendedor ?? 'N/A',
+            'operadora' => $v->operadora ?? 'N/A',
+            'valor_contrato' => $v->valor_contrato,
+            'motivo_pendencia' => $v->motivo_pendencia,
+          ];
+        }
+      }
+
+      // Ordenar gargalos por dias parado (desc)
+      usort($gargalos, fn($a, $b) => $b['dias_parado'] <=> $a['dias_parado']);
+
+      // Análise por operadora
+      $porOperadora = $vendas->groupBy('operadora')->map(function ($items, $operadora) {
+        $total = $items->count();
+        $implantados = $items->where('status_atual', 'IMPLANTADO')->count();
+        $perdidos = $items->whereIn('status_atual', ['ESTORNO', 'DECLINADO'])->count();
+        $emAndamento = $total - $implantados - $perdidos;
+
+        // Tempo médio de implantação por operadora
+        $tempos = [];
+        foreach ($items->where('status_atual', 'IMPLANTADO') as $v) {
+          if ($v->data_implantacao && $v->data_venda) {
+            $tempos[] = Carbon::parse($v->data_venda)->diffInDays(Carbon::parse($v->data_implantacao));
+          }
+        }
+
+        return [
+          'operadora' => $operadora ?: 'N/A',
+          'total' => $total,
+          'implantados' => $implantados,
+          'em_andamento' => $emAndamento,
+          'perdidos' => $perdidos,
+          'taxa_conversao' => $total > 0 ? round(($implantados / $total) * 100, 1) : 0,
+          'tempo_medio' => count($tempos) > 0 ? round(array_sum($tempos) / count($tempos), 1) : null,
+          'valor_total' => $items->sum('valor_contrato'),
+        ];
+      })->sortByDesc('total')->values();
+
+      // Análise por vendedor
+      $porVendedor = $vendas->groupBy('vendedor')->map(function ($items, $vendedor) {
+        $total = $items->count();
+        $implantados = $items->where('status_atual', 'IMPLANTADO')->count();
+        $perdidos = $items->whereIn('status_atual', ['ESTORNO', 'DECLINADO'])->count();
+
+        $tempos = [];
+        foreach ($items->where('status_atual', 'IMPLANTADO') as $v) {
+          if ($v->data_implantacao && $v->data_venda) {
+            $tempos[] = Carbon::parse($v->data_venda)->diffInDays(Carbon::parse($v->data_implantacao));
+          }
+        }
+
+        return [
+          'vendedor' => $vendedor ?: 'N/A',
+          'total' => $total,
+          'implantados' => $implantados,
+          'perdidos' => $perdidos,
+          'taxa_conversao' => $total > 0 ? round(($implantados / $total) * 100, 1) : 0,
+          'tempo_medio' => count($tempos) > 0 ? round(array_sum($tempos) / count($tempos), 1) : null,
+          'valor_implantado' => $items->where('status_atual', 'IMPLANTADO')->sum('valor_contrato'),
+        ];
+      })->sortByDesc('implantados')->values();
+
+      // Evolução mensal
+      $evolucaoMensal = $vendas->groupBy(function ($item) {
+        return Carbon::parse($item->data_venda)->format('Y-m');
+      })->map(function ($items, $mes) {
+        $total = $items->count();
+        $implantados = $items->where('status_atual', 'IMPLANTADO')->count();
+
+        return [
+          'mes' => Carbon::parse($mes . '-01')->translatedFormat('M/Y'),
+          'mes_raw' => $mes,
+          'vendas' => $total,
+          'implantados' => $implantados,
+          'taxa_conversao' => $total > 0 ? round(($implantados / $total) * 100, 1) : 0,
+        ];
+      })->sortKeys()->values();
+
+      // Pipeline funil - quantidade em cada etapa
+      $pipelineFunil = [];
+      foreach ($statusPipeline as $status => $info) {
+        $quantidade = $vendas->where('status_atual', $status)->count();
+        if ($quantidade > 0 || $info['tipo'] !== 'falha') {
+          $pipelineFunil[] = [
+            'status' => $status,
+            'etapa' => $status,
+            'quantidade' => $quantidade,
+            'ordem' => $info['ordem'],
+            'tipo' => $info['tipo'],
+          ];
+        }
+      }
+      usort($pipelineFunil, fn($a, $b) => $a['ordem'] <=> $b['ordem']);
+
+      // Tempo médio por etapa (baseado em dias no status)
+      $tempoPorEtapa = [];
+      foreach ($tempoMedioPorStatus as $status => $dados) {
+        if ($dados['em_aberto'] > 0) {
+          $tempoPorEtapa[] = [
+            'etapa' => $status,
+            'media_dias' => round($dados['total_dias'] / $dados['em_aberto'], 1),
+            'contratos' => $dados['em_aberto'],
+          ];
+        }
+      }
+      usort($tempoPorEtapa, fn($a, $b) => $b['media_dias'] <=> $a['media_dias']);
+
+      // Análise de pendências (motivos mais comuns)
+      $pendencias = $vendas->whereNotNull('motivo_pendencia')
+        ->where('motivo_pendencia', '!=', '')
+        ->groupBy('motivo_pendencia')
+        ->map(function ($items, $motivo) {
+          return [
+            'motivo' => $motivo,
+            'quantidade' => $items->count(),
+          ];
+        })
+        ->sortByDesc('quantidade')
+        ->take(10)
+        ->values();
+
+      return response()->json([
+        'success' => true,
+        'periodo' => [
+          'inicio' => Carbon::parse($startDate)->format('d/m/Y'),
+          'fim' => Carbon::parse($endDate)->format('d/m/Y'),
+        ],
+        'metricas' => [
+          'total_vendas' => $totalVendas,
+          'implantadas' => $vendasImplantadas,
+          'em_andamento' => $vendasEmAndamento,
+          'perdidas' => $vendasPerdidas,
+          'taxa_conversao' => $totalVendas > 0 ? round(($vendasImplantadas / $totalVendas) * 100, 1) : 0,
+          'taxa_perda' => $totalVendas > 0 ? round(($vendasPerdidas / $totalVendas) * 100, 1) : 0,
+          'tempo_medio_implantacao' => $tempoMedioImplantacao,
+          'tempo_min_implantacao' => $tempoMinImplantacao,
+          'tempo_max_implantacao' => $tempoMaxImplantacao,
+          'valor_total' => $vendas->sum('valor_contrato'),
+          'valor_implantado' => $vendas->where('status_atual', 'IMPLANTADO')->sum('valor_contrato'),
+          'valor_perdido' => $vendas->whereIn('status_atual', ['ESTORNO', 'DECLINADO'])->sum('valor_contrato'),
+        ],
+        'distribuicao_status' => $distribuicaoStatus,
+        'pipeline_funil' => $pipelineFunil,
+        'tempo_por_etapa' => $tempoPorEtapa,
+        'gargalos' => array_slice($gargalos, 0, 20),
+        'total_gargalos' => count($gargalos),
+        'por_operadora' => $porOperadora,
+        'por_vendedor' => $porVendedor,
+        'evolucao_mensal' => $evolucaoMensal,
+        'pendencias_frequentes' => $pendencias,
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar dados: ' . $e->getMessage()
       ], 500);
     }
   }
