@@ -7,7 +7,7 @@
 @endsection
 
 @section('page-style')
-    @vite('resources/assets/vendor/scss/pages/app-kanban.scss')
+    @vite(['resources/assets/vendor/scss/pages/app-kanban.scss', 'resources/assets/vendor/scss/pages/kanban-modal.scss'])
     <style>
         /* ========================================
            CRONOGRAMA - MODERN TIMELINE DESIGN
@@ -738,145 +738,217 @@
 
 
 
-        <!-- Edit Task/Task & Activities -->
-        <div class="offcanvas offcanvas-end kanban-update-item-sidebar">
-            <div class="offcanvas-header border-bottom">
-                <h5 class="offcanvas-title">Visualizar Cliente</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-            </div>
-            <div class="offcanvas-body pt-2">
-                <ul class="nav nav-tabs mb-2 border-bottom">
-                    <li class="nav-item">
-                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-update">
-                            <i class="ri-edit-box-line me-1_5"></i>
-                            <span class="align-middle">Editar</span>
+        <!-- Modal Cliente Kanban -->
+        <div class="modal fade kanban-client-modal" id="kanbanClientModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <!-- Header -->
+                    <div class="km-header">
+                        <div class="km-header-left">
+                            <div class="km-avatar" id="km-avatar">--</div>
+                            <div class="km-header-info">
+                                <h5 id="km-client-name">Nome do Cliente</h5>
+                                <div class="km-header-meta">
+                                    <span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                        <span id="km-data-create">--/--/----</span>
+                                    </span>
+                                    <span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                        Atualizado: <span id="km-data-update">--/--/----</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="km-close-btn" data-bs-dismiss="modal" aria-label="Close">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-activity">
-                            <i class="ri-pie-chart-line me-1_5"></i>
-                            <span class="align-middle">Anotações</span>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="km-tabs">
+                        <button type="button" class="km-tab active" data-tab="tab-edit">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            Editar
                         </button>
-                    </li>
-                </ul>
-                <div class="tab-content px-0 pb-0 pt-4">
-                    <!-- Update item/tasks -->
-                    <div class="tab-pane fade show active" id="tab-update" role="tabpanel">
-                        <form method="POST" id="form-client" action="{{ route('comercial.saveNoteMailing') }}">
-                            @csrf
-                            <div class="form-floating form-floating-outline mb-5">
+                        <button type="button" class="km-tab" data-tab="tab-notes">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            Anotações
+                            <span class="badge bg-primary rounded-pill ms-1" id="km-notes-count">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="km-body">
+                        <!-- Tab Edit -->
+                        <div class="km-tab-content active" id="tab-edit">
+                            <form method="POST" id="form-client" action="{{ route('comercial.saveNoteMailing') }}">
+                                @csrf
                                 <input type="hidden" value="" id="id_mailing" name="id_mailing">
                                 <input type="hidden" value="" id="id_tabulacao" name="id_tabulacao">
-                                <input type="text" id="title" class="form-control" placeholder="Enter Title"
-                                    disabled />
-                                <label for="title">Nome Completo</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="data_nascimento" class="form-control" placeholder="11/10/1997"
-                                    disabled />
-                                <label for="title">Data de Nascimento</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="cpf" class="form-control mask-cpf"
-                                    placeholder="476.338.528.36" disabled />
-                                <label for="title">CPF / CNPJ</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="email" id="email" class="form-control"
-                                    placeholder="corretor@corretor.com.br" disabled />
-                                <label for="title">E-mail</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="plano" class="form-control" placeholder="TOP NACIONAL"
-                                    disabled />
-                                <label for="title">Plano Atual</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="entidade" class="form-control" placeholder="SULAMERICA"
-                                    disabled />
-                                <label for="title">Entidade</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="cartergoria" class="form-control" placeholder="MEDIA"
-                                    disabled />
-                                <label for="title">Cartegoria</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="idades" class="form-control" placeholder="MEDIA"
-                                    disabled />
-                                <label for="title">Idades</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone1" class="form-control mask-telefone"
-                                    placeholder="(11) 99020-5484" name="telefone1" />
-                                <label for="title">Telefone Principal</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone2" class="form-control mask-telefone"
-                                    placeholder="(11) 99020-5484" name="telefone2" />
-                                <label for="title">Telefone Adicional</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="telefone3" class="form-control mask-telefone"
-                                    placeholder="(11) 99020-5484" name="telefone3" />
-                                <label for="title">Telefone Adicional</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="valor_plano_atual" class="form-control monetary-field"
-                                    placeholder="R$ 197,84" disabled />
-                                <label for="title">Valor do plano atual</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <input type="text" id="valor_negociacao" class="form-control monetary-field"
-                                    placeholder="R$ 197,84" name="valor_negociacao" />
-                                <label for="title">valor da negociação</label>
-                            </div>
-                            <div class="form-floating form-floating-outline mb-5">
-                                <select class="select2  form-select" id="label" name="temperatura">
-                                    <option data-color="bg-label-danger" value="QUENTE">
-                                        QUENTE
-                                    </option>
-                                    <option data-color="bg-label-warning" value="MORNO">
-                                        MORNO
-                                    </option>
-                                    <option data-color="bg-label-info" value="FRIO">
-                                        FRIO
-                                    </option>
-                                </select>
-                                <label for="label"> label</label>
-                            </div>
 
-                            <div class="mb-8">
-                                <label class="form-label">ANOTAÇÕES</label>
-                                <div class="comment-editor"></div>
-                                <div class="d-flex justify-content-end">
-                                    <div class="comment-toolbar">
-                                        <span class="ql-formats me-0">
-                                            <button class="ql-bold"></button>
-                                            <button class="ql-italic"></button>
-                                            <button class="ql-underline"></button>
-                                            <button class="ql-list" value="ordered"></button>
-                                            <button class="ql-list" value="bullet"></button>
-                                        </span>
+                                <!-- Dados Pessoais -->
+                                <div class="km-section">
+                                    <div class="km-section-header">
+                                        <div class="km-section-icon icon-primary">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                        </div>
+                                        <h6 class="km-section-title">Dados Pessoais</h6>
+                                    </div>
+                                    <div class="km-form-grid">
+                                        <div class="km-field span-2">
+                                            <label class="km-label">Nome Completo</label>
+                                            <input type="text" id="title" class="km-input" placeholder="Nome do cliente" disabled>
+                                        </div>
+                                        <div class="km-field">
+                                            <label class="km-label">Data de Nascimento</label>
+                                            <input type="text" id="data_nascimento" class="km-input" placeholder="dd/mm/aaaa" disabled>
+                                        </div>
+                                        <div class="km-field">
+                                            <label class="km-label">CPF / CNPJ</label>
+                                            <input type="text" id="cpf" class="km-input mask-cpf" placeholder="000.000.000-00" disabled>
+                                        </div>
+                                        <div class="km-field span-2">
+                                            <label class="km-label">E-mail</label>
+                                            <input type="email" id="email" class="km-input" placeholder="email@exemplo.com" disabled>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="mb-5">
-                                <div class="d-flex flex-wrap">
-                                    <button type="submit" class="btn btn-primary me-4 " data-bs-dismiss="offcanvas">
-                                        Atualizar
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="offcanvas">
-                                        Fechar
-                                    </button>
+
+                                <!-- Plano Atual -->
+                                <div class="km-section">
+                                    <div class="km-section-header">
+                                        <div class="km-section-icon icon-info">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                        </div>
+                                        <h6 class="km-section-title">Plano Atual</h6>
+                                    </div>
+                                    <div class="km-form-grid grid-3">
+                                        <div class="km-field">
+                                            <label class="km-label">Plano</label>
+                                            <input type="text" id="plano" class="km-input" placeholder="Nome do plano" disabled>
+                                        </div>
+                                        <div class="km-field">
+                                            <label class="km-label">Entidade</label>
+                                            <input type="text" id="entidade" class="km-input" placeholder="Operadora" disabled>
+                                        </div>
+                                        <div class="km-field">
+                                            <label class="km-label">Categoria</label>
+                                            <input type="text" id="cartergoria" class="km-input" placeholder="Categoria" disabled>
+                                        </div>
+                                        <div class="km-field">
+                                            <label class="km-label">Idades</label>
+                                            <input type="text" id="idades" class="km-input" placeholder="Idades" disabled>
+                                        </div>
+                                        <div class="km-field">
+                                            <label class="km-label">Valor Atual</label>
+                                            <input type="text" id="valor_plano_atual" class="km-input km-input-monetary monetary-field" placeholder="R$ 0,00" disabled>
+                                        </div>
+                                        <div class="km-field">
+                                            <label class="km-label">Valor Negociação</label>
+                                            <input type="text" id="valor_negociacao" class="km-input km-input-monetary monetary-field" placeholder="R$ 0,00" name="valor_negociacao">
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <!-- Contatos -->
+                                <div class="km-section">
+                                    <div class="km-section-header">
+                                        <div class="km-section-icon icon-success">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                        </div>
+                                        <h6 class="km-section-title">Telefones</h6>
+                                    </div>
+                                    <div class="km-form-grid grid-3">
+                                        <div class="km-field">
+                                            <label class="km-label">Telefone Principal</label>
+                                            <input type="text" id="telefone1" class="km-input mask-telefone" placeholder="(00) 00000-0000" name="telefone1">
+                                        </div>
+                                        <div class="km-field">
+                                            <label class="km-label">Telefone 2</label>
+                                            <input type="text" id="telefone2" class="km-input mask-telefone" placeholder="(00) 00000-0000" name="telefone2">
+                                        </div>
+                                        <div class="km-field">
+                                            <label class="km-label">Telefone 3</label>
+                                            <input type="text" id="telefone3" class="km-input mask-telefone" placeholder="(00) 00000-0000" name="telefone3">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Temperatura do Lead -->
+                                <div class="km-section">
+                                    <div class="km-section-header">
+                                        <div class="km-section-icon icon-warning">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path></svg>
+                                        </div>
+                                        <h6 class="km-section-title">Temperatura do Lead</h6>
+                                    </div>
+                                    <div class="km-temp-select">
+                                        <label class="km-temp-option temp-quente">
+                                            <input type="radio" name="temperatura" value="QUENTE">
+                                            <span class="temp-icon">🔥</span>
+                                            <span class="temp-label">Quente</span>
+                                        </label>
+                                        <label class="km-temp-option temp-morno">
+                                            <input type="radio" name="temperatura" value="MORNO">
+                                            <span class="temp-icon">☀️</span>
+                                            <span class="temp-label">Morno</span>
+                                        </label>
+                                        <label class="km-temp-option temp-frio">
+                                            <input type="radio" name="temperatura" value="FRIO" checked>
+                                            <span class="temp-icon">❄️</span>
+                                            <span class="temp-label">Frio</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Nova Anotação -->
+                                <div class="km-section">
+                                    <div class="km-section-header">
+                                        <div class="km-section-icon icon-primary">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        </div>
+                                        <h6 class="km-section-title">Nova Anotação</h6>
+                                    </div>
+                                    <div class="km-editor-wrapper">
+                                        <div class="km-editor comment-editor"></div>
+                                        <div class="km-editor-toolbar comment-toolbar">
+                                            <span class="ql-formats me-0">
+                                                <button class="ql-bold"></button>
+                                                <button class="ql-italic"></button>
+                                                <button class="ql-underline"></button>
+                                                <button class="ql-list" value="ordered"></button>
+                                                <button class="ql-list" value="bullet"></button>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Tab Notes -->
+                        <div class="km-tab-content" id="tab-notes">
+                            <div class="km-notes-timeline" id="notes-container">
+                                <!-- Anotações serão inseridas aqui via JS -->
                             </div>
-                        </form>
+                        </div>
                     </div>
-                    <!-- Activities -->
-                    <div class="tab-pane fade text-heading" id="tab-activity" role="tabpanel">
-                        <div id="notes-container">
-                            <!-- As anotações serão inseridas aqui -->
+
+                    <!-- Footer -->
+                    <div class="km-footer">
+                        <a href="#" class="km-profile-link" id="km-profile-link" target="_blank">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            Ver perfil completo
+                        </a>
+                        <div class="km-footer-actions">
+                            <button type="button" class="km-btn km-btn-outline" data-bs-dismiss="modal">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                Fechar
+                            </button>
+                            <button type="button" class="km-btn km-btn-primary" id="km-btn-save">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                Atualizar
+                            </button>
                         </div>
                     </div>
                 </div>

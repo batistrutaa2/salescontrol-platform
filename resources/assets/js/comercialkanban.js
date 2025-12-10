@@ -6,20 +6,57 @@
 
 (async function () {
   let boards;
-  const kanbanSidebar = document.querySelector('.kanban-update-item-sidebar'),
+  const kanbanModalEl = document.getElementById('kanbanClientModal'),
     kanbanWrapper = document.querySelector('.kanban-wrapper'),
     commentEditor = document.querySelector('.comment-editor'),
     kanbanAddNewBoard = document.querySelector('.kanban-add-new-board'),
     kanbanAddNewInput = [].slice.call(document.querySelectorAll('.kanban-add-board-input')),
     kanbanAddBoardBtn = document.querySelector('.kanban-add-board-btn'),
     datePicker = document.querySelector('#due-date'),
-    select2 = $('.select2'),
     assetsPath = document.querySelector('html').getAttribute('data-assets-path');
 
-  // Styles are now in app-kanban.scss - no inline injection needed
+  // Init kanban Modal
+  const kanbanModal = new bootstrap.Modal(kanbanModalEl);
 
-  // Init kanban Offcanvas
-  const kanbanOffcanvas = new bootstrap.Offcanvas(kanbanSidebar);
+  // Init modal tabs using event delegation
+  kanbanModalEl.addEventListener('click', function(e) {
+    const tab = e.target.closest('.km-tab');
+    if (tab) {
+      const targetTab = tab.dataset.tab;
+
+      // Remove active from all tabs
+      kanbanModalEl.querySelectorAll('.km-tab').forEach(t => t.classList.remove('active'));
+      kanbanModalEl.querySelectorAll('.km-tab-content').forEach(c => c.classList.remove('active'));
+
+      // Add active to clicked tab
+      tab.classList.add('active');
+      const targetContent = document.getElementById(targetTab);
+      if (targetContent) {
+        targetContent.classList.add('active');
+      }
+    }
+  });
+
+  // Init temperature radio buttons using event delegation
+  kanbanModalEl.addEventListener('click', function(e) {
+    const tempOption = e.target.closest('.km-temp-option');
+    if (tempOption) {
+      kanbanModalEl.querySelectorAll('.km-temp-option').forEach(o => o.classList.remove('active'));
+      tempOption.classList.add('active');
+      const radio = tempOption.querySelector('input[type="radio"]');
+      if (radio) {
+        radio.checked = true;
+      }
+    }
+  });
+
+  // Save button
+  const saveBtn = document.getElementById('km-btn-save');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function() {
+      document.getElementById('form-client').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    });
+  }
 
   // Get kanban data
   const kanbanResponse = await fetch('/comercial/getClientComercial');
@@ -35,30 +72,6 @@
       altInput: true,
       altFormat: 'j F, Y',
       dateFormat: 'Y-m-d'
-    });
-  }
-
-  if (select2.length) {
-    function renderLabels(option) {
-      if (!option.id) {
-        return option.text;
-      }
-      var $badge = "<div class='badge " + $(option.element).data('color') + " rounded-pill'> " + option.text + '</div>';
-      return $badge;
-    }
-
-    select2.each(function () {
-      var $this = $(this);
-      select2Focus($this);
-      $this.wrap("<div class='position-relative'></div>").select2({
-        placeholder: 'Select Label',
-        dropdownParent: $this.parent(),
-        templateResult: renderLabels,
-        templateSelection: renderLabels,
-        escapeMarkup: function (es) {
-          return es;
-        }
-      });
     });
   }
 
@@ -103,6 +116,7 @@
       .then(response => response.json())
       .then(async result => {
         if (!result.error) {
+          kanbanModal.hide();
           toastr.success(result.message, 'Concluido');
           location.reload();
         } else {
@@ -518,36 +532,54 @@
       let temperatura = element.getAttribute('data-temperatura');
       let idades = element.getAttribute('data-idades');
       let tabulation_id = element.getAttribute('data-tabulacao-id');
+      let data_create = element.getAttribute('data-data_create');
       let data_update = element.getAttribute('data-data_update');
 
-      kanbanSidebar.querySelector('#id_mailing').value = idMailing == 'null' ? '' : idMailing;
-      kanbanSidebar.querySelector('#id_tabulacao').value = tabulation_id == 'null' ? '' : tabulation_id;
-      kanbanSidebar.querySelector('#title').value = nomeCliente == 'null' ? '' : nomeCliente;
-      kanbanSidebar.querySelector('#data_nascimento').value = datanascimento == 'null' ? '' : datanascimento;
-      kanbanSidebar.querySelector('#cpf').value = cpf == 'null' ? '' : cpf;
-      kanbanSidebar.querySelector('#email').value = email == 'null' ? '' : email;
-      kanbanSidebar.querySelector('#plano').value = plano == 'null' ? '' : plano;
-      kanbanSidebar.querySelector('#entidade').value = entidade == 'null' ? '' : entidade;
-      kanbanSidebar.querySelector('#cartergoria').value = categoria == 'null' ? '' : categoria;
-      kanbanSidebar.querySelector('#idades').value = idades == 'null' ? '' : idades;
-      kanbanSidebar.querySelector('#telefone1').value = telefone1 == 'null' ? '' : telefone1;
-      kanbanSidebar.querySelector('#telefone2').value = telefone2 == 'null' ? '' : telefone2;
-      kanbanSidebar.querySelector('#telefone3').value = telefone3 == 'null' ? '' : telefone3;
-      kanbanSidebar.querySelector('#valor_plano_atual').value = numberFormat(valorPlano);
-      kanbanSidebar.querySelector('#valor_negociacao').value = numberFormat(valorNegociacao);
+      // Update modal header
+      document.getElementById('km-client-name').textContent = nomeCliente == 'null' ? 'Cliente' : nomeCliente;
+      document.getElementById('km-avatar').textContent = getInitials(nomeCliente);
+      document.getElementById('km-data-create').textContent = data_create || '--/--/----';
+      document.getElementById('km-data-update').textContent = data_update || '--/--/----';
+      document.getElementById('km-profile-link').href = `/comercial/abrir-cliente/${idMailing}`;
 
-      const inputcpf = kanbanSidebar.querySelector('#cpf');
+      // Update form fields
+      kanbanModalEl.querySelector('#id_mailing').value = idMailing == 'null' ? '' : idMailing;
+      kanbanModalEl.querySelector('#id_tabulacao').value = tabulation_id == 'null' ? '' : tabulation_id;
+      kanbanModalEl.querySelector('#title').value = nomeCliente == 'null' ? '' : nomeCliente;
+      kanbanModalEl.querySelector('#data_nascimento').value = datanascimento == 'null' ? '' : datanascimento;
+      kanbanModalEl.querySelector('#cpf').value = cpf == 'null' ? '' : cpf;
+      kanbanModalEl.querySelector('#email').value = email == 'null' ? '' : email;
+      kanbanModalEl.querySelector('#plano').value = plano == 'null' ? '' : plano;
+      kanbanModalEl.querySelector('#entidade').value = entidade == 'null' ? '' : entidade;
+      kanbanModalEl.querySelector('#cartergoria').value = categoria == 'null' ? '' : categoria;
+      kanbanModalEl.querySelector('#idades').value = idades == 'null' ? '' : idades;
+      kanbanModalEl.querySelector('#telefone1').value = telefone1 == 'null' ? '' : telefone1;
+      kanbanModalEl.querySelector('#telefone2').value = telefone2 == 'null' ? '' : telefone2;
+      kanbanModalEl.querySelector('#telefone3').value = telefone3 == 'null' ? '' : telefone3;
+      kanbanModalEl.querySelector('#valor_plano_atual').value = numberFormat(valorPlano);
+      kanbanModalEl.querySelector('#valor_negociacao').value = numberFormat(valorNegociacao);
+
+      // Set temperature radio button
+      const tempValue = temperatura || 'FRIO';
+      const tempRadio = kanbanModalEl.querySelector(`input[name="temperatura"][value="${tempValue}"]`);
+      if (tempRadio) {
+        tempRadio.checked = true;
+        kanbanModalEl.querySelectorAll('.km-temp-option').forEach(o => o.classList.remove('active'));
+        tempRadio.closest('.km-temp-option').classList.add('active');
+      }
+
+      const inputcpf = kanbanModalEl.querySelector('#cpf');
 
       let cleave = new Cleave(inputcpf, applyMaskBasedOnLength(inputcpf.value));
 
       inputcpf.addEventListener('input', function () {
-        const currentMask = applyMaskBasedOnLength(inputCpf.value);
+        const currentMask = applyMaskBasedOnLength(inputcpf.value);
 
         cleave.destroy();
-        cleave = new Cleave(inputCpf, currentMask);
+        cleave = new Cleave(inputcpf, currentMask);
       });
 
-      const telefones = kanbanSidebar.querySelectorAll('.mask-telefone');
+      const telefones = kanbanModalEl.querySelectorAll('.mask-telefone');
       telefones.forEach(mask => {
         new Cleave(mask, {
           delimiters: ['(', ') ', '-', ''],
@@ -571,7 +603,7 @@
         }
       }
 
-      const monetaryFields = document.querySelectorAll('.monetary-field');
+      const monetaryFields = kanbanModalEl.querySelectorAll('.monetary-field');
 
       monetaryFields.forEach(function (field) {
         let rawValue = field.value;
@@ -586,9 +618,11 @@
         });
       });
 
-      $('.kanban-update-item-sidebar').find(select2).val(temperatura).trigger('change');
+      // Update notes count badge
+      document.getElementById('km-notes-count').textContent = comentariosArray.length || 0;
+
       renderNotes(comentariosArray, temperatura);
-      kanbanOffcanvas.show();
+      kanbanModal.show();
     },
 
     buttonClick: function (el, boardId) { }
@@ -598,30 +632,45 @@
     const container = document.getElementById('notes-container');
     container.innerHTML = '';
 
+    if (!notes || notes.length === 0) {
+      container.innerHTML = `
+        <div class="km-notes-empty">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <p>Nenhuma anotacao registrada</p>
+        </div>
+      `;
+      return;
+    }
+
     notes.forEach(note => {
-      const noteElement = document.createElement('div');
-      noteElement.className = 'media mb-4 d-flex align-items-center';
-
-      const avatar = document.createElement('div');
-      avatar.className = 'avatar me-3 flex-shrink-0';
-
-      if (temperatura === 'FRIO') {
-        avatar.innerHTML = '<span class="avatar-initial bg-label-info rounded-circle">obs</span>';
-      } else if (temperatura === 'QUENTE') {
-        avatar.innerHTML = '<span class="avatar-initial bg-label-danger rounded-circle">obs</span>';
-      } else {
-        avatar.innerHTML = '<span class="avatar-initial bg-label-warning rounded-circle">obs</span>';
+      let avatarClass = 'avatar-frio';
+      if (temperatura === 'QUENTE') {
+        avatarClass = 'avatar-quente';
+      } else if (temperatura === 'MORNO') {
+        avatarClass = 'avatar-morno';
       }
 
-      const mediaBody = document.createElement('div');
-      mediaBody.className = 'media-body ms-1';
-      mediaBody.innerHTML = `
-            <p class="mb-0">${note.anotacao}</p>
-            <small class="text-muted">${note.created_at}</small>
-        `;
-
-      noteElement.appendChild(avatar);
-      noteElement.appendChild(mediaBody);
+      const noteElement = document.createElement('div');
+      noteElement.className = 'km-note-item km-fade-in';
+      noteElement.innerHTML = `
+        <div class="km-note-avatar ${avatarClass}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <div class="km-note-content">
+          <div class="km-note-text">${note.anotacao}</div>
+          <div class="km-note-date">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            ${note.created_at}
+          </div>
+        </div>
+      `;
 
       container.appendChild(noteElement);
     });
@@ -883,18 +932,28 @@
     });
   }
 
-  kanbanSidebar.addEventListener('hidden.bs.offcanvas', function () {
-    kanbanSidebar.querySelector('.ql-editor').firstElementChild.innerHTML = '';
+  // Clear editor when modal is hidden
+  kanbanModalEl.addEventListener('hidden.bs.modal', function () {
+    const editor = kanbanModalEl.querySelector('.ql-editor');
+    if (editor && editor.firstElementChild) {
+      editor.firstElementChild.innerHTML = '';
+    }
+    // Reset tabs to first tab
+    const tabs = kanbanModalEl.querySelectorAll('.km-tab');
+    const tabContents = kanbanModalEl.querySelectorAll('.km-tab-content');
+    tabs.forEach(t => t.classList.remove('active'));
+    tabContents.forEach(c => c.classList.remove('active'));
+    if (tabs[0]) tabs[0].classList.add('active');
+    if (tabContents[0]) tabContents[0].classList.add('active');
   });
 
-  if (kanbanSidebar) {
-    kanbanSidebar.addEventListener('shown.bs.offcanvas', function () {
-      const tooltipTriggerList = [].slice.call(kanbanSidebar.querySelectorAll('[data-bs-toggle="tooltip"]'));
-      tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-      });
+  // Init tooltips when modal is shown
+  kanbanModalEl.addEventListener('shown.bs.modal', function () {
+    const tooltipTriggerList = [].slice.call(kanbanModalEl.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
     });
-  }
+  });
 })();
 
 document.addEventListener('DOMContentLoaded', function () {

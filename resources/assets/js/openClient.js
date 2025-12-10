@@ -330,6 +330,39 @@
         makeCall();
       });
     }
+
+    // Temperature selection (novo design)
+    const tempOptions = document.querySelectorAll('.temp-option');
+    const tempRadios = document.querySelectorAll('input[name="temperatura"]');
+
+    if (tempRadios.length) {
+      // Listener nos radio buttons para atualizar classe active
+      tempRadios.forEach(radio => {
+        radio.addEventListener('change', function () {
+          tempOptions.forEach(o => o.classList.remove('active'));
+          if (this.checked) {
+            this.closest('.temp-option').classList.add('active');
+          }
+        });
+      });
+    }
+
+    if (tempOptions.length) {
+      tempOptions.forEach(option => {
+        option.addEventListener('click', function (e) {
+          // Prevenir dupla ação se clicou diretamente no radio
+          if (e.target.type === 'radio') return;
+
+          tempOptions.forEach(o => o.classList.remove('active'));
+          this.classList.add('active');
+          const radio = this.querySelector('input[type="radio"]');
+          if (radio) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+      });
+    }
   });
   function makeCall() {
     const telefoneEl = document.getElementById('phone_number');
