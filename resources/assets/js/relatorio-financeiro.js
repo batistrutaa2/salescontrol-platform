@@ -4,6 +4,22 @@
 let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
 
 (function () {
+    // ========================================
+    // Design System Colors
+    // ========================================
+    const designColors = {
+        primary: '#7C3AED',
+        primaryLight: '#A78BFA',
+        success: '#10B981',
+        successLight: '#34D399',
+        info: '#06B6D4',
+        infoLight: '#22D3EE',
+        warning: '#F59E0B',
+        warningLight: '#FBBF24',
+        danger: '#EF4444',
+        dangerLight: '#F87171'
+    };
+
     // Configuração de cores baseada no tema
     let cardColor, labelColor, headingColor, borderColor, legendColor;
 
@@ -20,16 +36,6 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
         borderColor = config.colors.borderColor;
         legendColor = config.colors.bodyColor;
     }
-
-    // Cores personalizadas
-    const chartColors = {
-        primary: '#696cff',
-        success: '#71dd37',
-        warning: '#ffab00',
-        danger: '#ff3e1d',
-        info: '#03c3ec',
-        secondary: '#8592a3'
-    };
 
     // ========================================
     // Inicialização
@@ -54,23 +60,23 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                 { data: 'operadora' },
                 {
                     data: 'previsto',
-                    className: 'text-end fw-semibold',
+                    className: 'text-end value-cell primary',
                     render: val => formatCurrency(val)
                 },
                 {
                     data: 'recebido',
-                    className: 'text-end',
-                    render: val => `<span class="text-success">${formatCurrency(val)}</span>`
+                    className: 'text-end value-cell success',
+                    render: val => formatCurrency(val)
                 },
                 {
                     data: 'aberto',
-                    className: 'text-end',
-                    render: val => `<span class="text-warning">${formatCurrency(val)}</span>`
+                    className: 'text-end value-cell warning',
+                    render: val => formatCurrency(val)
                 },
                 {
                     data: 'cancelado',
-                    className: 'text-end',
-                    render: val => `<span class="text-muted">${formatCurrency(val)}</span>`
+                    className: 'text-end value-cell muted',
+                    render: val => formatCurrency(val)
                 },
                 {
                     data: null,
@@ -78,7 +84,7 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                     render: function(data) {
                         const taxa = data.previsto > 0 ? (data.recebido / data.previsto * 100) : 0;
                         const badgeClass = taxa >= 80 ? 'success' : taxa >= 50 ? 'warning' : 'danger';
-                        return `<span class="badge bg-${badgeClass}">${taxa.toFixed(1)}%</span>`;
+                        return `<span class="badge-taxa ${badgeClass}">${taxa.toFixed(1)}%</span>`;
                     }
                 }
             ]
@@ -104,7 +110,8 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
             series: [],
             chart: {
                 type: 'area',
-                height: 350,
+                height: 320,
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
                 toolbar: {
                     show: true,
                     tools: {
@@ -118,7 +125,7 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                 },
                 background: 'transparent'
             },
-            colors: [chartColors.primary, chartColors.success, chartColors.warning],
+            colors: [designColors.primary, designColors.success, designColors.warning],
             dataLabels: {
                 enabled: false
             },
@@ -131,7 +138,7 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                 gradient: {
                     shadeIntensity: 1,
                     opacityFrom: 0.4,
-                    opacityTo: 0.1,
+                    opacityTo: 0.05,
                     stops: [0, 90, 100]
                 }
             },
@@ -140,7 +147,8 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                 labels: {
                     style: {
                         colors: labelColor,
-                        fontSize: '13px'
+                        fontSize: '12px',
+                        fontFamily: 'Plus Jakarta Sans, sans-serif'
                     }
                 },
                 axisBorder: {
@@ -154,37 +162,32 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                 labels: {
                     style: {
                         colors: labelColor,
-                        fontSize: '13px'
+                        fontSize: '12px',
+                        fontFamily: 'Plus Jakarta Sans, sans-serif'
                     },
                     formatter: function (val) {
-                        return formatCurrency(val);
+                        return formatCurrencyShort(val);
                     }
                 }
             },
             legend: {
-                show: true,
-                position: 'top',
-                horizontalAlign: 'left',
-                labels: {
-                    colors: legendColor
-                },
-                markers: {
-                    width: 10,
-                    height: 10
-                }
+                show: false
             },
             grid: {
                 borderColor: borderColor,
-                strokeDashArray: 7,
+                strokeDashArray: 4,
                 padding: {
-                    top: -20,
-                    bottom: -8,
-                    left: 20,
-                    right: 20
+                    top: -10,
+                    bottom: 0,
+                    left: 10,
+                    right: 10
                 }
             },
             tooltip: {
                 theme: isDarkStyle ? 'dark' : 'light',
+                style: {
+                    fontFamily: 'Plus Jakarta Sans, sans-serif'
+                },
                 y: {
                     formatter: function (val) {
                         return formatCurrency(val);
@@ -201,23 +204,27 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
             labels: [],
             chart: {
                 type: 'donut',
-                height: 350
+                height: 320,
+                fontFamily: 'Plus Jakarta Sans, sans-serif'
             },
-            colors: [chartColors.success, chartColors.warning, chartColors.secondary],
+            colors: [designColors.success, designColors.warning, designColors.danger],
             plotOptions: {
                 pie: {
                     donut: {
-                        size: '70%',
+                        size: '72%',
                         labels: {
                             show: true,
                             name: {
                                 show: true,
                                 fontSize: '14px',
+                                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                                fontWeight: 600,
                                 color: headingColor
                             },
                             value: {
                                 show: true,
-                                fontSize: '24px',
+                                fontSize: '20px',
+                                fontFamily: 'JetBrains Mono, monospace',
                                 fontWeight: 600,
                                 color: headingColor,
                                 formatter: function (val) {
@@ -227,7 +234,9 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                             total: {
                                 show: true,
                                 label: 'Total',
-                                fontSize: '14px',
+                                fontSize: '13px',
+                                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                                fontWeight: 500,
                                 color: labelColor,
                                 formatter: function (w) {
                                     const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
@@ -241,8 +250,20 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
             legend: {
                 show: true,
                 position: 'bottom',
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontSize: '13px',
+                fontWeight: 500,
                 labels: {
                     colors: legendColor
+                },
+                markers: {
+                    width: 10,
+                    height: 10,
+                    radius: 10
+                },
+                itemMargin: {
+                    horizontal: 12,
+                    vertical: 8
                 }
             },
             dataLabels: {
@@ -251,16 +272,29 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                     return val.toFixed(1) + '%';
                 },
                 style: {
+                    fontSize: '12px',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 600,
                     colors: ['#fff']
+                },
+                dropShadow: {
+                    enabled: false
                 }
             },
             tooltip: {
                 theme: isDarkStyle ? 'dark' : 'light',
+                style: {
+                    fontFamily: 'Plus Jakarta Sans, sans-serif'
+                },
                 y: {
                     formatter: function (val) {
                         return formatCurrency(val);
                     }
                 }
+            },
+            stroke: {
+                width: 4,
+                colors: [cardColor]
             }
         };
         chartStatus = new ApexCharts(document.querySelector('#chartStatusDistribuicao'), statusOptions);
@@ -271,7 +305,8 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
             series: [],
             chart: {
                 type: 'bar',
-                height: 350,
+                height: 320,
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
                 toolbar: {
                     show: false
                 }
@@ -279,55 +314,51 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
             plotOptions: {
                 bar: {
                     horizontal: true,
-                    borderRadius: 8,
-                    barHeight: '70%',
+                    borderRadius: 6,
+                    barHeight: '65%',
                     dataLabels: {
                         position: 'top'
                     }
                 }
             },
-            colors: [chartColors.primary, chartColors.success, chartColors.warning],
+            colors: [designColors.primary, designColors.success, designColors.warning],
             dataLabels: {
-                enabled: true,
-                offsetX: 30,
-                style: {
-                    fontSize: '12px',
-                    colors: ['#fff']
-                },
-                formatter: function (val) {
-                    return formatCurrency(val);
-                }
+                enabled: false
             },
             xaxis: {
                 categories: [],
                 labels: {
                     style: {
                         colors: labelColor,
-                        fontSize: '13px'
+                        fontSize: '12px',
+                        fontFamily: 'Plus Jakarta Sans, sans-serif'
                     },
                     formatter: function (val) {
-                        return formatCurrency(val);
+                        return formatCurrencyShort(val);
                     }
+                },
+                axisBorder: {
+                    show: false
+                },
+                axisTicks: {
+                    show: false
                 }
             },
             yaxis: {
                 labels: {
                     style: {
                         colors: labelColor,
-                        fontSize: '13px'
+                        fontSize: '12px',
+                        fontFamily: 'Plus Jakarta Sans, sans-serif'
                     }
                 }
             },
             legend: {
-                show: true,
-                position: 'top',
-                horizontalAlign: 'left',
-                labels: {
-                    colors: legendColor
-                }
+                show: false
             },
             grid: {
                 borderColor: borderColor,
+                strokeDashArray: 4,
                 xaxis: {
                     lines: {
                         show: true
@@ -337,10 +368,17 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                     lines: {
                         show: false
                     }
+                },
+                padding: {
+                    top: -10,
+                    bottom: 0
                 }
             },
             tooltip: {
                 theme: isDarkStyle ? 'dark' : 'light',
+                style: {
+                    fontFamily: 'Plus Jakarta Sans, sans-serif'
+                },
                 y: {
                     formatter: function (val) {
                         return formatCurrency(val);
@@ -359,7 +397,8 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
             }],
             chart: {
                 type: 'bar',
-                height: 350,
+                height: 320,
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
                 toolbar: {
                     show: false
                 }
@@ -370,19 +409,21 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                     dataLabels: {
                         position: 'top'
                     },
-                    columnWidth: '60%'
+                    columnWidth: '55%'
                 }
             },
-            colors: [chartColors.info],
+            colors: [designColors.info],
             dataLabels: {
                 enabled: true,
-                offsetY: -25,
+                offsetY: -24,
                 style: {
                     fontSize: '11px',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 600,
                     colors: [headingColor]
                 },
                 formatter: function (val) {
-                    return formatCurrency(val);
+                    return formatCurrencyShort(val);
                 }
             },
             xaxis: {
@@ -390,10 +431,13 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                 labels: {
                     style: {
                         colors: labelColor,
-                        fontSize: '12px'
+                        fontSize: '11px',
+                        fontFamily: 'Plus Jakarta Sans, sans-serif'
                     },
                     rotate: -45,
-                    rotateAlways: true
+                    rotateAlways: true,
+                    trim: true,
+                    maxHeight: 80
                 },
                 axisBorder: {
                     show: false
@@ -406,19 +450,27 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                 labels: {
                     style: {
                         colors: labelColor,
-                        fontSize: '13px'
+                        fontSize: '12px',
+                        fontFamily: 'Plus Jakarta Sans, sans-serif'
                     },
                     formatter: function (val) {
-                        return formatCurrency(val);
+                        return formatCurrencyShort(val);
                     }
                 }
             },
             grid: {
                 borderColor: borderColor,
-                strokeDashArray: 7
+                strokeDashArray: 4,
+                padding: {
+                    top: -10,
+                    bottom: 0
+                }
             },
             tooltip: {
                 theme: isDarkStyle ? 'dark' : 'light',
+                style: {
+                    fontFamily: 'Plus Jakarta Sans, sans-serif'
+                },
                 y: {
                     formatter: function (val) {
                         return formatCurrency(val);
@@ -449,7 +501,7 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
             },
             beforeSend: function() {
                 // Adicionar loading state
-                $('.metric-value').addClass('loading-state');
+                $('.kpi-value').addClass('loading-state');
             },
             success: function (response) {
                 atualizarKPIs(response.resumo);
@@ -460,11 +512,11 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
                 atualizarTabela(response.porOperadora);
 
                 // Remover loading state
-                $('.metric-value').removeClass('loading-state');
+                $('.kpi-value').removeClass('loading-state');
             },
             error: function(xhr, status, error) {
                 console.error('Erro ao carregar dados:', error);
-                $('.metric-value').removeClass('loading-state');
+                $('.kpi-value').removeClass('loading-state');
             }
         });
     }
@@ -478,11 +530,32 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
         $('#totalAberto').text(formatCurrency(resumo.total_aberto));
         $('#totalAtraso').text(formatCurrency(resumo.em_atraso));
 
-        // Atualizar taxa de recebimento
-        const icon = resumo.taxa_recebimento >= 80 ? 'ri-arrow-up-line' :
-                     resumo.taxa_recebimento >= 50 ? 'ri-arrow-right-line' :
-                     'ri-arrow-down-line';
-        $('#taxaRecebimento').html(`<i class="${icon}"></i>${resumo.taxa_recebimento}%`);
+        // Atualizar taxa de recebimento com ícones SVG
+        const taxa = resumo.taxa_recebimento || 0;
+        let trendClass = 'trend-up';
+        let trendIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            <polyline points="17 6 23 6 23 12"></polyline>
+        </svg>`;
+
+        if (taxa < 50) {
+            trendClass = 'trend-down';
+            trendIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+                <polyline points="17 18 23 18 23 12"></polyline>
+            </svg>`;
+        } else if (taxa < 80) {
+            trendClass = 'trend-neutral';
+            trendIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>`;
+        }
+
+        $('#taxaRecebimento')
+            .removeClass('trend-up trend-down trend-neutral')
+            .addClass(trendClass)
+            .html(`${trendIcon}<span>${taxa}%</span>`);
     }
 
     // ========================================
@@ -587,6 +660,15 @@ let chartEvolucao, chartStatus, chartOperadora, chartVendedores;
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
+    }
+
+    function formatCurrencyShort(value) {
+        if (value >= 1000000) {
+            return 'R$ ' + (value / 1000000).toFixed(1) + 'M';
+        } else if (value >= 1000) {
+            return 'R$ ' + (value / 1000).toFixed(1) + 'K';
+        }
+        return 'R$ ' + Number(value).toFixed(0);
     }
 
     function converterDataParaBackend(dataBrasileira) {
