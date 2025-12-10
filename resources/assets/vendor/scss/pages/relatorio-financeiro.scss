@@ -76,8 +76,10 @@
 // ============================================
 .financeiro-wrapper {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    padding: 0;
+    padding: 1.5rem !important;
     min-height: 100vh;
+    width: 100%;
+    max-width: 100% !important;
 }
 
 // ============================================
