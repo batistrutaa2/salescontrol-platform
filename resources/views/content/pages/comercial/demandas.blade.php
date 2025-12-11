@@ -3,173 +3,241 @@
 @section('title', 'Fila de Demandas')
 
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/toastr/toastr.scss', 'resources/assets/vendor/libs/animate-css/animate.scss', 'resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.scss', 'resources/assets/vendor/libs/@form-validation/form-validation.scss', 'resources/assets/vendor/libs/select2/select2.scss'])
+    @vite(['resources/assets/vendor/libs/toastr/toastr.scss', 'resources/assets/vendor/libs/animate-css/animate.scss', 'resources/assets/vendor/libs/select2/select2.scss'])
+@endsection
+
+@section('page-style')
+    @vite(['resources/assets/vendor/scss/pages/demandas.scss'])
 @endsection
 
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/toastr/toastr.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js', 'resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/@form-validation/popular.js', 'resources/assets/vendor/libs/@form-validation/bootstrap5.js', 'resources/assets/vendor/libs/@form-validation/auto-focus.js', 'resources/assets/vendor/libs/cleavejs/cleave.js', 'resources/assets/vendor/libs/cleavejs/cleave-phone.js'])
+    @vite(['resources/assets/vendor/libs/toastr/toastr.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/select2/select2.js'])
 @endsection
 
 @section('page-script')
     @vite('resources/assets/js/demandas.js')
 @endsection
 
-
-@section('page-style')
-    <style>
-        .kanban-card.kanban-overdue {
-            border: 1px solid var(--bs-danger);
-            animation: pulse-danger 2s infinite;
-        }
-
-        .kanban-card.kanban-overdue::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 4px;
-            background: var(--bs-danger);
-            border-top-left-radius: .5rem;
-            border-bottom-left-radius: .5rem;
-        }
-
-        .kanban-card {
-            position: relative;
-        }
-
-        .overdue-badge {
-            font-size: .675rem;
-        }
-
-        @keyframes pulse-danger {
-            0% {
-                box-shadow: 0 0 0 0 rgba(220, 53, 69, .35);
-            }
-
-            70% {
-                box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
-            }
-
-            100% {
-                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-            }
-        }
-    </style>
-
 @section('content')
-    <div class="card">
-        <div class="card-header d-flex flex-wrap gap-2 align-items-center">
-            <h5 class="mb-0 me-auto">Fila de Demandas (Kanban)</h5>
-
-            <select id="filtro-status" class="form-select" style="min-width:160px">
-                <option value="TODOS">Todos status</option>
-                <option value="ABERTA">Aberta</option>
-                <option value="EM_ANDAMENTO">Em andamento</option>
-                <option value="CONCLUIDA">Concluída</option>
-                <option value="CANCELADA">Cancelada</option>
-            </select>
-
-            <select id="filtro-prioridade" class="form-select" style="min-width:160px">
-                <option value="TODAS">Todas prioridades</option>
-                <option value="ALTA">Alta</option>
-                <option value="MEDIA">Média</option>
-                <option value="BAIXA">Baixa</option>
-            </select>
-
-            <select id="filtro-responsavel" class="form-select" style="min-width:220px">
-                <option value="">Responsável (todos)</option>
-                @foreach ($users as $u)
-                    <option value="{{ $u->id }}">{{ strtoupper($u->name) }}</option>
-                @endforeach
-            </select>
-
-            <button id="btn-nova" class="btn btn-primary">
-                <i class="ri-add-line me-1"></i> Nova Demanda
-            </button>
+<div class="demandas-wrapper">
+    {{-- Page Header --}}
+    <div class="dm-page-header">
+        <div class="dm-title-group">
+            <div class="dm-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="dm-title">Fila de Demandas</h1>
+                <p class="dm-subtitle">Gerencie suas tarefas e acompanhe o progresso</p>
+            </div>
         </div>
+        <button id="btn-nova" class="dm-btn dm-btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Nova Demanda
+        </button>
+    </div>
 
-        <div class="card-body">
-            <div class="row g-3 kanban-row">
-                @php
-                    $cols = [
-                        'ABERTA' => 'primary',
-                        'EM_ANDAMENTO' => 'warning',
-                        'CONCLUIDA' => 'success',
-                        'CANCELADA' => 'secondary',
-                    ];
-                @endphp
-
-                @foreach ($cols as $status => $color)
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <div class="kanban-col h-100 d-flex flex-column">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <h6 class="mb-0">
-                                    <span class="badge bg-label-{{ $color }} me-1">&nbsp;</span>
-                                    {{ str_replace('_', ' ', $status) }}
-                                </h6>
-                                <span class="text-muted small" id="count-{{ $status }}">0</span>
-                            </div>
-                            <div class="kanban-dropzone border rounded p-2" data-status="{{ $status }}"
-                                style="min-height: 60vh; overflow-y: auto;">
-                                <!-- cards renderizados via JS -->
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
+    {{-- Stats Row --}}
+    <div class="dm-stats-row">
+        <div class="dm-stat-card">
+            <div class="dm-stat-icon stat-aberta">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="16"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+            </div>
+            <div class="dm-stat-content">
+                <div class="dm-stat-value" id="stat-aberta">0</div>
+                <div class="dm-stat-label">Abertas</div>
+            </div>
+        </div>
+        <div class="dm-stat-card">
+            <div class="dm-stat-icon stat-andamento">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+            </div>
+            <div class="dm-stat-content">
+                <div class="dm-stat-value" id="stat-andamento">0</div>
+                <div class="dm-stat-label">Em Andamento</div>
+            </div>
+        </div>
+        <div class="dm-stat-card">
+            <div class="dm-stat-icon stat-concluida">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            </div>
+            <div class="dm-stat-content">
+                <div class="dm-stat-value" id="stat-concluida">0</div>
+                <div class="dm-stat-label">Concluídas</div>
+            </div>
+        </div>
+        <div class="dm-stat-card">
+            <div class="dm-stat-icon stat-cancelada">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+            </div>
+            <div class="dm-stat-content">
+                <div class="dm-stat-value" id="stat-cancelada">0</div>
+                <div class="dm-stat-label">Canceladas</div>
             </div>
         </div>
     </div>
 
-    {{-- Modal de cadastro/edição (o mesmo que você já tem) --}}
-    <div class="modal fade" id="modal-demanda" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <form id="form-demanda" class="modal-content">
-                @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title">Nova Demanda</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body row g-3">
-                    <input type="hidden" id="demanda_id">
-                    <div class="col-12">
-                        <label class="form-label">Título *</label>
-                        <input type="text" class="form-control" id="titulo" name="titulo" required>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">Descrição</label>
-                        <textarea class="form-control" id="descricao" name="descricao" rows="3"></textarea>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Prioridade *</label>
-                        <select class="form-select" id="prioridade" name="prioridade" required>
-                            <option value="ALTA">Alta</option>
-                            <option value="MEDIA" selected>Média</option>
-                            <option value="BAIXA">Baixa</option>
-                        </select>
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label">Responsável</label>
-                        <select class="form-select" id="assigned_to" name="assigned_to">
-                            <option value="">-- sem responsável --</option>
-                            @foreach ($users as $u)
-                                <option value="{{ $u->id }}">{{ $u->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Data limite</label>
-                        <input type="date" class="form-control" id="data_limite" name="data_limite">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="btn btn-primary" type="submit">
-                        <i class="ri-save-2-line me-1"></i> Salvar
-                    </button>
-                </div>
-            </form>
+    {{-- Filter Bar --}}
+    <div class="dm-filter-bar">
+        <div class="dm-filter-group">
+            <span class="dm-filter-label">Status</span>
+            <select id="filtro-status" class="dm-filter-select">
+                <option value="TODOS">Todos</option>
+                <option value="ABERTA">Aberta</option>
+                <option value="EM_ANDAMENTO">Em Andamento</option>
+                <option value="CONCLUIDA">Concluída</option>
+                <option value="CANCELADA">Cancelada</option>
+            </select>
+        </div>
+
+        <div class="dm-filter-group">
+            <span class="dm-filter-label">Prioridade</span>
+            <select id="filtro-prioridade" class="dm-filter-select">
+                <option value="TODAS">Todas</option>
+                <option value="ALTA">Alta</option>
+                <option value="MEDIA">Média</option>
+                <option value="BAIXA">Baixa</option>
+            </select>
+        </div>
+
+        <div class="dm-filter-group">
+            <span class="dm-filter-label">Responsável</span>
+            <select id="filtro-responsavel" class="dm-filter-select" style="min-width: 200px;">
+                <option value="">Todos</option>
+                @foreach ($users as $u)
+                    <option value="{{ $u->id }}">{{ strtoupper($u->name) }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="dm-filter-group" id="date-filter-wrapper">
+            <span class="dm-filter-label">Período</span>
+            <select id="filtro-data-field" class="dm-filter-select">
+                <option value="limite">Data Limite</option>
+                <option value="criacao">Data Criação</option>
+            </select>
+            <input type="date" id="filtro-data-inicio" class="dm-filter-input" placeholder="Início">
+            <input type="date" id="filtro-data-fim" class="dm-filter-input" placeholder="Fim">
+            <button id="btn-clear-dates" type="button" class="dm-btn dm-btn-icon dm-btn-outline" title="Limpar datas">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
         </div>
     </div>
 
+    {{-- Kanban Board --}}
+    <div class="dm-kanban-board">
+        @php
+            $cols = [
+                'ABERTA' => ['label' => 'Aberta', 'status_class' => 'status-aberta'],
+                'EM_ANDAMENTO' => ['label' => 'Em Andamento', 'status_class' => 'status-em_andamento'],
+                'CONCLUIDA' => ['label' => 'Concluída', 'status_class' => 'status-concluida'],
+                'CANCELADA' => ['label' => 'Cancelada', 'status_class' => 'status-cancelada'],
+            ];
+        @endphp
+
+        @foreach ($cols as $status => $config)
+            <div class="dm-kanban-column">
+                <div class="dm-column-header">
+                    <div class="dm-column-title">
+                        <span class="dm-status-dot {{ $config['status_class'] }}"></span>
+                        <h3>{{ $config['label'] }}</h3>
+                    </div>
+                    <span class="dm-column-count" id="count-{{ $status }}">0</span>
+                </div>
+                <div class="dm-column-body dm-dropzone" data-status="{{ $status }}">
+                    {{-- Cards renderizados via JS --}}
+                </div>
+            </div>
+        @endforeach
+    </div>
+</div>
+
+{{-- Modal de Cadastro/Edição --}}
+<div class="modal fade dm-modal" id="modal-demanda" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form id="form-demanda" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Demanda</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="demanda_id">
+
+                <div class="dm-form-group">
+                    <label class="dm-label">Título *</label>
+                    <input type="text" class="dm-input" id="titulo" name="titulo" required placeholder="Digite o título da demanda">
+                </div>
+
+                <div class="dm-form-group">
+                    <label class="dm-label">Descrição</label>
+                    <textarea class="dm-textarea" id="descricao" name="descricao" rows="3" placeholder="Descreva a demanda (opcional)"></textarea>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="dm-form-group">
+                            <label class="dm-label">Prioridade *</label>
+                            <select class="dm-select" id="prioridade" name="prioridade" required>
+                                <option value="ALTA">Alta</option>
+                                <option value="MEDIA" selected>Média</option>
+                                <option value="BAIXA">Baixa</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="dm-form-group">
+                            <label class="dm-label">Responsável</label>
+                            <select class="dm-select" id="assigned_to" name="assigned_to">
+                                <option value="">-- Sem responsável --</option>
+                                @foreach ($users as $u)
+                                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dm-form-group">
+                            <label class="dm-label">Data Limite</label>
+                            <input type="date" class="dm-input" id="data_limite" name="data_limite">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="dm-btn dm-btn-outline" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="dm-btn dm-btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection

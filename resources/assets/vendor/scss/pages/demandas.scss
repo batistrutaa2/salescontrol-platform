@@ -1,0 +1,779 @@
+/**
+ * Demandas Kanban Page Styles
+ * Glass Morphism + Gradient Design System
+ */
+
+// ============================================
+// CSS Variables
+// ============================================
+:root {
+    --dm-primary: #7C3AED;
+    --dm-primary-light: #A78BFA;
+    --dm-primary-rgb: 124, 58, 237;
+
+    --dm-success: #10B981;
+    --dm-success-light: #34D399;
+    --dm-success-rgb: 16, 185, 129;
+
+    --dm-info: #06B6D4;
+    --dm-info-light: #22D3EE;
+    --dm-info-rgb: 6, 182, 212;
+
+    --dm-warning: #F59E0B;
+    --dm-warning-light: #FBBF24;
+    --dm-warning-rgb: 245, 158, 11;
+
+    --dm-danger: #EF4444;
+    --dm-danger-light: #F87171;
+    --dm-danger-rgb: 239, 68, 68;
+
+    --dm-secondary: #6B7280;
+    --dm-secondary-light: #9CA3AF;
+    --dm-secondary-rgb: 107, 114, 128;
+
+    --dm-card-bg: rgba(255, 255, 255, 0.98);
+    --dm-card-border: rgba(0, 0, 0, 0.08);
+    --dm-glass-bg: rgba(255, 255, 255, 0.7);
+    --dm-input-bg: rgba(255, 255, 255, 0.9);
+
+    --dm-text-primary: #1F2937;
+    --dm-text-secondary: #6B7280;
+    --dm-text-muted: #9CA3AF;
+
+    --dm-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --dm-shadow-md: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --dm-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12);
+
+    --dm-border-radius: 20px;
+    --dm-border-radius-sm: 12px;
+    --dm-border-radius-xs: 8px;
+
+    --dm-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --dm-transition-fast: all 0.15s ease;
+}
+
+// Dark Theme
+.dark-style {
+    --dm-card-bg: rgba(30, 32, 47, 0.98);
+    --dm-card-border: rgba(255, 255, 255, 0.1);
+    --dm-glass-bg: rgba(30, 32, 47, 0.8);
+    --dm-input-bg: rgba(40, 42, 58, 0.9);
+
+    --dm-text-primary: #F9FAFB;
+    --dm-text-secondary: #D1D5DB;
+    --dm-text-muted: #9CA3AF;
+
+    --dm-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --dm-shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --dm-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+// ============================================
+// Typography
+// ============================================
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+
+// ============================================
+// Page Wrapper
+// ============================================
+.demandas-wrapper {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 100%;
+}
+
+// ============================================
+// Page Header
+// ============================================
+.dm-page-header {
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    .dm-title-group {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+
+        .dm-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--dm-border-radius-sm);
+            background: linear-gradient(135deg, var(--dm-primary) 0%, var(--dm-primary-light) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(var(--dm-primary-rgb), 0.3);
+
+            svg {
+                width: 24px;
+                height: 24px;
+                color: white;
+            }
+        }
+
+        .dm-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--dm-text-primary);
+            margin: 0;
+            background: linear-gradient(135deg, var(--dm-primary) 0%, var(--dm-primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .dm-subtitle {
+            font-size: 0.875rem;
+            color: var(--dm-text-muted);
+            margin: 0;
+        }
+    }
+}
+
+// ============================================
+// Filter Bar
+// ============================================
+.dm-filter-bar {
+    background: var(--dm-card-bg);
+    border-radius: var(--dm-border-radius);
+    border: 1px solid var(--dm-card-border);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    box-shadow: var(--dm-shadow-sm);
+
+    .dm-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        .dm-filter-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--dm-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    }
+
+    .dm-filter-select {
+        background: var(--dm-input-bg);
+        border: 1px solid var(--dm-card-border);
+        border-radius: var(--dm-border-radius-xs);
+        padding: 0.5rem 2rem 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--dm-text-primary);
+        min-width: 150px;
+        transition: var(--dm-transition-fast);
+        cursor: pointer;
+
+        &:focus {
+            outline: none;
+            border-color: var(--dm-primary);
+            box-shadow: 0 0 0 3px rgba(var(--dm-primary-rgb), 0.15);
+        }
+    }
+
+    .dm-filter-input {
+        background: var(--dm-input-bg);
+        border: 1px solid var(--dm-card-border);
+        border-radius: var(--dm-border-radius-xs);
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        color: var(--dm-text-primary);
+        min-width: 140px;
+        transition: var(--dm-transition-fast);
+
+        &:focus {
+            outline: none;
+            border-color: var(--dm-primary);
+            box-shadow: 0 0 0 3px rgba(var(--dm-primary-rgb), 0.15);
+        }
+    }
+
+    .dm-filter-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 0.5rem;
+    }
+}
+
+// ============================================
+// Buttons
+// ============================================
+.dm-btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    border-radius: var(--dm-border-radius-xs);
+    border: none;
+    cursor: pointer;
+    transition: var(--dm-transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    &.dm-btn-primary {
+        background: linear-gradient(135deg, var(--dm-primary) 0%, var(--dm-primary-light) 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(var(--dm-primary-rgb), 0.3);
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(var(--dm-primary-rgb), 0.4);
+        }
+    }
+
+    &.dm-btn-outline {
+        background: transparent;
+        color: var(--dm-text-secondary);
+        border: 1px solid var(--dm-card-border);
+
+        &:hover {
+            background: rgba(var(--dm-primary-rgb), 0.05);
+            border-color: var(--dm-primary);
+            color: var(--dm-primary);
+        }
+    }
+
+    &.dm-btn-icon {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        justify-content: center;
+    }
+}
+
+// ============================================
+// Kanban Board
+// ============================================
+.dm-kanban-board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    min-height: 70vh;
+
+    @media (max-width: 1200px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+// ============================================
+// Kanban Column
+// ============================================
+.dm-kanban-column {
+    background: var(--dm-glass-bg);
+    border-radius: var(--dm-border-radius);
+    border: 1px solid var(--dm-card-border);
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+    backdrop-filter: blur(8px);
+
+    .dm-column-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--dm-card-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .dm-column-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+
+            .dm-status-dot {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+
+                &.status-aberta {
+                    background: var(--dm-primary);
+                    box-shadow: 0 0 8px rgba(var(--dm-primary-rgb), 0.5);
+                }
+                &.status-em_andamento {
+                    background: var(--dm-warning);
+                    box-shadow: 0 0 8px rgba(var(--dm-warning-rgb), 0.5);
+                }
+                &.status-concluida {
+                    background: var(--dm-success);
+                    box-shadow: 0 0 8px rgba(var(--dm-success-rgb), 0.5);
+                }
+                &.status-cancelada {
+                    background: var(--dm-secondary);
+                    box-shadow: 0 0 8px rgba(var(--dm-secondary-rgb), 0.5);
+                }
+            }
+
+            h3 {
+                font-size: 0.9375rem;
+                font-weight: 700;
+                color: var(--dm-text-primary);
+                margin: 0;
+            }
+        }
+
+        .dm-column-count {
+            background: rgba(var(--dm-primary-rgb), 0.1);
+            color: var(--dm-primary);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.625rem;
+            border-radius: 20px;
+        }
+    }
+
+    .dm-column-body {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: var(--dm-card-border);
+            border-radius: 3px;
+
+            &:hover {
+                background: var(--dm-text-muted);
+            }
+        }
+
+        &.drag-over {
+            background: rgba(var(--dm-primary-rgb), 0.05);
+            border: 2px dashed rgba(var(--dm-primary-rgb), 0.3);
+            border-radius: var(--dm-border-radius-sm);
+        }
+    }
+}
+
+// ============================================
+// Kanban Card
+// ============================================
+.dm-kanban-card {
+    background: var(--dm-card-bg);
+    border-radius: var(--dm-border-radius-sm);
+    border: 1px solid var(--dm-card-border);
+    padding: 1rem;
+    cursor: grab;
+    transition: var(--dm-transition);
+    position: relative;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--dm-shadow-md);
+        border-color: rgba(var(--dm-primary-rgb), 0.2);
+
+        .dm-card-actions {
+            opacity: 1;
+        }
+    }
+
+    &:active {
+        cursor: grabbing;
+    }
+
+    &.dragging {
+        opacity: 0.5;
+        transform: rotate(3deg);
+    }
+
+    &.dm-card-overdue {
+        border-left: 4px solid var(--dm-danger);
+        animation: pulse-danger 2s infinite;
+
+        .dm-overdue-badge {
+            display: inline-flex;
+        }
+    }
+
+    .dm-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+
+        .dm-card-title {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--dm-text-primary);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .dm-priority-badge {
+            font-size: 0.6875rem;
+            font-weight: 700;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            flex-shrink: 0;
+
+            &.priority-alta {
+                background: rgba(var(--dm-danger-rgb), 0.1);
+                color: var(--dm-danger);
+            }
+            &.priority-media {
+                background: rgba(var(--dm-info-rgb), 0.1);
+                color: var(--dm-info);
+            }
+            &.priority-baixa {
+                background: rgba(var(--dm-secondary-rgb), 0.1);
+                color: var(--dm-secondary);
+            }
+        }
+    }
+
+    .dm-card-description {
+        font-size: 0.8125rem;
+        color: var(--dm-text-muted);
+        margin-bottom: 0.75rem;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .dm-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 0.75rem;
+        color: var(--dm-text-muted);
+
+        .dm-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+
+            svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
+
+        .dm-overdue-badge {
+            display: none;
+            align-items: center;
+            gap: 0.25rem;
+            background: var(--dm-danger);
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.6875rem;
+
+            svg {
+                width: 12px;
+                height: 12px;
+            }
+        }
+    }
+
+    .dm-card-actions {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        display: flex;
+        gap: 0.25rem;
+        opacity: 0;
+        transition: var(--dm-transition-fast);
+
+        .dm-action-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: var(--dm-card-bg);
+            color: var(--dm-text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--dm-transition-fast);
+            box-shadow: var(--dm-shadow-sm);
+
+            svg {
+                width: 14px;
+                height: 14px;
+            }
+
+            &:hover {
+                color: white;
+            }
+
+            &.action-edit:hover {
+                background: var(--dm-primary);
+            }
+            &.action-complete:hover {
+                background: var(--dm-success);
+            }
+            &.action-delete:hover {
+                background: var(--dm-danger);
+            }
+        }
+    }
+}
+
+@keyframes pulse-danger {
+    0% {
+        box-shadow: 0 0 0 0 rgba(var(--dm-danger-rgb), 0.35);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(var(--dm-danger-rgb), 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--dm-danger-rgb), 0);
+    }
+}
+
+// ============================================
+// Modal
+// ============================================
+.dm-modal {
+    .modal-content {
+        background: var(--dm-card-bg);
+        border-radius: var(--dm-border-radius);
+        border: 1px solid var(--dm-card-border);
+        box-shadow: var(--dm-shadow-lg);
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--dm-card-border);
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dm-text-primary);
+        }
+
+        .btn-close {
+            opacity: 0.5;
+            transition: var(--dm-transition-fast);
+
+            &:hover {
+                opacity: 1;
+            }
+        }
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+
+        .dm-form-group {
+            margin-bottom: 1.25rem;
+
+            .dm-label {
+                display: block;
+                font-size: 0.8125rem;
+                font-weight: 600;
+                color: var(--dm-text-secondary);
+                margin-bottom: 0.5rem;
+            }
+
+            .dm-input,
+            .dm-select,
+            .dm-textarea {
+                width: 100%;
+                background: var(--dm-input-bg);
+                border: 1px solid var(--dm-card-border);
+                border-radius: var(--dm-border-radius-xs);
+                padding: 0.75rem 1rem;
+                font-size: 0.9375rem;
+                color: var(--dm-text-primary);
+                transition: var(--dm-transition-fast);
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--dm-primary);
+                    box-shadow: 0 0 0 3px rgba(var(--dm-primary-rgb), 0.15);
+                }
+
+                &::placeholder {
+                    color: var(--dm-text-muted);
+                }
+            }
+
+            .dm-textarea {
+                resize: vertical;
+                min-height: 100px;
+            }
+        }
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--dm-card-border);
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+}
+
+// ============================================
+// Empty State
+// ============================================
+.dm-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    color: var(--dm-text-muted);
+
+    svg {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+
+    p {
+        font-size: 0.875rem;
+        margin: 0;
+    }
+}
+
+// ============================================
+// Stats Row
+// ============================================
+.dm-stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    @media (max-width: 992px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 576px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dm-stat-card {
+    background: var(--dm-card-bg);
+    border-radius: var(--dm-border-radius-sm);
+    border: 1px solid var(--dm-card-border);
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--dm-transition);
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--dm-shadow-md);
+    }
+
+    .dm-stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--dm-border-radius-xs);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        &.stat-aberta {
+            background: linear-gradient(135deg, var(--dm-primary), var(--dm-primary-light));
+        }
+        &.stat-andamento {
+            background: linear-gradient(135deg, var(--dm-warning), var(--dm-warning-light));
+        }
+        &.stat-concluida {
+            background: linear-gradient(135deg, var(--dm-success), var(--dm-success-light));
+        }
+        &.stat-cancelada {
+            background: linear-gradient(135deg, var(--dm-secondary), var(--dm-secondary-light));
+        }
+    }
+
+    .dm-stat-content {
+        .dm-stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--dm-text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+        }
+
+        .dm-stat-label {
+            font-size: 0.75rem;
+            color: var(--dm-text-muted);
+            margin-top: 0.25rem;
+        }
+    }
+}
+
+// ============================================
+// Animations
+// ============================================
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dm-kanban-column {
+    animation: fadeInUp 0.5s ease forwards;
+
+    &:nth-child(1) { animation-delay: 0ms; }
+    &:nth-child(2) { animation-delay: 100ms; }
+    &:nth-child(3) { animation-delay: 200ms; }
+    &:nth-child(4) { animation-delay: 300ms; }
+}
+
+.dm-stat-card {
+    animation: fadeInUp 0.5s ease forwards;
+
+    &:nth-child(1) { animation-delay: 0ms; }
+    &:nth-child(2) { animation-delay: 50ms; }
+    &:nth-child(3) { animation-delay: 100ms; }
+    &:nth-child(4) { animation-delay: 150ms; }
+}

@@ -14,15 +14,15 @@
     const $fStatus = $('#filtro-status');
     const $fPrio = $('#filtro-prioridade');
     const $fResp = $('#filtro-responsavel');
-
-    // serão criados via JS
-    let $fDateField, $fDateStart, $fDateEnd;
+    const $fDateField = $('#filtro-data-field');
+    const $fDateStart = $('#filtro-data-inicio');
+    const $fDateEnd = $('#filtro-data-fim');
 
     const $cols = {
-        'ABERTA': $(`.kanban-dropzone[data-status="ABERTA"]`),
-        'EM_ANDAMENTO': $(`.kanban-dropzone[data-status="EM_ANDAMENTO"]`),
-        'CONCLUIDA': $(`.kanban-dropzone[data-status="CONCLUIDA"]`),
-        'CANCELADA': $(`.kanban-dropzone[data-status="CANCELADA"]`)
+        'ABERTA': $(`.dm-dropzone[data-status="ABERTA"]`),
+        'EM_ANDAMENTO': $(`.dm-dropzone[data-status="EM_ANDAMENTO"]`),
+        'CONCLUIDA': $(`.dm-dropzone[data-status="CONCLUIDA"]`),
+        'CANCELADA': $(`.dm-dropzone[data-status="CANCELADA"]`)
     };
 
     // ====== CSRF ======
@@ -34,19 +34,10 @@
     });
 
     // ====== helpers ======
-    const badgeStatus = (s) => {
-        const map = {
-            'ABERTA': 'bg-label-primary',
-            'EM_ANDAMENTO': 'bg-label-warning',
-            'CONCLUIDA': 'bg-label-success',
-            'CANCELADA': 'bg-label-secondary'
-        };
-        return `<span class="badge ${map[s] || 'bg-label-primary'}">${s.replace('_', ' ')}</span>`;
-    };
-
-    const badgePrioridade = (p) => {
-        const map = { 'ALTA': 'bg-label-danger', 'MEDIA': 'bg-label-info', 'BAIXA': 'bg-label-secondary' };
-        return `<span class="badge ${map[p] || 'bg-label-info'}">${p}</span>`;
+    const priorityConfig = {
+        'ALTA': { class: 'priority-alta', label: 'Alta' },
+        'MEDIA': { class: 'priority-media', label: 'Média' },
+        'BAIXA': { class: 'priority-baixa', label: 'Baixa' }
     };
 
     function debounce(fn, wait = 300) {
@@ -65,64 +56,22 @@
     }
 
     function applyOverdueVisual($card, d) {
-        $card.removeClass('kanban-overdue');
-        $card.find('.overdue-badge').remove();
+        $card.removeClass('dm-card-overdue');
+        $card.find('.dm-overdue-badge').hide();
 
         if (isOverdue(d)) {
-            $card.addClass('kanban-overdue');
-            const days = Math.max(1, moment().diff(moment(d.data_limite, 'YYYY-MM-DD'), 'days'));
-            const $badge = $(
-                `<span class="badge bg-danger ms-2 overdue-badge" title="Atrasada ${days} dia(s)">
-           <i class="ri-time-line me-1"></i>Atrasada
-         </span>`
-            );
-            $card.find('.right-badges').append($badge);
+            $card.addClass('dm-card-overdue');
+            $card.find('.dm-overdue-badge').show();
         }
     }
 
     // === Filtro por data (client-side) ===
-    function injectDateFilters() {
-        const $hdr = $('.card-header');
-        const html = `
-      <div class="d-flex align-items-center gap-2 ms-auto" id="date-filter-wrapper">
-        <select id="filtro-data-field" class="form-select" style="min-width:170px">
-          <option value="limite">Por data limite</option>
-          <option value="criacao">Por data de criação</option>
-        </select>
-        <input id="filtro-data-inicio" class="form-control" type="date" style="min-width:150px" placeholder="Início">
-        <input id="filtro-data-fim" class="form-control" type="date" style="min-width:150px" placeholder="Fim">
-        <button id="btn-clear-dates" type="button" class="btn btn-outline-secondary">
-          <i class="ri-close-line"></i>
-        </button>
-      </div>
-    `;
-        // evita duplicar
-        if (!$('#date-filter-wrapper').length) $hdr.append(html);
-
-        $fDateField = $('#filtro-data-field');
-        $fDateStart = $('#filtro-data-inicio');
-        $fDateEnd = $('#filtro-data-fim');
-
-        const trigger = debounce(loadBoard, 250);
-        $fDateField.on('change', trigger);
-        $fDateStart.on('input change', trigger);
-        $fDateEnd.on('input change', trigger);
-
-        $('#btn-clear-dates').on('click', function () {
-            $fDateStart.val('');
-            $fDateEnd.val('');
-            loadBoard();
-        });
-    }
-
     function passesStatusFilter(d) {
         const s = $fStatus.val();
         return !(s && s !== 'TODOS' && d.status !== s);
     }
 
     function passesDateFilter(d) {
-        if (!$fDateField || !$fDateStart || !$fDateEnd) return true;
-
         const field = $fDateField.val(); // 'limite' | 'criacao'
         const start = $fDateStart.val();
         const end = $fDateEnd.val();
@@ -135,7 +84,6 @@
             value = moment(d.data_limite, 'YYYY-MM-DD');
         } else {
             if (!d.created_at) return false;
-            // back costuma enviar 'YYYY-MM-DD HH:mm:ss'
             value = moment(d.created_at, 'YYYY-MM-DD HH:mm:ss');
         }
         if (!value.isValid()) return true;
@@ -153,48 +101,90 @@
     function createCard(d) {
         const due = d.data_limite ? moment(d.data_limite).format('DD/MM/YYYY') : '-';
         const resp = d.responsavel || '-';
+        const prio = priorityConfig[d.prioridade] || priorityConfig['MEDIA'];
 
         const $card = $(`
-    <div class="card mb-2 kanban-card" draggable="true" data-id="${d.id}">
-      <div class="card-body p-2">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="me-2">
-            <div class="fw-semibold">${d.titulo}</div>
-            ${d.descricao ? `<div class="text-muted small">${d.descricao}</div>` : ''}
-          </div>
-          <div class="text-nowrap right-badges">
-            ${badgePrioridade(d.prioridade)}
-          </div>
-        </div>
-        <div class="d-flex justify-content-between align-items-center mt-2">
-          <div class="small text-muted">
-            <i class="ri-user-3-line me-1"></i>${resp}
-            <span class="mx-2">•</span>
-            <i class="ri-calendar-line me-1"></i>${due}
-          </div>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-primary js-editar" title="Editar"><i class="ri-edit-2-line"></i></button>
-            <button class="btn btn-outline-success js-concluir" title="Concluir"><i class="ri-check-double-line"></i></button>
-            <button class="btn btn-outline-danger js-excluir" title="Excluir"><i class="ri-delete-bin-line"></i></button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `);
+            <div class="dm-kanban-card" draggable="true" data-id="${d.id}">
+                <div class="dm-card-actions">
+                    <button class="dm-action-btn action-edit js-editar" title="Editar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    <button class="dm-action-btn action-complete js-concluir" title="Concluir">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </button>
+                    <button class="dm-action-btn action-delete js-excluir" title="Excluir">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="dm-card-header">
+                    <h4 class="dm-card-title">${d.titulo}</h4>
+                    <span class="dm-priority-badge ${prio.class}">${prio.label}</span>
+                </div>
+                ${d.descricao ? `<p class="dm-card-description">${d.descricao}</p>` : ''}
+                <div class="dm-card-meta">
+                    <span class="dm-meta-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        ${resp}
+                    </span>
+                    <span class="dm-meta-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        ${due}
+                    </span>
+                    <span class="dm-overdue-badge" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        Atrasada
+                    </span>
+                </div>
+            </div>
+        `);
 
         $card.data('demanda', d);
-        applyOverdueVisual($card, d);   // <= aplica aqui
+        applyOverdueVisual($card, d);
         return $card;
     }
-
 
     function clearBoard() {
         Object.values($cols).forEach($c => $c.empty());
         Object.keys($cols).forEach(s => $(`#count-${s}`).text('0'));
+        // Limpa stats
+        $('#stat-aberta, #stat-andamento, #stat-concluida, #stat-cancelada').text('0');
     }
 
     function updateCounts() {
-        Object.keys($cols).forEach(s => $(`#count-${s}`).text($cols[s].children('.kanban-card').length));
+        const counts = {
+            'ABERTA': $cols['ABERTA'].children('.dm-kanban-card').length,
+            'EM_ANDAMENTO': $cols['EM_ANDAMENTO'].children('.dm-kanban-card').length,
+            'CONCLUIDA': $cols['CONCLUIDA'].children('.dm-kanban-card').length,
+            'CANCELADA': $cols['CANCELADA'].children('.dm-kanban-card').length
+        };
+
+        // Atualiza contadores das colunas
+        Object.keys(counts).forEach(s => $(`#count-${s}`).text(counts[s]));
+
+        // Atualiza cards de estatísticas
+        $('#stat-aberta').text(counts['ABERTA']);
+        $('#stat-andamento').text(counts['EM_ANDAMENTO']);
+        $('#stat-concluida').text(counts['CONCLUIDA']);
+        $('#stat-cancelada').text(counts['CANCELADA']);
     }
 
     function renderBoard(items) {
@@ -212,15 +202,15 @@
 
     // ====== Drag & Drop ======
     function bindDnD() {
-        $(document).on('dragstart', '.kanban-card', function (e) {
+        $(document).on('dragstart', '.dm-kanban-card', function (e) {
             e.originalEvent.dataTransfer.setData('text/plain', $(this).data('id'));
-            $(this).addClass('opacity-50');
+            $(this).addClass('dragging');
         });
-        $(document).on('dragend', '.kanban-card', function () {
-            $(this).removeClass('opacity-50');
+        $(document).on('dragend', '.dm-kanban-card', function () {
+            $(this).removeClass('dragging');
         });
 
-        $('.kanban-dropzone')
+        $('.dm-dropzone')
             .on('dragover', function (e) {
                 e.preventDefault();
                 $(this).addClass('drag-over');
@@ -242,12 +232,11 @@
                     data: JSON.stringify({ status: newStatus }),
                     success: () => {
                         toastr.success('Status atualizado.');
-                        const $card = $(`.kanban-card[data-id="${id}"]`);
+                        const $card = $(`.dm-kanban-card[data-id="${id}"]`);
                         const d = $card.data('demanda') || {};
                         d.status = newStatus;
                         $card.data('demanda', d);
 
-                        // se filtros atuais ocultariam o card, remove-o; senão, move-o
                         if (!passesStatusFilter(d) || !passesDateFilter(d)) {
                             $card.remove();
                         } else {
@@ -330,7 +319,6 @@
             prioridade: $fPrio.val(),
             assigned_to: $fResp.val()
         };
-        // status pode vir do servidor ou filtramos no front; mantive envio só se for específico
         if ($fStatus.val() && $fStatus.val() !== 'TODOS') params.status = $fStatus.val();
 
         $.get('/comercial/demandas/list', params, function (res) {
@@ -352,16 +340,23 @@
     }
 
     // ====== init ======
-    $('#assigned_to').select2({ width: '100%', dropdownParent: $('#modal-demanda') });
-    $('#filtro-responsavel').select2({ width: 'resolve', dropdownParent: $('body') });
-
-    injectDateFilters();  // <= cria os campos de data no header
     bindDnD();
-    // filtros existentes
+
+    // Filtros
+    const debouncedLoad = debounce(loadBoard, 250);
     [$fStatus, $fPrio].forEach($el => $el.on('change', loadBoard));
     $fResp.on('change', loadBoard);
+    $fDateField.on('change', debouncedLoad);
+    $fDateStart.on('input change', debouncedLoad);
+    $fDateEnd.on('input change', debouncedLoad);
 
-    // nova demanda
+    $('#btn-clear-dates').on('click', function () {
+        $fDateStart.val('');
+        $fDateEnd.val('');
+        loadBoard();
+    });
+
+    // Nova demanda
     $('#btn-nova').on('click', () => {
         $form[0].reset();
         $demandaId.val('');
@@ -372,7 +367,7 @@
         setTimeout(() => $titulo.trigger('focus'), 120);
     });
 
-    // submit
+    // Submit
     $form.on('submit', function (e) {
         e.preventDefault();
 
