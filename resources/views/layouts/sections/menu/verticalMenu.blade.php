@@ -5,7 +5,7 @@
     $rules = Auth::user()->role->tipo_usuario;
 @endphp
 
-<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+<aside id="layout-menu" class="layout-menu menu-vertical menu">
 
     <!-- ! Hide app brand if navbar-full -->
     @if (!isset($navbarFull))

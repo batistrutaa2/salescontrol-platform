@@ -23,5 +23,8 @@
 ])
 @yield('vendor-style')
 
+<!-- Custom Sidebar Styles -->
+@vite(['resources/assets/vendor/scss/pages/sidebar-custom.scss'])
+
 <!-- Page Styles -->
 @yield('page-style')

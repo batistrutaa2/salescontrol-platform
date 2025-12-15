@@ -5,6 +5,26 @@ $(document).ready(function () {
   let chartTaxaConversao = null;
   let chartOperadoras = null;
 
+  // Detect dark mode
+  const isDarkMode = document.documentElement.classList.contains('dark-style');
+
+  // Theme colors
+  const colors = {
+    primary: '#7C3AED',
+    primaryLight: '#A78BFA',
+    success: '#10B981',
+    successLight: '#34D399',
+    info: '#06B6D4',
+    infoLight: '#22D3EE',
+    warning: '#F59E0B',
+    warningLight: '#FBBF24',
+    danger: '#EF4444',
+    text: isDarkMode ? '#F9FAFB' : '#1F2937',
+    textMuted: isDarkMode ? '#9CA3AF' : '#6B7280',
+    gridColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+    bgLight: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'
+  };
+
   // Carregar dados ao iniciar
   carregarDados();
 
@@ -104,37 +124,40 @@ $(document).ready(function () {
     const container = $('#dadosTrimestre');
     container.empty();
 
-    const cores = ['primary', 'success', 'info', 'warning'];
+    const configs = [
+      { class: 'trim-q1', textClass: 'text-q1', highlightClass: 'highlight-q1' },
+      { class: 'trim-q2', textClass: 'text-q2', highlightClass: 'highlight-q2' },
+      { class: 'trim-q3', textClass: 'text-q3', highlightClass: 'highlight-q3' },
+      { class: 'trim-q4', textClass: 'text-q4', highlightClass: 'highlight-q4' }
+    ];
 
     trimestres.forEach((trimestre, index) => {
-      const cor = cores[index];
+      const config = configs[index];
       const card = `
-        <div class="col-md-3 col-sm-6 mb-3">
-          <div class="card border-start border-${cor} border-3">
-            <div class="card-body">
-              <h6 class="card-title text-${cor}">${trimestre.periodo}</h6>
-              <div class="mt-3">
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="text-muted">Leads:</span>
-                  <strong>${formatarNumero(trimestre.leads_unicos)}</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="text-muted">Vendas:</span>
-                  <strong>${formatarNumero(trimestre.total_vendas)}</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="text-muted">Valor:</span>
-                  <strong>${formatarMoeda(trimestre.valor_total)}</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="text-muted">Ticket:</span>
-                  <strong>${formatarMoeda(trimestre.ticket_medio)}</strong>
-                </div>
-                <div class="d-flex justify-content-between">
-                  <span class="text-muted">Conversão:</span>
-                  <strong class="text-${cor}">${trimestre.taxa_conversao}%</strong>
-                </div>
-              </div>
+        <div class="da-trimestre-card ${config.class}">
+          <div class="da-trim-header">
+            <h4 class="da-trim-title ${config.textClass}">${trimestre.periodo}</h4>
+          </div>
+          <div class="da-trim-stats">
+            <div class="da-trim-row">
+              <span class="da-trim-label">Leads</span>
+              <span class="da-trim-value">${formatarNumero(trimestre.leads_unicos)}</span>
+            </div>
+            <div class="da-trim-row">
+              <span class="da-trim-label">Vendas</span>
+              <span class="da-trim-value">${formatarNumero(trimestre.total_vendas)}</span>
+            </div>
+            <div class="da-trim-row">
+              <span class="da-trim-label">Valor</span>
+              <span class="da-trim-value">${formatarMoeda(trimestre.valor_total)}</span>
+            </div>
+            <div class="da-trim-row">
+              <span class="da-trim-label">Ticket</span>
+              <span class="da-trim-value">${formatarMoeda(trimestre.ticket_medio)}</span>
+            </div>
+            <div class="da-trim-row">
+              <span class="da-trim-label">Conversão</span>
+              <span class="da-trim-value highlight ${config.highlightClass}">${trimestre.taxa_conversao}%</span>
             </div>
           </div>
         </div>
@@ -163,25 +186,46 @@ $(document).ready(function () {
           {
             label: 'Leads Trabalhados',
             data: dataLeads,
-            borderColor: 'rgb(105, 108, 255)',
-            backgroundColor: 'rgba(105, 108, 255, 0.1)',
+            borderColor: colors.primary,
+            backgroundColor: `${colors.primary}15`,
+            borderWidth: 3,
             tension: 0.4,
+            fill: true,
+            pointBackgroundColor: colors.primary,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
             yAxisID: 'y'
           },
           {
             label: 'Vendas Realizadas',
             data: dataVendas,
-            borderColor: 'rgb(113, 221, 55)',
-            backgroundColor: 'rgba(113, 221, 55, 0.1)',
+            borderColor: colors.success,
+            backgroundColor: `${colors.success}15`,
+            borderWidth: 3,
             tension: 0.4,
+            fill: true,
+            pointBackgroundColor: colors.success,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
             yAxisID: 'y'
           },
           {
             label: 'Valor Total (R$)',
             data: dataValor,
-            borderColor: 'rgb(3, 195, 236)',
-            backgroundColor: 'rgba(3, 195, 236, 0.1)',
+            borderColor: colors.info,
+            backgroundColor: `${colors.info}15`,
+            borderWidth: 3,
             tension: 0.4,
+            fill: true,
+            pointBackgroundColor: colors.info,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
             yAxisID: 'y1',
             hidden: true
           }
@@ -189,15 +233,43 @@ $(document).ready(function () {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         interaction: {
           mode: 'index',
           intersect: false
         },
         plugins: {
           legend: {
-            position: 'top'
+            position: 'top',
+            labels: {
+              color: colors.textMuted,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              padding: 20,
+              font: {
+                family: "'Plus Jakarta Sans', sans-serif",
+                size: 12,
+                weight: 500
+              }
+            }
           },
           tooltip: {
+            backgroundColor: isDarkMode ? '#1e202f' : '#fff',
+            titleColor: colors.text,
+            bodyColor: colors.textMuted,
+            borderColor: colors.gridColor,
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: {
+              family: "'Plus Jakarta Sans', sans-serif",
+              size: 13,
+              weight: 600
+            },
+            bodyFont: {
+              family: "'Plus Jakarta Sans', sans-serif",
+              size: 12
+            },
             callbacks: {
               label: function (context) {
                 let label = context.dataset.label || '';
@@ -215,25 +287,66 @@ $(document).ready(function () {
           }
         },
         scales: {
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              color: colors.textMuted,
+              font: {
+                family: "'Plus Jakarta Sans', sans-serif",
+                size: 11
+              }
+            }
+          },
           y: {
             type: 'linear',
             display: true,
             position: 'left',
+            grid: {
+              color: colors.gridColor
+            },
+            ticks: {
+              color: colors.textMuted,
+              font: {
+                family: "'Plus Jakarta Sans', sans-serif",
+                size: 11
+              }
+            },
             title: {
               display: true,
-              text: 'Quantidade'
+              text: 'Quantidade',
+              color: colors.textMuted,
+              font: {
+                family: "'Plus Jakarta Sans', sans-serif",
+                size: 11,
+                weight: 600
+              }
             }
           },
           y1: {
             type: 'linear',
             display: true,
             position: 'right',
-            title: {
-              display: true,
-              text: 'Valor (R$)'
-            },
             grid: {
               drawOnChartArea: false
+            },
+            ticks: {
+              color: colors.textMuted,
+              font: {
+                family: "'Plus Jakarta Sans', sans-serif",
+                size: 11
+              }
+            },
+            title: {
+              display: true,
+              text: 'Valor (R$)',
+              color: colors.textMuted,
+              font: {
+                family: "'Plus Jakarta Sans', sans-serif",
+                size: 11,
+                weight: 600
+              }
             }
           }
         }
@@ -248,11 +361,11 @@ $(document).ready(function () {
       chartTaxaConversao.destroy();
     }
 
-    // Remover texto central existente antes de recriar
-    $('#chartTaxaConversao').parent().find('.chart-center-text').remove();
-
     // Calcular média anual
     const mediaAnual = taxas.reduce((sum, item) => sum + item.taxa, 0) / taxas.length;
+
+    // Update center text
+    $('#donutValue').text(mediaAnual.toFixed(2) + '%');
 
     chartTaxaConversao = new Chart(ctx, {
       type: 'doughnut',
@@ -261,8 +374,9 @@ $(document).ready(function () {
         datasets: [
           {
             data: [mediaAnual, 100 - mediaAnual],
-            backgroundColor: ['rgb(113, 221, 55)', 'rgb(234, 234, 255)'],
-            borderWidth: 0
+            backgroundColor: [colors.success, colors.bgLight],
+            borderWidth: 0,
+            borderRadius: 4
           }
         ]
       },
@@ -274,6 +388,13 @@ $(document).ready(function () {
             display: false
           },
           tooltip: {
+            backgroundColor: isDarkMode ? '#1e202f' : '#fff',
+            titleColor: colors.text,
+            bodyColor: colors.textMuted,
+            borderColor: colors.gridColor,
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
             callbacks: {
               label: function (context) {
                 return context.label + ': ' + context.parsed.toFixed(2) + '%';
@@ -281,21 +402,9 @@ $(document).ready(function () {
             }
           }
         },
-        cutout: '70%'
+        cutout: '75%'
       }
     });
-
-    // Adicionar texto no centro
-    const centerText = `
-      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;">
-        <div style="font-size: 28px; font-weight: bold; color: #71dd37;">${mediaAnual.toFixed(2)}%</div>
-        <div style="font-size: 12px; color: #999;">Taxa Média</div>
-      </div>
-    `;
-
-    $('#chartTaxaConversao')
-      .parent()
-      .append(`<div class="chart-center-text">${centerText}</div>`);
   }
 
   function renderizarTopPlanos(planos) {
@@ -303,17 +412,17 @@ $(document).ready(function () {
     tbody.empty();
 
     if (planos.length === 0) {
-      tbody.append('<tr><td colspan="4" class="text-center">Nenhum dado encontrado</td></tr>');
+      tbody.append('<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--da-text-muted);">Nenhum dado encontrado</td></tr>');
       return;
     }
 
     planos.forEach(plano => {
       const row = `
         <tr>
-          <td>${plano.nome_plano}</td>
+          <td><strong>${plano.nome_plano}</strong></td>
           <td>${plano.operadora}</td>
-          <td class="text-center"><span class="badge bg-primary">${formatarNumero(plano.total_vendas)}</span></td>
-          <td class="text-end">${formatarMoeda(plano.valor_total)}</td>
+          <td style="text-align: center;"><span class="da-badge badge-primary">${formatarNumero(plano.total_vendas)}</span></td>
+          <td style="text-align: right;" class="da-money">${formatarMoeda(plano.valor_total)}</td>
         </tr>
       `;
       tbody.append(row);
@@ -330,15 +439,15 @@ $(document).ready(function () {
     const labels = operadoras.map(item => item.operadora);
     const dataValores = operadoras.map(item => parseFloat(item.valor_total));
 
-    // Cores dinâmicas
-    const cores = [
-      'rgb(105, 108, 255)',
-      'rgb(113, 221, 55)',
-      'rgb(3, 195, 236)',
-      'rgb(255, 171, 0)',
-      'rgb(255, 62, 29)',
-      'rgb(105, 108, 255)',
-      'rgb(113, 221, 55)'
+    // Gradient colors
+    const backgroundColors = [
+      colors.primary,
+      colors.success,
+      colors.info,
+      colors.warning,
+      colors.danger,
+      colors.primaryLight,
+      colors.successLight
     ];
 
     chartOperadoras = new Chart(ctx, {
@@ -349,8 +458,10 @@ $(document).ready(function () {
           {
             label: 'Valor Total (R$)',
             data: dataValores,
-            backgroundColor: cores.slice(0, labels.length),
-            borderWidth: 0
+            backgroundColor: backgroundColors.slice(0, labels.length),
+            borderWidth: 0,
+            borderRadius: 8,
+            borderSkipped: false
           }
         ]
       },
@@ -362,6 +473,13 @@ $(document).ready(function () {
             display: false
           },
           tooltip: {
+            backgroundColor: isDarkMode ? '#1e202f' : '#fff',
+            titleColor: colors.text,
+            bodyColor: colors.textMuted,
+            borderColor: colors.gridColor,
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
             callbacks: {
               label: function (context) {
                 return 'Valor: ' + formatarMoeda(context.parsed.y);
@@ -370,9 +488,29 @@ $(document).ready(function () {
           }
         },
         scales: {
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              color: colors.textMuted,
+              font: {
+                family: "'Plus Jakarta Sans', sans-serif",
+                size: 11
+              }
+            }
+          },
           y: {
             beginAtZero: true,
+            grid: {
+              color: colors.gridColor
+            },
             ticks: {
+              color: colors.textMuted,
+              font: {
+                family: "'Plus Jakarta Sans', sans-serif",
+                size: 11
+              },
               callback: function (value) {
                 return 'R$ ' + value.toLocaleString('pt-BR');
               }
@@ -388,39 +526,37 @@ $(document).ready(function () {
     tbody.empty();
 
     if (ranking.length === 0) {
-      tbody.append('<tr><td colspan="7" class="text-center">Nenhum dado encontrado</td></tr>');
+      tbody.append('<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--da-text-muted);">Nenhum dado encontrado</td></tr>');
       return;
     }
 
     ranking.forEach((vendedor, index) => {
-      const medalha =
-        index === 0
-          ? '<i class="ri-medal-fill text-warning"></i>'
-          : index === 1
-            ? '<i class="ri-medal-fill text-secondary"></i>'
-            : index === 2
-              ? '<i class="ri-medal-fill" style="color: #cd7f32;"></i>'
-              : index + 1;
+      let medalha;
+      if (index === 0) {
+        medalha = '<span class="da-medal medal-gold">🥇</span>';
+      } else if (index === 1) {
+        medalha = '<span class="da-medal medal-silver">🥈</span>';
+      } else if (index === 2) {
+        medalha = '<span class="da-medal medal-bronze">🥉</span>';
+      } else {
+        medalha = `<span class="da-rank-number">${index + 1}</span>`;
+      }
+
+      const badgeClass = vendedor.taxa_conversao >= 10
+        ? 'badge-success'
+        : vendedor.taxa_conversao >= 5
+          ? 'badge-warning'
+          : 'badge-danger';
 
       const row = `
         <tr>
-          <td class="text-center">${medalha}</td>
+          <td style="text-align: center;">${medalha}</td>
           <td><strong>${vendedor.vendedor}</strong></td>
-          <td class="text-center">${formatarNumero(vendedor.total_leads)}</td>
-          <td class="text-center"><span class="badge bg-success">${formatarNumero(vendedor.total_vendas)}</span></td>
-          <td class="text-end"><strong>${formatarMoeda(vendedor.valor_total)}</strong></td>
-          <td class="text-end">${formatarMoeda(vendedor.ticket_medio)}</td>
-          <td class="text-center">
-            <span class="badge ${
-              vendedor.taxa_conversao >= 10
-                ? 'bg-success'
-                : vendedor.taxa_conversao >= 5
-                  ? 'bg-warning'
-                  : 'bg-danger'
-            }">
-              ${vendedor.taxa_conversao}%
-            </span>
-          </td>
+          <td style="text-align: center;">${formatarNumero(vendedor.total_leads)}</td>
+          <td style="text-align: center;"><span class="da-badge badge-success">${formatarNumero(vendedor.total_vendas)}</span></td>
+          <td style="text-align: right;" class="da-money">${formatarMoeda(vendedor.valor_total)}</td>
+          <td style="text-align: right;" class="da-money">${formatarMoeda(vendedor.ticket_medio)}</td>
+          <td style="text-align: center;"><span class="da-badge ${badgeClass}">${vendedor.taxa_conversao}%</span></td>
         </tr>
       `;
       tbody.append(row);
@@ -434,16 +570,16 @@ $(document).ready(function () {
     tbody.empty();
 
     if (detalhes.planos_favoritos.length === 0) {
-      tbody.append('<tr><td colspan="3" class="text-center">Nenhum dado encontrado</td></tr>');
+      tbody.append('<tr><td colspan="3" style="text-align: center; padding: 2rem; color: var(--da-text-muted);">Nenhum dado encontrado</td></tr>');
       return;
     }
 
     detalhes.planos_favoritos.forEach(plano => {
       const row = `
         <tr>
-          <td>${plano.nome_plano}</td>
+          <td><strong>${plano.nome_plano}</strong></td>
           <td>${plano.operadora}</td>
-          <td class="text-center"><span class="badge bg-primary">${formatarNumero(plano.total)}</span></td>
+          <td style="text-align: center;"><span class="da-badge badge-primary">${formatarNumero(plano.total)}</span></td>
         </tr>
       `;
       tbody.append(row);

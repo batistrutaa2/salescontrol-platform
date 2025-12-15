@@ -1032,76 +1032,290 @@
 }
 
 // ============================================
-// Modal Overrides
+// Modal Overrides - Enhanced Input Visibility
 // ============================================
+
+// Light theme modal variables
+:root {
+    --modal-bg: #ffffff;
+    --modal-input-bg: #f8fafc;
+    --modal-input-border: #e2e8f0;
+    --modal-input-border-hover: #cbd5e1;
+    --modal-input-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(0, 0, 0, 0.02);
+    --modal-input-shadow-focus: 0 0 0 3px rgba(var(--dash-warning-rgb), 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
+    --modal-section-bg: #f1f5f9;
+    --modal-divider: #e2e8f0;
+}
+
 .modal-content {
     font-family: 'Plus Jakarta Sans', sans-serif;
     border: 1px solid var(--dash-card-border);
     border-radius: var(--dash-border-radius);
-    background: var(--dash-card-bg);
+    background: var(--modal-bg);
     box-shadow: var(--dash-shadow-lg);
+    overflow: hidden;
 }
 
 .modal-header {
-    border-bottom: 1px solid var(--dash-card-border);
+    border-bottom: 1px solid var(--modal-divider);
     padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg,
+        rgba(var(--dash-warning-rgb), 0.03) 0%,
+        transparent 100%
+    );
 
     .modal-title {
-        font-size: 1rem;
+        font-size: 1.0625rem;
         font-weight: 700;
         color: var(--dash-text-primary);
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.625rem;
 
         svg, i {
             color: var(--dash-warning);
+            width: 22px;
+            height: 22px;
         }
     }
 
     .btn-close {
         opacity: 0.5;
+        transition: var(--dash-transition-fast);
+        border-radius: 8px;
+        padding: 0.5rem;
 
-        &:hover { opacity: 1; }
+        &:hover {
+            opacity: 1;
+            background: rgba(var(--dash-danger-rgb), 0.1);
+        }
     }
 }
 
 .modal-body {
-    padding: 1.5rem;
+    padding: 1.75rem;
+    background: var(--modal-bg);
 
+    // Form Labels
     .form-label {
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: var(--dash-text-secondary);
-        margin-bottom: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--dash-text-muted);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+
+        .text-danger {
+            color: var(--dash-danger);
+        }
     }
 
+    // Input Fields - Enhanced Visibility
     .form-control,
     .form-select {
         font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 0.875rem;
-        padding: 0.625rem 1rem;
-        border: 1px solid var(--dash-card-border);
+        font-weight: 500;
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--modal-input-border);
         border-radius: var(--dash-border-radius-sm);
-        background: var(--dash-glass-bg);
+        background: var(--modal-input-bg);
         color: var(--dash-text-primary);
+        box-shadow: var(--modal-input-shadow);
+        transition: all 0.2s ease;
+        width: 100%;
 
-        &:focus {
-            border-color: var(--dash-warning);
-            box-shadow: 0 0 0 3px rgba(var(--dash-warning-rgb), 0.1);
+        &::placeholder {
+            color: var(--dash-text-muted);
+            opacity: 0.7;
         }
 
-        &:disabled {
-            background: rgba(var(--dash-text-muted), 0.1);
+        &:hover:not(:disabled) {
+            border-color: var(--modal-input-border-hover);
+            background: var(--modal-input-bg);
+        }
+
+        &:focus {
+            outline: none;
+            border-color: var(--dash-warning);
+            box-shadow: var(--modal-input-shadow-focus);
+            background: var(--modal-input-bg);
+        }
+
+        &:disabled,
+        &[disabled] {
+            background: var(--modal-section-bg);
             color: var(--dash-text-muted);
+            border-color: transparent;
+            box-shadow: none;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        // Number inputs with monospace font
+        &[type="number"],
+        &[type="month"] {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+    }
+
+    // Select dropdown arrow enhancement
+    .form-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 16px 12px;
+        padding-right: 2.5rem;
+    }
+
+    // Row spacing
+    .row.g-3 {
+        --bs-gutter-y: 1.25rem;
+    }
+
+    // Card inside modal (parcelas detail)
+    .card {
+        background: var(--modal-section-bg);
+        border: 1px solid var(--modal-divider);
+        border-radius: var(--dash-border-radius-sm);
+        box-shadow: none;
+
+        .card-body {
+            padding: 1rem;
+        }
+    }
+
+    // Info alert inside modal
+    .alert-info-custom {
+        background: linear-gradient(135deg,
+            rgba(var(--dash-info-rgb), 0.08) 0%,
+            rgba(var(--dash-info-rgb), 0.03) 100%
+        );
+        border: 1px solid rgba(var(--dash-info-rgb), 0.15);
+        border-radius: var(--dash-border-radius-sm);
+        padding: 0.875rem 1rem;
+        font-size: 0.8125rem;
+        color: var(--dash-text-secondary);
+
+        strong {
+            color: var(--dash-info);
+            font-weight: 600;
+        }
+    }
+
+    // Form switch enhancement
+    .form-check.form-switch {
+        padding-left: 3rem;
+        margin: 0;
+
+        .form-check-input {
+            width: 2.75rem;
+            height: 1.375rem;
+            margin-left: -3rem;
+            background-color: var(--modal-input-bg);
+            border: 2px solid var(--modal-input-border);
+            box-shadow: var(--modal-input-shadow);
+            transition: all 0.2s ease;
+
+            &:checked {
+                background-color: var(--dash-warning);
+                border-color: var(--dash-warning);
+            }
+
+            &:focus {
+                box-shadow: var(--modal-input-shadow-focus);
+            }
+        }
+
+        .form-check-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--dash-text-secondary);
+            cursor: pointer;
+        }
+    }
+
+    // Computed value fields (disabled but visible)
+    .col-md-2 {
+        .form-control:disabled {
+            background: linear-gradient(135deg,
+                rgba(var(--dash-success-rgb), 0.08) 0%,
+                rgba(var(--dash-success-rgb), 0.03) 100%
+            );
+            border: 1px solid rgba(var(--dash-success-rgb), 0.2);
+            color: var(--dash-success);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            opacity: 1;
+        }
+    }
+
+    // Helper text
+    .small.text-muted {
+        font-size: 0.8125rem;
+        color: var(--dash-text-muted);
+        line-height: 1.5;
+
+        strong {
+            color: var(--dash-text-secondary);
+            font-weight: 600;
         }
     }
 }
 
 .modal-footer {
-    border-top: 1px solid var(--dash-card-border);
-    padding: 1rem 1.5rem;
-    gap: 0.75rem;
+    border-top: 1px solid var(--modal-divider);
+    padding: 1.25rem 1.75rem;
+    gap: 0.875rem;
+    background: linear-gradient(135deg,
+        rgba(var(--dash-primary-rgb), 0.02) 0%,
+        transparent 100%
+    );
+}
+
+// Select2 inside modals
+.modal {
+    .select2-container--default {
+        .select2-selection--single {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            height: auto;
+            padding: 0.625rem 0.875rem;
+            border: 2px solid var(--modal-input-border);
+            border-radius: var(--dash-border-radius-sm);
+            background: var(--modal-input-bg);
+            box-shadow: var(--modal-input-shadow);
+            transition: all 0.2s ease;
+
+            .select2-selection__rendered {
+                color: var(--dash-text-primary);
+                line-height: 1.5;
+                padding: 0;
+            }
+
+            .select2-selection__arrow {
+                height: 100%;
+                top: 0;
+                right: 8px;
+            }
+
+            .select2-selection__placeholder {
+                color: var(--dash-text-muted);
+                opacity: 0.7;
+            }
+        }
+
+        &.select2-container--focus .select2-selection--single,
+        &.select2-container--open .select2-selection--single {
+            border-color: var(--dash-warning);
+            box-shadow: var(--modal-input-shadow-focus);
+        }
+    }
 }
 
 // ============================================
@@ -1259,5 +1473,375 @@
                 color: #6B7280;
             }
         }
+    }
+}
+
+// ============================================
+// Dark Mode Modal Inputs - Clean & Visible
+// ============================================
+.dark-style {
+    // Modal specific dark styles
+    .modal-content {
+        background: #232838 !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg,
+            rgba(var(--dash-warning-rgb), 0.05) 0%,
+            transparent 100%
+        ) !important;
+        border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .modal-body {
+        background: #232838 !important;
+
+        // Input fields - darker than modal bg with visible border
+        .form-control,
+        .form-select {
+            background: #1a1e2a !important;
+            border: 2px solid rgba(255, 255, 255, 0.15) !important;
+            color: #F9FAFB !important;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+
+            &::placeholder {
+                color: #6B7280 !important;
+            }
+
+            &:hover:not(:disabled) {
+                border-color: rgba(255, 255, 255, 0.25) !important;
+            }
+
+            &:focus {
+                border-color: var(--dash-warning) !important;
+                box-shadow: 0 0 0 3px rgba(var(--dash-warning-rgb), 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+            }
+
+            &:disabled,
+            &[disabled] {
+                background: rgba(255, 255, 255, 0.05) !important;
+                border-color: transparent !important;
+                color: #9CA3AF !important;
+                box-shadow: none !important;
+            }
+        }
+
+        // Computed value fields (Imposto/Liquido) - styled differently
+        .col-md-2 .form-control:disabled {
+            background: rgba(var(--dash-success-rgb), 0.1) !important;
+            border: 1px solid rgba(var(--dash-success-rgb), 0.3) !important;
+            color: var(--dash-success) !important;
+        }
+
+        // Card inside modal
+        .card {
+            background: rgba(0, 0, 0, 0.2) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        // Alert info
+        .alert-info-custom {
+            background: rgba(var(--dash-info-rgb), 0.1) !important;
+            border-color: rgba(var(--dash-info-rgb), 0.2) !important;
+        }
+
+        // Form switch
+        .form-check.form-switch .form-check-input {
+            background-color: #1a1e2a !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+
+            &:checked {
+                background-color: var(--dash-warning) !important;
+                border-color: var(--dash-warning) !important;
+            }
+        }
+    }
+
+    .modal-footer {
+        border-top-color: rgba(255, 255, 255, 0.08) !important;
+        background: linear-gradient(135deg,
+            rgba(var(--dash-primary-rgb), 0.03) 0%,
+            transparent 100%
+        ) !important;
+    }
+
+    // Select2 inside modals - dark mode
+    .modal .select2-container--default .select2-selection--single {
+        background: #1a1e2a !important;
+        border: 2px solid rgba(255, 255, 255, 0.15) !important;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+
+        .select2-selection__rendered {
+            color: #F9FAFB !important;
+        }
+
+        .select2-selection__placeholder {
+            color: #6B7280 !important;
+        }
+    }
+
+    .modal .select2-container--default.select2-container--focus .select2-selection--single,
+    .modal .select2-container--default.select2-container--open .select2-selection--single {
+        border-color: var(--dash-warning) !important;
+        box-shadow: 0 0 0 3px rgba(var(--dash-warning-rgb), 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    // Select2 dropdown dark mode
+    .select2-dropdown {
+        background: #1a1e2a !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+
+    .select2-results__option {
+        color: #D1D5DB !important;
+
+        &--highlighted[aria-selected] {
+            background: rgba(var(--dash-warning-rgb), 0.15) !important;
+            color: var(--dash-warning) !important;
+        }
+
+        &[aria-selected=true] {
+            background: var(--dash-warning) !important;
+            color: white !important;
+        }
+    }
+
+    .select2-search--dropdown .select2-search__field {
+        background: #232838 !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+        color: #F9FAFB !important;
+    }
+
+    // ========================================
+    // Filter Card Inputs - Dark Mode
+    // ========================================
+    .filter-card {
+        background: #232838 !important;
+
+        .filter-header {
+            border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .filter-group {
+            .form-control,
+            .form-select {
+                background: #1a1e2a !important;
+                border: 2px solid rgba(255, 255, 255, 0.12) !important;
+                color: #F9FAFB !important;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+
+                &::placeholder {
+                    color: #6B7280 !important;
+                }
+
+                &:hover {
+                    border-color: rgba(255, 255, 255, 0.2) !important;
+                }
+
+                &:focus {
+                    border-color: var(--dash-warning) !important;
+                    box-shadow: 0 0 0 3px rgba(var(--dash-warning-rgb), 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+                }
+            }
+        }
+
+        // Select2 in filter card
+        .select2-container--default .select2-selection--single {
+            background: #1a1e2a !important;
+            border: 2px solid rgba(255, 255, 255, 0.12) !important;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+
+            .select2-selection__rendered {
+                color: #F9FAFB !important;
+            }
+
+            .select2-selection__placeholder {
+                color: #6B7280 !important;
+            }
+        }
+
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: var(--dash-warning) !important;
+        }
+
+        .filter-footer {
+            border-top-color: rgba(255, 255, 255, 0.08) !important;
+        }
+    }
+
+    // Flatpickr inputs in filter and elsewhere
+    .comissionamento-faturamento-wrapper {
+        input.form-control.input {
+            background: #1a1e2a !important;
+            border: 2px solid rgba(255, 255, 255, 0.12) !important;
+            color: #F9FAFB !important;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+
+            &:hover {
+                border-color: rgba(255, 255, 255, 0.2) !important;
+            }
+
+            &:focus {
+                border-color: var(--dash-warning) !important;
+                box-shadow: 0 0 0 3px rgba(var(--dash-warning-rgb), 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+            }
+
+            &::placeholder {
+                color: #6B7280 !important;
+            }
+        }
+    }
+
+    // ========================================
+    // Vendedor Card - Dark Mode
+    // ========================================
+    .vendedor-card {
+        background: #232838 !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+
+        .vendedor-header {
+            border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .vendedor-footer {
+            border-top-color: rgba(255, 255, 255, 0.08) !important;
+            background: rgba(0, 0, 0, 0.15) !important;
+
+            // Data pagamento input
+            .payment-date {
+                .form-control {
+                    background: #1a1e2a !important;
+                    border: 2px solid rgba(255, 255, 255, 0.12) !important;
+                    color: #F9FAFB !important;
+                    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+                    padding: 0.5rem 0.75rem !important;
+
+                    &:hover {
+                        border-color: rgba(255, 255, 255, 0.2) !important;
+                    }
+
+                    &:focus {
+                        border-color: var(--dash-warning) !important;
+                        box-shadow: 0 0 0 3px rgba(var(--dash-warning-rgb), 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+                    }
+                }
+            }
+        }
+    }
+
+    // ========================================
+    // Custom Table Checkboxes - Dark Mode
+    // ========================================
+    .custom-table {
+        .form-check-input {
+            background-color: #1a1e2a !important;
+            border: 2px solid rgba(255, 255, 255, 0.2) !important;
+
+            &:checked {
+                background-color: var(--dash-warning) !important;
+                border-color: var(--dash-warning) !important;
+            }
+
+            &:focus {
+                box-shadow: 0 0 0 3px rgba(var(--dash-warning-rgb), 0.2) !important;
+            }
+        }
+
+        // Table row hover
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03) !important;
+        }
+
+        // Borders
+        thead th {
+            border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        tbody td {
+            border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        tfoot th {
+            border-top-color: rgba(255, 255, 255, 0.1) !important;
+            background: rgba(0, 0, 0, 0.15) !important;
+        }
+    }
+
+    // ========================================
+    // Grade Cards - Dark Mode
+    // ========================================
+    .grade-card {
+        background: #232838 !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+
+        .grade-header {
+            border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        // Grade KPIs
+        .grade-kpi {
+            background: #1a1e2a !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+    }
+
+    // ========================================
+    // KPI Cards - Dark Mode
+    // ========================================
+    .kpi-card {
+        background: #232838 !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    // ========================================
+    // Parcelas Table inside Card - Dark Mode
+    // ========================================
+    .card {
+        .table {
+            color: #D1D5DB !important;
+
+            thead th {
+                color: #9CA3AF !important;
+                border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+            }
+
+            tbody td {
+                border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+            }
+
+            tbody tr:hover {
+                background: rgba(255, 255, 255, 0.03) !important;
+            }
+        }
+    }
+
+    // ========================================
+    // Loading & Empty States - Dark Mode
+    // ========================================
+    .loading-state {
+        background: #232838 !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+
+        .spinner {
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            border-top-color: var(--dash-warning) !important;
+        }
+    }
+
+    .empty-state {
+        .empty-icon {
+            background: rgba(var(--dash-warning-rgb), 0.15) !important;
+        }
+    }
+
+    // ========================================
+    // Alert Info - Dark Mode
+    // ========================================
+    .alert-info-custom {
+        background: rgba(var(--dash-info-rgb), 0.1) !important;
+        border-color: rgba(var(--dash-info-rgb), 0.2) !important;
+        color: #D1D5DB !important;
     }
 }
