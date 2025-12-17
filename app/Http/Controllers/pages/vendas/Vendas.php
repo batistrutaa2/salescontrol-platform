@@ -241,8 +241,8 @@ class Vendas extends Controller
     private function getVendasPorMes($filtros)
     {
         $query = VendasModel::select(
-            DB::raw('MONTH(data_vigencia) as mes'),
-            DB::raw('YEAR(data_vigencia) as ano'),
+            DB::raw('MONTH(created_at) as mes'),
+            DB::raw('YEAR(created_at) as ano'),
             DB::raw('COUNT(*) as total_vendas'),
             DB::raw('SUM(valor_contrato) as valor_total'),
             DB::raw('SUM(vidas) as total_vidas')

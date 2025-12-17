@@ -420,9 +420,7 @@
     widthBoard: '250px',
     dragItems: true,
     boards: boards.map(board => {
-      const itemCount = board.item ? board.item.length : 0;
-      board.title = `${board.title} - ${itemCount}`;
-
+      // Título sem count - será exibido no badge circular via data-count
       if (board.item && board.item.length > 0) {
         board.item = board.item.sort((a, b) => {
           const dateA = a.data_create.split(' ')[0].split('/').reverse().join('-');
@@ -628,6 +626,21 @@
     buttonClick: function (el, boardId) { }
   });
 
+  // Setar data-count em todos os boards após renderização
+  function updateBoardCounts() {
+    document.querySelectorAll('.kanban-board').forEach(board => {
+      const items = board.querySelectorAll('.kanban-item');
+      const visibleCount = Array.from(items).filter(item => item.style.display !== 'none').length;
+      const titleElement = board.querySelector('.kanban-title-board');
+      if (titleElement) {
+        titleElement.setAttribute('data-count', visibleCount);
+      }
+    });
+  }
+
+  // Chamar após inicialização do kanban
+  updateBoardCounts();
+
   function renderNotes(notes, temperatura) {
     const container = document.getElementById('notes-container');
     container.innerHTML = '';
@@ -729,10 +742,7 @@
 
       const titleElement = board.querySelector('.kanban-title-board');
       if (titleElement) {
-        const originalTitle =
-          titleElement.getAttribute('data-original-title') || titleElement.textContent.split(' - ')[0];
-        titleElement.setAttribute('data-original-title', originalTitle);
-        titleElement.textContent = `${originalTitle} - ${visibleCount}`;
+        titleElement.setAttribute('data-count', visibleCount);
       }
     });
   }
