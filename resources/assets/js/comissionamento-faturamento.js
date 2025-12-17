@@ -30,17 +30,6 @@
   const $kpiTotContr = document.getElementById('kpi-total-contratos');
   const $kpiTotCom = document.getElementById('kpi-total-comissao');
 
-  // Admin & Comercial sections
-  const $adminCard = document.getElementById('grade-admin-card');
-  const $adminResumo = document.getElementById('grade-admin-resumo');
-  const $adminTbody = document.querySelector('#tabela-grade-admin tbody');
-  const $adminTotalLiquido = document.getElementById('admin-total-liquido');
-
-  const $comCard = document.getElementById('grade-comercial-card');
-  const $comResumo = document.getElementById('grade-comercial-resumo');
-  const $comKpis = document.getElementById('grade-comercial-kpis');
-  const $comTbody = document.querySelector('#tabela-grade-comercial tbody');
-  const $comTotalDistribuido = document.getElementById('comercial-total-distribuido');
 
   // ======== Utils ========
   const brl = (n) => (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -55,8 +44,6 @@
           <span class="loading-text">Carregando faturamento de comissoes...</span>
         </div>
       `;
-      if ($adminCard) $adminCard.style.display = 'none';
-      if ($comCard) $comCard.style.display = 'none';
     }
   }
 
@@ -88,18 +75,6 @@
 
   // ======== Render Vendedores (JUNIOR/SENIOR) ========
   function renderVendedores(payload, gradeFiltro) {
-    // Oculta lista se gradeFiltro for admin/comercial
-    if (gradeFiltro === 'admin' || gradeFiltro === 'comercial') {
-      document.getElementById('lista-vendedores').style.display = 'none';
-      $kpiVend.textContent = 0;
-      $kpiContr.textContent = 0;
-      $kpiTotContr.textContent = brl(0);
-      $kpiTotCom.textContent = brl(0);
-      return;
-    } else {
-      document.getElementById('lista-vendedores').style.display = '';
-    }
-
     let vendedores = (payload && payload.vendedores) || [];
 
     // Filtro por grade via percentual (30 = junior, 100 = senior)
@@ -587,95 +562,6 @@
     }
   });
 
-  // ======== Render: Grade ADMIN ========
-  function renderGradeAdmin(admin, bases, gradeFiltro) {
-    if (!$adminCard) return;
-
-    const deveMostrar = (!gradeFiltro || gradeFiltro === 'admin');
-    if (!deveMostrar) {
-      $adminCard.style.display = 'none';
-      return;
-    }
-
-    if (!admin || !Array.isArray(admin.usuarios) || !admin.usuarios.length) {
-      $adminCard.style.display = 'none';
-      return;
-    }
-
-    const percent = admin.percentual ?? 5;
-    const baseAll = bases?.total_vendas_all_grades ?? 0;
-    $adminResumo.textContent = `Base: ${brl(baseAll)} · Percentual: ${pct(percent)}`;
-
-    $adminTbody.innerHTML = '';
-    admin.usuarios.forEach(u => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${esc(u.nome)}</td>
-        <td class="text-end">${pct(u.percentual_base)}</td>
-        <td class="text-end">${brl(u.comissao_bruta)}</td>
-        <td class="text-end">${pct(u.imposto, 2)}</td>
-        <td class="text-end">${brl(u.comissao_liquida)}</td>
-      `;
-      $adminTbody.appendChild(tr);
-    });
-
-    $adminTotalLiquido.textContent = brl(admin.total_liquido || 0);
-    $adminCard.style.display = '';
-  }
-
-  // ======== Render: Grade COMERCIAL ========
-  function renderGradeComercial(com, gradeFiltro) {
-    if (!$comCard) return;
-
-    const deveMostrar = (!gradeFiltro || gradeFiltro === 'comercial');
-    if (!deveMostrar) {
-      $comCard.style.display = 'none';
-      return;
-    }
-
-    if (!com || !Array.isArray(com.gestores) || !com.gestores.length) {
-      $comCard.style.display = 'none';
-      return;
-    }
-
-    // Resumo e KPIs
-    $comResumo.textContent =
-      `Gestores: ${com.qtd_gestores} · Base Júnior: ${brl(com.base_junior)} · Pool final: ${brl(com.pool_final)}`;
-
-    $comKpis.innerHTML = `
-      <div class="grade-kpi">
-        <div class="kpi-label">Base Junior</div>
-        <div class="kpi-value">${brl(com.base_junior)}</div>
-      </div>
-      <div class="grade-kpi">
-        <div class="kpi-label">Salarios (Junior)</div>
-        <div class="kpi-value">${brl(com.salarios_junior_tot)}</div>
-      </div>
-      <div class="grade-kpi">
-        <div class="kpi-label">Custo Adm (5%)</div>
-        <div class="kpi-value">${brl(com.custo_admin_5)}</div>
-      </div>
-      <div class="grade-kpi">
-        <div class="kpi-label">Quota por supervisor (com imposto)</div>
-        <div class="kpi-value">${brl(com.quota)}</div>
-      </div>
-    `;
-
-    // Tabela de supervisores (Supervisor | Quota)
-    $comTbody.innerHTML = '';
-    com.gestores.forEach(g => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${esc(g.nome)}</td>
-        <td class="text-end">${brl(g.quota)}</td>
-      `;
-      $comTbody.appendChild(tr);
-    });
-
-    $comTotalDistribuido.textContent = brl(com.total_distribuido || 0);
-    $comCard.style.display = '';
-  }
-
   // ======== Carregar e exibir ========
   async function carregarEExibir() {
     const dataInicio = $dataInicio.value;
@@ -705,16 +591,9 @@
       // Lista Júnior/Sênior
       renderVendedores(payload, grade);
 
-      // Grades
-      const grades = payload?.grades || {};
-      renderGradeAdmin(grades.admin, grades.bases, grade);
-      renderGradeComercial(grades.comercial, grade);
-
     } catch (err) {
       toastr.error('Falha ao carregar faturamento de comissões.');
       renderVendedores({ kpis: { vendedores: 0, contratos: 0, total_contratos: 0, total_comissao: 0 }, vendedores: [] }, '');
-      if ($adminCard) $adminCard.style.display = 'none';
-      if ($comCard) $comCard.style.display = 'none';
     }
   }
 

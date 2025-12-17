@@ -214,13 +214,9 @@ class Comissionamento extends Controller
         $kpiTotalContratos = 0.0;
         $kpiTotalComissao = 0.0;
 
-        $totalVendasAllGrades = 0.0; // base ADMIN
-        $totalVendasJunior    = 0.0; // base COMERCIAL
-
         foreach ($rows as $r) {
             $valor      = (float) $r->valor_contrato;
             $impostoCfg = (float) $r->imposto;
-            $grade      = strtolower((string) $r->grade);
             $angVal     = (float) $r->angariacao_valor;
             $percentualAngariacao = $r->grade == 'junior' ? 10.0 : 50.0;
 
@@ -233,9 +229,6 @@ class Comissionamento extends Controller
             if ($percentualAplic > 0) {
                 $valorComissaoBruta  = round($baseAplicada * ($percentualAplic / 100.0), 2);
                 $valorComissaoLiquida= round($valorComissaoBruta * (1.0 - ($impostoAplic / 100.0)), 2);
-
-                $totalVendasAllGrades += $baseAplicada;
-                if ($grade === 'junior') $totalVendasJunior += $baseAplicada;
 
                 if (!isset($porVendedor[$r->user_id])) {
                     $porVendedor[$r->user_id] = [
@@ -361,59 +354,6 @@ class Comissionamento extends Controller
             $porVendedor = [];
         }
 
-        // ========== ADMIN ==========
-        $admins = DB::table('comissionamento_configuracao as cfg')
-            ->join('users as u', 'u.id', '=', 'cfg.user_id')
-            ->where('cfg.empresa_id', $empresaId)
-            ->whereRaw('LOWER(cfg.grade) = "admin"')
-            ->select('cfg.user_id', 'u.name as nome', 'cfg.imposto', 'cfg.percentual')
-            ->get();
-
-        $adminUsuarios = [];
-        foreach ($admins as $ad) {
-            $bruta  = $totalVendasAllGrades * ((float) $ad->percentual / 100.0);
-            $liquida= $bruta * (1.0 - ((float) $ad->imposto / 100.0));
-            $adminUsuarios[] = [
-                'user_id'          => $ad->user_id,
-                'nome'             => $ad->nome,
-                'percentual_base'  => (float) $ad->percentual,
-                'comissao_bruta'   => round($bruta, 2),
-                'comissao_liquida' => round($liquida, 2),
-                'imposto'          => (float) $ad->imposto,
-            ];
-        }
-
-        // ========== COMERCIAL (supervisores) ==========
-        $salariosJuniorTot = (float) DB::table('comissionamento_configuracao')
-            ->where('empresa_id', $empresaId)
-            ->whereRaw('LOWER(grade) = "junior"')
-            ->sum('salario');
-
-        $custoAdm5 = $totalVendasJunior * 0.05;
-
-        $poolFinal = $totalVendasJunior - $salariosJuniorTot - $custoAdm5;
-        $desconto  = $poolFinal * 0.10;
-        $poolFinal = $poolFinal - $desconto;
-
-        $gestores = DB::table('comissionamento_configuracao as cfg')
-            ->join('users as u', 'u.id', '=', 'cfg.user_id')
-            ->where('cfg.empresa_id', $empresaId)
-            ->whereRaw('LOWER(cfg.grade) = "comercial"')
-            ->select('cfg.user_id', 'u.name as nome')
-            ->get();
-
-        $qtdGestores = $gestores->count();
-        $quota = $qtdGestores > 0 ? ($poolFinal / $qtdGestores) : 0.0;
-
-        $gestoresArr = [];
-        foreach ($gestores as $g) {
-            $gestoresArr[] = [
-                'user_id' => $g->user_id,
-                'nome'    => $g->nome,
-                'quota'   => round($quota, 2),
-            ];
-        }
-
         // ========== PAYLOAD ==========
         $payload = [
             'empresa_id' => $empresaId,
@@ -432,27 +372,6 @@ class Comissionamento extends Controller
                 'total_comissao'   => round($kpiTotalComissao, 2),
             ],
             'vendedores' => $porVendedor, // já ordenado
-
-            'grades' => [
-                'bases' => [
-                    'total_vendas_all_grades' => round($totalVendasAllGrades, 2),
-                    'total_vendas_junior'     => round($totalVendasJunior, 2),
-                ],
-                'admin' => [
-                    'usuarios'      => $adminUsuarios,
-                    'total_liquido' => round(array_sum(array_column($adminUsuarios, 'comissao_liquida')), 2),
-                ],
-                'comercial' => [
-                    'qtd_gestores'        => $qtdGestores,
-                    'base_junior'         => round($totalVendasJunior, 2),
-                    'salarios_junior_tot' => round($salariosJuniorTot, 2),
-                    'custo_admin_5'       => round($custoAdm5, 2),
-                    'pool_final'          => round($poolFinal, 2),
-                    'quota'               => round($quota, 2),
-                    'gestores'            => $gestoresArr,
-                    'total_distribuido'   => round($quota * $qtdGestores, 2),
-                ],
-            ],
         ];
 
         return response()->json($payload);

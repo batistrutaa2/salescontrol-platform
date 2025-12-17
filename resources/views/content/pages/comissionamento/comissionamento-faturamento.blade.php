@@ -170,8 +170,6 @@
                         <option value="">Todas</option>
                         <option value="junior">Junior</option>
                         <option value="senior">Senior</option>
-                        <option value="admin">Admin</option>
-                        <option value="comercial">Comercial</option>
                     </select>
                 </div>
                 <div class="filter-group" style="display: flex; align-items: flex-end;">
@@ -195,76 +193,6 @@
     {{-- Vendedores List (JUNIOR/SENIOR) --}}
     <div id="lista-vendedores">
         {{-- Rendered via JS --}}
-    </div>
-
-    {{-- Grade ADMIN Card --}}
-    <div class="grade-card grade-admin" id="grade-admin-card" style="display:none;">
-        <div class="grade-header">
-            <h5>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-                Grade ADMIN
-            </h5>
-            <div class="grade-resumo" id="grade-admin-resumo"></div>
-        </div>
-        <div class="grade-body">
-            <div class="table-responsive">
-                <table class="custom-table" id="tabela-grade-admin">
-                    <thead>
-                        <tr>
-                            <th>Admin</th>
-                            <th class="text-end">% Base</th>
-                            <th class="text-end">Comissao Bruta</th>
-                            <th class="text-end">Imposto (%)</th>
-                            <th class="text-end">Comissao Liquida</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                    <tfoot>
-                        <tr>
-                            <th colspan="4" class="text-end">Total Liquido</th>
-                            <th class="text-end" id="admin-total-liquido">R$ 0,00</th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    {{-- Grade COMERCIAL Card --}}
-    <div class="grade-card grade-comercial" id="grade-comercial-card" style="display:none;">
-        <div class="grade-header">
-            <h5>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                </svg>
-                Grade COMERCIAL
-            </h5>
-            <div class="grade-resumo" id="grade-comercial-resumo"></div>
-        </div>
-        <div class="grade-body">
-            <div class="grade-kpis" id="grade-comercial-kpis"></div>
-
-            <div class="table-responsive">
-                <table class="custom-table" id="tabela-grade-comercial">
-                    <thead>
-                        <tr>
-                            <th>Supervisor</th>
-                            <th class="text-end">Quota (com imposto)</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                    <tfoot>
-                        <tr>
-                            <th class="text-end">Total Distribuido</th>
-                            <th class="text-end" id="comercial-total-distribuido">R$ 0,00</th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
     </div>
 </div>
 
