@@ -8,7 +8,7 @@
 @endsection
 
 @section('page-style')
-    @vite(['resources/assets/vendor/scss/pages/open-client.scss'])
+    @vite(['resources/assets/vendor/scss/pages/open-client.scss', 'resources/assets/vendor/scss/pages/comercial-open-client.scss'])
 @endsection
 
 @section('vendor-script')
@@ -564,68 +564,97 @@
     </div>
 
     {{-- Modal Cadastrar Contrato --}}
-    <div class="modal fade" id="addNewAddress" tabindex="-1" aria-hidden="true">
+    <div class="modal fade sale-modal" id="addNewAddress" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-simple modal-add-new-address">
             <div class="modal-content">
                 <div class="modal-body p-0">
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 
-                    <div class="text-center mb-6">
-                        <h4 class="address-title mb-2">Cadastrar Contrato</h4>
-                        <p class="address-subtitle">Informe os dados da empresa e os titulares da apolice.</p>
+                    {{-- Header com Design System --}}
+                    <div class="modal-header-custom">
+                        <div class="modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                        </div>
+                        <h4 class="modal-title">Cadastrar Contrato</h4>
+                        <p class="modal-subtitle">Informe os dados da empresa e os titulares da apólice</p>
                     </div>
 
-                    <form method="POST" action="{{ route('comercial.createSale') }}" class="row g-5 create-sale">
+                    <form method="POST" action="{{ route('comercial.createSale') }}" class="row g-3 p-4 create-sale">
                         @csrf
                         <input type="hidden" id="contato_id" name="contato_id" value="{{ $client->id }}" />
 
+                        {{-- Seção: Dados da Empresa --}}
                         <div class="col-12">
-                            <h6 class="mb-1">Dados da empresa</h6>
-                            <small class="text-muted">Informacoes gerais do contrato (empresa).</small>
+                            <div class="section-header">
+                                <div class="section-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="section-text">
+                                    <h6>Dados da Empresa</h6>
+                                    <small>Informações gerais do contrato</small>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="col-12 col-md-6">
+                        <div class="col-12 col-md-4">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="nome_contrato" name="nome_contrato" class="form-control" placeholder="NOME DA EMPRESA" />
                                 <label for="nome_contrato">Nome da empresa</label>
                             </div>
                         </div>
 
-                        <div class="col-12 col-md-6">
+                        <div class="col-12 col-md-4">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="cpf_cnpj" name="cpf_cnpj" class="form-control" placeholder="12.345.678/0001-90" />
                                 <label for="cpf_cnpj">CNPJ</label>
                             </div>
                         </div>
 
+                        <div class="col-12 col-md-4">
+                            <div class="form-floating form-floating-outline">
+                                <input type="text" id="email" name="email" class="form-control" placeholder="contato@empresa.com.br" />
+                                <label for="email">E-mail</label>
+                            </div>
+                        </div>
+
                         <div class="col-12 col-md-6">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="telefone1" name="telefone1" class="form-control mask-telefone" placeholder="(11) 91234-5678" />
-                                <label for="telefone1">Telefone de contato 1 (empresa)</label>
+                                <label for="telefone1">Telefone 1</label>
                             </div>
                         </div>
 
                         <div class="col-12 col-md-6">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="telefone2" name="telefone2" class="form-control mask-telefone" placeholder="(11) 93456-7890" />
-                                <label for="telefone2">Telefone de contato 2 (empresa)</label>
+                                <label for="telefone2">Telefone 2</label>
                             </div>
                         </div>
 
-                        <div class="col-12 col-md-12">
-                            <div class="form-floating form-floating-outline">
-                                <input type="text" id="email" name="email" class="form-control" placeholder="contato@empresa.com.br" />
-                                <label for="email">E-mail da empresa</label>
+                        {{-- Seção: Apólice --}}
+                        <div class="col-12 mt-3">
+                            <div class="section-header">
+                                <div class="section-icon icon-info">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                </div>
+                                <div class="section-text">
+                                    <h6>Apólice</h6>
+                                    <small>Escolha a operadora e quantidade de titulares</small>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="col-12">
-                            <hr class="my-2">
-                            <h6 class="mb-1">Apolice</h6>
-                            <small class="text-muted">Escolha a operadora para esta apolice.</small>
-                        </div>
-
-                        <div class="col-12 col-md-6">
+                        <div class="col-12 col-md-8">
                             <div class="form-floating form-floating-outline">
                                 <select id="operadora" name="operadora_id" class="form-select" required>
                                     <option value="">Selecione...</option>
@@ -637,56 +666,108 @@
                             </div>
                         </div>
 
-                        <div class="col-12">
-                            <hr class="my-2">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <h6 class="mb-1">Existe mais de um titular na apolice?</h6>
-                                    <small class="text-muted">Todos Seguem a operadora Principal escolhida.</small>
+                        <div class="col-12 col-md-4">
+                            <div class="form-floating form-floating-outline">
+                                <input type="number" min="1" value="1" id="qtd_titulares" class="form-control" placeholder="1" />
+                                <label for="qtd_titulares">Qtd. Titulares</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12" id="titulares-container"></div>
+
+                        {{-- Seção: Valores e Angariação lado a lado --}}
+                        <div class="col-12 mt-3">
+                            <div class="section-header">
+                                <div class="section-icon icon-warning">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                    </svg>
+                                </div>
+                                <div class="section-text">
+                                    <h6>Valores e Comissão</h6>
+                                    <small>Defina valores do contrato e configuração de angariação</small>
                                 </div>
                             </div>
                         </div>
 
                         <div class="col-12 col-md-4">
                             <div class="form-floating form-floating-outline">
-                                <input type="number" min="1" value="1" id="qtd_titulares" class="form-control" placeholder="1" />
-                                <label for="qtd_titulares">Quantidade de titulares</label>
-                            </div>
-                        </div>
-
-                        <div class="col-12" id="titulares-container"></div>
-
-                        <div class="col-12 col-md-12">
-                            <div class="form-floating form-floating-outline">
                                 <input type="text" id="valor_contrato" name="valor_contrato" value="0" class="form-control monetary-field" placeholder="R$ 2.500,00" />
-                                <label for="valor_contrato">$ Valor total (sem IOF)</label>
+                                <label for="valor_contrato">Valor total (sem IOF)</label>
                             </div>
                         </div>
 
-                        <div class="col-12 col-md-12">
-                            <div class="form-floating form-floating-outline">
-                                <input type="text" id="taxa_angariacao" name="taxa_angariacao" value="0" class="form-control monetary-field" placeholder="R$ 2.500,00" />
-                                <label for="taxa_angariacao">$ Taxa Angariacao</label>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-md-12">
+                        <div class="col-12 col-md-4">
                             <div class="form-floating form-floating-outline">
                                 <input type="number" id="vidas" name="vidas" class="form-control" required placeholder="Quantidade de vidas" />
                                 <label for="vidas">Quantidade de vidas</label>
                             </div>
                         </div>
 
-                        <div class="col-12 col-md-12">
+                        <div class="col-12 col-md-4">
                             <div class="form-floating form-floating-outline">
-                                <input type="text" id="obs_contrato" name="obs_contrato" class="form-control" placeholder="Observacoes" />
-                                <label for="obs_contrato">Observacoes</label>
+                                <input type="text" id="obs_contrato" name="obs_contrato" class="form-control" placeholder="Observações" />
+                                <label for="obs_contrato">Observações</label>
                             </div>
                         </div>
 
-                        <div class="col-12 text-center">
-                            <button type="submit" class="btn btn-success me-3 create-sale">Salvar contrato</button>
-                            <button type="reset" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="Close">Cancelar</button>
+                        {{-- Seção: Angariação Destacada --}}
+                        <div class="col-12 mt-2">
+                            <div class="sale-angariacao-section">
+                                <div class="angariacao-header">
+                                    <div class="angariacao-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="angariacao-title">Comissão de Angariação</span>
+                                    <span class="angariacao-badge badge-nao" id="sale-angariacao-badge">Inativo</span>
+                                </div>
+                                <div class="angariacao-fields">
+                                    <div class="field-group">
+                                        <label class="field-label">
+                                            <span class="field-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                                                </svg>
+                                            </span>
+                                            Taxa de Angariação
+                                        </label>
+                                        <input type="text" id="taxa_angariacao" name="taxa_angariacao" value="0" class="form-control monetary-field" placeholder="R$ 0,00" />
+                                    </div>
+                                    <div class="field-group status-select">
+                                        <label class="field-label">
+                                            <span class="field-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                                </svg>
+                                            </span>
+                                            Aplicar Angariação?
+                                        </label>
+                                        <span class="status-indicator indicator-nao" id="sale-status-indicator"></span>
+                                        <select id="angariacao_status" name="angariacao_status" class="form-select status-nao">
+                                            <option value="NAO">NÃO</option>
+                                            <option value="SIM">SIM</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 text-center mt-4">
+                            <button type="submit" class="btn btn-sale-submit create-sale">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                                Salvar Contrato
+                            </button>
+                            <button type="reset" class="btn btn-outline-secondary btn-sale-cancel ms-2" data-bs-dismiss="modal" aria-label="Close">Cancelar</button>
                         </div>
                     </form>
                 </div>

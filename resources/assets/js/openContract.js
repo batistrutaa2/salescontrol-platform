@@ -206,11 +206,43 @@ $(function () {
 
     atualizarCoparticipacaoTitulares();
 
+    // Auto-selecionar angariação para Supermed
+    const selectedName = ($(this).find(':selected').data('nome') || '').toString().trim().toUpperCase();
+    const isSupermed = selectedName === 'AMIL - SUPERMED';
+    const $angariacaoSelect = $('#angariacao_status');
+    if ($angariacaoSelect.length) {
+      $angariacaoSelect.val(isSupermed ? 'SIM' : 'NAO').trigger('change');
+    }
+
     // Se a modal estiver aberta, atualiza também
     if ($('#modalAddTitular').hasClass('show')) {
       carregarPlanosParaModal();
       atualizarCoparticipacaoModal();
     }
+  });
+
+  // Atualizar visual do badge de angariação quando mudar
+  $(document).on('change', '#angariacao_status', function () {
+    const isSim = $(this).val() === 'SIM';
+
+    // Atualizar badge
+    const $badge = $('#angariacao-badge');
+    if ($badge.length) {
+      $badge.removeClass('badge-sim badge-nao')
+        .addClass(isSim ? 'badge-sim' : 'badge-nao')
+        .text(isSim ? 'Ativo' : 'Inativo');
+    }
+
+    // Atualizar indicator
+    const $indicator = $('#status-indicator');
+    if ($indicator.length) {
+      $indicator.removeClass('indicator-sim indicator-nao')
+        .addClass(isSim ? 'indicator-sim' : 'indicator-nao');
+    }
+
+    // Atualizar select styling
+    $(this).removeClass('status-sim status-nao')
+      .addClass(isSim ? 'status-sim' : 'status-nao');
   });
 
   // Se você envia a modal por POST normal (sem AJAX), não precisa JS extra no submit.

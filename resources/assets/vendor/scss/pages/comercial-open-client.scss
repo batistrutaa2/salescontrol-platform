@@ -1,0 +1,487 @@
+/**
+ * Comercial Open Client - Sale Modal Styles
+ * Modern Glass Morphism + Gradient Design System
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+
+// ============================================
+// CSS Variables
+// ============================================
+:root {
+  --sale-primary: #7C3AED;
+  --sale-primary-light: #A78BFA;
+  --sale-primary-rgb: 124, 58, 237;
+  --sale-success: #10B981;
+  --sale-success-rgb: 16, 185, 129;
+  --sale-warning: #F59E0B;
+  --sale-warning-rgb: 245, 158, 11;
+  --sale-info: #06B6D4;
+  --sale-info-rgb: 6, 182, 212;
+
+  --sale-card-bg: rgba(255, 255, 255, 0.98);
+  --sale-card-border: rgba(124, 58, 237, 0.1);
+  --sale-glass-bg: rgba(255, 255, 255, 0.7);
+
+  --sale-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --sale-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --sale-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --sale-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.12);
+
+  --sale-text-primary: #1F2937;
+  --sale-text-secondary: #6B7280;
+  --sale-text-muted: #9CA3AF;
+
+  --sale-border-radius: 16px;
+  --sale-border-radius-sm: 12px;
+  --sale-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark-style {
+  --sale-card-bg: rgba(30, 32, 47, 0.98);
+  --sale-card-border: rgba(124, 58, 237, 0.15);
+  --sale-glass-bg: rgba(30, 32, 47, 0.8);
+
+  --sale-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --sale-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --sale-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --sale-shadow-glow: 0 0 60px rgba(124, 58, 237, 0.2);
+
+  --sale-text-primary: #F9FAFB;
+  --sale-text-secondary: #D1D5DB;
+  --sale-text-muted: #9CA3AF;
+}
+
+// ============================================
+// Sale Modal Enhanced
+// ============================================
+.sale-modal {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  // Modal mais larga - formato horizontal
+  &.modal .modal-dialog {
+    max-width: 900px;
+    width: 95%;
+
+    @media (min-width: 1200px) {
+      max-width: 1000px;
+    }
+
+    @media (min-width: 1400px) {
+      max-width: 1100px;
+    }
+  }
+
+  .modal-content {
+    background: var(--sale-card-bg);
+    border: 1px solid var(--sale-card-border);
+    border-radius: var(--sale-border-radius);
+    box-shadow: var(--sale-shadow-lg), var(--sale-shadow-glow);
+    overflow: hidden;
+  }
+
+  // Modal Header
+  .modal-header-custom {
+    background: linear-gradient(135deg,
+      rgba(var(--sale-primary-rgb), 0.08) 0%,
+      rgba(var(--sale-success-rgb), 0.05) 100%
+    );
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--sale-card-border);
+    text-align: center;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--sale-primary) 0%, var(--sale-success) 100%);
+    }
+
+    .modal-icon {
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--sale-success) 0%, #059669 100%);
+      border-radius: 16px;
+      color: white;
+      margin: 0 auto 1rem;
+      box-shadow: 0 8px 24px rgba(var(--sale-success-rgb), 0.3);
+
+      svg {
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--sale-text-primary);
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.5px;
+    }
+
+    .modal-subtitle {
+      font-size: 0.9rem;
+      color: var(--sale-text-secondary);
+      margin: 0;
+    }
+  }
+
+  // Section Headers
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px dashed var(--sale-card-border);
+
+    .section-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--sale-primary) 0%, var(--sale-primary-light) 100%);
+      border-radius: 10px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(var(--sale-primary-rgb), 0.25);
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      &.icon-success {
+        background: linear-gradient(135deg, var(--sale-success) 0%, #059669 100%);
+        box-shadow: 0 4px 12px rgba(var(--sale-success-rgb), 0.25);
+      }
+
+      &.icon-info {
+        background: linear-gradient(135deg, var(--sale-info) 0%, #0891B2 100%);
+        box-shadow: 0 4px 12px rgba(var(--sale-info-rgb), 0.25);
+      }
+
+      &.icon-warning {
+        background: linear-gradient(135deg, var(--sale-warning) 0%, #D97706 100%);
+        box-shadow: 0 4px 12px rgba(var(--sale-warning-rgb), 0.25);
+      }
+    }
+
+    .section-text {
+      flex: 1;
+
+      h6 {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--sale-text-primary);
+        margin: 0;
+      }
+
+      small {
+        font-size: 0.8rem;
+        color: var(--sale-text-muted);
+      }
+    }
+  }
+
+  // Form Enhancements
+  .form-floating-outline {
+    .form-control,
+    .form-select {
+      border-radius: var(--sale-border-radius-sm);
+      border: 1.5px solid rgba(var(--sale-primary-rgb), 0.12);
+      transition: var(--sale-transition);
+      background: var(--sale-glass-bg);
+
+      &:focus {
+        border-color: var(--sale-primary);
+        box-shadow: 0 0 0 3px rgba(var(--sale-primary-rgb), 0.1);
+      }
+
+      &:hover:not(:focus) {
+        border-color: rgba(var(--sale-primary-rgb), 0.25);
+      }
+    }
+  }
+
+  // Monetary Fields
+  .monetary-field {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+  }
+}
+
+// ============================================
+// Angariacao Section - Sale Modal
+// ============================================
+.sale-angariacao-section {
+  position: relative;
+  background: linear-gradient(135deg,
+    rgba(var(--sale-success-rgb), 0.05) 0%,
+    rgba(var(--sale-primary-rgb), 0.05) 100%
+  );
+  border: 1px solid rgba(var(--sale-success-rgb), 0.15);
+  border-radius: var(--sale-border-radius);
+  padding: 1.25rem;
+  margin: 0.5rem 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--sale-success) 0%, var(--sale-primary) 100%);
+    border-radius: 4px 0 0 4px;
+  }
+
+  .angariacao-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px dashed rgba(var(--sale-success-rgb), 0.2);
+
+    .angariacao-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--sale-success) 0%, #059669 100%);
+      border-radius: 10px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(var(--sale-success-rgb), 0.3);
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .angariacao-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--sale-text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .angariacao-badge {
+      margin-left: auto;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: var(--sale-transition);
+
+      &.badge-sim {
+        background: linear-gradient(135deg, var(--sale-success) 0%, #059669 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(var(--sale-success-rgb), 0.3);
+      }
+
+      &.badge-nao {
+        background: rgba(var(--sale-text-muted), 0.1);
+        color: var(--sale-text-muted);
+      }
+    }
+  }
+
+  .angariacao-fields {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+
+    @media (max-width: 576px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .field-group {
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: var(--sale-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+
+      .field-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(var(--sale-success-rgb), 0.1);
+        border-radius: 6px;
+        color: var(--sale-success);
+
+        svg {
+          width: 12px;
+          height: 12px;
+        }
+      }
+    }
+
+    .form-control,
+    .form-select {
+      background: white;
+      border-color: rgba(var(--sale-success-rgb), 0.2);
+      border-radius: var(--sale-border-radius-sm);
+      padding: 0.75rem 1rem;
+
+      &:focus {
+        border-color: var(--sale-success);
+        box-shadow: 0 0 0 3px rgba(var(--sale-success-rgb), 0.1);
+      }
+    }
+  }
+
+  // Status Select Styling
+  .status-select {
+    position: relative;
+
+    .form-select {
+      padding-left: 2.5rem;
+      font-weight: 600;
+      transition: var(--sale-transition);
+
+      &.status-sim {
+        background-color: rgba(var(--sale-success-rgb), 0.08);
+        border-color: var(--sale-success);
+        color: var(--sale-success);
+      }
+
+      &.status-nao {
+        background-color: rgba(var(--sale-text-muted), 0.05);
+      }
+    }
+
+    .status-indicator {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      z-index: 1;
+      transition: var(--sale-transition);
+
+      &.indicator-sim {
+        background: var(--sale-success);
+        box-shadow: 0 0 8px rgba(var(--sale-success-rgb), 0.5);
+      }
+
+      &.indicator-nao {
+        background: var(--sale-text-muted);
+      }
+    }
+  }
+}
+
+// Dark Mode
+.dark-style {
+  .sale-angariacao-section {
+    background: linear-gradient(135deg,
+      rgba(var(--sale-success-rgb), 0.1) 0%,
+      rgba(var(--sale-primary-rgb), 0.1) 100%
+    );
+    border-color: rgba(var(--sale-success-rgb), 0.2);
+
+    .field-group {
+      .form-control,
+      .form-select {
+        background: rgba(30, 32, 47, 0.8);
+      }
+    }
+  }
+}
+
+// ============================================
+// Submit Button Enhanced
+// ============================================
+.sale-modal {
+  .btn-sale-submit {
+    background: linear-gradient(135deg, var(--sale-success) 0%, #059669 100%);
+    border: none;
+    border-radius: var(--sale-border-radius-sm);
+    padding: 0.875rem 2.5rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(var(--sale-success-rgb), 0.3);
+    transition: var(--sale-transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(var(--sale-success-rgb), 0.4);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  .btn-sale-cancel {
+    border-radius: var(--sale-border-radius-sm);
+    padding: 0.875rem 2rem;
+    font-weight: 600;
+    transition: var(--sale-transition);
+
+    &:hover {
+      background: rgba(var(--sale-text-muted), 0.1);
+    }
+  }
+}
+
+// ============================================
+// Titulares Section
+// ============================================
+.titulares-section {
+  background: linear-gradient(135deg,
+    rgba(var(--sale-info-rgb), 0.04) 0%,
+    rgba(var(--sale-primary-rgb), 0.02) 100%
+  );
+  border: 1px solid rgba(var(--sale-info-rgb), 0.12);
+  border-radius: var(--sale-border-radius);
+  padding: 1.25rem;
+  margin-top: 0.5rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--sale-info) 0%, var(--sale-primary) 100%);
+    border-radius: 4px 0 0 4px;
+  }
+}

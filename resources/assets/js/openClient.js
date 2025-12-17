@@ -641,6 +641,13 @@
       .toString().trim().toUpperCase();
     isOperadoraAmil = nomeOperadora.startsWith('AMIL');
 
+    // Auto-selecionar angariação para Supermed
+    const isSupermed = nomeOperadora === 'AMIL - SUPERMED';
+    const $angariacaoSelect = $('#angariacao_status');
+    if ($angariacaoSelect.length) {
+      $angariacaoSelect.val(isSupermed ? 'SIM' : 'NAO').trigger('change');
+    }
+
     // Suporte ao seletor do "titular principal" caso exista na página
     const $planoSelect = $('#nome_plano');
     const $acomodacaoField = $('#acomodacao');
@@ -693,6 +700,30 @@
     const acomodacao = $this.find(':selected').data('acomodacao') || '';
     const $acomodacaoField = $('#acomodacao');
     if ($acomodacaoField.length) $acomodacaoField.val(acomodacao);
+  });
+
+  // Atualizar visual do badge de angariação quando mudar
+  $(document).on('change', '#angariacao_status', function () {
+    const isSim = $(this).val() === 'SIM';
+
+    // Atualizar badge
+    const $badge = $('#sale-angariacao-badge');
+    if ($badge.length) {
+      $badge.removeClass('badge-sim badge-nao')
+        .addClass(isSim ? 'badge-sim' : 'badge-nao')
+        .text(isSim ? 'Ativo' : 'Inativo');
+    }
+
+    // Atualizar indicator
+    const $indicator = $('#sale-status-indicator');
+    if ($indicator.length) {
+      $indicator.removeClass('indicator-sim indicator-nao')
+        .addClass(isSim ? 'indicator-sim' : 'indicator-nao');
+    }
+
+    // Atualizar select styling
+    $(this).removeClass('status-sim status-nao')
+      .addClass(isSim ? 'status-sim' : 'status-nao');
   });
 
   // Validação no submit

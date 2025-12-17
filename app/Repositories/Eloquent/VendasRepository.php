@@ -60,7 +60,9 @@ class VendasRepository implements VendasRepositoryInterface
           $coparticipacaoVenda = $copValues[0];
         }
 
-        $isAngariacao = $operadora->nome === "AMIL - SUPERMED" ? "SIM" : "NÃO";
+        // Usar valor do formulário, com fallback para Supermed
+        $isAngariacao = $data['angariacao_status']
+            ?? ($operadora->nome === "AMIL - SUPERMED" ? "SIM" : "NÃO");
 
         $venda = $this->model->create([
           'empresa_id' => Auth::user()->empresa_id,
@@ -556,7 +558,9 @@ class VendasRepository implements VendasRepositoryInterface
       $contract = $this->model::find($data['id']);
       $operadora = Operadora::find($data['operadora']);
 
-      $isAngariacao = $operadora->nome === "AMIL - SUPERMED" ? "SIM" : "NÃO";
+      // Usar valor do formulário, com fallback para Supermed
+      $isAngariacao = $data['angariacao_status']
+          ?? ($operadora->nome === "AMIL - SUPERMED" ? "SIM" : "NÃO");
 
       $contract->operadora = $operadora->nome;
       $contract->nome_contrato = $data['nome_contrato'];

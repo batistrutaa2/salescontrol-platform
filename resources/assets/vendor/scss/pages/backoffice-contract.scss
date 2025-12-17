@@ -1,0 +1,365 @@
+/**
+ * Back-Office Contract Styles
+ * Modern Glass Morphism + Gradient Design System
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+
+// ============================================
+// CSS Variables
+// ============================================
+:root {
+  --bo-primary: #7C3AED;
+  --bo-primary-light: #A78BFA;
+  --bo-primary-rgb: 124, 58, 237;
+  --bo-success: #10B981;
+  --bo-success-rgb: 16, 185, 129;
+  --bo-warning: #F59E0B;
+  --bo-warning-rgb: 245, 158, 11;
+  --bo-info: #06B6D4;
+  --bo-info-rgb: 6, 182, 212;
+
+  --bo-card-bg: rgba(255, 255, 255, 0.98);
+  --bo-card-border: rgba(124, 58, 237, 0.1);
+  --bo-glass-bg: rgba(255, 255, 255, 0.7);
+
+  --bo-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --bo-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --bo-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --bo-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.12);
+
+  --bo-text-primary: #1F2937;
+  --bo-text-secondary: #6B7280;
+  --bo-text-muted: #9CA3AF;
+
+  --bo-border-radius: 16px;
+  --bo-border-radius-sm: 12px;
+  --bo-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark-style {
+  --bo-card-bg: rgba(30, 32, 47, 0.98);
+  --bo-card-border: rgba(124, 58, 237, 0.15);
+  --bo-glass-bg: rgba(30, 32, 47, 0.8);
+
+  --bo-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --bo-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --bo-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --bo-shadow-glow: 0 0 60px rgba(124, 58, 237, 0.2);
+
+  --bo-text-primary: #F9FAFB;
+  --bo-text-secondary: #D1D5DB;
+  --bo-text-muted: #9CA3AF;
+}
+
+// ============================================
+// Contract Page Wrapper
+// ============================================
+.contract-page {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  // Enhanced Cards
+  .card {
+    background: var(--bo-card-bg);
+    border: 1px solid var(--bo-card-border);
+    border-radius: var(--bo-border-radius);
+    box-shadow: var(--bo-shadow-md);
+    transition: var(--bo-transition);
+    overflow: hidden;
+
+    &:hover {
+      box-shadow: var(--bo-shadow-lg), var(--bo-shadow-glow);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      background: linear-gradient(135deg,
+        rgba(var(--bo-primary-rgb), 0.05) 0%,
+        rgba(var(--bo-info-rgb), 0.03) 100%
+      );
+      border-bottom: 1px solid var(--bo-card-border);
+      padding: 1rem 1.5rem;
+
+      h5 {
+        font-weight: 700;
+        color: var(--bo-text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        .header-icon {
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, var(--bo-primary) 0%, var(--bo-primary-light) 100%);
+          border-radius: 8px;
+          color: white;
+
+          svg {
+            width: 14px;
+            height: 14px;
+          }
+        }
+      }
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+  }
+
+  // Form Enhancements
+  .form-label {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--bo-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-control,
+  .form-select {
+    border-radius: var(--bo-border-radius-sm);
+    border: 1.5px solid rgba(var(--bo-primary-rgb), 0.15);
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    transition: var(--bo-transition);
+    background: var(--bo-glass-bg);
+
+    &:focus {
+      border-color: var(--bo-primary);
+      box-shadow: 0 0 0 3px rgba(var(--bo-primary-rgb), 0.1);
+    }
+
+    &:hover:not(:focus) {
+      border-color: rgba(var(--bo-primary-rgb), 0.3);
+    }
+  }
+
+  // Monetary Fields
+  .monetary-field {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+  }
+}
+
+// ============================================
+// Angariacao Section - Highlighted
+// ============================================
+.angariacao-section {
+  position: relative;
+  background: linear-gradient(135deg,
+    rgba(var(--bo-success-rgb), 0.04) 0%,
+    rgba(var(--bo-primary-rgb), 0.04) 100%
+  );
+  border: 1px solid rgba(var(--bo-success-rgb), 0.15);
+  border-radius: var(--bo-border-radius);
+  padding: 1.25rem;
+  margin: 0.5rem 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--bo-success) 0%, var(--bo-primary) 100%);
+    border-radius: 4px 0 0 4px;
+  }
+
+  .angariacao-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px dashed rgba(var(--bo-success-rgb), 0.2);
+
+    .angariacao-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--bo-success) 0%, #059669 100%);
+      border-radius: 10px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(var(--bo-success-rgb), 0.3);
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .angariacao-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--bo-text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .angariacao-badge {
+      margin-left: auto;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+
+      &.badge-sim {
+        background: linear-gradient(135deg, var(--bo-success) 0%, #059669 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(var(--bo-success-rgb), 0.3);
+      }
+
+      &.badge-nao {
+        background: rgba(var(--bo-text-muted), 0.1);
+        color: var(--bo-text-muted);
+      }
+    }
+  }
+
+  .angariacao-fields {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .field-group {
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: var(--bo-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+
+      .field-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(var(--bo-success-rgb), 0.1);
+        border-radius: 6px;
+        color: var(--bo-success);
+
+        svg {
+          width: 12px;
+          height: 12px;
+        }
+      }
+    }
+
+    .form-control,
+    .form-select {
+      background: white;
+      border-color: rgba(var(--bo-success-rgb), 0.2);
+
+      &:focus {
+        border-color: var(--bo-success);
+        box-shadow: 0 0 0 3px rgba(var(--bo-success-rgb), 0.1);
+      }
+    }
+  }
+
+  // Status Select Styling
+  .status-select {
+    position: relative;
+
+    .form-select {
+      padding-left: 2.5rem;
+      font-weight: 600;
+
+      &.status-sim {
+        background-color: rgba(var(--bo-success-rgb), 0.08);
+        border-color: var(--bo-success);
+        color: var(--bo-success);
+      }
+
+      &.status-nao {
+        background-color: rgba(var(--bo-text-muted), 0.05);
+      }
+    }
+
+    .status-indicator {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      z-index: 1;
+
+      &.indicator-sim {
+        background: var(--bo-success);
+        box-shadow: 0 0 8px rgba(var(--bo-success-rgb), 0.5);
+      }
+
+      &.indicator-nao {
+        background: var(--bo-text-muted);
+      }
+    }
+  }
+}
+
+// Dark Mode Adjustments
+.dark-style {
+  .angariacao-section {
+    background: linear-gradient(135deg,
+      rgba(var(--bo-success-rgb), 0.08) 0%,
+      rgba(var(--bo-primary-rgb), 0.08) 100%
+    );
+    border-color: rgba(var(--bo-success-rgb), 0.2);
+
+    .field-group {
+      .form-control,
+      .form-select {
+        background: rgba(30, 32, 47, 0.8);
+      }
+    }
+  }
+}
+
+// ============================================
+// Button Enhancements
+// ============================================
+.contract-page {
+  .btn-success {
+    background: linear-gradient(135deg, var(--bo-success) 0%, #059669 100%);
+    border: none;
+    border-radius: var(--bo-border-radius-sm);
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 15px rgba(var(--bo-success-rgb), 0.3);
+    transition: var(--bo-transition);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(var(--bo-success-rgb), 0.4);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}

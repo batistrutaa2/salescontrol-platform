@@ -3,7 +3,7 @@
 @section('title', 'Gestão de contrato')
 
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.scss', 'resources/assets/vendor/libs/select2/select2.scss'])
+    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.scss', 'resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/scss/pages/backoffice-contract.scss'])
 @endsection
 
 @section('vendor-script')
@@ -54,13 +54,23 @@
         </div>
     @endif
 
-    <div class="row g-4">
+    <div class="row g-4 contract-page">
 
         {{-- COLUNA ESQUERDA: Apólice + Empresa --}}
         <div class="col-12 col-xl-5">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header bg-light py-2">
-                    <h5 class="mb-0">Dados da Apólice</h5>
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5>
+                        <span class="header-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                        </span>
+                        Dados da Apólice
+                    </h5>
                 </div>
 
 
@@ -155,15 +165,73 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Taxa de Angaricação</label>
-                            <input type="text" class="form-control monetary-field" name="angariacao_valor"
-                                value="{{ number_format((float) $contract->angariacao_valor, 2, ',', '.') }}">
-                        </div>
-
-                        <div class="col-md-6">
                             <label class="form-label">Número de Vidas</label>
                             <input type="number" class="form-control" name="vidas"
                                 value="{{ (int) $contract->vidas }}">
+                        </div>
+
+                        {{-- Seção de Angariação Destacada --}}
+                        <div class="col-12">
+                            <div class="angariacao-section">
+                                <div class="angariacao-header">
+                                    <div class="angariacao-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="angariacao-title">Comissão de Angariação</span>
+                                    <span class="angariacao-badge {{ ($contract->angariacao_status ?? 'NAO') === 'SIM' ? 'badge-sim' : 'badge-nao' }}" id="angariacao-badge">
+                                        {{ ($contract->angariacao_status ?? 'NAO') === 'SIM' ? 'Ativo' : 'Inativo' }}
+                                    </span>
+                                </div>
+                                <div class="angariacao-fields">
+                                    <div class="field-group">
+                                        <label class="field-label">
+                                            <span class="field-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                                                </svg>
+                                            </span>
+                                            Taxa de Angariação
+                                        </label>
+                                        <input type="text" class="form-control monetary-field" name="angariacao_valor"
+                                            value="{{ number_format((float) $contract->angariacao_valor, 2, ',', '.') }}"
+                                            placeholder="R$ 0,00">
+                                    </div>
+                                    <div class="field-group status-select">
+                                        <label class="field-label">
+                                            <span class="field-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                                </svg>
+                                            </span>
+                                            Aplicar Angariação?
+                                        </label>
+                                        <span class="status-indicator {{ ($contract->angariacao_status ?? 'NAO') === 'SIM' ? 'indicator-sim' : 'indicator-nao' }}" id="status-indicator"></span>
+                                        <select id="angariacao_status" name="angariacao_status"
+                                            class="form-select {{ ($contract->angariacao_status ?? 'NAO') === 'SIM' ? 'status-sim' : 'status-nao' }}">
+                                            <option value="NAO" {{ ($contract->angariacao_status ?? 'NAO') === 'NAO' ? 'selected' : '' }}>NÃO</option>
+                                            <option value="SIM" {{ ($contract->angariacao_status ?? '') === 'SIM' ? 'selected' : '' }}>SIM</option>
+                                        </select>
+                                    </div>
+                                    <div class="field-group">
+                                        <label class="field-label">
+                                            <span class="field-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                                </svg>
+                                            </span>
+                                            Tipo de Comissão
+                                        </label>
+                                        <input type="text" class="form-control" value="Regra Supermed / Administrativa" readonly disabled>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="col-12">
@@ -172,7 +240,14 @@
                         </div>
 
                         <div class="d-flex mt-3">
-                            <button class="btn btn-success ms-auto px-4">💾 Atualizar Contrato</button>
+                            <button class="btn btn-success ms-auto px-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                                Atualizar Contrato
+                            </button>
                         </div>
                     </form>
                 </div>
