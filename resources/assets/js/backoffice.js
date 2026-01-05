@@ -1,24 +1,27 @@
 'use strict';
 
+/**
+ * Backoffice Kanban - Fila de Contratos
+ * Gestão visual de contratos em pipeline
+ */
+
 $(function () {
-
-    // ================= Helpers =================
-    function parseBrDateTime(str) {
-        if (!str) return null;
-        const s = String(str).trim();
-        // ISO ou YYYY-MM-DD HH:MM:SS
-        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return new Date(s.replace(' ', 'T'));
-        // BR: dd/mm/yyyy HH:MM:SS
-        const [d, t = '00:00:00'] = s.split(' ');
-        const [day, month, year] = (d || '').split('/').map(Number);
-        const [hour, minute, second = 0] = (t || '').split(':').map(Number);
-        return new Date(year, (month || 1) - 1, day || 1, hour || 0, minute || 0, second || 0);
-    }
-
+    // =============================================================================
+    // Helpers
+    // =============================================================================
     function escapeHtml(s) {
         return String(s || '')
-            .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
-            .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value || 0);
     }
 
     function truncate(s, n) {
@@ -26,216 +29,838 @@ $(function () {
         return s.length <= n ? s : s.slice(0, n) + '…';
     }
 
-    function initTooltipsInTable() {
-        const tableEl = document.querySelector('.datatables-ajax');
-        if (!tableEl) return;
-        const els = [].slice.call(tableEl.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        els.forEach(el => new bootstrap.Tooltip(el, { container: tableEl }));
-    }
+    // =============================================================================
+    // Kanban Manager
+    // =============================================================================
+    const KanbanContratos = {
+        data: null,
+        sortableInstances: [],
+        statusConfirmed: false,
+        draggedItem: null,
+        draggedFromColumn: null,
 
-    let table;
-
-    // ====== Filtro customizado (STATUS + MÊS/ANO baseado em created_at) ======
-    $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
-        if (!table || settings.nTable !== table.table().node()) return true;
-
-        const row = table.row(dataIndex).data() || {};
-        const statusSel = ($('#status_filter').val() || '').toString().trim().toUpperCase();
-        const mesSel = parseInt($('#periodo_mes').val(), 10);
-        const anoSel = parseInt($('#periodo_ano').val(), 10);
-
-        if (statusSel && (String(row.descricao || '').toUpperCase() !== statusSel)) return false;
-
-        if (mesSel || anoSel) {
-            const dt = parseBrDateTime(row.created_at);
-            if (!(dt instanceof Date) || isNaN(dt)) return false;
-            if (mesSel && (dt.getMonth() + 1) !== mesSel) return false;
-            if (anoSel && dt.getFullYear() !== anoSel) return false;
-        }
-
-        return true;
-    });
-
-    // ================= DataTable =================
-    table = $('.datatables-ajax').DataTable({
-        processing: true,
-        serverSide: false,
-        searching: true,
-        ordering: false,
-        ajax: {
-            url: '/back-office/lista-vendas-filtro',
-            dataSrc: 'data'
+        async init() {
+            await this.loadContratos();
+            this.initFilters();
+            this.initEventListeners();
         },
-        rowCallback: function (row, data) {
-            const role = data.descricao || '';
-            const updatedAt = parseBrDateTime(data.updated_at);
-            let overdue = false;
 
-            if (updatedAt && !isNaN(updatedAt)) {
-                const diffHours = (new Date() - updatedAt) / 36e5;
-                const diffDays = diffHours / 24;
-                if (role === 'ANALISE DOCUMENTO' && diffHours > 48) overdue = true;
-                else if (role === 'ANALISE OPERADORA' && diffDays > 10) overdue = true;
-                else if (role === 'PENDENCIA' && diffHours > 48) overdue = true;
+        async loadContratos() {
+            try {
+                $('#kanban-loading').show();
+                $('#kanban-board').hide();
+
+                const params = new URLSearchParams();
+                const vendedor = $('#filter-vendedor').val();
+                const mes = $('#filter-mes').val();
+                const ano = $('#filter-ano').val();
+                const busca = $('#filter-busca').val();
+
+                if (vendedor) params.append('vendedor_id', vendedor);
+                if (busca) params.append('busca', busca);
+
+                // Calcular datas baseado em mês/ano
+                if (mes && ano) {
+                    const startDate = `${ano}-${String(mes).padStart(2, '0')}-01`;
+                    const lastDay = new Date(ano, mes, 0).getDate();
+                    const endDate = `${ano}-${String(mes).padStart(2, '0')}-${lastDay}`;
+                    params.append('data_inicio', startDate);
+                    params.append('data_fim', endDate);
+                } else if (ano) {
+                    params.append('data_inicio', `${ano}-01-01`);
+                    params.append('data_fim', `${ano}-12-31`);
+                }
+
+                const url = `/back-office/pipeline-data${params.toString() ? '?' + params.toString() : ''}`;
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    this.data = result;
+                    this.renderBoard(result.pipeline);
+                    this.populateVendedorFilter(result.vendedores);
+                    this.initDragDrop();
+                } else {
+                    throw new Error(result.message || 'Erro ao carregar dados');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contratos:', error);
+                Swal.fire({
+                    title: 'Erro',
+                    text: 'Não foi possível carregar os contratos.',
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    customClass: { confirmButton: 'btn btn-primary' },
+                    buttonsStyling: false
+                });
+            } finally {
+                $('#kanban-loading').hide();
+                $('#kanban-board').show();
+            }
+        },
+
+        renderBoard(pipeline) {
+            const board = $('#kanban-board');
+            board.empty();
+
+            // Destroy existing sortable instances
+            this.sortableInstances.forEach(instance => instance.destroy());
+            this.sortableInstances = [];
+
+            pipeline.forEach(status => {
+                const isExit = ['ESTORNO', 'DECLINADO'].includes(status.nome);
+                const columnClass = isExit ? 'column-exit' : '';
+
+                const columnHtml = `
+                    <div class="kanban-column ${columnClass}" data-status-id="${status.id}">
+                        <div class="kanban-column-header">
+                            <div class="column-header-content">
+                                <span class="status-indicator" style="background: ${status.cor}; box-shadow: 0 0 8px ${status.cor};"></span>
+                                <span class="status-name" title="${escapeHtml(status.nome)}">${this.formatStatusName(status.nome)}</span>
+                                <span class="status-count">${status.quantidade}</span>
+                                ${status.atrasados > 0 ? `
+                                    <span class="status-atrasados" title="${status.atrasados} contrato(s) atrasado(s)">
+                                        <i class="ri-alarm-warning-line"></i>
+                                        ${status.atrasados}
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="kanban-column-body" data-status="${status.id}">
+                            ${status.contratos && status.contratos.length > 0
+                        ? status.contratos.map(c => this.renderCard(c, status.cor)).join('')
+                        : `<div class="kanban-column-empty">
+                                        <i class="ri-inbox-line"></i>
+                                        <span>Nenhum contrato</span>
+                                    </div>`
+                    }
+                        </div>
+                    </div>
+                `;
+
+                board.append(columnHtml);
+            });
+        },
+
+        formatStatusName(name) {
+            const shortNames = {
+                'ANALISE DE DOCUMENTOS': 'ANÁLISE DOCS',
+                'ANALISE OPERADORA': 'ANÁLISE OPER.',
+                'CONTR. GERADO - AGUARDANDO ASSINATURA': 'CONTR. GERADO',
+                'AGUARD. ASSINATURA DA DS': 'AGUARD. DS',
+                'BOLETO DISPONIVEL': 'BOLETO DISP.',
+            };
+            return shortNames[name] || name;
+        },
+
+        renderCard(contract, statusColor) {
+            const atrasadoClass = contract.atrasado ? 'card-atrasado' : '';
+            const diasNoStatus = Math.floor(contract.dias_no_status || 0);
+            const tempoLabel = diasNoStatus === 1 ? '1 dia' : `${diasNoStatus} dias`;
+
+            // Prazo restante (se houver)
+            let prazoHtml = '';
+            const prazoMaximo = Math.floor(contract.prazo_maximo || 0);
+            if (prazoMaximo && !contract.atrasado) {
+                const restante = prazoMaximo - diasNoStatus;
+                if (restante > 0) {
+                    prazoHtml = `<span class="tempo-status" style="color: var(--kb-warning);">
+                        <i class="ri-timer-line"></i> ${restante}d restantes
+                    </span>`;
+                }
+            } else if (contract.atrasado) {
+                const atraso = diasNoStatus - prazoMaximo;
+                prazoHtml = `<span class="tempo-status atrasado">
+                    <i class="ri-alarm-warning-line"></i> ${atraso}d atrasado
+                </span>`;
             }
 
-            if (overdue) $('td', row).css({ color: '#dc3545', 'font-weight': '700' });
-            else $('td', row).css({ color: '', 'font-weight': '' });
-        },
-        columns: [
-            { data: 'id' },
-            { data: 'name' },
-            { data: 'nome_contrato' },
-            {
-                data: 'descricao',
-                render: function (data, type, full) {
-                    const role = full.descricao || '';
-                    const updatedAt = parseBrDateTime(full.updated_at);
-                    let diffHours = 0, diffDays = 0;
-
-                    if (updatedAt && !isNaN(updatedAt)) {
-                        const now = new Date();
-                        diffHours = (now - updatedAt) / 36e5;
-                        diffDays = diffHours / 24;
-                    }
-
-                    let overdue = false;
-                    if (role === 'ANALISE DOCUMENTO' && diffHours > 48) overdue = true;
-                    else if (role === 'ANALISE OPERADORA' && diffDays > 10) overdue = true;
-                    else if (role === 'PENDENCIA' && diffHours > 48) overdue = true;
-
-                    const roleBadgeObj = {
-                        'IMPLANTADO': '<i class="ri-user-line ri-22px text-primary me-2"></i>',
-                        'VENDA': '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
-                        'ESTORNO': '<i class="ri-computer-line ri-22px text-danger me-2"></i>',     // fixo vermelho
-                        'DEVELOPER': '<i class="ri-vip-crown-line ri-22px text-warning me-2"></i>',
-                        'DECLINADO': '<i class="ri-close-circle-line ri-22px text-danger me-2"></i>', // fixo vermelho
-                        'ANALISE DOCUMENTO': '<i class="ri-file-search-line ri-22px me-2"></i>',
-                        'ANALISE OPERADORA': '<i class="ri-building-line ri-22px me-2"></i>',
-                        'PENDENCIA': '<i class="ri-error-warning-line ri-22px text-warning me-2"></i>' // fixo amarelo
-                    };
-
-                    let icon = roleBadgeObj[role] || '<i class="ri-time-line ri-22px text-secondary me-2"></i>';
-
-                    // só pinta de vermelho por atraso quando NÃO for pendência/estorno/declinado
-                    if (!['PENDENCIA', 'ESTORNO', 'DECLINADO'].includes(role) && overdue) {
-                        icon = icon
-                            .replace('ri-22px', 'ri-22px text-danger')
-                            .replace('text-secondary', 'text-danger')
-                            .replace('text-primary', 'text-danger')
-                            .replace('text-success', 'text-danger')
-                            .replace('text-warning', 'text-danger')
-                            .replace('text-danger text-danger', 'text-danger');
-                    }
-
-                    // estes 3 têm motivo -> o ÚNICO ícone vira botão clicável (tooltip + SweetAlert)
-                    if (['PENDENCIA', 'DECLINADO', 'ESTORNO'].includes(role)) {
-                        const motivoFull = full.motivo_pendencia || 'Motivo não informado';
-                        const motivoEsc = escapeHtml(motivoFull);
-                        const resumoEsc = escapeHtml(truncate(motivoFull, 140));
-
-                        return `
-                        <span class="text-truncate d-flex align-items-center text-heading">
-                        <button type="button"
-                                class="btn p-0 border-0 bg-transparent js-view-motivo"
-                                aria-label="Ver motivo"
-                                data-motivo="${motivoEsc}"
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="${resumoEsc}">
-                            ${icon}
-                        </button>
-                        <span class="ms-1">${role}</span>
-                        </span>`;
-                    }
-
-                    // demais status: ícone estático + texto
-                    return `<span class="text-truncate d-flex align-items-center text-heading">${icon}${role}</span>`;
-                }
-            },
-            {
-                data: 'valor_contrato',
-                render: function (data) {
-                    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data);
-                }
-            },
-            { data: 'created_at' },
-            {
-                data: 'prazo',
-                render: function (data) {
-                    const icon = '<i class="ri-time-fill ri-16px text-muted ms-1"></i>';
-                    return data ? `${data} ${icon}` : `N/A ${icon}`;
-                }
-            },
-            { data: 'updated_at' },
-            {
-                data: 'id',
-                render: function (data, type, full) {
-                    let actions =
-                        '<div class="d-flex align-items-center">' +
-                        '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line ri-22px"></i></button>' +
-                        '<div class="dropdown-menu dropdown-menu-end m-0">' +
-                        '<a href="/back-office/abrir-contrato/' + full['id'] + '" class="dropdown-item"><i class="ri-edit-box-line me-2"></i><span>Ver contrato</span></a>' +
-                        '<button type="button" class="dropdown-item js-alterar-status" data-bs-toggle="modal" data-bs-target="#modalcomments" data-id="' + full['id'] + '">' +
-                        '<i class="ri-arrow-left-right-fill me-2"></i><span>Alterar Status</span>' +
-                        '</button>';
-
-                    if (full['descricao'] === 'IMPLANTADO') {
-                        actions += '<a href="/back-office/comprovante/' + full['id'] + '" class="dropdown-item"><i class="ri-download-line me-2"></i><span>Baixar comprovante</span></a>';
-                        actions += '<button type="button" class="dropdown-item js-gerar-recebivel" data-id="' + full['id'] + '" data-nome="' + escapeHtml(full['nome_contrato']) + '">' +
-                            '<i class="ri-money-dollar-circle-line me-2"></i><span>Gerar Recebíveis</span>' +
-                            '</button>';
-                    }
-
-                    actions +=
-                        '<a href="/back-office/deletar-contrato/' + full['id'] + '" class="dropdown-item"><i class="ri-delete-bin-line me-2"></i><span>Excluir</span></a>' +
-                        '</div>' +
-                        '</div>';
-                    return actions;
-                }
+            // Motivo pendência
+            let motivoHtml = '';
+            if (contract.motivo_pendencia) {
+                motivoHtml = `
+                    <div class="motivo-badge js-view-motivo" data-motivo="${escapeHtml(contract.motivo_pendencia)}" title="Clique para ver o motivo">
+                        <i class="ri-error-warning-line"></i>
+                        <span>${truncate(contract.motivo_pendencia, 60)}</span>
+                    </div>
+                `;
             }
-        ],
-        // reativa tooltips após cada draw
-        drawCallback: function () {
-            initTooltipsInTable();
-            updateMetrics();
+
+            return `
+                <div class="kanban-card ${atrasadoClass}"
+                     data-id="${contract.id}"
+                     data-venda-id="${contract.venda_id || contract.id}"
+                     data-contato-id="${contract.contato_id || ''}"
+                     style="--card-status-color: ${statusColor};">
+                    ${contract.atrasado ? '<i class="ri-alarm-warning-fill atrasado-icon"></i>' : ''}
+
+                    <div class="card-header-kb">
+                        <span class="operadora-badge" title="${escapeHtml(contract.operadora || 'N/A')}">
+                            ${escapeHtml(contract.operadora || 'N/A')}
+                        </span>
+                        <div class="card-dropdown">
+                            <button type="button" class="btn-action js-toggle-dropdown">
+                                <i class="ri-more-2-fill"></i>
+                            </button>
+                            <div class="dropdown-menu-card">
+                                <a href="/back-office/abrir-contrato/${contract.id}" class="dropdown-item-card">
+                                    <i class="ri-eye-line"></i>
+                                    Ver Contrato
+                                </a>
+                                <button type="button" class="dropdown-item-card js-alterar-status" data-id="${contract.id}">
+                                    <i class="ri-arrow-left-right-fill"></i>
+                                    Alterar Status
+                                </button>
+                                <button type="button" class="dropdown-item-card js-ver-historico" data-id="${contract.id}">
+                                    <i class="ri-history-line"></i>
+                                    Histórico
+                                </button>
+                                <div class="dropdown-divider"></div>
+                                ${contract.atrasado === false && contract.dias_no_status !== undefined ? `
+                                    <button type="button" class="dropdown-item-card text-success js-gerar-recebivel"
+                                            data-id="${contract.id}"
+                                            data-nome="${escapeHtml(contract.nome_contrato)}">
+                                        <i class="ri-money-dollar-circle-line"></i>
+                                        Gerar Recebíveis
+                                    </button>
+                                ` : ''}
+                                <a href="/back-office/comprovante/${contract.id}" class="dropdown-item-card" target="_blank">
+                                    <i class="ri-download-line"></i>
+                                    Baixar Comprovante
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a href="/back-office/deletar-contrato/${contract.id}"
+                                   class="dropdown-item-card text-danger js-delete-contract"
+                                   data-id="${contract.id}"
+                                   data-nome="${escapeHtml(contract.nome_contrato)}">
+                                    <i class="ri-delete-bin-line"></i>
+                                    Excluir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body-kb">
+                        <div class="contract-name" title="${escapeHtml(contract.nome_contrato)}">
+                            ${escapeHtml(contract.nome_contrato || 'Sem nome')}
+                        </div>
+                        ${contract.numero_proposta ? `
+                            <div class="contract-cpf">#${escapeHtml(contract.numero_proposta)}</div>
+                        ` : ''}
+                    </div>
+
+                    ${motivoHtml}
+
+                    <div class="card-info-kb">
+                        <span class="info-item valor">
+                            <i class="ri-money-dollar-circle-line"></i>
+                            ${formatCurrency(contract.valor)}
+                        </span>
+                    </div>
+
+                    <div class="card-footer-kb">
+                        <span class="tempo-status ${contract.atrasado ? 'atrasado' : ''}">
+                            <i class="ri-time-line"></i>
+                            ${tempoLabel}
+                        </span>
+                        ${prazoHtml}
+                        <span class="vendedor-badge" title="${escapeHtml(contract.vendedor || 'N/A')}">
+                            <i class="ri-user-line"></i>
+                            <span>${truncate(contract.vendedor || 'N/A', 15)}</span>
+                        </span>
+                    </div>
+                </div>
+            `;
+        },
+
+        populateVendedorFilter(vendedores) {
+            const select = $('#filter-vendedor');
+            const currentValue = select.val();
+
+            select.find('option:not(:first)').remove();
+
+            if (vendedores && vendedores.length) {
+                vendedores.forEach(v => {
+                    select.append(`<option value="${v.id}">${escapeHtml(v.name)}</option>`);
+                });
+            }
+
+            if (currentValue) {
+                select.val(currentValue);
+            }
+        },
+
+        initDragDrop() {
+            const self = this;
+
+            document.querySelectorAll('.kanban-column-body').forEach(column => {
+                const sortable = new Sortable(column, {
+                    group: 'contratos',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    dragClass: 'sortable-drag',
+                    filter: '.kanban-column-empty',
+                    onStart: function (evt) {
+                        self.draggedItem = evt.item;
+                        self.draggedFromColumn = evt.from;
+
+                        // Remove empty state from all columns
+                        document.querySelectorAll('.kanban-column-empty').forEach(el => {
+                            el.style.display = 'none';
+                        });
+                    },
+                    onEnd: function (evt) {
+                        self.handleDrop(evt);
+
+                        // Restore empty states where needed
+                        document.querySelectorAll('.kanban-column-body').forEach(col => {
+                            if (col.querySelectorAll('.kanban-card').length === 0) {
+                                let emptyEl = col.querySelector('.kanban-column-empty');
+                                if (!emptyEl) {
+                                    emptyEl = document.createElement('div');
+                                    emptyEl.className = 'kanban-column-empty';
+                                    emptyEl.innerHTML = '<i class="ri-inbox-line"></i><span>Nenhum contrato</span>';
+                                    col.appendChild(emptyEl);
+                                }
+                                emptyEl.style.display = 'flex';
+                            }
+                        });
+                    }
+                });
+
+                self.sortableInstances.push(sortable);
+            });
+        },
+
+        // IDs dos status que requerem modal (IMPLANTADO=18, PENDENCIA=55)
+        statusComModal: [18, 55],
+
+        handleDrop(evt) {
+            const cardId = evt.item.dataset.id;
+            const newStatusId = parseInt(evt.to.dataset.status);
+            const oldStatusId = parseInt(evt.from.dataset.status);
+
+            if (newStatusId === oldStatusId) {
+                return;
+            }
+
+            // Store event info for potential revert
+            this.lastDropEvent = evt;
+            this.statusConfirmed = false;
+
+            // Verificar se o status de destino requer modal
+            if (this.statusComModal.includes(newStatusId)) {
+                // Abrir modal para status que requerem dados adicionais
+                $('#idSale').val(cardId);
+                $('#label').val(newStatusId).trigger('change');
+                $('#modalcomments').modal('show');
+
+                // Listen for modal close
+                const self = this;
+                $('#modalcomments').one('hidden.bs.modal', function () {
+                    if (!self.statusConfirmed) {
+                        // Revert: move card back to original column
+                        if (self.lastDropEvent) {
+                            self.lastDropEvent.from.appendChild(self.lastDropEvent.item);
+                            self.updateColumnCounts();
+                        }
+                    }
+                    self.statusConfirmed = false;
+                    self.lastDropEvent = null;
+                });
+            } else {
+                // Mudança rápida de status (sem modal)
+                this.quickStatusChange(cardId, newStatusId, evt);
+            }
+        },
+
+        async quickStatusChange(vendaId, tabulacaoId, evt) {
+            const self = this;
+
+            try {
+                // Mostrar loading no card
+                const card = evt.item;
+                card.style.opacity = '0.6';
+                card.style.pointerEvents = 'none';
+
+                const response = await fetch('/back-office/quick-status-change', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        venda_id: vendaId,
+                        tabulacao_id: tabulacaoId,
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Sucesso - atualizar contadores
+                    self.statusConfirmed = true;
+                    self.updateColumnCounts();
+
+                    // Toast de sucesso
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: result.message || 'Status atualizado!',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true,
+                    });
+                } else {
+                    // Erro - reverter card
+                    if (evt.from) {
+                        evt.from.appendChild(evt.item);
+                        self.updateColumnCounts();
+                    }
+
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'error',
+                        title: result.message || 'Erro ao atualizar status',
+                        showConfirmButton: false,
+                        timer: 3000,
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar status:', error);
+
+                // Reverter card
+                if (evt.from) {
+                    evt.from.appendChild(evt.item);
+                    self.updateColumnCounts();
+                }
+
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: 'Erro de conexão',
+                    showConfirmButton: false,
+                    timer: 3000,
+                });
+            } finally {
+                // Restaurar card
+                const card = evt.item;
+                card.style.opacity = '1';
+                card.style.pointerEvents = 'auto';
+                self.lastDropEvent = null;
+            }
+        },
+
+        updateColumnCounts() {
+            document.querySelectorAll('.kanban-column').forEach(column => {
+                const count = column.querySelectorAll('.kanban-card').length;
+                const countEl = column.querySelector('.status-count');
+                if (countEl) {
+                    countEl.textContent = count;
+                }
+            });
+        },
+
+        confirmStatusChange() {
+            this.statusConfirmed = true;
+        },
+
+        initFilters() {
+            const self = this;
+            let debounceTimer;
+
+            // Debounced search
+            $('#filter-busca').on('input', function () {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    self.loadContratos();
+                }, 500);
+            });
+
+            // Immediate filters
+            $('#filter-vendedor, #filter-mes, #filter-ano').on('change', function () {
+                self.loadContratos();
+            });
+
+            // Clear filters
+            $('#btn-clear-filters').on('click', function () {
+                $('#filter-vendedor').val('');
+                $('#filter-mes').val('');
+                $('#filter-ano').val('');
+                $('#filter-busca').val('');
+                self.loadContratos();
+            });
+        },
+
+        initEventListeners() {
+            const self = this;
+
+            // Dropdown toggle
+            $(document).on('click', '.js-toggle-dropdown', function (e) {
+                e.stopPropagation();
+                const dropdown = $(this).siblings('.dropdown-menu-card');
+
+                // Close other dropdowns
+                $('.dropdown-menu-card.show').not(dropdown).removeClass('show');
+
+                dropdown.toggleClass('show');
+            });
+
+            // Close dropdown when clicking outside
+            $(document).on('click', function () {
+                $('.dropdown-menu-card.show').removeClass('show');
+            });
+
+            // Prevent dropdown close when clicking inside
+            $(document).on('click', '.dropdown-menu-card', function (e) {
+                e.stopPropagation();
+            });
+
+            // Alterar status button
+            $(document).on('click', '.js-alterar-status', function () {
+                const id = $(this).data('id');
+                $('#idSale').val(id);
+                $('.dropdown-menu-card.show').removeClass('show');
+                $('#modalcomments').modal('show');
+            });
+
+            // View motivo
+            $(document).on('click', '.js-view-motivo', function (e) {
+                e.stopPropagation();
+                const motivo = $(this).data('motivo') || 'Motivo não informado';
+                Swal.fire({
+                    title: '<i class="ri-error-warning-line text-warning"></i> Motivo',
+                    html: `<div class="text-start" style="white-space:pre-wrap">${escapeHtml(motivo)}</div>`,
+                    width: 600,
+                    confirmButtonText: 'Fechar',
+                    customClass: { confirmButton: 'btn btn-secondary' },
+                    buttonsStyling: false
+                });
+            });
+
+            // Ver histórico
+            $(document).on('click', '.js-ver-historico', function () {
+                const id = $(this).data('id');
+                $('.dropdown-menu-card.show').removeClass('show');
+                self.loadHistorico(id);
+            });
+
+            // Delete contract
+            $(document).on('click', '.js-delete-contract', function (e) {
+                e.preventDefault();
+                const id = $(this).data('id');
+                const nome = $(this).data('nome');
+                const href = $(this).attr('href');
+
+                $('.dropdown-menu-card.show').removeClass('show');
+
+                Swal.fire({
+                    title: 'Excluir Contrato?',
+                    html: `<p>Tem certeza que deseja excluir o contrato:</p><p class="fw-bold text-danger">"${escapeHtml(nome)}"</p><p class="text-muted small">Esta ação não pode ser desfeita.</p>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="ri-delete-bin-line me-1"></i> Excluir',
+                    cancelButtonText: 'Cancelar',
+                    customClass: {
+                        confirmButton: 'btn btn-danger me-2',
+                        cancelButton: 'btn btn-secondary'
+                    },
+                    buttonsStyling: false,
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = href;
+                    }
+                });
+            });
+
+            // Gerar recebível
+            $(document).on('click', '.js-gerar-recebivel', function () {
+                const vendaId = $(this).data('id');
+                const nomeContrato = $(this).data('nome') || 'este contrato';
+
+                $('.dropdown-menu-card.show').removeClass('show');
+
+                self.gerarRecebivel(vendaId, nomeContrato);
+            });
+
+            // Form submit - mark as confirmed
+            $('#transferLead').on('submit', function () {
+                self.confirmStatusChange();
+            });
+        },
+
+        async loadHistorico(vendaId) {
+            try {
+                Swal.fire({
+                    title: 'Carregando...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const response = await fetch(`/back-office/historico/${vendaId}`);
+                const result = await response.json();
+
+                Swal.close();
+
+                if (result.success) {
+                    this.renderHistorico(result);
+                    $('#modalHistorico').modal('show');
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Erro',
+                    text: 'Não foi possível carregar o histórico.',
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    customClass: { confirmButton: 'btn btn-primary' },
+                    buttonsStyling: false
+                });
+            }
+        },
+
+        renderHistorico(data) {
+            const { venda, historico } = data;
+
+            let html = `
+                <div class="p-4">
+                    <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${escapeHtml(venda.nome_contrato)}</h6>
+                            <small class="text-muted">
+                                ${venda.numero_proposta ? `Proposta: ${escapeHtml(venda.numero_proposta)} | ` : ''}
+                                ${escapeHtml(venda.operadora || 'N/A')}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-primary">${formatCurrency(venda.valor_contrato)}</div>
+                            <small class="text-muted">Criado em ${venda.data_criacao}</small>
+                        </div>
+                    </div>
+            `;
+
+            if (historico && historico.length > 0) {
+                html += '<div class="timeline-historico">';
+                historico.forEach((h, index) => {
+                    html += `
+                        <div class="timeline-item ${index === 0 ? 'active' : ''}">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <span class="badge bg-label-primary">${escapeHtml(h.status_novo)}</span>
+                                    <small class="text-muted">${h.data}</small>
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    De: <span class="text-secondary">${escapeHtml(h.status_anterior)}</span>
+                                </div>
+                                <div class="small">
+                                    <i class="ri-user-line me-1"></i>
+                                    ${escapeHtml(h.usuario)}
+                                    ${h.tempo_formatado ? `<span class="text-muted ms-2">(${h.tempo_formatado})</span>` : ''}
+                                </div>
+                                ${h.motivo_pendencia ? `
+                                    <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+                                        <i class="ri-error-warning-line me-1"></i>
+                                        ${escapeHtml(h.motivo_pendencia)}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            } else {
+                html += `
+                    <div class="text-center py-4 text-muted">
+                        <i class="ri-history-line ri-3x mb-2"></i>
+                        <p>Nenhum histórico encontrado</p>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+
+            // Add timeline styles inline
+            html += `
+                <style>
+                    .timeline-historico { position: relative; padding-left: 1.5rem; }
+                    .timeline-item { position: relative; padding-bottom: 1.5rem; padding-left: 1.5rem; border-left: 2px solid #e9ecef; }
+                    .timeline-item:last-child { border-left-color: transparent; padding-bottom: 0; }
+                    .timeline-item.active .timeline-marker { background: #696cff; box-shadow: 0 0 0 4px rgba(105, 108, 255, 0.2); }
+                    .timeline-marker { position: absolute; left: -0.5rem; top: 0; width: 1rem; height: 1rem; border-radius: 50%; background: #d9dee3; border: 2px solid #fff; }
+                    .timeline-content { background: #f8f9fa; border-radius: 8px; padding: 0.75rem 1rem; }
+                    .dark-style .timeline-content { background: #32334a; }
+                    .dark-style .timeline-item { border-left-color: #3b3c54; }
+                </style>
+            `;
+
+            $('#historico-content').html(html);
+        },
+
+        async gerarRecebivel(vendaId, nomeContrato) {
+            try {
+                Swal.fire({
+                    title: 'Verificando...',
+                    text: 'Consultando informações do contrato',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const checkResponse = await fetch(`/back-office/verificar-recebiveis/${vendaId}`);
+                const checkResult = await checkResponse.json();
+
+                Swal.close();
+
+                if (checkResult.possui_recebiveis) {
+                    const valorFormatado = formatCurrency(checkResult.valor_total);
+
+                    const confirmResult = await Swal.fire({
+                        title: '<i class="ri-error-warning-line text-warning"></i> Atenção!',
+                        html: `
+                            <div class="text-start">
+                                <p class="mb-3">O contrato <strong>"${escapeHtml(nomeContrato)}"</strong> já possui recebíveis cadastrados:</p>
+                                <div class="alert alert-warning d-flex align-items-center mb-3">
+                                    <i class="ri-information-line me-2 fs-4"></i>
+                                    <div>
+                                        <strong>${checkResult.quantidade} parcela(s)</strong> no valor total de <strong>${valorFormatado}</strong>
+                                    </div>
+                                </div>
+                                <p class="text-primary fw-bold mb-2">
+                                    <i class="ri-refresh-line me-1"></i>
+                                    Os valores serão ATUALIZADOS conforme as regras de comissionamento atuais.
+                                </p>
+                            </div>
+                        `,
+                        icon: null,
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="ri-refresh-line me-1"></i> Atualizar Recebíveis',
+                        cancelButtonText: 'Cancelar',
+                        customClass: {
+                            confirmButton: 'btn btn-warning me-2',
+                            cancelButton: 'btn btn-secondary'
+                        },
+                        buttonsStyling: false,
+                        reverseButtons: true
+                    });
+
+                    if (confirmResult.isConfirmed) {
+                        await this.executarGeracaoRecebiveis(vendaId, nomeContrato);
+                    }
+                } else {
+                    const confirmResult = await Swal.fire({
+                        title: 'Gerar Recebíveis',
+                        html: `
+                            <div class="text-start">
+                                <p>Deseja gerar os recebíveis para o contrato:</p>
+                                <p class="fw-bold text-primary">"${escapeHtml(nomeContrato)}"</p>
+                                <p class="text-muted small mt-3">Os recebíveis serão gerados com base nas regras de comissionamento configuradas.</p>
+                            </div>
+                        `,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="ri-check-line me-1"></i> Gerar Recebíveis',
+                        cancelButtonText: 'Cancelar',
+                        customClass: {
+                            confirmButton: 'btn btn-success me-2',
+                            cancelButton: 'btn btn-secondary'
+                        },
+                        buttonsStyling: false,
+                        reverseButtons: true
+                    });
+
+                    if (confirmResult.isConfirmed) {
+                        await this.executarGeracaoRecebiveis(vendaId, nomeContrato);
+                    }
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Erro',
+                    text: 'Não foi possível verificar os recebíveis do contrato.',
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    customClass: { confirmButton: 'btn btn-primary' },
+                    buttonsStyling: false
+                });
+            }
+        },
+
+        async executarGeracaoRecebiveis(vendaId, nomeContrato) {
+            try {
+                Swal.fire({
+                    title: 'Processando...',
+                    html: `Gerando recebíveis para <strong>"${escapeHtml(nomeContrato)}"</strong>`,
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const response = await fetch(`/back-office/gerar-recebivel/${vendaId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                let iconHtml = '<i class="ri-checkbox-circle-line text-success"></i>';
+                let alertClass = 'alert-success';
+
+                if (result.atualizados > 0 && result.criados === 0) {
+                    iconHtml = '<i class="ri-refresh-line text-warning"></i>';
+                    alertClass = 'alert-warning';
+                }
+
+                Swal.fire({
+                    title: `${iconHtml} Sucesso!`,
+                    html: `
+                        <div class="text-start">
+                            <p>${escapeHtml(result.message)}</p>
+                            <div class="alert ${alertClass} mt-3">
+                                ${result.criados > 0 ? `<div><i class="ri-add-line me-1"></i> <strong>${result.criados}</strong> parcela(s) criada(s)</div>` : ''}
+                                ${result.atualizados > 0 ? `<div><i class="ri-refresh-line me-1"></i> <strong>${result.atualizados}</strong> parcela(s) atualizada(s)</div>` : ''}
+                            </div>
+                        </div>
+                    `,
+                    icon: null,
+                    confirmButtonText: 'OK',
+                    customClass: { confirmButton: 'btn btn-success' },
+                    buttonsStyling: false
+                });
+            } catch (error) {
+                Swal.fire({
+                    title: 'Erro',
+                    text: 'Falha ao gerar recebíveis.',
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    customClass: { confirmButton: 'btn btn-primary' },
+                    buttonsStyling: false
+                });
+            }
         }
-    });
+    };
 
-    // ====== Filtros: disparam no change (sem botão Filtrar) ======
-    $('#status_filter, #periodo_mes, #periodo_ano').on('change', function () {
-        table.draw();
-    });
-
-    $('#btn_limpar_filtro').on('click', function () {
-        $('#status_filter').val('');
-        $('#periodo_mes').val('');
-        $('#periodo_ano').val('');
-        table.draw();
-    });
-
-    // ====== Modal status (mantido) ======
-    $(document).on('click', '.open-status-modal', function () {
-        const id = $(this).data('id');
-        $('#idSale').val(id);
-        $('#modalcomments').modal('show');
-    });
-
-    $(document).on('click', '.js-alterar-status', function () {
-        const id = $(this).data('id');
-        $('#idSale').val(id);
-    });
-
-    // ====== Mostrar/ocultar comprovante conforme status (mantido) ======
+    // =============================================================================
+    // Modal Status Change Logic (Existing)
+    // =============================================================================
     $(document).on('change', '#label', function () {
-        if ($(this).val() === '18') {
+        const val = $(this).val();
+
+        // IMPLANTADO (ID 18)
+        if (val === '18') {
             $('#proof-group').show();
             $('#comprovante').prop('required', true);
             $('#proof-group-data-implantacao').show();
             $('#proof-group-numero_proposta').show();
             $('#data_implantacao').prop('required', true);
             $('#numero_proposta').prop('required', true);
-            // Mostrar seção de acesso da empresa (opcional)
             $('#proof-group-acesso-empresa').slideDown(300);
         } else {
             $('#proof-group').hide();
@@ -244,12 +869,12 @@ $(function () {
             $('#proof-group-numero_proposta').hide();
             $('#data_implantacao').prop('required', false).val('');
             $('#numero_proposta').prop('required', false).val('');
-            // Ocultar e limpar campos de acesso da empresa
             $('#proof-group-acesso-empresa').slideUp(300);
             $('#acesso_email, #acesso_senha, #acesso_cpf').val('');
         }
 
-        if ($(this).val() === '55' || $(this).val() === '17' || $(this).val() === '53') {
+        // PENDÊNCIA, ESTORNO, DECLINADO (IDs 55, 17, 53)
+        if (val === '55' || val === '17' || val === '53') {
             $('#proof-group-data-pendencia').show();
             $('#data_pendencia').prop('required', true);
         } else {
@@ -257,7 +882,8 @@ $(function () {
             $('#data_pendencia').prop('required', false).val('');
         }
 
-        if ($(this).val() == '58') {
+        // BOLETO DISPONÍVEL (ID 58)
+        if (val === '58') {
             $('#proof-group-boleto-disponivel').show();
             $('#boleto_disponivel').prop('required', true);
         } else {
@@ -266,247 +892,7 @@ $(function () {
         }
     });
 
-    $(document).on('click', '.js-view-motivo', function (e) {
-        e.preventDefault();
-        const motivo = $(this).data('motivo') || 'Motivo não informado';
-        Swal.fire({
-            html: `<div class="text-start" style="white-space:pre-wrap">${escapeHtml(motivo)}</div>`,
-            icon: 'warning',
-            width: 700,
-            confirmButtonText: 'Fechar',
-            customClass: { confirmButton: 'btn btn-warning' },
-            buttonsStyling: false
-        });
-    });
-
-    // ====== Gerar Recebível para um Contrato Específico ======
-    $(document).on('click', '.js-gerar-recebivel', function () {
-        const vendaId = $(this).data('id');
-        const nomeContrato = $(this).data('nome') || 'este contrato';
-
-        // Primeiro, verificar se já existem recebíveis
-        Swal.fire({
-            title: 'Verificando...',
-            text: 'Consultando informações do contrato',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        $.ajax({
-            url: `/back-office/verificar-recebiveis/${vendaId}`,
-            method: 'GET'
-        }).then(response => {
-            Swal.close();
-
-            if (response.possui_recebiveis) {
-                // Já possui recebíveis - mostrar alerta de atualização
-                const valorFormatado = new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL'
-                }).format(response.valor_total);
-
-                Swal.fire({
-                    title: '<i class="ri-error-warning-line text-warning"></i> Atenção!',
-                    html: `
-                        <div class="text-start">
-                            <p class="mb-3">O contrato <strong>"${escapeHtml(nomeContrato)}"</strong> já possui recebíveis cadastrados:</p>
-                            <div class="alert alert-warning d-flex align-items-center mb-3">
-                                <i class="ri-information-line me-2 fs-4"></i>
-                                <div>
-                                    <strong>${response.quantidade} parcela(s)</strong> no valor total de <strong>${valorFormatado}</strong>
-                                </div>
-                            </div>
-                            <p class="text-primary fw-bold mb-2">
-                                <i class="ri-refresh-line me-1"></i>
-                                Os valores serão ATUALIZADOS conforme as regras de comissionamento atuais.
-                            </p>
-                            <p class="text-muted small">Deseja continuar?</p>
-                        </div>
-                    `,
-                    icon: null,
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="ri-refresh-line me-1"></i> Atualizar Recebíveis',
-                    cancelButtonText: 'Cancelar',
-                    customClass: {
-                        popup: 'swal-wide',
-                        confirmButton: 'btn btn-warning me-2',
-                        cancelButton: 'btn btn-secondary'
-                    },
-                    buttonsStyling: false,
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        executarGeracaoRecebiveis(vendaId, nomeContrato);
-                    }
-                });
-            } else {
-                // Não possui recebíveis - confirmação simples
-                Swal.fire({
-                    title: 'Gerar Recebíveis',
-                    html: `
-                        <div class="text-start">
-                            <p>Deseja gerar os recebíveis para o contrato:</p>
-                            <p class="fw-bold text-primary">"${escapeHtml(nomeContrato)}"</p>
-                            <p class="text-muted small mt-3">Os recebíveis serão gerados com base nas regras de comissionamento configuradas.</p>
-                        </div>
-                    `,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="ri-check-line me-1"></i> Gerar Recebíveis',
-                    cancelButtonText: 'Cancelar',
-                    customClass: {
-                        confirmButton: 'btn btn-success me-2',
-                        cancelButton: 'btn btn-secondary'
-                    },
-                    buttonsStyling: false,
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        executarGeracaoRecebiveis(vendaId, nomeContrato);
-                    }
-                });
-            }
-        }).catch(error => {
-            Swal.fire({
-                title: 'Erro',
-                text: error.responseJSON?.message || 'Não foi possível verificar os recebíveis do contrato.',
-                icon: 'error',
-                confirmButtonText: 'OK',
-                customClass: { confirmButton: 'btn btn-primary' },
-                buttonsStyling: false
-            });
-        });
-    });
-
-    // Função auxiliar para executar a geração de recebíveis
-    function executarGeracaoRecebiveis(vendaId, nomeContrato) {
-        Swal.fire({
-            title: 'Processando...',
-            html: `Gerando recebíveis para <strong>"${escapeHtml(nomeContrato)}"</strong>`,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        $.ajax({
-            url: `/back-office/gerar-recebivel/${vendaId}`,
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            }
-        }).then(response => {
-            let iconHtml = '<i class="ri-checkbox-circle-line text-success"></i>';
-            let alertClass = 'alert-success';
-
-            if (response.atualizados > 0 && response.criados === 0) {
-                iconHtml = '<i class="ri-refresh-line text-warning"></i>';
-                alertClass = 'alert-warning';
-            }
-
-            Swal.fire({
-                title: `${iconHtml} Sucesso!`,
-                html: `
-                    <div class="text-start">
-                        <p>${escapeHtml(response.message)}</p>
-                        <div class="alert ${alertClass} mt-3">
-                            ${response.criados > 0 ? `<div><i class="ri-add-line me-1"></i> <strong>${response.criados}</strong> parcela(s) criada(s)</div>` : ''}
-                            ${response.atualizados > 0 ? `<div><i class="ri-refresh-line me-1"></i> <strong>${response.atualizados}</strong> parcela(s) atualizada(s)</div>` : ''}
-                        </div>
-                    </div>
-                `,
-                icon: null,
-                confirmButtonText: 'OK',
-                customClass: { confirmButton: 'btn btn-success' },
-                buttonsStyling: false
-            });
-
-            // Atualizar tabela
-            table.ajax.reload();
-        }).catch(error => {
-            Swal.fire({
-                title: 'Erro',
-                text: error.responseJSON?.message || 'Falha ao gerar recebíveis.',
-                icon: 'error',
-                confirmButtonText: 'OK',
-                customClass: { confirmButton: 'btn btn-primary' },
-                buttonsStyling: false
-            });
-        });
-    }
-
-    // ================= Atualizar Métricas =================
-    function updateMetrics() {
-        if (!table) return;
-
-        const allData = table.rows({ search: 'applied' }).data().toArray();
-        const total = allData.length;
-
-        // Contar por status
-        const implantado = allData.filter(d => d.descricao === 'IMPLANTADO').length;
-        const analise = allData.filter(d =>
-            d.descricao === 'ANALISE DOCUMENTO' ||
-            d.descricao === 'ANALISE OPERADORA'
-        ).length;
-
-        // Contar atrasados
-        let atrasados = 0;
-        allData.forEach(data => {
-            const role = data.descricao || '';
-            const updatedAt = parseBrDateTime(data.updated_at);
-            if (updatedAt && !isNaN(updatedAt)) {
-                const diffHours = (new Date() - updatedAt) / 36e5;
-                const diffDays = diffHours / 24;
-
-                if (role === 'ANALISE DOCUMENTO' && diffHours > 48) atrasados++;
-                else if (role === 'ANALISE OPERADORA' && diffDays > 10) atrasados++;
-                else if (role === 'PENDENCIA' && diffHours > 48) atrasados++;
-            }
-        });
-
-        // Atualizar os cards
-        $('#total-contratos').text(total);
-        $('#total-implantado').text(implantado);
-        $('#total-analise').text(analise);
-        $('#total-atrasados').text(atrasados);
-    }
-
-    // ================= Click nos Cards para Filtrar =================
-    $('.metric-card').on('click', function() {
-        const cardElement = $(this);
-
-        // Remover classe active de todos os cards
-        $('.metric-card').removeClass('active-filter');
-
-        // Adicionar classe active no card clicado
-        cardElement.addClass('active-filter');
-
-        // Identificar qual card foi clicado e aplicar filtro correspondente
-        if (cardElement.find('#total-contratos').length) {
-            // Card "Total de Contratos" - limpar todos os filtros
-            $('#status_filter').val('');
-            $('#periodo_mes').val('');
-            $('#periodo_ano').val('');
-        } else if (cardElement.find('#total-implantado').length) {
-            // Card "Implantados"
-            $('#status_filter').val('IMPLANTADO');
-        } else if (cardElement.find('#total-analise').length) {
-            // Card "Em Análise" - filtrar apenas ANALISE OPERADORA
-            $('#status_filter').val('ANALISE OPERADORA');
-        } else if (cardElement.find('#total-atrasados').length) {
-            // Card "Atrasados" - limpar filtro (atrasados é calculado dinamicamente)
-            $('#status_filter').val('');
-        }
-
-        // Aplicar o filtro
-        table.draw();
-    });
-
-    // ====== Acesso Empresa - Toggle Password Visibility ======
+    // Password toggle
     $(document).on('click', '#toggle-acesso-senha', function () {
         const $input = $('#acesso_senha');
         const $iconEye = $('#icon-eye');
@@ -523,7 +909,7 @@ $(function () {
         }
     });
 
-    // ====== Acesso Empresa - Máscara CPF ======
+    // CPF Mask
     function initAcessoCpfMask() {
         const cpfInput = document.querySelector('.acesso-mask-cpf');
         if (cpfInput && typeof Cleave !== 'undefined') {
@@ -535,18 +921,23 @@ $(function () {
         }
     }
 
-    // Inicializar máscara quando a modal abrir
     $('#modalcomments').on('shown.bs.modal', function () {
         initAcessoCpfMask();
     });
 
-    // Limpar campos de acesso quando modal fechar
     $('#modalcomments').on('hidden.bs.modal', function () {
         $('#acesso_email, #acesso_senha, #acesso_cpf').val('');
         $('#proof-group-acesso-empresa').hide();
-        // Reset password visibility
         $('#acesso_senha').attr('type', 'password');
         $('#icon-eye').removeClass('d-none');
         $('#icon-eye-off').addClass('d-none');
+
+        // Reset form
+        $('#label').val('').trigger('change');
     });
+
+    // =============================================================================
+    // Initialize Kanban
+    // =============================================================================
+    KanbanContratos.init();
 });

@@ -204,6 +204,77 @@ class Backoffice extends Controller
     }
   }
 
+  /**
+   * Mudança rápida de status via Kanban (sem modal)
+   * Apenas para status que não requerem dados adicionais
+   */
+  public function quickStatusChange(Request $request)
+  {
+    try {
+      $request->validate([
+        'venda_id' => 'required|integer',
+        'tabulacao_id' => 'required|integer',
+      ]);
+
+      $vendaId = $request->venda_id;
+      $tabulacaoId = $request->tabulacao_id;
+
+      // Status que requerem modal (não permitidos aqui)
+      $statusComModal = [
+        Tabulations::IMPLANTADO,
+        Tabulations::PENDENCIA,
+      ];
+
+      if (in_array($tabulacaoId, $statusComModal)) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Este status requer informações adicionais. Use o modal.',
+          'requires_modal' => true,
+        ], 400);
+      }
+
+      $sale = $this->vendasRepository->find($vendaId);
+      if (!$sale || $sale->empresa_id != Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Venda não encontrada.',
+        ], 404);
+      }
+
+      // Atualizar status via contatos_corretores
+      $updateContract = $this->contatosCorretoresRepository->alterStatusContract($sale->contato_id, $tabulacaoId);
+
+      if ($updateContract) {
+        // Notificar vendedor
+        $tabulation = Tabulacoes::find($tabulacaoId);
+        $vendedor = User::findOrFail($sale->user_id);
+        $vendedor->notify(new StatusPropostaAlterada(
+          vendaId: $sale->id,
+          novoStatus: $tabulation->descricao,
+          alteradoPorId: Auth::id(),
+          alteradoPorNome: Auth::user()->name ?? null
+        ));
+
+        return response()->json([
+          'success' => true,
+          'message' => 'Status atualizado com sucesso!',
+          'novo_status' => $tabulation->descricao,
+        ]);
+      }
+
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao atualizar status.',
+      ], 500);
+
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao atualizar status: ' . $th->getMessage(),
+      ], 500);
+    }
+  }
+
   public function downloadPaymentProof($id)
   {
     $sale = $this->vendasRepository->find($id);
@@ -921,7 +992,8 @@ class Backoffice extends Controller
       $vendedorId = $request->input('vendedor_id');
       $busca = $request->input('busca');
 
-      // Buscar vendas com status de backoffice
+      // Buscar vendas com status de backoffice usando vendas_historico
+      // Pega o último registro de vendas_historico para obter o status atual
       $query = DB::table('vendas')
         ->select([
           'vendas.id',
@@ -939,11 +1011,19 @@ class Backoffice extends Controller
           'tabulacoes.id as tabulacao_id',
           'tabulacoes.descricao as status_atual',
           'tabulacoes.ordem_kanban',
-          'contatos_corretores.updated_at as status_updated_at',
+          'vendas_historico.created_at as status_updated_at',
         ])
         ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
-        ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
-        ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+        ->leftJoin('vendas_historico', function ($join) {
+          $join->on('vendas_historico.venda_id', '=', 'vendas.id')
+            ->whereRaw('vendas_historico.id = (
+              SELECT vh_inner.id FROM vendas_historico vh_inner
+              WHERE vh_inner.venda_id = vendas.id
+              ORDER BY vh_inner.created_at DESC
+              LIMIT 1
+            )');
+        })
+        ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas_historico.tabulacao_nova_id')
         ->where('vendas.empresa_id', $empresaId)
         ->where('tabulacoes.tipo_tabulacao', 'A'); // Apenas tabulações de backoffice
 
@@ -966,12 +1046,29 @@ class Backoffice extends Controller
 
       $vendas = $query->orderBy('vendas.created_at', 'desc')->get();
 
-      // Buscar tabulações do backoffice
+      // Status permitidos no Kanban (ordem definida pelo usuário)
+      $statusPermitidos = [
+        'VENDA',
+        'ANALISE DE DOCUMENTOS',
+        'ANALISE OPERADORA',
+        'PENDENCIA',
+        'REGULARIZADO',
+        'AGUARD. ASSINATURA DA DS',
+        'BOLETO DISPONIVEL',
+        'IMPLANTADO',
+      ];
+
+      // Buscar tabulações do backoffice APENAS dos status permitidos
       $tabulacoes = Tabulacoes::where('empresa_id', $empresaId)
         ->where('tipo_tabulacao', 'A')
         ->where('status', 'Y')
-        ->orderBy('ordem_kanban')
-        ->get();
+        ->whereIn('descricao', $statusPermitidos)
+        ->get()
+        ->sortBy(function ($tab) use ($statusPermitidos) {
+          // Ordenar pela posição no array de status permitidos
+          return array_search($tab->descricao, $statusPermitidos);
+        })
+        ->values();
 
       // Agrupar vendas por status
       $pipeline = [];
@@ -983,7 +1080,8 @@ class Backoffice extends Controller
         $prazoMaximo = $this->getPrazoMaximo($tab->descricao);
 
         foreach ($vendasNoStatus as $v) {
-          $diasNoStatus = Carbon::parse($v->status_updated_at)->diffInDays(now());
+          $dataReferencia = $v->status_updated_at ?? $v->data_venda;
+          $diasNoStatus = $dataReferencia ? (int) Carbon::parse($dataReferencia)->diffInDays(now()) : 0;
           if ($prazoMaximo && $diasNoStatus > $prazoMaximo) {
             $atrasados++;
           }
@@ -999,7 +1097,9 @@ class Backoffice extends Controller
           'valor_total' => $vendasNoStatus->sum('valor_contrato'),
           'atrasados' => $atrasados,
           'contratos' => $vendasNoStatus->map(function ($v) {
-            $diasNoStatus = Carbon::parse($v->status_updated_at)->diffInDays(now());
+            // Se status_updated_at for nulo, usar data_venda como fallback
+            $dataReferencia = $v->status_updated_at ?? $v->data_venda;
+            $diasNoStatus = $dataReferencia ? (int) Carbon::parse($dataReferencia)->diffInDays(now()) : 0;
             $prazoMaximo = $this->getPrazoMaximo($v->status_atual);
 
             return [
