@@ -1061,3 +1061,211 @@
     }
   }
 }
+
+// ============================================
+// Acesso Empresa - Modal Section (Fila Contratos)
+// ============================================
+.acesso-empresa-modal-section {
+  position: relative;
+  background: linear-gradient(135deg,
+    rgba(var(--bo-info-rgb), 0.06) 0%,
+    rgba(var(--bo-primary-rgb), 0.03) 100%
+  );
+  border: 1px solid rgba(var(--bo-info-rgb), 0.15);
+  border-radius: var(--bo-border-radius-sm);
+  padding: 1rem;
+  margin-top: 1rem;
+  animation: slideInFade 0.3s ease-out;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--bo-info) 0%, var(--bo-primary) 100%);
+    border-radius: 3px 0 0 3px;
+  }
+
+  .acesso-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px dashed rgba(var(--bo-info-rgb), 0.2);
+
+    .acesso-modal-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--bo-info) 0%, #0891B2 100%);
+      border-radius: 10px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(var(--bo-info-rgb), 0.25);
+      flex-shrink: 0;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .acesso-modal-title {
+      flex: 1;
+
+      span {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--bo-text-primary);
+      }
+
+      small {
+        font-size: 0.75rem;
+        color: var(--bo-text-muted);
+      }
+    }
+
+    .acesso-modal-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(var(--bo-info-rgb), 0.12);
+      color: var(--bo-info);
+      padding: 0.3rem 0.6rem;
+      border-radius: 20px;
+    }
+  }
+
+  .acesso-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  .acesso-modal-field {
+    .acesso-modal-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--bo-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.4rem;
+
+      svg {
+        width: 14px;
+        height: 14px;
+        color: var(--bo-info);
+      }
+
+      .acesso-modal-optional {
+        font-weight: 400;
+        color: var(--bo-text-muted);
+        text-transform: none;
+      }
+    }
+
+    .acesso-modal-input {
+      width: 100%;
+      padding: 0.65rem 0.875rem;
+      border: 1.5px solid rgba(var(--bo-info-rgb), 0.2);
+      border-radius: var(--bo-border-radius-sm);
+      font-size: 0.9rem;
+      transition: var(--bo-transition);
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--bo-text-primary);
+
+      &::placeholder {
+        color: var(--bo-text-muted);
+        font-size: 0.85rem;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: var(--bo-info);
+        box-shadow: 0 0 0 3px rgba(var(--bo-info-rgb), 0.1);
+        background: white;
+      }
+
+      &:hover:not(:focus) {
+        border-color: rgba(var(--bo-info-rgb), 0.35);
+      }
+    }
+
+    .acesso-modal-password-wrapper {
+      position: relative;
+
+      .acesso-modal-input {
+        padding-right: 2.75rem;
+      }
+
+      .acesso-modal-toggle-pwd {
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--bo-text-muted);
+        transition: var(--bo-transition);
+        border-radius: 6px;
+
+        svg {
+          width: 18px;
+          height: 18px;
+        }
+
+        &:hover {
+          color: var(--bo-info);
+          background: rgba(var(--bo-info-rgb), 0.1);
+        }
+      }
+    }
+  }
+}
+
+@keyframes slideInFade {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Dark Mode
+.dark-style {
+  .acesso-empresa-modal-section {
+    background: linear-gradient(135deg,
+      rgba(var(--bo-info-rgb), 0.1) 0%,
+      rgba(var(--bo-primary-rgb), 0.06) 100%
+    );
+    border-color: rgba(var(--bo-info-rgb), 0.2);
+
+    .acesso-modal-field {
+      .acesso-modal-input {
+        background: rgba(30, 32, 47, 0.8);
+
+        &:focus {
+          background: rgba(30, 32, 47, 0.95);
+        }
+      }
+    }
+  }
+}

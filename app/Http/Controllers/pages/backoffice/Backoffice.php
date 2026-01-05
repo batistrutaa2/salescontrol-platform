@@ -149,6 +149,16 @@ class Backoffice extends Controller
         $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao, $request->motivo_pendencia ?? null, null, $request->numero_proposta);
         dispatch(new GerarRecebiveisJob($sale->id));
 
+        // Salvar acesso da empresa (se preenchido - campos opcionais)
+        if ($request->filled('acesso_email') && $request->filled('acesso_senha')) {
+          AcessoEmpresa::create([
+            'venda_id' => $sale->id,
+            'email' => $request->acesso_email,
+            'senha' => $request->acesso_senha,
+            'cpf' => $request->acesso_cpf,
+          ]);
+        }
+
         // Dispara evento de broadcast para usuários administrativos
         event(new ContratoImplantado(
           contratoId: $sale->id,

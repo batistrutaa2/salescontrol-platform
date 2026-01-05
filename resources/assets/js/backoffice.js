@@ -235,6 +235,8 @@ $(function () {
             $('#proof-group-numero_proposta').show();
             $('#data_implantacao').prop('required', true);
             $('#numero_proposta').prop('required', true);
+            // Mostrar seção de acesso da empresa (opcional)
+            $('#proof-group-acesso-empresa').slideDown(300);
         } else {
             $('#proof-group').hide();
             $('#comprovante').prop('required', false).val('');
@@ -242,6 +244,9 @@ $(function () {
             $('#proof-group-numero_proposta').hide();
             $('#data_implantacao').prop('required', false).val('');
             $('#numero_proposta').prop('required', false).val('');
+            // Ocultar e limpar campos de acesso da empresa
+            $('#proof-group-acesso-empresa').slideUp(300);
+            $('#acesso_email, #acesso_senha, #acesso_cpf').val('');
         }
 
         if ($(this).val() === '55' || $(this).val() === '17' || $(this).val() === '53') {
@@ -499,5 +504,49 @@ $(function () {
 
         // Aplicar o filtro
         table.draw();
+    });
+
+    // ====== Acesso Empresa - Toggle Password Visibility ======
+    $(document).on('click', '#toggle-acesso-senha', function () {
+        const $input = $('#acesso_senha');
+        const $iconEye = $('#icon-eye');
+        const $iconEyeOff = $('#icon-eye-off');
+
+        if ($input.attr('type') === 'password') {
+            $input.attr('type', 'text');
+            $iconEye.addClass('d-none');
+            $iconEyeOff.removeClass('d-none');
+        } else {
+            $input.attr('type', 'password');
+            $iconEye.removeClass('d-none');
+            $iconEyeOff.addClass('d-none');
+        }
+    });
+
+    // ====== Acesso Empresa - Máscara CPF ======
+    function initAcessoCpfMask() {
+        const cpfInput = document.querySelector('.acesso-mask-cpf');
+        if (cpfInput && typeof Cleave !== 'undefined') {
+            new Cleave(cpfInput, {
+                delimiters: ['.', '.', '-'],
+                blocks: [3, 3, 3, 2],
+                numericOnly: true
+            });
+        }
+    }
+
+    // Inicializar máscara quando a modal abrir
+    $('#modalcomments').on('shown.bs.modal', function () {
+        initAcessoCpfMask();
+    });
+
+    // Limpar campos de acesso quando modal fechar
+    $('#modalcomments').on('hidden.bs.modal', function () {
+        $('#acesso_email, #acesso_senha, #acesso_cpf').val('');
+        $('#proof-group-acesso-empresa').hide();
+        // Reset password visibility
+        $('#acesso_senha').attr('type', 'password');
+        $('#icon-eye').removeClass('d-none');
+        $('#icon-eye-off').addClass('d-none');
     });
 });

@@ -4,12 +4,12 @@
 
 <!-- Vendor Styles -->
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss'])
+    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/scss/pages/backoffice-contract.scss'])
 @endsection
 
 <!-- Vendor Scripts -->
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.js'])
+    @vite(['resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js', 'resources/assets/vendor/libs/moment/moment.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.js', 'resources/assets/vendor/libs/cleavejs/cleave.js'])
 @endsection
 
 @php
@@ -526,12 +526,14 @@
     <div class="modal fade modal-modern" id="modalcomments" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="ri-refresh-line me-2"></i>
-                        Alterar Status do Contrato
+                <div class="modal-header" style="background: linear-gradient(135deg, #696cff 0%, #8592ff 100%); border: none;">
+                    <h5 class="modal-title d-flex align-items-center gap-2 text-white">
+                        <div class="rounded p-1" style="background: rgba(255,255,255,0.2);">
+                            <i class="ri-file-transfer-line" style="font-size: 1.1rem;"></i>
+                        </div>
+                        Atualizar Status
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="transferLead" class="row" action="{{ route('backoffice.alterStatusContract') }}"
@@ -575,6 +577,46 @@
                                 <label for="boleto_disponivel" class="form-label fw-semibold">Boleto Disponível</label>
                                 <input type="file" id="boleto_disponivel" name="boleto_disponivel" class="form-control"
                                     accept="image/*,application/pdf">
+                            </div>
+
+                            {{-- Acesso da Empresa (opcional - apenas para IMPLANTADO) --}}
+                            <div id="proof-group-acesso-empresa" class="mb-3" style="display: none;">
+                                <div class="border rounded-3 overflow-hidden" style="border-color: rgba(113, 221, 55, 0.3) !important;">
+                                    <div class="px-3 py-2 d-flex align-items-center gap-2" style="background: linear-gradient(135deg, rgba(113, 221, 55, 0.08) 0%, rgba(113, 221, 55, 0.02) 100%);">
+                                        <div class="rounded p-1" style="background: linear-gradient(135deg, #71dd37 0%, #5cb82e 100%);">
+                                            <i class="ri-key-2-line text-white" style="font-size: 1rem;"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <span class="fw-semibold" style="font-size: 0.9rem;">Acesso Empresa</span>
+                                        </div>
+                                        <span class="badge rounded-pill" style="background: rgba(113, 221, 55, 0.15); color: #5cb82e; font-size: 0.7rem;">Opcional</span>
+                                    </div>
+                                    <div class="p-3" style="background: rgba(113, 221, 55, 0.02);">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label for="acesso_email" class="form-label small fw-semibold text-muted mb-1">E-MAIL</label>
+                                                <input type="email" name="acesso_email" id="acesso_email"
+                                                    class="form-control form-control-sm" placeholder="email@operadora.com.br">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="acesso_senha" class="form-label small fw-semibold text-muted mb-1">SENHA</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="password" name="acesso_senha" id="acesso_senha"
+                                                        class="form-control" placeholder="••••••••">
+                                                    <button type="button" class="btn btn-outline-secondary" id="toggle-acesso-senha" style="border-color: #d9dee3;">
+                                                        <i class="ri-eye-line" id="icon-eye" style="font-size: 0.875rem;"></i>
+                                                        <i class="ri-eye-off-line d-none" id="icon-eye-off" style="font-size: 0.875rem;"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <label for="acesso_cpf" class="form-label small fw-semibold text-muted mb-1">CPF <span class="fw-normal">(opcional)</span></label>
+                                                <input type="text" name="acesso_cpf" id="acesso_cpf"
+                                                    class="form-control form-control-sm acesso-mask-cpf" placeholder="000.000.000-00">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-4">
