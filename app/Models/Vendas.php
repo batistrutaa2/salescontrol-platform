@@ -66,6 +66,11 @@ class Vendas extends Model
     return $this->hasOne(ContatosCorretores::class, 'contato_id', 'contato_id');
   }
 
+  public function acessosEmpresa()
+  {
+    return $this->hasMany(AcessoEmpresa::class, 'venda_id');
+  }
+
 
   public function getCreatedAtAttribute($value)
   {

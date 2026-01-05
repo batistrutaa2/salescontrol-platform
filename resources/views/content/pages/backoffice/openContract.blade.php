@@ -443,5 +443,182 @@
             </div>
         </div>
 
+        {{-- SEÇÃO: Acessos da Empresa --}}
+        <div class="col-12">
+            <div class="card acessos-empresa-card">
+                <div class="card-header">
+                    <h5>
+                        <span class="header-icon header-icon-info">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </span>
+                        Acessos da Empresa
+                    </h5>
+                    <span class="acessos-count" id="acessos-count">0 acessos cadastrados</span>
+                </div>
+
+                <div class="card-body">
+                    {{-- Botão Adicionar --}}
+                    <div class="acessos-toolbar">
+                        <button type="button" class="btn-add-acesso" data-bs-toggle="modal" data-bs-target="#modalAddAcesso">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            Adicionar Acesso
+                        </button>
+                        <span class="toolbar-hint">Uma empresa pode ter múltiplos acessos</span>
+                    </div>
+
+                    {{-- Lista de Acessos --}}
+                    <div class="acessos-grid" id="acessos-grid">
+                        {{-- Acessos serão carregados via JavaScript --}}
+                    </div>
+
+                    {{-- Empty State --}}
+                    <div class="acessos-empty" id="acessos-empty" style="display: none;">
+                        <div class="empty-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <p class="empty-title">Nenhum acesso cadastrado</p>
+                        <p class="empty-text">Adicione os acessos do portal da empresa para facilitar o gerenciamento.</p>
+                    </div>
+
+                    {{-- Loading State --}}
+                    <div class="acessos-loading" id="acessos-loading">
+                        <div class="loading-spinner"></div>
+                        <span>Carregando acessos...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {{-- Modal: Adicionar/Editar Acesso --}}
+    <div class="modal fade" id="modalAddAcesso" tabindex="-1" aria-labelledby="modalAddAcessoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-acesso">
+                <div class="modal-header">
+                    <div class="modal-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h5 class="modal-title" id="modalAddAcessoLabel">Novo Acesso</h5>
+                        <p class="modal-subtitle">Cadastre as credenciais de acesso da empresa</p>
+                    </div>
+                    <button type="button" class="btn-close-modal" data-bs-dismiss="modal" aria-label="Fechar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="form-acesso" novalidate>
+                    <input type="hidden" name="venda_id" value="{{ $contract->id }}">
+                    <input type="hidden" name="acesso_id" id="acesso_id" value="">
+
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label-acesso">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                                E-mail
+                                <span class="required">*</span>
+                            </label>
+                            <input type="email" name="email" id="acesso_email" class="form-control-acesso" placeholder="email@empresa.com.br" required>
+                            <span class="input-hint">E-mail de acesso ao portal</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label-acesso">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                                Senha
+                                <span class="required">*</span>
+                            </label>
+                            <div class="password-input-wrapper">
+                                <input type="password" name="senha" id="acesso_senha" class="form-control-acesso" placeholder="Digite a senha" required>
+                                <button type="button" class="btn-toggle-password" id="btn-toggle-password">
+                                    <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    <svg class="icon-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                            <span class="input-hint">Senha de acesso ao portal</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label-acesso">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                                    <line x1="2" y1="10" x2="22" y2="10"></line>
+                                </svg>
+                                CPF
+                                <span class="optional">(opcional)</span>
+                            </label>
+                            <input type="text" name="cpf" id="acesso_cpf" class="form-control-acesso mask-cpf" placeholder="000.000.000-00">
+                            <span class="input-hint">CPF associado ao acesso (se aplicável)</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-save" id="btn-save-acesso">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                            <span id="btn-save-text">Salvar Acesso</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal: Confirmação de Exclusão --}}
+    <div class="modal fade" id="modalDeleteAcesso" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content modal-delete">
+                <div class="modal-body text-center">
+                    <div class="delete-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                    </div>
+                    <h5 class="delete-title">Remover Acesso?</h5>
+                    <p class="delete-text">Esta ação não poderá ser desfeita.</p>
+                    <input type="hidden" id="delete_acesso_id" value="">
+                    <div class="delete-actions">
+                        <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn-delete" id="btn-confirm-delete">Remover</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection

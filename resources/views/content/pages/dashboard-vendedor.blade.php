@@ -47,12 +47,10 @@
         <div class="input-group">
             <select class="form-select" aria-label="Selecionar ano" id="select-year">
                 <option selected>Ano</option>
+                <option value="2026">2026</option>
                 <option value="2025">2025</option>
                 <option value="2024">2024</option>
                 <option value="2023">2023</option>
-                <option value="2022">2022</option>
-                <option value="2021">2021</option>
-                <option value="2020">2020</option>
             </select>
             <span class="input-group-text">
                 <i class="ri-calendar-2-line"></i>

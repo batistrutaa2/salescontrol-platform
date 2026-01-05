@@ -246,4 +246,379 @@ $(function () {
   });
 
   // Se você envia a modal por POST normal (sem AJAX), não precisa JS extra no submit.
+
+  // =============================================
+  // ===== ACESSOS EMPRESA - CRUD =====
+  // =============================================
+
+  const vendaId = $('input[name="id"]').val() || $('input[name="venda_id"]').first().val();
+
+  // CPF Mask
+  function maskCpf(el) {
+    if (!el) return;
+    new Cleave(el, {
+      delimiters: ['.', '.', '-'],
+      blocks: [3, 3, 3, 2],
+      numericOnly: true
+    });
+  }
+
+  // Initialize CPF mask in modal
+  $('#modalAddAcesso').on('show.bs.modal', function () {
+    maskCpf(document.getElementById('acesso_cpf'));
+  });
+
+  // Toggle Password Visibility
+  $(document).on('click', '#btn-toggle-password', function () {
+    const $input = $('#acesso_senha');
+    const $iconEye = $(this).find('.icon-eye');
+    const $iconEyeOff = $(this).find('.icon-eye-off');
+
+    if ($input.attr('type') === 'password') {
+      $input.attr('type', 'text');
+      $iconEye.hide();
+      $iconEyeOff.show();
+    } else {
+      $input.attr('type', 'password');
+      $iconEye.show();
+      $iconEyeOff.hide();
+    }
+  });
+
+  // Load Acessos
+  function carregarAcessos() {
+    if (!vendaId) return;
+
+    const $loading = $('#acessos-loading');
+    const $empty = $('#acessos-empty');
+    const $grid = $('#acessos-grid');
+    const $count = $('#acessos-count');
+
+    $loading.show();
+    $empty.hide();
+    $grid.empty();
+
+    $.get(`/back-office/acessos-empresa/${vendaId}`)
+      .done(function (response) {
+        $loading.hide();
+
+        if (response.success && response.acessos && response.acessos.length > 0) {
+          $empty.hide();
+          $count.text(`${response.acessos.length} acesso(s) cadastrado(s)`);
+
+          response.acessos.forEach(function (acesso, index) {
+            const card = criarCardAcesso(acesso, index);
+            $grid.append(card);
+          });
+        } else {
+          $empty.show();
+          $count.text('0 acessos cadastrados');
+        }
+      })
+      .fail(function () {
+        $loading.hide();
+        $empty.show();
+        $count.text('Erro ao carregar');
+      });
+  }
+
+  // Create Acesso Card HTML
+  function criarCardAcesso(acesso, index) {
+    const cpfHtml = acesso.cpf ? `
+      <div class="acesso-field">
+        <div class="field-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+            <line x1="2" y1="10" x2="22" y2="10"></line>
+          </svg>
+        </div>
+        <div class="field-content">
+          <span class="field-label">CPF</span>
+          <span class="field-value monospace">${acesso.cpf}</span>
+        </div>
+        <button type="button" class="btn-copy" data-copy="${acesso.cpf}" title="Copiar CPF">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+      </div>
+    ` : '';
+
+    return `
+      <div class="acesso-card" data-acesso-id="${acesso.id}" style="animation-delay: ${index * 100}ms;">
+        <div class="acesso-header">
+          <div class="acesso-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <div class="acesso-actions">
+            <button type="button" class="btn-action btn-edit" data-acesso-id="${acesso.id}" title="Editar">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button type="button" class="btn-action btn-delete" data-acesso-id="${acesso.id}" title="Remover">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="acesso-body">
+          <div class="acesso-field">
+            <div class="field-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </div>
+            <div class="field-content">
+              <span class="field-label">E-mail</span>
+              <span class="field-value">${acesso.email}</span>
+            </div>
+            <button type="button" class="btn-copy" data-copy="${acesso.email}" title="Copiar e-mail">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="acesso-field">
+            <div class="field-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div class="field-content">
+              <span class="field-label">Senha</span>
+              <span class="field-value monospace">${acesso.senha}</span>
+            </div>
+            <button type="button" class="btn-copy" data-copy="${acesso.senha}" title="Copiar senha">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+          ${cpfHtml}
+        </div>
+        ${acesso.created_at ? `
+        <div class="acesso-footer">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          Cadastrado em ${acesso.created_at}
+        </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  // Copy to Clipboard
+  $(document).on('click', '.btn-copy', function () {
+    const $btn = $(this);
+    const text = $btn.data('copy');
+
+    navigator.clipboard.writeText(text).then(function () {
+      $btn.addClass('copied');
+      setTimeout(function () {
+        $btn.removeClass('copied');
+      }, 1500);
+    });
+  });
+
+  // Reset Modal Form
+  function resetModalForm() {
+    $('#form-acesso')[0].reset();
+    $('#acesso_id').val('');
+    $('#acesso_email').val('');
+    $('#acesso_senha').val('');
+    $('#acesso_cpf').val('');
+    $('#modalAddAcessoLabel').text('Novo Acesso');
+    $('#btn-save-text').text('Salvar Acesso');
+    $('#acesso_senha').attr('type', 'password');
+    $('#btn-toggle-password .icon-eye').show();
+    $('#btn-toggle-password .icon-eye-off').hide();
+  }
+
+  // Open modal for new acesso
+  $(document).on('click', '.btn-add-acesso', function () {
+    resetModalForm();
+  });
+
+  // Edit Acesso - Open Modal
+  $(document).on('click', '.btn-edit', function () {
+    const $card = $(this).closest('.acesso-card');
+    const acessoId = $(this).data('acesso-id');
+
+    // Get data from card
+    const email = $card.find('.acesso-field:eq(0) .field-value').text();
+    const senha = $card.find('.acesso-field:eq(1) .field-value').text();
+    const cpfField = $card.find('.acesso-field:eq(2) .field-value');
+    const cpf = cpfField.length ? cpfField.text() : '';
+
+    // Fill modal
+    $('#acesso_id').val(acessoId);
+    $('#acesso_email').val(email);
+    $('#acesso_senha').val(senha);
+    $('#acesso_cpf').val(cpf);
+    $('#modalAddAcessoLabel').text('Editar Acesso');
+    $('#btn-save-text').text('Atualizar Acesso');
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('modalAddAcesso'));
+    modal.show();
+  });
+
+  // Delete Acesso - Open Confirmation Modal
+  $(document).on('click', '.btn-delete', function () {
+    const acessoId = $(this).data('acesso-id');
+    $('#delete_acesso_id').val(acessoId);
+
+    const modal = new bootstrap.Modal(document.getElementById('modalDeleteAcesso'));
+    modal.show();
+  });
+
+  // Confirm Delete
+  $(document).on('click', '#btn-confirm-delete', function () {
+    const acessoId = $('#delete_acesso_id').val();
+    const $btn = $(this);
+
+    $btn.prop('disabled', true).text('Removendo...');
+
+    $.ajax({
+      url: `/back-office/acessos-empresa/${acessoId}`,
+      type: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      }
+    })
+      .done(function (response) {
+        if (response.success) {
+          // Close modal
+          bootstrap.Modal.getInstance(document.getElementById('modalDeleteAcesso')).hide();
+
+          // Reload list
+          carregarAcessos();
+
+          // Show success message
+          showToast('success', response.message || 'Acesso removido com sucesso!');
+        } else {
+          showToast('error', response.message || 'Erro ao remover acesso.');
+        }
+      })
+      .fail(function () {
+        showToast('error', 'Erro ao remover acesso.');
+      })
+      .always(function () {
+        $btn.prop('disabled', false).text('Remover');
+      });
+  });
+
+  // Form Submit - Create or Update
+  $(document).on('submit', '#form-acesso', function (e) {
+    e.preventDefault();
+
+    const $form = $(this);
+    const $btn = $('#btn-save-acesso');
+    const acessoId = $('#acesso_id').val();
+    const isEdit = !!acessoId;
+
+    const data = {
+      venda_id: vendaId,
+      email: $('#acesso_email').val(),
+      senha: $('#acesso_senha').val(),
+      cpf: $('#acesso_cpf').val() || null
+    };
+
+    // Validate
+    if (!data.email || !data.senha) {
+      showToast('error', 'Preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    $btn.prop('disabled', true);
+    $('#btn-save-text').text(isEdit ? 'Atualizando...' : 'Salvando...');
+
+    const url = isEdit ? `/back-office/acessos-empresa/${acessoId}` : '/back-office/acessos-empresa';
+    const method = isEdit ? 'PUT' : 'POST';
+
+    $.ajax({
+      url: url,
+      type: method,
+      data: data,
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      }
+    })
+      .done(function (response) {
+        if (response.success) {
+          // Close modal
+          bootstrap.Modal.getInstance(document.getElementById('modalAddAcesso')).hide();
+
+          // Reset form
+          resetModalForm();
+
+          // Reload list
+          carregarAcessos();
+
+          // Show success message
+          showToast('success', response.message || 'Acesso salvo com sucesso!');
+        } else {
+          showToast('error', response.message || 'Erro ao salvar acesso.');
+        }
+      })
+      .fail(function (xhr) {
+        let message = 'Erro ao salvar acesso.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          message = xhr.responseJSON.message;
+        }
+        showToast('error', message);
+      })
+      .always(function () {
+        $btn.prop('disabled', false);
+        $('#btn-save-text').text(isEdit ? 'Atualizar Acesso' : 'Salvar Acesso');
+      });
+  });
+
+  // Toast Notification Helper
+  function showToast(type, message) {
+    // Check if Toastr is available
+    if (typeof toastr !== 'undefined') {
+      toastr[type](message);
+      return;
+    }
+
+    // Fallback: simple alert
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const alertHtml = `
+      <div class="alert ${alertClass} alert-dismissible fade show position-fixed"
+           style="top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
+           role="alert">
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    `;
+    $('body').append(alertHtml);
+
+    // Auto dismiss
+    setTimeout(function () {
+      $('.alert').alert('close');
+    }, 4000);
+  }
+
+  // Reset modal when closed
+  $('#modalAddAcesso').on('hidden.bs.modal', function () {
+    resetModalForm();
+  });
+
+  // Load acessos on page load
+  carregarAcessos();
 });

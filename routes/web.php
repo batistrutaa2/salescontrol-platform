@@ -191,6 +191,12 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/contratos-por-status/{tabulacaoId}', [Backoffice::class, 'getContratosPorStatus'])->name('backoffice.contratosPorStatus');
   Route::get('/back-office/historico/{vendaId}', [Backoffice::class, 'getHistorico'])->name('backoffice.historico');
 
+  // Acessos Empresa
+  Route::get('/back-office/acessos-empresa/{vendaId}', [Backoffice::class, 'getAcessosEmpresa'])->name('backoffice.getAcessosEmpresa');
+  Route::post('/back-office/acessos-empresa', [Backoffice::class, 'storeAcessoEmpresa'])->name('backoffice.storeAcessoEmpresa');
+  Route::put('/back-office/acessos-empresa/{id}', [Backoffice::class, 'updateAcessoEmpresa'])->name('backoffice.updateAcessoEmpresa');
+  Route::delete('/back-office/acessos-empresa/{id}', [Backoffice::class, 'deleteAcessoEmpresa'])->name('backoffice.deleteAcessoEmpresa');
+
   /** VENDAS */
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');
   Route::get('/vendas/lista-vendas-mes', [Vendas::class, 'salesOfTheMonth'])->name('sale.salesOfTheMonth');

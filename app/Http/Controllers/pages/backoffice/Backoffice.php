@@ -20,6 +20,7 @@ use App\Repositories\Eloquent\VendasRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
+use App\Models\AcessoEmpresa;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use Illuminate\Support\Facades\Storage;
@@ -1243,5 +1244,192 @@ class Backoffice extends Controller
     ];
 
     return $icones[$status] ?? 'ri-question-line';
+  }
+
+  /**
+   * Lista os acessos de uma venda
+   */
+  public function getAcessosEmpresa(int $vendaId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $venda = Vendas::where('id', $vendaId)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Venda não encontrada.'
+        ], 404);
+      }
+
+      $acessos = AcessoEmpresa::where('venda_id', $vendaId)
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($acesso) {
+          return [
+            'id' => $acesso->id,
+            'email' => $acesso->email,
+            'senha' => $acesso->senha,
+            'cpf' => $acesso->cpf,
+            'created_at' => $acesso->created_at ? Carbon::parse($acesso->created_at)->format('d/m/Y H:i') : null,
+          ];
+        });
+
+      return response()->json([
+        'success' => true,
+        'acessos' => $acessos,
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar acessos: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Cadastra um novo acesso para a empresa/venda
+   */
+  public function storeAcessoEmpresa(Request $request)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $validated = $request->validate([
+        'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+        'email' => ['required', 'email', 'max:150'],
+        'senha' => ['required', 'string', 'max:255'],
+        'cpf' => ['nullable', 'string', 'max:14'],
+      ]);
+
+      $venda = Vendas::where('id', $validated['venda_id'])
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Venda não encontrada ou acesso negado.'
+        ], 404);
+      }
+
+      $acesso = AcessoEmpresa::create([
+        'venda_id' => $venda->id,
+        'email' => $validated['email'],
+        'senha' => $validated['senha'],
+        'cpf' => $validated['cpf'] ?? null,
+      ]);
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Acesso cadastrado com sucesso.',
+        'acesso' => [
+          'id' => $acesso->id,
+          'email' => $acesso->email,
+          'senha' => $acesso->senha,
+          'cpf' => $acesso->cpf,
+          'created_at' => $acesso->created_at ? Carbon::parse($acesso->created_at)->format('d/m/Y H:i') : null,
+        ],
+      ], 201);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validação.',
+        'errors' => $e->errors(),
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao cadastrar acesso: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Atualiza um acesso existente
+   */
+  public function updateAcessoEmpresa(Request $request, int $id)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $validated = $request->validate([
+        'email' => ['required', 'email', 'max:150'],
+        'senha' => ['required', 'string', 'max:255'],
+        'cpf' => ['nullable', 'string', 'max:14'],
+      ]);
+
+      $acesso = AcessoEmpresa::with('venda')->findOrFail($id);
+
+      if ((int) $acesso->venda->empresa_id !== (int) $empresaId) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Acesso negado.'
+        ], 403);
+      }
+
+      $acesso->update([
+        'email' => $validated['email'],
+        'senha' => $validated['senha'],
+        'cpf' => $validated['cpf'] ?? null,
+      ]);
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Acesso atualizado com sucesso.',
+        'acesso' => [
+          'id' => $acesso->id,
+          'email' => $acesso->email,
+          'senha' => $acesso->senha,
+          'cpf' => $acesso->cpf,
+          'created_at' => $acesso->created_at ? Carbon::parse($acesso->created_at)->format('d/m/Y H:i') : null,
+        ],
+      ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validação.',
+        'errors' => $e->errors(),
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao atualizar acesso: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Remove um acesso
+   */
+  public function deleteAcessoEmpresa(int $id)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $acesso = AcessoEmpresa::with('venda')->findOrFail($id);
+
+      if ((int) $acesso->venda->empresa_id !== (int) $empresaId) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Acesso negado.'
+        ], 403);
+      }
+
+      $acesso->delete();
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Acesso removido com sucesso.',
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao remover acesso: ' . $e->getMessage()
+      ], 500);
+    }
   }
 }
