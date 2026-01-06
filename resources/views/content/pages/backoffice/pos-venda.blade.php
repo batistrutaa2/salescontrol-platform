@@ -287,42 +287,51 @@
     </div>
 
     <!-- Modal Timeline Anotações Pós-Venda -->
+    <!-- Modal Anotações Pós-Venda -->
     <div class="modal fade" id="modalAnotacoes" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content pv-modal">
-                <div class="modal-header pv-modal-header pv-modal-header-timeline">
-                    <h5 class="modal-title d-flex align-items-center gap-2">
-                        <div class="modal-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="modal-content pv-modal-modern">
+                <div class="pv-modal-header pv-modal-header-success">
+                    <div class="pv-modal-header-content">
+                        <div class="pv-modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             </svg>
                         </div>
-                        <span>Anotações Pós-Venda</span>
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <div class="pv-modal-title-group">
+                            <h5 class="pv-modal-title">Anotações Pós-Venda</h5>
+                            <span class="pv-modal-subtitle">Registre tratativas e interações com o cliente</span>
+                        </div>
+                    </div>
+                    <button type="button" class="pv-modal-close" data-bs-dismiss="modal" aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
                 </div>
-                <div class="modal-body p-0">
+                <div class="pv-modal-body pv-modal-body-flush">
                     <input type="hidden" id="anotacao-venda-id">
 
                     <!-- Contract Info Header -->
-                    <div class="anotacao-contrato-info" id="anotacao-contrato-info">
-                        <div class="contrato-nome" id="anotacao-contrato-nome">-</div>
-                        <div class="contrato-detalhe" id="anotacao-contrato-detalhe">-</div>
+                    <div class="pv-contract-info" id="anotacao-contrato-info">
+                        <div class="pv-contract-name" id="anotacao-contrato-nome">-</div>
+                        <div class="pv-contract-detail" id="anotacao-contrato-detalhe">-</div>
                     </div>
 
                     <!-- Nova Anotação Form -->
-                    <div class="anotacao-form-section">
-                        <div class="form-title">
+                    <div class="pv-form-section">
+                        <div class="pv-form-section-title">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
                             Nova Anotação
                         </div>
-                        <textarea class="form-control anotacao-textarea" id="anotacao-texto" rows="3" placeholder="Descreva a tratativa realizada... Ex: Marquei consulta para o cliente, Enviei segunda via do boleto, etc."></textarea>
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary btn-salvar-anotacao" id="btn-salvar-anotacao">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <textarea class="pv-form-textarea" id="anotacao-texto" rows="3" placeholder="Descreva a tratativa realizada... Ex: Marquei consulta para o cliente, Enviei segunda via do boleto, etc."></textarea>
+                        <div class="pv-form-actions">
+                            <button type="button" class="pv-btn pv-btn-success" id="btn-salvar-anotacao">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="20 6 9 17 4 12"/>
                                 </svg>
                                 Salvar Anotação
@@ -331,14 +340,14 @@
                     </div>
 
                     <!-- Timeline Divider -->
-                    <div class="timeline-divider">
+                    <div class="pv-timeline-divider">
                         <span>Histórico de Tratativas</span>
                     </div>
 
                     <!-- Timeline Content -->
-                    <div class="anotacoes-timeline-wrapper" id="anotacoes-timeline-wrapper">
+                    <div class="pv-timeline-wrapper" id="anotacoes-timeline-wrapper">
                         <!-- Loading State -->
-                        <div class="timeline-loading" id="timeline-loading">
+                        <div class="pv-timeline-loading" id="timeline-loading">
                             <div class="spinner-border spinner-border-sm" role="status">
                                 <span class="visually-hidden">Carregando...</span>
                             </div>
@@ -346,9 +355,9 @@
                         </div>
 
                         <!-- Empty State -->
-                        <div class="timeline-empty" id="timeline-empty" style="display: none;">
-                            <div class="empty-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <div class="pv-timeline-empty" id="timeline-empty" style="display: none;">
+                            <div class="pv-empty-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                                 </svg>
                             </div>
@@ -369,20 +378,28 @@
     <!-- Modal Histórico -->
     <div class="modal fade" id="modalHistorico" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content pv-modal">
-                <div class="modal-header pv-modal-header pv-modal-header-info">
-                    <h5 class="modal-title d-flex align-items-center gap-2">
-                        <div class="modal-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="modal-content pv-modal-modern">
+                <div class="pv-modal-header pv-modal-header-info">
+                    <div class="pv-modal-header-content">
+                        <div class="pv-modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"/>
                                 <polyline points="12 6 12 12 16 14"/>
                             </svg>
                         </div>
-                        Histórico do Contrato
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <div class="pv-modal-title-group">
+                            <h5 class="pv-modal-title">Histórico do Contrato</h5>
+                            <span class="pv-modal-subtitle">Acompanhe todas as movimentações</span>
+                        </div>
+                    </div>
+                    <button type="button" class="pv-modal-close" data-bs-dismiss="modal" aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
                 </div>
-                <div class="modal-body p-0" id="historico-content">
+                <div class="pv-modal-body pv-modal-body-flush" id="historico-content">
                     <!-- Content loaded via AJAX -->
                 </div>
             </div>
@@ -392,31 +409,39 @@
     <!-- Modal Alterar Data de Implantação -->
     <div class="modal fade" id="modalDataImplantacao" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content pv-modal">
-                <div class="modal-header pv-modal-header pv-modal-header-primary">
-                    <h5 class="modal-title d-flex align-items-center gap-2">
-                        <div class="modal-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="modal-content pv-modal-modern">
+                <div class="pv-modal-header pv-modal-header-primary">
+                    <div class="pv-modal-header-content">
+                        <div class="pv-modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                                 <line x1="16" y1="2" x2="16" y2="6"/>
                                 <line x1="8" y1="2" x2="8" y2="6"/>
                                 <line x1="3" y1="10" x2="21" y2="10"/>
                             </svg>
                         </div>
-                        <span>Alterar Data de Implantação</span>
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <input type="hidden" id="data-implantacao-venda-id">
-                    <div class="mb-3">
-                        <label for="nova-data-implantacao" class="form-label fw-semibold">Nova Data de Implantação</label>
-                        <input type="date" class="form-control" id="nova-data-implantacao" required>
+                        <div class="pv-modal-title-group">
+                            <h5 class="pv-modal-title">Alterar Data</h5>
+                            <span class="pv-modal-subtitle">Data de implantação do contrato</span>
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="btn-salvar-data-implantacao">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button type="button" class="pv-modal-close" data-bs-dismiss="modal" aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="pv-modal-body">
+                    <input type="hidden" id="data-implantacao-venda-id">
+                    <div class="pv-form-group">
+                        <label for="nova-data-implantacao" class="pv-form-label">Nova Data de Implantação</label>
+                        <input type="date" class="pv-form-input" id="nova-data-implantacao" required>
+                    </div>
+                    <div class="pv-modal-actions">
+                        <button type="button" class="pv-btn pv-btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="pv-btn pv-btn-primary" id="btn-salvar-data-implantacao">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"/>
                             </svg>
                             Salvar

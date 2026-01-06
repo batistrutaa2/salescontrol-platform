@@ -119,106 +119,143 @@
     <!-- Modal Alterar Status -->
     <div class="modal fade" id="modalcomments" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius: 16px; overflow: hidden;">
-                <div class="modal-header" style="background: linear-gradient(135deg, #696cff 0%, #8592ff 100%); border: none;">
-                    <h5 class="modal-title d-flex align-items-center gap-2 text-white">
-                        <div class="rounded p-1" style="background: rgba(255,255,255,0.2);">
-                            <i class="ri-file-transfer-line" style="font-size: 1.1rem;"></i>
+            <div class="modal-content kb-modal">
+                <div class="kb-modal-header kb-modal-header-primary">
+                    <div class="kb-modal-header-content">
+                        <div class="kb-modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="17 1 21 5 17 9"/>
+                                <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                                <polyline points="7 23 3 19 7 15"/>
+                                <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                            </svg>
                         </div>
-                        Atualizar Status
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <div class="kb-modal-title-group">
+                            <h5 class="kb-modal-title">Atualizar Status</h5>
+                            <span class="kb-modal-subtitle">Mova o contrato para um novo estágio</span>
+                        </div>
+                    </div>
+                    <button type="button" class="kb-modal-close" data-bs-dismiss="modal" aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
                 </div>
-                <div class="modal-body" style="padding: 1.5rem;">
-                    <form id="transferLead" class="row" action="{{ route('backoffice.alterStatusContract') }}"
+                <div class="kb-modal-body">
+                    <form id="transferLead" action="{{ route('backoffice.alterStatusContract') }}"
                         method="POST" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" id="idSale" name="idSale" value="">
-                        <div class="col">
-                            <div class="mb-3">
-                                <label for="label" class="form-label fw-semibold">Novo Status</label>
-                                <select class="form-select" id="label" name="tabulacao_id" required>
-                                    <option value="">Selecione o Status</option>
-                                    @foreach ($tabulacoes as $tabulation)
-                                        <option value="{{ $tabulation->id }}">{{ strtoupper($tabulation->descricao) }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
 
-                            <div id="proof-group-data-implantacao" class="mb-3" style="display: none;">
-                                <label for="data_implantacao" class="form-label fw-semibold">Data de Implantação</label>
-                                <input type="date" id="data_implantacao" name="data_implantacao" class="form-control">
-                            </div>
+                        <div class="kb-form-group">
+                            <label for="label" class="kb-form-label">Novo Status</label>
+                            <select class="kb-form-select" id="label" name="tabulacao_id" required>
+                                <option value="">Selecione o Status</option>
+                                @foreach ($tabulacoes as $tabulation)
+                                    <option value="{{ $tabulation->id }}">{{ strtoupper($tabulation->descricao) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                            <div id="proof-group-numero_proposta" class="mb-3" style="display: none;">
-                                <label for="numero_proposta" class="form-label fw-semibold">Número da Proposta</label>
-                                <input type="text" id="numero_proposta" name="numero_proposta" class="form-control">
-                            </div>
+                        <div id="proof-group-data-implantacao" class="kb-form-group" style="display: none;">
+                            <label for="data_implantacao" class="kb-form-label">Data de Implantação</label>
+                            <input type="date" id="data_implantacao" name="data_implantacao" class="kb-form-input">
+                        </div>
 
-                            <div id="proof-group-data-pendencia" class="mb-3" style="display: none;">
-                                <label for="data_pendencia" class="form-label fw-semibold">Motivo da Pendência</label>
-                                <textarea id="data_pendencia" name="motivo_pendencia" class="form-control" rows="4"
-                                    placeholder="Descreva o motivo da pendência..." style="min-height: 120px; resize: vertical;"></textarea>
-                            </div>
+                        <div id="proof-group-numero_proposta" class="kb-form-group" style="display: none;">
+                            <label for="numero_proposta" class="kb-form-label">Número da Proposta</label>
+                            <input type="text" id="numero_proposta" name="numero_proposta" class="kb-form-input" placeholder="Ex: 123456">
+                        </div>
 
-                            <div id="proof-group" class="mb-3" style="display: none;">
-                                <label for="comprovante" class="form-label fw-semibold">Comprovante de Pagamento</label>
-                                <input type="file" id="comprovante" name="comprovante" class="form-control"
+                        <div id="proof-group-data-pendencia" class="kb-form-group" style="display: none;">
+                            <label for="data_pendencia" class="kb-form-label">Motivo da Pendência</label>
+                            <textarea id="data_pendencia" name="motivo_pendencia" class="kb-form-textarea"
+                                placeholder="Descreva o motivo da pendência..."></textarea>
+                        </div>
+
+                        <div id="proof-group" class="kb-form-group" style="display: none;">
+                            <label for="comprovante" class="kb-form-label">Comprovante de Pagamento</label>
+                            <div class="kb-file-upload">
+                                <input type="file" id="comprovante" name="comprovante" class="kb-file-input"
                                     accept="image/*,application/pdf">
+                                <div class="kb-file-upload-content">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                    <span>Clique para enviar ou arraste o arquivo</span>
+                                    <small>PDF, PNG, JPG até 10MB</small>
+                                </div>
                             </div>
+                        </div>
 
-                            <div id="proof-group-boleto-disponivel" class="mb-3" style="display: none;">
-                                <label for="boleto_disponivel" class="form-label fw-semibold">Boleto Disponível</label>
-                                <input type="file" id="boleto_disponivel" name="boleto_disponivel" class="form-control"
+                        <div id="proof-group-boleto-disponivel" class="kb-form-group" style="display: none;">
+                            <label for="boleto_disponivel" class="kb-form-label">Boleto Disponível</label>
+                            <div class="kb-file-upload">
+                                <input type="file" id="boleto_disponivel" name="boleto_disponivel" class="kb-file-input"
                                     accept="image/*,application/pdf">
+                                <div class="kb-file-upload-content">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                    <span>Clique para enviar ou arraste o arquivo</span>
+                                    <small>PDF, PNG, JPG até 10MB</small>
+                                </div>
                             </div>
+                        </div>
 
-                            {{-- Acesso da Empresa (opcional - apenas para IMPLANTADO) --}}
-                            <div id="proof-group-acesso-empresa" class="mb-3" style="display: none;">
-                                <div class="border rounded-3 overflow-hidden" style="border-color: rgba(113, 221, 55, 0.3) !important;">
-                                    <div class="px-3 py-2 d-flex align-items-center gap-2" style="background: linear-gradient(135deg, rgba(113, 221, 55, 0.08) 0%, rgba(113, 221, 55, 0.02) 100%);">
-                                        <div class="rounded p-1" style="background: linear-gradient(135deg, #71dd37 0%, #5cb82e 100%);">
-                                            <i class="ri-key-2-line text-white" style="font-size: 1rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <span class="fw-semibold" style="font-size: 0.9rem;">Acesso Empresa</span>
-                                        </div>
-                                        <span class="badge rounded-pill" style="background: rgba(113, 221, 55, 0.15); color: #5cb82e; font-size: 0.7rem;">Opcional</span>
+                        {{-- Acesso da Empresa (opcional - apenas para IMPLANTADO) --}}
+                        <div id="proof-group-acesso-empresa" class="kb-form-group" style="display: none;">
+                            <div class="kb-card-section kb-card-section-success">
+                                <div class="kb-card-section-header">
+                                    <div class="kb-card-section-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                                        </svg>
                                     </div>
-                                    <div class="p-3" style="background: rgba(113, 221, 55, 0.02);">
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label for="acesso_email" class="form-label small fw-semibold text-muted mb-1">E-MAIL</label>
-                                                <input type="email" name="acesso_email" id="acesso_email"
-                                                    class="form-control form-control-sm" placeholder="email@operadora.com.br">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label for="acesso_senha" class="form-label small fw-semibold text-muted mb-1">SENHA</label>
-                                                <div class="input-group input-group-sm">
-                                                    <input type="password" name="acesso_senha" id="acesso_senha"
-                                                        class="form-control" placeholder="••••••••">
-                                                    <button type="button" class="btn btn-outline-secondary" id="toggle-acesso-senha" style="border-color: #d9dee3;">
-                                                        <i class="ri-eye-line" id="icon-eye" style="font-size: 0.875rem;"></i>
-                                                        <i class="ri-eye-off-line d-none" id="icon-eye-off" style="font-size: 0.875rem;"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="col-12">
-                                                <label for="acesso_cpf" class="form-label small fw-semibold text-muted mb-1">CPF <span class="fw-normal">(opcional)</span></label>
-                                                <input type="text" name="acesso_cpf" id="acesso_cpf"
-                                                    class="form-control form-control-sm acesso-mask-cpf" placeholder="000.000.000-00">
+                                    <div class="kb-card-section-title">Acesso Empresa</div>
+                                    <span class="kb-badge kb-badge-success">Opcional</span>
+                                </div>
+                                <div class="kb-card-section-body">
+                                    <div class="kb-form-row">
+                                        <div class="kb-form-col">
+                                            <label for="acesso_email" class="kb-form-label-sm">E-mail</label>
+                                            <input type="email" name="acesso_email" id="acesso_email"
+                                                class="kb-form-input" placeholder="email@operadora.com.br">
+                                        </div>
+                                        <div class="kb-form-col">
+                                            <label for="acesso_senha" class="kb-form-label-sm">Senha</label>
+                                            <div class="kb-input-group">
+                                                <input type="password" name="acesso_senha" id="acesso_senha"
+                                                    class="kb-form-input" placeholder="••••••••">
+                                                <button type="button" class="kb-input-addon" id="toggle-acesso-senha">
+                                                    <i class="ri-eye-line" id="icon-eye"></i>
+                                                    <i class="ri-eye-off-line d-none" id="icon-eye-off"></i>
+                                                </button>
                                             </div>
                                         </div>
+                                    </div>
+                                    <div class="kb-form-group-sm">
+                                        <label for="acesso_cpf" class="kb-form-label-sm">CPF (opcional)</label>
+                                        <input type="text" name="acesso_cpf" id="acesso_cpf"
+                                            class="kb-form-input acesso-mask-cpf" placeholder="000.000.000-00">
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="d-flex justify-content-end gap-2 mt-4">
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="ri-check-line me-1"></i> Confirmar Alteração
-                                </button>
-                            </div>
+                        <div class="kb-modal-actions">
+                            <button type="button" class="kb-btn kb-btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="kb-btn kb-btn-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Confirmar Alteração
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -229,17 +266,28 @@
     <!-- Modal Histórico -->
     <div class="modal fade" id="modalHistorico" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content" style="border-radius: 16px; overflow: hidden;">
-                <div class="modal-header" style="background: linear-gradient(135deg, #03c3ec 0%, #06b6d4 100%); border: none;">
-                    <h5 class="modal-title d-flex align-items-center gap-2 text-white">
-                        <div class="rounded p-1" style="background: rgba(255,255,255,0.2);">
-                            <i class="ri-history-line" style="font-size: 1.1rem;"></i>
+            <div class="modal-content kb-modal">
+                <div class="kb-modal-header kb-modal-header-info">
+                    <div class="kb-modal-header-content">
+                        <div class="kb-modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
                         </div>
-                        Histórico do Contrato
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <div class="kb-modal-title-group">
+                            <h5 class="kb-modal-title">Histórico do Contrato</h5>
+                            <span class="kb-modal-subtitle">Acompanhe todas as movimentações</span>
+                        </div>
+                    </div>
+                    <button type="button" class="kb-modal-close" data-bs-dismiss="modal" aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
                 </div>
-                <div class="modal-body p-0" id="historico-content">
+                <div class="kb-modal-body kb-modal-body-flush" id="historico-content">
                     <!-- Content loaded via AJAX -->
                 </div>
             </div>
