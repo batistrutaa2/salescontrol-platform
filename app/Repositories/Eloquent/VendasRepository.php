@@ -5,10 +5,12 @@ namespace App\Repositories\Eloquent;
 use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
+use App\Models\ContatosCorretores;
 use App\Models\Operadora;
 use App\Models\Plano;
 use App\Models\Vendas;
 use App\Models\VendaTitular;
+use App\Models\VendaHistorico;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use Exception;
 use Illuminate\Support\Facades\Auth;
@@ -113,6 +115,23 @@ class VendasRepository implements VendasRepositoryInterface
             VendaTitular::insert($rows);
           }
         }
+
+        // Atualizar contatos_corretores para o status VENDA (backoffice)
+        ContatosCorretores::where('contato_id', $contatoId)
+          ->update([
+            'tabulacao_id' => Tabulations::VENDA,
+            'updated_at' => now(),
+          ]);
+
+        // Criar histórico inicial com status VENDA
+        VendaHistorico::create([
+          'empresa_id' => Auth::user()->empresa_id,
+          'venda_id' => $venda->id,
+          'user_id' => Auth::user()->id,
+          'tabulacao_anterior_id' => null,
+          'tabulacao_nova_id' => Tabulations::VENDA,
+          'observacao' => 'Venda cadastrada no sistema',
+        ]);
 
         return true;
       });

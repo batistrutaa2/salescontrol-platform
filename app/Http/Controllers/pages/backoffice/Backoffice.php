@@ -992,8 +992,8 @@ class Backoffice extends Controller
       $vendedorId = $request->input('vendedor_id');
       $busca = $request->input('busca');
 
-      // Buscar vendas com status de backoffice usando vendas_historico
-      // Pega o último registro de vendas_historico para obter o status atual
+      // Buscar vendas com status de backoffice usando contatos_corretores
+      // O status real da venda vem do contato_id vinculado em contatos_corretores
       $query = DB::table('vendas')
         ->select([
           'vendas.id',
@@ -1011,19 +1011,11 @@ class Backoffice extends Controller
           'tabulacoes.id as tabulacao_id',
           'tabulacoes.descricao as status_atual',
           'tabulacoes.ordem_kanban',
-          'vendas_historico.created_at as status_updated_at',
+          'contatos_corretores.updated_at as status_updated_at',
         ])
         ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
-        ->leftJoin('vendas_historico', function ($join) {
-          $join->on('vendas_historico.venda_id', '=', 'vendas.id')
-            ->whereRaw('vendas_historico.id = (
-              SELECT vh_inner.id FROM vendas_historico vh_inner
-              WHERE vh_inner.venda_id = vendas.id
-              ORDER BY vh_inner.created_at DESC
-              LIMIT 1
-            )');
-        })
-        ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas_historico.tabulacao_nova_id')
+        ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+        ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->where('vendas.empresa_id', $empresaId)
         ->where('tabulacoes.tipo_tabulacao', 'A'); // Apenas tabulações de backoffice
 
@@ -1055,7 +1047,6 @@ class Backoffice extends Controller
         'REGULARIZADO',
         'AGUARD. ASSINATURA DA DS',
         'BOLETO DISPONIVEL',
-        'IMPLANTADO',
       ];
 
       // Buscar tabulações do backoffice APENAS dos status permitidos
@@ -1138,12 +1129,13 @@ class Backoffice extends Controller
       }
       $tempoMedio = count($temposImplantacao) > 0 ? round(array_sum($temposImplantacao) / count($temposImplantacao), 1) : 0;
 
-      // Vendedores para filtro
-      $vendedores = User::where('empresa_id', $empresaId)
-        ->whereIn('user_role_id', [3, 4]) // Vendedores
-        ->where('ativo', 'Y')
-        ->orderBy('name')
-        ->get(['id', 'name']);
+      // Vendedores para filtro - busca vendedores que têm vendas no sistema
+      $vendedores = User::select('users.id', 'users.name')
+        ->join('vendas', 'vendas.user_id', '=', 'users.id')
+        ->where('vendas.empresa_id', $empresaId)
+        ->distinct()
+        ->orderBy('users.name')
+        ->get();
 
       return response()->json([
         'success' => true,
