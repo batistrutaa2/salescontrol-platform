@@ -1474,6 +1474,156 @@
 // These are set dynamically via JavaScript based on status
 
 // =============================================================================
+// Modal Pendência (SweetAlert Custom)
+// =============================================================================
+.kb-modal-pendencia-popup {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+
+    .swal2-html-container {
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+}
+
+.kb-modal-pendencia {
+    background: #ffffff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.kb-modal-pendencia-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -30%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+        pointer-events: none;
+    }
+}
+
+.kb-modal-pendencia-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+
+    svg {
+        color: #ffffff;
+    }
+}
+
+.kb-modal-pendencia-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    position: relative;
+    z-index: 1;
+}
+
+.kb-modal-pendencia-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.kb-modal-pendencia-subtitle {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 500;
+}
+
+.kb-modal-pendencia-body {
+    padding: 1.5rem;
+    background: #ffffff;
+}
+
+.kb-modal-pendencia-content {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(251, 191, 36, 0.04) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 12px;
+    padding: 1.25rem;
+    font-size: 0.9375rem;
+    color: #374151;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    &::before {
+        content: '"';
+        font-size: 2.5rem;
+        font-family: Georgia, serif;
+        color: rgba(245, 158, 11, 0.3);
+        line-height: 0;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+}
+
+.kb-modal-pendencia-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem;
+    background: #F9FAFB;
+    border-top: 1px solid #E5E7EB;
+}
+
+// Dark mode
+.dark-style {
+    .kb-modal-pendencia {
+        background: #1E2235;
+        box-shadow:
+            0 25px 50px -12px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    .kb-modal-pendencia-body {
+        background: #1E2235;
+    }
+
+    .kb-modal-pendencia-content {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(251, 191, 36, 0.06) 100%);
+        border-color: rgba(245, 158, 11, 0.25);
+        color: #E5E7EB;
+
+        &::before {
+            color: rgba(245, 158, 11, 0.4);
+        }
+    }
+
+    .kb-modal-pendencia-footer {
+        background: #262B40;
+        border-top-color: #3B4058;
+    }
+}
+
+// =============================================================================
 // Custom Toast Notifications
 // =============================================================================
 .custom-toast-popup {

@@ -564,12 +564,41 @@ $(function () {
                 e.stopPropagation();
                 const motivo = $(this).data('motivo') || 'Motivo não informado';
                 Swal.fire({
-                    title: '<i class="ri-error-warning-line text-warning"></i> Motivo',
-                    html: `<div class="text-start" style="white-space:pre-wrap">${escapeHtml(motivo)}</div>`,
-                    width: 600,
-                    confirmButtonText: 'Fechar',
-                    customClass: { confirmButton: 'btn btn-secondary' },
-                    buttonsStyling: false
+                    html: `
+                        <div class="kb-modal-pendencia">
+                            <div class="kb-modal-pendencia-header">
+                                <div class="kb-modal-pendencia-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                        <line x1="12" y1="9" x2="12" y2="13"/>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                    </svg>
+                                </div>
+                                <div class="kb-modal-pendencia-title-group">
+                                    <h4 class="kb-modal-pendencia-title">Motivo da Pendência</h4>
+                                    <span class="kb-modal-pendencia-subtitle">Detalhes do impedimento do contrato</span>
+                                </div>
+                            </div>
+                            <div class="kb-modal-pendencia-body">
+                                <div class="kb-modal-pendencia-content">
+                                    ${escapeHtml(motivo)}
+                                </div>
+                            </div>
+                            <div class="kb-modal-pendencia-footer">
+                                <button type="button" class="kb-btn kb-btn-ghost" onclick="Swal.close()">
+                                    Fechar
+                                </button>
+                            </div>
+                        </div>
+                    `,
+                    showConfirmButton: false,
+                    showCloseButton: false,
+                    width: 480,
+                    padding: 0,
+                    background: 'transparent',
+                    customClass: {
+                        popup: 'kb-modal-pendencia-popup'
+                    }
                 });
             });
 
