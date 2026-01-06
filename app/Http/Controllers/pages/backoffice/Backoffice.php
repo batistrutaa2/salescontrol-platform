@@ -29,6 +29,7 @@ use Illuminate\Validation\Rule;
 use App\Jobs\GerarRecebiveisJob;
 use App\Models\Recebivel;
 use App\Models\RegrasComissionamento;
+use App\Models\PosVendaAnotacao;
 use Carbon\Carbon;
 
 class Backoffice extends Controller
@@ -1531,6 +1532,258 @@ class Backoffice extends Controller
       return response()->json([
         'success' => false,
         'message' => 'Erro ao remover acesso: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Exibe a página de Pós-Venda (contratos implantados)
+   */
+  public function posVenda()
+  {
+    $empresaId = Auth::user()->empresa_id;
+
+    // Buscar operadoras para filtro (apenas de contratos implantados)
+    $operadoras = Vendas::select('operadora')
+      ->where('empresa_id', $empresaId)
+      ->whereNotNull('data_implantacao')
+      ->whereNotNull('operadora')
+      ->where('operadora', '!=', '')
+      ->distinct()
+      ->orderBy('operadora')
+      ->pluck('operadora');
+
+    // Buscar vendedores para filtro (apenas que têm contratos implantados)
+    $vendedores = User::select('users.id', 'users.name')
+      ->join('vendas', 'vendas.user_id', '=', 'users.id')
+      ->join('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+      ->where('vendas.empresa_id', $empresaId)
+      ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
+      ->whereNotNull('vendas.data_implantacao')
+      ->distinct()
+      ->orderBy('users.name')
+      ->get();
+
+    return view('content.pages.backoffice.pos-venda', compact('operadoras', 'vendedores'));
+  }
+
+  /**
+   * API: Retorna dados dos contratos implantados para Pós-Venda
+   */
+  public function getPosVendaData(Request $request)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+      $hoje = Carbon::now();
+
+      $query = DB::table('vendas')
+        ->select([
+          'vendas.id',
+          'vendas.numero_proposta',
+          'vendas.nome_contrato',
+          'vendas.cpf_cnpj',
+          'vendas.operadora',
+          'vendas.nome_plano',
+          'vendas.valor_contrato',
+          'vendas.vidas',
+          'vendas.data_implantacao',
+          'vendas.obs_contrato',
+          'users.name as vendedor',
+        ])
+        ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
+        ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+        ->where('vendas.empresa_id', $empresaId)
+        ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
+        ->whereNotNull('vendas.data_implantacao');
+
+      // Aplicar filtros
+      if ($request->filled('operadora')) {
+        $query->where('vendas.operadora', $request->operadora);
+      }
+      if ($request->filled('vendedor_id')) {
+        $query->where('vendas.user_id', $request->vendedor_id);
+      }
+      if ($request->filled('mes_aniversario')) {
+        $query->whereRaw('MONTH(vendas.data_implantacao) = ?', [$request->mes_aniversario]);
+      }
+      if ($request->filled('busca')) {
+        $busca = $request->busca;
+        $query->where(function ($q) use ($busca) {
+          $q->where('vendas.nome_contrato', 'like', "%{$busca}%")
+            ->orWhere('vendas.numero_proposta', 'like', "%{$busca}%")
+            ->orWhere('vendas.cpf_cnpj', 'like', "%{$busca}%");
+        });
+      }
+
+      $contratos = $query->orderBy('vendas.data_implantacao', 'desc')->get();
+
+      // Processar dados
+      $resultado = $contratos->map(function ($c) use ($hoje) {
+        $dataImpl = Carbon::parse($c->data_implantacao);
+        $mesesImplantado = (int) $dataImpl->diffInMonths($hoje);
+
+        // Calcular próximo aniversário
+        $proximoAniversario = $dataImpl->copy()->year($hoje->year);
+        if ($proximoAniversario->isPast()) {
+          $proximoAniversario->addYear();
+        }
+        $diasParaAniversario = (int) $hoje->diffInDays($proximoAniversario, false);
+
+        return [
+          'id' => $c->id,
+          'numero_proposta' => $c->numero_proposta,
+          'nome_contrato' => $c->nome_contrato,
+          'cpf_cnpj' => $c->cpf_cnpj,
+          'operadora' => $c->operadora,
+          'nome_plano' => $c->nome_plano,
+          'valor_contrato' => $c->valor_contrato,
+          'vidas' => $c->vidas,
+          'vendedor' => $c->vendedor,
+          'data_implantacao' => $dataImpl->format('d/m/Y'),
+          'meses_implantado' => $mesesImplantado,
+          'proximo_aniversario' => $proximoAniversario->format('d/m'),
+          'dias_para_aniversario' => $diasParaAniversario,
+          'obs_contrato' => $c->obs_contrato,
+        ];
+      });
+
+      // KPIs
+      $totalImplantados = $resultado->count();
+
+      // Aniversários no mês atual (contratos cuja data de implantação é no mesmo mês)
+      $aniversariosNoMes = $resultado->filter(function ($c) use ($hoje) {
+        $partes = explode('/', $c['proximo_aniversario']);
+        if (count($partes) === 2) {
+          return (int) $partes[1] === $hoje->month;
+        }
+        return false;
+      })->count();
+
+      // Próximos aniversários (em até 30 dias)
+      $proximosAniversarios = $resultado->filter(function ($c) {
+        return $c['dias_para_aniversario'] >= 0 && $c['dias_para_aniversario'] <= 30;
+      })->count();
+
+      $valorCarteira = $resultado->sum('valor_contrato');
+
+      return response()->json([
+        'success' => true,
+        'contratos' => $resultado->values(),
+        'kpis' => [
+          'total_implantados' => $totalImplantados,
+          'aniversarios_mes' => $aniversariosNoMes,
+          'proximos_aniversarios' => $proximosAniversarios,
+          'valor_carteira' => $valorCarteira,
+        ],
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar dados: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Lista anotações pós-venda de um contrato
+   */
+  public function getAnotacoesPosVenda(int $vendaId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $venda = Vendas::where('id', $vendaId)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Venda não encontrada.'
+        ], 404);
+      }
+
+      $anotacoes = PosVendaAnotacao::with('usuario:id,name')
+        ->where('venda_id', $vendaId)
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(fn($a) => [
+          'id' => $a->id,
+          'descricao' => $a->descricao,
+          'usuario' => $a->usuario->name ?? 'N/A',
+          'data' => $a->created_at->format('d/m/Y H:i'),
+          'data_relativa' => $a->created_at->diffForHumans(),
+        ]);
+
+      return response()->json([
+        'success' => true,
+        'venda' => [
+          'id' => $venda->id,
+          'nome_contrato' => $venda->nome_contrato,
+          'operadora' => $venda->operadora,
+        ],
+        'anotacoes' => $anotacoes,
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar anotações: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Adiciona nova anotação pós-venda
+   */
+  public function storeAnotacaoPosVenda(Request $request)
+  {
+    try {
+      $request->validate([
+        'venda_id' => 'required|integer|exists:vendas,id',
+        'descricao' => 'required|string|max:2000',
+      ]);
+
+      $empresaId = Auth::user()->empresa_id;
+
+      $venda = Vendas::where('id', $request->venda_id)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Venda não encontrada.'
+        ], 404);
+      }
+
+      $anotacao = PosVendaAnotacao::create([
+        'empresa_id' => $empresaId,
+        'venda_id' => $request->venda_id,
+        'user_id' => Auth::id(),
+        'descricao' => $request->descricao,
+      ]);
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Anotação salva com sucesso.',
+        'anotacao' => [
+          'id' => $anotacao->id,
+          'descricao' => $anotacao->descricao,
+          'usuario' => Auth::user()->name,
+          'data' => $anotacao->created_at->format('d/m/Y H:i'),
+          'data_relativa' => 'agora',
+        ],
+      ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validação.',
+        'errors' => $e->errors(),
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao salvar anotação: ' . $e->getMessage()
       ], 500);
     }
   }

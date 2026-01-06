@@ -198,6 +198,14 @@ Route::middleware(['auth'])->group(function () {
   Route::put('/back-office/acessos-empresa/{id}', [Backoffice::class, 'updateAcessoEmpresa'])->name('backoffice.updateAcessoEmpresa');
   Route::delete('/back-office/acessos-empresa/{id}', [Backoffice::class, 'deleteAcessoEmpresa'])->name('backoffice.deleteAcessoEmpresa');
 
+  // Pós-Venda
+  Route::get('/back-office/pos-venda', [Backoffice::class, 'posVenda'])->name('backoffice.posVenda');
+  Route::get('/back-office/pos-venda/data', [Backoffice::class, 'getPosVendaData'])->name('backoffice.getPosVendaData');
+
+  // Anotações Pós-Venda
+  Route::get('/back-office/pos-venda/anotacoes/{vendaId}', [Backoffice::class, 'getAnotacoesPosVenda'])->name('backoffice.getAnotacoesPosVenda');
+  Route::post('/back-office/pos-venda/anotacoes', [Backoffice::class, 'storeAnotacaoPosVenda'])->name('backoffice.storeAnotacaoPosVenda');
+
   /** VENDAS */
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');
   Route::get('/vendas/lista-vendas-mes', [Vendas::class, 'salesOfTheMonth'])->name('sale.salesOfTheMonth');
