@@ -755,4 +755,117 @@
 
 })();
 
-$(function () { });
+$(function () {
+  // =============================================
+  // IA Analysis Feature
+  // =============================================
+
+  const btnIAAnalise = document.getElementById('btn-ia-analise');
+  const modalAnaliseIA = document.getElementById('modalAnaliseIA');
+  const iaLoading = document.getElementById('ia-loading');
+  const iaResult = document.getElementById('ia-result');
+  const iaResultText = document.getElementById('ia-result-text');
+  const iaError = document.getElementById('ia-error');
+  const iaErrorText = document.getElementById('ia-error-text');
+  const btnIARetry = document.getElementById('btn-ia-retry');
+
+  // Get contato_id from URL
+  function getContatoIdFromUrl() {
+    const pathParts = window.location.pathname.split('/');
+    return pathParts[pathParts.length - 1];
+  }
+
+  // Convert markdown-like formatting to HTML
+  function formatIAResponse(text) {
+    // Headers
+    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/## (.+)/g, '<h4 class="ia-section-title">$1</h4>');
+    text = text.replace(/### (.+)/g, '<h5 class="ia-subsection-title">$1</h5>');
+
+    // Lists
+    text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
+    text = text.replace(/(<li>.*<\/li>\n?)+/g, '<ul class="ia-list">$&</ul>');
+
+    // Numbered lists
+    text = text.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+    // Line breaks
+    text = text.replace(/\n\n/g, '</p><p>');
+    text = text.replace(/\n/g, '<br>');
+
+    // Wrap in paragraph
+    if (!text.startsWith('<')) {
+      text = '<p>' + text + '</p>';
+    }
+
+    return text;
+  }
+
+  // Call IA API
+  async function analyzeWithIA() {
+    const contatoId = getContatoIdFromUrl();
+
+    // Show loading
+    iaLoading.style.display = 'block';
+    iaResult.style.display = 'none';
+    iaError.style.display = 'none';
+    btnIARetry.style.display = 'none';
+
+    try {
+      const response = await fetch('/comercial/analisar-cliente-ia', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ contato_id: contatoId })
+      });
+
+      const data = await response.json();
+
+      iaLoading.style.display = 'none';
+
+      if (data.success) {
+        iaResult.style.display = 'block';
+        iaResultText.innerHTML = formatIAResponse(data.sugestoes);
+      } else {
+        iaError.style.display = 'block';
+        iaErrorText.textContent = data.error || 'Erro desconhecido';
+        btnIARetry.style.display = 'inline-flex';
+      }
+
+    } catch (error) {
+      console.error('Erro na análise IA:', error);
+      iaLoading.style.display = 'none';
+      iaError.style.display = 'block';
+      iaErrorText.textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
+      btnIARetry.style.display = 'inline-flex';
+    }
+  }
+
+  // Button click - Open modal and start analysis
+  if (btnIAAnalise) {
+    btnIAAnalise.addEventListener('click', function () {
+      const modal = new bootstrap.Modal(modalAnaliseIA);
+      modal.show();
+      analyzeWithIA();
+    });
+  }
+
+  // Retry button
+  if (btnIARetry) {
+    btnIARetry.addEventListener('click', function () {
+      analyzeWithIA();
+    });
+  }
+
+  // Reset modal state when closed
+  if (modalAnaliseIA) {
+    modalAnaliseIA.addEventListener('hidden.bs.modal', function () {
+      iaLoading.style.display = 'block';
+      iaResult.style.display = 'none';
+      iaError.style.display = 'none';
+      btnIARetry.style.display = 'none';
+    });
+  }
+});

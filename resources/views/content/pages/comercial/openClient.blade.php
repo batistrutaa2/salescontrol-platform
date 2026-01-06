@@ -1014,5 +1014,94 @@
         </div>
     </div>
 
+    @if(config('services.anthropic.api_key'))
+    <!-- Botão Flutuante IA -->
+    <button type="button" class="btn-ia-flutuante" id="btn-ia-analise" title="Sugerir Estratégias com IA">
+        <div class="btn-ia-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+                <circle cx="7.5" cy="14.5" r="1.5"/>
+                <circle cx="16.5" cy="14.5" r="1.5"/>
+            </svg>
+        </div>
+        <span class="btn-ia-text">IA</span>
+        <div class="btn-ia-pulse"></div>
+    </button>
+
+    <!-- Modal Análise IA -->
+    <div class="modal fade" id="modalAnaliseIA" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-ia">
+                <div class="modal-ia-header">
+                    <div class="modal-ia-header-content">
+                        <div class="modal-ia-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+                                <circle cx="7.5" cy="14.5" r="1.5"/>
+                                <circle cx="16.5" cy="14.5" r="1.5"/>
+                            </svg>
+                        </div>
+                        <div class="modal-ia-title-group">
+                            <h5 class="modal-ia-title">Assistente de Vendas IA</h5>
+                            <span class="modal-ia-subtitle">Análise inteligente baseada no histórico do cliente</span>
+                        </div>
+                    </div>
+                    <button type="button" class="modal-ia-close" data-bs-dismiss="modal" aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-ia-body" id="modal-ia-content">
+                    <!-- Loading State -->
+                    <div class="ia-loading" id="ia-loading">
+                        <div class="ia-loading-animation">
+                            <div class="ia-loading-brain">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+                                </svg>
+                            </div>
+                            <div class="ia-loading-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                        </div>
+                        <p class="ia-loading-text">Analisando histórico do cliente...</p>
+                        <span class="ia-loading-subtext">A IA está processando os comentários e gerando estratégias personalizadas</span>
+                    </div>
+
+                    <!-- Result State -->
+                    <div class="ia-result" id="ia-result" style="display: none;">
+                        <div class="ia-result-content" id="ia-result-text"></div>
+                    </div>
+
+                    <!-- Error State -->
+                    <div class="ia-error" id="ia-error" style="display: none;">
+                        <div class="ia-error-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                        </div>
+                        <p class="ia-error-title">Erro na análise</p>
+                        <span class="ia-error-text" id="ia-error-text"></span>
+                    </div>
+                </div>
+                <div class="modal-ia-footer">
+                    <button type="button" class="btn-ia-retry" id="btn-ia-retry" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10"/>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                        </svg>
+                        Tentar novamente
+                    </button>
+                    <button type="button" class="btn-ia-close" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
 </div>
 @endsection

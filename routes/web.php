@@ -116,6 +116,7 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/updateClient', [Comercial::class, 'updateClient'])->name('comercial.updateClient');
   Route::post('/comercial/updateClientDependecies', [Comercial::class, 'updateClientDependecies'])->name('comercial.updateClientDependecies');
   Route::post('/comercial/saveComment', [Comercial::class, 'saveComment'])->name('comercial.saveComment');
+  Route::post('/comercial/analisar-cliente-ia', [Comercial::class, 'analisarClienteComIA'])->name('comercial.analisarClienteIA');
   Route::post('/comercial/abrir-cliente/{id_mailing}/cotacoes', [Comercial::class, 'uploadCotacao'])->name('comercial.uploadCotacao');
   Route::delete('/comercial/abrir-cliente/{id_mailing}/cotacoes/{filename}', [Comercial::class, 'deleteCotacao'])->name('comercial.deleteCotacao');
   Route::get('/comercial/remarketing', [Comercial::class, 'remarketing'])->name('comercial.remarketing');

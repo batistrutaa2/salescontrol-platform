@@ -1195,4 +1195,63 @@ class Comercial extends Controller
     Demanda::whereKey($id)->delete();
     return response()->json(['ok' => true]);
   }
+
+  /**
+   * Analisa comentários do cliente com IA e sugere estratégias de venda
+   */
+  public function analisarClienteComIA(Request $request)
+  {
+    try {
+      $request->validate([
+        'contato_id' => 'required|integer'
+      ]);
+
+      $contatoId = $request->contato_id;
+      $empresaId = Auth::user()->empresa_id;
+
+      // Buscar dados do cliente
+      $cliente = Contatos::where('id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$cliente) {
+        return response()->json([
+          'success' => false,
+          'error' => 'Cliente não encontrado.'
+        ], 404);
+      }
+
+      // Buscar comentários
+      $comentarios = Comentarios::select('comentarios.anotacao', 'comentarios.created_at', 'users.name')
+        ->leftJoin('users', 'comentarios.user_id', '=', 'users.id')
+        ->where('comentarios.contato_id', $contatoId)
+        ->where('comentarios.visivel', 'Y')
+        ->orderBy('comentarios.created_at', 'asc')
+        ->get();
+
+      if ($comentarios->isEmpty()) {
+        return response()->json([
+          'success' => false,
+          'error' => 'Nenhum comentário encontrado para análise. Adicione algumas anotações primeiro.'
+        ]);
+      }
+
+      // Chamar o serviço de IA
+      $claudeService = new \App\Services\ClaudeAIService();
+      $resultado = $claudeService->analisarClienteESugerirEstrategias(
+        $cliente->toArray(),
+        $comentarios->toArray()
+      );
+
+      return response()->json($resultado);
+
+    } catch (\Exception $e) {
+      \Log::error('Erro na análise de IA', ['error' => $e->getMessage()]);
+
+      return response()->json([
+        'success' => false,
+        'error' => 'Erro ao processar análise: ' . $e->getMessage()
+      ], 500);
+    }
+  }
 }
