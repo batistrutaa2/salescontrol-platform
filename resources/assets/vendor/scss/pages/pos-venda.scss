@@ -776,6 +776,123 @@
 }
 
 // ============================================
+// Pagination
+// ============================================
+.pv-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.01);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.pagination-info {
+    font-size: 0.8125rem;
+    color: var(--pv-text-secondary);
+
+    strong {
+        font-weight: 600;
+        color: var(--pv-text-primary);
+    }
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.per-page-select {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    label {
+        font-size: 0.75rem;
+        color: var(--pv-text-muted);
+        white-space: nowrap;
+    }
+
+    .form-select {
+        width: auto;
+        min-width: 70px;
+        font-size: 0.8125rem;
+        padding: 0.375rem 2rem 0.375rem 0.75rem;
+        border-radius: 8px;
+        border-color: rgba(0, 0, 0, 0.1);
+        background-color: var(--pv-glass-bg);
+
+        &:focus {
+            border-color: var(--pv-primary);
+            box-shadow: 0 0 0 3px rgba(var(--pv-primary-rgb), 0.15);
+        }
+    }
+}
+
+.pagination-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.btn-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: var(--pv-card-bg);
+    color: var(--pv-text-secondary);
+    transition: var(--pv-transition-fast);
+    cursor: pointer;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    &:hover:not(:disabled) {
+        background: var(--pv-primary);
+        border-color: var(--pv-primary);
+        color: #fff;
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}
+
+.page-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--pv-text-primary);
+
+    .separator {
+        color: var(--pv-text-muted);
+    }
+
+    span:first-child {
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+        color: var(--pv-primary);
+    }
+
+    span:last-child {
+        font-family: 'JetBrains Mono', monospace;
+    }
+}
+
+// ============================================
 // Modals
 // ============================================
 .pv-modal {
@@ -1171,6 +1288,25 @@
         }
     }
 
+    // Pagination dark mode
+    .pv-pagination {
+        border-top-color: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.01);
+    }
+
+    .per-page-select {
+        .form-select {
+            border-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--pv-text-primary);
+        }
+    }
+
+    .btn-page {
+        border-color: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.03);
+    }
+
     // Timeline dark mode
     .anotacao-contrato-info {
         border-bottom-color: rgba(255, 255, 255, 0.05);
@@ -1233,5 +1369,31 @@
         tbody td {
             padding: 0.75rem 1rem;
         }
+    }
+
+    .pv-pagination {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .pagination-info {
+        text-align: center;
+    }
+
+    .pagination-controls {
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .per-page-select {
+        order: 2;
+    }
+
+    .pagination-buttons {
+        order: 1;
+        flex: 1;
+        justify-content: center;
     }
 }

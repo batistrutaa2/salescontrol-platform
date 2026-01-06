@@ -235,6 +235,53 @@
                 <h4>Nenhum contrato encontrado</h4>
                 <p>Não há contratos implantados com os filtros selecionados.</p>
             </div>
+
+            <!-- Pagination -->
+            <div class="pv-pagination" id="pv-pagination" style="display: none;">
+                <div class="pagination-info">
+                    <span>Mostrando <strong id="pagination-from">0</strong> - <strong id="pagination-to">0</strong> de <strong id="pagination-total">0</strong> contratos</span>
+                </div>
+                <div class="pagination-controls">
+                    <div class="per-page-select">
+                        <label>Por página:</label>
+                        <select id="per-page" class="form-select form-select-sm">
+                            <option value="15">15</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <div class="pagination-buttons">
+                        <button type="button" class="btn-page btn-first" id="btn-first" title="Primeira página">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="11 17 6 12 11 7"/>
+                                <polyline points="18 17 13 12 18 7"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="btn-page btn-prev" id="btn-prev" title="Página anterior">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"/>
+                            </svg>
+                        </button>
+                        <div class="page-indicator">
+                            <span id="current-page">1</span>
+                            <span class="separator">/</span>
+                            <span id="total-pages">1</span>
+                        </div>
+                        <button type="button" class="btn-page btn-next" id="btn-next" title="Próxima página">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="btn-page btn-last" id="btn-last" title="Última página">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="13 17 18 12 13 7"/>
+                                <polyline points="6 17 11 12 6 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

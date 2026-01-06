@@ -9,6 +9,12 @@
   // State
   let contratos = [];
   let filteredContratos = [];
+  let pagination = {
+    currentPage: 1,
+    perPage: 15,
+    total: 0,
+    totalPages: 0
+  };
 
   // DOM Elements
   const elements = {
@@ -34,6 +40,19 @@
     // Modals
     modalAnotacoes: document.getElementById('modalAnotacoes'),
     modalHistorico: document.getElementById('modalHistorico'),
+
+    // Pagination
+    paginationWrapper: document.getElementById('pv-pagination'),
+    paginationFrom: document.getElementById('pagination-from'),
+    paginationTo: document.getElementById('pagination-to'),
+    paginationTotal: document.getElementById('pagination-total'),
+    currentPageSpan: document.getElementById('current-page'),
+    totalPagesSpan: document.getElementById('total-pages'),
+    perPageSelect: document.getElementById('per-page'),
+    btnFirst: document.getElementById('btn-first'),
+    btnPrev: document.getElementById('btn-prev'),
+    btnNext: document.getElementById('btn-next'),
+    btnLast: document.getElementById('btn-last'),
   };
 
   // Initialize
@@ -53,6 +72,13 @@
 
     // Anotações modal events
     document.getElementById('btn-salvar-anotacao')?.addEventListener('click', saveAnotacao);
+
+    // Pagination events
+    elements.perPageSelect?.addEventListener('change', handlePerPageChange);
+    elements.btnFirst?.addEventListener('click', () => goToPage(1));
+    elements.btnPrev?.addEventListener('click', () => goToPage(pagination.currentPage - 1));
+    elements.btnNext?.addEventListener('click', () => goToPage(pagination.currentPage + 1));
+    elements.btnLast?.addEventListener('click', () => goToPage(pagination.totalPages));
   }
 
   // Load data from API
@@ -62,6 +88,11 @@
     try {
       const params = new URLSearchParams();
 
+      // Pagination params
+      params.append('page', pagination.currentPage);
+      params.append('per_page', pagination.perPage);
+
+      // Filter params
       if (elements.filterOperadora.value) {
         params.append('operadora', elements.filterOperadora.value);
       }
@@ -81,8 +112,18 @@
       if (data.success) {
         contratos = data.contratos;
         filteredContratos = contratos;
+
+        // Update pagination state
+        if (data.pagination) {
+          pagination.currentPage = data.pagination.current_page;
+          pagination.perPage = data.pagination.per_page;
+          pagination.total = data.pagination.total;
+          pagination.totalPages = data.pagination.total_pages;
+        }
+
         updateKPIs(data.kpis);
         renderTable();
+        updatePagination();
       } else {
         showError('Erro ao carregar dados');
       }
@@ -96,6 +137,7 @@
 
   // Apply filters
   function applyFilters() {
+    pagination.currentPage = 1; // Reset to first page when filters change
     loadData();
   }
 
@@ -105,7 +147,55 @@
     elements.filterVendedor.value = '';
     elements.filterMes.value = '';
     elements.filterBusca.value = '';
+    pagination.currentPage = 1;
     loadData();
+  }
+
+  // Pagination functions
+  function updatePagination() {
+    if (pagination.total === 0) {
+      elements.paginationWrapper.style.display = 'none';
+      return;
+    }
+
+    elements.paginationWrapper.style.display = 'flex';
+
+    // Calculate from/to
+    const from = ((pagination.currentPage - 1) * pagination.perPage) + 1;
+    const to = Math.min(pagination.currentPage * pagination.perPage, pagination.total);
+
+    // Update info
+    elements.paginationFrom.textContent = from;
+    elements.paginationTo.textContent = to;
+    elements.paginationTotal.textContent = pagination.total;
+    elements.currentPageSpan.textContent = pagination.currentPage;
+    elements.totalPagesSpan.textContent = pagination.totalPages;
+
+    // Update button states
+    const isFirstPage = pagination.currentPage <= 1;
+    const isLastPage = pagination.currentPage >= pagination.totalPages;
+
+    elements.btnFirst.disabled = isFirstPage;
+    elements.btnPrev.disabled = isFirstPage;
+    elements.btnNext.disabled = isLastPage;
+    elements.btnLast.disabled = isLastPage;
+  }
+
+  function goToPage(page) {
+    if (page < 1 || page > pagination.totalPages || page === pagination.currentPage) {
+      return;
+    }
+    pagination.currentPage = page;
+    loadData();
+  }
+
+  function handlePerPageChange() {
+    const newPerPage = parseInt(elements.perPageSelect.value, 10);
+    if (newPerPage !== pagination.perPage) {
+      pagination.perPage = newPerPage;
+      pagination.currentPage = 1; // Reset to first page
+      loadData();
+    }
   }
 
   // Update KPIs

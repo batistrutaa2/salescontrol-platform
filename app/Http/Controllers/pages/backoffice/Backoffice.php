@@ -1576,6 +1576,10 @@ class Backoffice extends Controller
       $empresaId = Auth::user()->empresa_id;
       $hoje = Carbon::now();
 
+      // Paginação
+      $page = max(1, (int) $request->input('page', 1));
+      $perPage = min(100, max(10, (int) $request->input('per_page', 15)));
+
       $query = DB::table('vendas')
         ->select([
           'vendas.id',
@@ -1615,7 +1619,15 @@ class Backoffice extends Controller
         });
       }
 
-      $contratos = $query->orderBy('vendas.data_implantacao', 'desc')->get();
+      // Contar total para paginação
+      $total = $query->count();
+
+      // Buscar contratos paginados
+      $contratos = $query
+        ->orderBy('vendas.data_implantacao', 'desc')
+        ->offset(($page - 1) * $perPage)
+        ->limit($perPage)
+        ->get();
 
       // Processar dados
       $resultado = $contratos->map(function ($c) use ($hoje) {
@@ -1647,33 +1659,77 @@ class Backoffice extends Controller
         ];
       });
 
-      // KPIs
-      $totalImplantados = $resultado->count();
+      // KPIs (baseados no total filtrado, não apenas na página atual)
+      // Para KPIs precisos, calculamos separadamente
+      $kpiQuery = DB::table('vendas')
+        ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+        ->where('vendas.empresa_id', $empresaId)
+        ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
+        ->whereNotNull('vendas.data_implantacao');
 
-      // Aniversários no mês atual (contratos cuja data de implantação é no mesmo mês)
-      $aniversariosNoMes = $resultado->filter(function ($c) use ($hoje) {
-        $partes = explode('/', $c['proximo_aniversario']);
-        if (count($partes) === 2) {
-          return (int) $partes[1] === $hoje->month;
-        }
-        return false;
-      })->count();
+      // Aplicar mesmos filtros para KPIs
+      if ($request->filled('operadora')) {
+        $kpiQuery->where('vendas.operadora', $request->operadora);
+      }
+      if ($request->filled('vendedor_id')) {
+        $kpiQuery->where('vendas.user_id', $request->vendedor_id);
+      }
+      if ($request->filled('mes_aniversario')) {
+        $kpiQuery->whereRaw('MONTH(vendas.data_implantacao) = ?', [$request->mes_aniversario]);
+      }
+      if ($request->filled('busca')) {
+        $busca = $request->busca;
+        $kpiQuery->where(function ($q) use ($busca) {
+          $q->where('vendas.nome_contrato', 'like', "%{$busca}%")
+            ->orWhere('vendas.numero_proposta', 'like', "%{$busca}%")
+            ->orWhere('vendas.cpf_cnpj', 'like', "%{$busca}%");
+        });
+      }
 
-      // Próximos aniversários (em até 30 dias)
-      $proximosAniversarios = $resultado->filter(function ($c) {
-        return $c['dias_para_aniversario'] >= 0 && $c['dias_para_aniversario'] <= 30;
-      })->count();
+      $kpiData = $kpiQuery->select([
+        DB::raw('COUNT(*) as total'),
+        DB::raw('SUM(vendas.valor_contrato) as valor_total'),
+        DB::raw("SUM(CASE WHEN MONTH(vendas.data_implantacao) = {$hoje->month} THEN 1 ELSE 0 END) as aniversarios_mes"),
+      ])->first();
 
-      $valorCarteira = $resultado->sum('valor_contrato');
+      // Calcular próximos aniversários (30 dias) - precisa de query separada
+      $proximosAniversarios = DB::table('vendas')
+        ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+        ->where('vendas.empresa_id', $empresaId)
+        ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
+        ->whereNotNull('vendas.data_implantacao')
+        ->whereRaw("
+          DATEDIFF(
+            DATE(CONCAT(YEAR(CURDATE()), '-', MONTH(data_implantacao), '-', DAY(data_implantacao))) +
+            INTERVAL IF(
+              DATE(CONCAT(YEAR(CURDATE()), '-', MONTH(data_implantacao), '-', DAY(data_implantacao))) < CURDATE(),
+              1, 0
+            ) YEAR,
+            CURDATE()
+          ) BETWEEN 0 AND 30
+        ")
+        ->when($request->filled('operadora'), fn($q) => $q->where('vendas.operadora', $request->operadora))
+        ->when($request->filled('vendedor_id'), fn($q) => $q->where('vendas.user_id', $request->vendedor_id))
+        ->count();
+
+      $totalPages = (int) ceil($total / $perPage);
 
       return response()->json([
         'success' => true,
         'contratos' => $resultado->values(),
+        'pagination' => [
+          'current_page' => $page,
+          'per_page' => $perPage,
+          'total' => $total,
+          'total_pages' => $totalPages,
+          'has_prev' => $page > 1,
+          'has_next' => $page < $totalPages,
+        ],
         'kpis' => [
-          'total_implantados' => $totalImplantados,
-          'aniversarios_mes' => $aniversariosNoMes,
+          'total_implantados' => $kpiData->total ?? 0,
+          'aniversarios_mes' => $kpiData->aniversarios_mes ?? 0,
           'proximos_aniversarios' => $proximosAniversarios,
-          'valor_carteira' => $valorCarteira,
+          'valor_carteira' => $kpiData->valor_total ?? 0,
         ],
       ]);
     } catch (\Throwable $e) {
