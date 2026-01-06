@@ -18,6 +18,7 @@ use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
+use App\Http\Controllers\pages\relatorios\RelatorioAproveitamento;
 use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\financeiro\Financeiro;
 use App\Http\Controllers\pages\comercial\ConsultaController;
@@ -242,6 +243,11 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/relatorios/implantacoes/listar', [Relatorios::class, 'implantacoesList'])->name('relatorios.implantacoes.listar');
   Route::get('/relatorios/desempenho-anual', [Relatorios::class, 'desempenhoAnual'])->name('relatorios.desempenhoAnual');
   Route::get('/relatorios/desempenho-anual/dados', [Relatorios::class, 'desempenhoAnualData'])->name('relatorios.desempenhoAnual.dados');
+
+  // Relatório de Aproveitamento com IA
+  Route::get('/relatorios/aproveitamento', [RelatorioAproveitamento::class, 'index'])->name('relatorios.aproveitamento');
+  Route::get('/relatorios/aproveitamento/dados', [RelatorioAproveitamento::class, 'getDados'])->name('relatorios.aproveitamento.dados');
+  Route::post('/relatorios/aproveitamento/analise', [RelatorioAproveitamento::class, 'gerarAnalise'])->name('relatorios.aproveitamento.analise');
 
   /** RANKING DE VENDAS */
   Route::get('/ranking', [RankingVendas::class, 'index'])->name('ranking.index');
