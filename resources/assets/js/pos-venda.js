@@ -40,6 +40,7 @@
     // Modals
     modalAnotacoes: document.getElementById('modalAnotacoes'),
     modalHistorico: document.getElementById('modalHistorico'),
+    modalDataImplantacao: document.getElementById('modalDataImplantacao'),
 
     // Pagination
     paginationWrapper: document.getElementById('pv-pagination'),
@@ -73,12 +74,69 @@
     // Anotações modal events
     document.getElementById('btn-salvar-anotacao')?.addEventListener('click', saveAnotacao);
 
+    // Data Implantação modal events
+    document.getElementById('btn-salvar-data-implantacao')?.addEventListener('click', saveDataImplantacao);
+
     // Pagination events
     elements.perPageSelect?.addEventListener('change', handlePerPageChange);
     elements.btnFirst?.addEventListener('click', () => goToPage(1));
     elements.btnPrev?.addEventListener('click', () => goToPage(pagination.currentPage - 1));
     elements.btnNext?.addEventListener('click', () => goToPage(pagination.currentPage + 1));
     elements.btnLast?.addEventListener('click', () => goToPage(pagination.totalPages));
+
+    // Fix dropdown positioning
+    document.addEventListener('show.bs.dropdown', handleDropdownShow);
+    document.addEventListener('hidden.bs.dropdown', handleDropdownHidden);
+  }
+
+  // Handle dropdown position to prevent clipping
+  function handleDropdownShow(event) {
+    const dropdown = event.target.closest('.actions-cell');
+    if (!dropdown) return;
+
+    const button = event.target;
+    const menu = dropdown.querySelector('.dropdown-menu');
+    if (!menu) return;
+
+    // Wait for Bootstrap to show the menu
+    setTimeout(() => {
+      const buttonRect = button.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+
+      // Use fixed positioning for all dropdowns in actions
+      menu.style.position = 'fixed';
+      menu.style.top = `${buttonRect.bottom + 4}px`;
+      menu.style.right = `${window.innerWidth - buttonRect.right}px`;
+      menu.style.left = 'auto';
+      menu.style.bottom = 'auto';
+      menu.style.transform = 'none';
+
+      // Check if menu goes below viewport, if so position above
+      requestAnimationFrame(() => {
+        const menuRect = menu.getBoundingClientRect();
+        if (menuRect.bottom > viewportHeight - 10) {
+          menu.style.top = 'auto';
+          menu.style.bottom = `${viewportHeight - buttonRect.top + 4}px`;
+        }
+      });
+    }, 0);
+  }
+
+  // Clean up dropdown styles when hidden
+  function handleDropdownHidden(event) {
+    const dropdown = event.target.closest('.actions-cell');
+    if (!dropdown) return;
+
+    const menu = dropdown.querySelector('.dropdown-menu');
+    if (!menu) return;
+
+    // Reset inline styles
+    menu.style.position = '';
+    menu.style.top = '';
+    menu.style.right = '';
+    menu.style.left = '';
+    menu.style.bottom = '';
+    menu.style.transform = '';
   }
 
   // Load data from API
@@ -234,9 +292,16 @@
             <div class="contract-name">${escapeHtml(contrato.nome_contrato || 'N/A')}</div>
             <div class="contract-info">
               <span class="contract-id">#${contrato.numero_proposta || contrato.id}</span>
-              <span class="separator"></span>
-              <span>${escapeHtml(contrato.vendedor || 'N/A')}</span>
             </div>
+          </div>
+        </td>
+        <td>
+          <div class="vendedor-cell">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>${escapeHtml(contrato.vendedor || 'N/A')}</span>
           </div>
         </td>
         <td>
@@ -260,7 +325,7 @@
         </td>
         <td class="actions-cell">
           <div class="dropdown">
-            <button type="button" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
+            <button type="button" class="btn-action" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="1"/>
                 <circle cx="12" cy="5" r="1"/>
@@ -292,6 +357,27 @@
                     <polyline points="12 6 12 12 16 14"/>
                   </svg>
                   Ver Histórico
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="/back-office/comprovante/${contrato.id}" target="_blank">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Baixar Comprovante
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="javascript:void(0)" onclick="posVenda.openAlterarDataImplantacao(${contrato.id}, '${contrato.data_implantacao || ''}')">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  Alterar Data Implantação
                 </a>
               </li>
               <li><hr class="dropdown-divider"></li>
@@ -541,6 +627,133 @@
     }
   }
 
+  // Open modal to change implantation date
+  function openAlterarDataImplantacao(vendaId, dataAtual) {
+    document.getElementById('data-implantacao-venda-id').value = vendaId;
+
+    // Convert date from dd/mm/yyyy or yyyy-mm-dd to yyyy-mm-dd for input
+    let dataFormatada = '';
+    if (dataAtual) {
+      if (dataAtual.includes('/')) {
+        const partes = dataAtual.split('/');
+        if (partes.length === 3) {
+          dataFormatada = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+        }
+      } else {
+        dataFormatada = dataAtual;
+      }
+    }
+    document.getElementById('nova-data-implantacao').value = dataFormatada;
+
+    const modal = new bootstrap.Modal(elements.modalDataImplantacao);
+    modal.show();
+  }
+
+  // Save new implantation date
+  async function saveDataImplantacao() {
+    const vendaId = document.getElementById('data-implantacao-venda-id').value;
+    const novaData = document.getElementById('nova-data-implantacao').value;
+    const btnSalvar = document.getElementById('btn-salvar-data-implantacao');
+
+    if (!vendaId || !novaData) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atenção',
+        text: 'Por favor, selecione uma data.',
+        confirmButtonColor: '#7C3AED'
+      });
+      return;
+    }
+
+    const originalContent = btnSalvar.innerHTML;
+    btnSalvar.disabled = true;
+    btnSalvar.innerHTML = `
+      <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+      Salvando...
+    `;
+
+    try {
+      const response = await fetch('/back-office/pos-venda/data-implantacao', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          venda_id: vendaId,
+          data_implantacao: novaData
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Close modal
+        bootstrap.Modal.getInstance(elements.modalDataImplantacao).hide();
+
+        // Modern toast success
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+          background: 'transparent',
+          showClass: {
+            popup: 'animate__animated animate__slideInRight animate__faster'
+          },
+          hideClass: {
+            popup: 'animate__animated animate__slideOutRight animate__faster'
+          },
+          html: `
+            <div class="custom-toast custom-toast-success">
+              <div class="toast-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <div class="toast-content">
+                <div class="toast-title">Sucesso!</div>
+                <div class="toast-message">Data de implantação atualizada para <strong>${data.data_implantacao}</strong></div>
+              </div>
+              <div class="toast-close" onclick="Swal.close()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </div>
+            </div>
+          `,
+          customClass: {
+            popup: 'custom-toast-popup'
+          }
+        });
+
+        // Reload data to reflect changes
+        loadData();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro',
+          text: data.message || 'Não foi possível atualizar a data.',
+          confirmButtonColor: '#7C3AED'
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar data:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: 'Não foi possível atualizar a data de implantação.',
+        confirmButtonColor: '#7C3AED'
+      });
+    } finally {
+      btnSalvar.disabled = false;
+      btnSalvar.innerHTML = originalContent;
+    }
+  }
+
   // Open histórico modal
   async function openHistorico(vendaId) {
     const historicoContent = document.getElementById('historico-content');
@@ -728,7 +941,8 @@
   window.posVenda = {
     openAnotacoes,
     openHistorico,
-    gerarRecebiveis
+    gerarRecebiveis,
+    openAlterarDataImplantacao
   };
 
   // Initialize when DOM is ready

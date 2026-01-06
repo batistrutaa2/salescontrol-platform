@@ -1843,4 +1843,50 @@ class Backoffice extends Controller
       ], 500);
     }
   }
+
+  /**
+   * Atualiza a data de implantação de um contrato
+   */
+  public function updateDataImplantacao(Request $request)
+  {
+    try {
+      $request->validate([
+        'venda_id' => 'required|integer|exists:vendas,id',
+        'data_implantacao' => 'required|date',
+      ]);
+
+      $empresaId = Auth::user()->empresa_id;
+
+      $venda = Vendas::where('id', $request->venda_id)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Contrato não encontrado.'
+        ], 404);
+      }
+
+      $venda->data_implantacao = $request->data_implantacao;
+      $venda->save();
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Data de implantação atualizada com sucesso.',
+        'data_implantacao' => Carbon::parse($venda->data_implantacao)->format('d/m/Y'),
+      ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validação.',
+        'errors' => $e->errors(),
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao atualizar data: ' . $e->getMessage()
+      ], 500);
+    }
+  }
 }

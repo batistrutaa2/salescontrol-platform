@@ -3,7 +3,7 @@
 @section('title', 'Pós-Venda - Contratos Implantados')
 
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/scss/pages/pos-venda.scss'])
+    @vite(['resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/libs/animate-css/animate.scss', 'resources/assets/vendor/scss/pages/pos-venda.scss'])
 @endsection
 
 @section('vendor-script')
@@ -208,6 +208,7 @@
                     <thead>
                         <tr>
                             <th>Contrato</th>
+                            <th>Vendedor</th>
                             <th>Operadora</th>
                             <th>Valor</th>
                             <th>Implantado</th>
@@ -383,6 +384,44 @@
                 </div>
                 <div class="modal-body p-0" id="historico-content">
                     <!-- Content loaded via AJAX -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Alterar Data de Implantação -->
+    <div class="modal fade" id="modalDataImplantacao" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content pv-modal">
+                <div class="modal-header pv-modal-header pv-modal-header-primary">
+                    <h5 class="modal-title d-flex align-items-center gap-2">
+                        <div class="modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                        <span>Alterar Data de Implantação</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="data-implantacao-venda-id">
+                    <div class="mb-3">
+                        <label for="nova-data-implantacao" class="form-label fw-semibold">Nova Data de Implantação</label>
+                        <input type="date" class="form-control" id="nova-data-implantacao" required>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btn-salvar-data-implantacao">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Salvar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

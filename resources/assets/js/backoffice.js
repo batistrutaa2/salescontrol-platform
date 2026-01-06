@@ -29,6 +29,71 @@ $(function () {
         return s.length <= n ? s : s.slice(0, n) + '…';
     }
 
+    /**
+     * Modern Toast Notification
+     * @param {string} type - 'success', 'error', 'warning', 'info'
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     */
+    function showModernToast(type, title, message) {
+        const icons = {
+            success: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>`,
+            error: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>`,
+            warning: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>`,
+            info: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>`
+        };
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            background: 'transparent',
+            showClass: {
+                popup: 'animate__animated animate__slideInRight animate__faster'
+            },
+            hideClass: {
+                popup: 'animate__animated animate__slideOutRight animate__faster'
+            },
+            html: `
+                <div class="custom-toast custom-toast-${type}">
+                    <div class="toast-icon">
+                        ${icons[type] || icons.info}
+                    </div>
+                    <div class="toast-content">
+                        <div class="toast-title">${escapeHtml(title)}</div>
+                        <div class="toast-message">${escapeHtml(message)}</div>
+                    </div>
+                    <div class="toast-close" onclick="Swal.close()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </div>
+                </div>
+            `,
+            customClass: {
+                popup: 'custom-toast-popup'
+            }
+        });
+    }
+
     // =============================================================================
     // Kanban Manager
     // =============================================================================
@@ -216,19 +281,6 @@ $(function () {
                                     Histórico
                                 </button>
                                 <div class="dropdown-divider"></div>
-                                ${contract.atrasado === false && contract.dias_no_status !== undefined ? `
-                                    <button type="button" class="dropdown-item-card text-success js-gerar-recebivel"
-                                            data-id="${contract.id}"
-                                            data-nome="${escapeHtml(contract.nome_contrato)}">
-                                        <i class="ri-money-dollar-circle-line"></i>
-                                        Gerar Recebíveis
-                                    </button>
-                                ` : ''}
-                                <a href="/back-office/comprovante/${contract.id}" class="dropdown-item-card" target="_blank">
-                                    <i class="ri-download-line"></i>
-                                    Baixar Comprovante
-                                </a>
-                                <div class="dropdown-divider"></div>
                                 <a href="/back-office/deletar-contrato/${contract.id}"
                                    class="dropdown-item-card text-danger js-delete-contract"
                                    data-id="${contract.id}"
@@ -404,16 +456,8 @@ $(function () {
                     self.statusConfirmed = true;
                     self.updateColumnCounts();
 
-                    // Toast de sucesso
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: result.message || 'Status atualizado!',
-                        showConfirmButton: false,
-                        timer: 2000,
-                        timerProgressBar: true,
-                    });
+                    // Toast de sucesso moderno
+                    showModernToast('success', 'Status Atualizado!', result.message || 'O contrato foi movido com sucesso.');
                 } else {
                     // Erro - reverter card
                     if (evt.from) {
@@ -421,14 +465,7 @@ $(function () {
                         self.updateColumnCounts();
                     }
 
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'error',
-                        title: result.message || 'Erro ao atualizar status',
-                        showConfirmButton: false,
-                        timer: 3000,
-                    });
+                    showModernToast('error', 'Erro', result.message || 'Não foi possível atualizar o status.');
                 }
             } catch (error) {
                 console.error('Erro ao atualizar status:', error);
@@ -439,14 +476,7 @@ $(function () {
                     self.updateColumnCounts();
                 }
 
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'error',
-                    title: 'Erro de conexão',
-                    showConfirmButton: false,
-                    timer: 3000,
-                });
+                showModernToast('error', 'Erro de Conexão', 'Verifique sua internet e tente novamente.');
             } finally {
                 // Restaurar card
                 const card = evt.item;
