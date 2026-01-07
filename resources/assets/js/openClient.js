@@ -142,6 +142,80 @@
         }
       }, 50);
     });
+
+    // === AJUSTE DINÂMICO DE ALTURA DO EDITOR ===
+    const commentContainer = document.querySelector('.comment-container');
+
+    function forceEditorHeight() {
+      if (!commentContainer) return;
+
+      // Buscar elementos DEPOIS do Quill ter inicializado
+      const qlContainer = document.querySelector('.comment-editor .ql-container');
+      const qlEditor = document.querySelector('.comment-editor .ql-editor');
+
+      if (!qlContainer || !qlEditor) {
+        console.warn('Quill elements not found');
+        return;
+      }
+
+      const containerHeight = commentContainer.offsetHeight;
+      const toolbar = document.querySelector('.comment-toolbar');
+      const toolbarHeight = toolbar ? toolbar.offsetHeight : 45;
+      const availableHeight = containerHeight - toolbarHeight - 5;
+
+      // Forçar estilos com setProperty e 'important'
+      // comment-editor
+      const commentEditor = document.querySelector('.comment-editor');
+      if (commentEditor) {
+        commentEditor.style.setProperty('position', 'absolute', 'important');
+        commentEditor.style.setProperty('top', toolbarHeight + 'px', 'important');
+        commentEditor.style.setProperty('left', '0', 'important');
+        commentEditor.style.setProperty('right', '0', 'important');
+        commentEditor.style.setProperty('bottom', '0', 'important');
+        commentEditor.style.setProperty('height', 'auto', 'important');
+      }
+
+      // ql-container
+      qlContainer.style.setProperty('position', 'absolute', 'important');
+      qlContainer.style.setProperty('top', '0', 'important');
+      qlContainer.style.setProperty('left', '0', 'important');
+      qlContainer.style.setProperty('right', '0', 'important');
+      qlContainer.style.setProperty('bottom', '0', 'important');
+      qlContainer.style.setProperty('height', availableHeight + 'px', 'important');
+      qlContainer.style.setProperty('border', 'none', 'important');
+
+      // ql-editor - este é o elemento crítico
+      qlEditor.style.setProperty('position', 'relative', 'important');
+      qlEditor.style.setProperty('height', '100%', 'important');
+      qlEditor.style.setProperty('max-height', 'none', 'important');
+      qlEditor.style.setProperty('min-height', (availableHeight - 20) + 'px', 'important');
+      qlEditor.style.setProperty('overflow-y', 'auto', 'important');
+    }
+
+    // Ajustar altura inicial com delay para garantir que Quill inicializou
+    setTimeout(forceEditorHeight, 200);
+    setTimeout(forceEditorHeight, 500);
+
+    // Observar mudanças de tamanho do container
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(() => {
+        forceEditorHeight();
+      });
+      resizeObserver.observe(commentContainer);
+    }
+
+    // MutationObserver para re-aplicar estilos se Quill tentar sobrescrever
+    const styleObserver = new MutationObserver(() => {
+      forceEditorHeight();
+    });
+
+    const qlEditorEl = document.querySelector('.comment-editor .ql-editor');
+    if (qlEditorEl) {
+      styleObserver.observe(qlEditorEl, {
+        attributes: true,
+        attributeFilter: ['style']
+      });
+    }
   }
 
   // Import contatos (com proteção)

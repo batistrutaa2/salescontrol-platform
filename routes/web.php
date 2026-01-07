@@ -106,6 +106,8 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/mailing/get-leads-descartados', [Mailing::class, 'getLeadsDescartados'])->name('comercial.getLeadsDescartados');
   Route::get('/mailing/getComentariosLead/{id}', [Mailing::class, 'getComentariosLead'])->name('comercial.getComentariosLead');
   Route::post('/mailing/excluir-lead-descartado/{id}', [Mailing::class, 'deleteMailingLeadsDescarted'])->name('mailing.deleteMailingLeadsDescarted');
+  Route::post('/mailing/send-descartado-preditiva', [Mailing::class, 'sendDiscardedLeadToPreditiva'])->name('mailing.sendDiscardedToPreditiva');
+  Route::post('/mailing/send-multiple-descartados-preditiva', [Mailing::class, 'sendMultipleDiscardedLeadsToPreditiva'])->name('mailing.sendMultipleDiscardedToPreditiva');
 
   /** COMERCIAL */
   Route::get('/comercial/kanban', [Comercial::class, 'index'])->name('comercial.kanban');

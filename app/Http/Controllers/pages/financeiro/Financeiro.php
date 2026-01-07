@@ -177,6 +177,14 @@ class Financeiro extends Controller
             $query->where('empresa_id', $request->empresa_id);
         }
 
+        // Filtro por mês/ano de implantação do contrato
+        if ($request->filled('mes_implantacao')) {
+            $mesAno = $request->mes_implantacao; // formato: YYYY-MM
+            $query->whereHas('venda', function ($q) use ($mesAno) {
+                $q->whereRaw("DATE_FORMAT(data_implantacao, '%Y-%m') = ?", [$mesAno]);
+            });
+        }
+
         $recebiveis = $query->get();
 
         // Calcular totais
@@ -206,9 +214,19 @@ class Financeiro extends Controller
             ];
         });
 
+        // Buscar meses/anos disponíveis de implantação para o filtro
+        $mesesDisponiveis = \App\Models\Vendas::whereNotNull('data_implantacao')
+            ->whereIn('id', Recebivel::select('venda_id')->distinct())
+            ->selectRaw("DATE_FORMAT(data_implantacao, '%Y-%m') as mes_ano")
+            ->distinct()
+            ->orderBy('mes_ano', 'desc')
+            ->pluck('mes_ano');
+
         return view('content.pages.financeiro.recebiveis', [
             'contratos' => $contratos,
             'totais'    => $totais,
+            'mesesDisponiveis' => $mesesDisponiveis,
+            'filtroMesImplantacao' => $request->mes_implantacao,
         ]);
     }
 
@@ -291,12 +309,13 @@ class Financeiro extends Controller
     }
 
     /**
-     * Atualiza a data de recebimento de uma parcela (para parcelas já pagas ou para registrar pagamento retroativo)
+     * Atualiza a data de recebimento e/ou valor de uma parcela (para parcelas já pagas ou para registrar pagamento retroativo)
      */
     public function atualizarDataRecebimento(Request $request, $id)
     {
         $request->validate([
             'data_recebimento' => 'required|date',
+            'valor' => 'nullable|numeric|min:0',
         ]);
 
         $parcela = Recebivel::findOrFail($id);
@@ -311,15 +330,23 @@ class Financeiro extends Controller
 
         $dataRecebimento = \Carbon\Carbon::parse($request->data_recebimento);
 
-        $parcela->update([
+        $updateData = [
             'status' => 'PAGO',
             'data_recebimento' => $dataRecebimento
-        ]);
+        ];
+
+        // Se o valor foi informado, atualiza também
+        if ($request->filled('valor')) {
+            $updateData['valor'] = $request->valor;
+        }
+
+        $parcela->update($updateData);
 
         return response()->json([
             'success' => true,
-            'message' => 'Data de recebimento atualizada com sucesso.',
-            'data_recebimento' => $dataRecebimento->format('d/m/Y')
+            'message' => 'Parcela atualizada com sucesso.',
+            'data_recebimento' => $dataRecebimento->format('d/m/Y'),
+            'valor' => number_format($parcela->valor, 2, ',', '.')
         ]);
     }
 

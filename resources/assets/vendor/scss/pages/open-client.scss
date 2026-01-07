@@ -840,24 +840,12 @@
 }
 
 // ============================================
-// Comment Editor - Estilos simples
+// Comment Editor - Estilos com Resize
 // ============================================
 #saveComment {
     .form-control {
         border-radius: var(--oc-border-radius-sm);
         border-color: var(--oc-card-border);
-        overflow: hidden;
-    }
-
-    .comment-editor {
-        min-height: 120px;
-        max-height: 150px;
-
-        .ql-editor {
-            min-height: 120px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
     }
 
     // Garante que o botão apareça

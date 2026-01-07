@@ -161,6 +161,55 @@
         </div>
     </section>
 
+    {{-- Filter Bar --}}
+    <section class="filter-section">
+        <div class="filter-card">
+            <div class="filter-card-content">
+                <div class="filter-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    </svg>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Mes de Implantacao</label>
+                    <select id="filtroMesImplantacao" class="filter-select">
+                        <option value="">Todos os meses</option>
+                        @foreach($mesesDisponiveis as $mesAno)
+                            @php
+                                $mesesPt = [
+                                    '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Março',
+                                    '04' => 'Abril', '05' => 'Maio', '06' => 'Junho',
+                                    '07' => 'Julho', '08' => 'Agosto', '09' => 'Setembro',
+                                    '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro'
+                                ];
+                                $partes = explode('-', $mesAno);
+                                $mesNome = $mesesPt[$partes[1]] . '/' . $partes[0];
+                            @endphp
+                            <option value="{{ $mesAno }}" {{ $filtroMesImplantacao == $mesAno ? 'selected' : '' }}>
+                                {{ $mesNome }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="button" id="btnAplicarFiltro" class="filter-btn-apply">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Aplicar
+                </button>
+                @if($filtroMesImplantacao)
+                <a href="{{ route('financeiro.recebiveis.index') }}" class="filter-btn-clear">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Limpar
+                </a>
+                @endif
+            </div>
+        </div>
+    </section>
+
     {{-- Filters & Table Section --}}
     <section class="data-section">
         <div class="data-card">

@@ -372,6 +372,193 @@ class Mailing extends Controller
     return response()->json($comentarios);
   }
 
+  /**
+   * Envia um lead descartado para a fila preditiva
+   */
+  public function sendDiscardedLeadToPreditiva(Request $request)
+  {
+    try {
+      $contatoId = $request->id;
+      $empresaId = Auth::user()->empresa_id;
+
+      // Verificar se o contato pertence a empresa e esta descartado
+      $contato = Contatos::where('id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->where('status', 'N')
+        ->first();
+
+      if (!$contato) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Lead nao encontrado ou nao esta descartado.'
+        ], 404);
+      }
+
+      // Verificar duplicidade - se ja existe na preditiva com status Y
+      $existsInPreditiva = Preditiva::where('contato_id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->where('status', 'Y')
+        ->exists();
+
+      if ($existsInPreditiva) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Lead ja esta na fila preditiva.'
+        ], 422);
+      }
+
+      DB::beginTransaction();
+
+      // 1. Reativar o contato
+      $contato->status = 'Y';
+      $contato->updated_at = now();
+      $contato->save();
+
+      // 2. Remover registro antigo da preditiva se existir (status N)
+      Preditiva::where('contato_id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->delete();
+
+      // 3. Criar novo registro na preditiva
+      Preditiva::create([
+        'empresa_id' => $empresaId,
+        'contato_id' => $contatoId,
+        'status' => 'Y'
+      ]);
+
+      // 4. Limpar logs anteriores para comecar do zero
+      LogPreditiva::where('contato_id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->delete();
+
+      DB::commit();
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Lead enviado para preditiva com sucesso.'
+      ]);
+
+    } catch (\Throwable $th) {
+      DB::rollBack();
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao enviar lead: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Envia multiplos leads descartados para a fila preditiva (com chunking para performance)
+   */
+  public function sendMultipleDiscardedLeadsToPreditiva(Request $request)
+  {
+    try {
+      $ids = $request->input('ids', []);
+      $empresaId = Auth::user()->empresa_id;
+
+      if (empty($ids)) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Nenhum lead selecionado.'
+        ], 400);
+      }
+
+      $totalCount = count($ids);
+      $successCount = 0;
+      $errorCount = 0;
+      $skippedCount = 0;
+      $chunkSize = 50;
+
+      // Processar em chunks para evitar timeout
+      $chunks = array_chunk($ids, $chunkSize);
+
+      foreach ($chunks as $chunk) {
+        DB::beginTransaction();
+        try {
+          foreach ($chunk as $contatoId) {
+            // Verificar propriedade e status
+            $contato = Contatos::where('id', $contatoId)
+              ->where('empresa_id', $empresaId)
+              ->where('status', 'N')
+              ->first();
+
+            if (!$contato) {
+              $errorCount++;
+              continue;
+            }
+
+            // Verificar duplicidade
+            $existsInPreditiva = Preditiva::where('contato_id', $contatoId)
+              ->where('empresa_id', $empresaId)
+              ->where('status', 'Y')
+              ->exists();
+
+            if ($existsInPreditiva) {
+              $skippedCount++;
+              continue;
+            }
+
+            // Reativar contato
+            $contato->status = 'Y';
+            $contato->updated_at = now();
+            $contato->save();
+
+            // Remover registro antigo da preditiva se existir
+            Preditiva::where('contato_id', $contatoId)
+              ->where('empresa_id', $empresaId)
+              ->delete();
+
+            // Criar novo registro na preditiva
+            Preditiva::create([
+              'empresa_id' => $empresaId,
+              'contato_id' => $contatoId,
+              'status' => 'Y'
+            ]);
+
+            // Limpar logs anteriores
+            LogPreditiva::where('contato_id', $contatoId)
+              ->where('empresa_id', $empresaId)
+              ->delete();
+
+            $successCount++;
+          }
+          DB::commit();
+        } catch (\Throwable $e) {
+          DB::rollBack();
+          $errorCount += count($chunk);
+        }
+      }
+
+      // Construir mensagem de resposta
+      $message = "{$successCount} lead(s) enviado(s) com sucesso para a fila preditiva.";
+
+      if ($skippedCount > 0) {
+        $message .= " {$skippedCount} ja estavam na fila.";
+      }
+
+      if ($errorCount > 0) {
+        $message .= " {$errorCount} com falha.";
+      }
+
+      return response()->json([
+        'success' => $successCount > 0,
+        'message' => $message,
+        'stats' => [
+          'total' => $totalCount,
+          'success' => $successCount,
+          'skipped' => $skippedCount,
+          'errors' => $errorCount
+        ]
+      ]);
+
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao processar: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
   public function desativarLeadPreditiva($contatoId)
   {
     try {

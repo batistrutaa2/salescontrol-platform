@@ -402,7 +402,7 @@
                         @csrf
                         <input type="hidden" name="id_mailing" value="{{ $client->id }}">
                         <input type="hidden" value="{{ $tabulationCurrent }}" name="id_tabulacao">
-                        <div class="form-control p-0 pt-1" style="overflow: hidden;">
+                        <div class="comment-container form-control p-0 pt-1">
                             <div class="comment-toolbar border-0 border-bottom">
                                 <div class="d-flex justify-content-start">
                                     <span class="ql-formats me-0">
@@ -414,7 +414,7 @@
                                     </span>
                                 </div>
                             </div>
-                            <div class="comment-editor border-0 pb-1" style="height: 120px; max-height: 120px; overflow-y: auto;"></div>
+                            <div class="comment-editor border-0 pb-1"></div>
                         </div>
                         <div style="margin-top: 1rem;">
                             <button type="submit" class="btn btn-primary">Salvar Comentario</button>

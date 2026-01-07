@@ -18,7 +18,7 @@ $(function () {
         responsive: true,
         order: [[4, 'desc']],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
         },
         dom: '<"dataTables_header"lf>rt<"dataTables_footer"ip>',
         drawCallback: function () {
@@ -46,6 +46,29 @@ $(function () {
 
         // Update count badge
         updateContractsCount();
+    });
+
+    // ============================================
+    // Filter by Implantation Month/Year
+    // ============================================
+    $('#btnAplicarFiltro').on('click', function () {
+        const mesImplantacao = $('#filtroMesImplantacao').val();
+        const currentUrl = new URL(window.location.href);
+
+        if (mesImplantacao) {
+            currentUrl.searchParams.set('mes_implantacao', mesImplantacao);
+        } else {
+            currentUrl.searchParams.delete('mes_implantacao');
+        }
+
+        window.location.href = currentUrl.toString();
+    });
+
+    // Allow pressing Enter on the select to apply filter
+    $('#filtroMesImplantacao').on('keypress', function (e) {
+        if (e.which === 13) {
+            $('#btnAplicarFiltro').click();
+        }
     });
 
     // ============================================
@@ -157,7 +180,8 @@ $(function () {
                         data-id="${parcela.id}"
                         data-parcela="${parcela.parcela}"
                         data-data="${parcela.data_recebimento || ''}"
-                        title="Editar data de recebimento">
+                        data-valor="${parcela.valor || ''}"
+                        title="Editar parcela">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -176,7 +200,8 @@ $(function () {
                             data-id="${parcela.id}"
                             data-parcela="${parcela.parcela}"
                             data-data=""
-                            title="Definir data">
+                            data-valor="${parcela.valor || ''}"
+                            title="Definir data e valor">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                             <line x1="16" y1="2" x2="16" y2="6"/>
@@ -261,11 +286,55 @@ $(function () {
         });
     });
 
-    // Edit Receipt Date
+    // Helper: Format number to Brazilian currency (1234.56 -> 1.234,56)
+    function formatarMoeda(valor) {
+        if (!valor && valor !== 0) return '';
+        return parseFloat(valor).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    // Helper: Parse Brazilian currency to number (1.234,56 -> 1234.56)
+    function parseMoeda(valorFormatado) {
+        if (!valorFormatado) return null;
+        // Remove dots (thousand separator) and replace comma with dot (decimal separator)
+        const valorLimpo = valorFormatado.replace(/\./g, '').replace(',', '.');
+        const numero = parseFloat(valorLimpo);
+        return isNaN(numero) ? null : numero;
+    }
+
+    // Helper: Apply currency mask on input
+    function aplicarMascaraMoeda(input) {
+        input.addEventListener('input', function (e) {
+            let valor = e.target.value;
+
+            // Remove tudo exceto numeros
+            valor = valor.replace(/\D/g, '');
+
+            // Converte para centavos
+            if (valor.length === 0) {
+                e.target.value = '';
+                return;
+            }
+
+            // Converte para decimal (divide por 100)
+            const valorDecimal = parseInt(valor, 10) / 100;
+
+            // Formata como moeda brasileira
+            e.target.value = valorDecimal.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        });
+    }
+
+    // Edit Receipt Date and Value
     $(document).on('click', '.editar-data-recebimento', function () {
         const parcelaId = $(this).data('id');
         const numeroParcela = $(this).data('parcela');
         const dataAtual = $(this).data('data') || '';
+        const valorAtual = $(this).data('valor') || '';
 
         let dataFormatada = '';
         if (dataAtual) {
@@ -275,92 +344,154 @@ $(function () {
             }
         }
 
+        // Format valor for display (Brazilian format: 1.234,56)
+        let valorFormatado = '';
+        if (valorAtual) {
+            valorFormatado = formatarMoeda(valorAtual);
+        }
+
         const hoje = new Date().toISOString().split('T')[0];
 
-        Swal.fire({
-            title: `Parcela ${numeroParcela}`,
-            html: `
-                <div style="text-align: left; padding: 1rem 0;">
-                    <p style="margin-bottom: 1rem; color: var(--rcb-text-secondary);">
-                        ${dataAtual ? 'Edite a data de recebimento:' : 'Informe a data em que o pagamento foi recebido:'}
-                    </p>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem;">
-                            Data de Recebimento
-                        </label>
-                        <input type="date" id="swal-data-recebimento"
-                               style="width: 100%; padding: 0.625rem 1rem; border: 1px solid var(--rcb-card-border); border-radius: 8px; font-size: 0.9375rem;"
-                               value="${dataFormatada}" max="${hoje}">
-                    </div>
-                    <p style="color: var(--rcb-text-muted); font-size: 0.8125rem; margin: 0;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="16" x2="12" y2="12"/>
-                            <line x1="12" y1="8" x2="12.01" y2="8"/>
-                        </svg>
-                        ${dataAtual ? 'A parcela continuara marcada como paga.' : 'A parcela sera marcada como paga na data informada.'}
-                    </p>
-                </div>
-            `,
-            icon: null,
-            showCancelButton: true,
-            confirmButtonText: 'Salvar',
-            cancelButtonText: 'Cancelar',
-            customClass: {
-                popup: 'swal-recebiveis',
-                confirmButton: 'btn btn-success me-2',
-                cancelButton: 'btn btn-secondary'
-            },
-            buttonsStyling: false,
-            preConfirm: () => {
-                const data = document.getElementById('swal-data-recebimento').value;
-                if (!data) {
-                    Swal.showValidationMessage('Por favor, informe a data de recebimento.');
-                    return false;
-                }
-                return data;
-            }
-        }).then(result => {
-            if (result.isConfirmed && result.value) {
-                showLoadingSwal('Salvando...');
+        // Hide Bootstrap modal before showing SweetAlert2 to avoid aria-hidden conflict
+        $('#parcelasModal').modal('hide');
 
-                $.ajax({
-                    url: `/financeiro/recebiveis/parcelas/${parcelaId}/data-recebimento`,
-                    method: 'PUT',
-                    data: { data_recebimento: result.value },
-                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-                }).done(function (response) {
-                    Swal.fire({
-                        title: 'Data Atualizada!',
-                        text: response.message || 'Data de recebimento salva com sucesso.',
-                        icon: 'success',
-                        iconColor: '#10B981',
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal-recebiveis',
-                            confirmButton: 'btn btn-success'
-                        },
-                        buttonsStyling: false
-                    }).then(() => {
-                        $('#parcelasModal').modal('hide');
-                        location.reload();
+        // Wait for modal to fully hide before showing SweetAlert
+        setTimeout(() => {
+            Swal.fire({
+                title: `Parcela ${numeroParcela}`,
+                html: `
+                    <div style="text-align: left; padding: 1rem 0;">
+                        <p style="margin-bottom: 1rem; color: var(--rcb-text-secondary);">
+                            ${dataAtual ? 'Edite os dados da parcela:' : 'Informe os dados do pagamento recebido:'}
+                        </p>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem;">
+                                Valor da Parcela
+                            </label>
+                            <div style="position: relative;">
+                                <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--rcb-text-muted); font-weight: 600;">R$</span>
+                                <input type="text" id="swal-valor-parcela"
+                                       inputmode="numeric"
+                                       style="width: 100%; padding: 0.625rem 1rem 0.625rem 40px; border: 1px solid var(--rcb-card-border); border-radius: 8px; font-size: 0.9375rem; font-family: 'IBM Plex Mono', monospace;"
+                                       value="${valorFormatado}" placeholder="0,00">
+                            </div>
+                            <p style="color: var(--rcb-text-muted); font-size: 0.75rem; margin: 0.5rem 0 0 0;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 2px;">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="16" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                </svg>
+                                Altere apenas se o valor recebido for diferente do previsto (ex: saida de dependente).
+                            </p>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem;">
+                                Data de Recebimento
+                            </label>
+                            <input type="date" id="swal-data-recebimento"
+                                   style="width: 100%; padding: 0.625rem 1rem; border: 1px solid var(--rcb-card-border); border-radius: 8px; font-size: 0.9375rem;"
+                                   value="${dataFormatada}" max="${hoje}">
+                        </div>
+                        <p style="color: var(--rcb-text-muted); font-size: 0.8125rem; margin: 0;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            ${dataAtual ? 'A parcela continuara marcada como paga.' : 'A parcela sera marcada como paga na data informada.'}
+                        </p>
+                    </div>
+                `,
+                icon: null,
+                showCancelButton: true,
+                confirmButtonText: 'Salvar',
+                cancelButtonText: 'Cancelar',
+                customClass: {
+                    popup: 'swal-recebiveis',
+                    confirmButton: 'btn btn-success me-2',
+                    cancelButton: 'btn btn-secondary'
+                },
+                buttonsStyling: false,
+                didOpen: () => {
+                    // Apply currency mask after modal opens
+                    const inputValor = document.getElementById('swal-valor-parcela');
+                    aplicarMascaraMoeda(inputValor);
+                },
+                preConfirm: () => {
+                    const data = document.getElementById('swal-data-recebimento').value;
+                    const valorTexto = document.getElementById('swal-valor-parcela').value;
+                    const valor = parseMoeda(valorTexto);
+
+                    if (!data) {
+                        Swal.showValidationMessage('Por favor, informe a data de recebimento.');
+                        return false;
+                    }
+
+                    if (valorTexto && valor === null) {
+                        Swal.showValidationMessage('Valor invalido.');
+                        return false;
+                    }
+
+                    if (valor !== null && valor < 0) {
+                        Swal.showValidationMessage('O valor nao pode ser negativo.');
+                        return false;
+                    }
+
+                    return { data_recebimento: data, valor: valor };
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    showLoadingSwal('Salvando...');
+
+                    const requestData = {
+                        data_recebimento: result.value.data_recebimento
+                    };
+
+                    // Only send valor if it was provided
+                    if (result.value.valor !== null) {
+                        requestData.valor = result.value.valor;
+                    }
+
+                    $.ajax({
+                        url: `/financeiro/recebiveis/parcelas/${parcelaId}/data-recebimento`,
+                        method: 'PUT',
+                        data: requestData,
+                        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                    }).done(function (response) {
+                        Swal.fire({
+                            title: 'Parcela Atualizada!',
+                            text: response.message || 'Dados da parcela salvos com sucesso.',
+                            icon: 'success',
+                            iconColor: '#10B981',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal-recebiveis',
+                                confirmButton: 'btn btn-success'
+                            },
+                            buttonsStyling: false
+                        }).then(() => {
+                            location.reload();
+                        });
+                    }).fail(function (xhr) {
+                        const errorMsg = xhr.responseJSON?.message || 'Erro ao atualizar parcela.';
+                        Swal.fire({
+                            title: 'Erro!',
+                            text: errorMsg,
+                            icon: 'error',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal-recebiveis',
+                                confirmButton: 'btn btn-danger'
+                            },
+                            buttonsStyling: false
+                        });
                     });
-                }).fail(function (xhr) {
-                    const errorMsg = xhr.responseJSON?.message || 'Erro ao atualizar data de recebimento.';
-                    Swal.fire({
-                        title: 'Erro!',
-                        text: errorMsg,
-                        icon: 'error',
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal-recebiveis',
-                            confirmButton: 'btn btn-danger'
-                        },
-                        buttonsStyling: false
-                    });
-                });
-            }
-        });
+                } else if (result.isDismissed) {
+                    // User cancelled - reopen the parcelas modal
+                    $('#parcelasModal').modal('show');
+                }
+            });
+        }, 300);
     });
 
     // Recalculate Values
