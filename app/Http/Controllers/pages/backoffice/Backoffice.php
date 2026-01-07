@@ -713,15 +713,14 @@ class Backoffice extends Controller
       $statusPipeline = [
         'VENDA' => ['ordem' => 1, 'tipo' => 'entrada'],
         'ANALISE DE DOCUMENTOS' => ['ordem' => 2, 'tipo' => 'processo'],
-        'PENDENCIA' => ['ordem' => 3, 'tipo' => 'bloqueio'],
-        'REGULARIZADO' => ['ordem' => 4, 'tipo' => 'processo'],
-        'ANALISE OPERADORA' => ['ordem' => 5, 'tipo' => 'processo'],
-        'CONTR. GERADO - AGUARDANDO ASSINATURA' => ['ordem' => 6, 'tipo' => 'processo'],
-        'AGUARD. ASSINATURA DA DS' => ['ordem' => 7, 'tipo' => 'processo'],
-        'BOLETO DISPONIVEL' => ['ordem' => 8, 'tipo' => 'processo'],
+        'AGUARD. ASSINATURA DA DS' => ['ordem' => 3, 'tipo' => 'processo'],
+        'PENDENCIA' => ['ordem' => 4, 'tipo' => 'bloqueio'],
+        'CONTR. GERADO - AGUARDANDO ASSINATURA' => ['ordem' => 5, 'tipo' => 'processo'],
+        'BOLETO DISPONIVEL' => ['ordem' => 6, 'tipo' => 'processo'],
+        'REGULARIZADO' => ['ordem' => 7, 'tipo' => 'processo'],
+        'DECLINADO' => ['ordem' => 8, 'tipo' => 'falha'],
         'IMPLANTADO' => ['ordem' => 9, 'tipo' => 'sucesso'],
         'ESTORNO' => ['ordem' => 10, 'tipo' => 'falha'],
-        'DECLINADO' => ['ordem' => 11, 'tipo' => 'falha'],
       ];
 
       // Buscar vendas com seus status e datas
@@ -1043,11 +1042,12 @@ class Backoffice extends Controller
       $statusPermitidos = [
         'VENDA',
         'ANALISE DE DOCUMENTOS',
-        'ANALISE OPERADORA',
-        'PENDENCIA',
-        'REGULARIZADO',
         'AGUARD. ASSINATURA DA DS',
+        'PENDENCIA',
+        'CONTR. GERADO - AGUARDANDO ASSINATURA',
         'BOLETO DISPONIVEL',
+        'REGULARIZADO',
+        'DECLINADO',
       ];
 
       // Buscar tabulações do backoffice APENAS dos status permitidos
