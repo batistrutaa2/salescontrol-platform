@@ -13,6 +13,7 @@ use App\Models\Vendas;
 use App\Models\Plano;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 
 class Financeiro extends Controller
@@ -49,20 +50,22 @@ class Financeiro extends Controller
     public function regrasStore(Request $request)
     {
         $data = $request->validate([
-            'operadora_id'      => 'required|exists:operadoras,id',
-            'categoria'         => 'required|in:PME,ADESAO',
-            'total_percentual'  => 'nullable|numeric',
-            'descricao'         => 'nullable|string|max:255',
-            'vitalicio'         => 'boolean',
+            'operadora_id'        => 'required|exists:operadoras,id',
+            'categoria'           => 'required|in:PME,ADESAO',
+            'total_percentual'    => 'nullable|numeric',
+            'descricao'           => 'nullable|string|max:255',
+            'vitalicio'           => 'boolean',
+            'percentual_vitalicio'=> 'nullable|numeric|min:0|max:100',
         ]);
 
         $rule = RegrasComissionamento::create([
-            'empresa_id'       => auth()->user()->empresa_id,
-            'operadora_id'     => $data['operadora_id'],
-            'categoria'        => $data['categoria'],
-            'total_percentual' => $data['total_percentual'] ?? null,
-            'descricao'        => $data['descricao'] ?? null,
-            'vitalicio'        => $data['vitalicio'] ?? 0,
+            'empresa_id'          => auth()->user()->empresa_id,
+            'operadora_id'        => $data['operadora_id'],
+            'categoria'           => $data['categoria'],
+            'total_percentual'    => $data['total_percentual'] ?? null,
+            'descricao'           => $data['descricao'] ?? null,
+            'vitalicio'           => $data['vitalicio'] ?? 0,
+            'percentual_vitalicio'=> $data['percentual_vitalicio'] ?? null,
         ]);
 
         return response()->json($rule);
@@ -74,19 +77,21 @@ class Financeiro extends Controller
         $rule = RegrasComissionamento::findOrFail($id);
 
         $data = $request->validate([
-            'operadora_id'     => 'required|exists:operadoras,id',
-            'categoria'        => 'required|in:PME,ADESAO',
-            'total_percentual' => 'nullable|numeric',
-            'descricao'        => 'nullable|string|max:255',
-            'vitalicio'        => 'boolean',
+            'operadora_id'        => 'required|exists:operadoras,id',
+            'categoria'           => 'required|in:PME,ADESAO',
+            'total_percentual'    => 'nullable|numeric',
+            'descricao'           => 'nullable|string|max:255',
+            'vitalicio'           => 'boolean',
+            'percentual_vitalicio'=> 'nullable|numeric|min:0|max:100',
         ]);
 
         $rule->update([
-            'operadora_id'     => $data['operadora_id'],
-            'categoria'        => $data['categoria'],
-            'total_percentual' => $data['total_percentual'] ?? null,
-            'descricao'        => $data['descricao'] ?? null,
-            'vitalicio'        => $data['vitalicio'] ?? 0,
+            'operadora_id'        => $data['operadora_id'],
+            'categoria'           => $data['categoria'],
+            'total_percentual'    => $data['total_percentual'] ?? null,
+            'descricao'           => $data['descricao'] ?? null,
+            'vitalicio'           => $data['vitalicio'] ?? 0,
+            'percentual_vitalicio'=> $data['percentual_vitalicio'] ?? null,
         ]);
 
         return response()->json($rule);
@@ -305,7 +310,80 @@ class Financeiro extends Controller
         $parcela = Recebivel::findOrFail($id);
         $parcela->update(['status' => 'PAGO', 'data_recebimento' => now()]);
 
-        return response()->json(['success' => true]);
+        // Verificar se deve gerar próxima parcela vitalícia
+        $novaParcelaGerada = $this->gerarProximaParcelaVitalicia($parcela);
+
+        return response()->json([
+            'success' => true,
+            'nova_parcela_gerada' => $novaParcelaGerada
+        ]);
+    }
+
+    /**
+     * Gera a próxima parcela vitalícia se a regra permitir
+     */
+    private function gerarProximaParcelaVitalicia(Recebivel $parcelaPaga): bool
+    {
+        $venda = Vendas::find($parcelaPaga->venda_id);
+        if (!$venda) {
+            return false;
+        }
+
+        // Buscar operadora
+        $operadora = Operadora::where('nome', $venda->operadora)->first();
+        if (!$operadora) {
+            return false;
+        }
+
+        // Buscar regra de comissionamento
+        $regra = RegrasComissionamento::with('parcelas')
+            ->where('empresa_id', $venda->empresa_id)
+            ->where('operadora_id', $operadora->id)
+            ->first();
+
+        if (!$regra || !$regra->vitalicio || !$regra->percentual_vitalicio || $regra->percentual_vitalicio <= 0) {
+            return false;
+        }
+
+        // Verificar qual a última parcela normal da regra
+        $ultimaParcelaNormal = $regra->parcelas()->max('parcela') ?? 0;
+
+        // Verificar a última parcela existente para esta venda
+        $ultimaParcelaExistente = Recebivel::where('venda_id', $venda->id)->max('parcela') ?? 0;
+
+        // Se a parcela paga é a última existente, gerar a próxima
+        if ($parcelaPaga->parcela == $ultimaParcelaExistente) {
+            $proximaParcela = $ultimaParcelaExistente + 1;
+
+            // Resolver nome do plano
+            $planoNome = 'N/A';
+            if (!empty($venda->plano_id)) {
+                $plano = Plano::find($venda->plano_id);
+                $planoNome = $plano?->nome ?? $venda->nome_plano ?? 'N/A';
+            } elseif (!empty($venda->nome_plano)) {
+                $planoNome = $venda->nome_plano;
+            }
+
+            $valorVitalicio = ($regra->percentual_vitalicio / 100) * $venda->valor_contrato;
+
+            Recebivel::create([
+                'empresa_id'    => $venda->empresa_id,
+                'venda_id'      => $venda->id,
+                'vendedor_id'   => $venda->user_id,
+                'operadora'     => $operadora->nome,
+                'plano'         => $planoNome,
+                'parcela'       => $proximaParcela,
+                'valor'         => $valorVitalicio,
+                'data_prevista' => Carbon::parse($venda->data_implantacao)
+                                         ->addMonths($proximaParcela - 1),
+                'status'        => 'PENDENTE',
+            ]);
+
+            Log::info("Gerada parcela vitalícia #{$proximaParcela} para venda {$venda->id}");
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -328,7 +406,10 @@ class Financeiro extends Controller
             ], 403);
         }
 
-        $dataRecebimento = \Carbon\Carbon::parse($request->data_recebimento);
+        // Verificar se parcela estava pendente (para gerar próxima vitalícia)
+        $estavaPendente = $parcela->status === 'PENDENTE';
+
+        $dataRecebimento = Carbon::parse($request->data_recebimento);
 
         $updateData = [
             'status' => 'PAGO',
@@ -342,11 +423,18 @@ class Financeiro extends Controller
 
         $parcela->update($updateData);
 
+        // Se estava pendente, verificar se deve gerar próxima parcela vitalícia
+        $novaParcelaGerada = false;
+        if ($estavaPendente) {
+            $novaParcelaGerada = $this->gerarProximaParcelaVitalicia($parcela);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Parcela atualizada com sucesso.',
             'data_recebimento' => $dataRecebimento->format('d/m/Y'),
-            'valor' => number_format($parcela->valor, 2, ',', '.')
+            'valor' => number_format($parcela->valor, 2, ',', '.'),
+            'nova_parcela_gerada' => $novaParcelaGerada
         ]);
     }
 

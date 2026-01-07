@@ -56,7 +56,9 @@ class GerarRecebiveisJob implements ShouldQueue
         }
 
         // 💰 Gerar recebíveis conforme parcelas da regra
-        foreach ($regra->parcelas()->orderBy('parcela')->get() as $parcela) {
+        $parcelas = $regra->parcelas()->orderBy('parcela')->get();
+
+        foreach ($parcelas as $parcela) {
             $valorParcela = ($parcela->percentual / 100) * $venda->valor_contrato;
 
             Recebivel::create([
@@ -71,6 +73,12 @@ class GerarRecebiveisJob implements ShouldQueue
                                          ->addMonths($parcela->parcela - 1),
                 'status'        => 'PENDENTE',
             ]);
+        }
+
+        // ℹ️ Parcelas vitalícias são geradas progressivamente ao pagar cada parcela
+        // (ver Financeiro::gerarProximaParcelaVitalicia)
+        if ($regra->vitalicio && $regra->percentual_vitalicio > 0) {
+            Log::info("Venda {$venda->id} tem regra vitalícia ({$regra->percentual_vitalicio}%). Parcelas extras serão geradas ao pagar.");
         }
 
         Log::info("Job finalizado para venda {$venda->id}");

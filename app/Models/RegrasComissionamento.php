@@ -19,6 +19,7 @@ class RegrasComissionamento extends Model
         'total_percentual',
         'descricao',
         'vitalicio',
+        'percentual_vitalicio',
         'created_at',
         'updated_at',
     ];

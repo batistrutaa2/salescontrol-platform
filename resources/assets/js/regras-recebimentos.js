@@ -52,30 +52,62 @@ $(function () {
   }
 
   // ---------------------------
+  // KPI Update
+  // ---------------------------
+  function updateKPIs(data) {
+    let total = 0, pme = 0, adesao = 0, vitalicias = 0;
+
+    if (data && data.data && Array.isArray(data.data)) {
+      total = data.recordsTotal || data.data.length;
+
+      data.data.forEach(row => {
+        if (row.categoria && row.categoria.toUpperCase() === 'PME') pme++;
+        if (row.categoria && row.categoria.toUpperCase() === 'ADESAO') adesao++;
+        if (row.vitalicio == 1 || row.vitalicio === true) vitalicias++;
+      });
+    }
+
+    $('#kpiTotalRegras').text(total);
+    $('#kpiPME').text(pme);
+    $('#kpiAdesao').text(adesao);
+    $('#kpiVitalicias').text(vitalicias);
+    $('#tableCount').text(total);
+  }
+
+  // ---------------------------
   // DataTable de Regras
   // ---------------------------
   const $table = $('#rulesTable');
   const rulesDT = $table.DataTable({
     processing: true,
     serverSide: true,
-    ajax: { url: ROUTES.index },
+    ajax: {
+      url: ROUTES.index,
+      dataSrc: function(json) {
+        updateKPIs(json);
+        return json.data;
+      }
+    },
     order: [[1, 'asc']],
     columns: [
-      { data: 'id', name: 'id', width: 40 },
+      { data: 'id', name: 'id', width: 50 },
       { data: 'operadora_nome', name: 'operadoras.nome' },
       {
         data: 'categoria', name: 'categoria', render: (val) => {
           if (!val) return '';
           const cls = val.toUpperCase() === 'PME' ? 'badge-pme' : 'badge-adesao';
-          return `<span class="badge ${cls}">${val.toUpperCase()}</span>`;
+          return `<span class="${cls}">${val.toUpperCase()}</span>`;
         }
       },
-      { data: 'total_percentual', name: 'total_percentual', render: (v) => v ? `${parseFloat(v).toFixed(2)}%` : '-' },
+      {
+        data: 'total_percentual', name: 'total_percentual',
+        render: (v) => v ? `<span class="percentual-value">${parseFloat(v).toFixed(2)}%</span>` : '-'
+      },
       {
         data: 'vitalicio', name: 'vitalicio', render: (v) =>
-          v ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-secondary">Não</span>'
+          v ? '<span class="badge-vitalicio">Sim</span>' : '<span class="badge-nao-vitalicio">Não</span>'
       },
-      { data: 'descricao', name: 'descricao', defaultContent: '' },
+      { data: 'descricao', name: 'descricao', defaultContent: '-' },
       {
         data: null, orderable: false, width: 140, render: (row) => {
           const dataAttr = [
@@ -85,19 +117,33 @@ $(function () {
             `data-categoria="${row.categoria}"`,
             `data-total_percentual="${row.total_percentual || ''}"`,
             `data-vitalicio="${row.vitalicio}"`,
+            `data-percentual_vitalicio="${row.percentual_vitalicio || ''}"`,
             `data-descricao="${(row.descricao || '').replace(/"/g, '&quot;')}"`
           ].join(' ');
 
           return `
-            <div class="btn-group btn-group-sm">
-              <button type="button" class="btn btn-outline-primary btn-edit" ${dataAttr}>
-                <i class="ri-edit-2-line"></i>
+            <div class="actions-group">
+              <button type="button" class="btn-action btn-edit" ${dataAttr} title="Editar">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
               </button>
-              <button type="button" class="btn btn-outline-danger btn-del" data-id="${row.id}">
-                <i class="ri-delete-bin-6-line"></i>
+              <button type="button" class="btn-action btn-parcelas" data-id="${row.id}" data-title="${(row.operadora_nome || '').replace(/"/g, '&quot;')} - ${row.categoria}" title="Ver Parcelas">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="8" y1="6" x2="21" y2="6"/>
+                  <line x1="8" y1="12" x2="21" y2="12"/>
+                  <line x1="8" y1="18" x2="21" y2="18"/>
+                  <line x1="3" y1="6" x2="3.01" y2="6"/>
+                  <line x1="3" y1="12" x2="3.01" y2="12"/>
+                  <line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
               </button>
-              <button type="button" class="btn btn-outline-dark btn-parcelas" data-id="${row.id}" data-title="${(row.operadora_nome || '').replace(/"/g, '&quot;')} - ${row.categoria}">
-                <i class="ri-list-ordered-2"></i>
+              <button type="button" class="btn-action btn-del" data-id="${row.id}" title="Excluir">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
               </button>
             </div>
           `;
@@ -137,6 +183,19 @@ $(function () {
   const $modalRegra = $('#modalRegra');
   const $formRegra = $('#formRegra');
 
+  // Função para mostrar/ocultar campo percentual vitalício
+  function togglePercentualVitalicio() {
+    if ($('#regraVitalicio').val() == '1') {
+      $('#percentualVitalicioWrapper').show();
+    } else {
+      $('#percentualVitalicioWrapper').hide();
+      $('#regraPercentualVitalicio').val('');
+    }
+  }
+
+  // Evento change no select vitalício
+  $('#regraVitalicio').on('change', togglePercentualVitalicio);
+
   $('#btnNovaRegra').on('click', function () {
     $('#tituloModalRegra').text('Nova Regra');
     $('#regraId').val('');
@@ -144,6 +203,8 @@ $(function () {
     $('#regraCategoria').val('PME');
     $('#regraTotalPercentual').val('');
     $('#regraVitalicio').val('0');
+    $('#regraPercentualVitalicio').val('');
+    $('#percentualVitalicioWrapper').hide();
     $('#regraDescricao').val('');
     $('#btnExcluirRegra').hide();
     $formRegra.attr('action', ROUTES.store);
@@ -158,7 +219,16 @@ $(function () {
     $('#regraCategoria').val($b.data('categoria'));
     $('#regraTotalPercentual').val($b.data('total_percentual'));
     $('#regraVitalicio').val($b.data('vitalicio'));
+    $('#regraPercentualVitalicio').val($b.data('percentual_vitalicio') || '');
     $('#regraDescricao').val($b.data('descricao'));
+
+    // Mostrar/ocultar campo percentual vitalício com base no valor atual
+    if ($b.data('vitalicio') == 1) {
+      $('#percentualVitalicioWrapper').show();
+    } else {
+      $('#percentualVitalicioWrapper').hide();
+    }
+
     const updateUrl = subst(ROUTES.update, { '__ID__': String($b.data('id')) });
     $formRegra.attr('action', updateUrl);
     $('#btnExcluirRegra').data('href', subst(ROUTES.destroy, { '__ID__': String($b.data('id')) })).show();
@@ -228,27 +298,34 @@ $(function () {
     const data = await http('GET', url);
     $parcelasTbody.empty();
     if (!Array.isArray(data) || !data.length) {
-      $parcelasTbody.append('<tr><td colspan="5" class="text-center text-muted">Sem parcelas cadastradas.</td></tr>');
+      $parcelasTbody.append('<tr><td colspan="4" class="text-center text-muted py-4">Nenhuma parcela cadastrada para esta regra.</td></tr>');
       return;
     }
     data.sort((a, b) => (a.parcela ?? 0) - (b.parcela ?? 0));
     for (const it of data) {
       $parcelasTbody.append(`
         <tr data-id="${it.id}">
-          <td>${it.parcela}</td>
-          <td>${Number(it.percentual).toFixed(2)}%</td>
-          <td>${it.pagador || ''}</td>
+          <td><span class="parcela-num">${it.parcela}</span></td>
+          <td><span class="percentual-value">${Number(it.percentual).toFixed(2)}%</span></td>
+          <td><span class="pagador-badge">${it.pagador || '-'}</span></td>
           <td>
-            <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-primary btn-parcela-edit"
+            <div class="actions-group">
+              <button class="btn-action btn-edit btn-parcela-edit"
                 data-id="${it.id}"
                 data-num="${it.parcela}"
                 data-percent="${it.percentual}"
-                data-payer="${it.pagador || ''}">
-                <i class="ri-edit-2-line"></i>
+                data-payer="${it.pagador || ''}"
+                title="Editar">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
               </button>
-              <button class="btn btn-outline-danger btn-parcela-del" data-id="${it.id}">
-                <i class="ri-delete-bin-6-line"></i>
+              <button class="btn-action btn-del btn-parcela-del" data-id="${it.id}" title="Excluir">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
               </button>
             </div>
           </td>
