@@ -1044,6 +1044,7 @@ class Backoffice extends Controller
         'ANALISE DE DOCUMENTOS',
         'AGUARD. ASSINATURA DA DS',
         'PENDENCIA',
+        'ANALISE OPERADORA',
         'CONTR. GERADO - AGUARDANDO ASSINATURA',
         'BOLETO DISPONIVEL',
         'REGULARIZADO',
