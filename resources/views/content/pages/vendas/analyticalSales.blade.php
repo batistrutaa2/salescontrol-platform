@@ -331,6 +331,30 @@
                 </div>
             </div>
         </div>
+
+        <div class="chart-row">
+            <div class="chart-card chart-full">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <h3 class="chart-title">Conversao por Entidade de Classe</h3>
+                        <span class="chart-subtitle">Ranking de vendas por entidade</span>
+                    </div>
+                    <div class="chart-legend">
+                        <span class="legend-item">
+                            <span class="legend-dot primary"></span>
+                            Qtd. Vendas
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-dot success"></span>
+                            Valor Total
+                        </span>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <div id="vendasPorEntidadeChart"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Table Section --}}

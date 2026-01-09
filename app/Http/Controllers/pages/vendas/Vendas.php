@@ -103,6 +103,7 @@ class Vendas extends Controller
                 'vendas_por_vendedor' => $this->getVendasPorVendedor($filtros),
                 'vendas_por_operadora' => $this->getVendasPorOperadora($filtros),
                 'vendas_por_plano' => $this->getVendasPorPlano($filtros),
+                'vendas_por_entidade' => $this->getVendasPorEntidade($filtros),
                 'resumo_geral' => $this->getResumoGeral($filtros),
                 'vendedores' => $this->getVendedoresPorEmpresa(),
                 'anos_disponiveis' => $this->getAnosDisponiveis($filtros),
@@ -381,6 +382,60 @@ class Vendas extends Controller
 
         return $query->whereNotNull('nome_plano')
             ->groupBy('nome_plano')
+            ->orderBy('total_vendas', 'desc')
+            ->get();
+    }
+
+    private function getVendasPorEntidade($filtros)
+    {
+        $empresaId = Auth::user()->empresa_id;
+
+        $query = VendasModel::select(
+            DB::raw("COALESCE(NULLIF(TRIM(contatos.entidade), ''), 'NÃO INFORMADO') as entidade"),
+            DB::raw('COUNT(*) as total_vendas'),
+            DB::raw('SUM(vendas.valor_contrato) as valor_total'),
+            DB::raw('SUM(vendas.vidas) as total_vidas')
+        )
+        ->join('contatos', 'vendas.contato_id', '=', 'contatos.id')
+        ->join('users', 'vendas.user_id', '=', 'users.id')
+        ->where('users.empresa_id', $empresaId);
+
+        // Aplicar filtro de status de venda
+        $query->whereHas('contatoCorretor', function ($q) {
+            $q->whereIn('tabulacao_id', [
+                Tabulations::VENDA,
+                Tabulations::IMPLANTADO,
+                Tabulations::PENDENCIA,
+                Tabulations::ANALISE_OPERADORA,
+                Tabulations::BOLETO_DISPONIVEL,
+                Tabulations::REGULARIZADO,
+                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                Tabulations::ANALISE_DOCUMENTOS,
+                Tabulations::AGUARD_ASSINATURA_DS,
+            ]);
+        });
+
+        if ($filtros['ano']) {
+            $query->whereYear('vendas.created_at', $filtros['ano']);
+        }
+
+        if ($filtros['mes']) {
+            $query->whereMonth('vendas.created_at', $filtros['mes']);
+        }
+
+        if ($filtros['vendedor_id']) {
+            $query->where('vendas.user_id', $filtros['vendedor_id']);
+        }
+
+        if ($filtros['operadora']) {
+            $query->where('vendas.operadora', $filtros['operadora']);
+        }
+
+        if ($filtros['data_inicio'] && $filtros['data_fim']) {
+            $query->whereBetween('vendas.created_at', [$filtros['data_inicio'], $filtros['data_fim']]);
+        }
+
+        return $query->groupBy(DB::raw("COALESCE(NULLIF(TRIM(contatos.entidade), ''), 'NÃO INFORMADO')"))
             ->orderBy('total_vendas', 'desc')
             ->get();
     }

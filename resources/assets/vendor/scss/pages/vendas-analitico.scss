@@ -633,6 +633,10 @@
         min-width: 0;
     }
 
+    &.chart-full {
+        width: 100%;
+    }
+
     .chart-header {
         display: flex;
         justify-content: space-between;

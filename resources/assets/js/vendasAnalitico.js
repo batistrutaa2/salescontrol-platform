@@ -333,6 +333,7 @@
         criarGraficoVendasPorVendedor(data.vendas_por_vendedor || []);
         criarGraficoVendasPorOperadora(data.vendas_por_operadora || []);
         criarGraficoVendasPorPlano(data.vendas_por_plano || []);
+        criarGraficoVendasPorEntidade(data.vendas_por_entidade || []);
     }
 
     function criarGraficoVendasPorMes(dados) {
@@ -683,6 +684,124 @@
 
         chartInstances.vendasPorPlano = new ApexCharts(el, options);
         chartInstances.vendasPorPlano.render();
+    }
+
+    function criarGraficoVendasPorEntidade(dados) {
+        const el = document.getElementById('vendasPorEntidadeChart');
+        if (!el || dados.length === 0) {
+            if (el) el.innerHTML = createEmptyChartState('Sem dados de vendas por entidade de classe');
+            return;
+        }
+
+        const labels = dados.map(item => item.entidade || 'NÃO INFORMADO');
+        const quantidades = dados.map(item => parseInt(item.total_vendas) || 0);
+        const valores = dados.map(item => parseFloat(item.valor_total) || 0);
+
+        const options = {
+            series: [
+                {
+                    name: 'Qtd. Vendas',
+                    type: 'column',
+                    data: quantidades
+                },
+                {
+                    name: 'Valor Total',
+                    type: 'line',
+                    data: valores
+                }
+            ],
+            chart: {
+                height: 350,
+                type: 'line',
+                toolbar: { show: false },
+                fontFamily: 'DM Sans, sans-serif',
+                background: 'transparent'
+            },
+            colors: [colors.indigo, colors.emerald],
+            plotOptions: {
+                bar: {
+                    borderRadius: 6,
+                    columnWidth: '50%'
+                }
+            },
+            stroke: {
+                width: [0, 3],
+                curve: 'smooth'
+            },
+            markers: {
+                size: [0, 5],
+                colors: [colors.indigo, colors.emerald],
+                strokeColors: '#fff',
+                strokeWidth: 2
+            },
+            xaxis: {
+                categories: labels,
+                labels: {
+                    style: {
+                        colors: labelColor,
+                        fontSize: '11px'
+                    },
+                    rotate: -45,
+                    rotateAlways: labels.length > 5
+                },
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: [
+                {
+                    title: {
+                        text: 'Quantidade',
+                        style: { color: labelColor, fontWeight: 500 }
+                    },
+                    labels: {
+                        style: { colors: labelColor }
+                    }
+                },
+                {
+                    opposite: true,
+                    title: {
+                        text: 'Valor (R$)',
+                        style: { color: labelColor, fontWeight: 500 }
+                    },
+                    labels: {
+                        style: { colors: labelColor },
+                        formatter: val => formatCurrencyShort(val)
+                    }
+                }
+            ],
+            grid: {
+                borderColor: borderColor,
+                strokeDashArray: 4
+            },
+            legend: {
+                position: 'top',
+                horizontalAlign: 'right',
+                labels: { colors: legendColor }
+            },
+            dataLabels: {
+                enabled: true,
+                enabledOnSeries: [0],
+                style: {
+                    colors: ['#fff'],
+                    fontSize: '11px',
+                    fontWeight: 600
+                }
+            },
+            tooltip: {
+                shared: true,
+                y: {
+                    formatter: function (val, opts) {
+                        if (opts.seriesIndex === 0) {
+                            return val + ' vendas';
+                        }
+                        return formatCurrency(val);
+                    }
+                }
+            }
+        };
+
+        chartInstances.vendasPorEntidade = new ApexCharts(el, options);
+        chartInstances.vendasPorEntidade.render();
     }
 
     function createEmptyChartState(message) {
