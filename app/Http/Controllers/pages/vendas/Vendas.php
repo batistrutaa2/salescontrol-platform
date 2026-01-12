@@ -602,7 +602,16 @@ class Vendas extends Controller
             ->where('a.user_id', auth()->user()->id)
             ->whereMonth('a.created_at', $request->mes)
             ->whereYear('a.created_at', $request->ano)
-            ->select('a.id', 'a.nome_contrato', 'c.descricao', 'a.valor_contrato', 'a.motivo_pendencia', 'a.path_boleto_disponivel')
+            ->select(
+                'a.id',
+                'a.nome_contrato',
+                'c.descricao',
+                'a.valor_contrato',
+                'a.motivo_pendencia',
+                'a.path_boleto_disponivel',
+                'b.tabulacao_id',
+                'a.boas_vindas_enviado_em'
+            )
             ->get();
 
         return response()->json([

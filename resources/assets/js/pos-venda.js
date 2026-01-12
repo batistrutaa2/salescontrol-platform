@@ -29,11 +29,13 @@
     kpiAniversarios: document.getElementById('kpi-aniversarios'),
     kpiProximos: document.getElementById('kpi-proximos'),
     kpiValor: document.getElementById('kpi-valor'),
+    kpiBoasVindas: document.getElementById('kpi-boas-vindas'),
 
     // Filters
     filterOperadora: document.getElementById('filter-operadora'),
     filterVendedor: document.getElementById('filter-vendedor'),
     filterMes: document.getElementById('filter-mes'),
+    filterBoasVindas: document.getElementById('filter-boas-vindas'),
     filterBusca: document.getElementById('filter-busca'),
     btnClear: document.getElementById('btn-clear-filters'),
 
@@ -41,6 +43,7 @@
     modalAnotacoes: document.getElementById('modalAnotacoes'),
     modalHistorico: document.getElementById('modalHistorico'),
     modalDataImplantacao: document.getElementById('modalDataImplantacao'),
+    modalBoasVindas: document.getElementById('modalBoasVindas'),
 
     // Pagination
     paginationWrapper: document.getElementById('pv-pagination'),
@@ -68,6 +71,7 @@
     elements.filterOperadora.addEventListener('change', applyFilters);
     elements.filterVendedor.addEventListener('change', applyFilters);
     elements.filterMes.addEventListener('change', applyFilters);
+    elements.filterBoasVindas?.addEventListener('change', applyFilters);
     elements.filterBusca.addEventListener('input', debounce(applyFilters, 300));
     elements.btnClear.addEventListener('click', clearFilters);
 
@@ -76,6 +80,9 @@
 
     // Data Implantação modal events
     document.getElementById('btn-salvar-data-implantacao')?.addEventListener('click', saveDataImplantacao);
+
+    // Boas Vindas modal events
+    document.getElementById('btn-confirmar-boas-vindas')?.addEventListener('click', confirmarBoasVindas);
 
     // Pagination events
     elements.perPageSelect?.addEventListener('change', handlePerPageChange);
@@ -163,6 +170,9 @@
       if (elements.filterBusca.value) {
         params.append('busca', elements.filterBusca.value);
       }
+      if (elements.filterBoasVindas?.value) {
+        params.append('boas_vindas', elements.filterBoasVindas.value);
+      }
 
       const response = await fetch(`/back-office/pos-venda/data?${params.toString()}`);
       const data = await response.json();
@@ -205,6 +215,7 @@
     elements.filterVendedor.value = '';
     elements.filterMes.value = '';
     elements.filterBusca.value = '';
+    if (elements.filterBoasVindas) elements.filterBoasVindas.value = '';
     pagination.currentPage = 1;
     loadData();
   }
@@ -262,6 +273,9 @@
     elements.kpiAniversarios.textContent = kpis.aniversarios_mes.toLocaleString('pt-BR');
     elements.kpiProximos.textContent = kpis.proximos_aniversarios.toLocaleString('pt-BR');
     elements.kpiValor.textContent = formatCurrency(kpis.valor_carteira);
+    if (elements.kpiBoasVindas) {
+      elements.kpiBoasVindas.textContent = (kpis.aguardando_boas_vindas || 0).toLocaleString('pt-BR');
+    }
   }
 
   // Render table
@@ -323,6 +337,9 @@
         <td>
           ${anniversaryBadge}
         </td>
+        <td>
+          ${getBoasVindasBadge(contrato)}
+        </td>
         <td class="actions-cell">
           <div class="dropdown">
             <button type="button" class="btn-action" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
@@ -380,6 +397,17 @@
                   Alterar Data Implantação
                 </a>
               </li>
+              ${!contrato.boas_vindas_enviado_em ? `
+              <li>
+                <a class="dropdown-item text-info" href="javascript:void(0)" onclick="posVenda.openBoasVindas(${contrato.id}, '${escapeHtml(contrato.nome_contrato || '')}', '${escapeHtml(contrato.operadora || '')}', '${escapeHtml(contrato.nome_plano || '')}', '${contrato.data_implantacao || ''}')">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  Marcar Boas Vindas
+                </a>
+              </li>
+              ` : ''}
               <li><hr class="dropdown-divider"></li>
               <li>
                 <a class="dropdown-item" href="javascript:void(0)" onclick="posVenda.gerarRecebiveis(${contrato.id})">
@@ -429,6 +457,146 @@
         ${dataAniversario || 'N/A'}
       </span>
     `;
+  }
+
+  // Get boas vindas badge
+  function getBoasVindasBadge(contrato) {
+    if (contrato.boas_vindas_enviado_em) {
+      return `
+        <span class="boas-vindas-badge badge-enviado" title="Enviado em ${contrato.boas_vindas_enviado_em} por ${contrato.boas_vindas_enviado_por || 'N/A'}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Enviado
+        </span>
+      `;
+    }
+    return `
+      <span class="boas-vindas-badge badge-pendente">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Pendente
+      </span>
+    `;
+  }
+
+  // Open boas vindas modal
+  function openBoasVindas(vendaId, nomeContrato, operadora, plano, dataImplantacao) {
+    document.getElementById('boas-vindas-venda-id').value = vendaId;
+    document.getElementById('boas-vindas-observacao').value = '';
+
+    // Preencher dados do contrato
+    document.getElementById('bv-contrato-nome').textContent = nomeContrato || '-';
+    document.getElementById('bv-operadora').textContent = operadora || '-';
+    document.getElementById('bv-plano').textContent = plano || '-';
+    document.getElementById('bv-data-implantacao').textContent = dataImplantacao || '-';
+
+    const modal = new bootstrap.Modal(elements.modalBoasVindas);
+    modal.show();
+  }
+
+  // Confirmar envio de boas vindas
+  async function confirmarBoasVindas() {
+    const vendaId = document.getElementById('boas-vindas-venda-id').value;
+    const observacao = document.getElementById('boas-vindas-observacao').value.trim();
+    const btnConfirmar = document.getElementById('btn-confirmar-boas-vindas');
+
+    if (!vendaId) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: 'ID da venda não encontrado.',
+        confirmButtonColor: '#7C3AED'
+      });
+      return;
+    }
+
+    const originalContent = btnConfirmar.innerHTML;
+    btnConfirmar.disabled = true;
+    btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Registrando...';
+
+    try {
+      const response = await fetch('/back-office/pos-venda/boas-vindas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+          venda_id: vendaId,
+          observacao: observacao
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Fechar modal
+        bootstrap.Modal.getInstance(elements.modalBoasVindas).hide();
+
+        // Toast success
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+          background: 'transparent',
+          showClass: {
+            popup: 'animate__animated animate__slideInRight animate__faster'
+          },
+          hideClass: {
+            popup: 'animate__animated animate__slideOutRight animate__faster'
+          },
+          html: `
+            <div class="custom-toast custom-toast-success">
+              <div class="toast-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <div class="toast-content">
+                <div class="toast-title">Sucesso!</div>
+                <div class="toast-message">Boas Vindas registrado com sucesso!</div>
+              </div>
+              <div class="toast-close" onclick="Swal.close()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </div>
+            </div>
+          `,
+          customClass: {
+            popup: 'custom-toast-popup'
+          }
+        });
+
+        // Recarregar dados
+        loadData();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro',
+          text: data.message || 'Não foi possível registrar o Boas Vindas.',
+          confirmButtonColor: '#7C3AED'
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao registrar boas vindas:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: 'Não foi possível registrar o Boas Vindas.',
+        confirmButtonColor: '#7C3AED'
+      });
+    } finally {
+      btnConfirmar.disabled = false;
+      btnConfirmar.innerHTML = originalContent;
+    }
   }
 
   // Open anotações timeline modal
@@ -942,7 +1110,8 @@
     openAnotacoes,
     openHistorico,
     gerarRecebiveis,
-    openAlterarDataImplantacao
+    openAlterarDataImplantacao,
+    openBoasVindas
   };
 
   // Initialize when DOM is ready

@@ -210,6 +210,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/pos-venda/anotacoes/{vendaId}', [Backoffice::class, 'getAnotacoesPosVenda'])->name('backoffice.getAnotacoesPosVenda');
   Route::post('/back-office/pos-venda/anotacoes', [Backoffice::class, 'storeAnotacaoPosVenda'])->name('backoffice.storeAnotacaoPosVenda');
   Route::post('/back-office/pos-venda/data-implantacao', [Backoffice::class, 'updateDataImplantacao'])->name('backoffice.updateDataImplantacao');
+  Route::post('/back-office/pos-venda/boas-vindas', [Backoffice::class, 'marcarBoasVindas'])->name('backoffice.marcarBoasVindas');
 
   /** VENDAS */
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');

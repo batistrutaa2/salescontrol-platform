@@ -102,6 +102,19 @@ $(document).ready(function () {
             </span>`;
           }
 
+          // IMPLANTADO: mostra flag de boas vindas
+          if (label === 'IMPLANTADO') {
+            const boasVindasEnviado = row.boas_vindas_enviado_em;
+            const boasVindasFlag = boasVindasEnviado
+              ? `<span class="badge bg-label-success ms-2" data-bs-toggle="tooltip" title="Boas Vindas enviado">
+                   <i class="ri-mail-check-line me-1"></i>BV OK
+                 </span>`
+              : `<span class="badge bg-label-warning ms-2" data-bs-toggle="tooltip" title="Boas Vindas pendente">
+                   <i class="ri-mail-close-line me-1"></i>BV Pendente
+                 </span>`;
+            return `<span class="d-flex align-items-center text-heading">${icon}${label}${boasVindasFlag}</span>`;
+          }
+
           // Demais: ícone estático + texto
           return `<span class="d-flex align-items-center text-heading">${icon}${label}</span>`;
         };

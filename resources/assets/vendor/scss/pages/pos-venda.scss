@@ -688,6 +688,35 @@
         }
     }
 
+    // Boas Vindas badges
+    .boas-vindas-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: default;
+
+        svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        // Enviado - verde
+        &.badge-enviado {
+            background: rgba(var(--pv-success-rgb), 0.15);
+            color: var(--pv-success);
+        }
+
+        // Pendente - amarelo
+        &.badge-pendente {
+            background: rgba(var(--pv-warning-rgb), 0.15);
+            color: var(--pv-warning);
+        }
+    }
+
     @keyframes pulse-badge {
         0%, 100% {
             opacity: 1;

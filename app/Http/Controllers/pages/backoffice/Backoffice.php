@@ -1593,9 +1593,13 @@ class Backoffice extends Controller
           'vendas.vidas',
           'vendas.data_implantacao',
           'vendas.obs_contrato',
+          'vendas.boas_vindas_enviado_em',
+          'vendas.boas_vindas_enviado_por',
           'users.name as vendedor',
+          'users_bv.name as boas_vindas_por_nome',
         ])
         ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
+        ->leftJoin('users as users_bv', 'users_bv.id', '=', 'vendas.boas_vindas_enviado_por')
         ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
         ->where('vendas.empresa_id', $empresaId)
         ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
@@ -1618,6 +1622,13 @@ class Backoffice extends Controller
             ->orWhere('vendas.numero_proposta', 'like', "%{$busca}%")
             ->orWhere('vendas.cpf_cnpj', 'like', "%{$busca}%");
         });
+      }
+      if ($request->filled('boas_vindas')) {
+        if ($request->boas_vindas === 'pendente') {
+          $query->whereNull('vendas.boas_vindas_enviado_em');
+        } elseif ($request->boas_vindas === 'enviado') {
+          $query->whereNotNull('vendas.boas_vindas_enviado_em');
+        }
       }
 
       // Contar total para paginação
@@ -1657,6 +1668,8 @@ class Backoffice extends Controller
           'proximo_aniversario' => $proximoAniversario->format('d/m'),
           'dias_para_aniversario' => $diasParaAniversario,
           'obs_contrato' => $c->obs_contrato,
+          'boas_vindas_enviado_em' => $c->boas_vindas_enviado_em ? Carbon::parse($c->boas_vindas_enviado_em)->format('d/m/Y H:i') : null,
+          'boas_vindas_enviado_por' => $c->boas_vindas_por_nome,
         ];
       });
 
@@ -1691,6 +1704,7 @@ class Backoffice extends Controller
         DB::raw('COUNT(*) as total'),
         DB::raw('SUM(vendas.valor_contrato) as valor_total'),
         DB::raw("SUM(CASE WHEN MONTH(vendas.data_implantacao) = {$hoje->month} THEN 1 ELSE 0 END) as aniversarios_mes"),
+        DB::raw('SUM(CASE WHEN vendas.boas_vindas_enviado_em IS NULL THEN 1 ELSE 0 END) as aguardando_boas_vindas'),
       ])->first();
 
       // Calcular próximos aniversários (30 dias) - precisa de query separada
@@ -1731,6 +1745,7 @@ class Backoffice extends Controller
           'aniversarios_mes' => $kpiData->aniversarios_mes ?? 0,
           'proximos_aniversarios' => $proximosAniversarios,
           'valor_carteira' => $kpiData->valor_total ?? 0,
+          'aguardando_boas_vindas' => $kpiData->aguardando_boas_vindas ?? 0,
         ],
       ]);
     } catch (\Throwable $e) {
@@ -1887,6 +1902,64 @@ class Backoffice extends Controller
       return response()->json([
         'success' => false,
         'message' => 'Erro ao atualizar data: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Marca o Boas Vindas como enviado para uma venda
+   */
+  public function marcarBoasVindas(Request $request)
+  {
+    try {
+      $request->validate([
+        'venda_id' => 'required|integer|exists:vendas,id',
+        'observacao' => 'nullable|string|max:500',
+      ]);
+
+      $empresaId = Auth::user()->empresa_id;
+
+      $venda = Vendas::where('id', $request->venda_id)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Contrato não encontrado.'
+        ], 404);
+      }
+
+      $venda->update([
+        'boas_vindas_enviado_em' => now(),
+        'boas_vindas_enviado_por' => Auth::id(),
+      ]);
+
+      // Criar anotação automática no histórico
+      PosVendaAnotacao::create([
+        'empresa_id' => $empresaId,
+        'venda_id' => $venda->id,
+        'user_id' => Auth::id(),
+        'descricao' => 'Boas Vindas enviado ao cliente.' .
+          ($request->observacao ? ' Obs: ' . $request->observacao : ''),
+      ]);
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Boas Vindas registrado com sucesso!',
+        'boas_vindas_enviado_em' => now()->format('d/m/Y H:i'),
+        'boas_vindas_enviado_por' => Auth::user()->name,
+      ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validação.',
+        'errors' => $e->errors(),
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao registrar Boas Vindas: ' . $e->getMessage()
       ], 500);
     }
   }

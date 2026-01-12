@@ -106,6 +106,25 @@
                 </div>
                 <div class="kpi-glow"></div>
             </div>
+
+            <!-- Aguardando Boas Vindas -->
+            <div class="kpi-card kpi-info">
+                <div class="kpi-icon-wrapper">
+                    <div class="kpi-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-pulse"></div>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-label">Aguardando Boas Vindas</span>
+                    <h2 class="kpi-value" id="kpi-boas-vindas">0</h2>
+                    <span class="kpi-subtitle">pendentes de envio</span>
+                </div>
+                <div class="kpi-glow"></div>
+            </div>
         </div>
 
         <!-- Filters Section -->
@@ -147,6 +166,15 @@
                         <option value="10">Outubro</option>
                         <option value="11">Novembro</option>
                         <option value="12">Dezembro</option>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label>Boas Vindas</label>
+                    <select id="filter-boas-vindas" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <option value="pendente">Pendentes</option>
+                        <option value="enviado">Enviados</option>
                     </select>
                 </div>
 
@@ -213,6 +241,7 @@
                             <th>Valor</th>
                             <th>Implantado</th>
                             <th>Aniversário</th>
+                            <th>Boas Vindas</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -401,6 +430,72 @@
                 </div>
                 <div class="pv-modal-body pv-modal-body-flush" id="historico-content">
                     <!-- Content loaded via AJAX -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Boas Vindas -->
+    <div class="modal fade" id="modalBoasVindas" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content pv-modal-modern">
+                <div class="pv-modal-header pv-modal-header-info">
+                    <div class="pv-modal-header-content">
+                        <div class="pv-modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                        </div>
+                        <div class="pv-modal-title-group">
+                            <h5 class="pv-modal-title">Registrar Boas Vindas</h5>
+                            <span class="pv-modal-subtitle">Confirme o envio da mensagem ao cliente</span>
+                        </div>
+                    </div>
+                    <button type="button" class="pv-modal-close" data-bs-dismiss="modal" aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="pv-modal-body">
+                    <input type="hidden" id="boas-vindas-venda-id">
+
+                    <!-- Dados do Contrato -->
+                    <div class="pv-contract-summary">
+                        <div class="pv-summary-row">
+                            <span class="pv-summary-label">Contrato:</span>
+                            <span class="pv-summary-value" id="bv-contrato-nome">-</span>
+                        </div>
+                        <div class="pv-summary-row">
+                            <span class="pv-summary-label">Operadora:</span>
+                            <span class="pv-summary-value" id="bv-operadora">-</span>
+                        </div>
+                        <div class="pv-summary-row">
+                            <span class="pv-summary-label">Plano:</span>
+                            <span class="pv-summary-value" id="bv-plano">-</span>
+                        </div>
+                        <div class="pv-summary-row">
+                            <span class="pv-summary-label">Implantado em:</span>
+                            <span class="pv-summary-value" id="bv-data-implantacao">-</span>
+                        </div>
+                    </div>
+
+                    <div class="pv-form-group mt-3">
+                        <label for="boas-vindas-observacao" class="pv-form-label">Observação (opcional)</label>
+                        <textarea class="pv-form-textarea" id="boas-vindas-observacao" rows="2" placeholder="Ex: Enviado via WhatsApp, Email enviado com carteirinha..."></textarea>
+                    </div>
+
+                    <div class="pv-modal-actions">
+                        <button type="button" class="pv-btn pv-btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="pv-btn pv-btn-info" id="btn-confirmar-boas-vindas">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Confirmar Envio
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

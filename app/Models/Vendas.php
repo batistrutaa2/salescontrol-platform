@@ -41,7 +41,9 @@ class Vendas extends Model
     'created_at',
     'updated_at',
     'angariacao_valor',
-    'angariacao_status'
+    'angariacao_status',
+    'boas_vindas_enviado_em',
+    'boas_vindas_enviado_por'
   ];
 
   protected $casts = [
@@ -49,6 +51,7 @@ class Vendas extends Model
     'valor_contrato' => 'decimal:2',
     'vidas' => 'integer',
     'data_implantacao' => 'date',
+    'boas_vindas_enviado_em' => 'datetime',
   ];
 
   public function titulares()
@@ -69,6 +72,11 @@ class Vendas extends Model
   public function acessosEmpresa()
   {
     return $this->hasMany(AcessoEmpresa::class, 'venda_id');
+  }
+
+  public function usuarioBoasVindas()
+  {
+    return $this->belongsTo(User::class, 'boas_vindas_enviado_por');
   }
 
 
