@@ -193,7 +193,7 @@ $(function () {
                         </div>
                         <div class="kanban-column-body" data-status="${status.id}">
                             ${status.contratos && status.contratos.length > 0
-                        ? status.contratos.map(c => this.renderCard(c, status.cor)).join('')
+                        ? status.contratos.map(c => this.renderCard(c, status.cor, status.nome)).join('')
                         : `<div class="kanban-column-empty">
                                         <i class="ri-inbox-line"></i>
                                         <span>Nenhum contrato</span>
@@ -218,7 +218,7 @@ $(function () {
             return shortNames[name] || name;
         },
 
-        renderCard(contract, statusColor) {
+        renderCard(contract, statusColor, statusName) {
             const atrasadoClass = contract.atrasado ? 'card-atrasado' : '';
             const diasNoStatus = Math.floor(contract.dias_no_status || 0);
             const tempoLabel = diasNoStatus === 1 ? '1 dia' : `${diasNoStatus} dias`;
@@ -240,9 +240,9 @@ $(function () {
                 </span>`;
             }
 
-            // Motivo pendência
+            // Motivo pendência - só exibir se o status for PENDENCIA
             let motivoHtml = '';
-            if (contract.motivo_pendencia) {
+            if (contract.motivo_pendencia && statusName === 'PENDENCIA') {
                 motivoHtml = `
                     <div class="motivo-badge js-view-motivo" data-motivo="${escapeHtml(contract.motivo_pendencia)}" title="Clique para ver o motivo">
                         <i class="ri-error-warning-line"></i>
