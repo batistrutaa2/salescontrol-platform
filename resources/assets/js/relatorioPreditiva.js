@@ -94,7 +94,25 @@ document.addEventListener('DOMContentLoaded', function () {
         dt = tabelaAtividades.DataTable({
             dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>>t<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.1/i18n/pt-BR.json'
+                processing: "Processando...",
+                search: "Pesquisar:",
+                lengthMenu: "Mostrar _MENU_ registros",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                infoFiltered: "(filtrado de _MAX_ registros no total)",
+                loadingRecords: "Carregando...",
+                zeroRecords: "Nenhum registro encontrado",
+                emptyTable: "Nenhum dado disponivel na tabela",
+                paginate: {
+                    first: "Primeiro",
+                    previous: "Anterior",
+                    next: "Proximo",
+                    last: "Ultimo"
+                },
+                aria: {
+                    sortAscending: ": ativar para ordenar coluna de forma crescente",
+                    sortDescending: ": ativar para ordenar coluna de forma decrescente"
+                }
             },
             responsive: true,
             processing: true,
@@ -318,9 +336,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 theme: isDarkStyle ? 'dark' : 'light'
             },
             legend: {
-                position: 'top',
-                horizontalAlign: 'right',
-                labels: { colors: legendColor }
+                show: false
             },
             markers: {
                 size: 4,

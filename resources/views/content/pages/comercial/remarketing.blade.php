@@ -189,10 +189,10 @@
         <div class="col-lg-3 col-md-6">
             <div class="metric-card danger">
                 <div class="metric-icon">
-                    <i class="ri-database-2-line"></i>
+                    <i class="ri-user-line"></i>
                 </div>
                 <div class="metric-value" id="total-bases">0</div>
-                <div class="metric-label">Bases de Origem</div>
+                <div class="metric-label">Corretores</div>
             </div>
         </div>
     </div>
@@ -202,7 +202,7 @@
         <div class="card-body">
             <h6 class="mb-3"><i class="ri-filter-3-line me-2"></i>Filtros Avançados</h6>
             <div class="row g-3 align-items-end">
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-2">
                     <label class="form-label">Mês de Importação</label>
                     <select id="filtro_mes" class="form-select">
                         <option value="">Todos os meses</option>
@@ -227,16 +227,19 @@
                     <input type="text" id="filtro_periodo" class="form-control flatpickr-range" placeholder="Selecione o período">
                 </div>
 
-                <div class="col-12 col-md-2">
-                    <label class="form-label">Base de Origem</label>
-                    <select id="filtro_base" class="form-select">
-                        <option value="">Todas as bases</option>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Corretor</label>
+                    <select id="filtro_corretor" class="form-select">
+                        <option value="">Todos os corretores</option>
+                        @foreach ($users as $user)
+                            <option value="{{ $user->name }}">{{ $user->name }}</option>
+                        @endforeach
                     </select>
                 </div>
 
                 <div class="col-12 col-md-2">
                     <button id="limpar_filtros" class="btn btn-outline-secondary w-100">
-                        <i class="ri-refresh-line me-1"></i>Limpar Filtros
+                        <i class="ri-refresh-line me-1"></i>Limpar
                     </button>
                 </div>
             </div>
@@ -260,7 +263,7 @@
                             <th>TELEFONE PRINCIPAL</th>
                             <th>PLANO</th>
                             <th>CATEGORIA</th>
-                            <th>BASE ORIGEM</th>
+                            <th>CORRETOR</th>
                             <th>DATA IMPORTAÇÃO</th>
                             <th>ÚLTIMA ATUALIZAÇÃO</th>
                             <th></th>

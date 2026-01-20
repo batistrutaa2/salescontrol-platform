@@ -386,7 +386,7 @@
     border: 1px solid var(--dash-card-border);
     box-shadow: var(--dash-shadow-md);
     margin-bottom: 2rem;
-    overflow: hidden;
+    overflow: visible;
 
     .filter-header {
         display: flex;

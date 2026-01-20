@@ -299,19 +299,20 @@ public function getClientInfo($idMailing)
   {
     $results = ContatosCorretores::with(['contato', 'tabulacao', 'subTabulacao'])
       ->leftJoin('tabulacoes as c', 'contatos_corretores.tabulacao_id', '=', 'c.id')
-      ->leftJoin('tabulacoes as sub', 'contatos_corretores.sub_tabulacao_id', '=', 'sub.id') // Adicionando a sub-tabulacao
+      ->leftJoin('tabulacoes as sub', 'contatos_corretores.sub_tabulacao_id', '=', 'sub.id')
       ->leftJoin('contatos as b', 'contatos_corretores.contato_id', '=', 'b.id')
+      ->leftJoin('users as u', 'contatos_corretores.user_id', '=', 'u.id')
       ->select(
         'b.id',
         'b.nome_cliente',
         'b.email',
         'b.telefone1',
-        'contatos_corretores.updated_at',
+        DB::raw('DATE_FORMAT(contatos_corretores.updated_at, "%d/%m/%Y %H:%i") as ultima_atualizacao'),
         'b.plano',
-        'b.nome_base',
-        'b.created_at as data_importacao',
-        DB::raw('COALESCE(sub.descricao, "REMARKETING") AS motivo_remarketing'), // Se subTabulacao for null, retorna "REMARKETING"
-        'b.categoria'
+        DB::raw('DATE_FORMAT(b.created_at, "%d/%m/%Y") as data_importacao'),
+        DB::raw('COALESCE(sub.descricao, "REMARKETING") AS motivo_remarketing'),
+        'b.categoria',
+        'u.name as corretor_descarte'
       )
       ->where('contatos_corretores.empresa_id', $empresa_id)
       ->where('c.descricao', 'REMARKETING')

@@ -72,7 +72,6 @@ $(function () {
         dataSrc: '',
         complete: function (jqXHR, textStatus) {
           updateMetrics();
-          populateBaseFilter();
         },
         error: function (jqXHR, textStatus, errorThrown) { }
       },
@@ -106,7 +105,7 @@ $(function () {
         { data: 'plano' },
         { data: 'categoria' },
         {
-          data: 'nome_base',
+          data: 'corretor_descarte',
           render: function (data, type, full, meta) {
             return data ? data : '<span class="text-muted">N/D</span>';
           }
@@ -120,10 +119,9 @@ $(function () {
           }
         },
         {
-          data: 'updated_at',
+          data: 'ultima_atualizacao',
           render: function (data, type, full, meta) {
             if (!data) return '<span class="text-muted">N/D</span>';
-            // Data já vem formatada do backend, apenas exibir
             return data;
           }
         },
@@ -403,8 +401,7 @@ $(function () {
   if (document.querySelector('#filtro_periodo')) {
     flatpickr('#filtro_periodo', {
       mode: 'range',
-      dateFormat: 'd/m/Y',
-      locale: 'pt'
+      dateFormat: 'd/m/Y'
     });
   }
 
@@ -419,21 +416,21 @@ $(function () {
     const currentYear = moment().year();
     const totalMesAtual = allData.filter(row => {
       if (!row.data_importacao) return false;
-      const rowDate = moment(row.data_importacao);
+      const rowDate = moment(row.data_importacao, 'DD/MM/YYYY');
       return rowDate.month() === currentMonth && rowDate.year() === currentYear;
     }).length;
 
-    // Contar bases únicas
-    const basesUnicas = new Set();
+    // Contar corretores únicos
+    const corretoresUnicos = new Set();
     allData.forEach(row => {
-      if (row.nome_base) {
-        basesUnicas.add(row.nome_base);
+      if (row.corretor_descarte) {
+        corretoresUnicos.add(row.corretor_descarte);
       }
     });
 
     $('#total-remarketing').text(totalRemarketing);
     $('#total-mes-atual').text(totalMesAtual);
-    $('#total-bases').text(basesUnicas.size);
+    $('#total-bases').text(corretoresUnicos.size);
   }
 
   // Função para atualizar métricas de filtros
@@ -441,26 +438,6 @@ $(function () {
     if (!table || !table.rows) return;
     const filteredData = table.rows({ search: 'applied' }).data().toArray();
     $('#total-filtrado').text(filteredData.length);
-  }
-
-  // Função para popular filtro de bases
-  function populateBaseFilter() {
-    if (!table || !table.rows) return;
-    const allData = table.rows().data().toArray();
-    const basesUnicas = new Set();
-
-    allData.forEach(row => {
-      if (row.nome_base) {
-        basesUnicas.add(row.nome_base);
-      }
-    });
-
-    const baseSelect = $('#filtro_base');
-    baseSelect.find('option:not(:first)').remove();
-
-    Array.from(basesUnicas).sort().forEach(base => {
-      baseSelect.append(`<option value="${base}">${base}</option>`);
-    });
   }
 
   // Função customizada de filtro do DataTable
@@ -471,14 +448,14 @@ $(function () {
 
     const mes = $('#filtro_mes').val();
     const ano = $('#filtro_ano').val();
-    const base = $('#filtro_base').val();
     const periodoRange = $('#filtro_periodo').val();
+    const corretor = $('#filtro_corretor').val();
 
     const dataImportacao = data[8]; // índice da coluna data_importacao
-    const nomeBase = data[7]; // índice da coluna nome_base
+    const corretorDescarte = data[7]; // índice da coluna corretor
 
-    // Filtro por base
-    if (base && nomeBase !== base && !nomeBase.includes('N/D')) {
+    // Filtro por corretor
+    if (corretor && corretorDescarte !== corretor) {
       return false;
     }
 
@@ -516,7 +493,7 @@ $(function () {
   });
 
   // Event listeners para os filtros
-  $('#filtro_mes, #filtro_ano, #filtro_base').on('change', function() {
+  $('#filtro_mes, #filtro_ano, #filtro_corretor').on('change', function() {
     if (table) table.draw();
   });
 
@@ -528,8 +505,8 @@ $(function () {
   $('#limpar_filtros').on('click', function() {
     $('#filtro_mes').val('');
     $('#filtro_ano').val('');
-    $('#filtro_base').val('');
     $('#filtro_periodo').val('');
+    $('#filtro_corretor').val('');
     if (document.querySelector('#filtro_periodo')._flatpickr) {
       document.querySelector('#filtro_periodo')._flatpickr.clear();
     }
@@ -540,12 +517,11 @@ $(function () {
 
 });
 
-// Validation & Phone mask
+// Phone mask
 (function () {
-  const phoneMaskList = document.querySelectorAll('.phone-mask'),
-    eCommerceCustomerAddForm = document.getElementById('eCommerceCustomerAddForm');
+  const phoneMaskList = document.querySelectorAll('.phone-mask');
 
-  if (phoneMaskList) {
+  if (phoneMaskList && phoneMaskList.length > 0) {
     phoneMaskList.forEach(function (phoneMask) {
       new Cleave(phoneMask, {
         phone: true,
@@ -553,92 +529,4 @@ $(function () {
       });
     });
   }
-
-  const fv = FormValidation.formValidation(eCommerceCustomerAddForm, {
-    fields: {
-      customerName: {
-        validators: {
-          notEmpty: {
-            message: 'Nome da Empresa é obrigatorio '
-          }
-        }
-      },
-      customerCnpj: {
-        validators: {
-          notEmpty: {
-            message: 'CNPJ/CPF da Empresa é obrigatorio '
-          }
-        }
-      },
-      customerEmail: {
-        validators: {
-          notEmpty: {
-            message: 'E-mail da Empresa é obrigatorio'
-          },
-          emailAddress: {
-            message: 'Esse E-mail não é valido'
-          }
-        }
-      },
-      customerPassword: {
-        validators: {
-          notEmpty: {
-            message: 'Senha é obrigatorio '
-          }
-        }
-      }
-    },
-    plugins: {
-      trigger: new FormValidation.plugins.Trigger(),
-      bootstrap5: new FormValidation.plugins.Bootstrap5({
-        eleValidClass: '',
-        rowSelector: function (field, ele) {
-          return '.mb-5';
-        }
-      }),
-      submitButton: new FormValidation.plugins.SubmitButton(),
-      autoFocus: new FormValidation.plugins.AutoFocus()
-    }
-  });
-
-  const submitButton = document.querySelector('.data-submit');
-  submitButton.addEventListener('click', function (event) {
-    fv.validate().then(function (status) {
-      if (status === 'Valid') {
-        const formData = {
-          name: document.querySelector('[name="customerName"]').value,
-          email: document.querySelector('[name="customerEmail"]').value,
-          user_role_id: document.querySelector('[name="user_role_id"]').value,
-          empresa_id: document.querySelector('[name="empresa_id"]').value,
-          password: document.querySelector('[name="customerPassword"]').value
-        };
-
-        $.ajaxSetup({
-          headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-          }
-        });
-
-        $.ajax({
-          url: 'usuarios/createUser',
-          type: 'POST',
-          data: formData,
-          success: function (response) {
-            table.ajax.reload();
-            $('#offcanvasEcommerceCustomerAdd').offcanvas('hide');
-            if (!response.error) {
-              toastr.success(response.message, 'Sucesso');
-            } else {
-              toastr.error(response.message, 'Erro');
-            }
-          },
-          error: function (error) {
-            var errorMessage = error.responseJSON ? error.responseJSON.message : 'Ocorreu um erro desconhecido';
-
-            toastr.error(error, errorMessage);
-          }
-        });
-      }
-    });
-  });
 })();
