@@ -973,30 +973,22 @@ class Comercial extends Controller
       'acao' => 'CONVERSAO'
     ]);
 
-    $tabulacaoProspeccao = DB::table('tabulacoes')
-      ->where('empresa_id', $empresaId)
-      ->where('descricao', 'PROSPECÇÃO')
-      ->where('status', 'Y')
+    $existingRecord = DB::table('contatos_corretores')
+      ->where('contato_id', $contatoId)
+      ->where('user_id', $userId)
       ->first();
 
-    if ($tabulacaoProspeccao) {
-      $existingRecord = DB::table('contatos_corretores')
-        ->where('contato_id', $contatoId)
-        ->where('user_id', $userId)
-        ->first();
-
-      if (!$existingRecord) {
-        DB::table('contatos_corretores')->insert([
-          'empresa_id' => $empresaId,
-          'contato_id' => $contatoId,
-          'user_id' => $userId,
-          'tabulacao_id' => $tabulacaoProspeccao->id,
-          'sub_tabulacao_id' => null,
-          'temperatura' => 'FRIO',
-          'created_at' => now(),
-          'updated_at' => now()
-        ]);
-      }
+    if (!$existingRecord) {
+      DB::table('contatos_corretores')->insert([
+        'empresa_id' => $empresaId,
+        'contato_id' => $contatoId,
+        'user_id' => $userId,
+        'tabulacao_id' => Tabulations::PROSPECCAO,
+        'sub_tabulacao_id' => null,
+        'temperatura' => 'FRIO',
+        'created_at' => now(),
+        'updated_at' => now()
+      ]);
     }
 
     Preditiva::where('contato_id', $contatoId)->delete();
