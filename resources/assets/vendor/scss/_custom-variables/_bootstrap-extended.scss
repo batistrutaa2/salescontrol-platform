@@ -3,4 +3,137 @@
 //  Copy and paste variables as needed, modify their values, and remove the !default flag.
 //  ===================================================================================================================
 
-// $font-size-root: 14px;
+// ============================================
+// Root Font Size (affects all rem calculations)
+// Original: 16px → Reduced to 14px for more compact UI
+// ============================================
+$font-size-root: 14px;
+
+// ============================================
+// Base Font Sizes (more compact)
+// ============================================
+$font-size-base: 0.857rem;      // ~12px (was 0.9375rem / 15px)
+$font-size-xl: 1.143rem;        // ~16px (was 1.25rem / 20px)
+$font-size-lg: 0.929rem;        // ~13px (was 1.0625rem / 17px)
+$font-size-sm: 0.786rem;        // ~11px (was 0.8125rem / 13px)
+$font-size-xs: 0.714rem;        // ~10px (was 0.75rem / 12px)
+
+// ============================================
+// Heading Font Sizes (proportionally smaller)
+// ============================================
+$h1-font-size: 2.286rem;        // ~32px (was 2.875rem / 46px)
+$h2-font-size: 1.857rem;        // ~26px (was 2.375rem / 38px)
+$h3-font-size: 1.429rem;        // ~20px (was 1.75rem / 28px)
+$h4-font-size: 1.214rem;        // ~17px (was 1.5rem / 24px)
+$h5-font-size: 1rem;            // ~14px (was 1.125rem / 18px)
+$h6-font-size: $font-size-base; // ~12px
+
+// Line heights for headings (adjusted)
+$h1-line-height: 3rem;          // ~42px (was 4.25rem / 68px)
+$h2-line-height: 2.5rem;        // ~35px (was 3.5rem / 56px)
+$h3-line-height: 2rem;          // ~28px (was 2.625rem / 42px)
+$h4-line-height: 1.75rem;       // ~24px (was 2.375rem / 38px)
+$h5-line-height: 1.5rem;        // ~21px (was 1.75rem / 28px)
+$h6-line-height: 1.25rem;       // ~17px (was 1.375rem / 22px)
+
+// ============================================
+// Display Font Sizes (for hero/display text)
+// ============================================
+$display-font-sizes: (
+  1: 3rem,      // ~42px (was 4rem / 64px)
+  2: 2.5rem,    // ~35px (was 3.5rem / 56px)
+  3: 2.143rem,  // ~30px (was 3rem / 48px)
+  4: 1.857rem,  // ~26px (was 2.5rem / 40px)
+  5: 1.571rem,  // ~22px (was 2rem / 32px)
+  6: 1.286rem   // ~18px (was 1.5rem / 24px)
+);
+
+// ============================================
+// Other Typography
+// ============================================
+$lead-font-size: 1rem;          // ~14px (was 1.125rem / 18px)
+$small-font-size: 0.786rem;     // ~11px (was 0.8125rem / 13px)
+
+// ============================================
+// Form Controls (more compact)
+// ============================================
+$form-label-font-size: 0.786rem;          // ~11px (was 0.8125rem / 13px)
+$input-btn-padding-y: 0.375rem;           // ~5.25px (was 0.4806rem / ~7.7px)
+$input-btn-padding-x: 0.875rem;           // ~12.25px (was 1.125rem / ~18px)
+
+// ============================================
+// Buttons (more compact)
+// ============================================
+$btn-font-size: 0.857rem;                 // ~12px
+$btn-font-size-sm: 0.75rem;               // ~10.5px
+$btn-font-size-lg: 0.929rem;              // ~13px
+
+// ============================================
+// Cards (tighter spacing)
+// ============================================
+$card-spacer-y: 1rem;                     // ~14px (was 1.5rem)
+$card-spacer-x: 1rem;                     // ~14px (was 1.5rem)
+$card-title-spacer-y: 0.5rem;             // ~7px
+$card-cap-padding-y: 0.75rem;             // ~10.5px
+$card-cap-padding-x: 1rem;                // ~14px
+
+// ============================================
+// Tables (more compact)
+// ============================================
+$table-cell-padding-y: 0.5rem;            // ~7px (was 0.55rem)
+$table-cell-padding-x: 0.75rem;           // ~10.5px (was 1.25rem)
+$table-cell-padding-y-sm: 0.35rem;        // ~5px
+$table-cell-padding-x-sm: 0.5rem;         // ~7px
+
+// ============================================
+// Modals (slightly smaller)
+// ============================================
+$modal-inner-padding: 1rem;               // ~14px (was 1.5rem)
+$modal-header-padding-y: 0.875rem;        // ~12.25px
+$modal-header-padding-x: 1rem;            // ~14px
+
+// ============================================
+// Dropdowns (more compact)
+// ============================================
+$dropdown-padding-y: 0.35rem;             // ~5px
+$dropdown-item-padding-y: 0.4rem;         // ~5.6px (was 0.5rem)
+$dropdown-item-padding-x: 0.875rem;       // ~12.25px (was 1rem)
+$dropdown-font-size: 0.857rem;            // ~12px
+
+// ============================================
+// Badges (slightly smaller)
+// ============================================
+$badge-font-size: 0.8125em;               // ~81.25% (was 0.857em)
+$badge-padding-y: 0.35em;                 // (was 0.444em)
+$badge-padding-x: 0.6em;                  // (was 0.778em)
+
+// ============================================
+// Alerts (more compact)
+// ============================================
+$alert-padding-y: 0.625rem;               // ~8.75px (was 0.875rem)
+$alert-padding-x: 0.875rem;               // ~12.25px (was 0.875rem)
+
+// ============================================
+// Breadcrumbs
+// ============================================
+$breadcrumb-font-size: 0.857rem;          // ~12px
+$breadcrumb-padding-y: 0;
+$breadcrumb-padding-x: 0;
+$breadcrumb-item-padding-x: 0.5rem;       // ~7px
+
+// ============================================
+// Pagination (more compact)
+// ============================================
+$pagination-padding-y: 0.35rem;           // ~5px (was 0.481rem)
+$pagination-padding-x: 0.5rem;            // ~7px
+$pagination-font-size: 0.857rem;          // ~12px
+
+// ============================================
+// Tooltips & Popovers
+// ============================================
+$tooltip-font-size: 0.786rem;             // ~11px (was 0.8125rem)
+$popover-font-size: 0.857rem;             // ~12px (was 0.9375rem)
+$popover-header-padding-y: 0.5rem;        // ~7px
+$popover-header-padding-x: 0.75rem;       // ~10.5px
+$popover-body-padding-y: 0.5rem;          // ~7px
+$popover-body-padding-x: 0.75rem;         // ~10.5px

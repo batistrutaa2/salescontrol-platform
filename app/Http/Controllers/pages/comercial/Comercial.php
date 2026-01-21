@@ -566,7 +566,34 @@ class Comercial extends Controller
   public function createSale(Request $request)
   {
     try {
+      // Validação dos campos
+      $validated = $request->validate([
+        'contato_id' => 'required|integer',
+        'nome_contrato' => 'required|string|max:255',
+        'cpf_cnpj' => 'required|string',
+        'operadora_id' => 'required|integer',
+        'titulares' => 'required|array|min:1',
+        'titulares.*.nome' => 'required|string|max:100',
+        'titulares.*.plano_id' => 'required|integer',
+      ], [
+        'contato_id.required' => 'Contato não identificado.',
+        'nome_contrato.required' => 'Razão Social é obrigatória.',
+        'cpf_cnpj.required' => 'CNPJ é obrigatório.',
+        'operadora_id.required' => 'Selecione uma operadora.',
+        'titulares.required' => 'Adicione pelo menos um titular.',
+        'titulares.min' => 'Adicione pelo menos um titular.',
+        'titulares.*.nome.required' => 'Nome do titular é obrigatório.',
+        'titulares.*.plano_id.required' => 'Selecione o plano para todos os titulares.',
+      ]);
+
       $saveSale = $this->vendasRepository->create($request->all());
+
+      if (!$saveSale) {
+        return redirect()->back()
+          ->withInput()
+          ->with('status', 'error')
+          ->with('message', 'Falha ao salvar a venda. Verifique os dados e tente novamente.');
+      }
 
       $arrayData = [
         'contato_id' => $request->contato_id,
@@ -579,13 +606,21 @@ class Comercial extends Controller
           ->with('status', 'success')
           ->with('message', 'Venda Cadastrada com sucesso');
       }
+
       return redirect()->route('sale.listSale')
         ->with('status', 'error')
-        ->with('message', 'Falha ao atualizar status.');
+        ->with('message', 'Venda salva, mas houve falha ao atualizar status do lead.');
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return redirect()->back()
+        ->withErrors($e->errors())
+        ->withInput()
+        ->with('status', 'error')
+        ->with('message', 'Verifique os campos obrigatórios.');
     } catch (\Throwable $th) {
       return redirect()->back()
+        ->withInput()
         ->with('status', 'error')
-        ->with('message', 'Falha ao Cadastrar Venda');
+        ->with('message', 'Falha ao Cadastrar Venda: ' . $th->getMessage());
     }
   }
 
@@ -721,8 +756,6 @@ class Comercial extends Controller
         return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', "Erro ao enviar para fila, contate nosso suporte.");
       }
     } catch (\Throwable $th) {
-      // Log do erro para debug
-      \Log::error('Erro ao concluir agendamento: ' . $th->getMessage());
       return redirect()->back()->with('status', 'error')->with('message', "Erro ao enviar para fila: " . $th->getMessage());
     }
   }
@@ -1258,8 +1291,6 @@ class Comercial extends Controller
       return response()->json($resultado);
 
     } catch (\Exception $e) {
-      \Log::error('Erro na análise de IA', ['error' => $e->getMessage()]);
-
       return response()->json([
         'success' => false,
         'error' => 'Erro ao processar análise: ' . $e->getMessage()

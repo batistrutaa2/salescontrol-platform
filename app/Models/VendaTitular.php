@@ -77,6 +77,16 @@ class VendaTitular extends Model
         $this->attributes['telefone'] = preg_replace('/\D+/', '', $value ?? '');
     }
 
+    public function setTelefone2Attribute($value): void
+    {
+        $this->attributes['telefone2'] = preg_replace('/\D+/', '', $value ?? '');
+    }
+
+    public function setCpfAttribute($value): void
+    {
+        $this->attributes['cpf'] = preg_replace('/\D+/', '', $value ?? '');
+    }
+
     /** Accessors para datas formatadas no fuso BR */
     public function getCreatedAtBrAttribute(): ?string
     {

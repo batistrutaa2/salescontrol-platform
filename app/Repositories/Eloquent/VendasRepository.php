@@ -225,11 +225,7 @@ class VendasRepository implements VendasRepositoryInterface
         return true;
       });
     } catch (\Throwable $ex) {
-      \Log::error('Erro ao criar venda: ' . $ex->getMessage(), [
-        'trace' => $ex->getTraceAsString(),
-        'data' => $data,
-      ]);
-      return false;
+      throw $ex; // Propaga o erro para o controller tratar
     }
   }
 

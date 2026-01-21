@@ -46,6 +46,40 @@
     document.querySelectorAll('.mask-telefone').forEach(applyPhoneMask);
 
     // ============================================
+    // CPF Mask (global)
+    // ============================================
+    function applyCpfMask(element) {
+        if (!element || element.dataset.maskApplied === '1') return;
+        element.dataset.maskApplied = '1';
+
+        new Cleave(element, {
+            delimiters: ['.', '.', '-'],
+            blocks: [3, 3, 3, 2],
+            numericOnly: true
+        });
+    }
+
+    document.querySelectorAll('.mask-cpf').forEach(applyCpfMask);
+
+    // ============================================
+    // Flatpickr for birth date (global)
+    // ============================================
+    function applyFlatpickrNascimento(element) {
+        if (!element || element.dataset.flatpickrApplied === '1') return;
+        element.dataset.flatpickrApplied = '1';
+
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr(element, {
+                dateFormat: 'd/m/Y',
+                locale: 'pt',
+                allowInput: true
+            });
+        }
+    }
+
+    document.querySelectorAll('.flatpickr-nascimento').forEach(applyFlatpickrNascimento);
+
+    // ============================================
     // Monetary Mask (global)
     // ============================================
     function applyMonetaryMask(element) {
@@ -127,6 +161,8 @@
 
         // Apply masks to new fields
         newBlock.querySelectorAll('.mask-telefone').forEach(applyPhoneMask);
+        newBlock.querySelectorAll('.mask-cpf').forEach(applyCpfMask);
+        newBlock.querySelectorAll('.flatpickr-nascimento').forEach(applyFlatpickrNascimento);
 
         titularIndex++;
         updateStats();
@@ -213,6 +249,8 @@
 
         // Apply masks
         newBlock.querySelectorAll('.mask-telefone').forEach(applyPhoneMask);
+        newBlock.querySelectorAll('.mask-cpf').forEach(applyCpfMask);
+        newBlock.querySelectorAll('.flatpickr-nascimento').forEach(applyFlatpickrNascimento);
 
         updateStats();
         updateDependenteNumbers(depContainer);
@@ -505,11 +543,187 @@
     });
 
     // ============================================
-    // Initialize - Add first titular on load
+    // Restore Old Data (after validation error)
+    // ============================================
+    function restoreOldTitulares() {
+        const oldTitulares = window.oldTitulares || [];
+        const oldOperadoraId = window.oldOperadoraId;
+
+        if (!oldTitulares.length) {
+            return false;
+        }
+
+        // Se há operadora old, disparar evento change para carregar planos
+        if (oldOperadoraId) {
+            const operadoraSelect = document.getElementById('operadora');
+            if (operadoraSelect && operadoraSelect.value) {
+                // Fetch plans first, then restore titulares
+                fetch(`/comercial/getPlansByOperator/${operadoraSelect.value}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        planosDaOperadoraAtual = Array.isArray(data) ? data.map(p => ({
+                            id: p.id,
+                            nome: p.nome,
+                            acomodacao: p.acomodacao
+                        })) : [];
+
+                        // Agora restaurar titulares com planos disponíveis
+                        oldTitulares.forEach((titular, index) => {
+                            addTitularWithData(titular, index);
+                        });
+
+                        updateStats();
+                    })
+                    .catch(() => {
+                        // Mesmo com erro, restaurar titulares
+                        oldTitulares.forEach((titular, index) => {
+                            addTitularWithData(titular, index);
+                        });
+                        updateStats();
+                    });
+            } else {
+                oldTitulares.forEach((titular, index) => {
+                    addTitularWithData(titular, index);
+                });
+                updateStats();
+            }
+        } else {
+            oldTitulares.forEach((titular, index) => {
+                addTitularWithData(titular, index);
+            });
+            updateStats();
+        }
+
+        return true;
+    }
+
+    // ============================================
+    // Add Titular with Data (for restoring old)
+    // ============================================
+    function addTitularWithData(titularData, forceIndex = null) {
+        const container = document.getElementById('titulares-container');
+        const template = document.getElementById('template-titular');
+        if (!container || !template) return;
+
+        const idx = forceIndex !== null ? forceIndex : titularIndex;
+        const number = idx + 1;
+
+        const html = template.content.cloneNode(true).querySelector('.titular-card').outerHTML
+            .replace(/__INDEX__/g, idx)
+            .replace(/__NUMBER__/g, number);
+
+        container.insertAdjacentHTML('beforeend', html);
+
+        const newBlock = container.lastElementChild;
+
+        // Fill data
+        const setVal = (selector, value) => {
+            const el = newBlock.querySelector(selector);
+            if (el && value) el.value = value;
+        };
+
+        setVal(`[name="titulares[${idx}][nome]"]`, titularData.nome || '');
+        setVal(`[name="titulares[${idx}][cpf]"]`, titularData.cpf || '');
+        setVal(`[name="titulares[${idx}][data_nascimento]"]`, titularData.data_nascimento || '');
+        setVal(`[name="titulares[${idx}][email]"]`, titularData.email || '');
+        setVal(`[name="titulares[${idx}][telefone1]"]`, titularData.telefone1 || '');
+        setVal(`[name="titulares[${idx}][telefone2]"]`, titularData.telefone2 || '');
+        setVal(`[name="titulares[${idx}][cargo]"]`, titularData.cargo || '');
+        setVal(`[name="titulares[${idx}][plano_anterior]"]`, titularData.plano_anterior || 'NAO');
+        setVal(`[name="titulares[${idx}][operadora_anterior_id]"]`, titularData.operadora_anterior_id || '');
+
+        // Plan select
+        const planSelect = newBlock.querySelector('.select-plano-titular');
+        if (planSelect) {
+            planSelect.innerHTML = renderPlanOptions();
+            if (titularData.plano_id) {
+                planSelect.value = titularData.plano_id;
+            }
+        }
+
+        // Show operadora anterior if plano_anterior = SIM
+        if (titularData.plano_anterior === 'SIM') {
+            const opAnteriorField = newBlock.querySelector('.field-op-anterior-titular');
+            if (opAnteriorField) opAnteriorField.style.display = 'block';
+        }
+
+        // Apply masks
+        newBlock.querySelectorAll('.mask-telefone').forEach(applyPhoneMask);
+        newBlock.querySelectorAll('.mask-cpf').forEach(applyCpfMask);
+        newBlock.querySelectorAll('.flatpickr-nascimento').forEach(applyFlatpickrNascimento);
+
+        // Restore dependentes
+        if (titularData.dependentes && Array.isArray(titularData.dependentes)) {
+            titularData.dependentes.forEach((depData, depIndex) => {
+                addDependenteWithData(newBlock, depData, idx, depIndex);
+            });
+        }
+
+        if (forceIndex === null) {
+            titularIndex++;
+        } else {
+            titularIndex = Math.max(titularIndex, idx + 1);
+        }
+    }
+
+    // ============================================
+    // Add Dependente with Data (for restoring old)
+    // ============================================
+    function addDependenteWithData(titularCard, depData, titularIdx, depIndex) {
+        const depContainer = titularCard.querySelector('.dependentes-container');
+        const template = document.getElementById('template-dependente');
+        if (!depContainer || !template) return;
+
+        const depNumber = depIndex + 1;
+
+        const html = template.content.cloneNode(true).querySelector('.dependente-card').outerHTML
+            .replace(/__INDEX__/g, titularIdx)
+            .replace(/__DEP_INDEX__/g, depIndex)
+            .replace(/__DEP_NUMBER__/g, depNumber);
+
+        depContainer.insertAdjacentHTML('beforeend', html);
+
+        const newBlock = depContainer.lastElementChild;
+
+        // Fill data
+        const setVal = (selector, value) => {
+            const el = newBlock.querySelector(selector);
+            if (el && value) el.value = value;
+        };
+
+        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][nome]"]`, depData.nome || '');
+        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][cpf]"]`, depData.cpf || '');
+        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][data_nascimento]"]`, depData.data_nascimento || '');
+        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][email]"]`, depData.email || '');
+        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][telefone1]"]`, depData.telefone1 || '');
+        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][telefone2]"]`, depData.telefone2 || '');
+        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][parentesco]"]`, depData.parentesco || '');
+        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][plano_anterior]"]`, depData.plano_anterior || 'NAO');
+        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][operadora_anterior_id]"]`, depData.operadora_anterior_id || '');
+
+        // Show operadora anterior if plano_anterior = SIM
+        if (depData.plano_anterior === 'SIM') {
+            const opAnteriorField = newBlock.querySelector('.field-op-anterior');
+            if (opAnteriorField) opAnteriorField.style.display = 'block';
+        }
+
+        // Apply masks
+        newBlock.querySelectorAll('.mask-telefone').forEach(applyPhoneMask);
+        newBlock.querySelectorAll('.mask-cpf').forEach(applyCpfMask);
+        newBlock.querySelectorAll('.flatpickr-nascimento').forEach(applyFlatpickrNascimento);
+    }
+
+    // ============================================
+    // Initialize - Add first titular on load or restore old
     // ============================================
     document.addEventListener('DOMContentLoaded', function () {
         const container = document.getElementById('titulares-container');
-        if (container && container.children.length === 0) {
+
+        // Tentar restaurar dados old primeiro
+        const hasOldData = restoreOldTitulares();
+
+        // Se não há dados old, adicionar titular vazio
+        if (!hasOldData && container && container.children.length === 0) {
             addTitular();
         }
     });

@@ -3,4 +3,107 @@
 //  Copy and paste variables as needed, modify their values, and remove the !default flag.
 //  ================================================================================================
 
-// $menu-width: 14rem;
+// ============================================
+// Menu / Sidebar (more compact)
+// ============================================
+$menu-width: 14.5rem;                           // ~203px (was 16.25rem / 260px)
+$menu-collapsed-width: 3.75rem;                 // ~52.5px (was 4.25rem / 68px)
+$menu-font-size: 0.857rem;                      // ~12px (matches base font)
+$menu-icon-expanded-font-size: 1.143rem;        // ~16px (was 1.375rem / 22px)
+$menu-vertical-link-padding-y: 0.4rem;          // ~5.6px (was 0.5rem / 8px)
+$menu-vertical-link-padding-x: 1rem;            // ~14px (was 1.45rem / 23.2px)
+$menu-item-spacer: 0.25rem;                     // ~3.5px (was 0.375rem / 6px)
+$menu-sub-item-spacer: 0.125rem;                // ~1.75px (was 0.25rem / 4px)
+
+// Menu header
+$menu-header-padding-y: 0.5rem;                 // ~7px
+$menu-header-padding-x: 1rem;                   // ~14px
+$menu-header-margin-y: 0.5rem;                  // ~7px
+
+// ============================================
+// Navbar (more compact)
+// ============================================
+$navbar-height: 3.5rem;                         // ~49px (was 4rem / 64px)
+$navbar-toggler-font-size: 0.571rem;            // ~8px (was 0.625rem / 10px)
+
+// ============================================
+// Navigation / Tabs (more compact)
+// ============================================
+$nav-link-padding-y: 0.4rem;                    // ~5.6px (was 0.5435rem / ~8.7px)
+$nav-link-padding-x: 1rem;                      // ~14px (was 1.375rem / ~22px)
+$nav-link-font-size: 0.857rem;                  // ~12px
+
+$nav-tabs-link-padding-x: 0.857rem;             // ~12px
+$nav-tabs-link-padding-y: 0.357rem;             // ~5px
+$nav-pills-link-padding-x: 0.857rem;            // ~12px
+$nav-pills-link-padding-y: 0.357rem;            // ~5px
+
+// ============================================
+// Avatars (slightly smaller)
+// ============================================
+$avatar-size: 2.25rem;                          // ~31.5px (was 2.5rem / 40px)
+$avatar-size-sm: 1.5rem;                        // ~21px (was 1.75rem / 28px)
+$avatar-size-lg: 3rem;                          // ~42px (was 3.5rem / 56px)
+$avatar-size-xl: 3.5rem;                        // ~49px (was 4rem / 64px)
+
+// ============================================
+// Timeline (more compact)
+// ============================================
+$timeline-point-size: 0.75rem;                  // ~10.5px (was 0.875rem)
+$timeline-item-min-height: 3rem;                // ~42px (was 4rem)
+$timeline-item-padding-y: 0.35rem;              // ~5px
+$timeline-item-padding-x: 0.75rem;              // ~10.5px
+
+// ============================================
+// Footer (more compact)
+// ============================================
+$footer-height: 3rem;                           // ~42px (was 3.5rem / 56px)
+$footer-padding-y: 0.5rem;                      // ~7px
+
+// ============================================
+// Offcanvas (slightly smaller)
+// ============================================
+$offcanvas-padding-y: 1rem;                     // ~14px (was 1.5rem)
+$offcanvas-padding-x: 1rem;                     // ~14px (was 1.5rem)
+$offcanvas-horizontal-width: 350px;             // ~350px (was 400px)
+
+// ============================================
+// Switch / Toggle (slightly smaller)
+// ============================================
+$switch-width: 2.75rem;                         // ~38.5px (was 3rem)
+$switch-height: 1.375rem;                       // ~19.25px (was 1.5rem)
+$switch-label-font-size: 0.786rem;              // ~11px
+
+// ============================================
+// List Groups (more compact)
+// ============================================
+$list-group-item-padding-y: 0.5rem;             // ~7px (was 0.625rem)
+$list-group-item-padding-x: 0.875rem;           // ~12.25px (was 1rem)
+
+// ============================================
+// Accordion (more compact)
+// ============================================
+$accordion-padding-y: 0.75rem;                  // ~10.5px (was 1rem)
+$accordion-padding-x: 1rem;                     // ~14px (was 1.25rem)
+$accordion-button-padding-y: 0.75rem;           // ~10.5px
+$accordion-button-padding-x: 1rem;              // ~14px
+
+// ============================================
+// Toast (more compact)
+// ============================================
+$toast-padding-x: 0.625rem;                     // ~8.75px (was 0.75rem)
+$toast-padding-y: 0.375rem;                     // ~5.25px (was 0.5rem)
+$toast-font-size: 0.857rem;                     // ~12px
+
+// ============================================
+// Progress (slightly smaller)
+// ============================================
+$progress-height: 0.625rem;                     // ~8.75px (was 0.75rem)
+
+// ============================================
+// Spinners (slightly smaller)
+// ============================================
+$spinner-width: 1.75rem;                        // ~24.5px (was 2rem)
+$spinner-height: 1.75rem;                       // ~24.5px (was 2rem)
+$spinner-width-sm: 0.875rem;                    // ~12.25px (was 1rem)
+$spinner-height-sm: 0.875rem;                   // ~12.25px (was 1rem)

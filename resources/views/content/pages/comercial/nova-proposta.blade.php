@@ -1,6 +1,11 @@
 @use('Illuminate\Support\Str')
 @extends('layouts/layoutMaster')
 
+@php
+$isFlex = true;
+$isFooter = false;
+@endphp
+
 @section('title', 'Comercial - Nova Proposta PME')
 
 @section('vendor-style')
@@ -85,40 +90,40 @@
                         <div class="np-grid grid-2">
                             <div class="np-field span-2">
                                 <label>Razao Social</label>
-                                <input type="text" id="nome_contrato" name="nome_contrato" class="np-input" placeholder="RAZAO SOCIAL DA EMPRESA" required />
+                                <input type="text" id="nome_contrato" name="nome_contrato" class="np-input @error('nome_contrato') is-invalid @enderror" placeholder="RAZAO SOCIAL DA EMPRESA" value="{{ old('nome_contrato') }}" required />
                             </div>
                             <div class="np-field">
                                 <label>CNPJ</label>
-                                <input type="text" id="cpf_cnpj" name="cpf_cnpj" class="np-input mask-cnpj" placeholder="00.000.000/0000-00" required />
+                                <input type="text" id="cpf_cnpj" name="cpf_cnpj" class="np-input mask-cnpj @error('cpf_cnpj') is-invalid @enderror" placeholder="00.000.000/0000-00" value="{{ old('cpf_cnpj') }}" required />
                             </div>
                             <div class="np-field">
                                 <label>Tipo Empresa</label>
-                                <select id="tipo_empresa" name="tipo_empresa" class="np-input" required>
+                                <select id="tipo_empresa" name="tipo_empresa" class="np-input @error('tipo_empresa') is-invalid @enderror" required>
                                     <option value="">Selecione...</option>
-                                    <option value="MEI">MEI</option>
-                                    <option value="ME">ME</option>
-                                    <option value="EPP">EPP</option>
-                                    <option value="LTDA">LTDA</option>
-                                    <option value="SA">S/A</option>
-                                    <option value="EIRELI">EIRELI</option>
-                                    <option value="SLU">SLU</option>
+                                    <option value="MEI" {{ old('tipo_empresa') == 'MEI' ? 'selected' : '' }}>MEI</option>
+                                    <option value="ME" {{ old('tipo_empresa') == 'ME' ? 'selected' : '' }}>ME</option>
+                                    <option value="EPP" {{ old('tipo_empresa') == 'EPP' ? 'selected' : '' }}>EPP</option>
+                                    <option value="LTDA" {{ old('tipo_empresa') == 'LTDA' ? 'selected' : '' }}>LTDA</option>
+                                    <option value="SA" {{ old('tipo_empresa') == 'SA' ? 'selected' : '' }}>S/A</option>
+                                    <option value="EIRELI" {{ old('tipo_empresa') == 'EIRELI' ? 'selected' : '' }}>EIRELI</option>
+                                    <option value="SLU" {{ old('tipo_empresa') == 'SLU' ? 'selected' : '' }}>SLU</option>
                                 </select>
                             </div>
                             <div class="np-field">
                                 <label>Data Abertura</label>
-                                <input type="text" id="data_abertura" name="data_abertura" class="np-input flatpickr-date" placeholder="DD/MM/AAAA" />
+                                <input type="text" id="data_abertura" name="data_abertura" class="np-input flatpickr-date" placeholder="DD/MM/AAAA" value="{{ old('data_abertura') }}" />
                             </div>
                             <div class="np-field">
                                 <label>E-mail</label>
-                                <input type="email" id="email" name="email" class="np-input" placeholder="email@empresa.com" />
+                                <input type="email" id="email" name="email" class="np-input" placeholder="email@empresa.com" value="{{ old('email') }}" />
                             </div>
                             <div class="np-field">
                                 <label>Telefone 1</label>
-                                <input type="text" id="telefone1" name="telefone1" class="np-input mask-telefone" placeholder="(11) 3000-0000" />
+                                <input type="text" id="telefone1" name="telefone1" class="np-input mask-telefone" placeholder="(11) 3000-0000" value="{{ old('telefone1') }}" />
                             </div>
                             <div class="np-field">
                                 <label>Telefone 2</label>
-                                <input type="text" id="telefone2" name="telefone2" class="np-input mask-telefone" placeholder="(11) 91234-5678" />
+                                <input type="text" id="telefone2" name="telefone2" class="np-input mask-telefone" placeholder="(11) 91234-5678" value="{{ old('telefone2') }}" />
                             </div>
                         </div>
                     </div>
@@ -136,16 +141,16 @@
                         <div class="np-grid grid-2">
                             <div class="np-field">
                                 <label>Operadora</label>
-                                <select id="operadora" name="operadora_id" class="np-input" required>
+                                <select id="operadora" name="operadora_id" class="np-input @error('operadora_id') is-invalid @enderror" required>
                                     <option value="">Selecione...</option>
                                     @foreach ($operadoras as $op)
-                                        <option value="{{ $op->id }}" data-nome="{{ strtoupper($op->nome) }}">{{ strtoupper($op->nome) }}</option>
+                                        <option value="{{ $op->id }}" data-nome="{{ strtoupper($op->nome) }}" {{ old('operadora_id') == $op->id ? 'selected' : '' }}>{{ strtoupper($op->nome) }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="np-field">
                                 <label>Qtd. Titulares</label>
-                                <input type="number" min="1" value="1" id="qtd_titulares" name="qtd_titulares" class="np-input" />
+                                <input type="number" min="1" value="{{ old('qtd_titulares', 1) }}" id="qtd_titulares" name="qtd_titulares" class="np-input" />
                             </div>
                         </div>
                     </div>
@@ -163,11 +168,11 @@
                         <div class="np-grid grid-2">
                             <div class="np-field">
                                 <label>Valor Mensal</label>
-                                <input type="text" id="valor_contrato" name="valor_contrato" value="0" class="np-input monetary-field" placeholder="R$ 0,00" />
+                                <input type="text" id="valor_contrato" name="valor_contrato" value="{{ old('valor_contrato', '0') }}" class="np-input monetary-field" placeholder="R$ 0,00" />
                             </div>
                             <div class="np-field">
                                 <label>Total Vidas</label>
-                                <input type="number" id="vidas" name="vidas" class="np-input" value="0" readonly />
+                                <input type="number" id="vidas" name="vidas" class="np-input" value="{{ old('vidas', 0) }}" readonly />
                             </div>
                         </div>
 
@@ -175,13 +180,13 @@
                         <div class="np-inline-toggle">
                             <div class="toggle-info">
                                 <span class="toggle-label">Angariacao</span>
-                                <span class="status-badge badge-inativo" id="angariacao-badge">Inativo</span>
+                                <span class="status-badge {{ old('angariacao_status') == 'SIM' ? 'badge-ativo' : 'badge-inativo' }}" id="angariacao-badge">{{ old('angariacao_status') == 'SIM' ? 'Ativo' : 'Inativo' }}</span>
                             </div>
                             <div class="toggle-controls">
-                                <input type="text" id="taxa_angariacao" name="taxa_angariacao" value="0" class="np-input np-input-sm monetary-field" placeholder="R$ 0,00" />
+                                <input type="text" id="taxa_angariacao" name="taxa_angariacao" value="{{ old('taxa_angariacao', '0') }}" class="np-input np-input-sm monetary-field" placeholder="R$ 0,00" />
                                 <select id="angariacao_status" name="angariacao_status" class="np-input np-input-sm">
-                                    <option value="NAO">NAO</option>
-                                    <option value="SIM">SIM</option>
+                                    <option value="NAO" {{ old('angariacao_status') != 'SIM' ? 'selected' : '' }}>NAO</option>
+                                    <option value="SIM" {{ old('angariacao_status') == 'SIM' ? 'selected' : '' }}>SIM</option>
                                 </select>
                             </div>
                         </div>
@@ -190,13 +195,13 @@
                         <div class="np-inline-toggle">
                             <div class="toggle-info">
                                 <span class="toggle-label">Portabilidade</span>
-                                <span class="status-badge badge-inativo" id="portabilidade-badge">Inativo</span>
+                                <span class="status-badge {{ old('portabilidade_status') == 'SIM' ? 'badge-ativo' : 'badge-inativo' }}" id="portabilidade-badge">{{ old('portabilidade_status') == 'SIM' ? 'Ativo' : 'Inativo' }}</span>
                             </div>
                             <div class="toggle-controls">
-                                <input type="number" id="qtd_portabilidade" name="qtd_portabilidade" min="0" value="0" class="np-input np-input-sm" placeholder="Qtd" style="display:none;" />
+                                <input type="number" id="qtd_portabilidade" name="qtd_portabilidade" min="0" value="{{ old('qtd_portabilidade', 0) }}" class="np-input np-input-sm" placeholder="Qtd" style="{{ old('portabilidade_status') == 'SIM' ? '' : 'display:none;' }}" />
                                 <select id="portabilidade_status" name="portabilidade_status" class="np-input np-input-sm">
-                                    <option value="NAO">NAO</option>
-                                    <option value="SIM">SIM</option>
+                                    <option value="NAO" {{ old('portabilidade_status') != 'SIM' ? 'selected' : '' }}>NAO</option>
+                                    <option value="SIM" {{ old('portabilidade_status') == 'SIM' ? 'selected' : '' }}>SIM</option>
                                 </select>
                             </div>
                         </div>
@@ -207,7 +212,7 @@
                         {{-- Observacoes --}}
                         <div class="np-field" style="margin-top: 0.75rem;">
                             <label>Observacoes</label>
-                            <input type="text" id="obs_contrato" name="obs_contrato" class="np-input" placeholder="Observacoes do contrato" />
+                            <input type="text" id="obs_contrato" name="obs_contrato" class="np-input" placeholder="Observacoes do contrato" value="{{ old('obs_contrato') }}" />
                         </div>
                     </div>
                 </div>
@@ -263,6 +268,10 @@
         <div class="titular-body">
             <div class="field-row">
                 <input type="text" name="titulares[__INDEX__][nome]" class="np-input" placeholder="Nome completo" required>
+                <input type="text" name="titulares[__INDEX__][cpf]" class="np-input mask-cpf" placeholder="CPF (000.000.000-00)">
+            </div>
+            <div class="field-row">
+                <input type="text" name="titulares[__INDEX__][data_nascimento]" class="np-input flatpickr-nascimento" placeholder="Data Nascimento">
                 <input type="email" name="titulares[__INDEX__][email]" class="np-input" placeholder="E-mail">
             </div>
             <div class="field-row">
@@ -312,10 +321,17 @@
         <div class="dependente-body">
             <div class="field-row">
                 <input type="text" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][nome]" class="np-input" placeholder="Nome" required>
+                <input type="text" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][cpf]" class="np-input mask-cpf" placeholder="CPF (000.000.000-00)">
+            </div>
+            <div class="field-row">
+                <input type="text" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][data_nascimento]" class="np-input flatpickr-nascimento" placeholder="Data Nascimento">
                 <input type="email" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][email]" class="np-input" placeholder="E-mail">
             </div>
             <div class="field-row">
                 <input type="text" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][telefone1]" class="np-input mask-telefone" placeholder="Telefone 1">
+                <input type="text" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][telefone2]" class="np-input mask-telefone" placeholder="Telefone 2">
+            </div>
+            <div class="field-row">
                 <select name="titulares[__INDEX__][dependentes][__DEP_INDEX__][parentesco]" class="np-input" required>
                     <option value="">Parentesco...</option>
                     <option value="CONJUGE">Conjuge</option>
@@ -351,5 +367,28 @@
         </button>
     </div>
 </template>
+
+{{-- Dados old para JavaScript --}}
+<script>
+    window.oldTitulares = @json(old('titulares', []));
+    window.oldOperadoraId = @json(old('operadora_id'));
+
+    // Mostrar erros via toastr
+    document.addEventListener('DOMContentLoaded', function() {
+        @if(session('status') === 'error' && session('message'))
+            if (typeof toastr !== 'undefined') {
+                toastr.error(@json(session('message')));
+            }
+        @endif
+
+        @if($errors->any())
+            if (typeof toastr !== 'undefined') {
+                @foreach($errors->all() as $error)
+                    toastr.error(@json($error));
+                @endforeach
+            }
+        @endif
+    });
+</script>
 
 @endsection
