@@ -295,10 +295,223 @@
     }
 
     // ============================================
+    // Edit Titular
+    // ============================================
+    function initEditTitular() {
+        // Initialize masks for modal fields
+        document.querySelectorAll('.mask-cpf-modal').forEach(function (el) {
+            if (typeof Cleave !== 'undefined' && !el.dataset.maskApplied) {
+                el.dataset.maskApplied = '1';
+                new Cleave(el, {
+                    delimiters: ['.', '.', '-'],
+                    blocks: [3, 3, 3, 2],
+                    numericOnly: true
+                });
+            }
+        });
+
+        document.querySelectorAll('.mask-telefone-modal').forEach(function (el) {
+            if (typeof Cleave !== 'undefined' && !el.dataset.maskApplied) {
+                el.dataset.maskApplied = '1';
+                new Cleave(el, {
+                    delimiters: ['(', ') ', '-'],
+                    blocks: [0, 2, 5, 4],
+                    numericOnly: true
+                });
+            }
+        });
+
+        // Initialize flatpickr for modal date fields
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr('.flatpickr-modal', {
+                dateFormat: 'd/m/Y',
+                locale: 'pt'
+            });
+        }
+
+        // Edit titular button click
+        document.querySelectorAll('.btn-edit-titular').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const titularId = this.dataset.titularId;
+                document.getElementById('edit_titular_id').value = titularId;
+                document.getElementById('edit_titular_nome').value = this.dataset.nome || '';
+                document.getElementById('edit_titular_cpf').value = this.dataset.cpf || '';
+                document.getElementById('edit_titular_data_nascimento').value = this.dataset.dataNascimento || '';
+                document.getElementById('edit_titular_email').value = this.dataset.email || '';
+                document.getElementById('edit_titular_telefone').value = this.dataset.telefone || '';
+                document.getElementById('edit_titular_telefone2').value = this.dataset.telefone2 || '';
+                document.getElementById('edit_titular_plano_id').value = this.dataset.planoId || '';
+                document.getElementById('edit_titular_cargo').value = this.dataset.cargo || '';
+                document.getElementById('edit_titular_coparticipacao').value = this.dataset.coparticipacao || '';
+                document.getElementById('edit_titular_plano_anterior').value = this.dataset.planoAnterior || 'NAO';
+                document.getElementById('edit_titular_operadora_anterior_id').value = this.dataset.operadoraAnteriorId || '';
+
+                // Show/hide operadora anterior field
+                const planoAnterior = this.dataset.planoAnterior || 'NAO';
+                const opAnteriorContainer = document.getElementById('edit_titular_operadora_anterior_container');
+                if (opAnteriorContainer) {
+                    opAnteriorContainer.style.display = planoAnterior === 'SIM' ? 'block' : 'none';
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('modalEditTitular'));
+                modal.show();
+            });
+        });
+
+        // Plano anterior change toggle
+        const planoAnteriorSelect = document.getElementById('edit_titular_plano_anterior');
+        if (planoAnteriorSelect) {
+            planoAnteriorSelect.addEventListener('change', function () {
+                const opAnteriorContainer = document.getElementById('edit_titular_operadora_anterior_container');
+                if (opAnteriorContainer) {
+                    opAnteriorContainer.style.display = this.value === 'SIM' ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Form submit
+        const formEditTitular = document.getElementById('form-edit-titular');
+        if (formEditTitular) {
+            formEditTitular.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const titularId = document.getElementById('edit_titular_id').value;
+
+                const data = {
+                    venda_id: vendaId,
+                    nome: document.getElementById('edit_titular_nome').value,
+                    cpf: document.getElementById('edit_titular_cpf').value,
+                    data_nascimento: document.getElementById('edit_titular_data_nascimento').value,
+                    email: document.getElementById('edit_titular_email').value,
+                    telefone: document.getElementById('edit_titular_telefone').value,
+                    telefone2: document.getElementById('edit_titular_telefone2').value,
+                    cargo: document.getElementById('edit_titular_cargo').value,
+                    plano_id: document.getElementById('edit_titular_plano_id').value,
+                    coparticipacao: document.getElementById('edit_titular_coparticipacao').value,
+                    plano_anterior: document.getElementById('edit_titular_plano_anterior').value,
+                    operadora_anterior_id: document.getElementById('edit_titular_operadora_anterior_id').value
+                };
+
+                fetch(`/backoffice/titulares-pme/${titularId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            bootstrap.Modal.getInstance(document.getElementById('modalEditTitular'))?.hide();
+                            // Reload page to show updated data
+                            window.location.reload();
+                        } else {
+                            alert(result.message || 'Erro ao atualizar titular');
+                        }
+                    })
+                    .catch(() => {
+                        alert('Erro ao atualizar titular');
+                    });
+            });
+        }
+    }
+
+    // ============================================
+    // Edit Dependente
+    // ============================================
+    function initEditDependente() {
+        // Edit dependente button click
+        document.querySelectorAll('.btn-edit-dependente').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const dependenteId = this.dataset.dependenteId;
+                document.getElementById('edit_dependente_id').value = dependenteId;
+                document.getElementById('edit_dependente_nome').value = this.dataset.nome || '';
+                document.getElementById('edit_dependente_cpf').value = this.dataset.cpf || '';
+                document.getElementById('edit_dependente_data_nascimento').value = this.dataset.dataNascimento || '';
+                document.getElementById('edit_dependente_email').value = this.dataset.email || '';
+                document.getElementById('edit_dependente_telefone1').value = this.dataset.telefone1 || '';
+                document.getElementById('edit_dependente_telefone2').value = this.dataset.telefone2 || '';
+                document.getElementById('edit_dependente_parentesco').value = this.dataset.parentesco || '';
+                document.getElementById('edit_dependente_plano_anterior').value = this.dataset.planoAnterior || 'NAO';
+                document.getElementById('edit_dependente_operadora_anterior_id').value = this.dataset.operadoraAnteriorId || '';
+
+                // Show/hide operadora anterior field
+                const planoAnterior = this.dataset.planoAnterior || 'NAO';
+                const opAnteriorContainer = document.getElementById('edit_dependente_operadora_anterior_container');
+                if (opAnteriorContainer) {
+                    opAnteriorContainer.style.display = planoAnterior === 'SIM' ? 'block' : 'none';
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('modalEditDependente'));
+                modal.show();
+            });
+        });
+
+        // Plano anterior change toggle
+        const planoAnteriorSelect = document.getElementById('edit_dependente_plano_anterior');
+        if (planoAnteriorSelect) {
+            planoAnteriorSelect.addEventListener('change', function () {
+                const opAnteriorContainer = document.getElementById('edit_dependente_operadora_anterior_container');
+                if (opAnteriorContainer) {
+                    opAnteriorContainer.style.display = this.value === 'SIM' ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Form submit
+        const formEditDependente = document.getElementById('form-edit-dependente');
+        if (formEditDependente) {
+            formEditDependente.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const dependenteId = document.getElementById('edit_dependente_id').value;
+
+                const data = {
+                    venda_id: vendaId,
+                    nome: document.getElementById('edit_dependente_nome').value,
+                    cpf: document.getElementById('edit_dependente_cpf').value,
+                    data_nascimento: document.getElementById('edit_dependente_data_nascimento').value,
+                    email: document.getElementById('edit_dependente_email').value,
+                    telefone1: document.getElementById('edit_dependente_telefone1').value,
+                    telefone2: document.getElementById('edit_dependente_telefone2').value,
+                    parentesco: document.getElementById('edit_dependente_parentesco').value,
+                    plano_anterior: document.getElementById('edit_dependente_plano_anterior').value,
+                    operadora_anterior_id: document.getElementById('edit_dependente_operadora_anterior_id').value
+                };
+
+                fetch(`/backoffice/dependentes-pme/${dependenteId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            bootstrap.Modal.getInstance(document.getElementById('modalEditDependente'))?.hide();
+                            // Reload page to show updated data
+                            window.location.reload();
+                        } else {
+                            alert(result.message || 'Erro ao atualizar dependente');
+                        }
+                    })
+                    .catch(() => {
+                        alert('Erro ao atualizar dependente');
+                    });
+            });
+        }
+    }
+
+    // ============================================
     // Initialize
     // ============================================
     document.addEventListener('DOMContentLoaded', function () {
         loadAcessos();
+        initEditTitular();
+        initEditDependente();
     });
 
 })();

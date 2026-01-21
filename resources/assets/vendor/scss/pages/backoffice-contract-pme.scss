@@ -695,6 +695,7 @@ textarea.pme-input {
 
     .titular-body {
         padding: 0.6rem;
+        position: relative;
 
         .titular-info {
             display: flex;
@@ -728,6 +729,35 @@ textarea.pme-input {
                         color: var(--pme-warning);
                     }
                 }
+            }
+        }
+
+        .btn-edit-titular {
+            position: absolute;
+            top: 0.4rem;
+            right: 0.4rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.65rem;
+            font-weight: 500;
+            font-family: inherit;
+            background: rgba(var(--pme-primary-rgb), 0.1);
+            color: var(--pme-primary);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--pme-transition);
+
+            svg {
+                width: 12px;
+                height: 12px;
+            }
+
+            &:hover {
+                background: rgba(var(--pme-primary-rgb), 0.2);
+                transform: translateY(-1px);
             }
         }
     }
@@ -794,15 +824,26 @@ textarea.pme-input {
     }
 
     .dependente-body {
+        position: relative;
+
         .dep-info {
             display: flex;
             flex-wrap: wrap;
             gap: 0.3rem 0.75rem;
+            padding-right: 2rem;
 
             .dep-nome {
                 font-size: 0.7rem;
                 font-weight: 500;
                 color: var(--pme-text-primary);
+                width: 100%;
+            }
+
+            .dep-cpf,
+            .dep-nascimento {
+                font-size: 0.6rem;
+                color: var(--pme-info);
+                font-weight: 500;
             }
 
             .dep-email,
@@ -818,6 +859,34 @@ textarea.pme-input {
             span {
                 font-size: 0.6rem;
                 color: var(--pme-warning);
+            }
+        }
+
+        .btn-edit-dependente {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            font-size: 0.6rem;
+            background: rgba(var(--pme-info-rgb), 0.1);
+            color: var(--pme-info);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--pme-transition);
+
+            svg {
+                width: 12px;
+                height: 12px;
+            }
+
+            &:hover {
+                background: rgba(var(--pme-info-rgb), 0.2);
             }
         }
     }
