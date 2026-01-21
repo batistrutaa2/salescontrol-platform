@@ -541,10 +541,12 @@
     });
   }
   function showModalCadastroVenda() {
-    const modalEl = document.getElementById('addNewAddress');
-    if (!modalEl || typeof bootstrap === 'undefined') return;
-    const myModal = new bootstrap.Modal(modalEl);
-    myModal.show();
+    // Get contato_id from URL path (e.g., /comercial/abrir-cliente/{id})
+    const pathParts = window.location.pathname.split('/');
+    const contatoId = pathParts[pathParts.length - 1];
+    if (contatoId) {
+      window.location.href = `/comercial/cliente/${contatoId}/nova-proposta`;
+    }
   }
 
   // =======================

@@ -10,6 +10,8 @@ use App\Models\Operadora;
 use App\Models\Plano;
 use App\Models\Vendas;
 use App\Models\VendaTitular;
+use App\Models\VendaDependente;
+use App\Models\VendaPortabilidade;
 use App\Models\VendaHistorico;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use Exception;
@@ -33,6 +35,10 @@ class VendasRepository implements VendasRepositoryInterface
         $contatoId = (int) ($data['contato_id'] ?? 0);
         $operadoraId = (int) ($data['operadora_id'] ?? 0);
         $titulares = is_array($data['titulares'] ?? null) ? $data['titulares'] : [];
+
+        // Detectar se é novo layout PME
+        $tipoContrato = $data['tipo_contrato'] ?? null;
+        $isNovoLayout = !empty($tipoContrato) && $tipoContrato === 'PME';
 
         $nomeContrato = strtoupper(trim($data['nome_contrato'] ?? ''));
         $cpfCnpj = Helpers::cleanSpecialCharacters($data['cpf_cnpj'] ?? '');
@@ -66,7 +72,8 @@ class VendasRepository implements VendasRepositoryInterface
         $isAngariacao = $data['angariacao_status']
             ?? ($operadora->nome === "AMIL - SUPERMED" ? "SIM" : "NÃO");
 
-        $venda = $this->model->create([
+        // Dados base da venda
+        $vendaData = [
           'empresa_id' => Auth::user()->empresa_id,
           'user_id' => Auth::user()->id,
           'contato_id' => $contatoId,
@@ -76,6 +83,7 @@ class VendasRepository implements VendasRepositoryInterface
           'telefone1' => $tel1,
           'telefone2' => $tel2,
           'operadora' => $operadora->nome,
+          'operadora_id' => $operadoraId,
           'nome_plano' => $planoPrimeiro?->nome,
           'plano_id' => $planoPrimeiro?->id,
           'valor_contrato' => $valorContrato,
@@ -85,34 +93,115 @@ class VendasRepository implements VendasRepositoryInterface
           'coparticipacao' => $coparticipacaoVenda,
           'angariacao_valor' => $taxaAngariacao,
           'angariacao_status' => $isAngariacao,
-        ]);
+        ];
 
-        if (!empty($titulares)) {
-          $now = now();
-          $rows = [];
-          foreach ($titulares as $t) {
-            $rows[] = [
-              'venda_id' => $venda->id,
-              'nome' => mb_strtoupper(trim($t['nome'] ?? ''), 'UTF-8'),
-              'email' => $t['email'] ?? null,
-              'telefone' => Helpers::cleanSpecialCharacters($t['telefone'] ?? ''),
-              'plano_id' => !empty($t['plano_id']) ? (int) $t['plano_id'] : null,
-              'coparticipacao' => isset($t['coparticipacao']) && $t['coparticipacao'] !== ''
-                ? strtoupper($t['coparticipacao'])
-                : null,
-              'created_at' => $now,
-              'updated_at' => $now,
-            ];
+        // Campos adicionais para novo layout PME
+        if ($isNovoLayout) {
+          $vendaData['layout_venda'] = 'NOVO';
+          $vendaData['tipo_contrato'] = $tipoContrato;
+          $vendaData['tipo_empresa'] = $data['tipo_empresa'] ?? null;
+          $vendaData['portabilidade_status'] = $data['portabilidade_status'] ?? 'NAO';
+          $vendaData['qtd_portabilidade'] = (int) ($data['qtd_portabilidade'] ?? 0);
+
+          // Converter data de abertura de d/m/Y para Y-m-d
+          if (!empty($data['data_abertura'])) {
+            $dataAbertura = $this->converterDataBrParaDb($data['data_abertura']);
+            if ($dataAbertura) {
+              $vendaData['data_abertura'] = $dataAbertura;
+            }
           }
+        } else {
+          $vendaData['layout_venda'] = 'ANTIGO';
+        }
 
-          if (method_exists($venda, 'titulares')) {
-            $cleanPayload = array_map(function ($r) {
-              unset($r['created_at'], $r['updated_at']);
-              return $r;
-            }, $rows);
-            $venda->titulares()->createMany($cleanPayload);
-          } else {
-            VendaTitular::insert($rows);
+        $venda = $this->model->create($vendaData);
+
+        // Processar titulares
+        if (!empty($titulares)) {
+          foreach ($titulares as $titularData) {
+            $titularPayload = [
+              'nome' => mb_strtoupper(trim($titularData['nome'] ?? ''), 'UTF-8'),
+              'email' => $titularData['email'] ?? null,
+              'telefone' => Helpers::cleanSpecialCharacters($titularData['telefone1'] ?? $titularData['telefone'] ?? ''),
+              'plano_id' => !empty($titularData['plano_id']) ? (int) $titularData['plano_id'] : null,
+              'coparticipacao' => isset($titularData['coparticipacao']) && $titularData['coparticipacao'] !== ''
+                ? strtoupper($titularData['coparticipacao'])
+                : null,
+            ];
+
+            // Campos adicionais para novo layout
+            if ($isNovoLayout) {
+              $titularPayload['telefone2'] = Helpers::cleanSpecialCharacters($titularData['telefone2'] ?? '');
+              $titularPayload['cargo'] = $titularData['cargo'] ?? null;
+              $titularPayload['cpf'] = Helpers::cleanSpecialCharacters($titularData['cpf'] ?? '');
+              $titularPayload['plano_anterior'] = $titularData['plano_anterior'] ?? 'NAO';
+              $titularPayload['operadora_anterior_id'] = !empty($titularData['operadora_anterior_id'])
+                ? (int) $titularData['operadora_anterior_id']
+                : null;
+
+              if (!empty($titularData['data_nascimento'])) {
+                $dataNasc = $this->converterDataBrParaDb($titularData['data_nascimento']);
+                if ($dataNasc) {
+                  $titularPayload['data_nascimento'] = $dataNasc;
+                }
+              }
+            }
+
+            $titular = $venda->titulares()->create($titularPayload);
+
+            // Processar dependentes do titular (somente novo layout)
+            if ($isNovoLayout && !empty($titularData['dependentes']) && is_array($titularData['dependentes'])) {
+              foreach ($titularData['dependentes'] as $depData) {
+                $dependentePayload = [
+                  'venda_id' => $venda->id,
+                  'titular_id' => $titular->id,
+                  'nome' => mb_strtoupper(trim($depData['nome'] ?? ''), 'UTF-8'),
+                  'email' => $depData['email'] ?? null,
+                  'telefone1' => Helpers::cleanSpecialCharacters($depData['telefone1'] ?? ''),
+                  'telefone2' => Helpers::cleanSpecialCharacters($depData['telefone2'] ?? ''),
+                  'parentesco' => $depData['parentesco'] ?? null,
+                  'plano_anterior' => $depData['plano_anterior'] ?? 'NAO',
+                  'operadora_anterior_id' => !empty($depData['operadora_anterior_id'])
+                    ? (int) $depData['operadora_anterior_id']
+                    : null,
+                ];
+
+                if (!empty($depData['cpf'])) {
+                  $dependentePayload['cpf'] = Helpers::cleanSpecialCharacters($depData['cpf']);
+                }
+
+                if (!empty($depData['data_nascimento'])) {
+                  $dataNascDep = $this->converterDataBrParaDb($depData['data_nascimento']);
+                  if ($dataNascDep) {
+                    $dependentePayload['data_nascimento'] = $dataNascDep;
+                  }
+                }
+
+                VendaDependente::create($dependentePayload);
+              }
+            }
+          }
+        }
+
+        // Processar portabilidades (somente novo layout)
+        if ($isNovoLayout && !empty($data['portabilidades']) && is_array($data['portabilidades'])) {
+          $sequencial = 1;
+          foreach ($data['portabilidades'] as $portData) {
+            if (empty($portData['nome'])) {
+              continue;
+            }
+
+            VendaPortabilidade::create([
+              'venda_id' => $venda->id,
+              'nome' => mb_strtoupper(trim($portData['nome'] ?? ''), 'UTF-8'),
+              'cpf' => !empty($portData['cpf']) ? Helpers::cleanSpecialCharacters($portData['cpf']) : null,
+              'operadora_anterior_id' => !empty($portData['operadora_anterior_id'])
+                ? (int) $portData['operadora_anterior_id']
+                : null,
+              'plano_anterior' => $portData['plano_anterior'] ?? null,
+              'numero_carteirinha' => $portData['numero_carteirinha'] ?? null,
+              'sequencial' => $sequencial++,
+            ]);
           }
         }
 
@@ -136,8 +225,33 @@ class VendasRepository implements VendasRepositoryInterface
         return true;
       });
     } catch (\Throwable $ex) {
+      \Log::error('Erro ao criar venda: ' . $ex->getMessage(), [
+        'trace' => $ex->getTraceAsString(),
+        'data' => $data,
+      ]);
       return false;
     }
+  }
+
+  /**
+   * Converte data do formato brasileiro (d/m/Y) para formato do banco (Y-m-d)
+   */
+  private function converterDataBrParaDb(?string $dataBr): ?string
+  {
+    if (empty($dataBr)) {
+      return null;
+    }
+
+    $partes = explode('/', $dataBr);
+    if (count($partes) !== 3) {
+      return null;
+    }
+
+    $dia = str_pad($partes[0], 2, '0', STR_PAD_LEFT);
+    $mes = str_pad($partes[1], 2, '0', STR_PAD_LEFT);
+    $ano = $partes[2];
+
+    return "{$ano}-{$mes}-{$dia}";
   }
 
 

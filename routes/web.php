@@ -131,6 +131,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/getCommentsLegacy/{cpf}', [Comercial::class, 'getCommentsLegacy'])->name('comercial.getCommentsLegacy');
   Route::post('/comercial/saveCommentsLegacy', [Comercial::class, 'saveCommentsLegacy'])->name('comercial.saveCommentsLegacy');
   Route::post('/comercial/criar-venda', [Comercial::class, 'createSale'])->name('comercial.createSale');
+  Route::get('/comercial/cliente/{contato_id}/nova-proposta', [Comercial::class, 'novaProposta'])->name('comercial.novaProposta');
   Route::post('/comercial/createLead', [Comercial::class, 'createLead'])->name('comercial.createLead');
   Route::post('/comercial/sendRemaketing', [Comercial::class, 'sendRemaketing'])->name('comercial.sendRemaketing');
   Route::get('/comercial/marketing', [Comercial::class, 'indexMarketing'])->name('comercial.indexMarketing');

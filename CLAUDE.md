@@ -30,36 +30,52 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
+### IMPORTANT: Use Laravel Sail
+
+**This project uses Laravel Sail (Docker-based environment). NEVER run PHP or Artisan commands directly. Always prefix with `./vendor/bin/sail` or `sail` (if aliased).**
+
+```bash
+# WRONG - Do NOT use:
+php artisan migrate
+php artisan serve
+composer install
+
+# CORRECT - Always use Sail:
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan serve
+./vendor/bin/sail composer install
+```
+
 ### Initial Setup
 ```bash
 # Install PHP dependencies
-composer install
+./vendor/bin/sail composer install
 
 # Install JavaScript dependencies
 npm install
 
 # Setup environment
 cp .env.example .env
-php artisan key:generate
+./vendor/bin/sail artisan key:generate
 
 # Run migrations and seed database
-php artisan migrate
-php artisan db:seed
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan db:seed
 ```
 
 ### Development Workflow
 ```bash
-# Start development server
-php artisan serve
+# Start Sail containers
+./vendor/bin/sail up -d
 
 # Watch and compile frontend assets (development)
 npm run dev
 
 # Run code formatting
-./vendor/bin/pint
+./vendor/bin/sail pint
 
 # Run tests
-php artisan test
+./vendor/bin/sail artisan test
 ```
 
 **IMPORTANT:** Never run `npm run build` - the user handles asset compilation manually.
@@ -67,34 +83,34 @@ php artisan test
 ### Database Operations
 ```bash
 # Create a new migration
-php artisan make:migration create_table_name
+./vendor/bin/sail artisan make:migration create_table_name
 
 # Run migrations
-php artisan migrate
+./vendor/bin/sail artisan migrate
 
 # Rollback last migration
-php artisan migrate:rollback
+./vendor/bin/sail artisan migrate:rollback
 
 # Fresh migration (drop all tables and re-migrate)
-php artisan migrate:fresh
+./vendor/bin/sail artisan migrate:fresh
 
 # Seed database
-php artisan db:seed
+./vendor/bin/sail artisan db:seed
 ```
 
 ### Artisan Commands
 ```bash
 # Clear all caches
-php artisan optimize:clear
+./vendor/bin/sail artisan optimize:clear
 
 # Create controller
-php artisan make:controller ControllerName
+./vendor/bin/sail artisan make:controller ControllerName
 
 # Create model with migration
-php artisan make:model ModelName -m
+./vendor/bin/sail artisan make:model ModelName -m
 
 # Create repository
-php artisan make:class Repositories/Eloquent/RepositoryName
+./vendor/bin/sail artisan make:class Repositories/Eloquent/RepositoryName
 ```
 
 ## Architecture & Code Organization

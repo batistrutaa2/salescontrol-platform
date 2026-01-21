@@ -589,6 +589,26 @@ class Comercial extends Controller
     }
   }
 
+  public function novaProposta($contato_id)
+  {
+    $clientInfo = $this->repositoryContatosCorretores->getClientInfo($contato_id);
+
+    if (!$clientInfo || Auth::user()->empresa_id != $clientInfo->empresa_id) {
+      return redirect()->route('comercial.kanban')
+        ->with('status', 'error')
+        ->with('message', 'Sem permissão de acesso');
+    }
+
+    $operadoras = Operadora::where('status', 'Y')
+      ->orderBy('nome')
+      ->get(['id', 'nome']);
+
+    return view('content.pages.comercial.nova-proposta', [
+      'client' => $clientInfo,
+      'operadoras' => $operadoras
+    ]);
+  }
+
 
   public function createClient()
   {

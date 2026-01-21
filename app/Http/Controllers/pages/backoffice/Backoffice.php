@@ -11,6 +11,8 @@ use App\Models\Tabulacoes;
 use App\Models\User;
 use App\Models\Vendas;
 use App\Models\VendaTitular;
+use App\Models\VendaDependente;
+use App\Models\VendaPortabilidade;
 use App\Models\VendaHistorico;
 use App\Notifications\StatusPropostaAlterada;
 use Illuminate\Http\Request;
@@ -104,9 +106,34 @@ class Backoffice extends Controller
 
     $plano = $sale->plano_id ? Plano::find($sale->plano_id) : null;
 
-    $titulares = VendaTitular::with('plano')
+    $titulares = VendaTitular::with(['plano', 'dependentes', 'operadoraAnterior'])
       ->where('venda_id', $sale->id)
       ->get();
+
+    // Verifica se é layout novo (PME)
+    if ($sale->layout_venda === 'NOVO') {
+      // Carrega dependentes com relacionamentos
+      $dependentes = VendaDependente::with(['plano', 'operadoraAnterior'])
+        ->where('venda_id', $sale->id)
+        ->get();
+
+      // Carrega portabilidades
+      $portabilidades = VendaPortabilidade::with('operadoraAnterior')
+        ->where('venda_id', $sale->id)
+        ->orderBy('sequencial')
+        ->get();
+
+      return view('content.pages.backoffice.openContractPME', [
+        'contract' => $sale,
+        'operadoras' => $operadoras,
+        'selectedOperadoraId' => $selectedOperadoraId,
+        'planosDaOperadora' => $planosDaOperadora,
+        'plano' => $plano,
+        'titulares' => $titulares,
+        'dependentes' => $dependentes,
+        'portabilidades' => $portabilidades,
+      ]);
+    }
 
     return view('content.pages.backoffice.openContract', [
       'contract' => $sale,

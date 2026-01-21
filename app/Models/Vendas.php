@@ -26,6 +26,7 @@ class Vendas extends Model
     'telefone1',
     'telefone2',
     'operadora',
+    'operadora_id',
     'nome_plano',
     'valor_contrato',
     'vidas',
@@ -42,6 +43,12 @@ class Vendas extends Model
     'updated_at',
     'angariacao_valor',
     'angariacao_status',
+    'portabilidade_status',
+    'qtd_portabilidade',
+    'layout_venda',
+    'tipo_contrato',
+    'tipo_empresa',
+    'data_abertura',
     'boas_vindas_enviado_em',
     'boas_vindas_enviado_por'
   ];
@@ -51,12 +58,30 @@ class Vendas extends Model
     'valor_contrato' => 'decimal:2',
     'vidas' => 'integer',
     'data_implantacao' => 'date',
+    'data_abertura' => 'date',
     'boas_vindas_enviado_em' => 'datetime',
+    'operadora_id' => 'integer',
+    'qtd_portabilidade' => 'integer',
   ];
 
   public function titulares()
   {
     return $this->hasMany(\App\Models\VendaTitular::class, 'venda_id');
+  }
+
+  public function dependentes()
+  {
+    return $this->hasMany(\App\Models\VendaDependente::class, 'venda_id');
+  }
+
+  public function portabilidades()
+  {
+    return $this->hasMany(\App\Models\VendaPortabilidade::class, 'venda_id');
+  }
+
+  public function operadoraRelation()
+  {
+    return $this->belongsTo(\App\Models\Operadora::class, 'operadora_id');
   }
 
   public function user()
