@@ -193,7 +193,7 @@
 
                 <div class="dm-form-group">
                     <label class="dm-label">Descrição</label>
-                    <textarea class="dm-textarea" id="descricao" name="descricao" rows="3" placeholder="Descreva a demanda (opcional)"></textarea>
+                    <textarea class="dm-textarea" id="descricao" name="descricao" rows="6" placeholder="Descreva a demanda (opcional)"></textarea>
                 </div>
 
                 <div class="row g-3">

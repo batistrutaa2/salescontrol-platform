@@ -460,10 +460,8 @@
         color: var(--dm-text-muted);
         margin-bottom: 0.75rem;
         line-height: 1.5;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
+        white-space: pre-wrap;
+        word-wrap: break-word;
     }
 
     .dm-card-meta {
@@ -629,7 +627,9 @@
 
             .dm-textarea {
                 resize: vertical;
-                min-height: 100px;
+                min-height: 200px;
+                max-height: 400px;
+                overflow-y: auto;
             }
         }
     }

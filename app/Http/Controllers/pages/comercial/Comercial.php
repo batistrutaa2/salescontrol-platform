@@ -1180,7 +1180,7 @@ class Comercial extends Controller
         return [
           'id' => $d->id,
           'titulo' => $d->titulo,
-          'descricao' => Str::limit($d->descricao, 120),
+          'descricao' => $d->descricao,
           'prioridade' => $d->prioridade,
           'status' => $d->status,
           'responsavel' => $d->responsavel?->name,
