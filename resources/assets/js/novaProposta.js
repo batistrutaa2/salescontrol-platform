@@ -6,6 +6,42 @@
     // ============================================
     let planosDaOperadoraAtual = [];
     let titularIndex = 0;
+    let isOperadoraAmil = false;
+
+    // ============================================
+    // Coparticipacao Options (dynamic based on operadora)
+    // ============================================
+    function getCoparticipacaoOptions() {
+        if (isOperadoraAmil) {
+            return `
+                <option value="">Coparticipacao...</option>
+                <option value="PARCIAL">Parcial</option>
+                <option value="COMPLETA">Completa</option>
+            `;
+        }
+        return `
+            <option value="">Coparticipacao...</option>
+            <option value="Y">Sim</option>
+            <option value="N">Nao</option>
+        `;
+    }
+
+    function updateAllCoparticipacaoSelects() {
+        document.querySelectorAll('.select-coparticipacao-titular').forEach(select => {
+            const currentValue = select.value;
+            select.innerHTML = getCoparticipacaoOptions();
+
+            // Tentar manter valor se compatível, senão resetar
+            if (currentValue) {
+                const hasOption = Array.from(select.options).some(o => o.value === currentValue);
+                if (hasOption) {
+                    select.value = currentValue;
+                } else {
+                    select.value = '';
+                }
+            }
+        });
+    }
 
     // ============================================
     // Initialize Flatpickr for date fields
@@ -157,6 +193,12 @@
         const planSelect = newBlock.querySelector('.select-plano-titular');
         if (planSelect) {
             planSelect.innerHTML = renderPlanOptions();
+        }
+
+        // Update coparticipacao select options based on operadora
+        const copartSelect = newBlock.querySelector('.select-coparticipacao-titular');
+        if (copartSelect) {
+            copartSelect.innerHTML = getCoparticipacaoOptions();
         }
 
         // Apply masks to new fields
@@ -378,6 +420,14 @@
         planosDaOperadoraAtual = [];
         updateAllPlanSelects();
 
+        // Detectar se é AMIL
+        const selectedOption = this.options[this.selectedIndex];
+        const nomeOperadora = (selectedOption?.dataset?.nome || selectedOption?.text || '').toUpperCase().trim();
+        isOperadoraAmil = nomeOperadora.startsWith('AMIL');
+
+        // Atualizar selects de coparticipação com as opções corretas
+        updateAllCoparticipacaoSelects();
+
         if (!operadoraId) return;
 
         // Fetch plans
@@ -411,9 +461,10 @@
 
         // Plano anterior toggle (titulares)
         if (e.target.classList.contains('select-plano-anterior-titular')) {
-            const fieldOperadora = e.target.closest('.field-row')?.querySelector('.field-op-anterior-titular');
-            if (fieldOperadora) {
-                fieldOperadora.style.display = e.target.value === 'SIM' ? 'block' : 'none';
+            const titularCard = e.target.closest('.titular-card');
+            const fieldRowOpAnterior = titularCard?.querySelector('.field-row-op-anterior');
+            if (fieldRowOpAnterior) {
+                fieldRowOpAnterior.style.display = e.target.value === 'SIM' ? 'flex' : 'none';
             }
         }
     });
@@ -539,6 +590,16 @@
             }
         }
 
+        // Check all titulares have coparticipacao selected
+        const copartSelects = document.querySelectorAll('#titulares-container select[name*="[coparticipacao]"]');
+        for (const select of copartSelects) {
+            if (!select.value) {
+                e.preventDefault();
+                if (typeof toastr !== 'undefined') toastr.error('Selecione a coparticipacao para todos os titulares.');
+                return false;
+            }
+        }
+
         return true;
     });
 
@@ -557,6 +618,11 @@
         if (oldOperadoraId) {
             const operadoraSelect = document.getElementById('operadora');
             if (operadoraSelect && operadoraSelect.value) {
+                // Detectar se é AMIL antes de restaurar titulares
+                const selectedOption = operadoraSelect.options[operadoraSelect.selectedIndex];
+                const nomeOperadora = (selectedOption?.dataset?.nome || selectedOption?.text || '').toUpperCase().trim();
+                isOperadoraAmil = nomeOperadora.startsWith('AMIL');
+
                 // Fetch plans first, then restore titulares
                 fetch(`/comercial/getPlansByOperator/${operadoraSelect.value}`)
                     .then(res => res.json())
@@ -616,6 +682,12 @@
 
         const newBlock = container.lastElementChild;
 
+        // Update coparticipacao select options based on operadora before setting value
+        const copartSelect = newBlock.querySelector('.select-coparticipacao-titular');
+        if (copartSelect) {
+            copartSelect.innerHTML = getCoparticipacaoOptions();
+        }
+
         // Fill data
         const setVal = (selector, value) => {
             const el = newBlock.querySelector(selector);
@@ -629,6 +701,7 @@
         setVal(`[name="titulares[${idx}][telefone1]"]`, titularData.telefone1 || '');
         setVal(`[name="titulares[${idx}][telefone2]"]`, titularData.telefone2 || '');
         setVal(`[name="titulares[${idx}][cargo]"]`, titularData.cargo || '');
+        setVal(`[name="titulares[${idx}][coparticipacao]"]`, titularData.coparticipacao || '');
         setVal(`[name="titulares[${idx}][plano_anterior]"]`, titularData.plano_anterior || 'NAO');
         setVal(`[name="titulares[${idx}][operadora_anterior_id]"]`, titularData.operadora_anterior_id || '');
 
@@ -641,10 +714,10 @@
             }
         }
 
-        // Show operadora anterior if plano_anterior = SIM
+        // Show operadora anterior row if plano_anterior = SIM
         if (titularData.plano_anterior === 'SIM') {
-            const opAnteriorField = newBlock.querySelector('.field-op-anterior-titular');
-            if (opAnteriorField) opAnteriorField.style.display = 'block';
+            const opAnteriorRow = newBlock.querySelector('.field-row-op-anterior');
+            if (opAnteriorRow) opAnteriorRow.style.display = 'flex';
         }
 
         // Apply masks

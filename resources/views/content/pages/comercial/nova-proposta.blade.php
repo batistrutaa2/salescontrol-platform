@@ -293,11 +293,18 @@ $isFooter = false;
                 </select>
             </div>
             <div class="field-row">
+                <select name="titulares[__INDEX__][coparticipacao]" class="np-input select-coparticipacao-titular" required>
+                    <option value="">Coparticipacao...</option>
+                    <option value="Y">Sim</option>
+                    <option value="N">Nao</option>
+                </select>
                 <select name="titulares[__INDEX__][plano_anterior]" class="np-input select-plano-anterior-titular">
                     <option value="NAO">Plano anterior: Nao</option>
                     <option value="SIM">Plano anterior: Sim</option>
                 </select>
-                <select name="titulares[__INDEX__][operadora_anterior_id]" class="np-input field-op-anterior-titular" style="display:none;">
+            </div>
+            <div class="field-row field-row-op-anterior" style="display:none;">
+                <select name="titulares[__INDEX__][operadora_anterior_id]" class="np-input field-op-anterior-titular">
                     <option value="">Operadora anterior...</option>
                     @foreach ($operadoras as $op)
                         <option value="{{ $op->id }}">{{ strtoupper($op->nome) }}</option>

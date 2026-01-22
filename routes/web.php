@@ -191,6 +191,11 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/backoffice/titulares', [Backoffice::class, 'storeTitular'])->name('backoffice.titulares.store');
   Route::put('/backoffice/titulares-pme/{id}', [Backoffice::class, 'updateTitularPME'])->name('backoffice.titulares.updatePME');
   Route::put('/backoffice/dependentes-pme/{id}', [Backoffice::class, 'updateDependentePME'])->name('backoffice.dependentes.updatePME');
+  Route::post('/backoffice/dependentes-pme', [Backoffice::class, 'storeDependentePME'])->name('backoffice.dependentes.storePME');
+  Route::delete('/backoffice/dependentes-pme/{id}', [Backoffice::class, 'destroyDependentePME'])->name('backoffice.dependentes.destroyPME');
+  Route::post('/backoffice/portabilidades-pme', [Backoffice::class, 'storePortabilidadePME'])->name('backoffice.portabilidades.storePME');
+  Route::put('/backoffice/portabilidades-pme/{id}', [Backoffice::class, 'updatePortabilidadePME'])->name('backoffice.portabilidades.updatePME');
+  Route::delete('/backoffice/portabilidades-pme/{id}', [Backoffice::class, 'destroyPortabilidadePME'])->name('backoffice.portabilidades.destroyPME');
   Route::get('/back-office/verificar-recebiveis/{vendaId}', [Backoffice::class, 'verificarRecebiveis'])->name('backoffice.verificarRecebiveis');
   Route::post('/back-office/gerar-recebivel/{vendaId}', [Backoffice::class, 'gerarRecebivelContrato'])->name('backoffice.gerarRecebivelContrato');
   Route::get('/back-office/relatorio-performance', [Backoffice::class, 'relatorioPerformance'])->name('backoffice.relatorioPerformance');

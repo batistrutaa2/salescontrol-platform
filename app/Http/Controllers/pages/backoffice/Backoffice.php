@@ -587,6 +587,8 @@ class Backoffice extends Controller
         'telefone1' => ['nullable', 'string', 'max:20'],
         'telefone2' => ['nullable', 'string', 'max:20'],
         'parentesco' => ['nullable', 'string', 'max:50'],
+        'plano_id' => ['nullable', 'integer', 'exists:planos,id'],
+        'coparticipacao' => ['nullable', Rule::in(['Y', 'N', 'PARCIAL', 'COMPLETA'])],
         'plano_anterior' => ['nullable', Rule::in(['SIM', 'NAO'])],
         'operadora_anterior_id' => ['nullable', 'integer', 'exists:operadoras,id'],
       ]);
@@ -608,6 +610,8 @@ class Backoffice extends Controller
           'telefone1' => Helpers::cleanSpecialCharacters($validated['telefone1'] ?? ''),
           'telefone2' => Helpers::cleanSpecialCharacters($validated['telefone2'] ?? ''),
           'parentesco' => $validated['parentesco'] ?? null,
+          'plano_id' => !empty($validated['plano_id']) ? (int) $validated['plano_id'] : null,
+          'coparticipacao' => $validated['coparticipacao'] ?? null,
           'plano_anterior' => $validated['plano_anterior'] ?? 'NAO',
           'operadora_anterior_id' => !empty($validated['operadora_anterior_id']) ? (int) $validated['operadora_anterior_id'] : null,
         ]);
@@ -627,6 +631,289 @@ class Backoffice extends Controller
       return response()->json([
         'success' => false,
         'message' => 'Falha ao atualizar dependente: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Adiciona um dependente no layout PME
+   */
+  public function storeDependentePME(Request $request)
+  {
+    try {
+      $validated = $request->validate([
+        'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+        'titular_id' => ['required', 'integer', 'exists:vendas_titulares,id'],
+        'nome' => ['required', 'string', 'max:100'],
+        'cpf' => ['nullable', 'string', 'max:20'],
+        'data_nascimento' => ['nullable', 'string', 'max:10'],
+        'email' => ['nullable', 'email', 'max:100'],
+        'telefone1' => ['nullable', 'string', 'max:20'],
+        'telefone2' => ['nullable', 'string', 'max:20'],
+        'parentesco' => ['nullable', 'string', 'max:50'],
+        'plano_id' => ['nullable', 'integer', 'exists:planos,id'],
+        'coparticipacao' => ['nullable', Rule::in(['Y', 'N', 'PARCIAL', 'COMPLETA'])],
+        'plano_anterior' => ['nullable', Rule::in(['SIM', 'NAO'])],
+        'operadora_anterior_id' => ['nullable', 'integer', 'exists:operadoras,id'],
+      ]);
+
+      $venda = Vendas::findOrFail((int) $validated['venda_id']);
+
+      if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Acesso negado para esta venda.'
+        ], 403);
+      }
+
+      $titular = VendaTitular::findOrFail((int) $validated['titular_id']);
+      if ($titular->venda_id !== $venda->id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Titular nao pertence a esta venda.'
+        ], 400);
+      }
+
+      $dependente = DB::transaction(function () use ($venda, $titular, $validated) {
+        $dataNascimento = null;
+        if (!empty($validated['data_nascimento'])) {
+          $partes = explode('/', $validated['data_nascimento']);
+          if (count($partes) === 3) {
+            $dataNascimento = "{$partes[2]}-{$partes[1]}-{$partes[0]}";
+          }
+        }
+
+        return VendaDependente::create([
+          'venda_id' => $venda->id,
+          'titular_id' => $titular->id,
+          'nome' => mb_strtoupper(trim($validated['nome']), 'UTF-8'),
+          'cpf' => Helpers::cleanSpecialCharacters($validated['cpf'] ?? ''),
+          'data_nascimento' => $dataNascimento,
+          'email' => $validated['email'] ?? null,
+          'telefone1' => Helpers::cleanSpecialCharacters($validated['telefone1'] ?? ''),
+          'telefone2' => Helpers::cleanSpecialCharacters($validated['telefone2'] ?? ''),
+          'parentesco' => $validated['parentesco'] ?? null,
+          'plano_id' => !empty($validated['plano_id']) ? (int) $validated['plano_id'] : null,
+          'coparticipacao' => $validated['coparticipacao'] ?? null,
+          'plano_anterior' => $validated['plano_anterior'] ?? 'NAO',
+          'operadora_anterior_id' => !empty($validated['operadora_anterior_id']) ? (int) $validated['operadora_anterior_id'] : null,
+        ]);
+      });
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Dependente adicionado com sucesso.',
+        'dependente' => $dependente
+      ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validacao.',
+        'errors' => $e->errors()
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Falha ao adicionar dependente: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Remove um dependente no layout PME
+   */
+  public function destroyDependentePME(int $id)
+  {
+    try {
+      $dependente = VendaDependente::findOrFail($id);
+      $venda = Vendas::findOrFail($dependente->venda_id);
+
+      if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Acesso negado para esta venda.'
+        ], 403);
+      }
+
+      $dependente->delete();
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Dependente removido com sucesso.'
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Falha ao remover dependente: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Adiciona um beneficiário de portabilidade no layout PME
+   */
+  public function storePortabilidadePME(Request $request)
+  {
+    try {
+      $validated = $request->validate([
+        'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+        'nome' => ['required', 'string', 'max:100'],
+        'cpf' => ['nullable', 'string', 'max:20'],
+        'data_nascimento' => ['nullable', 'string', 'max:10'],
+        'operadora_anterior_id' => ['required', 'integer', 'exists:operadoras,id'],
+        'plano_anterior' => ['nullable', 'string', 'max:100'],
+        'numero_carteirinha' => ['nullable', 'string', 'max:50'],
+      ]);
+
+      $venda = Vendas::findOrFail((int) $validated['venda_id']);
+
+      if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Acesso negado para esta venda.'
+        ], 403);
+      }
+
+      $portabilidade = DB::transaction(function () use ($venda, $validated) {
+        $dataNascimento = null;
+        if (!empty($validated['data_nascimento'])) {
+          $partes = explode('/', $validated['data_nascimento']);
+          if (count($partes) === 3) {
+            $dataNascimento = "{$partes[2]}-{$partes[1]}-{$partes[0]}";
+          }
+        }
+
+        // Calcula o próximo sequencial
+        $maxSequencial = VendaPortabilidade::where('venda_id', $venda->id)->max('sequencial') ?? 0;
+
+        return VendaPortabilidade::create([
+          'venda_id' => $venda->id,
+          'nome' => mb_strtoupper(trim($validated['nome']), 'UTF-8'),
+          'cpf' => Helpers::cleanSpecialCharacters($validated['cpf'] ?? ''),
+          'data_nascimento' => $dataNascimento,
+          'operadora_anterior_id' => (int) $validated['operadora_anterior_id'],
+          'plano_anterior' => $validated['plano_anterior'] ?? null,
+          'numero_carteirinha' => $validated['numero_carteirinha'] ?? null,
+          'sequencial' => $maxSequencial + 1,
+        ]);
+      });
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Beneficiário adicionado com sucesso.',
+        'portabilidade' => $portabilidade
+      ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validação.',
+        'errors' => $e->errors()
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Falha ao adicionar beneficiário: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Atualiza um beneficiário de portabilidade no layout PME
+   */
+  public function updatePortabilidadePME(Request $request, int $id)
+  {
+    try {
+      $portabilidade = VendaPortabilidade::findOrFail($id);
+      $vendaId = (int) $request->input('venda_id');
+      $venda = Vendas::findOrFail($vendaId);
+
+      if ($portabilidade->venda_id !== $venda->id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Beneficiário não pertence a esta venda.'
+        ], 400);
+      }
+
+      if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Acesso negado para esta venda.'
+        ], 403);
+      }
+
+      $validated = $request->validate([
+        'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+        'nome' => ['required', 'string', 'max:100'],
+        'cpf' => ['nullable', 'string', 'max:20'],
+        'data_nascimento' => ['nullable', 'string', 'max:10'],
+        'operadora_anterior_id' => ['required', 'integer', 'exists:operadoras,id'],
+        'plano_anterior' => ['nullable', 'string', 'max:100'],
+        'numero_carteirinha' => ['nullable', 'string', 'max:50'],
+      ]);
+
+      DB::transaction(function () use ($portabilidade, $validated) {
+        $dataNascimento = null;
+        if (!empty($validated['data_nascimento'])) {
+          $partes = explode('/', $validated['data_nascimento']);
+          if (count($partes) === 3) {
+            $dataNascimento = "{$partes[2]}-{$partes[1]}-{$partes[0]}";
+          }
+        }
+
+        $portabilidade->update([
+          'nome' => mb_strtoupper(trim($validated['nome']), 'UTF-8'),
+          'cpf' => Helpers::cleanSpecialCharacters($validated['cpf'] ?? ''),
+          'data_nascimento' => $dataNascimento,
+          'operadora_anterior_id' => (int) $validated['operadora_anterior_id'],
+          'plano_anterior' => $validated['plano_anterior'] ?? null,
+          'numero_carteirinha' => $validated['numero_carteirinha'] ?? null,
+        ]);
+      });
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Beneficiário atualizado com sucesso.'
+      ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validação.',
+        'errors' => $e->errors()
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Falha ao atualizar beneficiário: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Remove um beneficiário de portabilidade no layout PME
+   */
+  public function destroyPortabilidadePME(int $id)
+  {
+    try {
+      $portabilidade = VendaPortabilidade::findOrFail($id);
+      $venda = Vendas::findOrFail($portabilidade->venda_id);
+
+      if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Acesso negado para esta venda.'
+        ], 403);
+      }
+
+      $portabilidade->delete();
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Beneficiário removido com sucesso.'
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Falha ao remover beneficiário: ' . $e->getMessage()
       ], 500);
     }
   }

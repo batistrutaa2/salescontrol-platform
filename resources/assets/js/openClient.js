@@ -508,47 +508,6 @@
     });
   }
 
-  // Modal de venda via SweetAlert (protegido + correção "success")
-  // Usa seletor POR NAME para evitar conflito com o id="label" duplicado no blade
-  const selectElement = document.querySelector('select[name="tabulacao_id"]');
-  let oldValue = selectElement ? selectElement.value : '';
-  if (selectElement) {
-    selectElement.addEventListener('focus', function () {
-      oldValue = selectElement.value;
-    });
-    selectElement.addEventListener('change', function (event) {
-      const selectedValue = event.target.value;
-      if (parseInt(selectedValue, 10) === 5 && typeof Swal !== 'undefined') {
-        Swal.fire({
-          title: '🎉 Parabéns Pela Venda.',
-          text: 'Agora é importante emitir o contrato com as informações pessoais do cliente.',
-          icon: 'success',
-          showCancelButton: true,
-          confirmButtonText: 'Sim, Cadastrar!',
-          customClass: {
-            confirmButton: 'btn btn-primary me-3 waves-effect waves-light',
-            cancelButton: 'btn btn-outline-secondary waves-effect'
-          },
-          buttonsStyling: false
-        }).then(function (result) {
-          if (result.value) showModalCadastroVenda();
-          else {
-            selectElement.value = oldValue;
-            selectElement.dispatchEvent(new Event('change'));
-          }
-        });
-      }
-    });
-  }
-  function showModalCadastroVenda() {
-    // Get contato_id from URL path (e.g., /comercial/abrir-cliente/{id})
-    const pathParts = window.location.pathname.split('/');
-    const contatoId = pathParts[pathParts.length - 1];
-    if (contatoId) {
-      window.location.href = `/comercial/cliente/${contatoId}/nova-proposta`;
-    }
-  }
-
   // =======================
   // === APÓLICE/TITULARES
   // =======================

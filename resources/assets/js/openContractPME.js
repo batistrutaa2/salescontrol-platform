@@ -330,7 +330,7 @@
         }
 
         // Edit titular button click
-        document.querySelectorAll('.btn-edit-titular').forEach(function (btn) {
+        document.querySelectorAll('.titular-card .btn-edit[data-titular-id]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 const titularId = this.dataset.titularId;
                 document.getElementById('edit_titular_id').value = titularId;
@@ -418,14 +418,53 @@
     }
 
     // ============================================
-    // Edit Dependente
+    // Add/Edit Dependente
     // ============================================
     function initEditDependente() {
+        const modalTitle = document.getElementById('modalDependenteTitle');
+
+        // Add dependente button click
+        document.querySelectorAll('.btn-add-dep').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const titularId = this.dataset.titularId;
+
+                // Clear form and set for add mode
+                document.getElementById('edit_dependente_id').value = '';
+                document.getElementById('edit_dependente_titular_id').value = titularId;
+                document.getElementById('edit_dependente_nome').value = '';
+                document.getElementById('edit_dependente_cpf').value = '';
+                document.getElementById('edit_dependente_data_nascimento').value = '';
+                document.getElementById('edit_dependente_email').value = '';
+                document.getElementById('edit_dependente_telefone1').value = '';
+                document.getElementById('edit_dependente_telefone2').value = '';
+                document.getElementById('edit_dependente_parentesco').value = '';
+                document.getElementById('edit_dependente_plano_id').value = '';
+                document.getElementById('edit_dependente_coparticipacao').value = '';
+                document.getElementById('edit_dependente_plano_anterior').value = 'NAO';
+                document.getElementById('edit_dependente_operadora_anterior_id').value = '';
+
+                // Hide operadora anterior field
+                const opAnteriorContainer = document.getElementById('edit_dependente_operadora_anterior_container');
+                if (opAnteriorContainer) {
+                    opAnteriorContainer.style.display = 'none';
+                }
+
+                // Update modal title
+                if (modalTitle) {
+                    modalTitle.textContent = 'Adicionar Dependente';
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('modalEditDependente'));
+                modal.show();
+            });
+        });
+
         // Edit dependente button click
-        document.querySelectorAll('.btn-edit-dependente').forEach(function (btn) {
+        document.querySelectorAll('.btn-edit-dep').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 const dependenteId = this.dataset.dependenteId;
                 document.getElementById('edit_dependente_id').value = dependenteId;
+                document.getElementById('edit_dependente_titular_id').value = '';
                 document.getElementById('edit_dependente_nome').value = this.dataset.nome || '';
                 document.getElementById('edit_dependente_cpf').value = this.dataset.cpf || '';
                 document.getElementById('edit_dependente_data_nascimento').value = this.dataset.dataNascimento || '';
@@ -433,6 +472,8 @@
                 document.getElementById('edit_dependente_telefone1').value = this.dataset.telefone1 || '';
                 document.getElementById('edit_dependente_telefone2').value = this.dataset.telefone2 || '';
                 document.getElementById('edit_dependente_parentesco').value = this.dataset.parentesco || '';
+                document.getElementById('edit_dependente_plano_id').value = this.dataset.planoId || '';
+                document.getElementById('edit_dependente_coparticipacao').value = this.dataset.coparticipacao || '';
                 document.getElementById('edit_dependente_plano_anterior').value = this.dataset.planoAnterior || 'NAO';
                 document.getElementById('edit_dependente_operadora_anterior_id').value = this.dataset.operadoraAnteriorId || '';
 
@@ -443,10 +484,57 @@
                     opAnteriorContainer.style.display = planoAnterior === 'SIM' ? 'block' : 'none';
                 }
 
+                // Update modal title
+                if (modalTitle) {
+                    modalTitle.textContent = 'Editar Dependente';
+                }
+
                 const modal = new bootstrap.Modal(document.getElementById('modalEditDependente'));
                 modal.show();
             });
         });
+
+        // Delete dependente button click
+        document.querySelectorAll('.btn-delete-dep').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const dependenteId = this.dataset.dependenteId;
+                const nome = this.dataset.nome || 'este dependente';
+
+                document.getElementById('delete_dependente_id').value = dependenteId;
+                document.getElementById('delete-dependente-nome').textContent = nome;
+
+                const modal = new bootstrap.Modal(document.getElementById('modalDeleteDependente'));
+                modal.show();
+            });
+        });
+
+        // Confirm delete dependente
+        const btnConfirmDeleteDependente = document.getElementById('btn-confirm-delete-dependente');
+        if (btnConfirmDeleteDependente) {
+            btnConfirmDeleteDependente.addEventListener('click', function () {
+                const dependenteId = document.getElementById('delete_dependente_id').value;
+
+                fetch(`/backoffice/dependentes-pme/${dependenteId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    }
+                })
+                    .then(res => res.json())
+                    .then(result => {
+                        bootstrap.Modal.getInstance(document.getElementById('modalDeleteDependente'))?.hide();
+                        if (result.success) {
+                            window.location.reload();
+                        } else {
+                            alert(result.message || 'Erro ao remover dependente');
+                        }
+                    })
+                    .catch(() => {
+                        alert('Erro ao remover dependente');
+                    });
+            });
+        }
 
         // Plano anterior change toggle
         const planoAnteriorSelect = document.getElementById('edit_dependente_plano_anterior');
@@ -459,13 +547,15 @@
             });
         }
 
-        // Form submit
+        // Form submit (add or edit)
         const formEditDependente = document.getElementById('form-edit-dependente');
         if (formEditDependente) {
             formEditDependente.addEventListener('submit', function (e) {
                 e.preventDefault();
 
                 const dependenteId = document.getElementById('edit_dependente_id').value;
+                const titularId = document.getElementById('edit_dependente_titular_id').value;
+                const isAddMode = !dependenteId && titularId;
 
                 const data = {
                     venda_id: vendaId,
@@ -476,12 +566,24 @@
                     telefone1: document.getElementById('edit_dependente_telefone1').value,
                     telefone2: document.getElementById('edit_dependente_telefone2').value,
                     parentesco: document.getElementById('edit_dependente_parentesco').value,
+                    plano_id: document.getElementById('edit_dependente_plano_id').value,
+                    coparticipacao: document.getElementById('edit_dependente_coparticipacao').value,
                     plano_anterior: document.getElementById('edit_dependente_plano_anterior').value,
                     operadora_anterior_id: document.getElementById('edit_dependente_operadora_anterior_id').value
                 };
 
-                fetch(`/backoffice/dependentes-pme/${dependenteId}`, {
-                    method: 'PUT',
+                let url, method;
+                if (isAddMode) {
+                    data.titular_id = titularId;
+                    url = '/backoffice/dependentes-pme';
+                    method = 'POST';
+                } else {
+                    url = `/backoffice/dependentes-pme/${dependenteId}`;
+                    method = 'PUT';
+                }
+
+                fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
@@ -495,11 +597,152 @@
                             // Reload page to show updated data
                             window.location.reload();
                         } else {
-                            alert(result.message || 'Erro ao atualizar dependente');
+                            alert(result.message || (isAddMode ? 'Erro ao adicionar dependente' : 'Erro ao atualizar dependente'));
                         }
                     })
                     .catch(() => {
-                        alert('Erro ao atualizar dependente');
+                        alert(isAddMode ? 'Erro ao adicionar dependente' : 'Erro ao atualizar dependente');
+                    });
+            });
+        }
+    }
+
+    // ============================================
+    // Add/Edit/Delete Portabilidade
+    // ============================================
+    function initEditPortabilidade() {
+        const modalTitle = document.getElementById('modalPortabilidadeTitle');
+
+        // Add portabilidade button click
+        document.querySelectorAll('.btn-add-port').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                // Clear form for add mode
+                document.getElementById('edit_port_id').value = '';
+                document.getElementById('edit_port_nome').value = '';
+                document.getElementById('edit_port_cpf').value = '';
+                document.getElementById('edit_port_data_nascimento').value = '';
+                document.getElementById('edit_port_operadora_anterior_id').value = '';
+                document.getElementById('edit_port_plano_anterior').value = '';
+                document.getElementById('edit_port_numero_carteirinha').value = '';
+
+                // Update modal title
+                if (modalTitle) {
+                    modalTitle.textContent = 'Adicionar Beneficiário';
+                }
+            });
+        });
+
+        // Edit portabilidade button click
+        document.querySelectorAll('.portabilidade-btn-edit').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const portId = this.dataset.portId;
+                document.getElementById('edit_port_id').value = portId;
+                document.getElementById('edit_port_nome').value = this.dataset.nome || '';
+                document.getElementById('edit_port_cpf').value = this.dataset.cpf || '';
+                document.getElementById('edit_port_data_nascimento').value = this.dataset.dataNascimento || '';
+                document.getElementById('edit_port_operadora_anterior_id').value = this.dataset.operadoraAnteriorId || '';
+                document.getElementById('edit_port_plano_anterior').value = this.dataset.planoAnterior || '';
+                document.getElementById('edit_port_numero_carteirinha').value = this.dataset.numeroCarteirinha || '';
+
+                // Update modal title
+                if (modalTitle) {
+                    modalTitle.textContent = 'Editar Beneficiário';
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('modalEditPortabilidade'));
+                modal.show();
+            });
+        });
+
+        // Delete portabilidade button click
+        document.querySelectorAll('.portabilidade-btn-delete').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const portId = this.dataset.portId;
+                const nome = this.dataset.nome || 'este beneficiário';
+
+                document.getElementById('delete_port_id').value = portId;
+                document.getElementById('delete-port-nome').textContent = nome;
+
+                const modal = new bootstrap.Modal(document.getElementById('modalDeletePortabilidade'));
+                modal.show();
+            });
+        });
+
+        // Confirm delete portabilidade
+        const btnConfirmDeletePort = document.getElementById('btn-confirm-delete-port');
+        if (btnConfirmDeletePort) {
+            btnConfirmDeletePort.addEventListener('click', function () {
+                const portId = document.getElementById('delete_port_id').value;
+
+                fetch(`/backoffice/portabilidades-pme/${portId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    }
+                })
+                    .then(res => res.json())
+                    .then(result => {
+                        bootstrap.Modal.getInstance(document.getElementById('modalDeletePortabilidade'))?.hide();
+                        if (result.success) {
+                            window.location.reload();
+                        } else {
+                            alert(result.message || 'Erro ao remover beneficiário');
+                        }
+                    })
+                    .catch(() => {
+                        alert('Erro ao remover beneficiário');
+                    });
+            });
+        }
+
+        // Form submit (add or edit)
+        const formEditPortabilidade = document.getElementById('form-edit-portabilidade');
+        if (formEditPortabilidade) {
+            formEditPortabilidade.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const portId = document.getElementById('edit_port_id').value;
+                const isAddMode = !portId;
+
+                const data = {
+                    venda_id: vendaId,
+                    nome: document.getElementById('edit_port_nome').value,
+                    cpf: document.getElementById('edit_port_cpf').value,
+                    data_nascimento: document.getElementById('edit_port_data_nascimento').value,
+                    operadora_anterior_id: document.getElementById('edit_port_operadora_anterior_id').value,
+                    plano_anterior: document.getElementById('edit_port_plano_anterior').value,
+                    numero_carteirinha: document.getElementById('edit_port_numero_carteirinha').value
+                };
+
+                let url, method;
+                if (isAddMode) {
+                    url = '/backoffice/portabilidades-pme';
+                    method = 'POST';
+                } else {
+                    url = `/backoffice/portabilidades-pme/${portId}`;
+                    method = 'PUT';
+                }
+
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            bootstrap.Modal.getInstance(document.getElementById('modalEditPortabilidade'))?.hide();
+                            window.location.reload();
+                        } else {
+                            alert(result.message || (isAddMode ? 'Erro ao adicionar beneficiário' : 'Erro ao atualizar beneficiário'));
+                        }
+                    })
+                    .catch(() => {
+                        alert(isAddMode ? 'Erro ao adicionar beneficiário' : 'Erro ao atualizar beneficiário');
                     });
             });
         }
@@ -512,6 +755,7 @@
         loadAcessos();
         initEditTitular();
         initEditDependente();
+        initEditPortabilidade();
     });
 
 })();
