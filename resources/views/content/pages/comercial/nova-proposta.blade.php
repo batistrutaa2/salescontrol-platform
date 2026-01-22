@@ -47,6 +47,10 @@ $isFooter = false;
                 <span class="client-name">{{ $client->nome_cliente }}</span>
                 <span class="client-contact">{{ $client->telefone1 }} @if($client->email)| {{ $client->email }}@endif</span>
             </div>
+            <button type="button" class="btn-docs-checklist" id="btn-open-docs-modal" title="Ver documentacao necessaria">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span>Documentos</span>
+            </button>
         </div>
         <div class="top-header-stats">
             <div class="stat-item">
@@ -77,6 +81,7 @@ $isFooter = false;
             {{-- COLUNA ESQUERDA --}}
             {{-- ============================================ --}}
             <div class="np-col-left">
+                <div class="np-col-left-scroll">
 
                 {{-- Dados da Empresa --}}
                 <div class="np-section">
@@ -217,13 +222,7 @@ $isFooter = false;
                     </div>
                 </div>
 
-                {{-- Botao Salvar --}}
-                <div class="np-actions">
-                    <button type="submit" class="np-btn np-btn-primary np-btn-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                        Salvar Proposta
-                    </button>
-                </div>
+                </div>{{-- Fim np-col-left-scroll --}}
             </div>
 
             {{-- ============================================ --}}
@@ -244,6 +243,16 @@ $isFooter = false;
             </div>
 
         </div>
+
+        {{-- Botao Flutuante Salvar --}}
+        <button type="submit" class="np-floating-save" title="Salvar Proposta">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            <span>Salvar</span>
+        </button>
     </form>
 
 </div>
@@ -375,10 +384,159 @@ $isFooter = false;
     </div>
 </template>
 
+{{-- Modal de Documentacao PME --}}
+<div class="docs-modal-overlay" id="docs-modal-overlay">
+    <div class="docs-modal docs-modal-wide">
+        <div class="docs-modal-header">
+            <div class="docs-modal-title">
+                <span class="docs-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                </span>
+                <div>
+                    <h3>Checklist de Documentacao PME</h3>
+                    <span>Documentos necessarios para emissao do plano</span>
+                </div>
+            </div>
+            <button type="button" class="docs-modal-close" id="btn-close-docs-modal">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <div class="docs-modal-body docs-two-columns">
+            {{-- COLUNA ESQUERDA - TITULAR --}}
+            <div class="docs-column">
+                <div class="docs-category docs-titular">
+                    <div class="category-header">
+                        <span class="category-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        </span>
+                        <span class="category-title">Titular / Socio</span>
+                    </div>
+
+                    <div class="docs-items-compact">
+                        <div class="doc-item-mini"><span class="check-icon"></span><span>RG ou CNH</span></div>
+                        <div class="doc-item-mini"><span class="check-icon"></span><span>CPF</span></div>
+                        <div class="doc-item-mini"><span class="check-icon"></span><span>Comprovante de Endereco</span><small>(luz, agua, telefone - 90 dias)</small></div>
+                        <div class="doc-item-mini">
+                            <span class="check-icon"></span>
+                            <span>Contrato Social</span>
+                            <a href="https://www.jucesponline.sp.gov.br/" target="_blank" class="mini-link">JUCESP (SP)</a>
+                        </div>
+                        <div class="doc-item-mini">
+                            <span class="check-icon"></span>
+                            <span>Cartao CNPJ</span>
+                            <a href="https://solucoes.receita.fazenda.gov.br/servicos/cnpjreva/cnpjreva_solicitacao.asp" target="_blank" class="mini-link">Receita Federal</a>
+                        </div>
+                    </div>
+
+                    <div class="docs-conditional-mini">
+                        <span class="cond-badge cond-warning">Se possui plano anterior</span>
+                        <div class="docs-items-compact">
+                            <div class="doc-item-mini"><span class="check-icon warning"></span><span>Carteirinha do Plano</span></div>
+                            <div class="doc-item-mini"><span class="check-icon warning"></span><span>Carta de Permanencia</span></div>
+                        </div>
+                        <div class="alert-box alert-danger">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <span><strong>Cuidado!</strong> Operadoras podem fazer retencao. Oriente o cliente a ser firme!</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- COLUNA DIREITA - DEPENDENTES --}}
+            <div class="docs-column">
+                <div class="docs-category docs-dependente">
+                    <div class="category-header">
+                        <span class="category-icon category-icon-dep">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        </span>
+                        <span class="category-title">Dependentes</span>
+                    </div>
+
+                    <div class="docs-items-compact">
+                        <div class="doc-item-mini"><span class="check-icon dep"></span><span>RG ou CNH</span></div>
+                        <div class="doc-item-mini"><span class="check-icon dep"></span><span>CPF</span></div>
+                    </div>
+
+                    <div class="docs-conditional-mini">
+                        <span class="cond-badge cond-warning">Se possui plano anterior</span>
+                        <div class="docs-items-compact">
+                            <div class="doc-item-mini"><span class="check-icon dep"></span><span>Carteirinha + Carta de Permanencia</span></div>
+                        </div>
+                    </div>
+
+                    <div class="docs-conditional-mini">
+                        <span class="cond-badge cond-purple">Filho menor sem RG</span>
+                        <div class="docs-items-compact">
+                            <div class="doc-item-mini"><span class="check-icon purple"></span><span>Certidao de Nascimento</span></div>
+                        </div>
+                    </div>
+
+                    <div class="docs-conditional-mini">
+                        <span class="cond-badge cond-green">Se for funcionario</span>
+                        <div class="docs-items-compact">
+                            <div class="doc-item-mini"><span class="check-icon green"></span><span>Guia FGTS ou E-Social</span><small>(comprovacao de vinculo)</small></div>
+                        </div>
+                    </div>
+
+                    <div class="docs-conditional-mini">
+                        <span class="cond-badge cond-pink">Se for conjuge</span>
+                        <div class="docs-items-compact">
+                            <div class="doc-item-mini"><span class="check-icon pink"></span><span>Avaliado pelo sobrenome de ambos</span></div>
+                        </div>
+                        <div class="alert-box alert-pink">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            <span>Se nao tiver mesmo sobrenome: <strong>Carta de Uniao Estavel com firma reconhecida em cartorio</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- Dados old para JavaScript --}}
 <script>
     window.oldTitulares = @json(old('titulares', []));
     window.oldOperadoraId = @json(old('operadora_id'));
+
+    // Modal de documentacao
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnOpen = document.getElementById('btn-open-docs-modal');
+        const btnClose = document.getElementById('btn-close-docs-modal');
+        const overlay = document.getElementById('docs-modal-overlay');
+
+        if (btnOpen && overlay) {
+            btnOpen.addEventListener('click', function() {
+                overlay.classList.add('docs-modal-open');
+                document.body.style.overflow = 'hidden';
+            });
+        }
+
+        if (btnClose && overlay) {
+            btnClose.addEventListener('click', function() {
+                overlay.classList.remove('docs-modal-open');
+                document.body.style.overflow = '';
+            });
+        }
+
+        if (overlay) {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) {
+                    overlay.classList.remove('docs-modal-open');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        // Fechar com ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && overlay && overlay.classList.contains('docs-modal-open')) {
+                overlay.classList.remove('docs-modal-open');
+                document.body.style.overflow = '';
+            }
+        });
+    });
 
     // Mostrar erros via toastr
     document.addEventListener('DOMContentLoaded', function() {

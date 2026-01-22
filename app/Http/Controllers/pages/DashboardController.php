@@ -57,7 +57,7 @@ class DashboardController extends Controller
                 Tabulations::ANALISE_DOCUMENTOS,
                 Tabulations::AGUARD_ASSINATURA_DS,
             ])
-            ->sum('a.valor_contrato');
+            ->sum(DB::raw("CASE WHEN YEAR(a.created_at) >= 2026 THEN a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END ELSE a.valor_contrato END"));
 
         $salesImplanted = DB::table('vendas as a')
             ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
@@ -66,7 +66,7 @@ class DashboardController extends Controller
             ->where('c.tabulacao_id', Tabulations::IMPLANTADO)
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
-            ->sum('a.valor_contrato');
+            ->sum(DB::raw("CASE WHEN YEAR(a.created_at) >= 2026 THEN a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END ELSE a.valor_contrato END"));
 
         $leadsStatus = DB::table('contatos_corretores as cc')
             ->select('t.descricao as tabulacao', DB::raw('count(*) as total'))
@@ -78,7 +78,10 @@ class DashboardController extends Controller
             ->get();
 
         $monthlyOverview = DB::table('vendas as a')
-            ->select(DB::raw('MONTH(a.created_at) as month'), DB::raw('SUM(a.valor_contrato) as total'))
+            ->select(
+                DB::raw('MONTH(a.created_at) as month'),
+                DB::raw("SUM(CASE WHEN YEAR(a.created_at) >= 2026 THEN a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END ELSE a.valor_contrato END) as total")
+            )
             ->where('a.user_id', $user->id)
             ->where('a.empresa_id', $empresaId)
             ->whereYear('a.created_at', $year)

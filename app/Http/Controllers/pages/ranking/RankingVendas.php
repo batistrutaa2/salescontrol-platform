@@ -74,7 +74,7 @@ class RankingVendas extends Controller
         // 📊 Cálculo baseado no tipo da meta
         if ($meta->tipo_calculo === 'VALOR') {
             $vendedores = $query
-                ->select('users.id', 'users.name as nome', DB::raw('SUM(vendas.valor_contrato) as total'))
+                ->select('users.id', 'users.name as nome', DB::raw("SUM(CASE WHEN YEAR(vendas.created_at) >= 2026 THEN vendas.valor_contrato + CASE WHEN vendas.angariacao_status = 'SIM' THEN COALESCE(vendas.angariacao_valor, 0) ELSE 0 END ELSE vendas.valor_contrato END) as total"))
                 ->groupBy('users.id', 'users.name')
                 ->orderByDesc('total')
                 ->get();
@@ -113,7 +113,7 @@ class RankingVendas extends Controller
         $rows = DB::table('vendas as v')
             ->join('users as u', 'u.id', '=', 'v.user_id')
             ->join('contatos_corretores', 'contatos_corretores.contato_id', '=', 'v.contato_id')
-            ->selectRaw('v.user_id, u.name as vendedor, COALESCE(SUM(v.valor_contrato),0) as total')
+            ->selectRaw("v.user_id, u.name as vendedor, COALESCE(SUM(CASE WHEN YEAR(v.created_at) >= 2026 THEN v.valor_contrato + CASE WHEN v.angariacao_status = 'SIM' THEN COALESCE(v.angariacao_valor, 0) ELSE 0 END ELSE v.valor_contrato END),0) as total")
             ->where('v.empresa_id', auth()->user()->empresa_id)
             ->when($request->integer('empresa_id'), fn($q, $v) => $q->where('v.empresa_id', $v))
             ->whereBetween('v.created_at', [$start, $end])

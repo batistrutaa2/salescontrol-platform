@@ -583,7 +583,7 @@ class VendasRepository implements VendasRepositoryInterface
   public function quantidadeVendasCadastradasPorVendedor($month, $year, $empresa_id)
   {
     return DB::table('vendas as a')
-      ->select('b.name', DB::raw('SUM(a.valor_contrato) as total_vendas'))
+      ->select('b.name', DB::raw("SUM(CASE WHEN YEAR(a.created_at) >= 2026 THEN a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END ELSE a.valor_contrato END) as total_vendas"))
       ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
       ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
       ->leftJoin('tabulacoes as d', 'd.id', '=', 'c.tabulacao_id')
@@ -608,7 +608,7 @@ class VendasRepository implements VendasRepositoryInterface
   public function quantidadeVendasImplantadasVendedor($month, $year, $empresa_id)
   {
     return DB::table('vendas as a')
-      ->select('b.name', DB::raw('SUM(a.valor_contrato) as total_vendas'))
+      ->select('b.name', DB::raw("SUM(CASE WHEN YEAR(a.created_at) >= 2026 THEN a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END ELSE a.valor_contrato END) as total_vendas"))
       ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
       ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
       ->whereYear('a.created_at', $year)

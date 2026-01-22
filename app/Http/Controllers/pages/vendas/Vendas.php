@@ -245,7 +245,7 @@ class Vendas extends Controller
             DB::raw('MONTH(created_at) as mes'),
             DB::raw('YEAR(created_at) as ano'),
             DB::raw('COUNT(*) as total_vendas'),
-            DB::raw('SUM(valor_contrato) as valor_total'),
+            DB::raw("SUM(CASE WHEN YEAR(created_at) >= 2026 THEN valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END ELSE valor_contrato END) as valor_total"),
             DB::raw('SUM(vidas) as total_vidas')
         );
 
@@ -283,7 +283,7 @@ class Vendas extends Controller
         $query = VendasModel::select(
             'users.name as vendedor',
             DB::raw('COUNT(*) as total_vendas'),
-            DB::raw('SUM(valor_contrato) as valor_total'),
+            DB::raw("SUM(CASE WHEN YEAR(vendas.created_at) >= 2026 THEN vendas.valor_contrato + CASE WHEN vendas.angariacao_status = 'SIM' THEN COALESCE(vendas.angariacao_valor, 0) ELSE 0 END ELSE vendas.valor_contrato END) as valor_total"),
             DB::raw('SUM(vidas) as total_vidas')
         )->join('users', 'vendas.user_id', '=', 'users.id')
             ->where('users.empresa_id', $empresaId); // Filtro por empresa
@@ -317,7 +317,7 @@ class Vendas extends Controller
         $query = VendasModel::select(
             'operadora',
             DB::raw('COUNT(*) as total_vendas'),
-            DB::raw('SUM(valor_contrato) as valor_total'),
+            DB::raw("SUM(CASE WHEN YEAR(created_at) >= 2026 THEN valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END ELSE valor_contrato END) as valor_total"),
             DB::raw('SUM(vidas) as total_vidas')
         );
 
@@ -352,7 +352,7 @@ class Vendas extends Controller
         $query = VendasModel::select(
             'nome_plano',
             DB::raw('COUNT(*) as total_vendas'),
-            DB::raw('SUM(valor_contrato) as valor_total')
+            DB::raw("SUM(CASE WHEN YEAR(created_at) >= 2026 THEN valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END ELSE valor_contrato END) as valor_total")
         );
 
         // Aplicar filtro por empresa
@@ -393,7 +393,7 @@ class Vendas extends Controller
         $query = VendasModel::select(
             DB::raw("COALESCE(NULLIF(TRIM(contatos.entidade), ''), 'NÃO INFORMADO') as entidade"),
             DB::raw('COUNT(*) as total_vendas'),
-            DB::raw('SUM(vendas.valor_contrato) as valor_total'),
+            DB::raw("SUM(CASE WHEN YEAR(vendas.created_at) >= 2026 THEN vendas.valor_contrato + CASE WHEN vendas.angariacao_status = 'SIM' THEN COALESCE(vendas.angariacao_valor, 0) ELSE 0 END ELSE vendas.valor_contrato END) as valor_total"),
             DB::raw('SUM(vendas.vidas) as total_vidas')
         )
         ->join('contatos', 'vendas.contato_id', '=', 'contatos.id')
@@ -475,10 +475,16 @@ class Vendas extends Controller
             $q->where('tabulacao_id', Tabulations::IMPLANTADO);
         });
 
+        // Calcular valor total com regra temporal (angariacao apenas para 2026+)
+        $valorTotal = (clone $query)->selectRaw("SUM(CASE WHEN YEAR(created_at) >= 2026 THEN valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END ELSE valor_contrato END) as total")->value('total') ?? 0;
+
+        // Calcular valor implantado com regra temporal (angariacao apenas para 2026+)
+        $valorImplantado = (clone $queryImplantadas)->selectRaw("SUM(CASE WHEN YEAR(created_at) >= 2026 THEN valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END ELSE valor_contrato END) as total")->value('total') ?? 0;
+
         return [
             'total_contratos' => $query->count(),
-            'valor_total' => $query->sum('valor_contrato') ?? 0,
-            'valor_implantado' => $queryImplantadas->sum('valor_contrato') ?? 0,
+            'valor_total' => $valorTotal,
+            'valor_implantado' => $valorImplantado,
             'total_vidas' => $query->sum('vidas') ?? 0,
             'ticket_medio' => $query->avg('valor_contrato') ?? 0,
             'vidas_por_contrato' => $query->avg('vidas') ?? 0
