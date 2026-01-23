@@ -37,6 +37,8 @@ class Vendas extends Model
     'motivo_pendencia',
     'comissao_paga',
     'data_pagamento_comissao',
+    'angariacao_paga',
+    'data_pagamento_angariacao',
     'comissao_estornada',
     'data_estorno_comissao',
     'created_at',
@@ -62,6 +64,10 @@ class Vendas extends Model
     'boas_vindas_enviado_em' => 'datetime',
     'operadora_id' => 'integer',
     'qtd_portabilidade' => 'integer',
+    'comissao_paga' => 'boolean',
+    'angariacao_paga' => 'boolean',
+    'data_pagamento_comissao' => 'datetime',
+    'data_pagamento_angariacao' => 'datetime',
   ];
 
   public function titulares()

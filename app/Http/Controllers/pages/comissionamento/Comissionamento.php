@@ -178,6 +178,7 @@ class Comissionamento extends Controller
         $vendedorId = $request->input('vendedor_id');
 
         // ========== BASE DE VENDAS ==========
+        // Filtra vendas que têm algo pendente: comissão OU angariação não paga
         $rows = DB::table('vendas as v')
             ->join('users as u', 'u.id', '=', 'v.user_id')
             ->join('comissionamento_configuracao as cfg', function ($j) use ($empresaId) {
@@ -187,7 +188,14 @@ class Comissionamento extends Controller
             ->where('v.empresa_id', $empresaId)
             ->whereBetween('v.data_implantacao', [$inicio, $fim])
             ->whereNotNull('v.data_implantacao')
-            ->where('v.comissao_paga', 0)
+            // Vendas que têm algo pendente (comissão OU angariação)
+            ->where(function($q) {
+                $q->where('v.comissao_paga', 0)  // Comissão pendente
+                  ->orWhere(function($q2) {
+                      $q2->whereRaw("UPPER(v.angariacao_status) = 'SIM'")
+                         ->where('v.angariacao_paga', 0);  // Angariação pendente
+                  });
+            })
             ->when($vendedorId, fn($q) => $q->where('v.user_id', $vendedorId))
             ->select([
                 'v.id',
@@ -203,6 +211,8 @@ class Comissionamento extends Controller
                 'cfg.imposto',
                 'cfg.salario',
                 'cfg.percentual',
+                'v.comissao_paga',
+                'v.angariacao_paga',
             ])
             ->orderBy('u.name')
             ->orderBy('v.data_implantacao')
@@ -219,50 +229,79 @@ class Comissionamento extends Controller
             $impostoCfg = (float) $r->imposto;
             $angVal     = (float) $r->angariacao_valor;
             $percentualAngariacao = $r->grade == 'junior' ? 10.0 : 50.0;
+            $isAng      = strtoupper((string) $r->angariacao_status) === 'SIM';
 
-            // Regra angariação
-            $isAng           = strtoupper((string) $r->angariacao_status) === 'SIM';
-            $baseAplicada    = $isAng ? $angVal : $valor;
-            $percentualAplic = $isAng ? $percentualAngariacao : (float) $r->percentual;
-            $impostoAplic    = $isAng ? 0.0  : $impostoCfg;
+            // Inicializa vendedor se não existir
+            if (!isset($porVendedor[$r->user_id])) {
+                $porVendedor[$r->user_id] = [
+                    'user_id'   => $r->user_id,
+                    'vendedor'  => $r->vendedor,
+                    'percentual'=> (float) $r->percentual,
+                    'totais'    => ['qtd' => 0, 'contratos' => 0.0, 'comissao' => 0.0],
+                    'contratos' => [],
+                ];
+            }
 
-            if ($percentualAplic > 0) {
-                $valorComissaoBruta  = round($baseAplicada * ($percentualAplic / 100.0), 2);
-                $valorComissaoLiquida= round($valorComissaoBruta * (1.0 - ($impostoAplic / 100.0)), 2);
-
-                if (!isset($porVendedor[$r->user_id])) {
-                    $porVendedor[$r->user_id] = [
-                        'user_id'   => $r->user_id,
-                        'vendedor'  => $r->vendedor,
-                        'percentual'=> (float) $r->percentual,
-                        'totais'    => ['qtd' => 0, 'contratos' => 0.0, 'comissao' => 0.0],
-                        'contratos' => [],
-                    ];
-                }
+            // ITEM 1: COMISSÃO (se ainda não pago)
+            if (!$r->comissao_paga) {
+                $comissaoBruta = round($valor * ((float) $r->percentual / 100.0), 2);
+                $comissaoLiquida = round($comissaoBruta * (1.0 - ($impostoCfg / 100.0)), 2);
 
                 $porVendedor[$r->user_id]['contratos'][] = [
                     'id'                     => $r->id,
-                    'is_ajuste'              => false, // CONTRATO
+                    'tipo_item'              => 'COMISSAO',
+                    'is_ajuste'              => false,
                     'nome_contrato'          => $r->nome_contrato,
                     'operadora'              => $r->operadora ?? '-',
                     'valor_contrato'         => round($valor, 2),
-                    'valor_base'             => round($baseAplicada, 2),
-                    'percentual_aplicado'    => round($percentualAplic, 2),
-                    'imposto_aplicado'       => round($impostoAplic, 2),
-                    'valor_comissao_bruta'   => round($valorComissaoBruta, 2),
-                    'valor_comissao'         => round($valorComissaoLiquida, 2),
+                    'valor_base'             => round($valor, 2),
+                    'percentual_aplicado'    => round((float) $r->percentual, 2),
+                    'imposto_aplicado'       => round($impostoCfg, 2),
+                    'valor_comissao_bruta'   => $comissaoBruta,
+                    'valor_comissao'         => $comissaoLiquida,
                     'data_implantacao'       => Carbon::parse($r->data_implantacao)->format('d/m/Y'),
-                    'angariacao_valor'       => round($angVal, 2),
-                    'angariacao_status'      => $r->angariacao_status,
+                    'angariacao_valor'       => 0,
+                    'angariacao_status'      => 'NAO',
                 ];
 
-                $porVendedor[$r->user_id]['totais']['qtd']         += 1;
-                $porVendedor[$r->user_id]['totais']['contratos']   += $baseAplicada;
-                $porVendedor[$r->user_id]['totais']['comissao']    += $valorComissaoLiquida;
+                $porVendedor[$r->user_id]['totais']['qtd']       += 1;
+                $porVendedor[$r->user_id]['totais']['contratos'] += $valor;
+                $porVendedor[$r->user_id]['totais']['comissao']  += $comissaoLiquida;
 
-                $kpiContratos       += 1;
-                $kpiTotalContratos  += $baseAplicada;
-                $kpiTotalComissao   += $valorComissaoLiquida;
+                $kpiContratos      += 1;
+                $kpiTotalContratos += $valor;
+                $kpiTotalComissao  += $comissaoLiquida;
+            }
+
+            // ITEM 2: ANGARIAÇÃO (se tem angariação E ainda não pago)
+            if ($isAng && !$r->angariacao_paga) {
+                $angBruta = round($angVal * ($percentualAngariacao / 100.0), 2);
+                $angLiquida = $angBruta; // Sem imposto
+
+                $porVendedor[$r->user_id]['contratos'][] = [
+                    'id'                     => $r->id,
+                    'tipo_item'              => 'ANGARIACAO',
+                    'is_ajuste'              => false,
+                    'nome_contrato'          => $r->nome_contrato . ' (Angariação)',
+                    'operadora'              => $r->operadora ?? '-',
+                    'valor_contrato'         => round($angVal, 2),
+                    'valor_base'             => round($angVal, 2),
+                    'percentual_aplicado'    => round($percentualAngariacao, 2),
+                    'imposto_aplicado'       => 0,
+                    'valor_comissao_bruta'   => $angBruta,
+                    'valor_comissao'         => $angLiquida,
+                    'data_implantacao'       => Carbon::parse($r->data_implantacao)->format('d/m/Y'),
+                    'angariacao_valor'       => round($angVal, 2),
+                    'angariacao_status'      => 'SIM',
+                ];
+
+                $porVendedor[$r->user_id]['totais']['qtd']       += 1;
+                $porVendedor[$r->user_id]['totais']['contratos'] += $angVal;
+                $porVendedor[$r->user_id]['totais']['comissao']  += $angLiquida;
+
+                $kpiContratos      += 1;
+                $kpiTotalContratos += $angVal;
+                $kpiTotalComissao  += $angLiquida;
             }
         }
 
@@ -674,6 +713,11 @@ class Comissionamento extends Controller
             'mes'             => ['nullable', 'regex:/^\d{4}\-\d{2}$/'],
             'vendedor_id'     => ['required', 'integer', 'exists:users,id'],
             'data_pagamento'  => ['required', 'date'],
+            // NOVO: Recebe objetos com venda_id + tipo_item
+            'itens'           => ['array'],
+            'itens.*.venda_id'=> ['required', 'integer'],
+            'itens.*.tipo_item' => ['required', 'in:COMISSAO,ANGARIACAO'],
+            // Mantém retrocompatibilidade com venda_ids (será convertido para itens)
             'venda_ids'       => ['array'],
             'venda_ids.*'     => ['integer'],
             'ajuste_ids'      => ['array'],
@@ -686,13 +730,25 @@ class Comissionamento extends Controller
         $mes         = $request->input('mes'); // Mantido para compatibilidade com o registro
         $dataPagto   = Carbon::parse($request->input('data_pagamento'))->toDateString();
 
-        $vendaIds  = array_map('intval', $request->input('venda_ids', []));
+        // Processa itens: novo formato (itens) ou retrocompatível (venda_ids)
+        $itens = collect($request->input('itens', []));
+        if ($itens->isEmpty() && $request->has('venda_ids')) {
+            // Retrocompatibilidade: converte venda_ids para formato de itens (assume COMISSAO)
+            $itens = collect($request->input('venda_ids', []))->map(fn($id) => [
+                'venda_id' => (int) $id,
+                'tipo_item' => 'COMISSAO'
+            ]);
+        }
+
+        // Separa itens por tipo
+        $comissaoIds = $itens->where('tipo_item', 'COMISSAO')->pluck('venda_id')->map('intval')->toArray();
+        $angariacaoIds = $itens->where('tipo_item', 'ANGARIACAO')->pluck('venda_id')->map('intval')->toArray();
         $ajusteIds = array_map('intval', $request->input('ajuste_ids', []));
 
-        /* ================== VENDAS ================== */
-        $rows = collect();
-        if (!empty($vendaIds)) {
-            $rows = DB::table('vendas as v')
+        /* ================== VENDAS - COMISSÃO ================== */
+        $rowsComissao = collect();
+        if (!empty($comissaoIds)) {
+            $rowsComissao = DB::table('vendas as v')
                 ->join('users as u', 'u.id', '=', 'v.user_id')
                 ->join('comissionamento_configuracao as cfg', function ($j) use ($empresaId) {
                     $j->on('cfg.user_id', '=', 'v.user_id')->where('cfg.empresa_id', '=', $empresaId);
@@ -701,7 +757,7 @@ class Comissionamento extends Controller
                 ->where('v.user_id', $vendedorId)
                 ->whereNotNull('v.data_implantacao')
                 ->where('v.comissao_paga', 0)
-                ->whereIn('v.id', $vendaIds)
+                ->whereIn('v.id', $comissaoIds)
                 ->select([
                     'v.id',
                     'v.user_id',
@@ -718,21 +774,47 @@ class Comissionamento extends Controller
                 ->get();
         }
 
-        $enriched = $rows->map(function ($r) {
-            $isAng = strtoupper((string) $r->angariacao_status) === 'SIM';
-            $percentualAngariacao = $r->grade == 'junior' ? 10.0 : 50.0;
+        /* ================== VENDAS - ANGARIAÇÃO ================== */
+        $rowsAngariacao = collect();
+        if (!empty($angariacaoIds)) {
+            $rowsAngariacao = DB::table('vendas as v')
+                ->join('users as u', 'u.id', '=', 'v.user_id')
+                ->join('comissionamento_configuracao as cfg', function ($j) use ($empresaId) {
+                    $j->on('cfg.user_id', '=', 'v.user_id')->where('cfg.empresa_id', '=', $empresaId);
+                })
+                ->where('v.empresa_id', $empresaId)
+                ->where('v.user_id', $vendedorId)
+                ->whereNotNull('v.data_implantacao')
+                ->whereRaw("UPPER(v.angariacao_status) = 'SIM'")
+                ->where('v.angariacao_paga', 0)
+                ->whereIn('v.id', $angariacaoIds)
+                ->select([
+                    'v.id',
+                    'v.user_id',
+                    'u.name as vendedor',
+                    DB::raw('COALESCE(v.valor_contrato,0) as valor_contrato'),
+                    'v.data_implantacao',
+                    DB::raw('LOWER(cfg.grade) as grade'),
+                    'cfg.imposto',
+                    'cfg.percentual',
+                    'v.angariacao_status',
+                    DB::raw('COALESCE(v.angariacao_valor,0) as angariacao_valor'),
+                ])
+                ->orderBy('v.data_implantacao')
+                ->get();
+        }
 
-            // Base e % de comissão conforme regra
-            $base = $isAng ? (float) $r->angariacao_valor : (float) $r->valor_contrato;
-            $perc = $isAng ? $percentualAngariacao : (isset($r->percentual) ? (float) $r->percentual : 0.0);
-
-            // imposto: se angariação, é 0%
-            $impP = $isAng ? 0.0 : (isset($r->imposto) ? (float) $r->imposto : 10.0);
+        // Enriquece itens de COMISSÃO
+        $enrichedComissao = $rowsComissao->map(function ($r) {
+            $base    = (float) $r->valor_contrato;
+            $perc    = isset($r->percentual) ? (float) $r->percentual : 0.0;
+            $impP    = isset($r->imposto) ? (float) $r->imposto : 10.0;
 
             $bruto   = round($base * ($perc / 100), 2);
-            $impVal  = $isAng ? 0.0 : round($bruto * ($impP / 100), 2);
+            $impVal  = round($bruto * ($impP / 100), 2);
             $liquido = round($bruto - $impVal, 2);
 
+            $r->tipo_lancamento      = 'COMISSAO';
             $r->percentual           = $perc;
             $r->imposto_perc         = $impP;
             $r->bruto                = $bruto;
@@ -742,6 +824,31 @@ class Comissionamento extends Controller
 
             return $r;
         });
+
+        // Enriquece itens de ANGARIAÇÃO
+        $enrichedAngariacao = $rowsAngariacao->map(function ($r) {
+            $percentualAngariacao = $r->grade == 'junior' ? 10.0 : 50.0;
+            $base    = (float) $r->angariacao_valor;
+            $perc    = $percentualAngariacao;
+            $impP    = 0.0; // Sem imposto para angariação
+
+            $bruto   = round($base * ($perc / 100), 2);
+            $impVal  = 0.0;
+            $liquido = $bruto;
+
+            $r->tipo_lancamento      = 'ANGARIACAO';
+            $r->percentual           = $perc;
+            $r->imposto_perc         = $impP;
+            $r->bruto                = $bruto;
+            $r->imposto_valor        = $impVal;
+            $r->liquido              = $liquido;
+            $r->valor_base_para_item = $base;
+
+            return $r;
+        });
+
+        // Combina ambos para cálculo de totais
+        $enriched = $enrichedComissao->merge($enrichedAngariacao);
 
         /* ================== AJUSTES ================== */
         $ajustes = collect();
@@ -787,29 +894,44 @@ class Comissionamento extends Controller
         ];
 
         // Snapshot de perfil (para header): se não houver vendas, usa 0
-        $cfg      = $rows->first();
+        $cfg      = $rowsComissao->first() ?? $rowsAngariacao->first();
         $salario  = 0.0; // <<< SALÁRIO FORA DO CÁLCULO
         $percCom  = (float) ($cfg->percentual ?? 0);
         $percImp  = (float) ($cfg->imposto ?? 10);
         $totalRec = round($totais['liquido'], 2); // <<< TOTAL A RECEBER = APENAS LÍQUIDO
 
-        $vendedor = $rows->first()->vendedor ?? DB::table('users')->where('id', $vendedorId)->value('name') ?? 'Vendedor';
+        $vendedor = ($rowsComissao->first()->vendedor ?? $rowsAngariacao->first()->vendedor ?? null)
+            ?? DB::table('users')->where('id', $vendedorId)->value('name')
+            ?? 'Vendedor';
 
         /* ================== TRANSAÇÃO ================== */
         $pagamentoId = DB::transaction(function () use (
             $empresaId, $vendedorId, $adminUserId, $mes, $dataPagto,
-            $enriched, $ajustes, $totais, $salario, $totalRec, $percCom, $percImp
+            $enriched, $enrichedComissao, $enrichedAngariacao, $ajustes, $totais, $salario, $totalRec, $percCom, $percImp
         ) {
-            // Verifica se alguma venda já foi paga em outro pagamento
-            if ($enriched->isNotEmpty()) {
-                $vendasJaPagas = DB::table('vendas')
-                    ->whereIn('id', $enriched->pluck('id'))
+            // Verifica se alguma COMISSÃO já foi paga em outro pagamento
+            if ($enrichedComissao->isNotEmpty()) {
+                $comissoesJaPagas = DB::table('vendas')
+                    ->whereIn('id', $enrichedComissao->pluck('id'))
                     ->where('comissao_paga', 1)
                     ->pluck('id')
                     ->toArray();
 
-                if (!empty($vendasJaPagas)) {
-                    throw new \Exception("As vendas IDs [" . implode(', ', $vendasJaPagas) . "] já foram pagas em outro lançamento.");
+                if (!empty($comissoesJaPagas)) {
+                    throw new \Exception("As comissões das vendas IDs [" . implode(', ', $comissoesJaPagas) . "] já foram pagas em outro lançamento.");
+                }
+            }
+
+            // Verifica se alguma ANGARIAÇÃO já foi paga em outro pagamento
+            if ($enrichedAngariacao->isNotEmpty()) {
+                $angariacoesJaPagas = DB::table('vendas')
+                    ->whereIn('id', $enrichedAngariacao->pluck('id'))
+                    ->where('angariacao_paga', 1)
+                    ->pluck('id')
+                    ->toArray();
+
+                if (!empty($angariacoesJaPagas)) {
+                    throw new \Exception("As angariações das vendas IDs [" . implode(', ', $angariacoesJaPagas) . "] já foram pagas em outro lançamento.");
                 }
             }
 
@@ -844,12 +966,13 @@ class Comissionamento extends Controller
                 'updated_at'           => now(),
             ]);
 
-            // Itens de VENDAS
+            // Itens de VENDAS (COMISSÃO + ANGARIAÇÃO separados)
             if ($enriched->isNotEmpty()) {
                 foreach ($enriched as $r) {
-                    // Verifica se já existe item para esta venda
+                    // Verifica se já existe item para esta venda COM MESMO TIPO
                     $itemExistente = DB::table('comissao_pagamento_itens')
                         ->where('venda_id', $r->id)
+                        ->where('tipo_lancamento', $r->tipo_lancamento)
                         ->first();
 
                     $dados = [
@@ -857,7 +980,7 @@ class Comissionamento extends Controller
                         'venda_id'              => $r->id,
                         'ajuste_id'             => null,
                         'is_adicional'          => 0,
-                        'tipo_lancamento'       => 'OUTRO',
+                        'tipo_lancamento'       => $r->tipo_lancamento, // COMISSAO ou ANGARIACAO
                         'descricao'             => null,
                         'valor_contrato'        => $r->valor_base_para_item,
                         'percentual'            => $r->percentual,
@@ -880,14 +1003,27 @@ class Comissionamento extends Controller
                     }
                 }
 
-                // marca vendas como pagas
-                DB::table('vendas')
-                    ->whereIn('id', $enriched->pluck('id'))
-                    ->update([
-                        'comissao_paga'            => 1,
-                        'data_pagamento_comissao'  => now(),
-                        'updated_at'               => now(),
-                    ]);
+                // Marca COMISSÃO como paga
+                if ($enrichedComissao->isNotEmpty()) {
+                    DB::table('vendas')
+                        ->whereIn('id', $enrichedComissao->pluck('id'))
+                        ->update([
+                            'comissao_paga'            => 1,
+                            'data_pagamento_comissao'  => now(),
+                            'updated_at'               => now(),
+                        ]);
+                }
+
+                // Marca ANGARIAÇÃO como paga
+                if ($enrichedAngariacao->isNotEmpty()) {
+                    DB::table('vendas')
+                        ->whereIn('id', $enrichedAngariacao->pluck('id'))
+                        ->update([
+                            'angariacao_paga'            => 1,
+                            'data_pagamento_angariacao'  => now(),
+                            'updated_at'                 => now(),
+                        ]);
+                }
             }
 
             // Itens de AJUSTES
@@ -1021,10 +1157,12 @@ class Comissionamento extends Controller
                 ];
             }
 
-            // Venda
+            // Venda ou Angariação (baseado no tipo_lancamento do item)
+            $isAngariacao = strtoupper((string) $i->tipo_lancamento) === 'ANGARIACAO';
             return (object) [
                 'is_ajuste'         => false,
-                'tipo_label'        => (strtoupper((string) $i->angariacao_status) === 'SIM') ? 'Angariação' : 'Venda',
+                'tipo_label'        => $isAngariacao ? 'Angariação' : 'Venda',
+                'tipo_lancamento'   => $i->tipo_lancamento,
                 'tipo_categoria'    => null,
                 'descricao'         => null,
                 'data_implantacao'  => $i->data_implantacao,
@@ -1253,17 +1391,31 @@ class Comissionamento extends Controller
         }
 
         DB::transaction(function () use ($id) {
-            // 1. Busca os IDs das vendas relacionadas
-            $vendaIds = DB::table('comissao_pagamento_itens')
+            // 1. Busca os itens relacionados com seus tipos
+            $itens = DB::table('comissao_pagamento_itens')
                 ->where('comissao_pagamento_id', $id)
-                ->pluck('venda_id');
+                ->whereNotNull('venda_id')
+                ->select('venda_id', 'tipo_lancamento')
+                ->get();
 
-            // 2. Atualiza as vendas para remover a marcação de comissão paga
-            //    (volta para pendente de faturamento)
-            if ($vendaIds->isNotEmpty()) {
-                DB::table('vendas')->whereIn('id', $vendaIds)->update([
+            // Separa por tipo
+            $comissaoIds = $itens->where('tipo_lancamento', 'COMISSAO')->pluck('venda_id')->filter()->unique()->toArray();
+            $angariacaoIds = $itens->where('tipo_lancamento', 'ANGARIACAO')->pluck('venda_id')->filter()->unique()->toArray();
+
+            // 2. Atualiza as vendas para remover a marcação de COMISSÃO paga
+            if (!empty($comissaoIds)) {
+                DB::table('vendas')->whereIn('id', $comissaoIds)->update([
                     'comissao_paga' => 0,
                     'data_pagamento_comissao' => null,
+                    'updated_at' => now(),
+                ]);
+            }
+
+            // 3. Atualiza as vendas para remover a marcação de ANGARIAÇÃO paga
+            if (!empty($angariacaoIds)) {
+                DB::table('vendas')->whereIn('id', $angariacaoIds)->update([
+                    'angariacao_paga' => 0,
+                    'data_pagamento_angariacao' => null,
                     'updated_at' => now(),
                 ]);
             }

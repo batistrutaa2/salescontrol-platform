@@ -169,8 +169,8 @@
                 ${lista.map(it => {
                   const base     = Number(it.valor_base ?? it.valor_contrato ?? 0);
                   const pApplied = Number(it.percentual_aplicado ?? percPerfil);
-                  const isAng    = String(it.angariacao_status).toUpperCase() === 'SIM';
                   const isAjuste = !!it.is_ajuste;
+                  const tipoItem = it.tipo_item || 'COMISSAO'; // COMISSAO ou ANGARIACAO
 
                   // líquido com sinal: se negativo, mostra "- R$ ..." em vermelho
                   const liq = Number(it.valor_comissao || 0);
@@ -183,12 +183,12 @@
                     ? `Ref: ${it.mes_lancamento}`
                     : (isAjuste ? '-' : esc(it.data_implantacao));
 
-                  // última coluna (Origem): Ajuste Crédito/Débito, Angariação, ou "-"
+                  // última coluna (Origem): Ajuste, Comissão ou Angariação
                   let origemHtml = '-';
                   if (isAjuste) {
                     // tenta inferir pelo sinal do líquido
                     const isDeb = liq < 0;
-                    const cat   = (it.categoria || '').toString().toUpperCase(); // se vier do backend
+                    const cat   = (it.categoria || '').toString().toUpperCase();
 
                     // Adiciona informação de parcela se houver
                     const parcelaInfo = (it.parcelado && it.parcela_atual && it.parcelas_total)
@@ -198,8 +198,10 @@
                     origemHtml  = isDeb
                       ? `<span class="status-badge badge-danger">Ajuste (Debito${cat ? ' · '+cat : ''})${parcelaInfo}</span>`
                       : `<span class="status-badge badge-success">Ajuste (Credito${cat ? ' · '+cat : ''})${parcelaInfo}</span>`;
-                  } else if (isAng) {
-                    origemHtml = `<span class="status-badge badge-success">Angariacao</span>`;
+                  } else if (tipoItem === 'ANGARIACAO') {
+                    origemHtml = `<span class="status-badge badge-info">Angariacao</span>`;
+                  } else {
+                    origemHtml = `<span class="status-badge badge-primary">Comissao</span>`;
                   }
 
                   // Botão excluir (apenas para ajustes)
@@ -217,7 +219,7 @@
                     : `${esc(it.nome_contrato)} <small class="text-muted">(${esc(it.operadora || '-')})</small>`;
 
                   return `
-                    <tr data-id="${it.id}" data-vendedor="${v.user_id}" data-ajuste="${isAjuste ? '1' : '0'}">
+                    <tr data-id="${it.id}" data-vendedor="${v.user_id}" data-ajuste="${isAjuste ? '1' : '0'}" data-tipo="${tipoItem}">
                       <td><input type="checkbox" class="form-check-input js-select-row"></td>
                       <td class="fw-medium">${nomeContratoHtml}</td>
                       <td class="text-end">${brl(base)}</td>
@@ -290,15 +292,19 @@
           document.querySelectorAll(`tr[data-vendedor="${vend}"] .js-select-row:checked`)
         ).map(cb => cb.closest('tr'));
 
-        const vendaIds = selecionadosRows
+        // NOVO: Coleta itens com venda_id + tipo_item
+        const itens = selecionadosRows
           .filter(tr => tr.getAttribute('data-ajuste') !== '1')
-          .map(tr => Number(tr.getAttribute('data-id')));
+          .map(tr => ({
+            venda_id: Number(tr.getAttribute('data-id')),
+            tipo_item: tr.getAttribute('data-tipo') || 'COMISSAO'
+          }));
 
         const ajusteIds = selecionadosRows
           .filter(tr => tr.getAttribute('data-ajuste') === '1')
           .map(tr => Number(tr.getAttribute('data-id')));
 
-        if (!vendaIds.length && !ajusteIds.length) { toastr.info('Selecione ao menos um item (contrato ou ajuste).'); return; }
+        if (!itens.length && !ajusteIds.length) { toastr.info('Selecione ao menos um item (contrato ou ajuste).'); return; }
         if (!dataPagamento) { toastr.warning('Informe a data do pagamento da comissão.'); return; }
 
         try {
@@ -318,7 +324,7 @@
               mes,
               vendedor_id: Number(vend),
               data_pagamento: dataPagamento,
-              venda_ids: vendaIds,
+              itens: itens,  // NOVO: Array de { venda_id, tipo_item }
               ajuste_ids: ajusteIds
             })
           });
