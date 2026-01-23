@@ -48,8 +48,7 @@
     // ============================================
     if (typeof flatpickr !== 'undefined') {
         flatpickr('.flatpickr-date', {
-            dateFormat: 'd/m/Y',
-            locale: 'pt'
+            dateFormat: 'd/m/Y'
         });
     }
 
@@ -107,7 +106,6 @@
         if (typeof flatpickr !== 'undefined') {
             flatpickr(element, {
                 dateFormat: 'd/m/Y',
-                locale: 'pt',
                 allowInput: true
             });
         }

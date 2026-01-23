@@ -158,6 +158,20 @@ $isFooter = false;
                                 <input type="number" min="1" value="{{ old('qtd_titulares', 1) }}" id="qtd_titulares" name="qtd_titulares" class="np-input" />
                             </div>
                         </div>
+
+                        {{-- Plano Dental --}}
+                        <div class="np-inline-toggle" style="margin-top: 0.75rem;">
+                            <div class="toggle-info">
+                                <span class="toggle-label">Plano Dental</span>
+                                <span class="status-badge {{ old('plano_dental', 'SIM') == 'SIM' ? 'badge-ativo' : 'badge-inativo' }}" id="plano-dental-badge">{{ old('plano_dental', 'SIM') == 'SIM' ? 'Ativo' : 'Inativo' }}</span>
+                            </div>
+                            <div class="toggle-controls">
+                                <select id="plano_dental" name="plano_dental" class="np-input np-input-sm">
+                                    <option value="SIM" {{ old('plano_dental', 'SIM') == 'SIM' ? 'selected' : '' }}>SIM</option>
+                                    <option value="NAO" {{ old('plano_dental') == 'NAO' ? 'selected' : '' }}>NAO</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -536,6 +550,23 @@ $isFooter = false;
                 document.body.style.overflow = '';
             }
         });
+
+        // Toggle badge visual para plano dental
+        const planoDentalSelect = document.getElementById('plano_dental');
+        const planoDentalBadge = document.getElementById('plano-dental-badge');
+        if (planoDentalSelect && planoDentalBadge) {
+            planoDentalSelect.addEventListener('change', function() {
+                if (this.value === 'SIM') {
+                    planoDentalBadge.classList.remove('badge-inativo');
+                    planoDentalBadge.classList.add('badge-ativo');
+                    planoDentalBadge.textContent = 'Ativo';
+                } else {
+                    planoDentalBadge.classList.remove('badge-ativo');
+                    planoDentalBadge.classList.add('badge-inativo');
+                    planoDentalBadge.textContent = 'Inativo';
+                }
+            });
+        }
     });
 
     // Mostrar erros via toastr

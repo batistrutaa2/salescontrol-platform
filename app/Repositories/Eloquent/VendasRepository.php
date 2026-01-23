@@ -102,6 +102,7 @@ class VendasRepository implements VendasRepositoryInterface
           $vendaData['tipo_empresa'] = $data['tipo_empresa'] ?? null;
           $vendaData['portabilidade_status'] = $data['portabilidade_status'] ?? 'NAO';
           $vendaData['qtd_portabilidade'] = (int) ($data['qtd_portabilidade'] ?? 0);
+          $vendaData['plano_dental'] = $data['plano_dental'] ?? 'SIM';
 
           // Converter data de abertura de d/m/Y para Y-m-d
           if (!empty($data['data_abertura'])) {
@@ -705,6 +706,7 @@ class VendasRepository implements VendasRepositoryInterface
       $contract->updated_at = now();
       $contract->angariacao_valor = Helpers::moneyForRealSaveBank($data['angariacao_valor']);
       $contract->angariacao_status = $isAngariacao;
+      $contract->plano_dental = $data['plano_dental'] ?? $contract->plano_dental ?? 'SIM';
 
       return $contract->save();
     } catch (\Throwable $th) {

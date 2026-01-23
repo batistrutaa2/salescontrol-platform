@@ -47,6 +47,7 @@ class Vendas extends Model
     'angariacao_status',
     'portabilidade_status',
     'qtd_portabilidade',
+    'plano_dental',
     'layout_venda',
     'tipo_contrato',
     'tipo_empresa',

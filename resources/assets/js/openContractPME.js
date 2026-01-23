@@ -12,8 +12,7 @@
     // ============================================
     if (typeof flatpickr !== 'undefined') {
         flatpickr('.flatpickr-date', {
-            dateFormat: 'd/m/Y',
-            locale: 'pt'
+            dateFormat: 'd/m/Y'
         });
     }
 
@@ -129,6 +128,20 @@
             const isSim = this.value === 'SIM';
             angariacaoBadge.className = `status-badge ${isSim ? 'badge-ativo' : 'badge-inativo'}`;
             angariacaoBadge.textContent = isSim ? 'Ativo' : 'Inativo';
+        });
+    }
+
+    // ============================================
+    // Plano Dental Toggle
+    // ============================================
+    const planoDentalStatus = document.getElementById('plano_dental');
+    const planoDentalBadge = document.getElementById('plano-dental-badge');
+
+    if (planoDentalStatus && planoDentalBadge) {
+        planoDentalStatus.addEventListener('change', function () {
+            const isSim = this.value === 'SIM';
+            planoDentalBadge.className = `status-badge ${isSim ? 'badge-ativo' : 'badge-inativo'}`;
+            planoDentalBadge.textContent = isSim ? 'Ativo' : 'Inativo';
         });
     }
 
@@ -324,8 +337,7 @@
         // Initialize flatpickr for modal date fields
         if (typeof flatpickr !== 'undefined') {
             flatpickr('.flatpickr-modal', {
-                dateFormat: 'd/m/Y',
-                locale: 'pt'
+                dateFormat: 'd/m/Y'
             });
         }
 

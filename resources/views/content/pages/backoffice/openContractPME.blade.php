@@ -238,6 +238,22 @@
                             </div>
                         </div>
 
+                        {{-- Plano Dental --}}
+                        <div class="pme-inline-toggle" style="margin-top: 0.75rem;">
+                            <div class="toggle-info">
+                                <span class="toggle-label">Plano Dental</span>
+                                <span class="status-badge {{ ($contract->plano_dental ?? 'SIM') === 'SIM' ? 'badge-ativo' : 'badge-inativo' }}" id="plano-dental-badge">
+                                    {{ ($contract->plano_dental ?? 'SIM') === 'SIM' ? 'Ativo' : 'Inativo' }}
+                                </span>
+                            </div>
+                            <div class="toggle-controls">
+                                <select id="plano_dental" name="plano_dental" class="pme-input pme-input-sm" form="form-empresa">
+                                    <option value="SIM" {{ ($contract->plano_dental ?? 'SIM') === 'SIM' ? 'selected' : '' }}>SIM</option>
+                                    <option value="NAO" {{ ($contract->plano_dental ?? '') === 'NAO' ? 'selected' : '' }}>NAO</option>
+                                </select>
+                            </div>
+                        </div>
+
                         {{-- Observacoes --}}
                         <div class="pme-field" style="margin-top: 0.75rem;">
                             <label>Observacoes</label>
