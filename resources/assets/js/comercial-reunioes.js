@@ -1,5 +1,6 @@
 /**
- * Agendador de Reuniões Comerciais
+ * Agendador de Reunioes Comerciais
+ * Modern Glass Morphism + Gradient Design
  */
 
 'use strict';
@@ -12,15 +13,16 @@ if (isRtl) {
 
 document.addEventListener('DOMContentLoaded', function () {
   (function () {
-    // Configurar Moment.js para português
+    // Configurar Moment.js para portugues
     moment.locale('pt-br');
 
     const calendarEl = document.getElementById('calendar'),
-      appCalendarSidebar = document.querySelector('.app-calendar-sidebar'),
       addEventSidebar = document.getElementById('addEventSidebar'),
       appOverlay = document.querySelector('.app-overlay'),
       calendarsColor = {
-        Business: 'primary'
+        Business: 'primary',
+        Success: 'success',
+        Danger: 'danger'
       },
       offcanvasTitle = document.querySelector('.offcanvas-title'),
       btnToggleSidebar = document.querySelector('.btn-toggle-sidebar'),
@@ -30,19 +32,23 @@ document.addEventListener('DOMContentLoaded', function () {
       eventTitle = document.querySelector('#eventTitle'),
       eventStartDate = document.querySelector('#eventStartDate'),
       eventEndDate = document.querySelector('#eventEndDate'),
-      eventManager = $('#eventManager'), // Usando jQuery para o select2
+      eventManager = $('#eventManager'),
+      eventContato = $('#eventContato'),
       eventLocation = document.querySelector('#eventLocation'),
       eventDescription = document.querySelector('#eventDescription'),
+      eventCreatedBy = document.querySelector('#eventCreatedBy'),
+      statusGroup = document.querySelector('#statusGroup'),
+      contactInfoCard = document.querySelector('#contactInfoCard'),
       selectAll = document.querySelector('.select-all'),
       filterInput = [].slice.call(document.querySelectorAll('.input-filter')),
       inlineCalendar = document.querySelector('.inline-calendar');
 
     let eventToUpdate,
-      currentEvents = [], // Será preenchido com os eventos do backend
+      currentEvents = [],
       isFormValid = false,
       inlineCalInstance;
 
-    // Token CSRF para requisições AJAX
+    // Token CSRF para requisicoes AJAX
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
     // Init event Offcanvas
@@ -58,7 +64,64 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    // Configuração do Flatpickr em português
+    // Event Contato (select2 with AJAX)
+    if (eventContato.length) {
+      select2Focus(eventContato);
+      eventContato.wrap('<div class="position-relative"></div>').select2({
+        placeholder: 'Buscar por nome, telefone ou CPF...',
+        dropdownParent: eventContato.parent(),
+        allowClear: true,
+        minimumInputLength: 2,
+        ajax: {
+          url: '/reunioes/seller-contacts',
+          dataType: 'json',
+          delay: 300,
+          data: function (params) {
+            return {
+              search: params.term
+            };
+          },
+          processResults: function (data) {
+            return {
+              results: data.results
+            };
+          },
+          cache: true
+        },
+        templateResult: formatContactResult,
+        templateSelection: formatContactSelection
+      });
+    }
+
+    // Format contact result in dropdown
+    function formatContactResult(contact) {
+      if (contact.loading) {
+        return contact.text;
+      }
+
+      var $container = $(
+        '<div class="contact-select-item">' +
+          '<div class="contact-name"></div>' +
+          '<div class="contact-info">' +
+            '<span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></span>' +
+            '<span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 15h0M2 9.5h20"></path></svg></span>' +
+          '</div>' +
+        '</div>'
+      );
+
+      $container.find('.contact-name').text(contact.text);
+      $container.find('.contact-info span:first').append(' ' + (contact.telefone || 'N/D'));
+      $container.find('.contact-info span:last').append(' ' + (contact.cpf || 'N/D'));
+
+      return $container;
+    }
+
+    // Format contact selection
+    function formatContactSelection(contact) {
+      return contact.text || 'Buscar por nome, telefone ou CPF...';
+    }
+
+    // Configuracao do Flatpickr em portugues
     const flatpickrConfig = {
       locale: 'pt',
       dateFormat: 'd/m/Y H:i',
@@ -78,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function () {
       var start = eventStartDate.flatpickr({
         ...flatpickrConfig,
         onChange: function (selectedDates, dateStr) {
-          // Ao mudar a data de início, verificar disponibilidade
           if (selectedDates.length > 0 && eventManager.val()) {
             checkAvailability();
           }
@@ -102,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    // Função para verificar disponibilidade
+    // Funcao para verificar disponibilidade
     function checkAvailability() {
       const managerId = eventManager.val();
       const date = start.selectedDates[0] ? moment(start.selectedDates[0]).format('YYYY-MM-DD') : null;
@@ -112,8 +174,35 @@ document.addEventListener('DOMContentLoaded', function () {
       fetch(`/available-slots/${managerId}/${date}`)
         .then(response => response.json())
         .then(data => {
+          // Disponibilidade verificada
         })
         .catch(error => console.error('Erro ao verificar disponibilidade:', error));
+    }
+
+    // Update stats function
+    function updateStats() {
+      fetch('/reunioes/stats')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('statTotal').textContent = data.total || 0;
+          document.getElementById('statScheduled').textContent = data.scheduled || 0;
+          document.getElementById('statCompleted').textContent = data.completed || 0;
+          document.getElementById('statCancelled').textContent = data.cancelled || 0;
+        })
+        .catch(error => console.error('Erro ao atualizar estatisticas:', error));
+    }
+
+    // Show contact info card
+    function showContactInfo(contato) {
+      if (contato && contato.contato_nome && contato.contato_id) {
+        document.getElementById('contactInfoName').textContent = contato.contato_nome;
+        document.getElementById('contactInfoPhone').textContent = contato.contato_telefone || 'N/D';
+        document.getElementById('contactInfoCpf').textContent = contato.contato_cpf || 'N/D';
+        document.getElementById('contactOpenLink').href = '/comercial/abrir-cliente/' + contato.contato_id;
+        contactInfoCard.classList.remove('d-none');
+      } else {
+        contactInfoCard.classList.add('d-none');
+      }
     }
 
     // Event click function
@@ -121,14 +210,14 @@ document.addEventListener('DOMContentLoaded', function () {
       eventToUpdate = info.event;
       bsAddEventSidebar.show();
 
-      // For update event set offcanvas title text: Update Event
       if (offcanvasTitle) {
-        offcanvasTitle.innerHTML = 'Atualizar Reunião';
+        offcanvasTitle.innerHTML = 'Atualizar Reuniao';
       }
-      btnSubmit.innerHTML = 'Atualizar';
+      btnSubmit.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Atualizar';
       btnSubmit.classList.add('btn-update-event');
       btnSubmit.classList.remove('btn-add-event');
       btnDeleteEvent.classList.remove('d-none');
+      statusGroup.classList.remove('d-none');
 
       eventTitle.value = eventToUpdate.title;
       start.setDate(eventToUpdate.start, true);
@@ -140,9 +229,29 @@ document.addEventListener('DOMContentLoaded', function () {
       // Preencher outros campos
       eventLocation.value = eventToUpdate.extendedProps.location || '';
       eventDescription.value = eventToUpdate.extendedProps.description || '';
-      document.querySelector('#eventCreatedBy').value = eventToUpdate.extendedProps.user_name || '';
+      eventCreatedBy.value = eventToUpdate.extendedProps.user_name || '';
 
+      // Set status
+      const status = eventToUpdate.extendedProps.status || 'scheduled';
+      document.querySelector(`input[name="eventStatus"][value="${status}"]`).checked = true;
 
+      // Handle contato
+      if (eventToUpdate.extendedProps.contato_id && eventToUpdate.extendedProps.contato_nome) {
+        // Create option and set value for select2
+        var newOption = new Option(
+          eventToUpdate.extendedProps.contato_nome,
+          eventToUpdate.extendedProps.contato_id,
+          true,
+          true
+        );
+        eventContato.append(newOption).trigger('change');
+
+        // Show contact info card
+        showContactInfo(eventToUpdate.extendedProps);
+      } else {
+        eventContato.val(null).trigger('change');
+        contactInfoCard.classList.add('d-none');
+      }
     }
 
     // Modify sidebar toggler
@@ -184,10 +293,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Fetch Events
     function fetchEvents(info, successCallback) {
-      // Obter gestores selecionados
       let managers = selectedManagers();
 
-      // Filtrar eventos por gestor
       let selectedEvents = currentEvents.filter(function (event) {
         return managers.includes('all') || managers.includes(event.extendedProps.manager_id.toString());
       });
@@ -216,17 +323,16 @@ document.addEventListener('DOMContentLoaded', function () {
       },
       buttonText: {
         today: 'Hoje',
-        month: 'Mês',
+        month: 'Mes',
         week: 'Semana',
         day: 'Dia',
         list: 'Lista'
       },
       direction: direction,
       initialDate: new Date(),
-      navLinks: true, // can click day/week names to navigate views
+      navLinks: true,
       eventClassNames: function ({ event: calendarEvent }) {
         const colorName = calendarsColor[calendarEvent._def.extendedProps.calendar] || 'primary';
-        // Background Color
         return ['fc-event-' + colorName];
       },
       dateClick: function (info) {
@@ -234,22 +340,19 @@ document.addEventListener('DOMContentLoaded', function () {
         resetValues();
         bsAddEventSidebar.show();
 
-        // For new event set offcanvas title text: Add Event
         if (offcanvasTitle) {
-          offcanvasTitle.innerHTML = 'Agendar Reunião';
+          offcanvasTitle.innerHTML = 'Agendar Reuniao';
         }
-        btnSubmit.innerHTML = 'Agendar';
+        btnSubmit.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Agendar';
         btnSubmit.classList.remove('btn-update-event');
         btnSubmit.classList.add('btn-add-event');
         btnDeleteEvent.classList.add('d-none');
+        statusGroup.classList.add('d-none');
+        contactInfoCard.classList.add('d-none');
 
-        // Definir data selecionada
-        const formattedDate = moment(date).format('DD/MM/YYYY');
         start.setDate(moment(date + 'T09:00:00').toDate());
         end.setDate(moment(date + 'T10:00:00').toDate());
-        document.querySelector('#eventCreatedBy').value = '';
-
-
+        eventCreatedBy.value = '';
       },
       eventClick: function (info) {
         eventClick(info);
@@ -264,7 +367,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Render calendar
     calendar.render();
-    // Modify sidebar toggler
     modifyToggler();
 
     const eventForm = document.getElementById('eventForm');
@@ -273,42 +375,42 @@ document.addEventListener('DOMContentLoaded', function () {
         eventTitle: {
           validators: {
             notEmpty: {
-              message: 'Por favor, insira um título para a reunião'
+              message: 'Por favor, insira um titulo para a reuniao'
             }
           }
         },
         eventStartDate: {
           validators: {
             notEmpty: {
-              message: 'Por favor, insira a data de início'
+              message: 'Por favor, insira a data de inicio'
             }
           }
         },
         eventManager: {
           validators: {
             notEmpty: {
-              message: 'Por favor, informe o gestor responsável'
+              message: 'Por favor, informe o gestor responsavel'
             }
           }
         },
         eventEndDate: {
           validators: {
             notEmpty: {
-              message: 'Por favor, insira a data de término'
+              message: 'Por favor, insira a data de termino'
             }
           }
         },
         eventLocation: {
           validators: {
             notEmpty: {
-              message: 'Por favor, informe o local da reunião'
+              message: 'Por favor, informe o local da reuniao'
             }
           }
         },
         eventDescription: {
           validators: {
             notEmpty: {
-              message: 'Coloque as informações sobre a reunião, como valores pré-abordados, plano e etc..'
+              message: 'Coloque as informacoes sobre a reuniao'
             }
           }
         }
@@ -316,25 +418,19 @@ document.addEventListener('DOMContentLoaded', function () {
       plugins: {
         trigger: new FormValidation.plugins.Trigger(),
         bootstrap5: new FormValidation.plugins.Bootstrap5({
-          // Use this for enabling/changing valid/invalid class
           eleValidClass: '',
           rowSelector: function (field, ele) {
-            // field is the field name & ele is the field element
-            return '.mb-5';
+            return '.rm-form-group';
           }
         }),
         submitButton: new FormValidation.plugins.SubmitButton(),
-        // Submit the form when all fields are valid
-        // defaultSubmit: new FormValidation.plugins.DefaultSubmit(),
         autoFocus: new FormValidation.plugins.AutoFocus()
       }
     })
       .on('core.form.valid', function () {
-        // Jump to the next step when all fields in the current step are valid
         isFormValid = true;
       })
       .on('core.form.invalid', function () {
-        // if fields are invalid
         isFormValid = false;
       });
 
@@ -345,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    // Função para formatar data para o backend
+    // Funcao para formatar data para o backend
     function formatDateForBackend(date) {
       return moment(date, 'DD/MM/YYYY HH:mm').format('YYYY-MM-DD HH:mm:ss');
     }
@@ -370,40 +466,36 @@ document.addEventListener('DOMContentLoaded', function () {
           const data = await response.json();
 
           if (!response.ok) {
-            // Se status for 422 (validação), mostrar os erros
             if (response.status === 422 && data.errors) {
               const messages = Object.values(data.errors).flat();
               messages.forEach(msg => toastr.error(msg));
             } else {
-              toastr.error(data.message || 'Erro ao agendar reunião.');
+              toastr.error(data.message || 'Erro ao agendar reuniao.');
             }
-            throw new Error('Erro de validação');
+            throw new Error('Erro de validacao');
           }
 
-          // Sucesso
           currentEvents.push(data.reuniao);
           calendar.refetchEvents();
+          updateStats();
           toastr.success(data.message);
         })
         .catch(error => {
           console.error(error);
           if (error.name !== 'Error') {
-            toastr.error('Erro inesperado ao agendar reunião.');
+            toastr.error('Erro inesperado ao agendar reuniao.');
           }
         });
     }
 
-
     // Update Event
     function updateEvent(eventData) {
-      // Formatar datas para o backend
       const formattedData = {
         ...eventData,
         data_inicio: formatDateForBackend(eventData.data_inicio),
         data_final: formatDateForBackend(eventData.data_final)
       };
 
-      // Enviar dados para o backend
       fetch(`/reunioes/${eventData.id}`, {
         method: 'PUT',
         headers: {
@@ -415,28 +507,25 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
           if (data.status === 'success') {
-            // Atualizar evento no calendário
             const index = currentEvents.findIndex(el => el.id === parseInt(eventData.id));
             if (index !== -1) {
               currentEvents[index] = data.reuniao;
             }
             calendar.refetchEvents();
-
-            // Mostrar mensagem de sucesso
+            updateStats();
             toastr.success(data.message);
           } else {
-            toastr.error('Erro ao atualizar reunião: ' + data.message);
+            toastr.error('Erro ao atualizar reuniao: ' + data.message);
           }
         })
         .catch(error => {
-          console.error('Erro ao atualizar reunião:', error);
-          toastr.error('Erro ao atualizar reunião. Tente novamente.');
+          console.error('Erro ao atualizar reuniao:', error);
+          toastr.error('Erro ao atualizar reuniao. Tente novamente.');
         });
     }
 
     // Remove Event
     function removeEvent(eventId) {
-      // Enviar solicitação para o backend
       fetch(`/reunioes/${eventId}`, {
         method: 'DELETE',
         headers: {
@@ -446,21 +535,19 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
           if (data.status === 'success') {
-            // Remover evento do calendário
             currentEvents = currentEvents.filter(function (event) {
               return event.id != eventId;
             });
             calendar.refetchEvents();
-
-            // Mostrar mensagem de sucesso
+            updateStats();
             toastr.success(data.message);
           } else {
-            toastr.error('Erro ao excluir reunião: ' + data.message);
+            toastr.error('Erro ao excluir reuniao: ' + data.message);
           }
         })
         .catch(error => {
-          console.error('Erro ao excluir reunião:', error);
-          toastr.error('Erro ao excluir reunião. Tente novamente.');
+          console.error('Erro ao excluir reuniao:', error);
+          toastr.error('Erro ao excluir reuniao. Tente novamente.');
         });
     }
 
@@ -473,6 +560,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data_inicio: eventStartDate.value,
             data_final: eventEndDate.value,
             manager_id: eventManager.val(),
+            contato_id: eventContato.val() || null,
             location: eventLocation.value,
             observacao: eventDescription.value
           };
@@ -489,8 +577,10 @@ document.addEventListener('DOMContentLoaded', function () {
             data_inicio: eventStartDate.value,
             data_final: eventEndDate.value,
             manager_id: eventManager.val(),
+            contato_id: eventContato.val() || null,
             location: eventLocation.value,
-            observacao: eventDescription.value
+            observacao: eventDescription.value,
+            status: document.querySelector('input[name="eventStatus"]:checked').value
           };
 
           updateEvent(eventData);
@@ -513,6 +603,9 @@ document.addEventListener('DOMContentLoaded', function () {
       eventLocation.value = '';
       eventDescription.value = '';
       eventManager.val('').trigger('change');
+      eventContato.val(null).trigger('change');
+      contactInfoCard.classList.add('d-none');
+      document.querySelector('input[name="eventStatus"][value="scheduled"]').checked = true;
     }
 
     // When modal hides reset input values
@@ -523,17 +616,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // Hide left sidebar if the right sidebar is open
     btnToggleSidebar.addEventListener('click', e => {
       if (offcanvasTitle) {
-        offcanvasTitle.innerHTML = 'Agendar Reunião';
+        offcanvasTitle.innerHTML = 'Agendar Reuniao';
       }
-      btnSubmit.innerHTML = 'Agendar';
+      btnSubmit.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Agendar';
       btnSubmit.classList.remove('btn-update-event');
       btnSubmit.classList.add('btn-add-event');
       btnDeleteEvent.classList.add('d-none');
-      appCalendarSidebar.classList.remove('show');
-      appOverlay.classList.remove('show');
+      statusGroup.classList.add('d-none');
+      contactInfoCard.classList.add('d-none');
     });
 
-    // Calender filter functionality
+    // Calendar filter functionality
     if (selectAll) {
       selectAll.addEventListener('click', e => {
         if (e.currentTarget.checked) {
@@ -560,8 +653,6 @@ document.addEventListener('DOMContentLoaded', function () {
     inlineCalInstance.config.onChange.push(function (date) {
       calendar.changeView(calendar.view.type, moment(date[0]).format('YYYY-MM-DD'));
       modifyToggler();
-      appCalendarSidebar.classList.remove('show');
-      appOverlay.classList.remove('show');
     });
 
     // Carregar eventos iniciais
@@ -570,7 +661,11 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(data => {
         currentEvents = data;
         calendar.refetchEvents();
+        updateStats();
       })
-      .catch(error => console.error('Erro ao carregar reuniões:', error));
+      .catch(error => console.error('Erro ao carregar reunioes:', error));
+
+    // Load initial stats
+    updateStats();
   })();
 });

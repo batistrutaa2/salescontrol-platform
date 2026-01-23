@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\pages\comercial;
 
 use App\Models\User;
-use App\Models\UserRole;
+use App\Models\Contatos;
+use App\Models\ContatosCorretores;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use App\Models\ComercialReunioes;
@@ -25,31 +26,105 @@ class ReunioesComercial extends Controller
 
     public function getReunioes()
     {
-        $reunioes = ComercialReunioes::with(['user', 'manager'])->get()->map(function ($reuniao) {
-            $startDate = $reuniao->data_inicio ? $reuniao->data_inicio->format('Y-m-d\TH:i:s') : null;
-            $endDate = $reuniao->data_final ? $reuniao->data_final->format('Y-m-d\TH:i:s') : null;
+        $empresaId = Auth::user()->empresa_id;
 
-            if (!$startDate || !$endDate) {
-                return null;
-            }
+        $reunioes = ComercialReunioes::with(['user', 'manager', 'contato'])
+            ->where('empresa_id', $empresaId)
+            ->get()
+            ->map(function ($reuniao) {
+                $startDate = $reuniao->data_inicio ? $reuniao->data_inicio->format('Y-m-d\TH:i:s') : null;
+                $endDate = $reuniao->data_final ? $reuniao->data_final->format('Y-m-d\TH:i:s') : null;
 
-            return [
-                'id' => $reuniao->id,
-                'title' => $reuniao->titulo,
-                'start' => $startDate,
-                'end' => $endDate,
-                'extendedProps' => [
-                    'calendar' => 'Business', // Categoria padrão para reuniões comerciais
-                    'location' => $reuniao->location ?? '',
-                    'description' => $reuniao->observacao ?? '',
-                    'manager_id' => $reuniao->manager_id,
-                    'manager_name' => $reuniao->manager->name ?? 'Sem gestor',
-                    'user_name' => $reuniao->user->name ?? 'Sem usuário'
-                ]
-            ];
-        })->filter();
+                if (!$startDate || !$endDate) {
+                    return null;
+                }
+
+                return [
+                    'id' => $reuniao->id,
+                    'title' => $reuniao->titulo,
+                    'start' => $startDate,
+                    'end' => $endDate,
+                    'extendedProps' => [
+                        'calendar' => $this->getCalendarCategory($reuniao->status),
+                        'location' => $reuniao->location ?? '',
+                        'description' => $reuniao->observacao ?? '',
+                        'manager_id' => $reuniao->manager_id,
+                        'manager_name' => $reuniao->manager->name ?? 'Sem gestor',
+                        'user_name' => $reuniao->user->name ?? 'Sem usuário',
+                        'status' => $reuniao->status,
+                        'contato_id' => $reuniao->contato_id,
+                        'contato_nome' => $reuniao->contato->nome_cliente ?? null,
+                        'contato_telefone' => $reuniao->contato->telefone1 ?? null,
+                        'contato_cpf' => $reuniao->contato->cpf ?? null,
+                    ]
+                ];
+            })->filter();
 
         return response()->json($reunioes);
+    }
+
+    public function getStats()
+    {
+        $empresaId = Auth::user()->empresa_id;
+
+        $total = ComercialReunioes::where('empresa_id', $empresaId)->count();
+        $scheduled = ComercialReunioes::where('empresa_id', $empresaId)->where('status', 'scheduled')->count();
+        $completed = ComercialReunioes::where('empresa_id', $empresaId)->where('status', 'completed')->count();
+        $cancelled = ComercialReunioes::where('empresa_id', $empresaId)->where('status', 'cancelled')->count();
+
+        return response()->json([
+            'total' => $total,
+            'scheduled' => $scheduled,
+            'completed' => $completed,
+            'cancelled' => $cancelled,
+        ]);
+    }
+
+    private function getCalendarCategory($status)
+    {
+        return match ($status) {
+            'completed' => 'Success',
+            'cancelled' => 'Danger',
+            default => 'Business',
+        };
+    }
+
+    public function getSellerContacts(Request $request)
+    {
+        $empresaId = Auth::user()->empresa_id;
+        $userId = Auth::id();
+        $search = $request->get('search', '');
+
+        // Busca contatos que pertencem ao vendedor logado através de contatos_corretores
+        $query = Contatos::select('contatos.*')
+            ->join('contatos_corretores', 'contatos.id', '=', 'contatos_corretores.contato_id')
+            ->where('contatos.empresa_id', $empresaId)
+            ->where('contatos_corretores.user_id', $userId);
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('contatos.nome_cliente', 'like', "%{$search}%")
+                    ->orWhere('contatos.telefone1', 'like', "%{$search}%")
+                    ->orWhere('contatos.telefone2', 'like', "%{$search}%")
+                    ->orWhere('contatos.cpf', 'like', "%{$search}%");
+            });
+        }
+
+        $contatos = $query->limit(20)->get();
+
+        $results = $contatos->map(function ($contato) {
+            return [
+                'id' => $contato->id,
+                'text' => $contato->nome_cliente,
+                'telefone' => $contato->telefone1,
+                'cpf' => $contato->cpf,
+                'plano' => $contato->plano,
+            ];
+        });
+
+        return response()->json([
+            'results' => $results,
+        ]);
     }
 
     public function store(Request $request)
@@ -58,6 +133,7 @@ class ReunioesComercial extends Controller
             $validated = $request->validate([
                 'titulo' => 'required|string|max:255',
                 'manager_id' => 'required|exists:users,id',
+                'contato_id' => 'nullable|exists:contatos,id',
                 'data_inicio' => 'required|date',
                 'data_final' => 'required|date|after:data_inicio',
                 'location' => 'nullable|string|max:255',
@@ -80,6 +156,21 @@ class ReunioesComercial extends Controller
                 ], 422);
             }
 
+            // Validar que o contato pertence ao vendedor (se informado)
+            if ($request->contato_id) {
+                $contatoCorretor = ContatosCorretores::where('contato_id', $request->contato_id)
+                    ->where('user_id', Auth::id())
+                    ->where('empresa_id', $empresaId)
+                    ->first();
+
+                if (!$contatoCorretor) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'O contato selecionado não pertence à sua carteira.'
+                    ], 422);
+                }
+            }
+
             // Converter strings de data para objetos Carbon
             $dataInicio = Carbon::parse($request->data_inicio);
             $dataFinal = Carbon::parse($request->data_final);
@@ -87,9 +178,10 @@ class ReunioesComercial extends Controller
             // Criar nova reunião
             $reuniao = new ComercialReunioes();
             $reuniao->titulo = $request->titulo;
-            $reuniao->user_id = Auth::id(); // ID do usuário logado (vendedor)
+            $reuniao->user_id = Auth::id();
             $reuniao->manager_id = $request->manager_id;
-            $reuniao->empresa_id = $empresaId; // Adicionar empresa_id do usuário logado
+            $reuniao->contato_id = $request->contato_id;
+            $reuniao->empresa_id = $empresaId;
             $reuniao->data_inicio = $dataInicio;
             $reuniao->data_final = $dataFinal;
             $reuniao->location = $request->location;
@@ -97,6 +189,8 @@ class ReunioesComercial extends Controller
             $reuniao->status = 'scheduled';
             $reuniao->save();
 
+            // Carregar relações
+            $reuniao->load(['manager', 'contato']);
 
             $admins = User::whereIn('user_role_id', ['2', '5'])
                 ->where('empresa_id', $empresaId)
@@ -105,7 +199,6 @@ class ReunioesComercial extends Controller
             foreach ($admins as $admin) {
                 $admin->notify(new NovaReuniaoAgendada($reuniao));
             }
-
 
             // Retornar dados da reunião para atualizar o calendário
             return response()->json([
@@ -122,7 +215,12 @@ class ReunioesComercial extends Controller
                         'description' => $reuniao->observacao ?? '',
                         'manager_id' => $reuniao->manager_id,
                         'manager_name' => $manager->name,
-                        'user_name' => Auth::user()->name
+                        'user_name' => Auth::user()->name,
+                        'status' => $reuniao->status,
+                        'contato_id' => $reuniao->contato_id,
+                        'contato_nome' => $reuniao->contato->nome_cliente ?? null,
+                        'contato_telefone' => $reuniao->contato->telefone1 ?? null,
+                        'contato_cpf' => $reuniao->contato->cpf ?? null,
                     ]
                 ]
             ]);
@@ -139,10 +237,12 @@ class ReunioesComercial extends Controller
         $validated = $request->validate([
             'titulo' => 'required|string|max:255',
             'manager_id' => 'required|exists:users,id',
+            'contato_id' => 'nullable|exists:contatos,id',
             'data_inicio' => 'required|date',
             'data_final' => 'required|date|after:data_inicio',
             'location' => 'nullable|string|max:255',
-            'observacao' => 'nullable|string'
+            'observacao' => 'nullable|string',
+            'status' => 'nullable|in:scheduled,completed,cancelled'
         ]);
 
         // Obter o ID da empresa do usuário logado
@@ -173,6 +273,21 @@ class ReunioesComercial extends Controller
             ], 422);
         }
 
+        // Validar que o contato pertence ao vendedor (se informado)
+        if ($request->contato_id) {
+            $contatoCorretor = ContatosCorretores::where('contato_id', $request->contato_id)
+                ->where('user_id', $reuniao->user_id)
+                ->where('empresa_id', $empresaId)
+                ->first();
+
+            if (!$contatoCorretor) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'O contato selecionado não pertence à carteira do vendedor.'
+                ], 422);
+            }
+        }
+
         // Converter strings de data para objetos Carbon
         $dataInicio = Carbon::parse($request->data_inicio);
         $dataFinal = Carbon::parse($request->data_final);
@@ -180,11 +295,18 @@ class ReunioesComercial extends Controller
         // Atualizar reunião
         $reuniao->titulo = $request->titulo;
         $reuniao->manager_id = $request->manager_id;
+        $reuniao->contato_id = $request->contato_id;
         $reuniao->data_inicio = $dataInicio;
         $reuniao->data_final = $dataFinal;
         $reuniao->location = $request->location;
         $reuniao->observacao = $request->observacao;
+        if ($request->has('status')) {
+            $reuniao->status = $request->status;
+        }
         $reuniao->save();
+
+        // Carregar relações
+        $reuniao->load(['contato']);
 
         // Retornar dados da reunião para atualizar o calendário
         return response()->json([
@@ -196,12 +318,17 @@ class ReunioesComercial extends Controller
                 'start' => $reuniao->data_inicio->format('Y-m-d\TH:i:s'),
                 'end' => $reuniao->data_final->format('Y-m-d\TH:i:s'),
                 'extendedProps' => [
-                    'calendar' => 'Business',
+                    'calendar' => $this->getCalendarCategory($reuniao->status),
                     'location' => $reuniao->location ?? '',
                     'description' => $reuniao->observacao ?? '',
                     'manager_id' => $reuniao->manager_id,
                     'manager_name' => $manager->name,
-                    'user_name' => Auth::user()->name
+                    'user_name' => Auth::user()->name,
+                    'status' => $reuniao->status,
+                    'contato_id' => $reuniao->contato_id,
+                    'contato_nome' => $reuniao->contato->nome_cliente ?? null,
+                    'contato_telefone' => $reuniao->contato->telefone1 ?? null,
+                    'contato_cpf' => $reuniao->contato->cpf ?? null,
                 ]
             ]
         ]);

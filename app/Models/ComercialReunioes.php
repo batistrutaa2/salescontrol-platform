@@ -16,6 +16,7 @@ use HasFactory, SoftDeletes;
         'titulo',
         'user_id',
         'manager_id',
+        'contato_id',
         'data_inicio',
         'data_final',
         'observacao',
@@ -41,5 +42,10 @@ use HasFactory, SoftDeletes;
     public function empresa()
     {
         return $this->belongsTo(Empresa::class, 'empresa_id');
+    }
+
+    public function contato()
+    {
+        return $this->belongsTo(Contatos::class, 'contato_id');
     }
 }

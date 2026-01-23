@@ -155,6 +155,8 @@ Route::middleware(['auth'])->group(function () {
 
   Route::get('/comercial/calendario-reunioes', [ReunioesComercial::class, 'index'])->name('comercialReunioes.index');
   Route::get('/reunioes/data', [ReunioesComercial::class, 'getReunioes']);
+  Route::get('/reunioes/stats', [ReunioesComercial::class, 'getStats']);
+  Route::get('/reunioes/seller-contacts', [ReunioesComercial::class, 'getSellerContacts']);
   Route::post('/reunioes', [ReunioesComercial::class, 'store']);
   Route::put('/reunioes/{id}', [ReunioesComercial::class, 'update']);
   Route::delete('/reunioes/{id}', [ReunioesComercial::class, 'destroy']);
