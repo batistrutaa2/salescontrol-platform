@@ -107,6 +107,11 @@ class Vendas extends Model
     return $this->hasMany(AcessoEmpresa::class, 'venda_id');
   }
 
+  public function recebiveis()
+  {
+    return $this->hasMany(Recebivel::class, 'venda_id');
+  }
+
   public function usuarioBoasVindas()
   {
     return $this->belongsTo(User::class, 'boas_vindas_enviado_por');
