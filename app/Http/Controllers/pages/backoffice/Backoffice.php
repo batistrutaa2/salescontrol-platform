@@ -56,10 +56,23 @@ class Backoffice extends Controller
 
   private function canEditContract(Vendas $sale): bool
   {
-    if ($sale->backoffice_id === null) {
-      return false;
+    $roleId = Auth::user()->user_role_id;
+
+    // ADM e DEVELOPER editam qualquer contrato
+    if (in_array($roleId, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])) {
+      return true;
     }
-    return $sale->backoffice_id === Auth::id();
+
+    // BACKOFFICE só edita se for o dono do contrato
+    if ($roleId === UserRole::BACKOFFICE) {
+      if ($sale->backoffice_id === null) {
+        return false;
+      }
+      return $sale->backoffice_id === Auth::id();
+    }
+
+    // SUPERVISOR e demais: somente leitura
+    return false;
   }
 
   private function canReassignContract(): bool
