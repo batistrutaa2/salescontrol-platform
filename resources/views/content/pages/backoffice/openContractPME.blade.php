@@ -100,6 +100,68 @@
         </div>
     @endif
 
+    {{-- Backoffice: Modal obrigatorio para assumir contrato --}}
+    @if ($showAssumirDialog ?? false)
+    <div class="modal fade" id="modalAssumirContrato" tabindex="-1" aria-labelledby="modalAssumirLabel"
+         aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalAssumirLabel">Contrato sem responsavel</h5>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                             class="text-primary">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <p class="mb-1"><strong>Este contrato ainda nao possui um backoffice responsavel.</strong></p>
+                    <p class="text-muted mb-0">Deseja assumir a responsabilidade ou apenas visualizar?</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary" id="btn-apenas-visualizar">
+                        Apenas Visualizar
+                    </button>
+                    <button type="button" class="btn btn-primary" id="btn-assumir-contrato"
+                            data-venda-id="{{ $contract->id }}">
+                        Assumir Contrato
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Backoffice: Badge do responsavel --}}
+    @if ($backofficeUser ?? null)
+    <div class="alert alert-light border d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <strong>Backoffice Responsavel:</strong> {{ $backofficeUser->name }}
+            @if ($isOwner ?? false)
+                <span class="badge bg-success ms-2">Voce</span>
+            @endif
+        </div>
+        @if ($canReassign ?? false)
+        <div class="d-flex align-items-center gap-2">
+            <select id="reatribuir-select" class="form-select form-select-sm" style="width: auto;">
+                <option value="">Reatribuir para...</option>
+                @foreach ($backofficeUsers ?? collect() as $bu)
+                    <option value="{{ $bu->id }}" {{ $contract->backoffice_id == $bu->id ? 'selected' : '' }}>
+                        {{ $bu->name }}
+                    </option>
+                @endforeach
+            </select>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="btn-reatribuir"
+                    data-venda-id="{{ $contract->id }}">
+                Reatribuir
+            </button>
+        </div>
+        @endif
+    </div>
+    @endif
+
     <div class="pme-contract-wrapper">
 
         {{-- Header --}}
@@ -149,7 +211,7 @@
                         <span class="section-title">Dados da Empresa</span>
                     </div>
                     <div class="section-body">
-                        <form method="POST" action="{{ route('backoffice.updateSale') }}" id="form-empresa">
+                        <form method="POST" action="{{ route('backoffice.updateSale') }}" id="form-empresa" @if (!($canEdit ?? true)) data-readonly="true" @endif>
                             @csrf
                             <input type="hidden" name="id" value="{{ $contract->id }}">
 
@@ -377,10 +439,16 @@
 
                 {{-- Botao Salvar - Fixed ao final da coluna --}}
                 <div class="pme-save-section">
+                    @if ($canEdit ?? true)
                     <button type="submit" form="form-empresa" class="pme-btn-save">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                         <span>Salvar Alteracoes</span>
                     </button>
+                    @else
+                    <div class="alert alert-warning mb-0">
+                        <small>Somente o backoffice responsavel pode editar este contrato.</small>
+                    </div>
+                    @endif
                 </div>
 
             </div>

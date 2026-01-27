@@ -120,9 +120,11 @@ $(function () {
                 const mes = $('#filter-mes').val();
                 const ano = $('#filter-ano').val();
                 const busca = $('#filter-busca').val();
+                const custodia = $('#filter-custodia').val();
 
                 if (vendedor) params.append('vendedor_id', vendedor);
                 if (busca) params.append('busca', busca);
+                if (custodia) params.append('custodia', custodia);
 
                 // Calcular datas baseado em mês/ano
                 if (mes && ano) {
@@ -321,6 +323,14 @@ $(function () {
                             <span>${truncate(contract.vendedor || 'N/A', 15)}</span>
                         </span>
                     </div>
+
+                    <div class="card-backoffice-strip ${contract.backoffice_nome ? 'has-owner' : 'no-owner'}">
+                        <i class="ri-shield-user-line"></i>
+                        ${contract.backoffice_nome
+                            ? `<span class="bo-name">${escapeHtml(contract.backoffice_nome)}</span>`
+                            : `<span class="bo-name bo-livre">Livre</span>`
+                        }
+                    </div>
                 </div>
             `;
         },
@@ -513,7 +523,7 @@ $(function () {
             });
 
             // Immediate filters
-            $('#filter-vendedor, #filter-mes, #filter-ano').on('change', function () {
+            $('#filter-vendedor, #filter-mes, #filter-ano, #filter-custodia').on('change', function () {
                 self.loadContratos();
             });
 
@@ -523,6 +533,7 @@ $(function () {
                 $('#filter-mes').val('');
                 $('#filter-ano').val('');
                 $('#filter-busca').val('');
+                $('#filter-custodia').val('meus');
                 self.loadContratos();
             });
         },

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\pages\backoffice;
 
 use App\Enums\Tabulations;
+use App\Enums\UserRole;
 use App\Events\ContratoImplantado;
 use App\Helpers\Helpers;
 use App\Models\Operadora;
@@ -53,12 +54,27 @@ class Backoffice extends Controller
     $this->contatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
   }
 
+  private function canEditContract(Vendas $sale): bool
+  {
+    if ($sale->backoffice_id === null) {
+      return false;
+    }
+    return $sale->backoffice_id === Auth::id();
+  }
+
+  private function canReassignContract(): bool
+  {
+    $roleId = Auth::user()->user_role_id;
+    return in_array($roleId, [UserRole::DEVELOPER, UserRole::ADMINISTRATIVO]);
+  }
 
   public function index()
   {
     $tabulations = $this->tabulacoesRepository->getTabulationsBackoffice(Auth::user()->empresa_id);
+    $isBackoffice = Auth::user()->user_role_id == UserRole::BACKOFFICE;
     return view("content.pages.backoffice.index", [
-      'tabulacoes' => $tabulations
+      'tabulacoes' => $tabulations,
+      'isBackoffice' => $isBackoffice,
     ]);
   }
 
@@ -110,6 +126,28 @@ class Backoffice extends Controller
       ->where('venda_id', $sale->id)
       ->get();
 
+    // Backoffice responsável
+    $isBackofficeRole = Auth::user()->user_role_id == UserRole::BACKOFFICE;
+    $hasBackoffice = $sale->backoffice_id !== null;
+    $isOwner = $sale->backoffice_id === Auth::id();
+    $canEdit = $this->canEditContract($sale);
+    $canReassign = $this->canReassignContract();
+    $showAssumirDialog = !$hasBackoffice && $isBackofficeRole;
+    $backofficeUser = $hasBackoffice ? User::find($sale->backoffice_id) : null;
+    $backofficeUsers = $canReassign
+      ? User::where('empresa_id', Auth::user()->empresa_id)
+          ->where('user_role_id', UserRole::BACKOFFICE)
+          ->where('ativo', 'Y')
+          ->orderBy('name')
+          ->get()
+      : collect();
+
+    $backofficeVars = compact(
+      'isBackofficeRole', 'hasBackoffice', 'isOwner',
+      'canEdit', 'canReassign', 'showAssumirDialog',
+      'backofficeUser', 'backofficeUsers'
+    );
+
     // Verifica se é layout novo (PME)
     if ($sale->layout_venda === 'NOVO') {
       // Carrega dependentes com relacionamentos
@@ -123,7 +161,7 @@ class Backoffice extends Controller
         ->orderBy('sequencial')
         ->get();
 
-      return view('content.pages.backoffice.openContractPME', [
+      return view('content.pages.backoffice.openContractPME', array_merge([
         'contract' => $sale,
         'operadoras' => $operadoras,
         'selectedOperadoraId' => $selectedOperadoraId,
@@ -132,23 +170,29 @@ class Backoffice extends Controller
         'titulares' => $titulares,
         'dependentes' => $dependentes,
         'portabilidades' => $portabilidades,
-      ]);
+      ], $backofficeVars));
     }
 
-    return view('content.pages.backoffice.openContract', [
+    return view('content.pages.backoffice.openContract', array_merge([
       'contract' => $sale,
       'operadoras' => $operadoras,
       'selectedOperadoraId' => $selectedOperadoraId,
       'planosDaOperadora' => $planosDaOperadora,
       'plano' => $plano,
       'titulares' => $titulares,
-    ]);
+    ], $backofficeVars));
   }
 
 
 
   public function updateSale(Request $request)
   {
+    $sale = $this->vendasRepository->find($request->id);
+    if ($sale && !$this->canEditContract($sale)) {
+      return redirect()->back()->with('status', 'error')
+        ->with('message', 'Voce nao tem permissao para editar este contrato.');
+    }
+
     if ($this->vendasRepository->updateContract($request->all())) {
       return redirect()->back()->with('status', 'success')->with('message', "Contrato Atualizado");
     } else {
@@ -160,6 +204,13 @@ class Backoffice extends Controller
   {
     try {
       $sale = $this->vendasRepository->find($request->idSale);
+
+      if (!$this->canEditContract($sale)) {
+        return redirect()->route('backoffice.index')
+          ->with('status', 'error')
+          ->with('message', 'Voce nao tem permissao para alterar o status deste contrato.');
+      }
+
       $updateContract = $this->contatosCorretoresRepository->alterStatusContract($sale->contato_id, $request->tabulacao_id);
 
       if ($request->tabulacao_id == Tabulations::IMPLANTADO) {
@@ -267,6 +318,13 @@ class Backoffice extends Controller
           'success' => false,
           'message' => 'Venda não encontrada.',
         ], 404);
+      }
+
+      if (!$this->canEditContract($sale)) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Voce nao tem permissao para alterar o status deste contrato.',
+        ], 403);
       }
 
       // Atualizar status via contatos_corretores
@@ -1454,6 +1512,67 @@ class Backoffice extends Controller
     }
   }
 
+  public function assumirContrato(Request $request)
+  {
+    $request->validate(['venda_id' => 'required|integer']);
+
+    $user = Auth::user();
+    if ($user->user_role_id != UserRole::BACKOFFICE) {
+      return response()->json(['success' => false, 'message' => 'Apenas usuarios backoffice podem assumir contratos.'], 403);
+    }
+
+    $sale = $this->vendasRepository->find($request->venda_id);
+    if (!$sale || $sale->empresa_id != $user->empresa_id) {
+      return response()->json(['success' => false, 'message' => 'Contrato nao encontrado.'], 404);
+    }
+
+    if ($sale->backoffice_id !== null) {
+      $responsavel = User::find($sale->backoffice_id);
+      return response()->json([
+        'success' => false,
+        'message' => 'Este contrato ja possui um responsavel: ' . ($responsavel->name ?? 'Desconhecido'),
+      ], 409);
+    }
+
+    $sale->backoffice_id = $user->id;
+    $sale->save();
+
+    return response()->json(['success' => true, 'message' => 'Contrato assumido com sucesso!']);
+  }
+
+  public function reatribuirContrato(Request $request)
+  {
+    $request->validate([
+      'venda_id' => 'required|integer',
+      'backoffice_id' => 'nullable|integer',
+    ]);
+
+    if (!$this->canReassignContract()) {
+      return response()->json(['success' => false, 'message' => 'Voce nao tem permissao para reatribuir contratos.'], 403);
+    }
+
+    $sale = $this->vendasRepository->find($request->venda_id);
+    if (!$sale || $sale->empresa_id != Auth::user()->empresa_id) {
+      return response()->json(['success' => false, 'message' => 'Contrato nao encontrado.'], 404);
+    }
+
+    if ($request->backoffice_id) {
+      $novoBackoffice = User::where('id', $request->backoffice_id)
+        ->where('empresa_id', Auth::user()->empresa_id)
+        ->where('user_role_id', UserRole::BACKOFFICE)
+        ->first();
+
+      if (!$novoBackoffice) {
+        return response()->json(['success' => false, 'message' => 'Usuario backoffice nao encontrado.'], 404);
+      }
+    }
+
+    $sale->backoffice_id = $request->backoffice_id;
+    $sale->save();
+
+    return response()->json(['success' => true, 'message' => 'Contrato reatribuido com sucesso!']);
+  }
+
   /**
    * Retorna dados para o pipeline visual
    */
@@ -1465,6 +1584,8 @@ class Backoffice extends Controller
       $dataFim = $request->input('data_fim');
       $vendedorId = $request->input('vendedor_id');
       $busca = $request->input('busca');
+      $custodia = $request->input('custodia', '');
+      $isBackoffice = Auth::user()->user_role_id == UserRole::BACKOFFICE;
 
       // Buscar vendas com status de backoffice usando contatos_corretores
       // O status real da venda vem do contato_id vinculado em contatos_corretores
@@ -1480,6 +1601,8 @@ class Backoffice extends Controller
           'vendas.data_implantacao',
           'vendas.contato_id',
           'vendas.motivo_pendencia',
+          'vendas.backoffice_id',
+          'backoffice_user.name as backoffice_nome',
           'users.name as vendedor',
           'users.id as vendedor_id',
           'tabulacoes.id as tabulacao_id',
@@ -1488,6 +1611,7 @@ class Backoffice extends Controller
           'contatos_corretores.updated_at as status_updated_at',
         ])
         ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
+        ->leftJoin('users as backoffice_user', 'backoffice_user.id', '=', 'vendas.backoffice_id')
         ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->where('vendas.empresa_id', $empresaId)
@@ -1507,6 +1631,14 @@ class Backoffice extends Controller
           $q->where('vendas.nome_contrato', 'like', "%{$busca}%")
             ->orWhere('vendas.numero_proposta', 'like', "%{$busca}%")
             ->orWhere('vendas.operadora', 'like', "%{$busca}%");
+        });
+      }
+
+      // Filtro de custodia: backoffice ve apenas seus contratos por padrao
+      if ($isBackoffice && $custodia !== 'todos') {
+        $query->where(function ($q) {
+          $q->where('vendas.backoffice_id', Auth::id())
+            ->orWhereNull('vendas.backoffice_id');
         });
       }
 
@@ -1585,6 +1717,8 @@ class Backoffice extends Controller
               'atrasado' => $prazoMaximo && $diasNoStatus > $prazoMaximo,
               'motivo_pendencia' => $v->motivo_pendencia,
               'contato_id' => $v->contato_id,
+              'backoffice_id' => $v->backoffice_id,
+              'backoffice_nome' => $v->backoffice_nome,
             ];
           })->values(),
         ];
@@ -1628,6 +1762,7 @@ class Backoffice extends Controller
         ],
         'vendedores' => $vendedores,
         'tabulacoes' => $tabulacoes,
+        'isBackoffice' => $isBackoffice,
       ]);
     } catch (\Throwable $e) {
       return response()->json([

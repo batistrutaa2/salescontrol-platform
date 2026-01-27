@@ -8,6 +8,123 @@
                     document.querySelector('input[name="id"]')?.value;
 
     // ============================================
+    // Modo read-only (backoffice)
+    // ============================================
+    function ativarModoReadOnly() {
+        document.querySelectorAll('form#form-empresa, form[data-readonly]').forEach(function (form) {
+            form.setAttribute('data-readonly', 'true');
+            form.querySelectorAll('input, select, textarea').forEach(function (el) {
+                el.disabled = true;
+            });
+        });
+        document.querySelectorAll('.btn-add-dep, .btn-edit, .btn-add-port, .btn-add-acesso, [data-bs-target="#modalAddAcesso"], .pme-btn-save').forEach(function (el) {
+            el.style.display = 'none';
+        });
+    }
+
+    var readonlyForms = document.querySelectorAll('form[data-readonly="true"]');
+    if (readonlyForms.length) {
+        ativarModoReadOnly();
+    }
+
+    // ============================================
+    // Modal obrigatorio para assumir contrato (backoffice)
+    // ============================================
+    var modalEl = document.getElementById('modalAssumirContrato');
+    if (modalEl) {
+        var modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        // Apenas Visualizar -> fecha modal e ativa read-only
+        var btnVisualizar = document.getElementById('btn-apenas-visualizar');
+        if (btnVisualizar) {
+            btnVisualizar.addEventListener('click', function () {
+                modal.hide();
+                ativarModoReadOnly();
+            });
+        }
+
+        // Assumir Contrato -> AJAX e reload
+        var btnAssumir = document.getElementById('btn-assumir-contrato');
+        if (btnAssumir) {
+            btnAssumir.addEventListener('click', function () {
+                var vendaIdVal = this.dataset.vendaId;
+                var btn = this;
+                btn.disabled = true;
+                btn.textContent = 'Assumindo...';
+                if (btnVisualizar) btnVisualizar.disabled = true;
+
+                fetch('/back-office/assumir-contrato', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    },
+                    body: JSON.stringify({ venda_id: vendaIdVal }),
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        var msg = data.message || 'Erro ao assumir contrato.';
+                        if (typeof Swal !== 'undefined') { Swal.fire('Erro', msg, 'error'); }
+                        else { alert(msg); }
+                        btn.disabled = false;
+                        btn.textContent = 'Assumir Contrato';
+                        if (btnVisualizar) btnVisualizar.disabled = false;
+                    }
+                }).catch(function () {
+                    btn.disabled = false;
+                    btn.textContent = 'Assumir Contrato';
+                    if (btnVisualizar) btnVisualizar.disabled = false;
+                });
+            });
+        }
+    }
+
+    // ============================================
+    // Reatribuir Contrato (backoffice)
+    // ============================================
+    const btnReatribuir = document.getElementById('btn-reatribuir');
+    if (btnReatribuir) {
+        btnReatribuir.addEventListener('click', function () {
+            const vendaIdVal = this.dataset.vendaId;
+            const select = document.getElementById('reatribuir-select');
+            const backofficeId = select ? select.value : '';
+            const btn = this;
+
+            if (!backofficeId) {
+                if (typeof Swal !== 'undefined') { Swal.fire('Atencao', 'Selecione um usuario para reatribuir.', 'warning'); }
+                else { alert('Selecione um usuario para reatribuir.'); }
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Reatribuindo...';
+            fetch('/back-office/reatribuir-contrato', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                },
+                body: JSON.stringify({ venda_id: vendaIdVal, backoffice_id: backofficeId }),
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    var msg = data.message || 'Erro ao reatribuir.';
+                    if (typeof Swal !== 'undefined') { Swal.fire('Erro', msg, 'error'); }
+                    else { alert(msg); }
+                    btn.disabled = false;
+                    btn.textContent = 'Reatribuir';
+                }
+            }).catch(function () {
+                btn.disabled = false;
+                btn.textContent = 'Reatribuir';
+            });
+        });
+    }
+
+    // ============================================
     // Initialize Flatpickr
     // ============================================
     if (typeof flatpickr !== 'undefined') {

@@ -46,6 +46,16 @@
 
             <div class="header-actions">
                 <div class="kanban-filters">
+                    @if ($isBackoffice ?? false)
+                    <div class="filter-item">
+                        <label>Custodia</label>
+                        <select id="filter-custodia" class="form-select form-select-sm">
+                            <option value="meus">Meus Contratos</option>
+                            <option value="todos">Todos</option>
+                        </select>
+                    </div>
+                    @endif
+
                     <div class="filter-item">
                         <label>Vendedor</label>
                         <select id="filter-vendedor" class="form-select form-select-sm">

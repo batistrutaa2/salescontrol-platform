@@ -17,6 +17,7 @@ class Vendas extends Model
     'numero_proposta',
     'empresa_id',
     'user_id',
+    'backoffice_id',
     'contato_id',
     'nome_contrato',
     'cpf_cnpj',
@@ -109,6 +110,11 @@ class Vendas extends Model
   public function usuarioBoasVindas()
   {
     return $this->belongsTo(User::class, 'boas_vindas_enviado_por');
+  }
+
+  public function backoffice()
+  {
+    return $this->belongsTo(User::class, 'backoffice_id');
   }
 
 

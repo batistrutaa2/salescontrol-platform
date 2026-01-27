@@ -205,6 +205,8 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/pipeline-data', [Backoffice::class, 'getPipelineData'])->name('backoffice.pipelineData');
   Route::get('/back-office/contratos-por-status/{tabulacaoId}', [Backoffice::class, 'getContratosPorStatus'])->name('backoffice.contratosPorStatus');
   Route::get('/back-office/historico/{vendaId}', [Backoffice::class, 'getHistorico'])->name('backoffice.historico');
+  Route::post('/back-office/assumir-contrato', [Backoffice::class, 'assumirContrato'])->name('backoffice.assumirContrato');
+  Route::post('/back-office/reatribuir-contrato', [Backoffice::class, 'reatribuirContrato'])->name('backoffice.reatribuirContrato');
 
   // Acessos Empresa
   Route::get('/back-office/acessos-empresa/{vendaId}', [Backoffice::class, 'getAcessosEmpresa'])->name('backoffice.getAcessosEmpresa');

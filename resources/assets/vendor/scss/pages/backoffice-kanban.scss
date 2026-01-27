@@ -620,6 +620,79 @@
     }
 }
 
+// Backoffice responsible strip
+.card-backoffice-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    border-top: 1px solid var(--kb-card-border);
+    border-radius: 0 0 var(--kb-border-radius-sm) 0;
+    overflow: hidden;
+
+    > i {
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .bo-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+
+    // Assigned — subtle primary tint
+    &.has-owner {
+        background: linear-gradient(
+            90deg,
+            rgba(var(--kb-primary-rgb), 0.10) 0%,
+            rgba(var(--kb-primary-rgb), 0.04) 100%
+        );
+        color: var(--kb-primary);
+
+        > i {
+            opacity: 0.8;
+        }
+    }
+
+    // No owner — muted dashed style
+    &.no-owner {
+        background: transparent;
+        color: var(--kb-text-muted);
+        border-top-style: dashed;
+
+        > i {
+            opacity: 0.45;
+        }
+
+        .bo-livre {
+            font-style: italic;
+            font-weight: 500;
+        }
+    }
+}
+
+// Dark-mode adjustments for the strip
+.dark-style .kanban-page {
+    .card-backoffice-strip {
+        &.has-owner {
+            background: linear-gradient(
+                90deg,
+                rgba(var(--kb-primary-rgb), 0.18) 0%,
+                rgba(var(--kb-primary-rgb), 0.06) 100%
+            );
+        }
+
+        &.no-owner {
+            color: var(--kb-text-muted);
+        }
+    }
+}
+
 // Motivo pendencia badge
 .motivo-badge {
     margin: 0 0.75rem 0.5rem;
