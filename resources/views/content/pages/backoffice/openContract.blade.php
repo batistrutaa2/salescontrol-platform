@@ -370,6 +370,13 @@
                                     value="{{ $titular->telefone }}">
                             </div>
 
+                            @if($titular->data_nascimento)
+                            <div class="col-md-4">
+                                <label class="form-label">Data Nasc.</label>
+                                <input type="text" class="form-control" value="{{ $titular->data_nascimento->format('d/m/Y') }} ({{ $titular->data_nascimento->age }} anos)" disabled>
+                            </div>
+                            @endif
+
                             {{-- Plano por titular (limitado à operadora base) --}}
                             <div class="col-md-4">
                                 <label class="form-label">Plano</label>
