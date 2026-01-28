@@ -131,6 +131,18 @@ $(document).ready(function () {
               { data: 'id' },
               { data: 'nome_contrato' },
               { data: 'descricao', render: renderStatus },
+              {
+                data: 'backoffice_nome',
+                render: function (data, type, row) {
+                  if (!data) {
+                    return '<span class="text-muted fst-italic">Não atribuído</span>';
+                  }
+                  return `<span class="d-flex align-items-center">
+                    <i class="ri-user-settings-line text-primary me-2"></i>
+                    ${escapeHtml(data)}
+                  </span>`;
+                }
+              },
               { data: 'valor_contrato', render: (d) => formatMoeda(d) },
               {
                 data: null,
@@ -231,35 +243,53 @@ $(document).ready(function () {
     // Informações do Contrato
     $('#venda-nome-contrato').text(venda.nome_contrato || '-');
     $('#venda-cpf-cnpj').text(venda.cpf_cnpj || '-');
+    $('#venda-telefone').text(venda.telefone1 || '-');
 
-    // Status badge com novo estilo
+    // Status badge com novo estilo clean
     const statusBadge = $('#venda-status-badge');
     const statusText = (venda.descricao || 'N/D').toUpperCase();
-    statusBadge.removeClass('status-pill implantado pendente cancelado default');
-    statusBadge.addClass('status-pill');
+    statusBadge.removeClass('status-badge-clean success warning danger primary');
+    statusBadge.addClass('status-badge-clean');
 
     switch (statusText) {
       case 'IMPLANTADO':
-        statusBadge.addClass('implantado');
+      case 'REGULARIZADO':
+        statusBadge.addClass('success');
         break;
       case 'PENDENTE':
       case 'PENDENCIA':
-        statusBadge.addClass('pendente');
+      case 'ANALISE OPERADORA':
+      case 'ANALISE DOCUMENTO':
+      case 'BOLETO DISPONIVEL':
+        statusBadge.addClass('warning');
         break;
       case 'CANCELADO':
       case 'ESTORNO':
       case 'DECLINADO':
-        statusBadge.addClass('cancelado');
+        statusBadge.addClass('danger');
         break;
       default:
-        statusBadge.addClass('default');
+        statusBadge.addClass('primary');
     }
     statusBadge.text(statusText);
+
+    // Backoffice responsável
+    const backofficeCard = $('#backoffice-card');
+    const backofficeNome = venda.backoffice_nome;
+    if (backofficeNome) {
+      backofficeCard.removeClass('empty');
+      $('#backoffice-avatar').text(backofficeNome.charAt(0).toUpperCase());
+      $('#venda-backoffice-nome').text(backofficeNome);
+    } else {
+      backofficeCard.addClass('empty');
+      $('#backoffice-avatar').html('<i class="ri-user-line"></i>');
+      $('#venda-backoffice-nome').text('Não atribuído');
+    }
 
     $('#venda-operadora').text(venda.operadora || '-');
     $('#venda-plano').text(venda.nome_plano || '-');
     $('#venda-coparticipacao').text(formatCoparticipacao(venda.coparticipacao));
-    $('#venda-angariacao').text(venda.angariacao || '-');
+    $('#venda-angariacao').text(venda.angariacao_status === 'SIM' ? 'Angariação' : 'Normal');
     $('#venda-data-vigencia').text(venda.data_vigencia ? formatarData(venda.data_vigencia) : '-');
     $('#venda-data-implantacao').text(venda.data_implantacao ? formatarData(venda.data_implantacao) : '-');
     $('#venda-vidas').text(venda.vidas || '-');

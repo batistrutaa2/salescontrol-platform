@@ -605,6 +605,7 @@ class Vendas extends Controller
         $vendas = DB::table('vendas as a')
             ->leftJoin('contatos_corretores as b', 'a.contato_id', '=', 'b.contato_id')
             ->leftJoin('tabulacoes as c', 'c.id', '=', 'b.tabulacao_id')
+            ->leftJoin('users as backoffice', 'backoffice.id', '=', 'a.backoffice_id')
             ->where('a.user_id', auth()->user()->id)
             ->whereMonth('a.created_at', $request->mes)
             ->whereYear('a.created_at', $request->ano)
@@ -616,7 +617,8 @@ class Vendas extends Controller
                 'a.motivo_pendencia',
                 'a.path_boleto_disponivel',
                 'b.tabulacao_id',
-                'a.boas_vindas_enviado_em'
+                'a.boas_vindas_enviado_em',
+                'backoffice.name as backoffice_nome'
             )
             ->get();
 
@@ -651,6 +653,7 @@ class Vendas extends Controller
         try {
             $venda = DB::table('vendas')
                 ->leftJoin('users', 'vendas.user_id', '=', 'users.id')
+                ->leftJoin('users as backoffice', 'backoffice.id', '=', 'vendas.backoffice_id')
                 ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
                 ->leftJoin('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
                 ->where('vendas.id', $id)
@@ -658,6 +661,7 @@ class Vendas extends Controller
                 ->select(
                     'vendas.*',
                     'users.name as vendedor_nome',
+                    'backoffice.name as backoffice_nome',
                     'tabulacoes.descricao'
                 )
                 ->first();

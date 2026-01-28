@@ -331,7 +331,7 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════
-           MODAL STYLING
+           MODAL STYLING - Clean & Minimal
         ═══════════════════════════════════════════════════════════════ */
 
         #modalVisualizarVenda .modal-content {
@@ -341,305 +341,249 @@
             background: var(--vd-card-bg);
         }
 
-        .modal-header-premium {
-            position: relative;
-            padding: 1.5rem 1.5rem 2rem;
-            background: linear-gradient(135deg, var(--vd-primary) 0%, var(--vd-accent) 100%);
-        }
-
-        .modal-header-premium::before {
-            content: '';
-            position: absolute;
-            top: -100%;
-            right: -50%;
-            width: 100%;
-            height: 300%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-        }
-
-        .modal-header-premium .modal-title {
-            position: relative;
-            z-index: 2;
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .modal-header-premium .title-icon {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            font-size: 1.1rem;
-        }
-
-        .modal-header-premium .btn-close {
-            position: relative;
-            z-index: 2;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            opacity: 1;
-            padding: 0.5rem;
-            transition: all 0.2s ease;
-        }
-
-        .modal-header-premium .btn-close:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .modal-body-premium {
-            padding: 1.5rem;
-            background: var(--vd-surface-alt);
-        }
-
-        /* Info Cards in Modal */
-        .info-card {
+        .modal-header-clean {
+            padding: 1.25rem 1.5rem;
             background: var(--vd-card-bg);
-            border-radius: 12px;
-            border: 1px solid var(--vd-border);
-            overflow: hidden;
-            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--vd-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .info-card-header {
+        .modal-header-clean .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--vd-text-heading);
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 1rem 1.25rem;
-            background: var(--vd-surface-alt);
-            border-bottom: 1px solid var(--vd-border);
         }
 
-        .info-card-header .header-icon {
+        .modal-header-clean .title-icon {
             width: 36px;
             height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: var(--vd-surface-alt);
             border-radius: 8px;
-            color: #fff;
+            color: var(--vd-primary);
         }
 
-        .info-card-header.contrato .header-icon {
-            background: linear-gradient(135deg, var(--vd-primary), var(--vd-info));
+        .modal-header-clean .btn-close-clean {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--vd-surface-alt);
+            border: none;
+            border-radius: 8px;
+            color: var(--vd-text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .info-card-header.comissao .header-icon {
-            background: linear-gradient(135deg, var(--vd-danger), var(--vd-warning));
-        }
-
-        .info-card-header.historico .header-icon {
-            background: linear-gradient(135deg, var(--vd-success), #4caf50);
-        }
-
-        .info-card-header h6 {
-            font-size: 0.9rem;
-            font-weight: 600;
+        .modal-header-clean .btn-close-clean:hover {
+            background: var(--vd-border);
             color: var(--vd-text-heading);
-            margin: 0;
         }
 
-        .info-card-body {
-            padding: 1.25rem;
+        .modal-body-clean {
+            padding: 1.5rem;
+            background: var(--vd-card-bg);
         }
 
-        /* Contract Hero */
-        .contract-hero {
+        /* Contract Header - Clean */
+        .contract-header-clean {
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
-            padding-bottom: 1rem;
-            margin-bottom: 1rem;
-            border-bottom: 1px dashed var(--vd-border);
+            padding-bottom: 1.25rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--vd-border);
             flex-wrap: wrap;
             gap: 1rem;
         }
 
-        .contract-name {
-            font-size: 1.1rem;
+        .contract-main-info h4 {
+            font-size: 1.15rem;
             font-weight: 600;
             color: var(--vd-text-heading);
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
         }
 
-        .contract-cpf {
+        .contract-meta {
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
             font-size: 0.85rem;
             color: var(--vd-text-muted);
         }
 
-        .contract-cpf i {
-            color: var(--vd-primary);
+        .contract-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
         }
 
-        .status-pill {
-            padding: 0.4rem 1rem;
-            border-radius: 50px;
+        .contract-meta i {
+            font-size: 1rem;
+        }
+
+        .status-badge-clean {
+            padding: 0.35rem 0.85rem;
+            border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.3px;
-            color: #fff;
         }
 
-        .status-pill.implantado {
-            background: linear-gradient(135deg, var(--vd-success), #4caf50);
+        .status-badge-clean.success {
+            background: rgba(113, 221, 55, 0.15);
+            color: var(--vd-success);
         }
 
-        .status-pill.pendente {
-            background: linear-gradient(135deg, var(--vd-warning), #ff9800);
+        .status-badge-clean.warning {
+            background: rgba(255, 171, 0, 0.15);
+            color: var(--vd-warning);
         }
 
-        .status-pill.cancelado {
-            background: linear-gradient(135deg, var(--vd-danger), #f44336);
+        .status-badge-clean.danger {
+            background: rgba(255, 62, 29, 0.15);
+            color: var(--vd-danger);
         }
 
-        .status-pill.default {
-            background: linear-gradient(135deg, var(--vd-primary), var(--vd-accent));
+        .status-badge-clean.primary {
+            background: rgba(105, 108, 255, 0.15);
+            color: var(--vd-primary);
         }
 
-        /* Info Grid */
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
+        /* Info Section Clean */
+        .info-section-clean {
+            margin-bottom: 1.5rem;
         }
 
-        @media (max-width: 768px) {
-            .info-grid { grid-template-columns: 1fr; }
-        }
-
-        .info-block {
-            padding: 1rem;
-            background: var(--vd-surface-alt);
-            border-radius: 10px;
-            border-left: 3px solid var(--block-color, var(--vd-primary));
-        }
-
-        .info-block.plano { --block-color: var(--vd-primary); }
-        .info-block.valor { --block-color: var(--vd-success); }
-
-        .info-block-label {
+        .info-section-clean .section-title {
             font-size: 0.7rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--vd-text-muted);
-            margin-bottom: 0.35rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--vd-border);
         }
 
-        .info-block-value {
-            font-size: 0.95rem;
+        .info-grid-clean {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .info-item-clean {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .info-item-clean .label {
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--vd-text-muted);
+        }
+
+        .info-item-clean .value {
+            font-size: 0.9rem;
             font-weight: 600;
             color: var(--vd-text-heading);
         }
 
-        .info-block-value.large {
-            font-size: 1.35rem;
-            font-weight: 700;
+        .info-item-clean .value.highlight {
+            font-size: 1.1rem;
             color: var(--vd-success);
         }
 
-        /* Details Row */
-        .details-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-top: 1rem;
+        .info-item-clean .value.muted {
+            color: var(--vd-text-muted);
+            font-style: italic;
+            font-weight: 400;
         }
 
-        @media (max-width: 768px) {
-            .details-row { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 480px) {
-            .details-row { grid-template-columns: 1fr; }
-        }
-
-        .detail-item {
+        /* Backoffice Card */
+        .backoffice-card {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 0.75rem;
+            padding: 1rem;
+            background: var(--vd-surface-alt);
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
         }
 
-        .detail-item i {
-            width: 28px;
-            height: 28px;
+        .backoffice-card .avatar {
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--vd-surface-alt);
+            background: var(--vd-primary);
             border-radius: 8px;
-            color: var(--vd-primary);
+            color: #fff;
+            font-weight: 600;
             font-size: 0.9rem;
-            flex-shrink: 0;
         }
 
-        .detail-label {
+        .backoffice-card .info .label {
             font-size: 0.7rem;
-            font-weight: 600;
+            font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.3px;
             color: var(--vd-text-muted);
-            margin-bottom: 0.15rem;
         }
 
-        .detail-value {
-            font-size: 0.85rem;
+        .backoffice-card .info .name {
+            font-size: 0.9rem;
             font-weight: 600;
             color: var(--vd-text-heading);
         }
 
-        /* Commission Grid */
-        .commission-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
+        .backoffice-card.empty {
+            background: transparent;
+            border: 1px dashed var(--vd-border);
         }
 
-        .commission-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .commission-icon {
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, var(--vd-danger), var(--vd-warning));
-            border-radius: 12px;
-            color: #fff;
-            font-size: 1.25rem;
-        }
-
-        .commission-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+        .backoffice-card.empty .avatar {
+            background: var(--vd-border);
             color: var(--vd-text-muted);
-            margin-bottom: 0.15rem;
         }
 
-        .commission-value {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--vd-danger);
+        /* Modal Footer Clean */
+        .modal-footer-clean {
+            padding: 1rem 1.5rem;
+            background: var(--vd-card-bg);
+            border-top: 1px solid var(--vd-border);
+            display: flex;
+            justify-content: flex-end;
         }
 
-        .dark-style .commission-value {
-            color: var(--vd-warning);
+        .btn-close-modal-clean {
+            padding: 0.5rem 1rem;
+            background: var(--vd-surface-alt);
+            border: 1px solid var(--vd-border);
+            border-radius: 8px;
+            color: var(--vd-text);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-close-modal-clean:hover {
+            background: var(--vd-border);
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -1155,6 +1099,7 @@
                             <th>ID</th>
                             <th>Nome do Contrato</th>
                             <th>Status</th>
+                            <th>Backoffice</th>
                             <th>Valor</th>
                             <th>Ações</th>
                         </tr>
@@ -1168,49 +1113,65 @@
     </div>
 </div>
 
-<!-- Modal Visualizar Venda -->
+<!-- Modal Visualizar Venda - Clean Design -->
 <div class="modal fade" id="modalVisualizarVenda" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <!-- Header com botão fechar visível -->
-            <div class="modal-header-premium d-flex justify-content-between align-items-start">
+            <!-- Header Clean -->
+            <div class="modal-header-clean">
                 <h5 class="modal-title">
                     <span class="title-icon">
-                        <i class="ri-file-list-3-line"></i>
+                        <i class="ri-file-text-line"></i>
                     </span>
-                    <span>
-                        Detalhes da Venda
-                        <span class="fw-normal opacity-75">#<span id="venda-modal-id">-</span></span>
-                    </span>
+                    <span>Proposta #<span id="venda-modal-id">-</span></span>
                 </h5>
-                <button type="button" class="btn-close-custom" data-bs-dismiss="modal" aria-label="Close">
+                <button type="button" class="btn-close-clean" data-bs-dismiss="modal" aria-label="Close">
                     <i class="ri-close-line"></i>
                 </button>
             </div>
 
-            <!-- Body -->
-            <div class="modal-body-premium">
+            <!-- Body Clean -->
+            <div class="modal-body-clean">
                 <!-- Loading State -->
                 <div id="venda-loading" class="loading-state">
                     <div class="loading-spinner"></div>
-                    <p class="loading-text">Carregando detalhes da venda...</p>
+                    <p class="loading-text">Carregando detalhes...</p>
                 </div>
 
                 <!-- Content -->
                 <div id="venda-content" class="d-none">
 
+                    <!-- Contract Header -->
+                    <div class="contract-header-clean">
+                        <div class="contract-main-info">
+                            <h4 id="venda-nome-contrato">-</h4>
+                            <div class="contract-meta">
+                                <span><i class="ri-id-card-line"></i> <span id="venda-cpf-cnpj">-</span></span>
+                                <span><i class="ri-phone-line"></i> <span id="venda-telefone">-</span></span>
+                            </div>
+                        </div>
+                        <span class="status-badge-clean primary" id="venda-status-badge">-</span>
+                    </div>
+
+                    <!-- Backoffice Responsável -->
+                    <div class="backoffice-card" id="backoffice-card">
+                        <div class="avatar" id="backoffice-avatar">-</div>
+                        <div class="info">
+                            <div class="label">Responsável Backoffice</div>
+                            <div class="name" id="venda-backoffice-nome">-</div>
+                        </div>
+                    </div>
+
                     <!-- Tabs Navigation -->
                     <ul class="nav nav-tabs nav-tabs-custom mb-4" id="vendaDetailsTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="tab-contrato" data-bs-toggle="tab" data-bs-target="#panel-contrato" type="button" role="tab" aria-controls="panel-contrato" aria-selected="true">
-                                <i class="ri-file-text-line me-2"></i>
-                                Informações do Contrato
+                            <button class="nav-link active" id="tab-contrato" data-bs-toggle="tab" data-bs-target="#panel-contrato" type="button" role="tab">
+                                <i class="ri-file-text-line me-2"></i>Contrato
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="tab-historico" data-bs-toggle="tab" data-bs-target="#panel-historico" type="button" role="tab" aria-controls="panel-historico" aria-selected="false">
-                                <i class="ri-history-line me-2"></i>
-                                Histórico da Proposta
+                            <button class="nav-link" id="tab-historico" data-bs-toggle="tab" data-bs-target="#panel-historico" type="button" role="tab">
+                                <i class="ri-history-line me-2"></i>Histórico
                             </button>
                         </li>
                     </ul>
@@ -1218,118 +1179,83 @@
                     <!-- Tabs Content -->
                     <div class="tab-content" id="vendaDetailsTabsContent">
 
-                        <!-- Tab: Informações do Contrato -->
-                        <div class="tab-pane fade show active" id="panel-contrato" role="tabpanel" aria-labelledby="tab-contrato">
+                        <!-- Tab: Contrato -->
+                        <div class="tab-pane fade show active" id="panel-contrato" role="tabpanel">
 
-                            <!-- Hero Section com Status -->
-                            <div class="contract-hero-section mb-4">
-                                <div class="contract-hero">
-                                    <div>
-                                        <div class="contract-name" id="venda-nome-contrato">-</div>
-                                        <div class="contract-cpf">
-                                            <i class="ri-id-card-line"></i>
-                                            <span id="venda-cpf-cnpj">-</span>
-                                        </div>
+                            <!-- Plano e Operadora -->
+                            <div class="info-section-clean">
+                                <div class="section-title">Informações do Plano</div>
+                                <div class="info-grid-clean">
+                                    <div class="info-item-clean">
+                                        <span class="label">Operadora</span>
+                                        <span class="value" id="venda-operadora">-</span>
                                     </div>
-                                    <span class="status-pill default" id="venda-status-badge">-</span>
-                                </div>
-                            </div>
-
-                            <!-- Info Grid: Plano e Valor -->
-                            <div class="info-grid mb-4">
-                                <div class="info-block plano">
-                                    <div class="info-block-label">Plano</div>
-                                    <div class="info-block-value" id="venda-plano">-</div>
-                                    <div class="info-block-label mt-3">Operadora</div>
-                                    <div class="info-block-value" id="venda-operadora">-</div>
-                                    <div class="info-block-label mt-3">Coparticipação</div>
-                                    <div class="info-block-value" id="venda-coparticipacao">-</div>
-                                </div>
-                                <div class="info-block valor">
-                                    <div class="info-block-label">Valor do Contrato</div>
-                                    <div class="info-block-value large" id="venda-valor">-</div>
-                                    <div class="info-block-label mt-3">Quantidade de Vidas</div>
-                                    <div class="info-block-value" id="venda-vidas">-</div>
-                                </div>
-                            </div>
-
-                            <!-- Details Grid -->
-                            <div class="details-row mb-4">
-                                <div class="detail-item">
-                                    <i class="ri-calendar-line"></i>
-                                    <div>
-                                        <div class="detail-label">Data Vigência</div>
-                                        <div class="detail-value" id="venda-data-vigencia">-</div>
+                                    <div class="info-item-clean">
+                                        <span class="label">Plano</span>
+                                        <span class="value" id="venda-plano">-</span>
                                     </div>
-                                </div>
-                                <div class="detail-item">
-                                    <i class="ri-calendar-check-line"></i>
-                                    <div>
-                                        <div class="detail-label">Data Implantação</div>
-                                        <div class="detail-value" id="venda-data-implantacao">-</div>
+                                    <div class="info-item-clean">
+                                        <span class="label">Coparticipação</span>
+                                        <span class="value" id="venda-coparticipacao">-</span>
                                     </div>
-                                </div>
-                                <div class="detail-item">
-                                    <i class="ri-price-tag-3-line"></i>
-                                    <div>
-                                        <div class="detail-label">Tipo</div>
-                                        <div class="detail-value" id="venda-angariacao">-</div>
-                                    </div>
-                                </div>
-                                <div class="detail-item">
-                                    <i class="ri-user-star-line"></i>
-                                    <div>
-                                        <div class="detail-label">Vendedor</div>
-                                        <div class="detail-value" id="venda-vendedor">-</div>
-                                    </div>
-                                </div>
-                                <div class="detail-item">
-                                    <i class="ri-file-list-2-line"></i>
-                                    <div>
-                                        <div class="detail-label">Nº Proposta</div>
-                                        <div class="detail-value" id="venda-numero-proposta">-</div>
+                                    <div class="info-item-clean">
+                                        <span class="label">Vidas</span>
+                                        <span class="value" id="venda-vidas">-</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Comissão Card -->
-                            <div class="info-card">
-                                <div class="info-card-header comissao">
-                                    <div class="header-icon">
-                                        <i class="ri-money-dollar-circle-line"></i>
+                            <!-- Valores -->
+                            <div class="info-section-clean">
+                                <div class="section-title">Valores</div>
+                                <div class="info-grid-clean">
+                                    <div class="info-item-clean">
+                                        <span class="label">Valor do Contrato</span>
+                                        <span class="value highlight" id="venda-valor">-</span>
                                     </div>
-                                    <h6>Informações de Comissão</h6>
+                                    <div class="info-item-clean">
+                                        <span class="label">Comissão</span>
+                                        <span class="value" id="venda-comissao-valor">-</span>
+                                    </div>
+                                    <div class="info-item-clean">
+                                        <span class="label">% Comissão</span>
+                                        <span class="value" id="venda-comissao-percentual">-</span>
+                                    </div>
+                                    <div class="info-item-clean">
+                                        <span class="label">Tipo</span>
+                                        <span class="value" id="venda-angariacao">-</span>
+                                    </div>
                                 </div>
-                                <div class="info-card-body">
-                                    <div class="commission-grid">
-                                        <div class="commission-item">
-                                            <div class="commission-icon">
-                                                <i class="ri-currency-line"></i>
-                                            </div>
-                                            <div>
-                                                <div class="commission-label">Valor da Comissão</div>
-                                                <div class="commission-value" id="venda-comissao-valor">-</div>
-                                            </div>
-                                        </div>
-                                        <div class="commission-item">
-                                            <div class="commission-icon">
-                                                <i class="ri-percent-line"></i>
-                                            </div>
-                                            <div>
-                                                <div class="commission-label">Percentual</div>
-                                                <div class="commission-value" id="venda-comissao-percentual">-</div>
-                                            </div>
-                                        </div>
+                            </div>
+
+                            <!-- Datas e Detalhes -->
+                            <div class="info-section-clean">
+                                <div class="section-title">Datas e Detalhes</div>
+                                <div class="info-grid-clean">
+                                    <div class="info-item-clean">
+                                        <span class="label">Data Vigência</span>
+                                        <span class="value" id="venda-data-vigencia">-</span>
+                                    </div>
+                                    <div class="info-item-clean">
+                                        <span class="label">Data Implantação</span>
+                                        <span class="value" id="venda-data-implantacao">-</span>
+                                    </div>
+                                    <div class="info-item-clean">
+                                        <span class="label">Nº Proposta</span>
+                                        <span class="value" id="venda-numero-proposta">-</span>
+                                    </div>
+                                    <div class="info-item-clean">
+                                        <span class="label">Vendedor</span>
+                                        <span class="value" id="venda-vendedor">-</span>
                                     </div>
                                 </div>
                             </div>
 
                         </div>
 
-                        <!-- Tab: Histórico da Proposta -->
-                        <div class="tab-pane fade" id="panel-historico" role="tabpanel" aria-labelledby="tab-historico">
+                        <!-- Tab: Histórico -->
+                        <div class="tab-pane fade" id="panel-historico" role="tabpanel">
 
-                            <!-- Loading do histórico -->
                             <div id="historico-loading" class="text-center py-4">
                                 <div class="spinner-border spinner-border-sm text-primary" role="status">
                                     <span class="visually-hidden">Carregando...</span>
@@ -1337,16 +1263,13 @@
                                 <span class="ms-2" style="color: var(--vd-text-muted);">Carregando histórico...</span>
                             </div>
 
-                            <!-- Timeline do histórico -->
                             <div id="historico-content" class="d-none">
-                                <div id="historico-timeline" class="timeline-venda">
-                                    <!-- Timeline items serão inseridos via JS -->
-                                </div>
+                                <div id="historico-timeline" class="timeline-venda"></div>
                                 <div id="historico-vazio" class="empty-state d-none">
                                     <div class="empty-state-icon">
                                         <i class="ri-inbox-line"></i>
                                     </div>
-                                    <p class="empty-state-text">Nenhum histórico de alteração encontrado.</p>
+                                    <p class="empty-state-text">Nenhum histórico encontrado.</p>
                                 </div>
                             </div>
 
@@ -1357,10 +1280,9 @@
                 </div>
             </div>
 
-            <!-- Footer -->
-            <div class="modal-footer-premium">
-                <button type="button" class="btn-close-modal" data-bs-dismiss="modal">
-                    <i class="ri-close-line"></i>
+            <!-- Footer Clean -->
+            <div class="modal-footer-clean">
+                <button type="button" class="btn-close-modal-clean" data-bs-dismiss="modal">
                     Fechar
                 </button>
             </div>
