@@ -176,9 +176,9 @@
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 </a>
                 <div class="pme-header-info">
-                    <span class="header-badge">PME</span>
+                    <span class="header-badge" id="header-badge-tipo">{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'ADESAO' : 'PME' }}</span>
                     <h1 class="page-title">{{ $contract->nome_contrato }}</h1>
-                    <span class="page-subtitle">CNPJ: {{ $contract->cpf_cnpj }} | Contrato #{{ $contract->id }}</span>
+                    <span class="page-subtitle" id="page-subtitle-doc">{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'CPF' : 'CNPJ' }}: {{ $contract->cpf_cnpj }} | Contrato #{{ $contract->id }}</span>
                 </div>
             </div>
             <div class="pme-header-stats">
@@ -219,26 +219,44 @@
                         <form method="POST" action="{{ route('backoffice.updateSale') }}" id="form-empresa" @if (!($canEdit ?? true)) data-readonly="true" @endif>
                             @csrf
                             <input type="hidden" name="id" value="{{ $contract->id }}">
+                            <input type="hidden" id="tipo_contrato" name="tipo_contrato" value="{{ $contract->tipo_contrato ?? 'PME' }}">
+                            <input type="hidden" id="layout_venda" name="layout_venda" value="{{ $contract->layout_venda ?? 'ANTIGO' }}">
+
+                            {{-- Toggle Tipo de Proposta --}}
+                            <div class="pme-inline-toggle" style="margin-bottom: 1rem;">
+                                <div class="toggle-info">
+                                    <span class="toggle-label">Tipo de Proposta</span>
+                                    <span class="status-badge {{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'badge-warning' : 'badge-ativo' }}" id="tipo-proposta-badge">
+                                        {{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'Adesao' : 'PME' }}
+                                    </span>
+                                </div>
+                                <div class="toggle-controls">
+                                    <select id="tipo_proposta_toggle" class="pme-input pme-input-sm">
+                                        <option value="PME" {{ ($contract->tipo_contrato ?? 'PME') !== 'ADESAO' ? 'selected' : '' }}>PME (Empresa)</option>
+                                        <option value="ADESAO" {{ ($contract->tipo_contrato ?? '') === 'ADESAO' ? 'selected' : '' }}>Adesao (Pessoa Fisica)</option>
+                                    </select>
+                                </div>
+                            </div>
 
                             <div class="pme-grid grid-2">
                                 <div class="pme-field span-2">
-                                    <label>Razao Social</label>
+                                    <label id="label-razao-social">{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'Nome do Cliente' : 'Razao Social' }}</label>
                                     <input type="text" name="nome_contrato" class="pme-input" value="{{ $contract->nome_contrato }}">
                                 </div>
                                 <div class="pme-field">
-                                    <label>CNPJ</label>
-                                    <input type="text" name="cpf_cnpj" class="pme-input mask-cnpj" value="{{ $contract->cpf_cnpj }}">
+                                    <label id="label-cpf-cnpj">{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'CPF' : 'CNPJ' }}</label>
+                                    <input type="text" id="cpf_cnpj" name="cpf_cnpj" class="pme-input {{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'mask-cpf-dynamic' : 'mask-cnpj' }}" value="{{ $contract->cpf_cnpj }}">
                                 </div>
-                                <div class="pme-field">
+                                <div class="pme-field" id="field-tipo-empresa" style="{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'display:none;' : '' }}">
                                     <label>Tipo Empresa</label>
-                                    <select name="tipo_empresa" class="pme-input">
+                                    <select id="tipo_empresa" name="tipo_empresa" class="pme-input">
                                         <option value="">Selecione...</option>
                                         @foreach($tiposEmpresa as $key => $label)
                                             <option value="{{ $key }}" {{ $contract->tipo_empresa === $key ? 'selected' : '' }}>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="pme-field">
+                                <div class="pme-field" id="field-data-abertura" style="{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'display:none;' : '' }}">
                                     <label>Data Abertura</label>
                                     <input type="text" name="data_abertura" class="pme-input flatpickr-date" value="{{ $contract->data_abertura ? $contract->data_abertura->format('d/m/Y') : '' }}">
                                 </div>
@@ -477,7 +495,7 @@
                                 <div class="titular-identity">
                                     <span class="titular-nome">{{ $titular->nome }}</span>
                                     <div class="titular-tags">
-                                        @if($titular->cargo)
+                                        @if($titular->cargo && ($contract->tipo_contrato ?? 'PME') !== 'ADESAO')
                                             <span class="tag tag-cargo">{{ $cargos[$titular->cargo] ?? $titular->cargo }}</span>
                                         @endif
                                         @if($titular->plano_anterior === 'SIM')
@@ -797,7 +815,7 @@
                                 <label>Telefone 2</label>
                                 <input type="text" name="telefone2" id="edit_titular_telefone2" class="pme-input mask-telefone-modal">
                             </div>
-                            <div class="pme-field">
+                            <div class="pme-field field-cargo-modal" @if(($contract->tipo_contrato ?? 'PME') === 'ADESAO') style="display:none;" @endif>
                                 <label>Cargo</label>
                                 <select name="cargo" id="edit_titular_cargo" class="pme-input">
                                     <option value="">Selecione...</option>

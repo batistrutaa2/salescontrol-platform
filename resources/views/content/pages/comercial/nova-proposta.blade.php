@@ -72,7 +72,7 @@ $isFooter = false;
     <form method="POST" action="{{ route('comercial.createSale') }}" class="np-form" id="formNovaProposta">
         @csrf
         <input type="hidden" id="contato_id" name="contato_id" value="{{ $client->id }}" />
-        <input type="hidden" name="tipo_contrato" value="PME" />
+        <input type="hidden" id="tipo_contrato" name="tipo_contrato" value="PME" />
 
         {{-- Layout Principal em 2 Colunas --}}
         <div class="np-layout">
@@ -92,16 +92,30 @@ $isFooter = false;
                         <span class="section-title">Dados da Empresa</span>
                     </div>
                     <div class="section-body">
+                        {{-- Toggle Tipo de Proposta --}}
+                        <div class="np-inline-toggle" style="margin-bottom: 1rem;">
+                            <div class="toggle-info">
+                                <span class="toggle-label">Tipo de Proposta</span>
+                                <span class="status-badge badge-ativo" id="tipo-proposta-badge">PME</span>
+                            </div>
+                            <div class="toggle-controls">
+                                <select id="tipo_proposta_toggle" class="np-input np-input-sm">
+                                    <option value="PME" selected>PME (Empresa)</option>
+                                    <option value="ADESAO">Adesao (Pessoa Fisica)</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="np-grid grid-2">
                             <div class="np-field span-2">
-                                <label>Razao Social</label>
+                                <label id="label-razao-social">Razao Social</label>
                                 <input type="text" id="nome_contrato" name="nome_contrato" class="np-input @error('nome_contrato') is-invalid @enderror" placeholder="RAZAO SOCIAL DA EMPRESA" value="{{ old('nome_contrato') }}" required />
                             </div>
                             <div class="np-field">
-                                <label>CNPJ</label>
-                                <input type="text" id="cpf_cnpj" name="cpf_cnpj" class="np-input mask-cnpj @error('cpf_cnpj') is-invalid @enderror" placeholder="00.000.000/0000-00" value="{{ old('cpf_cnpj') }}" required />
+                                <label id="label-cpf-cnpj">CNPJ</label>
+                                <input type="text" id="cpf_cnpj" name="cpf_cnpj" class="np-input @error('cpf_cnpj') is-invalid @enderror" placeholder="00.000.000/0000-00" value="{{ old('cpf_cnpj') }}" required />
                             </div>
-                            <div class="np-field">
+                            <div class="np-field" id="field-tipo-empresa">
                                 <label>Tipo Empresa</label>
                                 <select id="tipo_empresa" name="tipo_empresa" class="np-input @error('tipo_empresa') is-invalid @enderror" required>
                                     <option value="">Selecione...</option>
@@ -114,7 +128,7 @@ $isFooter = false;
                                     <option value="SLU" {{ old('tipo_empresa') == 'SLU' ? 'selected' : '' }}>SLU</option>
                                 </select>
                             </div>
-                            <div class="np-field">
+                            <div class="np-field" id="field-data-abertura">
                                 <label>Data Abertura</label>
                                 <input type="text" id="data_abertura" name="data_abertura" class="np-input flatpickr-date" placeholder="DD/MM/AAAA" value="{{ old('data_abertura') }}" />
                             </div>
@@ -302,15 +316,17 @@ $isFooter = false;
                 <input type="text" name="titulares[__INDEX__][telefone2]" class="np-input mask-telefone" placeholder="Telefone 2">
             </div>
             <div class="field-row">
-                <select name="titulares[__INDEX__][cargo]" class="np-input" required>
-                    <option value="">Cargo...</option>
-                    <option value="SOCIO">Socio</option>
-                    <option value="DIRETOR">Diretor</option>
-                    <option value="GERENTE">Gerente</option>
-                    <option value="FUNCIONARIO">Funcionario</option>
-                    <option value="PRESTADOR">Prestador</option>
-                    <option value="ESTAGIARIO">Estagiario</option>
-                </select>
+                <div class="field-cargo-wrapper">
+                    <select name="titulares[__INDEX__][cargo]" class="np-input select-cargo-titular" required>
+                        <option value="">Cargo...</option>
+                        <option value="SOCIO">Socio</option>
+                        <option value="DIRETOR">Diretor</option>
+                        <option value="GERENTE">Gerente</option>
+                        <option value="FUNCIONARIO">Funcionario</option>
+                        <option value="PRESTADOR">Prestador</option>
+                        <option value="ESTAGIARIO">Estagiario</option>
+                    </select>
+                </div>
                 <select name="titulares[__INDEX__][plano_id]" class="np-input select-plano-titular" required>
                     <option value="">Plano...</option>
                 </select>
@@ -513,6 +529,12 @@ $isFooter = false;
 <script>
     window.oldTitulares = @json(old('titulares', []));
     window.oldOperadoraId = @json(old('operadora_id'));
+
+    // Dados do cliente para modo ADESAO
+    window.clientData = {
+        nome: @json($client->nome_cliente ?? ''),
+        cpf: @json($client->cpf ?? '')
+    };
 
     // Modal de documentacao
     document.addEventListener('DOMContentLoaded', function() {

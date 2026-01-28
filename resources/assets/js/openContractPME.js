@@ -6,6 +6,8 @@
     // ============================================
     const vendaId = document.querySelector('input[name="venda_id"]')?.value ||
                     document.querySelector('input[name="id"]')?.value;
+    let currentPropostaType = document.getElementById('tipo_contrato')?.value || 'PME';
+    let cpfCnpjCleaveInstance = null;
 
     // ============================================
     // Modo read-only (backoffice)
@@ -134,16 +136,36 @@
     }
 
     // ============================================
-    // CNPJ Mask
+    // CNPJ/CPF Mask (dynamic based on tipo_contrato)
     // ============================================
-    const inputCnpj = document.querySelector('.mask-cnpj');
-    if (inputCnpj && typeof Cleave !== 'undefined') {
-        new Cleave(inputCnpj, {
-            delimiters: ['.', '.', '/', '-'],
-            blocks: [2, 3, 3, 4, 2],
-            numericOnly: true
-        });
+    const inputCpfCnpj = document.getElementById('cpf_cnpj');
+    if (inputCpfCnpj && typeof Cleave !== 'undefined') {
+        // Inicializa mascara baseado no tipo atual
+        if (currentPropostaType === 'ADESAO') {
+            cpfCnpjCleaveInstance = new Cleave(inputCpfCnpj, {
+                delimiters: ['.', '.', '-'],
+                blocks: [3, 3, 3, 2],
+                numericOnly: true
+            });
+        } else {
+            cpfCnpjCleaveInstance = new Cleave(inputCpfCnpj, {
+                delimiters: ['.', '.', '/', '-'],
+                blocks: [2, 3, 3, 4, 2],
+                numericOnly: true
+            });
+        }
     }
+
+    // Fallback para elementos com classe .mask-cnpj que nao sao o campo principal
+    document.querySelectorAll('.mask-cnpj:not(#cpf_cnpj)').forEach(function(el) {
+        if (typeof Cleave !== 'undefined') {
+            new Cleave(el, {
+                delimiters: ['.', '.', '/', '-'],
+                blocks: [2, 3, 3, 4, 2],
+                numericOnly: true
+            });
+        }
+    });
 
     // ============================================
     // CPF Mask
@@ -259,6 +281,177 @@
             const isSim = this.value === 'SIM';
             planoDentalBadge.className = `status-badge ${isSim ? 'badge-ativo' : 'badge-inativo'}`;
             planoDentalBadge.textContent = isSim ? 'Ativo' : 'Inativo';
+        });
+    }
+
+    // ============================================
+    // Toggle ADESAO/PME
+    // ============================================
+    function switchToAdesaoMode() {
+        currentPropostaType = 'ADESAO';
+
+        // Atualizar hidden inputs
+        const tipoContratoInput = document.getElementById('tipo_contrato');
+        if (tipoContratoInput) tipoContratoInput.value = 'ADESAO';
+
+        // Setar layout_venda como NOVO para ADESAO
+        const layoutVendaInput = document.getElementById('layout_venda');
+        if (layoutVendaInput) layoutVendaInput.value = 'NOVO';
+
+        // Atualizar badge do toggle
+        const badge = document.getElementById('tipo-proposta-badge');
+        if (badge) {
+            badge.textContent = 'Adesao';
+            badge.classList.remove('badge-ativo');
+            badge.classList.add('badge-warning');
+        }
+
+        // Atualizar badge do header
+        const headerBadge = document.getElementById('header-badge-tipo');
+        if (headerBadge) {
+            headerBadge.textContent = 'ADESAO';
+        }
+
+        // Atualizar subtitle do header
+        const pageSubtitle = document.getElementById('page-subtitle-doc');
+        if (pageSubtitle) {
+            const cpfCnpjValue = document.getElementById('cpf_cnpj')?.value || '';
+            const contratoId = vendaId || '';
+            pageSubtitle.textContent = `CPF: ${cpfCnpjValue} | Contrato #${contratoId}`;
+        }
+
+        // Trocar mascara CNPJ -> CPF
+        const cpfCnpjInput = document.getElementById('cpf_cnpj');
+        if (cpfCnpjInput && typeof Cleave !== 'undefined') {
+            const currentValue = cpfCnpjInput.value.replace(/\D/g, '');
+            if (cpfCnpjCleaveInstance) {
+                cpfCnpjCleaveInstance.destroy();
+            }
+            cpfCnpjCleaveInstance = new Cleave(cpfCnpjInput, {
+                delimiters: ['.', '.', '-'],
+                blocks: [3, 3, 3, 2],
+                numericOnly: true
+            });
+            // Restaurar valor sem formatacao para a nova mascara formatar
+            if (currentValue.length <= 11) {
+                cpfCnpjInput.value = currentValue;
+                cpfCnpjInput.dispatchEvent(new Event('input'));
+            }
+            cpfCnpjInput.placeholder = '000.000.000-00';
+        }
+
+        // Atualizar labels
+        const labelCpfCnpj = document.getElementById('label-cpf-cnpj');
+        if (labelCpfCnpj) labelCpfCnpj.textContent = 'CPF';
+
+        const labelRazaoSocial = document.getElementById('label-razao-social');
+        if (labelRazaoSocial) labelRazaoSocial.textContent = 'Nome do Cliente';
+
+        // Ocultar campos
+        const fieldTipoEmpresa = document.getElementById('field-tipo-empresa');
+        const fieldDataAbertura = document.getElementById('field-data-abertura');
+        if (fieldTipoEmpresa) fieldTipoEmpresa.style.display = 'none';
+        if (fieldDataAbertura) fieldDataAbertura.style.display = 'none';
+
+        // Limpar valor do tipo_empresa
+        const tipoEmpresaSelect = document.getElementById('tipo_empresa');
+        if (tipoEmpresaSelect) {
+            tipoEmpresaSelect.value = '';
+        }
+
+        // Ocultar campo Cargo no modal de edicao
+        const fieldCargoModal = document.querySelector('.field-cargo-modal');
+        if (fieldCargoModal) {
+            fieldCargoModal.style.display = 'none';
+        }
+
+        // Ocultar tags de cargo nos titulares
+        document.querySelectorAll('.tag-cargo').forEach(tag => {
+            tag.style.display = 'none';
+        });
+    }
+
+    function switchToPmeMode() {
+        currentPropostaType = 'PME';
+
+        // Atualizar hidden input
+        const tipoContratoInput = document.getElementById('tipo_contrato');
+        if (tipoContratoInput) tipoContratoInput.value = 'PME';
+
+        // Atualizar badge do toggle
+        const badge = document.getElementById('tipo-proposta-badge');
+        if (badge) {
+            badge.textContent = 'PME';
+            badge.classList.remove('badge-warning');
+            badge.classList.add('badge-ativo');
+        }
+
+        // Atualizar badge do header
+        const headerBadge = document.getElementById('header-badge-tipo');
+        if (headerBadge) {
+            headerBadge.textContent = 'PME';
+        }
+
+        // Atualizar subtitle do header
+        const pageSubtitle = document.getElementById('page-subtitle-doc');
+        if (pageSubtitle) {
+            const cpfCnpjValue = document.getElementById('cpf_cnpj')?.value || '';
+            const contratoId = vendaId || '';
+            pageSubtitle.textContent = `CNPJ: ${cpfCnpjValue} | Contrato #${contratoId}`;
+        }
+
+        // Trocar mascara CPF -> CNPJ
+        const cpfCnpjInput = document.getElementById('cpf_cnpj');
+        if (cpfCnpjInput && typeof Cleave !== 'undefined') {
+            const currentValue = cpfCnpjInput.value.replace(/\D/g, '');
+            if (cpfCnpjCleaveInstance) {
+                cpfCnpjCleaveInstance.destroy();
+            }
+            cpfCnpjCleaveInstance = new Cleave(cpfCnpjInput, {
+                delimiters: ['.', '.', '/', '-'],
+                blocks: [2, 3, 3, 4, 2],
+                numericOnly: true
+            });
+            // Restaurar valor sem formatacao para a nova mascara formatar
+            cpfCnpjInput.value = currentValue;
+            cpfCnpjInput.dispatchEvent(new Event('input'));
+            cpfCnpjInput.placeholder = '00.000.000/0000-00';
+        }
+
+        // Atualizar labels
+        const labelCpfCnpj = document.getElementById('label-cpf-cnpj');
+        if (labelCpfCnpj) labelCpfCnpj.textContent = 'CNPJ';
+
+        const labelRazaoSocial = document.getElementById('label-razao-social');
+        if (labelRazaoSocial) labelRazaoSocial.textContent = 'Razao Social';
+
+        // Mostrar campos
+        const fieldTipoEmpresa = document.getElementById('field-tipo-empresa');
+        const fieldDataAbertura = document.getElementById('field-data-abertura');
+        if (fieldTipoEmpresa) fieldTipoEmpresa.style.display = '';
+        if (fieldDataAbertura) fieldDataAbertura.style.display = '';
+
+        // Mostrar campo Cargo no modal de edicao
+        const fieldCargoModal = document.querySelector('.field-cargo-modal');
+        if (fieldCargoModal) {
+            fieldCargoModal.style.display = '';
+        }
+
+        // Mostrar tags de cargo nos titulares
+        document.querySelectorAll('.tag-cargo').forEach(tag => {
+            tag.style.display = '';
+        });
+    }
+
+    // Event listener para toggle de tipo de proposta
+    const tipoPropostaToggle = document.getElementById('tipo_proposta_toggle');
+    if (tipoPropostaToggle) {
+        tipoPropostaToggle.addEventListener('change', function() {
+            if (this.value === 'ADESAO') {
+                switchToAdesaoMode();
+            } else {
+                switchToPmeMode();
+            }
         });
     }
 
