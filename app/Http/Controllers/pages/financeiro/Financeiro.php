@@ -439,6 +439,68 @@ class Financeiro extends Controller
     }
 
 
+    /**
+     * Excluir uma parcela específica
+     */
+    public function excluirParcela($id)
+    {
+        $parcela = Recebivel::findOrFail($id);
+
+        // Verificar permissão (empresa_id)
+        if ($parcela->empresa_id !== auth()->user()->empresa_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acesso negado.'
+            ], 403);
+        }
+
+        $numeroParcela = $parcela->parcela;
+        $vendaId = $parcela->venda_id;
+
+        $parcela->delete();
+
+        Log::info("Parcela #{$numeroParcela} excluída da venda {$vendaId} pelo usuário " . auth()->user()->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Parcela #{$numeroParcela} excluída com sucesso."
+        ]);
+    }
+
+    /**
+     * Excluir todos os recebíveis de uma venda
+     */
+    public function excluirTodosRecebiveis(int $vendaId)
+    {
+        $venda = Vendas::findOrFail($vendaId);
+
+        // Verificar permissão (empresa_id)
+        if ($venda->empresa_id !== auth()->user()->empresa_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acesso negado.'
+            ], 403);
+        }
+
+        $totalExcluido = Recebivel::where('venda_id', $vendaId)->count();
+
+        if ($totalExcluido === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nenhum recebível encontrado para este contrato.'
+            ], 404);
+        }
+
+        Recebivel::where('venda_id', $vendaId)->delete();
+
+        Log::info("Todos os recebíveis ({$totalExcluido}) da venda {$vendaId} foram excluídos pelo usuário " . auth()->user()->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$totalExcluido} parcela(s) excluída(s) com sucesso."
+        ]);
+    }
+
     public function relatorioFinanceiro()
     {
         $operadoras = Operadora::orderBy('nome')->get();
@@ -542,6 +604,98 @@ class Financeiro extends Controller
             'evolucaoMensal' => $evolucaoMensal,
             'statusDistribuicao' => $statusDistribuicao,
             'topVendedores' => $topVendedores,
+        ]);
+    }
+
+    /**
+     * Retorna os KPIs dos recebíveis (para atualização via AJAX)
+     */
+    public function getKpis(Request $request)
+    {
+        $query = Recebivel::where('empresa_id', auth()->user()->empresa_id);
+
+        // Filtro por mês/ano de implantação do contrato
+        if ($request->filled('mes_implantacao')) {
+            $mesAno = $request->mes_implantacao; // formato: YYYY-MM
+            $query->whereHas('venda', function ($q) use ($mesAno) {
+                $q->whereRaw("DATE_FORMAT(data_implantacao, '%Y-%m') = ?", [$mesAno]);
+            });
+        }
+
+        $recebiveis = $query->get();
+
+        $totais = [
+            'pago'     => $recebiveis->where('status', 'PAGO')->sum('valor'),
+            'pendente' => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
+            'atraso'   => $recebiveis->where('status', 'PENDENTE')
+                            ->where('data_prevista', '<', now())->sum('valor'),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'totais' => [
+                'pago'     => (float) $totais['pago'],
+                'pendente' => (float) $totais['pendente'],
+                'atraso'   => (float) $totais['atraso'],
+            ]
+        ]);
+    }
+
+    /**
+     * Retorna o resumo atualizado de um contrato específico (para atualização via AJAX)
+     */
+    public function getContratoResumo(int $vendaId)
+    {
+        $venda = Vendas::findOrFail($vendaId);
+
+        // Verificar permissão (empresa_id)
+        if ($venda->empresa_id !== auth()->user()->empresa_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acesso negado.'
+            ], 403);
+        }
+
+        $parcelas = Recebivel::where('venda_id', $vendaId)->get();
+
+        // Se não há parcelas, o contrato foi removido da lista
+        if ($parcelas->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'removido' => true,
+                'message' => 'Contrato não possui mais recebíveis.'
+            ]);
+        }
+
+        $valorTotal = $parcelas->sum('valor');
+        $valorPago = $parcelas->where('status', 'PAGO')->sum('valor');
+        $valorPendente = $valorTotal - $valorPago;
+        $emAtraso = $parcelas->where('status', 'PENDENTE')
+                            ->where('data_prevista', '<', now())->count() > 0;
+
+        // Determinar status do contrato
+        if ($valorPendente <= 0) {
+            $status = 'Quitado';
+            $statusClass = 'status-success';
+        } elseif ($emAtraso) {
+            $status = 'Atrasado';
+            $statusClass = 'status-danger';
+        } else {
+            $status = 'Pendente';
+            $statusClass = 'status-warning';
+        }
+
+        return response()->json([
+            'success' => true,
+            'removido' => false,
+            'dados' => [
+                'valor_total'    => (float) $valorTotal,
+                'valor_pago'     => (float) $valorPago,
+                'valor_pendente' => (float) $valorPendente,
+                'em_atraso'      => $emAtraso,
+                'status'         => $status,
+                'status_class'   => $statusClass,
+            ]
         ]);
     }
 

@@ -9,6 +9,7 @@ $(function () {
     // Variables
     // ============================================
     let currentVendaId = null;
+    let currentFilterTab = 'todos'; // Guarda o tab ativo atual
 
     // ============================================
     // DataTable Initialization
@@ -32,6 +33,9 @@ $(function () {
     // ============================================
     $('.filter-tab').on('click', function () {
         const status = $(this).data('status');
+
+        // Guarda o tab ativo atual
+        currentFilterTab = status;
 
         // Update active state
         $('.filter-tab').removeClass('active');
@@ -174,20 +178,33 @@ $(function () {
     }
 
     function getActionButtons(parcela) {
+        const btnExcluir = `
+            <button class="btn btn-sm btn-outline-danger excluir-parcela"
+                    data-id="${parcela.id}"
+                    data-parcela="${parcela.parcela}"
+                    title="Excluir parcela">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+            </button>`;
+
         if (parcela.status === 'PAGO') {
             return `
-                <button class="btn btn-sm btn-outline-primary editar-data-recebimento"
-                        data-id="${parcela.id}"
-                        data-parcela="${parcela.parcela}"
-                        data-data="${parcela.data_recebimento || ''}"
-                        data-valor="${parcela.valor || ''}"
-                        title="Editar parcela">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                    Editar
-                </button>`;
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-primary editar-data-recebimento"
+                            data-id="${parcela.id}"
+                            data-parcela="${parcela.parcela}"
+                            data-data="${parcela.data_recebimento || ''}"
+                            data-valor="${parcela.valor || ''}"
+                            title="Editar parcela">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    ${btnExcluir}
+                </div>`;
         } else if (parcela.status !== 'CANCELADO') {
             return `
                 <div class="d-flex gap-1">
@@ -209,9 +226,102 @@ $(function () {
                             <line x1="3" y1="10" x2="21" y2="10"/>
                         </svg>
                     </button>
+                    ${btnExcluir}
                 </div>`;
         }
-        return '<span style="color: var(--rcb-text-muted)">—</span>';
+        return btnExcluir;
+    }
+
+    // ============================================
+    // Reactive Update Functions
+    // ============================================
+
+    /**
+     * Atualiza os KPIs via AJAX sem recarregar a página
+     */
+    function atualizarKPIs() {
+        const mesImplantacao = $('#filtroMesImplantacao').val() || '';
+
+        $.ajax({
+            url: '/financeiro/recebiveis/kpis',
+            method: 'GET',
+            data: { mes_implantacao: mesImplantacao }
+        }).done(function (response) {
+            if (response.success) {
+                // Atualiza os valores dos KPIs
+                $('#kpi-pago').text(formatCurrency(response.totais.pago));
+                $('#kpi-pendente').text(formatCurrency(response.totais.pendente));
+                $('#kpi-atraso').text(formatCurrency(response.totais.atraso));
+
+                // Adiciona animação de highlight nos valores atualizados
+                $('.kpi-value').addClass('highlight-update');
+                setTimeout(() => {
+                    $('.kpi-value').removeClass('highlight-update');
+                }, 1000);
+            }
+        }).fail(function () {
+            console.error('Erro ao atualizar KPIs');
+        });
+    }
+
+    /**
+     * Atualiza a linha do contrato na tabela via AJAX
+     */
+    function atualizarLinhaContrato(vendaId) {
+        $.ajax({
+            url: `/financeiro/recebiveis/contrato/${vendaId}/resumo`,
+            method: 'GET'
+        }).done(function (response) {
+            if (response.success) {
+                const row = $(`tr[data-venda-id="${vendaId}"]`);
+
+                if (response.removido) {
+                    // Contrato foi removido (sem mais recebíveis)
+                    // Remove a linha do DataTable
+                    table.row(row).remove().draw(false);
+                    return;
+                }
+
+                const dados = response.dados;
+
+                // Atualiza os valores na linha
+                row.find('.valor-total').text(formatCurrency(dados.valor_total));
+                row.find('.valor-pago').text(formatCurrency(dados.valor_pago));
+                row.find('.valor-pendente').text(formatCurrency(dados.valor_pendente));
+
+                // Atualiza o badge de status
+                const statusBadge = row.find('.status-badge');
+                statusBadge.removeClass('status-success status-warning status-danger');
+                statusBadge.addClass(dados.status_class);
+                statusBadge.text(dados.status);
+
+                // Atualiza o valor do status na coluna oculta (para filtro)
+                row.find('td').eq(7).text(dados.status);
+
+                // Adiciona animação de highlight
+                row.addClass('highlight-update');
+                setTimeout(() => {
+                    row.removeClass('highlight-update');
+                }, 1000);
+
+                // Reaplicar o filtro de tab ativo
+                reaplicarFiltroTab();
+            }
+        }).fail(function () {
+            console.error('Erro ao atualizar linha do contrato');
+        });
+    }
+
+    /**
+     * Reaplicar o filtro de tab ativo após atualizações
+     */
+    function reaplicarFiltroTab() {
+        if (currentFilterTab === 'todos') {
+            table.column(7).search('').draw(false);
+        } else {
+            table.column(7).search(currentFilterTab).draw(false);
+        }
+        updateContractsCount();
     }
 
     // ============================================
@@ -253,10 +363,15 @@ $(function () {
 
                 $.post(`/financeiro/recebiveis/parcelas/${parcelaId}/pagar`, {
                     _token: $('meta[name="csrf-token"]').attr('content')
-                }).done(function () {
+                }).done(function (response) {
+                    let mensagem = 'A parcela foi marcada como paga com sucesso.';
+                    if (response.nova_parcela_gerada) {
+                        mensagem += ' Uma nova parcela vitalicia foi gerada.';
+                    }
+
                     Swal.fire({
                         title: 'Pagamento Registrado!',
-                        text: 'A parcela foi marcada como paga com sucesso.',
+                        text: mensagem,
                         icon: 'success',
                         iconColor: '#10B981',
                         confirmButtonText: 'OK',
@@ -266,8 +381,10 @@ $(function () {
                         },
                         buttonsStyling: false
                     }).then(() => {
-                        $('#parcelasModal').modal('hide');
-                        location.reload();
+                        // Atualiza de forma reativa sem recarregar a página
+                        atualizarKPIs();
+                        atualizarLinhaContrato(currentVendaId);
+                        carregarParcelas(currentVendaId);
                     });
                 }).fail(function () {
                     Swal.fire({
@@ -458,9 +575,14 @@ $(function () {
                         data: requestData,
                         headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
                     }).done(function (response) {
+                        let mensagem = response.message || 'Dados da parcela salvos com sucesso.';
+                        if (response.nova_parcela_gerada) {
+                            mensagem += ' Uma nova parcela vitalicia foi gerada.';
+                        }
+
                         Swal.fire({
                             title: 'Parcela Atualizada!',
-                            text: response.message || 'Dados da parcela salvos com sucesso.',
+                            text: mensagem,
                             icon: 'success',
                             iconColor: '#10B981',
                             confirmButtonText: 'OK',
@@ -470,7 +592,12 @@ $(function () {
                             },
                             buttonsStyling: false
                         }).then(() => {
-                            location.reload();
+                            // Atualiza de forma reativa sem recarregar a página
+                            atualizarKPIs();
+                            atualizarLinhaContrato(currentVendaId);
+                            carregarParcelas(currentVendaId);
+                            // Reabre o modal de parcelas
+                            $('#parcelasModal').modal('show');
                         });
                     }).fail(function (xhr) {
                         const errorMsg = xhr.responseJSON?.message || 'Erro ao atualizar parcela.';
@@ -492,6 +619,177 @@ $(function () {
                 }
             });
         }, 300);
+    });
+
+    // Excluir Parcela Individual
+    $(document).on('click', '.excluir-parcela', function () {
+        const parcelaId = $(this).data('id');
+        const numeroParcela = $(this).data('parcela');
+
+        Swal.fire({
+            title: 'Excluir Parcela',
+            html: `
+                <div style="text-align: left; padding: 1rem 0;">
+                    <p style="margin-bottom: 0.75rem;">Voce tem certeza que deseja excluir a <strong>parcela #${numeroParcela}</strong>?</p>
+                    <div style="background: rgba(239, 68, 68, 0.1); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem;">
+                        <p style="color: var(--rcb-danger); font-size: 0.875rem; margin: 0; display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Esta acao nao pode ser desfeita.
+                        </p>
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            iconColor: '#EF4444',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                popup: 'swal-recebiveis',
+                confirmButton: 'btn btn-danger me-2',
+                cancelButton: 'btn btn-secondary'
+            },
+            buttonsStyling: false
+        }).then(result => {
+            if (result.isConfirmed) {
+                showLoadingSwal('Excluindo parcela...');
+
+                $.ajax({
+                    url: `/financeiro/recebiveis/parcelas/${parcelaId}`,
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                }).done(function (response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Parcela Excluida!',
+                            text: response.message,
+                            icon: 'success',
+                            iconColor: '#10B981',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal-recebiveis',
+                                confirmButton: 'btn btn-success'
+                            },
+                            buttonsStyling: false
+                        }).then(() => {
+                            // Atualiza de forma reativa
+                            atualizarKPIs();
+                            atualizarLinhaContrato(currentVendaId);
+                            carregarParcelas(currentVendaId);
+                        });
+                    }
+                }).fail(function (xhr) {
+                    const errorMsg = xhr.responseJSON?.message || 'Erro ao excluir parcela.';
+                    Swal.fire({
+                        title: 'Erro!',
+                        text: errorMsg,
+                        icon: 'error',
+                        customClass: {
+                            popup: 'swal-recebiveis',
+                            confirmButton: 'btn btn-danger'
+                        },
+                        buttonsStyling: false
+                    });
+                });
+            }
+        });
+    });
+
+    // Excluir Todos os Recebiveis
+    $(document).on('click', '#btnExcluirTodos', function () {
+        if (!currentVendaId) {
+            showToast('error', 'ID do contrato nao encontrado.');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Excluir Todos os Recebiveis',
+            html: `
+                <div style="text-align: left; padding: 1rem 0;">
+                    <p style="margin-bottom: 0.75rem;">Voce tem certeza que deseja excluir <strong>TODAS</strong> as parcelas deste contrato?</p>
+                    <div style="background: rgba(239, 68, 68, 0.1); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem;">
+                        <p style="color: var(--rcb-danger); font-size: 0.875rem; margin: 0; display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Esta acao ira remover permanentemente todos os recebiveis. Nao pode ser desfeita.
+                        </p>
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            iconColor: '#EF4444',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, excluir todos',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                popup: 'swal-recebiveis',
+                confirmButton: 'btn btn-danger me-2',
+                cancelButton: 'btn btn-secondary'
+            },
+            buttonsStyling: false
+        }).then(result => {
+            if (result.isConfirmed) {
+                showLoadingSwal('Excluindo recebiveis...');
+
+                const vendaIdToRemove = currentVendaId;
+
+                $.ajax({
+                    url: `/financeiro/recebiveis/${vendaIdToRemove}/todos`,
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                }).done(function (response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Recebiveis Excluidos!',
+                            text: response.message,
+                            icon: 'success',
+                            iconColor: '#10B981',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal-recebiveis',
+                                confirmButton: 'btn btn-success'
+                            },
+                            buttonsStyling: false
+                        }).then(() => {
+                            // Fecha o modal
+                            $('#parcelasModal').modal('hide');
+
+                            // Atualiza KPIs
+                            atualizarKPIs();
+
+                            // Remove a linha do contrato da tabela
+                            const row = $(`tr[data-venda-id="${vendaIdToRemove}"]`);
+                            table.row(row).remove().draw(false);
+
+                            // Atualiza o contador
+                            updateContractsCount();
+
+                            // Limpa o currentVendaId
+                            currentVendaId = null;
+                        });
+                    }
+                }).fail(function (xhr) {
+                    const errorMsg = xhr.responseJSON?.message || 'Erro ao excluir recebiveis.';
+                    Swal.fire({
+                        title: 'Erro!',
+                        text: errorMsg,
+                        icon: 'error',
+                        customClass: {
+                            popup: 'swal-recebiveis',
+                            confirmButton: 'btn btn-danger'
+                        },
+                        buttonsStyling: false
+                    });
+                });
+            }
+        });
     });
 
     // Recalculate Values
@@ -754,7 +1052,7 @@ $(function () {
     animateTableRows();
 });
 
-// Add CSS for loading spinner animation
+// Add CSS for loading spinner animation and reactive updates
 const style = document.createElement('style');
 style.textContent = `
     @keyframes spin {
@@ -783,6 +1081,26 @@ style.textContent = `
             opacity: 1;
             transform: translateY(0);
         }
+    }
+
+    @keyframes highlightPulse {
+        0% { background-color: rgba(16, 185, 129, 0.2); }
+        50% { background-color: rgba(16, 185, 129, 0.1); }
+        100% { background-color: transparent; }
+    }
+
+    .highlight-update {
+        animation: highlightPulse 1s ease-out forwards;
+    }
+
+    .kpi-value.highlight-update {
+        animation: highlightPulse 1s ease-out forwards;
+        border-radius: 8px;
+        padding: 2px 8px;
+    }
+
+    tr.highlight-update td {
+        animation: highlightPulse 1s ease-out forwards;
     }
 
     .swal-recebiveis {

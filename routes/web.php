@@ -336,6 +336,14 @@ Route::middleware(['auth'])->group(function () {
       Route::get('/', [Financeiro::class, 'indexRecebiveis'])
           ->name('financeiro.recebiveis.index');
 
+      // 📊 KPIs para atualização via AJAX
+      Route::get('/kpis', [Financeiro::class, 'getKpis'])
+          ->name('financeiro.recebiveis.kpis');
+
+      // 📄 Resumo de contrato para atualização via AJAX
+      Route::get('/contrato/{vendaId}/resumo', [Financeiro::class, 'getContratoResumo'])
+          ->name('financeiro.recebiveis.contratoResumo');
+
       // 🔍 Filtro por contrato/venda específica
       Route::get('/contrato/{vendaId}', [Financeiro::class, 'showContratoRecebiveis'])
           ->name('financeiro.recebiveis.contrato');
@@ -355,6 +363,14 @@ Route::middleware(['auth'])->group(function () {
     // Recalcular valores com nova regra
     Route::post('/{vendaId}/recalcular', [Financeiro::class, 'recalcularRecebiveis'])
         ->name('financeiro.recebiveis.recalcular');
+
+    // Excluir uma parcela específica
+    Route::delete('/parcelas/{id}', [Financeiro::class, 'excluirParcela'])
+        ->name('financeiro.recebiveis.excluirParcela');
+
+    // Excluir todos os recebíveis de uma venda
+    Route::delete('/{vendaId}/todos', [Financeiro::class, 'excluirTodosRecebiveis'])
+        ->name('financeiro.recebiveis.excluirTodos');
 
     // 📊 Relatório financeiro
     Route::get('/relatorio-financeiro', [Financeiro::class, 'relatorioFinanceiro'])

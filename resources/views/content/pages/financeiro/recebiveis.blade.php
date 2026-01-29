@@ -73,7 +73,7 @@
                     <span class="kpi-badge">Recebido</span>
                 </div>
                 <div class="kpi-body">
-                    <span class="kpi-value" data-value="{{ $totais['pago'] }}">
+                    <span class="kpi-value" id="kpi-pago" data-value="{{ $totais['pago'] }}">
                         R$ {{ number_format($totais['pago'], 2, ',', '.') }}
                     </span>
                     <span class="kpi-label">Valor Total Pago</span>
@@ -107,7 +107,7 @@
                     <span class="kpi-badge">Aguardando</span>
                 </div>
                 <div class="kpi-body">
-                    <span class="kpi-value" data-value="{{ $totais['pendente'] }}">
+                    <span class="kpi-value" id="kpi-pendente" data-value="{{ $totais['pendente'] }}">
                         R$ {{ number_format($totais['pendente'], 2, ',', '.') }}
                     </span>
                     <span class="kpi-label">Valor Pendente</span>
@@ -142,7 +142,7 @@
                     <span class="kpi-badge">Atencao</span>
                 </div>
                 <div class="kpi-body">
-                    <span class="kpi-value" data-value="{{ $totais['atraso'] }}">
+                    <span class="kpi-value" id="kpi-atraso" data-value="{{ $totais['atraso'] }}">
                         R$ {{ number_format($totais['atraso'], 2, ',', '.') }}
                     </span>
                     <span class="kpi-label">Valor em Atraso</span>
@@ -283,7 +283,7 @@
                         </thead>
                         <tbody>
                             @foreach($contratos as $contrato)
-                            <tr class="contract-row">
+                            <tr class="contract-row" data-venda-id="{{ $contrato->venda->id }}">
                                 <td class="col-contract">
                                     <div class="contract-info">
                                         <span class="contract-name">{{ $contrato->venda->nome_contrato ?? 'N/A' }}</span>
@@ -305,30 +305,21 @@
                                     <span class="value-policy">R$ {{ number_format($contrato->venda->valor_contrato ?? 0, 2, ',', '.') }}</span>
                                 </td>
                                 <td class="col-total">
-                                    <span class="value-total">R$ {{ number_format($contrato->valor_total, 2, ',', '.') }}</span>
+                                    <span class="valor-total">R$ {{ number_format($contrato->valor_total, 2, ',', '.') }}</span>
                                 </td>
                                 <td class="col-paid">
-                                    <span class="value-paid">R$ {{ number_format($contrato->valor_pago, 2, ',', '.') }}</span>
+                                    <span class="valor-pago">R$ {{ number_format($contrato->valor_pago, 2, ',', '.') }}</span>
                                 </td>
                                 <td class="col-pending">
-                                    <span class="value-pending">R$ {{ number_format($contrato->valor_pendente, 2, ',', '.') }}</span>
+                                    <span class="valor-pendente">R$ {{ number_format($contrato->valor_pendente, 2, ',', '.') }}</span>
                                 </td>
                                 <td class="col-status">
                                     @if($contrato->valor_pendente == 0)
-                                        <span class="status-badge status-success">
-                                            <span class="status-dot"></span>
-                                            Quitado
-                                        </span>
+                                        <span class="status-badge status-success">Quitado</span>
                                     @elseif($contrato->em_atraso)
-                                        <span class="status-badge status-danger">
-                                            <span class="status-dot"></span>
-                                            Atrasado
-                                        </span>
+                                        <span class="status-badge status-danger">Atrasado</span>
                                     @else
-                                        <span class="status-badge status-warning">
-                                            <span class="status-dot"></span>
-                                            Pendente
-                                        </span>
+                                        <span class="status-badge status-warning">Pendente</span>
                                     @endif
                                 </td>
                                 <td class="col-actions">
@@ -386,6 +377,15 @@
                             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
                         </svg>
                         <span>Recalcular Valores</span>
+                    </button>
+                    <button class="btn-excluir-todos" id="btnExcluirTodos">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            <line x1="10" y1="11" x2="10" y2="17"/>
+                            <line x1="14" y1="11" x2="14" y2="17"/>
+                        </svg>
+                        <span>Excluir Todos</span>
                     </button>
                 </div>
                 <div class="parcelas-table-wrapper">
