@@ -575,7 +575,8 @@ class Vendas extends Controller
             ->where('empresa_id', Auth::user()->empresa_id)
             ->whereMonth('created_at', $request->mes)
             ->whereYear('created_at', $request->ano)
-            ->sum('valor_contrato');
+            ->selectRaw("SUM(valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END) as total")
+            ->value('total') ?? 0;
 
         $vendasImplantadasMes = DB::table('vendas as a')
             ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
@@ -583,7 +584,8 @@ class Vendas extends Controller
             ->where('a.user_id', Auth::user()->id)
             ->whereMonth('a.created_at', $request->mes)
             ->whereYear('a.created_at', $request->ano)
-            ->sum('a.valor_contrato');
+            ->selectRaw("SUM(a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END) as total")
+            ->value('total') ?? 0;
 
 
         $quantidadeContatosMes = DB::table('contatos as a')
