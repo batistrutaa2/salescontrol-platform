@@ -703,41 +703,107 @@
 /* Modal */
 .pd-modal .modal-content {
     border-radius: var(--pd-border-radius);
-    border: 1px solid var(--pd-card-border);
-    background: var(--pd-card-bg);
-    backdrop-filter: blur(var(--pd-glass-blur));
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: #ffffff;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.dark-style .pd-modal .modal-content {
+    background: #1e202f;
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .pd-modal .modal-header {
-    border-bottom: 1px solid var(--pd-card-border);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     padding: 1.25rem 1.5rem;
+    background: #fafafa;
+    border-radius: var(--pd-border-radius) var(--pd-border-radius) 0 0;
+}
+
+.dark-style .pd-modal .modal-header {
+    background: #252736;
+    border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 .pd-modal .modal-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--pd-text-primary);
+    color: #1F2937;
+    display: flex;
+    align-items: center;
+}
+
+.dark-style .pd-modal .modal-title {
+    color: #F9FAFB;
 }
 
 .pd-modal .modal-body {
     padding: 1.5rem;
+    background: #ffffff;
+}
+
+.dark-style .pd-modal .modal-body {
+    background: #1e202f;
 }
 
 .pd-modal .form-label {
     font-weight: 600;
-    color: var(--pd-text-secondary);
+    color: #6B7280;
     font-size: 0.875rem;
 }
 
-.pd-modal .form-select {
-    border-radius: 10px;
-    border: 1px solid var(--pd-card-border);
-    padding: 0.625rem 1rem;
+.dark-style .pd-modal .form-label {
+    color: #D1D5DB;
 }
 
-.pd-modal .form-select:focus {
+.pd-modal .form-select,
+.pd-modal .form-control {
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    padding: 0.625rem 1rem;
+    background-color: #ffffff;
+    color: #1F2937;
+    font-size: 0.9rem;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.dark-style .pd-modal .form-select,
+.dark-style .pd-modal .form-control {
+    background-color: #252736;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #F9FAFB;
+}
+
+.pd-modal .form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
+}
+
+.dark-style .pd-modal .form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+.pd-modal .form-select:focus,
+.pd-modal .form-control:focus {
     border-color: var(--pd-primary);
-    box-shadow: 0 0 0 3px rgba(var(--pd-primary-rgb), 0.15);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    outline: none;
+}
+
+.pd-modal .form-select:disabled {
+    background-color: #f3f4f6;
+    color: #9CA3AF;
+    cursor: not-allowed;
+}
+
+.dark-style .pd-modal .form-select:disabled {
+    background-color: #1a1b26;
+    color: #6B7280;
 }
 
 /* DataTables Pagination */
@@ -785,6 +851,446 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Rules Panel */
+.pd-rules-list {
+    margin-top: 1rem;
+}
+
+.pd-rules-empty {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--pd-text-muted);
+}
+
+.pd-rules-empty svg {
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.pd-rules-empty p {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--pd-text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.pd-rules-empty span {
+    font-size: 0.85rem;
+}
+
+.pd-rule-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--pd-glass-bg);
+    border: 1px solid var(--pd-card-border);
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    transition: var(--pd-transition);
+    cursor: grab;
+}
+
+.pd-rule-item:hover {
+    border-color: rgba(var(--pd-primary-rgb), 0.3);
+    background: rgba(var(--pd-primary-rgb), 0.03);
+}
+
+.pd-rule-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.pd-rule-drag {
+    color: var(--pd-text-muted);
+    cursor: grab;
+}
+
+.pd-rule-drag svg {
+    width: 18px;
+    height: 18px;
+}
+
+.pd-rule-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.pd-rule-status.active {
+    background: var(--pd-success);
+    box-shadow: 0 0 8px rgba(var(--pd-success-rgb), 0.5);
+}
+
+.pd-rule-status.inactive {
+    background: var(--pd-text-muted);
+}
+
+.pd-rule-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.pd-rule-name {
+    font-weight: 700;
+    color: var(--pd-text-primary);
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.pd-rule-condition {
+    font-size: 0.8rem;
+    color: var(--pd-text-muted);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.pd-rule-peso {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    background: linear-gradient(135deg, rgba(var(--pd-primary-rgb), 0.1), rgba(var(--pd-primary-rgb), 0.05));
+    border: 1px solid rgba(var(--pd-primary-rgb), 0.2);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--pd-primary);
+}
+
+.pd-rule-peso span {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.pd-rule-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pd-rule-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--pd-card-border);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--pd-transition);
+}
+
+.pd-rule-btn svg {
+    width: 16px;
+    height: 16px;
+    color: var(--pd-text-secondary);
+}
+
+.pd-rule-btn:hover {
+    background: var(--pd-glass-bg);
+}
+
+.pd-rule-btn.btn-toggle:hover {
+    border-color: var(--pd-warning);
+}
+
+.pd-rule-btn.btn-toggle:hover svg {
+    color: var(--pd-warning);
+}
+
+.pd-rule-btn.btn-edit:hover {
+    border-color: var(--pd-primary);
+}
+
+.pd-rule-btn.btn-edit:hover svg {
+    color: var(--pd-primary);
+}
+
+.pd-rule-btn.btn-delete:hover {
+    border-color: var(--pd-danger);
+    background: rgba(var(--pd-danger-rgb), 0.1);
+}
+
+.pd-rule-btn.btn-delete:hover svg {
+    color: var(--pd-danger);
+}
+
+/* Form Elements in Modal */
+.pd-form-group {
+    margin-bottom: 1.25rem;
+}
+
+.pd-form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #4B5563;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.01em;
+}
+
+.dark-style .pd-form-group label {
+    color: #D1D5DB;
+}
+
+.pd-form-group .form-control,
+.pd-form-group .form-select {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    color: #1F2937;
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.dark-style .pd-form-group .form-control,
+.dark-style .pd-form-group .form-select {
+    background-color: #252736;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #F9FAFB;
+}
+
+.pd-form-group .form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
+}
+
+.dark-style .pd-form-group .form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+.pd-form-group .form-control:focus,
+.pd-form-group .form-select:focus {
+    border-color: var(--pd-primary);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    outline: none;
+}
+
+.pd-form-group .form-select:disabled {
+    background-color: #f9fafb;
+    color: #9CA3AF;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.dark-style .pd-form-group .form-select:disabled {
+    background-color: #1a1b26;
+    color: #6B7280;
+}
+
+.pd-form-group .form-control::placeholder {
+    color: #9CA3AF;
+}
+
+.dark-style .pd-form-group .form-control::placeholder {
+    color: #6B7280;
+}
+
+.pd-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.pd-peso-slider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.pd-peso-slider input[type="range"] {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, var(--pd-primary) 0%, #e5e7eb 0%);
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.dark-style .pd-peso-slider input[type="range"] {
+    background: linear-gradient(to right, var(--pd-primary) 0%, #374151 0%);
+}
+
+.pd-peso-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--pd-primary);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+    border: 3px solid #ffffff;
+    transition: transform 0.15s ease;
+}
+
+.dark-style .pd-peso-slider input[type="range"]::-webkit-slider-thumb {
+    border-color: #1e202f;
+}
+
+.pd-peso-slider input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+.pd-peso-slider input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--pd-primary);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+    border: 3px solid #ffffff;
+}
+
+.pd-peso-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--pd-primary);
+    min-width: 48px;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.05));
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.pd-modal-footer {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.dark-style .pd-modal-footer {
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.pd-modal-footer .pd-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 0.75rem 1.25rem;
+}
+
+/* Botoes do Modal - garantir cores solidas */
+.pd-modal .pd-btn-outline {
+    background: #f3f4f6 !important;
+    border: 1px solid #d1d5db !important;
+    color: #4B5563 !important;
+}
+
+.dark-style .pd-modal .pd-btn-outline {
+    background: #374151 !important;
+    border-color: #4B5563 !important;
+    color: #E5E7EB !important;
+}
+
+.pd-modal .pd-btn-outline:hover {
+    background: #e5e7eb !important;
+    border-color: var(--pd-primary) !important;
+    color: var(--pd-primary) !important;
+}
+
+.dark-style .pd-modal .pd-btn-outline:hover {
+    background: #4B5563 !important;
+}
+
+.pd-modal .pd-btn-primary {
+    background: linear-gradient(135deg, #7C3AED, #A78BFA) !important;
+    border: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+}
+
+.pd-modal .pd-btn-primary:hover {
+    background: linear-gradient(135deg, #6D28D9, #8B5CF6) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.45);
+}
+
+.pd-valor-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.pd-valor-suggestion {
+    padding: 0.375rem 0.875rem;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: #4B5563;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.dark-style .pd-valor-suggestion {
+    background: #252736;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #D1D5DB;
+}
+
+.pd-valor-suggestion:hover {
+    border-color: var(--pd-primary);
+    color: var(--pd-primary);
+    background: rgba(124, 58, 237, 0.08);
+    transform: translateY(-1px);
+}
+
+.dark-style .pd-valor-suggestion:hover {
+    background: rgba(124, 58, 237, 0.15);
+}
+
+/* Small helper text */
+.pd-modal small.text-muted {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #9CA3AF;
+}
+
+.dark-style .pd-modal small.text-muted {
+    color: #6B7280;
+}
+
+/* Modal close button */
+.pd-modal .btn-close {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.pd-modal .btn-close:hover {
+    opacity: 1;
+}
+
+.dark-style .pd-modal .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Modal backdrop override */
+.modal-backdrop.show {
+    opacity: 0.6;
+}
+
+/* Ensure modal is above everything */
+.pd-modal {
+    z-index: 1055;
 }
 </style>
 @endsection
@@ -1019,6 +1525,41 @@
             </div>
         </div>
     </div>
+
+    <!-- Rules Panel -->
+    <div class="pd-rules-panel mt-4">
+        <div class="pd-filter-panel">
+            <div class="pd-filter-header">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                    <polyline points="2 17 12 22 22 17"/>
+                    <polyline points="2 12 12 17 22 12"/>
+                </svg>
+                <h3>Regras de Priorizacao</h3>
+                <span>Configure quais leads devem ser priorizados na fila</span>
+                <button id="btnNovaRegra" class="pd-btn pd-btn-primary ms-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Nova Regra
+                </button>
+            </div>
+
+            <div id="regras-lista" class="pd-rules-list">
+                <div class="pd-rules-empty" id="regras-empty">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="12" y1="18" x2="12" y2="12"/>
+                        <line x1="9" y1="15" x2="15" y2="15"/>
+                    </svg>
+                    <p>Nenhuma regra configurada</p>
+                    <span>Crie regras para priorizar leads especificos na fila</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Transferir Lead -->
@@ -1065,6 +1606,81 @@
                         </svg>
                         Confirmar Transferencia
                     </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Regra de Priorizacao -->
+<div class="modal fade pd-modal" id="modalRegra" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalRegraTitle">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2" style="vertical-align: -4px;">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                        <polyline points="2 17 12 22 22 17"/>
+                        <polyline points="2 12 12 17 22 12"/>
+                    </svg>
+                    Nova Regra de Priorizacao
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formRegra">
+                    <input type="hidden" id="regraId" value="">
+
+                    <div class="pd-form-group">
+                        <label for="regraNome">Nome da Regra</label>
+                        <input type="text" class="form-control" id="regraNome" placeholder="Ex: Priorizar Asprofili" required>
+                    </div>
+
+                    <div class="pd-form-group">
+                        <label for="regraDescricao">Descricao (opcional)</label>
+                        <input type="text" class="form-control" id="regraDescricao" placeholder="Breve descricao da regra">
+                    </div>
+
+                    <div class="pd-form-row">
+                        <div class="pd-form-group">
+                            <label for="regraCampo">Campo</label>
+                            <select class="form-select" id="regraCampo" required>
+                                <option value="">Selecione o campo</option>
+                            </select>
+                        </div>
+                        <div class="pd-form-group">
+                            <label for="regraOperador">Operador</label>
+                            <select class="form-select" id="regraOperador" required disabled>
+                                <option value="">Selecione o operador</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pd-form-group">
+                        <label for="regraValor">Valor</label>
+                        <input type="text" class="form-control" id="regraValor" placeholder="Valor para comparacao" required>
+                        <div id="valorSuggestions" class="pd-valor-suggestions"></div>
+                    </div>
+
+                    <div class="pd-form-group">
+                        <label>Peso (Prioridade)</label>
+                        <div class="pd-peso-slider">
+                            <input type="range" id="regraPeso" min="1" max="100" value="50">
+                            <span class="pd-peso-value" id="pesoValue">50</span>
+                        </div>
+                        <small class="text-muted">Quanto maior o peso, maior a prioridade do lead na fila</small>
+                    </div>
+
+                    <div class="pd-modal-footer">
+                        <button type="button" class="pd-btn pd-btn-outline" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="pd-btn pd-btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 11 12 14 22 4"/>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                            <span id="btnSalvarRegraText">Salvar Regra</span>
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

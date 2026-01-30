@@ -428,4 +428,453 @@ $(function () {
     carregarTabulacoes();
     atualizarPreditiva();
     setInterval(atualizarPreditiva, 20000);
+
+    // ===== REGRAS DE PRIORIZACAO =====
+    let camposDisponiveis = [];
+    let regraEditando = null;
+
+    function carregarCamposDisponiveis() {
+        $.ajax({
+            url: '/comercial/preditiva/regras/campos',
+            method: 'GET',
+            success: function (response) {
+                if (response.success) {
+                    camposDisponiveis = response.campos;
+                    preencherSelectCampos();
+                }
+            },
+            error: function (xhr) {
+                console.error('Erro ao carregar campos:', xhr);
+            }
+        });
+    }
+
+    function preencherSelectCampos() {
+        const select = $('#regraCampo');
+        select.find('option:not(:first)').remove();
+
+        camposDisponiveis.forEach(campo => {
+            select.append(`<option value="${campo.campo}" data-tipo="${campo.tipo}">${campo.label}</option>`);
+        });
+    }
+
+    function atualizarOperadores(campoSelecionado) {
+        const selectOperador = $('#regraOperador');
+        selectOperador.find('option:not(:first)').remove();
+
+        if (!campoSelecionado) {
+            selectOperador.prop('disabled', true);
+            return;
+        }
+
+        const campo = camposDisponiveis.find(c => c.campo === campoSelecionado);
+        if (!campo) return;
+
+        selectOperador.prop('disabled', false);
+        campo.operadores.forEach(op => {
+            let label = op;
+            if (op === '=') label = 'Igual a (=)';
+            else if (op === '!=') label = 'Diferente de (!=)';
+            else if (op === '>') label = 'Maior que (>)';
+            else if (op === '>=') label = 'Maior ou igual (>=)';
+            else if (op === '<') label = 'Menor que (<)';
+            else if (op === '<=') label = 'Menor ou igual (<=)';
+            else if (op === 'LIKE') label = 'Contem (LIKE)';
+            else if (op === 'IN') label = 'Esta em (IN)';
+
+            selectOperador.append(`<option value="${op}">${label}</option>`);
+        });
+
+        // Se o campo tiver valores fixos (enum), popular sugestoes
+        if (campo.valores) {
+            mostrarSugestoes(campo.valores);
+        } else {
+            // Buscar valores unicos para o campo
+            carregarValoresUnicos(campoSelecionado);
+        }
+    }
+
+    function carregarValoresUnicos(campo) {
+        $.ajax({
+            url: `/comercial/preditiva/regras/valores/${campo}`,
+            method: 'GET',
+            success: function (response) {
+                if (response.success && response.valores) {
+                    mostrarSugestoes(response.valores.slice(0, 10));
+                }
+            },
+            error: function () {
+                $('#valorSuggestions').empty();
+            }
+        });
+    }
+
+    function mostrarSugestoes(valores) {
+        const container = $('#valorSuggestions');
+        container.empty();
+
+        valores.forEach(valor => {
+            container.append(`<span class="pd-valor-suggestion" data-valor="${valor}">${valor}</span>`);
+        });
+    }
+
+    function carregarRegras() {
+        $.ajax({
+            url: '/comercial/preditiva/regras',
+            method: 'GET',
+            success: function (response) {
+                if (response.success) {
+                    renderizarRegras(response.regras);
+                }
+            },
+            error: function (xhr) {
+                console.error('Erro ao carregar regras:', xhr);
+            }
+        });
+    }
+
+    function renderizarRegras(regras) {
+        const container = $('#regras-lista');
+        const emptyState = $('#regras-empty');
+
+        // Remove itens anteriores exceto o empty state
+        container.find('.pd-rule-item').remove();
+
+        if (!regras || regras.length === 0) {
+            emptyState.show();
+            return;
+        }
+
+        emptyState.hide();
+
+        regras.forEach(regra => {
+            const statusClass = regra.ativo === 'Y' ? 'active' : 'inactive';
+            const toggleIcon = regra.ativo === 'Y' ?
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>' :
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>';
+
+            const campoConfig = camposDisponiveis.find(c => c.campo === regra.campo);
+            const campoLabel = campoConfig ? campoConfig.label : regra.campo;
+
+            const conditionText = `${campoLabel} ${regra.operador} "${regra.valor}"`;
+
+            const html = `
+                <div class="pd-rule-item" data-id="${regra.id}" draggable="true">
+                    <div class="pd-rule-drag">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/>
+                            <circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>
+                        </svg>
+                    </div>
+                    <div class="pd-rule-status ${statusClass}"></div>
+                    <div class="pd-rule-info">
+                        <div class="pd-rule-name">${regra.nome}</div>
+                        <div class="pd-rule-condition">${conditionText}</div>
+                    </div>
+                    <div class="pd-rule-peso">
+                        Peso: <span>${regra.peso}</span>
+                    </div>
+                    <div class="pd-rule-actions">
+                        <button class="pd-rule-btn btn-toggle" title="${regra.ativo === 'Y' ? 'Desativar' : 'Ativar'}" data-id="${regra.id}">
+                            ${toggleIcon}
+                        </button>
+                        <button class="pd-rule-btn btn-edit" title="Editar" data-id="${regra.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button class="pd-rule-btn btn-delete" title="Excluir" data-id="${regra.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.append(html);
+        });
+
+        // Configurar drag-drop
+        setupDragDrop();
+    }
+
+    function setupDragDrop() {
+        const container = document.getElementById('regras-lista');
+        const items = container.querySelectorAll('.pd-rule-item');
+
+        items.forEach(item => {
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragend', handleDragEnd);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('drop', handleDrop);
+        });
+    }
+
+    let draggedItem = null;
+
+    function handleDragStart(e) {
+        draggedItem = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragEnd() {
+        this.classList.remove('dragging');
+        draggedItem = null;
+
+        // Enviar nova ordem para o servidor
+        const ordens = [];
+        document.querySelectorAll('.pd-rule-item').forEach(item => {
+            ordens.push(parseInt(item.dataset.id));
+        });
+
+        $.ajax({
+            url: '/comercial/preditiva/regras/reordenar',
+            method: 'POST',
+            data: {
+                ordens: ordens,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function (response) {
+                if (response.success) {
+                    toastr.info('Ordem das regras atualizada');
+                }
+            },
+            error: function () {
+                toastr.error('Erro ao reordenar regras');
+                carregarRegras();
+            }
+        });
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        const afterElement = getDragAfterElement(this.parentElement, e.clientY);
+        const container = document.getElementById('regras-lista');
+
+        if (afterElement == null) {
+            container.appendChild(draggedItem);
+        } else {
+            container.insertBefore(draggedItem, afterElement);
+        }
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+    }
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.pd-rule-item:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function abrirModalRegra(regra = null) {
+        regraEditando = regra;
+
+        $('#formRegra')[0].reset();
+        $('#regraId').val('');
+        $('#regraOperador').prop('disabled', true).find('option:not(:first)').remove();
+        $('#valorSuggestions').empty();
+        $('#pesoValue').text('50');
+        $('#regraPeso').val(50);
+
+        if (regra) {
+            $('#modalRegraTitle').html(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2" style="vertical-align: -4px;">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Editar Regra
+            `);
+            $('#btnSalvarRegraText').text('Atualizar Regra');
+
+            $('#regraId').val(regra.id);
+            $('#regraNome').val(regra.nome);
+            $('#regraDescricao').val(regra.descricao || '');
+            $('#regraCampo').val(regra.campo).trigger('change');
+
+            setTimeout(() => {
+                $('#regraOperador').val(regra.operador);
+                $('#regraValor').val(regra.valor);
+                $('#regraPeso').val(regra.peso);
+                $('#pesoValue').text(regra.peso);
+            }, 100);
+        } else {
+            $('#modalRegraTitle').html(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2" style="vertical-align: -4px;">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                    <polyline points="2 17 12 22 22 17"/>
+                    <polyline points="2 12 12 17 22 12"/>
+                </svg>
+                Nova Regra de Priorizacao
+            `);
+            $('#btnSalvarRegraText').text('Salvar Regra');
+        }
+
+        $('#modalRegra').modal('show');
+    }
+
+    function salvarRegra() {
+        const id = $('#regraId').val();
+        const data = {
+            nome: $('#regraNome').val().trim(),
+            descricao: $('#regraDescricao').val().trim(),
+            campo: $('#regraCampo').val(),
+            operador: $('#regraOperador').val(),
+            valor: $('#regraValor').val().trim(),
+            peso: parseInt($('#regraPeso').val()),
+            _token: $('meta[name="csrf-token"]').attr('content')
+        };
+
+        if (!data.nome || !data.campo || !data.operador || !data.valor) {
+            toastr.warning('Preencha todos os campos obrigatorios.');
+            return;
+        }
+
+        const url = id ? `/comercial/preditiva/regras/${id}` : '/comercial/preditiva/regras';
+        const method = id ? 'PUT' : 'POST';
+
+        $.ajax({
+            url: url,
+            method: method,
+            data: data,
+            success: function (response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    $('#modalRegra').modal('hide');
+                    carregarRegras();
+                } else {
+                    toastr.error(response.message);
+                }
+            },
+            error: function (xhr) {
+                const message = xhr.responseJSON?.message || 'Erro ao salvar regra.';
+                toastr.error(message);
+            }
+        });
+    }
+
+    function toggleRegra(id) {
+        $.ajax({
+            url: `/comercial/preditiva/regras/${id}/toggle`,
+            method: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function (response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    carregarRegras();
+                } else {
+                    toastr.error(response.message);
+                }
+            },
+            error: function (xhr) {
+                const message = xhr.responseJSON?.message || 'Erro ao alterar status.';
+                toastr.error(message);
+            }
+        });
+    }
+
+    function excluirRegra(id) {
+        if (!confirm('Deseja excluir esta regra de priorizacao?')) {
+            return;
+        }
+
+        $.ajax({
+            url: `/comercial/preditiva/regras/${id}`,
+            method: 'DELETE',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function (response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    carregarRegras();
+                } else {
+                    toastr.error(response.message);
+                }
+            },
+            error: function (xhr) {
+                const message = xhr.responseJSON?.message || 'Erro ao excluir regra.';
+                toastr.error(message);
+            }
+        });
+    }
+
+    // Event: Nova Regra
+    $('#btnNovaRegra').on('click', function () {
+        abrirModalRegra();
+    });
+
+    // Event: Campo selecionado - atualizar operadores
+    $('#regraCampo').on('change', function () {
+        atualizarOperadores($(this).val());
+    });
+
+    // Event: Peso slider
+    $('#regraPeso').on('input', function () {
+        $('#pesoValue').text($(this).val());
+    });
+
+    // Event: Clique em sugestao de valor
+    $(document).on('click', '.pd-valor-suggestion', function () {
+        const valor = $(this).data('valor');
+        $('#regraValor').val(valor);
+    });
+
+    // Event: Submit formulario de regra
+    $('#formRegra').on('submit', function (e) {
+        e.preventDefault();
+        salvarRegra();
+    });
+
+    // Event: Toggle regra
+    $(document).on('click', '.pd-rule-btn.btn-toggle', function () {
+        const id = $(this).data('id');
+        toggleRegra(id);
+    });
+
+    // Event: Editar regra
+    $(document).on('click', '.pd-rule-btn.btn-edit', function () {
+        const id = $(this).data('id');
+
+        $.ajax({
+            url: '/comercial/preditiva/regras',
+            method: 'GET',
+            success: function (response) {
+                if (response.success) {
+                    const regra = response.regras.find(r => r.id == id);
+                    if (regra) {
+                        abrirModalRegra(regra);
+                    }
+                }
+            }
+        });
+    });
+
+    // Event: Excluir regra
+    $(document).on('click', '.pd-rule-btn.btn-delete', function () {
+        const id = $(this).data('id');
+        excluirRegra(id);
+    });
+
+    // Inicializar regras
+    carregarCamposDisponiveis();
+    carregarRegras();
 });

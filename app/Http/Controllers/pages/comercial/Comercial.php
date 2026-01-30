@@ -22,6 +22,8 @@ use App\UseCases\MailingUseCase;
 use App\Models\ContatosCorretores;
 use App\UseCases\ComercialUseCase;
 use App\UseCases\PreditivaUseCase;
+use App\UseCases\PreditivaPriorizacaoUseCase;
+use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -67,6 +69,7 @@ class Comercial extends Controller
   protected AgendamentoRepository $agendamentoRepository;
   protected Ranking $ranking;
   protected TransferenciaContatoRepository $transferenciaContatoRepository;
+  protected PreditivaPriorizacaoUseCase $preditivaPriorizacaoUseCase;
 
   public function __construct(
     ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
@@ -81,6 +84,7 @@ class Comercial extends Controller
     TransferenciaContatoRepositoryInterface $TransferenciaContatoRepositoryInterface,
     PreditivaRepositoryInterface $preditivaRepositoryInterface,
     LogPreditivaRepositoryInterface $logPreditivaRepositoryInterface,
+    PreditivaRegraRepositoryInterface $preditivaRegraRepositoryInterface,
 
   ) {
     //Repositories
@@ -99,6 +103,7 @@ class Comercial extends Controller
     $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface, $leadAtividadeRepositoryInterface);
     $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
     $this->preditivaUseCase = new PreditivaUseCase($preditivaRepositoryInterface, $logPreditivaRepositoryInterface, $contatosCorretoresRepositoryInterface);
+    $this->preditivaPriorizacaoUseCase = new PreditivaPriorizacaoUseCase($preditivaRegraRepositoryInterface);
     //raking de vendas
     $this->ranking = new Ranking();
   }
@@ -881,6 +886,8 @@ class Comercial extends Controller
         'data_atribuicao' => null
       ]);
 
+    $scoreExpression = $this->preditivaPriorizacaoUseCase->getScoreExpression($empresaId);
+
     $cliente = DB::table('preditiva as p')
       ->join('contatos as c', 'p.contato_id', '=', 'c.id')
       ->leftJoin(DB::raw('(
@@ -900,7 +907,8 @@ class Comercial extends Controller
         'c.cpf',
         'c.data_nascimento',
         'c.valor_plano_atual',
-        'c.created_at'
+        'c.created_at',
+        DB::raw($scoreExpression)
       )
       ->where('p.empresa_id', $empresaId)
       ->where('p.status', 'Y')
@@ -919,6 +927,7 @@ class Comercial extends Controller
           ->where('log_preditiva.user_id', $userId)
           ->where('log_preditiva.acao', 'DESCARTE');
       })
+      ->orderByDesc('score_priorizacao')
       ->orderBy('lp.ultimo_descarte', 'asc')
       ->orderBy('p.created_at', 'asc')
       ->limit(1)

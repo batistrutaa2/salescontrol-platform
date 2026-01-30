@@ -32,6 +32,9 @@ use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
+use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
+use App\Repositories\Eloquent\PreditivaRegraRepository;
+use App\Models\PreditivaRegraPriorizacao;
 use Carbon\Carbon;
 
 
@@ -44,6 +47,7 @@ class Mailing extends Controller
   protected MailingUseCase $mailingUseCase;
   protected ContatosRepository $contatosRepository;
   protected VendasRepository $vendasRepository;
+  protected PreditivaRegraRepository $preditivaRegraRepository;
   private $rulesUpload = [
     'base' => 'required|string',
     'file' => 'required|file',
@@ -54,7 +58,8 @@ class Mailing extends Controller
     ContatosRepositoryInterface $contatosRepositoryInterface,
     TabulacoesRepositoryInterface $tabulacoesRepositoryInterface,
     BaseLegaceRespositoryInterface $baseLegaceRespositoryInterface,
-    VendasRepositoryInterface $vendasRepositoryInterface
+    VendasRepositoryInterface $vendasRepositoryInterface,
+    PreditivaRegraRepositoryInterface $preditivaRegraRepositoryInterface
   ) {
 
     $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
@@ -64,6 +69,7 @@ class Mailing extends Controller
     $this->tabulacoesRepository = $tabulacoesRepositoryInterface;
     $this->baseLegaceRespository = $baseLegaceRespositoryInterface;
     $this->vendasRepository = $vendasRepositoryInterface;
+    $this->preditivaRegraRepository = $preditivaRegraRepositoryInterface;
   }
 
   public function index()
@@ -817,6 +823,363 @@ class Mailing extends Controller
   public function indexImportarPreditiva()
   {
     return view('content.pages.mailing.importarPreditiva');
+  }
+
+  /**
+   * Lista todas as regras de priorização da empresa
+   */
+  public function regrasIndex()
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+      $regras = $this->preditivaRegraRepository->getRegrasByEmpresa($empresaId);
+
+      return response()->json([
+        'success' => true,
+        'regras' => $regras
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar regras: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Cria uma nova regra de priorização
+   */
+  public function regrasStore(Request $request)
+  {
+    try {
+      $validator = Validator::make($request->all(), [
+        'nome' => 'required|string|max:100',
+        'campo' => 'required|string|max:50',
+        'operador' => 'required|in:=,!=,>,>=,<,<=,LIKE,IN',
+        'valor' => 'required|string',
+        'peso' => 'required|integer|min:1|max:100',
+        'descricao' => 'nullable|string'
+      ]);
+
+      if ($validator->fails()) {
+        return response()->json([
+          'success' => false,
+          'message' => $validator->errors()->first()
+        ], 422);
+      }
+
+      $campo = $request->campo;
+      if (!array_key_exists($campo, PreditivaRegraPriorizacao::CAMPOS_PERMITIDOS)) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Campo não permitido para priorização.'
+        ], 422);
+      }
+
+      $campoConfig = PreditivaRegraPriorizacao::CAMPOS_PERMITIDOS[$campo];
+      if (!in_array($request->operador, $campoConfig['operadores'])) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Operador não permitido para este campo.'
+        ], 422);
+      }
+
+      $empresaId = Auth::user()->empresa_id;
+
+      $id = $this->preditivaRegraRepository->create([
+        'empresa_id' => $empresaId,
+        'nome' => $request->nome,
+        'descricao' => $request->descricao,
+        'campo' => $request->campo,
+        'operador' => $request->operador,
+        'valor' => $request->valor,
+        'peso' => $request->peso,
+        'ativo' => 'Y'
+      ]);
+
+      if (!$id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Erro ao criar regra.'
+        ], 500);
+      }
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Regra criada com sucesso.',
+        'id' => $id
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao criar regra: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Atualiza uma regra de priorização existente
+   */
+  public function regrasUpdate(Request $request, $id)
+  {
+    try {
+      $validator = Validator::make($request->all(), [
+        'nome' => 'required|string|max:100',
+        'campo' => 'required|string|max:50',
+        'operador' => 'required|in:=,!=,>,>=,<,<=,LIKE,IN',
+        'valor' => 'required|string',
+        'peso' => 'required|integer|min:1|max:100',
+        'descricao' => 'nullable|string'
+      ]);
+
+      if ($validator->fails()) {
+        return response()->json([
+          'success' => false,
+          'message' => $validator->errors()->first()
+        ], 422);
+      }
+
+      $regra = $this->preditivaRegraRepository->findById($id);
+      if (!$regra || $regra->empresa_id !== Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Regra não encontrada.'
+        ], 404);
+      }
+
+      $campo = $request->campo;
+      if (!array_key_exists($campo, PreditivaRegraPriorizacao::CAMPOS_PERMITIDOS)) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Campo não permitido para priorização.'
+        ], 422);
+      }
+
+      $campoConfig = PreditivaRegraPriorizacao::CAMPOS_PERMITIDOS[$campo];
+      if (!in_array($request->operador, $campoConfig['operadores'])) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Operador não permitido para este campo.'
+        ], 422);
+      }
+
+      $updated = $this->preditivaRegraRepository->update($id, [
+        'nome' => $request->nome,
+        'descricao' => $request->descricao,
+        'campo' => $request->campo,
+        'operador' => $request->operador,
+        'valor' => $request->valor,
+        'peso' => $request->peso
+      ]);
+
+      if (!$updated) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Erro ao atualizar regra.'
+        ], 500);
+      }
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Regra atualizada com sucesso.'
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao atualizar regra: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Exclui uma regra de priorização
+   */
+  public function regrasDestroy($id)
+  {
+    try {
+      $regra = $this->preditivaRegraRepository->findById($id);
+      if (!$regra || $regra->empresa_id !== Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Regra não encontrada.'
+        ], 404);
+      }
+
+      $deleted = $this->preditivaRegraRepository->delete($id);
+
+      if (!$deleted) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Erro ao excluir regra.'
+        ], 500);
+      }
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Regra excluída com sucesso.'
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao excluir regra: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Alterna o status ativo/inativo de uma regra
+   */
+  public function regrasToggle($id)
+  {
+    try {
+      $regra = $this->preditivaRegraRepository->findById($id);
+      if (!$regra || $regra->empresa_id !== Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Regra não encontrada.'
+        ], 404);
+      }
+
+      $toggled = $this->preditivaRegraRepository->toggleAtivo($id);
+
+      if (!$toggled) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Erro ao alterar status da regra.'
+        ], 500);
+      }
+
+      $regraAtualizada = $this->preditivaRegraRepository->findById($id);
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Status da regra alterado com sucesso.',
+        'ativo' => $regraAtualizada->ativo
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao alterar status: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Reordena as regras de priorização
+   */
+  public function regrasReordenar(Request $request)
+  {
+    try {
+      $validator = Validator::make($request->all(), [
+        'ordens' => 'required|array',
+        'ordens.*' => 'required|integer'
+      ]);
+
+      if ($validator->fails()) {
+        return response()->json([
+          'success' => false,
+          'message' => $validator->errors()->first()
+        ], 422);
+      }
+
+      $empresaId = Auth::user()->empresa_id;
+      $ordens = $request->ordens;
+
+      foreach ($ordens as $id) {
+        $regra = $this->preditivaRegraRepository->findById($id);
+        if (!$regra || $regra->empresa_id !== $empresaId) {
+          return response()->json([
+            'success' => false,
+            'message' => 'Regra não autorizada na lista.'
+          ], 403);
+        }
+      }
+
+      $reordered = $this->preditivaRegraRepository->reordenar($ordens);
+
+      if (!$reordered) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Erro ao reordenar regras.'
+        ], 500);
+      }
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Regras reordenadas com sucesso.'
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao reordenar: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Retorna os campos disponíveis para priorização com seus operadores
+   */
+  public function getCamposDisponiveis()
+  {
+    try {
+      $campos = [];
+
+      foreach (PreditivaRegraPriorizacao::CAMPOS_PERMITIDOS as $campo => $config) {
+        $campos[] = [
+          'campo' => $campo,
+          'label' => $config['label'],
+          'tipo' => $config['tipo'],
+          'operadores' => $config['operadores'],
+          'valores' => $config['valores'] ?? null
+        ];
+      }
+
+      return response()->json([
+        'success' => true,
+        'campos' => $campos
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar campos: ' . $th->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Retorna os valores únicos de um campo específico da tabela contatos
+   */
+  public function getValoresUnicos($campo)
+  {
+    try {
+      if (!array_key_exists($campo, PreditivaRegraPriorizacao::CAMPOS_PERMITIDOS)) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Campo não permitido.'
+        ], 422);
+      }
+
+      $empresaId = Auth::user()->empresa_id;
+
+      $valores = DB::table('contatos')
+        ->where('empresa_id', $empresaId)
+        ->whereNotNull($campo)
+        ->where($campo, '!=', '')
+        ->distinct()
+        ->orderBy($campo)
+        ->pluck($campo)
+        ->values();
+
+      return response()->json([
+        'success' => true,
+        'valores' => $valores
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar valores: ' . $th->getMessage()
+      ], 500);
+    }
   }
 
 }
