@@ -179,19 +179,11 @@ class Financeiro extends Controller
             $query->where('empresa_id', $request->empresa_id);
         }
 
-        // Tipo de filtro: 'implantacao' ou 'vencimento'
-        $tipoFiltro = $request->tipo_filtro ?? 'implantacao';
-        $mesSelecionado = $request->mes_selecionado;
-
-        // Filtro por vencimento (data_prevista das parcelas)
-        if ($tipoFiltro === 'vencimento' && $mesSelecionado) {
-            $query->whereRaw("DATE_FORMAT(data_prevista, '%Y-%m') = ?", [$mesSelecionado]);
-        }
-
-        // Filtro por implantação (data_implantacao da venda) - comportamento existente
-        if ($tipoFiltro === 'implantacao' && $mesSelecionado) {
-            $query->whereHas('venda', function ($q) use ($mesSelecionado) {
-                $q->whereRaw("DATE_FORMAT(data_implantacao, '%Y-%m') = ?", [$mesSelecionado]);
+        // Filtro por ano de implantação
+        $anoSelecionado = $request->ano;
+        if ($anoSelecionado) {
+            $query->whereHas('venda', function ($q) use ($anoSelecionado) {
+                $q->whereYear('data_implantacao', $anoSelecionado);
             });
         }
 
@@ -224,64 +216,21 @@ class Financeiro extends Controller
             ];
         });
 
-        // Buscar meses/anos disponíveis de IMPLANTAÇÃO para o filtro (agrupados por ano)
-        $mesesImplantacao = \App\Models\Vendas::whereNotNull('data_implantacao')
+        // Buscar anos disponíveis de implantação com contagem de contratos
+        $anosDisponiveis = \App\Models\Vendas::whereNotNull('data_implantacao')
             ->whereIn('id', Recebivel::select('venda_id')->distinct())
-            ->selectRaw("DATE_FORMAT(data_implantacao, '%Y') as ano")
-            ->selectRaw("DATE_FORMAT(data_implantacao, '%m') as mes")
-            ->selectRaw("DATE_FORMAT(data_implantacao, '%Y-%m') as mes_ano")
+            ->selectRaw("YEAR(data_implantacao) as ano")
             ->selectRaw('COUNT(*) as total_contratos')
-            ->groupBy('ano', 'mes', 'mes_ano')
+            ->groupBy('ano')
             ->orderBy('ano', 'desc')
-            ->orderBy('mes', 'desc')
-            ->get();
-
-        // Buscar meses/anos disponíveis de VENCIMENTO para o filtro (agrupados por ano)
-        $mesesVencimento = Recebivel::whereNotNull('data_prevista')
-            ->selectRaw("DATE_FORMAT(data_prevista, '%Y') as ano")
-            ->selectRaw("DATE_FORMAT(data_prevista, '%m') as mes")
-            ->selectRaw("DATE_FORMAT(data_prevista, '%Y-%m') as mes_ano")
-            ->selectRaw('COUNT(DISTINCT venda_id) as total_contratos')
-            ->groupBy('ano', 'mes', 'mes_ano')
-            ->orderBy('ano', 'desc')
-            ->orderBy('mes', 'desc')
-            ->get();
-
-        // Agrupar por ano para a timeline - Implantação
-        $periodosImplantacao = $mesesImplantacao->groupBy('ano')->map(function ($meses, $ano) {
-            return [
-                'ano' => $ano,
-                'meses' => $meses->map(function ($item) {
-                    return [
-                        'mes' => $item->mes,
-                        'mes_ano' => $item->mes_ano,
-                        'total' => $item->total_contratos,
-                    ];
-                })->values()->toArray(),
-            ];
-        })->values()->toArray();
-
-        // Agrupar por ano para a timeline - Vencimento
-        $periodosVencimento = $mesesVencimento->groupBy('ano')->map(function ($meses, $ano) {
-            return [
-                'ano' => $ano,
-                'meses' => $meses->map(function ($item) {
-                    return [
-                        'mes' => $item->mes,
-                        'mes_ano' => $item->mes_ano,
-                        'total' => $item->total_contratos,
-                    ];
-                })->values()->toArray(),
-            ];
-        })->values()->toArray();
+            ->get()
+            ->toArray();
 
         return view('content.pages.financeiro.recebiveis', [
             'contratos' => $contratos,
             'totais' => $totais,
-            'periodosImplantacao' => $periodosImplantacao,
-            'periodosVencimento' => $periodosVencimento,
-            'tipoFiltro' => $tipoFiltro,
-            'mesSelecionado' => $mesSelecionado,
+            'anosDisponiveis' => $anosDisponiveis,
+            'anoSelecionado' => $anoSelecionado,
         ]);
     }
 
@@ -665,19 +614,11 @@ class Financeiro extends Controller
     {
         $query = Recebivel::where('empresa_id', auth()->user()->empresa_id);
 
-        // Tipo de filtro: 'implantacao' ou 'vencimento'
-        $tipoFiltro = $request->tipo_filtro ?? 'implantacao';
-        $mesSelecionado = $request->mes_selecionado;
-
-        // Filtro por vencimento (data_prevista das parcelas)
-        if ($tipoFiltro === 'vencimento' && $mesSelecionado) {
-            $query->whereRaw("DATE_FORMAT(data_prevista, '%Y-%m') = ?", [$mesSelecionado]);
-        }
-
-        // Filtro por implantação (data_implantacao da venda)
-        if ($tipoFiltro === 'implantacao' && $mesSelecionado) {
-            $query->whereHas('venda', function ($q) use ($mesSelecionado) {
-                $q->whereRaw("DATE_FORMAT(data_implantacao, '%Y-%m') = ?", [$mesSelecionado]);
+        // Filtro por ano de implantação
+        $anoSelecionado = $request->ano;
+        if ($anoSelecionado) {
+            $query->whereHas('venda', function ($q) use ($anoSelecionado) {
+                $q->whereYear('data_implantacao', $anoSelecionado);
             });
         }
 

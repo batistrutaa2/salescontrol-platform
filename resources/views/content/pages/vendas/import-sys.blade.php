@@ -32,7 +32,7 @@
                         <li>As colunas obrigatorias sao: <code>PropostaNumero</code>, <code>TxtOperadora</code>, <code>Segurado</code>, <code>Documento</code></li>
                         <li>As vendas serao importadas com status <strong>IMPLANTADO</strong></li>
                         <li>Propostas duplicadas serao ignoradas</li>
-                        <li>Se o corretor nao for encontrado, sera atribuido ao usuario logado</li>
+                        <li><strong>Operadoras, Planos e Corretores</strong> serao criados automaticamente se nao existirem</li>
                     </ul>
                 </div>
 
@@ -57,37 +57,84 @@
                 <h5 class="mb-0">Resultado da Importacao</h5>
             </div>
             <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-3">
+                <!-- Resumo principal -->
+                <div class="row mb-3">
+                    <div class="col-6 col-md-3">
                         <div class="card bg-success text-white">
-                            <div class="card-body text-center">
+                            <div class="card-body text-center py-3">
                                 <h3 class="mb-0" id="totalImportados">0</h3>
                                 <small>Importados</small>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="card bg-warning text-white">
-                            <div class="card-body text-center">
+                            <div class="card-body text-center py-3">
                                 <h3 class="mb-0" id="totalDuplicados">0</h3>
                                 <small>Duplicados</small>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="card bg-danger text-white">
-                            <div class="card-body text-center">
+                            <div class="card-body text-center py-3">
                                 <h3 class="mb-0" id="totalErros">0</h3>
                                 <small>Erros</small>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="card bg-info text-white">
-                            <div class="card-body text-center">
+                            <div class="card-body text-center py-3">
                                 <h3 class="mb-0" id="totalWarnings">0</h3>
                                 <small>Avisos</small>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Itens criados automaticamente -->
+                <div class="row mb-4">
+                    <div class="col-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center py-3">
+                                <h3 class="mb-0" id="totalOperadoras">0</h3>
+                                <small>Operadoras Criadas</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body text-center py-3">
+                                <h3 class="mb-0" id="totalPlanos">0</h3>
+                                <small>Planos Criados</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="card text-white" style="background-color: #6f42c1;">
+                            <div class="card-body text-center py-3">
+                                <h3 class="mb-0" id="totalCorretores">0</h3>
+                                <small>Corretores Criados</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerta de itens criados automaticamente -->
+                <div class="alert alert-primary d-none mb-4" id="alertCriados">
+                    <h6 class="alert-heading mb-2"><i class="ti ti-info-circle me-1"></i> Itens Criados Automaticamente</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Operadoras:</strong>
+                            <ul class="mb-0 small" id="listaOperadorasCriadas"></ul>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Planos:</strong>
+                            <ul class="mb-0 small" id="listaPlanosCriados"></ul>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Corretores:</strong>
+                            <ul class="mb-0 small" id="listaCorretoresCriados"></ul>
                         </div>
                     </div>
                 </div>
@@ -236,13 +283,13 @@
                             </tr>
                             <tr>
                                 <td><code>TxtOperadora</code></td>
-                                <td>operadora</td>
-                                <td>Nome da operadora (busca no cadastro)</td>
+                                <td>operadora / operadora_id</td>
+                                <td>Busca ou cria automaticamente se nao existir</td>
                             </tr>
                             <tr>
                                 <td><code>TxtCorretor</code></td>
                                 <td>user_id</td>
-                                <td>Nome do corretor (busca no cadastro)</td>
+                                <td>Busca ou cria automaticamente como VENDEDOR</td>
                             </tr>
                             <tr>
                                 <td><code>TxtModalidade</code></td>
@@ -251,8 +298,8 @@
                             </tr>
                             <tr>
                                 <td><code>TxtPlano</code></td>
-                                <td>nome_plano</td>
-                                <td>Nome do plano</td>
+                                <td>nome_plano / plano_id</td>
+                                <td>Busca ou cria automaticamente vinculado a operadora</td>
                             </tr>
                             <tr>
                                 <td><code>CoParticipacao</code></td>

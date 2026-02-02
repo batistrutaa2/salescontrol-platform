@@ -58,48 +58,8 @@ $(function () {
     });
 
     // ============================================
-    // Filter Type Tabs (Implantacao/Vencimento)
+    // Year tabs are now links, no JS needed
     // ============================================
-    $('.filter-type-tab').on('click', function () {
-        const tipo = $(this).data('tipo');
-
-        // Update active tab
-        $('.filter-type-tab').removeClass('active');
-        $(this).addClass('active');
-
-        // Show corresponding timeline content
-        $('.timeline-content').removeClass('active');
-        $(`.timeline-content[data-tipo="${tipo}"]`).addClass('active');
-
-        // Select first year tab in the new timeline
-        const firstYearTab = $(`.timeline-content[data-tipo="${tipo}"] .year-tab`).first();
-        if (firstYearTab.length) {
-            // Reset year tabs for this type
-            $(`.timeline-content[data-tipo="${tipo}"] .year-tab`).removeClass('active');
-            firstYearTab.addClass('active');
-
-            // Show corresponding months
-            const ano = firstYearTab.data('ano');
-            $(`.timeline-content[data-tipo="${tipo}"] .timeline-months`).removeClass('active');
-            $(`.timeline-content[data-tipo="${tipo}"] .timeline-months[data-ano="${ano}"]`).addClass('active');
-        }
-    });
-
-    // ============================================
-    // Timeline Year Tabs
-    // ============================================
-    $('.year-tab').on('click', function () {
-        const ano = $(this).data('ano');
-        const tipo = $(this).data('tipo');
-
-        // Update active year tab within the same timeline type
-        $(`.timeline-content[data-tipo="${tipo}"] .year-tab`).removeClass('active');
-        $(this).addClass('active');
-
-        // Show corresponding months within the same timeline type
-        $(`.timeline-content[data-tipo="${tipo}"] .timeline-months`).removeClass('active');
-        $(`.timeline-content[data-tipo="${tipo}"] .timeline-months[data-ano="${ano}"]`).addClass('active');
-    });
 
     // ============================================
     // Load Parcelas Function
@@ -376,16 +336,12 @@ $(function () {
     function atualizarKPIs() {
         // Get current filter parameters from URL
         const urlParams = new URLSearchParams(window.location.search);
-        const tipoFiltro = urlParams.get('tipo_filtro') || 'implantacao';
-        const mesSelecionado = urlParams.get('mes_selecionado') || '';
+        const ano = urlParams.get('ano') || '';
 
         $.ajax({
             url: '/financeiro/recebiveis/kpis',
             method: 'GET',
-            data: {
-                tipo_filtro: tipoFiltro,
-                mes_selecionado: mesSelecionado
-            }
+            data: { ano: ano }
         }).done(function (response) {
             if (response.success) {
                 // Atualiza os valores dos KPIs

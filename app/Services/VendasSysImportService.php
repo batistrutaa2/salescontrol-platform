@@ -7,6 +7,7 @@ use App\Helpers\Helpers;
 use App\Models\Contatos;
 use App\Models\ContatosCorretores;
 use App\Models\Operadora;
+use App\Models\Plano;
 use App\Models\User;
 use App\Models\Vendas;
 use App\Models\VendaTitular;
@@ -21,6 +22,8 @@ class VendasSysImportService
 
     private array $operadorasCache = [];
 
+    private array $planosCache = [];
+
     private array $usersCache = [];
 
     private array $importados = [];
@@ -31,11 +34,18 @@ class VendasSysImportService
 
     private array $warnings = [];
 
+    private array $operadorasCriadas = [];
+
+    private array $planosCriados = [];
+
+    private array $corretoresCriados = [];
+
     public function __construct(int $empresaId, int $defaultUserId)
     {
         $this->empresaId = $empresaId;
         $this->defaultUserId = $defaultUserId;
         $this->loadOperadorasCache();
+        $this->loadPlanosCache();
         $this->loadUsersCache();
     }
 
@@ -48,6 +58,19 @@ class VendasSysImportService
         foreach ($operadoras as $op) {
             $normalizedName = $this->normalizeString($op->nome);
             $this->operadorasCache[$normalizedName] = $op;
+        }
+    }
+
+    private function loadPlanosCache(): void
+    {
+        $planos = Plano::where('empresa_id', $this->empresaId)
+            ->orWhereNull('empresa_id')
+            ->get();
+
+        foreach ($planos as $plano) {
+            // Chave composta: operadora_id + nome normalizado
+            $key = $plano->operadora_id.'_'.$this->normalizeString($plano->nome);
+            $this->planosCache[$key] = $plano;
         }
     }
 
@@ -117,24 +140,25 @@ class VendasSysImportService
                 return false;
             }
 
-            // Buscar operadora
+            // Buscar ou criar operadora
             $operadoraNome = trim($row['txtoperadora'] ?? '');
-            $operadora = $this->findOperadora($operadoraNome);
-
-            if (! $operadora) {
-                $this->erros[] = "Linha {$lineNumber}: Operadora '{$operadoraNome}' não encontrada";
+            if (empty($operadoraNome)) {
+                $this->erros[] = "Linha {$lineNumber}: Nome da operadora vazio";
 
                 return false;
             }
+            $operadora = $this->findOrCreateOperadora($operadoraNome, $lineNumber);
 
-            // Buscar usuário (corretor)
-            $corretorNome = trim($row['txtcorretor'] ?? '');
-            $user = $this->findUser($corretorNome);
-
-            if (! $user) {
-                $user = User::find($this->defaultUserId);
-                $this->warnings[] = "Linha {$lineNumber}: Corretor '{$corretorNome}' não encontrado, usando usuário padrão";
+            // Buscar ou criar plano
+            $planoNome = trim($row['txtplano'] ?? '');
+            $plano = null;
+            if (! empty($planoNome)) {
+                $plano = $this->findOrCreatePlano($planoNome, $operadora, $lineNumber);
             }
+
+            // Buscar ou criar usuário (corretor)
+            $corretorNome = trim($row['txtcorretor'] ?? '');
+            $user = $this->findOrCreateUser($corretorNome, $lineNumber);
 
             DB::beginTransaction();
 
@@ -146,7 +170,7 @@ class VendasSysImportService
             $this->createContatoCorretor($contato->id, $user->id, $row);
 
             // Criar venda
-            $venda = $this->createVenda($row, $contato->id, $user->id, $operadora);
+            $venda = $this->createVenda($row, $contato->id, $user->id, $operadora, $plano);
 
             // Criar titular
             $this->createTitular($venda->id, $row);
@@ -166,10 +190,11 @@ class VendasSysImportService
         }
     }
 
-    private function findOperadora(string $nome): ?Operadora
+    private function findOrCreateOperadora(string $nome, int $lineNumber): Operadora
     {
         $normalizedName = $this->normalizeString($nome);
 
+        // Busca exata
         if (isset($this->operadorasCache[$normalizedName])) {
             return $this->operadorasCache[$normalizedName];
         }
@@ -181,13 +206,71 @@ class VendasSysImportService
             }
         }
 
-        return null;
+        // Não encontrou - criar nova operadora
+        $operadora = Operadora::create([
+            'empresa_id' => $this->empresaId,
+            'nome' => mb_strtoupper(trim($nome), 'UTF-8'),
+            'status' => 'Y',
+        ]);
+
+        // Adicionar ao cache
+        $this->operadorasCache[$normalizedName] = $operadora;
+
+        // Registrar que foi criada
+        $this->operadorasCriadas[] = $operadora->nome;
+        $this->warnings[] = "Linha {$lineNumber}: Operadora '{$operadora->nome}' criada automaticamente";
+
+        return $operadora;
     }
 
-    private function findUser(string $nome): ?User
+    private function findOrCreatePlano(string $nome, Operadora $operadora, int $lineNumber): Plano
     {
         $normalizedName = $this->normalizeString($nome);
+        $cacheKey = $operadora->id.'_'.$normalizedName;
 
+        // Busca exata
+        if (isset($this->planosCache[$cacheKey])) {
+            return $this->planosCache[$cacheKey];
+        }
+
+        // Busca parcial na mesma operadora
+        foreach ($this->planosCache as $key => $plano) {
+            if (str_starts_with($key, $operadora->id.'_')) {
+                $planoNormalizado = substr($key, strlen($operadora->id.'_'));
+                if (str_contains($planoNormalizado, $normalizedName) || str_contains($normalizedName, $planoNormalizado)) {
+                    return $plano;
+                }
+            }
+        }
+
+        // Não encontrou - criar novo plano
+        $plano = Plano::create([
+            'empresa_id' => $this->empresaId,
+            'operadora_id' => $operadora->id,
+            'nome' => mb_strtoupper(trim($nome), 'UTF-8'),
+            'status' => 'Y',
+        ]);
+
+        // Adicionar ao cache
+        $this->planosCache[$cacheKey] = $plano;
+
+        // Registrar que foi criado
+        $this->planosCriados[] = $plano->nome.' ('.$operadora->nome.')';
+        $this->warnings[] = "Linha {$lineNumber}: Plano '{$plano->nome}' criado automaticamente para operadora '{$operadora->nome}'";
+
+        return $plano;
+    }
+
+    private function findOrCreateUser(string $nome, int $lineNumber): User
+    {
+        // Se nome vazio, retorna usuário padrão
+        if (empty(trim($nome))) {
+            return User::find($this->defaultUserId);
+        }
+
+        $normalizedName = $this->normalizeString($nome);
+
+        // Busca exata
         if (isset($this->usersCache[$normalizedName])) {
             return $this->usersCache[$normalizedName];
         }
@@ -199,7 +282,47 @@ class VendasSysImportService
             }
         }
 
-        return null;
+        // Não encontrou - criar novo corretor
+        $nomeFormatado = mb_convert_case(trim($nome), MB_CASE_TITLE, 'UTF-8');
+
+        // Gerar email único baseado no nome
+        $emailBase = $this->generateEmailFromName($nome);
+        $email = $emailBase.'@importado.local';
+
+        // Verificar se email já existe e gerar alternativo se necessário
+        $contador = 1;
+        while (User::where('email', $email)->exists()) {
+            $email = $emailBase.$contador.'@importado.local';
+            $contador++;
+        }
+
+        $user = User::create([
+            'empresa_id' => $this->empresaId,
+            'name' => $nomeFormatado,
+            'email' => $email,
+            'password' => bcrypt('importado_'.uniqid()), // Senha aleatória
+            'user_role_id' => 1, // VENDEDOR
+            'ativo' => 'Y',
+        ]);
+
+        // Adicionar ao cache
+        $this->usersCache[$normalizedName] = $user;
+
+        // Registrar que foi criado
+        $this->corretoresCriados[] = $nomeFormatado;
+        $this->warnings[] = "Linha {$lineNumber}: Corretor '{$nomeFormatado}' criado automaticamente";
+
+        return $user;
+    }
+
+    private function generateEmailFromName(string $nome): string
+    {
+        $nome = $this->normalizeString($nome);
+        $nome = preg_replace('/[^a-z0-9]/', '.', $nome);
+        $nome = preg_replace('/\.+/', '.', $nome);
+        $nome = trim($nome, '.');
+
+        return $nome ?: 'corretor';
     }
 
     private function cleanDocumento(?string $documento): string
@@ -369,7 +492,7 @@ class VendasSysImportService
         return $contatoCorretor;
     }
 
-    private function createVenda(array $row, int $contatoId, int $userId, Operadora $operadora): Vendas
+    private function createVenda(array $row, int $contatoId, int $userId, Operadora $operadora, ?Plano $plano = null): Vendas
     {
         $modalidade = strtoupper(trim($row['txtmodalidade'] ?? ''));
         $tipoContrato = match ($modalidade) {
@@ -400,7 +523,8 @@ class VendasSysImportService
         $venda->telefone2 = $this->cleanTelefone($row['telcomercial'] ?? '');
         $venda->operadora = $operadora->nome;
         $venda->operadora_id = $operadora->id;
-        $venda->nome_plano = trim($row['txtplano'] ?? '');
+        $venda->nome_plano = $plano ? $plano->nome : trim($row['txtplano'] ?? '');
+        $venda->plano_id = $plano?->id;
         $venda->valor_contrato = $this->parseValor($row['vlproducao'] ?? '');
         $venda->vidas = (int) ($row['qtdebeneficiarios'] ?? 0);
         $venda->data_vigencia = $this->parseData($row['dtvigencia'] ?? '');
@@ -457,6 +581,12 @@ class VendasSysImportService
             'total_duplicados' => count($this->duplicados),
             'total_erros' => count($this->erros),
             'total_warnings' => count($this->warnings),
+            'operadoras_criadas' => $this->operadorasCriadas,
+            'planos_criados' => $this->planosCriados,
+            'corretores_criados' => $this->corretoresCriados,
+            'total_operadoras_criadas' => count($this->operadorasCriadas),
+            'total_planos_criados' => count($this->planosCriados),
+            'total_corretores_criados' => count($this->corretoresCriados),
         ];
     }
 }

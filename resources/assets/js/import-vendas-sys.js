@@ -56,6 +56,37 @@
         document.getElementById('totalDuplicados').textContent = data.resumo.total_duplicados || 0;
         document.getElementById('totalErros').textContent = data.resumo.total_erros || 0;
         document.getElementById('totalWarnings').textContent = data.resumo.total_warnings || 0;
+        document.getElementById('totalOperadoras').textContent = data.resumo.total_operadoras_criadas || 0;
+        document.getElementById('totalPlanos').textContent = data.resumo.total_planos_criados || 0;
+        document.getElementById('totalCorretores').textContent = data.resumo.total_corretores_criados || 0;
+
+        // Show alert with created items if any
+        const alertCriados = document.getElementById('alertCriados');
+        const operadorasCriadas = data.resumo.operadoras_criadas || [];
+        const planosCriados = data.resumo.planos_criados || [];
+        const corretoresCriados = data.resumo.corretores_criados || [];
+
+        if (operadorasCriadas.length > 0 || planosCriados.length > 0 || corretoresCriados.length > 0) {
+            alertCriados.classList.remove('d-none');
+
+            const listaOperadoras = document.getElementById('listaOperadorasCriadas');
+            const listaPlanos = document.getElementById('listaPlanosCriados');
+            const listaCorretores = document.getElementById('listaCorretoresCriados');
+
+            listaOperadoras.innerHTML = operadorasCriadas.length > 0
+                ? operadorasCriadas.map(op => `<li>${escapeHtml(op)}</li>`).join('')
+                : '<li class="text-muted">Nenhuma</li>';
+
+            listaPlanos.innerHTML = planosCriados.length > 0
+                ? planosCriados.map(pl => `<li>${escapeHtml(pl)}</li>`).join('')
+                : '<li class="text-muted">Nenhum</li>';
+
+            listaCorretores.innerHTML = corretoresCriados.length > 0
+                ? corretoresCriados.map(c => `<li>${escapeHtml(c)}</li>`).join('')
+                : '<li class="text-muted">Nenhum</li>';
+        } else {
+            alertCriados.classList.add('d-none');
+        }
 
         // Populate tables
         populateTable('tbodyImportados', data.importados || []);
