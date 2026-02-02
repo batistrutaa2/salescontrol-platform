@@ -175,26 +175,27 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="timeline-title">Periodo de Producao</h3>
-                        <p class="timeline-subtitle">Filtre por mes/ano de implantacao</p>
+                        <h3 class="timeline-title">Periodo</h3>
+                        <p class="timeline-subtitle">Filtre por implantacao ou vencimento</p>
                     </div>
                 </div>
-                @if($filtroMesImplantacao)
+                @if($mesSelecionado)
                     @php
                         $mesesPt = [
                             '01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr',
                             '05' => 'Mai', '06' => 'Jun', '07' => 'Jul', '08' => 'Ago',
                             '09' => 'Set', '10' => 'Out', '11' => 'Nov', '12' => 'Dez'
                         ];
-                        $partes = explode('-', $filtroMesImplantacao);
+                        $partes = explode('-', $mesSelecionado);
                         $filtroLabel = $mesesPt[$partes[1]] . '/' . $partes[0];
+                        $tipoLabel = $tipoFiltro === 'vencimento' ? 'Vencimento' : 'Implantacao';
                     @endphp
                     <div class="timeline-active-filter">
                         <span class="active-filter-badge">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
                             </svg>
-                            {{ $filtroLabel }}
+                            {{ $tipoLabel }}: {{ $filtroLabel }}
                         </span>
                         <a href="{{ route('financeiro.recebiveis.index') }}" class="clear-filter-btn" title="Limpar filtro">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -206,41 +207,104 @@
                 @endif
             </div>
 
-            {{-- Anos como tabs --}}
-            <div class="timeline-years">
+            {{-- Tabs de tipo de filtro --}}
+            <div class="filter-type-tabs">
+                <button type="button"
+                        class="filter-type-tab {{ $tipoFiltro == 'implantacao' ? 'active' : '' }}"
+                        data-tipo="implantacao">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    Por Implantacao
+                </button>
+                <button type="button"
+                        class="filter-type-tab {{ $tipoFiltro == 'vencimento' ? 'active' : '' }}"
+                        data-tipo="vencimento">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    Por Vencimento
+                </button>
+            </div>
+
+            {{-- Timeline de Implantação --}}
+            <div class="timeline-content {{ $tipoFiltro == 'implantacao' ? 'active' : '' }}" data-tipo="implantacao">
+                {{-- Anos como tabs --}}
+                <div class="timeline-years">
+                    @php
+                        $anoSelecionadoImplantacao = ($tipoFiltro == 'implantacao' && $mesSelecionado) ? explode('-', $mesSelecionado)[0] : ($periodosImplantacao[0]['ano'] ?? null);
+                    @endphp
+                    @foreach($periodosImplantacao as $index => $periodo)
+                        <button type="button"
+                                class="year-tab {{ $periodo['ano'] == $anoSelecionadoImplantacao ? 'active' : '' }}"
+                                data-ano="{{ $periodo['ano'] }}"
+                                data-tipo="implantacao">
+                            {{ $periodo['ano'] }}
+                            <span class="year-count">{{ array_sum(array_column($periodo['meses'], 'total')) }}</span>
+                        </button>
+                    @endforeach
+                </div>
+
+                {{-- Meses do ano selecionado --}}
                 @php
-                    $anoSelecionado = $filtroMesImplantacao ? explode('-', $filtroMesImplantacao)[0] : ($periodosDisponiveis[0]['ano'] ?? null);
+                    $mesesPtFull = [
+                        '01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr',
+                        '05' => 'Mai', '06' => 'Jun', '07' => 'Jul', '08' => 'Ago',
+                        '09' => 'Set', '10' => 'Out', '11' => 'Nov', '12' => 'Dez'
+                    ];
                 @endphp
-                @foreach($periodosDisponiveis as $index => $periodo)
-                    <button type="button"
-                            class="year-tab {{ $periodo['ano'] == $anoSelecionado ? 'active' : '' }}"
-                            data-ano="{{ $periodo['ano'] }}">
-                        {{ $periodo['ano'] }}
-                        <span class="year-count">{{ array_sum(array_column($periodo['meses'], 'total')) }}</span>
-                    </button>
+                @foreach($periodosImplantacao as $periodo)
+                    <div class="timeline-months {{ $periodo['ano'] == $anoSelecionadoImplantacao ? 'active' : '' }}"
+                         data-ano="{{ $periodo['ano'] }}"
+                         data-tipo="implantacao">
+                        @foreach($periodo['meses'] as $mesData)
+                            <a href="{{ route('financeiro.recebiveis.index', ['tipo_filtro' => 'implantacao', 'mes_selecionado' => $mesData['mes_ano']]) }}"
+                               class="month-chip {{ ($tipoFiltro == 'implantacao' && $mesSelecionado == $mesData['mes_ano']) ? 'active' : '' }}">
+                                <span class="month-name">{{ $mesesPtFull[$mesData['mes']] }}</span>
+                                <span class="month-count">{{ $mesData['total'] }}</span>
+                            </a>
+                        @endforeach
+                    </div>
                 @endforeach
             </div>
 
-            {{-- Meses do ano selecionado --}}
-            @php
-                $mesesPtFull = [
-                    '01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr',
-                    '05' => 'Mai', '06' => 'Jun', '07' => 'Jul', '08' => 'Ago',
-                    '09' => 'Set', '10' => 'Out', '11' => 'Nov', '12' => 'Dez'
-                ];
-            @endphp
-            @foreach($periodosDisponiveis as $periodo)
-                <div class="timeline-months {{ $periodo['ano'] == $anoSelecionado ? 'active' : '' }}"
-                     data-ano="{{ $periodo['ano'] }}">
-                    @foreach($periodo['meses'] as $mesData)
-                        <a href="{{ route('financeiro.recebiveis.index', ['mes_implantacao' => $mesData['mes_ano']]) }}"
-                           class="month-chip {{ $filtroMesImplantacao == $mesData['mes_ano'] ? 'active' : '' }}">
-                            <span class="month-name">{{ $mesesPtFull[$mesData['mes']] }}</span>
-                            <span class="month-count">{{ $mesData['total'] }}</span>
-                        </a>
+            {{-- Timeline de Vencimento --}}
+            <div class="timeline-content {{ $tipoFiltro == 'vencimento' ? 'active' : '' }}" data-tipo="vencimento">
+                {{-- Anos como tabs --}}
+                <div class="timeline-years">
+                    @php
+                        $anoSelecionadoVencimento = ($tipoFiltro == 'vencimento' && $mesSelecionado) ? explode('-', $mesSelecionado)[0] : ($periodosVencimento[0]['ano'] ?? null);
+                    @endphp
+                    @foreach($periodosVencimento as $index => $periodo)
+                        <button type="button"
+                                class="year-tab {{ $periodo['ano'] == $anoSelecionadoVencimento ? 'active' : '' }}"
+                                data-ano="{{ $periodo['ano'] }}"
+                                data-tipo="vencimento">
+                            {{ $periodo['ano'] }}
+                            <span class="year-count">{{ array_sum(array_column($periodo['meses'], 'total')) }}</span>
+                        </button>
                     @endforeach
                 </div>
-            @endforeach
+
+                {{-- Meses do ano selecionado --}}
+                @foreach($periodosVencimento as $periodo)
+                    <div class="timeline-months {{ $periodo['ano'] == $anoSelecionadoVencimento ? 'active' : '' }}"
+                         data-ano="{{ $periodo['ano'] }}"
+                         data-tipo="vencimento">
+                        @foreach($periodo['meses'] as $mesData)
+                            <a href="{{ route('financeiro.recebiveis.index', ['tipo_filtro' => 'vencimento', 'mes_selecionado' => $mesData['mes_ano']]) }}"
+                               class="month-chip {{ ($tipoFiltro == 'vencimento' && $mesSelecionado == $mesData['mes_ano']) ? 'active' : '' }}">
+                                <span class="month-name">{{ $mesesPtFull[$mesData['mes']] }}</span>
+                                <span class="month-count">{{ $mesData['total'] }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                @endforeach
+            </div>
         </div>
     </section>
 
