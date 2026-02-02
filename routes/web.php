@@ -246,6 +246,11 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/vendas/exportar', [Vendas::class, 'exportar'])->name('sale.exportar');
   Route::get('/vendas/boletos/{id}', [Vendas::class, 'downloadBoleto'])->name('sale.downloadBoleto');
 
+  // Importacao de Vendas do Sistema Legado (SYS)
+  Route::get('/vendas/import-sys', [\App\Http\Controllers\pages\vendas\ImportVendasSysController::class, 'index'])->name('vendas.import-sys');
+  Route::post('/vendas/import-sys', [\App\Http\Controllers\pages\vendas\ImportVendasSysController::class, 'import'])->name('vendas.import-sys.import');
+  Route::get('/vendas/import-sys/template', [\App\Http\Controllers\pages\vendas\ImportVendasSysController::class, 'downloadTemplate'])->name('vendas.import-sys.template');
+
   /** PABX */
   Route::get('/pabx/cadastro-ramais', [Pabx::class, 'index'])->name('index.createRamal');
   Route::get('/pabx/getRamais', [Pabx::class, 'getRamais'])->name('pabx.getRamais');

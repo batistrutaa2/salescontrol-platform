@@ -219,6 +219,11 @@
           "url": "/back-office/relatorio-performance",
           "name": "Relatorio de Performance",
           "slug": "pages-backoffice-performance"
+        },
+        {
+          "url": "/vendas/import-sys",
+          "name": "Importar Vendas (SYS)",
+          "slug": "pages-import-vendas-sys"
         }
       ]
     },
