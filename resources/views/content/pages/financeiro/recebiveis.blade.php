@@ -405,6 +405,27 @@
                         </tbody>
                     </table>
                 </div>
+                {{-- Pagination Controls --}}
+                <div class="parcelas-pagination" id="parcelasPagination">
+                    <div class="pagination-info">
+                        <span id="paginationInfo">Mostrando 0 de 0 parcelas</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <button type="button" class="pagination-btn" id="btnPrevPage" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </button>
+                        <div class="pagination-pages" id="paginationPages">
+                            {{-- Page numbers populated via JS --}}
+                        </div>
+                        <button type="button" class="pagination-btn" id="btnNextPage" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

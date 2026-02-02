@@ -11,6 +11,11 @@ $(function () {
     let currentVendaId = null;
     let currentFilterTab = 'todos'; // Guarda o tab ativo atual
 
+    // Pagination variables
+    let allParcelas = [];
+    let currentPage = 1;
+    const itemsPerPage = 10;
+
     // ============================================
     // DataTable Initialization
     // ============================================
@@ -96,8 +101,13 @@ $(function () {
             </tr>
         `);
 
+        // Hide pagination while loading
+        $('#parcelasPagination').hide();
+
         $.get(`/financeiro/recebiveis/${vendaId}/parcelas`, function (data) {
-            tbody.empty();
+            // Store all parcelas and reset to first page
+            allParcelas = data;
+            currentPage = 1;
 
             if (data.length === 0) {
                 tbody.html(`
@@ -107,40 +117,21 @@ $(function () {
                         </td>
                     </tr>
                 `);
+                $('#parcelasPagination').hide();
+                $('#parcelasModal').modal('show');
                 return;
             }
 
-            data.forEach((parcela, index) => {
-                const statusBadge = getStatusBadge(parcela.status);
-                const actionBtns = getActionButtons(parcela);
-                const dataRecebimento = parcela.data_recebimento
-                    ? parcela.data_recebimento
-                    : '<span style="color: var(--rcb-text-muted)">—</span>';
+            // Render first page
+            renderParcelas();
+            updatePaginationControls();
 
-                const valorFormatado = parseFloat(parcela.valor).toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL'
-                });
-
-                tbody.append(`
-                    <tr style="animation: fadeInUp 0.3s ease forwards; animation-delay: ${index * 50}ms; opacity: 0;">
-                        <td>
-                            <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--rcb-emerald);">
-                                ${parcela.parcela}
-                            </span>
-                        </td>
-                        <td>
-                            <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600;">
-                                ${valorFormatado}
-                            </span>
-                        </td>
-                        <td>${parcela.data_prevista}</td>
-                        <td>${dataRecebimento}</td>
-                        <td>${statusBadge}</td>
-                        <td>${actionBtns}</td>
-                    </tr>
-                `);
-            });
+            // Show pagination if more than one page
+            if (data.length > itemsPerPage) {
+                $('#parcelasPagination').show();
+            } else {
+                $('#parcelasPagination').hide();
+            }
 
             $('#parcelasModal').modal('show');
         }).fail(function () {
@@ -151,9 +142,131 @@ $(function () {
                     </td>
                 </tr>
             `);
+            $('#parcelasPagination').hide();
             showToast('error', 'Erro ao carregar parcelas');
         });
     }
+
+    // ============================================
+    // Pagination Functions
+    // ============================================
+    function renderParcelas() {
+        const tbody = $('#parcelasTable tbody');
+        tbody.empty();
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, allParcelas.length);
+        const parcelasToShow = allParcelas.slice(startIndex, endIndex);
+
+        parcelasToShow.forEach((parcela, index) => {
+            const statusBadge = getStatusBadge(parcela.status);
+            const actionBtns = getActionButtons(parcela);
+            const dataRecebimento = parcela.data_recebimento
+                ? parcela.data_recebimento
+                : '<span style="color: var(--rcb-text-muted)">—</span>';
+
+            const valorFormatado = parseFloat(parcela.valor).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+
+            tbody.append(`
+                <tr style="animation: fadeInUp 0.3s ease forwards; animation-delay: ${index * 30}ms; opacity: 0;">
+                    <td>
+                        <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--rcb-emerald);">
+                            ${parcela.parcela}
+                        </span>
+                    </td>
+                    <td>
+                        <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600;">
+                            ${valorFormatado}
+                        </span>
+                    </td>
+                    <td>${parcela.data_prevista}</td>
+                    <td>${dataRecebimento}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actionBtns}</td>
+                </tr>
+            `);
+        });
+    }
+
+    function updatePaginationControls() {
+        const totalPages = Math.ceil(allParcelas.length / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage + 1;
+        const endIndex = Math.min(currentPage * itemsPerPage, allParcelas.length);
+
+        // Update info text
+        $('#paginationInfo').text(`Mostrando ${startIndex}-${endIndex} de ${allParcelas.length} parcelas`);
+
+        // Update prev/next buttons
+        $('#btnPrevPage').prop('disabled', currentPage === 1);
+        $('#btnNextPage').prop('disabled', currentPage === totalPages);
+
+        // Generate page numbers
+        const pagesContainer = $('#paginationPages');
+        pagesContainer.empty();
+
+        // Calculate which pages to show
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+
+        // Adjust if we're near the beginning or end
+        if (currentPage <= 3) {
+            endPage = Math.min(5, totalPages);
+        }
+        if (currentPage >= totalPages - 2) {
+            startPage = Math.max(1, totalPages - 4);
+        }
+
+        // First page + ellipsis
+        if (startPage > 1) {
+            pagesContainer.append(`<button type="button" class="pagination-page" data-page="1">1</button>`);
+            if (startPage > 2) {
+                pagesContainer.append(`<span class="pagination-ellipsis">...</span>`);
+            }
+        }
+
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            const activeClass = i === currentPage ? 'active' : '';
+            pagesContainer.append(`<button type="button" class="pagination-page ${activeClass}" data-page="${i}">${i}</button>`);
+        }
+
+        // Last page + ellipsis
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                pagesContainer.append(`<span class="pagination-ellipsis">...</span>`);
+            }
+            pagesContainer.append(`<button type="button" class="pagination-page" data-page="${totalPages}">${totalPages}</button>`);
+        }
+    }
+
+    function goToPage(page) {
+        const totalPages = Math.ceil(allParcelas.length / itemsPerPage);
+        if (page < 1 || page > totalPages) return;
+
+        currentPage = page;
+        renderParcelas();
+        updatePaginationControls();
+
+        // Scroll to top of table
+        $('.parcelas-table-wrapper').scrollTop(0);
+    }
+
+    // Pagination event handlers
+    $(document).on('click', '#btnPrevPage', function () {
+        goToPage(currentPage - 1);
+    });
+
+    $(document).on('click', '#btnNextPage', function () {
+        goToPage(currentPage + 1);
+    });
+
+    $(document).on('click', '.pagination-page', function () {
+        const page = parseInt($(this).data('page'));
+        goToPage(page);
+    });
 
     function getStatusBadge(status) {
         switch (status) {
