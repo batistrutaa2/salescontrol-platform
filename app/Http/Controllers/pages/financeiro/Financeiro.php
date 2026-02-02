@@ -3,18 +3,17 @@
 namespace App\Http\Controllers\pages\financeiro;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Operadora;
+use App\Models\Plano;
+use App\Models\Recebivel;
 use App\Models\RegrasComissionamento;
 use App\Models\RegrasComissionamentoParcela;
-use App\Models\Operadora;
-use Yajra\DataTables\Facades\DataTables;
-use App\Models\Recebivel;
 use App\Models\Vendas;
-use App\Models\Plano;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
-
+use Yajra\DataTables\Facades\DataTables;
 
 class Financeiro extends Controller
 {
@@ -24,6 +23,7 @@ class Financeiro extends Controller
     public function regrasRecebimentos()
     {
         $operadoras = Operadora::where('empresa_id', auth()->user()->empresa_id)->get();
+
         return view('content.pages.financeiro.regras-recebimentos', compact('operadoras'));
     }
 
@@ -34,7 +34,7 @@ class Financeiro extends Controller
     {
         if ($request->ajax()) {
             $query = RegrasComissionamento::with('operadoras')->select('regras_comissionamento.*')
-            ->where('regras_comissionamento.empresa_id', auth()->user()->empresa_id);
+                ->where('regras_comissionamento.empresa_id', auth()->user()->empresa_id);
 
             return DataTables::of($query)
                 ->addColumn('operadora_nome', function ($row) {
@@ -46,52 +46,50 @@ class Financeiro extends Controller
         return view('content.pages.financeiro.regras-recebimentos');
     }
 
-
     public function regrasStore(Request $request)
     {
         $data = $request->validate([
-            'operadora_id'        => 'required|exists:operadoras,id',
-            'categoria'           => 'required|in:PME,ADESAO',
-            'total_percentual'    => 'nullable|numeric',
-            'descricao'           => 'nullable|string|max:255',
-            'vitalicio'           => 'boolean',
-            'percentual_vitalicio'=> 'nullable|numeric|min:0|max:100',
+            'operadora_id' => 'required|exists:operadoras,id',
+            'categoria' => 'required|in:PME,ADESAO',
+            'total_percentual' => 'nullable|numeric',
+            'descricao' => 'nullable|string|max:255',
+            'vitalicio' => 'boolean',
+            'percentual_vitalicio' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $rule = RegrasComissionamento::create([
-            'empresa_id'          => auth()->user()->empresa_id,
-            'operadora_id'        => $data['operadora_id'],
-            'categoria'           => $data['categoria'],
-            'total_percentual'    => $data['total_percentual'] ?? null,
-            'descricao'           => $data['descricao'] ?? null,
-            'vitalicio'           => $data['vitalicio'] ?? 0,
-            'percentual_vitalicio'=> $data['percentual_vitalicio'] ?? null,
+            'empresa_id' => auth()->user()->empresa_id,
+            'operadora_id' => $data['operadora_id'],
+            'categoria' => $data['categoria'],
+            'total_percentual' => $data['total_percentual'] ?? null,
+            'descricao' => $data['descricao'] ?? null,
+            'vitalicio' => $data['vitalicio'] ?? 0,
+            'percentual_vitalicio' => $data['percentual_vitalicio'] ?? null,
         ]);
 
         return response()->json($rule);
     }
-
 
     public function regrasUpdate(Request $request, $id)
     {
         $rule = RegrasComissionamento::findOrFail($id);
 
         $data = $request->validate([
-            'operadora_id'        => 'required|exists:operadoras,id',
-            'categoria'           => 'required|in:PME,ADESAO',
-            'total_percentual'    => 'nullable|numeric',
-            'descricao'           => 'nullable|string|max:255',
-            'vitalicio'           => 'boolean',
-            'percentual_vitalicio'=> 'nullable|numeric|min:0|max:100',
+            'operadora_id' => 'required|exists:operadoras,id',
+            'categoria' => 'required|in:PME,ADESAO',
+            'total_percentual' => 'nullable|numeric',
+            'descricao' => 'nullable|string|max:255',
+            'vitalicio' => 'boolean',
+            'percentual_vitalicio' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $rule->update([
-            'operadora_id'        => $data['operadora_id'],
-            'categoria'           => $data['categoria'],
-            'total_percentual'    => $data['total_percentual'] ?? null,
-            'descricao'           => $data['descricao'] ?? null,
-            'vitalicio'           => $data['vitalicio'] ?? 0,
-            'percentual_vitalicio'=> $data['percentual_vitalicio'] ?? null,
+            'operadora_id' => $data['operadora_id'],
+            'categoria' => $data['categoria'],
+            'total_percentual' => $data['total_percentual'] ?? null,
+            'descricao' => $data['descricao'] ?? null,
+            'vitalicio' => $data['vitalicio'] ?? 0,
+            'percentual_vitalicio' => $data['percentual_vitalicio'] ?? null,
         ]);
 
         return response()->json($rule);
@@ -164,8 +162,7 @@ class Financeiro extends Controller
         return response()->json(['success' => true]);
     }
 
-
-        /**
+    /**
      * 📑 Listagem geral de recebíveis
      */
     public function indexRecebiveis(Request $request)
@@ -194,10 +191,10 @@ class Financeiro extends Controller
 
         // Calcular totais
         $totais = [
-            'pago'     => $recebiveis->where('status', 'PAGO')->sum('valor'),
+            'pago' => $recebiveis->where('status', 'PAGO')->sum('valor'),
             'pendente' => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
-            'atraso'   => $recebiveis->where('status', 'PENDENTE')
-                            ->where('data_prevista', '<', now())->sum('valor'),
+            'atraso' => $recebiveis->where('status', 'PENDENTE')
+                ->where('data_prevista', '<', now())->sum('valor'),
         ];
 
         // Agrupar por contrato
@@ -206,35 +203,52 @@ class Financeiro extends Controller
             $valorPago = $parcelas->where('status', 'PAGO')->sum('valor');
             $valorPendente = $valorTotal - $valorPago;
 
-            return (object)[
-                'empresa'        => $parcelas->first()->empresa,
-                'venda'          => $parcelas->first()->venda,
-                'vendedor'       => $parcelas->first()->vendedor,
-                'operadora'      => $parcelas->first()->operadora,
-                'valor_total'    => $valorTotal,
-                'valor_pago'     => $valorPago,
+            return (object) [
+                'empresa' => $parcelas->first()->empresa,
+                'venda' => $parcelas->first()->venda,
+                'vendedor' => $parcelas->first()->vendedor,
+                'operadora' => $parcelas->first()->operadora,
+                'valor_total' => $valorTotal,
+                'valor_pago' => $valorPago,
                 'valor_pendente' => $valorPendente,
-                'em_atraso'      => $parcelas->where('status', 'PENDENTE')
-                                            ->where('data_prevista', '<', now())->count() > 0,
+                'em_atraso' => $parcelas->where('status', 'PENDENTE')
+                    ->where('data_prevista', '<', now())->count() > 0,
             ];
         });
 
-        // Buscar meses/anos disponíveis de implantação para o filtro
-        $mesesDisponiveis = \App\Models\Vendas::whereNotNull('data_implantacao')
+        // Buscar meses/anos disponíveis de implantação para o filtro (agrupados por ano)
+        $mesesComContagem = \App\Models\Vendas::whereNotNull('data_implantacao')
             ->whereIn('id', Recebivel::select('venda_id')->distinct())
+            ->selectRaw("DATE_FORMAT(data_implantacao, '%Y') as ano")
+            ->selectRaw("DATE_FORMAT(data_implantacao, '%m') as mes")
             ->selectRaw("DATE_FORMAT(data_implantacao, '%Y-%m') as mes_ano")
-            ->distinct()
-            ->orderBy('mes_ano', 'desc')
-            ->pluck('mes_ano');
+            ->selectRaw('COUNT(*) as total_contratos')
+            ->groupBy('ano', 'mes', 'mes_ano')
+            ->orderBy('ano', 'desc')
+            ->orderBy('mes', 'desc')
+            ->get();
+
+        // Agrupar por ano para a timeline
+        $periodosDisponiveis = $mesesComContagem->groupBy('ano')->map(function ($meses, $ano) {
+            return [
+                'ano' => $ano,
+                'meses' => $meses->map(function ($item) {
+                    return [
+                        'mes' => $item->mes,
+                        'mes_ano' => $item->mes_ano,
+                        'total' => $item->total_contratos,
+                    ];
+                })->values()->toArray(),
+            ];
+        })->values()->toArray();
 
         return view('content.pages.financeiro.recebiveis', [
             'contratos' => $contratos,
-            'totais'    => $totais,
-            'mesesDisponiveis' => $mesesDisponiveis,
+            'totais' => $totais,
+            'periodosDisponiveis' => $periodosDisponiveis,
             'filtroMesImplantacao' => $request->mes_implantacao,
         ]);
     }
-
 
     /**
      * 🔍 Mostrar todas as parcelas de um contrato específico
@@ -293,13 +307,13 @@ class Financeiro extends Controller
         $parcelas = Recebivel::where('venda_id', $vendaId)
             ->orderBy('parcela')
             ->get()
-            ->map(fn($p) => [
-                'id'              => $p->id,
-                'parcela'         => $p->parcela,
-                'valor'           => $p->valor,
-                'data_prevista'   => \Carbon\Carbon::parse($p->data_prevista)->format('d/m/Y'),
-                'data_recebimento'=> $p->data_recebimento ? \Carbon\Carbon::parse($p->data_recebimento)->format('d/m/Y') : null,
-                'status'          => $p->status,
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'parcela' => $p->parcela,
+                'valor' => $p->valor,
+                'data_prevista' => \Carbon\Carbon::parse($p->data_prevista)->format('d/m/Y'),
+                'data_recebimento' => $p->data_recebimento ? \Carbon\Carbon::parse($p->data_recebimento)->format('d/m/Y') : null,
+                'status' => $p->status,
             ]);
 
         return response()->json($parcelas);
@@ -315,7 +329,7 @@ class Financeiro extends Controller
 
         return response()->json([
             'success' => true,
-            'nova_parcela_gerada' => $novaParcelaGerada
+            'nova_parcela_gerada' => $novaParcelaGerada,
         ]);
     }
 
@@ -325,13 +339,13 @@ class Financeiro extends Controller
     private function gerarProximaParcelaVitalicia(Recebivel $parcelaPaga): bool
     {
         $venda = Vendas::find($parcelaPaga->venda_id);
-        if (!$venda) {
+        if (! $venda) {
             return false;
         }
 
         // Buscar operadora
         $operadora = Operadora::where('nome', $venda->operadora)->first();
-        if (!$operadora) {
+        if (! $operadora) {
             return false;
         }
 
@@ -341,7 +355,7 @@ class Financeiro extends Controller
             ->where('operadora_id', $operadora->id)
             ->first();
 
-        if (!$regra || !$regra->vitalicio || !$regra->percentual_vitalicio || $regra->percentual_vitalicio <= 0) {
+        if (! $regra || ! $regra->vitalicio || ! $regra->percentual_vitalicio || $regra->percentual_vitalicio <= 0) {
             return false;
         }
 
@@ -357,29 +371,30 @@ class Financeiro extends Controller
 
             // Resolver nome do plano
             $planoNome = 'N/A';
-            if (!empty($venda->plano_id)) {
+            if (! empty($venda->plano_id)) {
                 $plano = Plano::find($venda->plano_id);
                 $planoNome = $plano?->nome ?? $venda->nome_plano ?? 'N/A';
-            } elseif (!empty($venda->nome_plano)) {
+            } elseif (! empty($venda->nome_plano)) {
                 $planoNome = $venda->nome_plano;
             }
 
             $valorVitalicio = ($regra->percentual_vitalicio / 100) * $venda->valor_contrato;
 
             Recebivel::create([
-                'empresa_id'    => $venda->empresa_id,
-                'venda_id'      => $venda->id,
-                'vendedor_id'   => $venda->user_id,
-                'operadora'     => $operadora->nome,
-                'plano'         => $planoNome,
-                'parcela'       => $proximaParcela,
-                'valor'         => $valorVitalicio,
+                'empresa_id' => $venda->empresa_id,
+                'venda_id' => $venda->id,
+                'vendedor_id' => $venda->user_id,
+                'operadora' => $operadora->nome,
+                'plano' => $planoNome,
+                'parcela' => $proximaParcela,
+                'valor' => $valorVitalicio,
                 'data_prevista' => Carbon::parse($venda->data_implantacao)
-                                         ->addMonths($proximaParcela - 1),
-                'status'        => 'PENDENTE',
+                    ->addMonths($proximaParcela - 1),
+                'status' => 'PENDENTE',
             ]);
 
             Log::info("Gerada parcela vitalícia #{$proximaParcela} para venda {$venda->id}");
+
             return true;
         }
 
@@ -402,7 +417,7 @@ class Financeiro extends Controller
         if ($parcela->empresa_id !== auth()->user()->empresa_id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Acesso negado.'
+                'message' => 'Acesso negado.',
             ], 403);
         }
 
@@ -413,7 +428,7 @@ class Financeiro extends Controller
 
         $updateData = [
             'status' => 'PAGO',
-            'data_recebimento' => $dataRecebimento
+            'data_recebimento' => $dataRecebimento,
         ];
 
         // Se o valor foi informado, atualiza também
@@ -434,10 +449,9 @@ class Financeiro extends Controller
             'message' => 'Parcela atualizada com sucesso.',
             'data_recebimento' => $dataRecebimento->format('d/m/Y'),
             'valor' => number_format($parcela->valor, 2, ',', '.'),
-            'nova_parcela_gerada' => $novaParcelaGerada
+            'nova_parcela_gerada' => $novaParcelaGerada,
         ]);
     }
-
 
     /**
      * Excluir uma parcela específica
@@ -450,7 +464,7 @@ class Financeiro extends Controller
         if ($parcela->empresa_id !== auth()->user()->empresa_id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Acesso negado.'
+                'message' => 'Acesso negado.',
             ], 403);
         }
 
@@ -459,11 +473,11 @@ class Financeiro extends Controller
 
         $parcela->delete();
 
-        Log::info("Parcela #{$numeroParcela} excluída da venda {$vendaId} pelo usuário " . auth()->user()->id);
+        Log::info("Parcela #{$numeroParcela} excluída da venda {$vendaId} pelo usuário ".auth()->user()->id);
 
         return response()->json([
             'success' => true,
-            'message' => "Parcela #{$numeroParcela} excluída com sucesso."
+            'message' => "Parcela #{$numeroParcela} excluída com sucesso.",
         ]);
     }
 
@@ -478,7 +492,7 @@ class Financeiro extends Controller
         if ($venda->empresa_id !== auth()->user()->empresa_id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Acesso negado.'
+                'message' => 'Acesso negado.',
             ], 403);
         }
 
@@ -487,23 +501,24 @@ class Financeiro extends Controller
         if ($totalExcluido === 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Nenhum recebível encontrado para este contrato.'
+                'message' => 'Nenhum recebível encontrado para este contrato.',
             ], 404);
         }
 
         Recebivel::where('venda_id', $vendaId)->delete();
 
-        Log::info("Todos os recebíveis ({$totalExcluido}) da venda {$vendaId} foram excluídos pelo usuário " . auth()->user()->id);
+        Log::info("Todos os recebíveis ({$totalExcluido}) da venda {$vendaId} foram excluídos pelo usuário ".auth()->user()->id);
 
         return response()->json([
             'success' => true,
-            'message' => "{$totalExcluido} parcela(s) excluída(s) com sucesso."
+            'message' => "{$totalExcluido} parcela(s) excluída(s) com sucesso.",
         ]);
     }
 
     public function relatorioFinanceiro()
     {
         $operadoras = Operadora::orderBy('nome')->get();
+
         return view('content.pages.financeiro.relatorio-financeiro', compact('operadoras'));
     }
 
@@ -528,7 +543,7 @@ class Financeiro extends Controller
         $resumo = [
             'total_previsto' => $recebiveis->sum('valor'),
             'total_recebido' => $recebiveis->where('status', 'PAGO')->sum('valor'),
-            'total_aberto'   => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
+            'total_aberto' => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
             'total_cancelado' => $recebiveis->where('status', 'CANCELADO')->sum('valor'),
             'taxa_recebimento' => $recebiveis->sum('valor') > 0
                 ? ($recebiveis->where('status', 'PAGO')->sum('valor') / $recebiveis->sum('valor')) * 100
@@ -539,22 +554,22 @@ class Financeiro extends Controller
         $porOperadora = $recebiveis->groupBy('operadora')->map(function ($items, $operadora) {
             return [
                 'operadora' => $operadora ?: 'Não informado',
-                'previsto'  => $items->sum('valor'),
-                'recebido'  => $items->where('status', 'PAGO')->sum('valor'),
-                'aberto'    => $items->where('status', 'PENDENTE')->sum('valor'),
+                'previsto' => $items->sum('valor'),
+                'recebido' => $items->where('status', 'PAGO')->sum('valor'),
+                'aberto' => $items->where('status', 'PENDENTE')->sum('valor'),
                 'cancelado' => $items->where('status', 'CANCELADO')->sum('valor'),
             ];
         })->values();
 
         // Evolução mensal
-        $evolucaoMensal = $recebiveis->groupBy(function($item) {
+        $evolucaoMensal = $recebiveis->groupBy(function ($item) {
             return \Carbon\Carbon::parse($item->data_prevista)->format('Y-m');
-        })->map(function($items, $mes) {
+        })->map(function ($items, $mes) {
             return [
-                'mes'      => \Carbon\Carbon::parse($mes . '-01')->format('m/Y'),
+                'mes' => \Carbon\Carbon::parse($mes.'-01')->format('m/Y'),
                 'previsto' => $items->sum('valor'),
                 'recebido' => $items->where('status', 'PAGO')->sum('valor'),
-                'aberto'   => $items->where('status', 'PENDENTE')->sum('valor'),
+                'aberto' => $items->where('status', 'PENDENTE')->sum('valor'),
             ];
         })->sortKeys()->values();
 
@@ -573,8 +588,9 @@ class Financeiro extends Controller
         // Top vendedores
         $topVendedores = $recebiveis->where('status', 'PAGO')
             ->groupBy('vendedor_id')
-            ->map(function($items) {
+            ->map(function ($items) {
                 $vendedor = $items->first()->vendedor;
+
                 return [
                     'vendedor' => $vendedor ? $vendedor->name : 'Não informado',
                     'valor' => $items->sum('valor'),
@@ -589,16 +605,16 @@ class Financeiro extends Controller
             'resumo' => [
                 'total_previsto' => (float) $resumo['total_previsto'],
                 'total_recebido' => (float) $resumo['total_recebido'],
-                'total_aberto'   => (float) $resumo['total_aberto'],
+                'total_aberto' => (float) $resumo['total_aberto'],
                 'total_cancelado' => (float) $resumo['total_cancelado'],
                 'taxa_recebimento' => round($resumo['taxa_recebimento'], 2),
                 'em_atraso' => (float) $emAtraso,
             ],
-            'porOperadora' => $porOperadora->map(fn($op) => [
+            'porOperadora' => $porOperadora->map(fn ($op) => [
                 'operadora' => $op['operadora'],
-                'previsto'  => (float) $op['previsto'],
-                'recebido'  => (float) $op['recebido'],
-                'aberto'    => (float) $op['aberto'],
+                'previsto' => (float) $op['previsto'],
+                'recebido' => (float) $op['recebido'],
+                'aberto' => (float) $op['aberto'],
                 'cancelado' => (float) $op['cancelado'],
             ]),
             'evolucaoMensal' => $evolucaoMensal,
@@ -625,19 +641,19 @@ class Financeiro extends Controller
         $recebiveis = $query->get();
 
         $totais = [
-            'pago'     => $recebiveis->where('status', 'PAGO')->sum('valor'),
+            'pago' => $recebiveis->where('status', 'PAGO')->sum('valor'),
             'pendente' => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
-            'atraso'   => $recebiveis->where('status', 'PENDENTE')
-                            ->where('data_prevista', '<', now())->sum('valor'),
+            'atraso' => $recebiveis->where('status', 'PENDENTE')
+                ->where('data_prevista', '<', now())->sum('valor'),
         ];
 
         return response()->json([
             'success' => true,
             'totais' => [
-                'pago'     => (float) $totais['pago'],
+                'pago' => (float) $totais['pago'],
                 'pendente' => (float) $totais['pendente'],
-                'atraso'   => (float) $totais['atraso'],
-            ]
+                'atraso' => (float) $totais['atraso'],
+            ],
         ]);
     }
 
@@ -652,7 +668,7 @@ class Financeiro extends Controller
         if ($venda->empresa_id !== auth()->user()->empresa_id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Acesso negado.'
+                'message' => 'Acesso negado.',
             ], 403);
         }
 
@@ -663,7 +679,7 @@ class Financeiro extends Controller
             return response()->json([
                 'success' => true,
                 'removido' => true,
-                'message' => 'Contrato não possui mais recebíveis.'
+                'message' => 'Contrato não possui mais recebíveis.',
             ]);
         }
 
@@ -671,7 +687,7 @@ class Financeiro extends Controller
         $valorPago = $parcelas->where('status', 'PAGO')->sum('valor');
         $valorPendente = $valorTotal - $valorPago;
         $emAtraso = $parcelas->where('status', 'PENDENTE')
-                            ->where('data_prevista', '<', now())->count() > 0;
+            ->where('data_prevista', '<', now())->count() > 0;
 
         // Determinar status do contrato
         if ($valorPendente <= 0) {
@@ -689,13 +705,13 @@ class Financeiro extends Controller
             'success' => true,
             'removido' => false,
             'dados' => [
-                'valor_total'    => (float) $valorTotal,
-                'valor_pago'     => (float) $valorPago,
+                'valor_total' => (float) $valorTotal,
+                'valor_pago' => (float) $valorPago,
                 'valor_pendente' => (float) $valorPendente,
-                'em_atraso'      => $emAtraso,
-                'status'         => $status,
-                'status_class'   => $statusClass,
-            ]
+                'em_atraso' => $emAtraso,
+                'status' => $status,
+                'status_class' => $statusClass,
+            ],
         ]);
     }
 
@@ -713,17 +729,17 @@ class Financeiro extends Controller
         if ($venda->empresa_id !== auth()->user()->empresa_id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Sem permissão para acessar este contrato.'
+                'message' => 'Sem permissão para acessar este contrato.',
             ], 403);
         }
 
         // Buscar operadora pelo nome
         $operadora = Operadora::where('nome', $venda->operadora)->first();
 
-        if (!$operadora) {
+        if (! $operadora) {
             return response()->json([
                 'success' => false,
-                'message' => "Operadora '{$venda->operadora}' não encontrada."
+                'message' => "Operadora '{$venda->operadora}' não encontrada.",
             ], 404);
         }
 
@@ -733,10 +749,10 @@ class Financeiro extends Controller
             ->where('operadora_id', $operadora->id)
             ->first();
 
-        if (!$regra) {
+        if (! $regra) {
             return response()->json([
                 'success' => false,
-                'message' => 'Nenhuma regra de comissionamento encontrada para esta operadora.'
+                'message' => 'Nenhuma regra de comissionamento encontrada para esta operadora.',
             ], 404);
         }
 
@@ -746,7 +762,7 @@ class Financeiro extends Controller
         if ($parcelasRegra->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'A regra de comissionamento não possui parcelas configuradas.'
+                'message' => 'A regra de comissionamento não possui parcelas configuradas.',
             ], 404);
         }
 
@@ -758,10 +774,10 @@ class Financeiro extends Controller
 
         // Resolver nome do plano
         $planoNome = 'N/A';
-        if (!empty($venda->plano_id)) {
+        if (! empty($venda->plano_id)) {
             $plano = Plano::find($venda->plano_id);
             $planoNome = $plano?->nome ?? $venda->nome_plano ?? 'N/A';
-        } elseif (!empty($venda->nome_plano)) {
+        } elseif (! empty($venda->nome_plano)) {
             $planoNome = $venda->nome_plano;
         }
 
@@ -788,7 +804,7 @@ class Financeiro extends Controller
                             'valor_antigo' => $valorAntigo,
                             'valor_novo' => $valorNovo,
                             'diferenca' => $valorNovo - $valorAntigo,
-                            'status' => $recebivel->status
+                            'status' => $recebivel->status,
                         ];
                     }
                 } else {
@@ -797,22 +813,22 @@ class Financeiro extends Controller
                         ->addMonths($numeroParcela);
 
                     Recebivel::create([
-                        'empresa_id'    => $venda->empresa_id,
-                        'venda_id'      => $venda->id,
-                        'vendedor_id'   => $venda->user_id,
-                        'operadora'     => $operadora->nome,
-                        'plano'         => $planoNome,
-                        'parcela'       => $numeroParcela,
-                        'valor'         => $valorNovo,
+                        'empresa_id' => $venda->empresa_id,
+                        'venda_id' => $venda->id,
+                        'vendedor_id' => $venda->user_id,
+                        'operadora' => $operadora->nome,
+                        'plano' => $planoNome,
+                        'parcela' => $numeroParcela,
+                        'valor' => $valorNovo,
                         'data_prevista' => $dataPrevista,
-                        'status'        => 'PENDENTE',
+                        'status' => 'PENDENTE',
                     ]);
 
                     $novasParcelas[] = [
                         'parcela' => $numeroParcela,
                         'acao' => 'criado',
                         'valor_novo' => $valorNovo,
-                        'data_prevista' => $dataPrevista->format('d/m/Y')
+                        'data_prevista' => $dataPrevista->format('d/m/Y'),
                     ];
                 }
             }
@@ -829,16 +845,16 @@ class Financeiro extends Controller
             // Montar mensagem
             $mensagens = [];
             if (count($alteracoes) > 0) {
-                $mensagens[] = count($alteracoes) . ' parcela(s) atualizada(s)';
+                $mensagens[] = count($alteracoes).' parcela(s) atualizada(s)';
             }
             if (count($novasParcelas) > 0) {
-                $mensagens[] = count($novasParcelas) . ' parcela(s) criada(s)';
+                $mensagens[] = count($novasParcelas).' parcela(s) criada(s)';
             }
 
             return response()->json([
                 'success' => true,
                 'message' => $totalAlteracoes > 0
-                    ? 'Recebíveis atualizados: ' . implode(', ', $mensagens) . '.'
+                    ? 'Recebíveis atualizados: '.implode(', ', $mensagens).'.'
                     : 'Nenhuma alteração necessária. Os valores já estão atualizados.',
                 'alteracoes' => $alteracoes,
                 'novas_parcelas' => $novasParcelas,
@@ -848,22 +864,21 @@ class Financeiro extends Controller
                     'total_anterior' => $totalAnteriorAlteracoes,
                     'total_novo' => $totalNovoAlteracoes,
                     'diferenca_atualizacoes' => $totalNovoAlteracoes - $totalAnteriorAlteracoes,
-                    'total_novas_parcelas' => $totalNovasParcelas
-                ]
+                    'total_novas_parcelas' => $totalNovasParcelas,
+                ],
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Erro ao recalcular recebíveis', [
                 'venda_id' => $vendaId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao recalcular valores: ' . $e->getMessage()
+                'message' => 'Erro ao recalcular valores: '.$e->getMessage(),
             ], 500);
         }
     }
-
 }

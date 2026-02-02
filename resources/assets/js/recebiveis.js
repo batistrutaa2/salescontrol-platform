@@ -34,7 +34,7 @@ $(function () {
     });
 
     // ============================================
-    // Filter Tabs
+    // Filter Tabs (Status)
     // ============================================
     $('.filter-tab').on('click', function () {
         const status = $(this).data('status');
@@ -58,26 +58,18 @@ $(function () {
     });
 
     // ============================================
-    // Filter by Implantation Month/Year
+    // Timeline Year Tabs
     // ============================================
-    $('#btnAplicarFiltro').on('click', function () {
-        const mesImplantacao = $('#filtroMesImplantacao').val();
-        const currentUrl = new URL(window.location.href);
+    $('.year-tab').on('click', function () {
+        const ano = $(this).data('ano');
 
-        if (mesImplantacao) {
-            currentUrl.searchParams.set('mes_implantacao', mesImplantacao);
-        } else {
-            currentUrl.searchParams.delete('mes_implantacao');
-        }
+        // Update active year tab
+        $('.year-tab').removeClass('active');
+        $(this).addClass('active');
 
-        window.location.href = currentUrl.toString();
-    });
-
-    // Allow pressing Enter on the select to apply filter
-    $('#filtroMesImplantacao').on('keypress', function (e) {
-        if (e.which === 13) {
-            $('#btnAplicarFiltro').click();
-        }
+        // Show corresponding months
+        $('.timeline-months').removeClass('active');
+        $(`.timeline-months[data-ano="${ano}"]`).addClass('active');
     });
 
     // ============================================
