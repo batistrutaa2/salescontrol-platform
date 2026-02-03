@@ -1009,11 +1009,14 @@ $(function () {
     function updateSelectionUI() {
         const count = selectedParcelas.size;
         $('#countSelecionados').text(count);
+        $('#countEditarSelecionados').text(count);
 
         if (count > 0) {
             $('#btnExcluirSelecionados').show();
+            $('#btnEditarSelecionados').show();
         } else {
             $('#btnExcluirSelecionados').hide();
+            $('#btnEditarSelecionados').hide();
         }
     }
 
@@ -1106,6 +1109,192 @@ $(function () {
                 });
             }
         });
+    });
+
+    // Editar Parcelas Selecionadas em Massa
+    $(document).on('click', '#btnEditarSelecionados', function () {
+        const count = selectedParcelas.size;
+
+        if (count === 0) {
+            showToast('warning', 'Nenhuma parcela selecionada.');
+            return;
+        }
+
+        const hoje = new Date().toISOString().split('T')[0];
+
+        // Hide Bootstrap modal before showing SweetAlert2 to avoid aria-hidden conflict
+        $('#parcelasModal').modal('hide');
+
+        // Wait for modal to fully hide before showing SweetAlert
+        setTimeout(() => {
+            Swal.fire({
+                title: 'Editar Parcelas em Massa',
+                html: `
+                    <div style="text-align: left; padding: 1rem 0;">
+                        <div style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid rgba(124, 58, 237, 0.2);">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%); display: flex; align-items: center; justify-content: center;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p style="margin: 0; font-weight: 700; font-size: 1rem; color: var(--rcb-text-primary);">${count} parcela(s) selecionada(s)</p>
+                                    <p style="margin: 0; font-size: 0.8125rem; color: var(--rcb-text-muted);">As alteracoes serao aplicadas a todas</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 1.25rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--rcb-text-primary);">
+                                Valor Vitalicio
+                            </label>
+                            <div style="position: relative;">
+                                <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--rcb-text-muted); font-weight: 600; font-size: 0.875rem;">R$</span>
+                                <input type="text" id="swal-valor-vitalicio"
+                                       inputmode="numeric"
+                                       autocomplete="off"
+                                       style="width: 100%; padding: 0.75rem 1rem 0.75rem 40px; border: 1px solid var(--rcb-card-border); border-radius: 10px; font-size: 1rem; font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace; background: var(--rcb-card-bg); color: var(--rcb-text-primary); transition: all 0.2s ease;"
+                                       placeholder="0,00">
+                            </div>
+                            <p style="color: var(--rcb-text-muted); font-size: 0.75rem; margin: 0.5rem 0 0 0;">
+                                Este valor sera replicado para todas as parcelas selecionadas
+                            </p>
+                        </div>
+
+                        <div style="margin-bottom: 1.25rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--rcb-text-primary);">
+                                Data de Vencimento (1ª parcela)
+                            </label>
+                            <input type="date" id="swal-data-vencimento"
+                                   style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--rcb-card-border); border-radius: 10px; font-size: 1rem; background: var(--rcb-card-bg); color: var(--rcb-text-primary); transition: all 0.2s ease;"
+                                   value="${hoje}">
+                            <p style="color: var(--rcb-text-muted); font-size: 0.75rem; margin: 0.5rem 0 0 0;">
+                                As demais parcelas terao datas incrementadas mes a mes
+                            </p>
+                        </div>
+
+                        <div style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(34, 211, 238, 0.05) 100%); padding: 0.875rem 1rem; border-radius: 10px; border: 1px solid rgba(6, 182, 212, 0.2);">
+                            <div style="display: flex; align-items: flex-start; gap: 0.625rem;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="2" style="flex-shrink: 0; margin-top: 1px;">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="16" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                </svg>
+                                <div style="font-size: 0.8125rem; color: var(--rcb-text-secondary); line-height: 1.5;">
+                                    <strong style="color: var(--rcb-info);">Exemplo:</strong> Data 01/01/2026<br>
+                                    Parcela 1: 01/01 → Parcela 2: 01/02 → Parcela 3: 01/03...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                icon: null,
+                showCancelButton: true,
+                confirmButtonText: 'Salvar Alteracoes',
+                cancelButtonText: 'Cancelar',
+                customClass: {
+                    popup: 'swal-recebiveis swal-wide',
+                    confirmButton: 'btn btn-primary me-2',
+                    cancelButton: 'btn btn-secondary'
+                },
+                buttonsStyling: false,
+                didOpen: () => {
+                    // Apply currency mask after modal opens
+                    const inputValor = document.getElementById('swal-valor-vitalicio');
+                    if (inputValor) {
+                        aplicarMascaraMoeda(inputValor);
+                        // Focus on the input
+                        inputValor.focus();
+                    }
+                },
+                preConfirm: () => {
+                    const valorTexto = document.getElementById('swal-valor-vitalicio').value;
+                    const dataVencimento = document.getElementById('swal-data-vencimento').value;
+                    const valor = parseMoeda(valorTexto);
+
+                    if (!valorTexto || valorTexto.trim() === '') {
+                        Swal.showValidationMessage('Por favor, informe o valor vitalicio.');
+                        return false;
+                    }
+
+                    if (valor === null || valor <= 0) {
+                        Swal.showValidationMessage('Informe um valor valido maior que zero.');
+                        return false;
+                    }
+
+                    if (!dataVencimento) {
+                        Swal.showValidationMessage('Por favor, informe a data de vencimento.');
+                        return false;
+                    }
+
+                    return { valor: valor, dataPagamento: dataVencimento };
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    showLoadingSwal('Atualizando parcelas...');
+
+                    const parcelaIds = Array.from(selectedParcelas);
+
+                    $.ajax({
+                        url: '/financeiro/recebiveis/parcelas/editar-multiplas',
+                        method: 'PUT',
+                        data: {
+                            parcela_ids: parcelaIds,
+                            valor: result.value.valor,
+                            data_pagamento: result.value.dataPagamento
+                        },
+                        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                    }).done(function (response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Parcelas Atualizadas!',
+                                text: response.message,
+                                icon: 'success',
+                                iconColor: '#10B981',
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal-recebiveis',
+                                    confirmButton: 'btn btn-success'
+                                },
+                                buttonsStyling: false
+                            }).then(() => {
+                                // Limpar selecao
+                                selectedParcelas.clear();
+                                updateSelectionUI();
+
+                                // Atualizar dados
+                                atualizarKPIs();
+                                atualizarLinhaContrato(currentVendaId);
+                                carregarParcelas(currentVendaId);
+
+                                // Reabrir modal de parcelas
+                                $('#parcelasModal').modal('show');
+                            });
+                        }
+                    }).fail(function (xhr) {
+                        const errorMsg = xhr.responseJSON?.message || 'Erro ao editar parcelas.';
+                        Swal.fire({
+                            title: 'Erro!',
+                            text: errorMsg,
+                            icon: 'error',
+                            customClass: {
+                                popup: 'swal-recebiveis',
+                                confirmButton: 'btn btn-danger'
+                            },
+                            buttonsStyling: false
+                        }).then(() => {
+                            // Reabrir modal de parcelas
+                            $('#parcelasModal').modal('show');
+                        });
+                    });
+                } else if (result.isDismissed) {
+                    // User cancelled - reopen the parcelas modal
+                    $('#parcelasModal').modal('show');
+                }
+            });
+        }, 300);
     });
 
     // Recalculate Values

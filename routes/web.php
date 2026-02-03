@@ -385,6 +385,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/parcelas/excluir-multiplas', [Financeiro::class, 'excluirMultiplasParcelas'])
         ->name('financeiro.recebiveis.excluirMultiplas');
 
+    // Editar múltiplas parcelas de uma vez
+    Route::put('/parcelas/editar-multiplas', [Financeiro::class, 'editarMultiplasParcelas'])
+        ->name('financeiro.recebiveis.editarMultiplas');
+
     // Excluir todos os recebíveis de uma venda
     Route::delete('/{vendaId}/todos', [Financeiro::class, 'excluirTodosRecebiveis'])
         ->name('financeiro.recebiveis.excluirTodos');

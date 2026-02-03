@@ -1186,6 +1186,32 @@ button.year-tab {
     text-align: center;
 }
 
+// Button - Editar Selecionados
+.btn-editar-selecionados {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: var(--rcb-primary);
+    color: white;
+    border: none;
+    border-radius: var(--rcb-radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--rcb-transition);
+
+    &:hover {
+        background: #6D28D9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(var(--rcb-primary-rgb), 0.3);
+    }
+
+    svg {
+        flex-shrink: 0;
+    }
+}
+
 // Button - Excluir Selecionados
 .btn-excluir-selecionados {
     display: inline-flex;
@@ -1685,6 +1711,50 @@ button.year-tab {
             height: 32px;
         }
     }
+}
+
+// ============================================
+// SweetAlert2 Custom Styles
+// ============================================
+.swal-recebiveis {
+    border-radius: 16px !important;
+    background: var(--rcb-card-bg) !important;
+    border: 1px solid var(--rcb-card-border) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+
+    .swal2-title {
+        color: var(--rcb-text-primary) !important;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        font-weight: 700 !important;
+        font-size: 1.25rem !important;
+    }
+
+    .swal2-html-container {
+        color: var(--rcb-text-secondary) !important;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+
+    .swal2-validation-message {
+        background: rgba(239, 68, 68, 0.1) !important;
+        color: var(--rcb-danger) !important;
+        border-radius: 8px !important;
+        font-size: 0.875rem !important;
+    }
+
+    // Input focus styles
+    input[type="text"],
+    input[type="date"] {
+        &:focus {
+            outline: none !important;
+            border-color: var(--rcb-primary) !important;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15) !important;
+        }
+    }
+}
+
+.swal-wide {
+    width: 480px !important;
+    max-width: 95vw !important;
 }
 
 // ============================================

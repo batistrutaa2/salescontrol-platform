@@ -546,6 +546,65 @@ class Financeiro extends Controller
     }
 
     /**
+     * Editar múltiplas parcelas de uma vez
+     * - O valor é replicado para todas as parcelas selecionadas
+     * - A data de pagamento é incrementada mês a mês para cada parcela (ordenadas por número)
+     */
+    public function editarMultiplasParcelas(Request $request)
+    {
+        $request->validate([
+            'parcela_ids' => 'required|array|min:1',
+            'parcela_ids.*' => 'integer|exists:recebiveis,id',
+            'valor' => 'required|numeric|min:0',
+            'data_pagamento' => 'required|date',
+        ]);
+
+        $parcelaIds = $request->parcela_ids;
+        $valor = $request->valor;
+        $dataPagamentoBase = Carbon::parse($request->data_pagamento);
+        $empresaId = auth()->user()->empresa_id;
+
+        // Verificar se todas as parcelas pertencem à empresa do usuário
+        $parcelas = Recebivel::whereIn('id', $parcelaIds)
+            ->where('empresa_id', $empresaId)
+            ->orderBy('parcela', 'asc') // Ordenar por número da parcela
+            ->get();
+
+        if ($parcelas->count() !== count($parcelaIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Algumas parcelas não foram encontradas ou você não tem permissão para editá-las.',
+            ], 403);
+        }
+
+        // Pegar o venda_id para retornar
+        $vendaId = $parcelas->first()->venda_id;
+
+        // Atualizar cada parcela
+        $totalEditado = 0;
+        foreach ($parcelas as $index => $parcela) {
+            // Calcula a data de pagamento para esta parcela (incrementa mês a mês)
+            $dataPagamento = $dataPagamentoBase->copy()->addMonths($index);
+
+            $parcela->update([
+                'valor' => $valor,
+                'data_prevista' => $dataPagamento->format('Y-m-d'),
+            ]);
+
+            $totalEditado++;
+        }
+
+        Log::info("Editadas {$totalEditado} parcelas da venda {$vendaId} pelo usuário " . auth()->user()->id . " - Valor: {$valor}");
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$totalEditado} parcela(s) editada(s) com sucesso.",
+            'total_editado' => $totalEditado,
+            'venda_id' => $vendaId,
+        ]);
+    }
+
+    /**
      * Excluir todos os recebíveis de uma venda
      */
     public function excluirTodosRecebiveis(int $vendaId)
