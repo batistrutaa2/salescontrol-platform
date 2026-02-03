@@ -71,16 +71,20 @@ class RecebiveisImportacaoSysService
             return;
         }
 
-        // Buscar regra de comissionamento
+        // Determinar categoria baseado no tipo_contrato da venda
+        $categoria = $venda->tipo_contrato === 'PME' ? 'PME' : 'ADESAO';
+
+        // Buscar regra de comissionamento filtrando por categoria
         $regra = RegrasComissionamento::with('parcelas')
             ->where('empresa_id', $venda->empresa_id)
             ->where('operadora_id', $operadora->id)
+            ->where('categoria', $categoria)
             ->first();
 
         if (! $regra) {
             $this->vendasSemRegra++;
-            $this->warnings[] = "Venda #{$venda->id} ({$venda->numero_proposta}): Operadora \"{$venda->operadora}\" sem regra de comissionamento";
-            Log::warning("[RecebiveisImportacaoSys] Sem regra de comissionamento para venda {$venda->id} (empresa {$venda->empresa_id}, operadora {$operadora->id})");
+            $this->warnings[] = "Venda #{$venda->id} ({$venda->numero_proposta}): Operadora \"{$venda->operadora}\" sem regra de comissionamento para categoria {$categoria}";
+            Log::warning("[RecebiveisImportacaoSys] Sem regra de comissionamento para venda {$venda->id} (empresa {$venda->empresa_id}, operadora {$operadora->id}, categoria {$categoria})");
 
             return;
         }
