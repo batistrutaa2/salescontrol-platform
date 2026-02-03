@@ -163,74 +163,97 @@ class Financeiro extends Controller
     }
 
     /**
-     * 📑 Listagem geral de recebíveis
+     * 📑 Listagem geral de recebíveis (otimizado)
      */
     public function indexRecebiveis(Request $request)
     {
-        $query = Recebivel::with(['venda', 'vendedor', 'empresa'])
-            ->orderBy('data_prevista', 'asc');
-
-        // Filtros opcionais
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('empresa_id')) {
-            $query->where('empresa_id', $request->empresa_id);
-        }
-
-        // Filtro por ano de implantação
+        $empresaId = auth()->user()->empresa_id;
         $anoSelecionado = $request->ano;
+
+        // Query base para filtros
+        $baseQuery = Recebivel::where('empresa_id', $empresaId);
+
         if ($anoSelecionado) {
-            $query->whereHas('venda', function ($q) use ($anoSelecionado) {
+            $baseQuery->whereHas('venda', function ($q) use ($anoSelecionado) {
                 $q->whereYear('data_implantacao', $anoSelecionado);
             });
         }
 
-        $recebiveis = $query->get();
+        // Calcular totais via SQL (muito mais rápido)
+        $totaisQuery = (clone $baseQuery)->selectRaw("
+            SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) as pago,
+            SUM(CASE WHEN status = 'PENDENTE' THEN valor ELSE 0 END) as pendente,
+            SUM(CASE WHEN status = 'PENDENTE' AND data_prevista < NOW() THEN valor ELSE 0 END) as atraso,
+            SUM(CASE WHEN status = 'PAGO' AND parcela <= 3 THEN valor ELSE 0 END) as parcelas_pago,
+            SUM(CASE WHEN status = 'PENDENTE' AND parcela <= 3 THEN valor ELSE 0 END) as parcelas_pendente,
+            SUM(CASE WHEN status = 'PAGO' AND parcela >= 4 THEN valor ELSE 0 END) as vitalicio_pago,
+            SUM(CASE WHEN status = 'PENDENTE' AND parcela >= 4 THEN valor ELSE 0 END) as vitalicio_pendente
+        ")->first();
 
-        // Calcular totais
         $totais = [
-            'pago' => $recebiveis->where('status', 'PAGO')->sum('valor'),
-            'pendente' => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
-            'atraso' => $recebiveis->where('status', 'PENDENTE')
-                ->where('data_prevista', '<', now())->sum('valor'),
+            'pago' => (float) ($totaisQuery->pago ?? 0),
+            'pendente' => (float) ($totaisQuery->pendente ?? 0),
+            'atraso' => (float) ($totaisQuery->atraso ?? 0),
         ];
 
-        // Calcular totais por tipo (Parcelas 1-3 vs Vitalício 4+)
         $totaisPorTipo = [
             'parcelas' => [
-                'pago' => $recebiveis->where('status', 'PAGO')->where('parcela', '<=', 3)->sum('valor'),
-                'pendente' => $recebiveis->where('status', 'PENDENTE')->where('parcela', '<=', 3)->sum('valor'),
+                'pago' => (float) ($totaisQuery->parcelas_pago ?? 0),
+                'pendente' => (float) ($totaisQuery->parcelas_pendente ?? 0),
             ],
             'vitalicio' => [
-                'pago' => $recebiveis->where('status', 'PAGO')->where('parcela', '>=', 4)->sum('valor'),
-                'pendente' => $recebiveis->where('status', 'PENDENTE')->where('parcela', '>=', 4)->sum('valor'),
+                'pago' => (float) ($totaisQuery->vitalicio_pago ?? 0),
+                'pendente' => (float) ($totaisQuery->vitalicio_pendente ?? 0),
             ],
         ];
 
-        // Agrupar por contrato
-        $contratos = $recebiveis->groupBy('venda_id')->map(function ($parcelas) {
-            $valorTotal = $parcelas->sum('valor');
-            $valorPago = $parcelas->where('status', 'PAGO')->sum('valor');
-            $valorPendente = $valorTotal - $valorPago;
+        // Agrupar contratos via SQL (evita carregar todos os recebíveis)
+        $contratosQuery = Recebivel::where('recebiveis.empresa_id', $empresaId)
+            ->join('vendas', 'recebiveis.venda_id', '=', 'vendas.id')
+            ->join('users', 'recebiveis.vendedor_id', '=', 'users.id')
+            ->select([
+                'recebiveis.venda_id',
+                'recebiveis.operadora',
+                'vendas.nome_contrato',
+                'vendas.valor_contrato',
+                'users.name as vendedor_name',
+            ])
+            ->selectRaw('SUM(recebiveis.valor) as valor_total')
+            ->selectRaw("SUM(CASE WHEN recebiveis.status = 'PAGO' THEN recebiveis.valor ELSE 0 END) as valor_pago")
+            ->selectRaw("SUM(CASE WHEN recebiveis.status = 'PENDENTE' AND recebiveis.data_prevista < NOW() THEN 1 ELSE 0 END) as parcelas_atrasadas")
+            ->groupBy('recebiveis.venda_id', 'recebiveis.operadora', 'vendas.nome_contrato', 'vendas.valor_contrato', 'users.name');
 
-            return (object) [
-                'empresa' => $parcelas->first()->empresa,
-                'venda' => $parcelas->first()->venda,
-                'vendedor' => $parcelas->first()->vendedor,
-                'operadora' => $parcelas->first()->operadora,
-                'valor_total' => $valorTotal,
-                'valor_pago' => $valorPago,
-                'valor_pendente' => $valorPendente,
-                'em_atraso' => $parcelas->where('status', 'PENDENTE')
-                    ->where('data_prevista', '<', now())->count() > 0,
-            ];
+        if ($anoSelecionado) {
+            $contratosQuery->whereYear('vendas.data_implantacao', $anoSelecionado);
+        }
+
+        $contratosRaw = $contratosQuery->get();
+
+        // Mapear para o formato esperado pela view
+        $contratos = $contratosRaw->mapWithKeys(function ($row) {
+            $valorPendente = $row->valor_total - $row->valor_pago;
+
+            return [$row->venda_id => (object) [
+                'venda' => (object) [
+                    'id' => $row->venda_id,
+                    'nome_contrato' => $row->nome_contrato,
+                    'valor_contrato' => $row->valor_contrato,
+                ],
+                'vendedor' => (object) [
+                    'name' => $row->vendedor_name,
+                ],
+                'operadora' => $row->operadora,
+                'valor_total' => (float) $row->valor_total,
+                'valor_pago' => (float) $row->valor_pago,
+                'valor_pendente' => (float) $valorPendente,
+                'em_atraso' => $row->parcelas_atrasadas > 0,
+            ]];
         });
 
-        // Buscar anos disponíveis de implantação com contagem de contratos
-        $anosDisponiveis = \App\Models\Vendas::whereNotNull('data_implantacao')
-            ->whereIn('id', Recebivel::select('venda_id')->distinct())
+        // Anos disponíveis (query otimizada)
+        $anosDisponiveis = Vendas::whereNotNull('data_implantacao')
+            ->where('empresa_id', $empresaId)
+            ->whereIn('id', Recebivel::where('empresa_id', $empresaId)->select('venda_id')->distinct())
             ->selectRaw("YEAR(data_implantacao) as ano")
             ->selectRaw('COUNT(*) as total_contratos')
             ->groupBy('ano')
@@ -665,80 +688,73 @@ class Financeiro extends Controller
     }
 
     /**
-     * Retorna os KPIs dos recebíveis (para atualização via AJAX)
+     * Retorna os KPIs dos recebíveis (para atualização via AJAX) - Otimizado
      */
     public function getKpis(Request $request)
     {
-        $query = Recebivel::where('empresa_id', auth()->user()->empresa_id);
-
-        // Filtro por ano de implantação
+        $empresaId = auth()->user()->empresa_id;
         $anoSelecionado = $request->ano;
+
+        // Query base
+        $query = Recebivel::where('empresa_id', $empresaId);
+
         if ($anoSelecionado) {
             $query->whereHas('venda', function ($q) use ($anoSelecionado) {
                 $q->whereYear('data_implantacao', $anoSelecionado);
             });
         }
 
-        $recebiveis = $query->get();
-
-        $totais = [
-            'pago' => $recebiveis->where('status', 'PAGO')->sum('valor'),
-            'pendente' => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
-            'atraso' => $recebiveis->where('status', 'PENDENTE')
-                ->where('data_prevista', '<', now())->sum('valor'),
-        ];
-
-        // Calcular totais por tipo (Parcelas 1-3 vs Vitalício 4+)
-        $totaisPorTipo = [
-            'parcelas' => [
-                'pago' => $recebiveis->where('status', 'PAGO')->where('parcela', '<=', 3)->sum('valor'),
-                'pendente' => $recebiveis->where('status', 'PENDENTE')->where('parcela', '<=', 3)->sum('valor'),
-            ],
-            'vitalicio' => [
-                'pago' => $recebiveis->where('status', 'PAGO')->where('parcela', '>=', 4)->sum('valor'),
-                'pendente' => $recebiveis->where('status', 'PENDENTE')->where('parcela', '>=', 4)->sum('valor'),
-            ],
-        ];
+        // Calcular tudo em uma única query SQL
+        $totaisQuery = $query->selectRaw("
+            SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) as pago,
+            SUM(CASE WHEN status = 'PENDENTE' THEN valor ELSE 0 END) as pendente,
+            SUM(CASE WHEN status = 'PENDENTE' AND data_prevista < NOW() THEN valor ELSE 0 END) as atraso,
+            SUM(CASE WHEN status = 'PAGO' AND parcela <= 3 THEN valor ELSE 0 END) as parcelas_pago,
+            SUM(CASE WHEN status = 'PENDENTE' AND parcela <= 3 THEN valor ELSE 0 END) as parcelas_pendente,
+            SUM(CASE WHEN status = 'PAGO' AND parcela >= 4 THEN valor ELSE 0 END) as vitalicio_pago,
+            SUM(CASE WHEN status = 'PENDENTE' AND parcela >= 4 THEN valor ELSE 0 END) as vitalicio_pendente
+        ")->first();
 
         return response()->json([
             'success' => true,
             'totais' => [
-                'pago' => (float) $totais['pago'],
-                'pendente' => (float) $totais['pendente'],
-                'atraso' => (float) $totais['atraso'],
+                'pago' => (float) ($totaisQuery->pago ?? 0),
+                'pendente' => (float) ($totaisQuery->pendente ?? 0),
+                'atraso' => (float) ($totaisQuery->atraso ?? 0),
             ],
             'totais_por_tipo' => [
                 'parcelas' => [
-                    'pago' => (float) $totaisPorTipo['parcelas']['pago'],
-                    'pendente' => (float) $totaisPorTipo['parcelas']['pendente'],
+                    'pago' => (float) ($totaisQuery->parcelas_pago ?? 0),
+                    'pendente' => (float) ($totaisQuery->parcelas_pendente ?? 0),
                 ],
                 'vitalicio' => [
-                    'pago' => (float) $totaisPorTipo['vitalicio']['pago'],
-                    'pendente' => (float) $totaisPorTipo['vitalicio']['pendente'],
+                    'pago' => (float) ($totaisQuery->vitalicio_pago ?? 0),
+                    'pendente' => (float) ($totaisQuery->vitalicio_pendente ?? 0),
                 ],
             ],
         ]);
     }
 
     /**
-     * Retorna o resumo atualizado de um contrato específico (para atualização via AJAX)
+     * Retorna o resumo atualizado de um contrato específico (para atualização via AJAX) - Otimizado
      */
     public function getContratoResumo(int $vendaId)
     {
-        $venda = Vendas::findOrFail($vendaId);
+        $empresaId = auth()->user()->empresa_id;
 
-        // Verificar permissão (empresa_id)
-        if ($venda->empresa_id !== auth()->user()->empresa_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Acesso negado.',
-            ], 403);
-        }
-
-        $parcelas = Recebivel::where('venda_id', $vendaId)->get();
+        // Verificar permissão e calcular tudo em uma única query
+        $resumo = Recebivel::where('venda_id', $vendaId)
+            ->where('empresa_id', $empresaId)
+            ->selectRaw("
+                SUM(valor) as valor_total,
+                SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) as valor_pago,
+                SUM(CASE WHEN status = 'PENDENTE' AND data_prevista < NOW() THEN 1 ELSE 0 END) as parcelas_atrasadas,
+                COUNT(*) as total_parcelas
+            ")
+            ->first();
 
         // Se não há parcelas, o contrato foi removido da lista
-        if ($parcelas->isEmpty()) {
+        if (! $resumo || $resumo->total_parcelas == 0) {
             return response()->json([
                 'success' => true,
                 'removido' => true,
@@ -746,11 +762,10 @@ class Financeiro extends Controller
             ]);
         }
 
-        $valorTotal = $parcelas->sum('valor');
-        $valorPago = $parcelas->where('status', 'PAGO')->sum('valor');
+        $valorTotal = (float) $resumo->valor_total;
+        $valorPago = (float) $resumo->valor_pago;
         $valorPendente = $valorTotal - $valorPago;
-        $emAtraso = $parcelas->where('status', 'PENDENTE')
-            ->where('data_prevista', '<', now())->count() > 0;
+        $emAtraso = $resumo->parcelas_atrasadas > 0;
 
         // Determinar status do contrato
         if ($valorPendente <= 0) {
@@ -768,9 +783,9 @@ class Financeiro extends Controller
             'success' => true,
             'removido' => false,
             'dados' => [
-                'valor_total' => (float) $valorTotal,
-                'valor_pago' => (float) $valorPago,
-                'valor_pendente' => (float) $valorPendente,
+                'valor_total' => $valorTotal,
+                'valor_pago' => $valorPago,
+                'valor_pendente' => $valorPendente,
                 'em_atraso' => $emAtraso,
                 'status' => $status,
                 'status_class' => $statusClass,
