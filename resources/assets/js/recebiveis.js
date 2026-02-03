@@ -151,12 +151,18 @@ $(function () {
                 currency: 'BRL'
             });
 
+            // Badge de tipo (Parcela ou Vitalicio)
+            const tipoBadge = getTipoBadge(parcela.parcela, parcela.tipo);
+
             tbody.append(`
                 <tr style="animation: fadeInUp 0.3s ease forwards; animation-delay: ${index * 30}ms; opacity: 0;">
                     <td>
-                        <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--rcb-emerald);">
-                            ${parcela.parcela}
-                        </span>
+                        <div class="parcela-info">
+                            <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--rcb-emerald);">
+                                ${parcela.parcela}
+                            </span>
+                            ${tipoBadge}
+                        </div>
                     </td>
                     <td>
                         <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600;">
@@ -170,6 +176,29 @@ $(function () {
                 </tr>
             `);
         });
+    }
+
+    /**
+     * Retorna o badge indicando o tipo da parcela (Parcela ou Vitalicio)
+     */
+    function getTipoBadge(numeroParcela, tipo) {
+        if (numeroParcela >= 4 || tipo === 'vitalicio') {
+            return `<span class="tipo-badge tipo-vitalicio" title="Parcela vitalicia (recorrente)">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                Vitalicio
+            </span>`;
+        }
+        return `<span class="tipo-badge tipo-parcela" title="Parcela de pagamento (1-3)">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="M7 15h0M2 9h20"/>
+            </svg>
+            Parcela
+        </span>`;
     }
 
     function updatePaginationControls() {
@@ -344,15 +373,33 @@ $(function () {
             data: { ano: ano }
         }).done(function (response) {
             if (response.success) {
-                // Atualiza os valores dos KPIs
+                // Atualiza os valores dos KPIs gerais
                 $('#kpi-pago').text(formatCurrency(response.totais.pago));
                 $('#kpi-pendente').text(formatCurrency(response.totais.pendente));
                 $('#kpi-atraso').text(formatCurrency(response.totais.atraso));
 
+                // Atualiza os KPIs por tipo (Parcelas vs Vitalicio)
+                if (response.totais_por_tipo) {
+                    const parcelas = response.totais_por_tipo.parcelas;
+                    const vitalicio = response.totais_por_tipo.vitalicio;
+
+                    // Parcelas (1-3)
+                    const totalParcelas = parcelas.pago + parcelas.pendente;
+                    $('#kpi-parcelas-total').text(formatCurrency(totalParcelas));
+                    $('#kpi-parcelas-pago').text(formatCurrency(parcelas.pago));
+                    $('#kpi-parcelas-pendente').text(formatCurrency(parcelas.pendente));
+
+                    // Vitalicio (4+)
+                    const totalVitalicio = vitalicio.pago + vitalicio.pendente;
+                    $('#kpi-vitalicio-total').text(formatCurrency(totalVitalicio));
+                    $('#kpi-vitalicio-pago').text(formatCurrency(vitalicio.pago));
+                    $('#kpi-vitalicio-pendente').text(formatCurrency(vitalicio.pendente));
+                }
+
                 // Adiciona animação de highlight nos valores atualizados
-                $('.kpi-value').addClass('highlight-update');
+                $('.kpi-value, .split-value').addClass('highlight-update');
                 setTimeout(() => {
-                    $('.kpi-value').removeClass('highlight-update');
+                    $('.kpi-value, .split-value').removeClass('highlight-update');
                 }, 1000);
             }
         }).fail(function () {

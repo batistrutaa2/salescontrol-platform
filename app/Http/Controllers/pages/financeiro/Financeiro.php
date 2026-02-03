@@ -197,6 +197,18 @@ class Financeiro extends Controller
                 ->where('data_prevista', '<', now())->sum('valor'),
         ];
 
+        // Calcular totais por tipo (Parcelas 1-3 vs Vitalício 4+)
+        $totaisPorTipo = [
+            'parcelas' => [
+                'pago' => $recebiveis->where('status', 'PAGO')->where('parcela', '<=', 3)->sum('valor'),
+                'pendente' => $recebiveis->where('status', 'PENDENTE')->where('parcela', '<=', 3)->sum('valor'),
+            ],
+            'vitalicio' => [
+                'pago' => $recebiveis->where('status', 'PAGO')->where('parcela', '>=', 4)->sum('valor'),
+                'pendente' => $recebiveis->where('status', 'PENDENTE')->where('parcela', '>=', 4)->sum('valor'),
+            ],
+        ];
+
         // Agrupar por contrato
         $contratos = $recebiveis->groupBy('venda_id')->map(function ($parcelas) {
             $valorTotal = $parcelas->sum('valor');
@@ -229,6 +241,7 @@ class Financeiro extends Controller
         return view('content.pages.financeiro.recebiveis', [
             'contratos' => $contratos,
             'totais' => $totais,
+            'totaisPorTipo' => $totaisPorTipo,
             'anosDisponiveis' => $anosDisponiveis,
             'anoSelecionado' => $anoSelecionado,
         ]);
@@ -298,6 +311,7 @@ class Financeiro extends Controller
                 'data_prevista' => \Carbon\Carbon::parse($p->data_prevista)->format('d/m/Y'),
                 'data_recebimento' => $p->data_recebimento ? \Carbon\Carbon::parse($p->data_recebimento)->format('d/m/Y') : null,
                 'status' => $p->status,
+                'tipo' => $p->parcela >= 4 ? 'vitalicio' : 'parcela',
             ]);
 
         return response()->json($parcelas);
@@ -631,12 +645,34 @@ class Financeiro extends Controller
                 ->where('data_prevista', '<', now())->sum('valor'),
         ];
 
+        // Calcular totais por tipo (Parcelas 1-3 vs Vitalício 4+)
+        $totaisPorTipo = [
+            'parcelas' => [
+                'pago' => $recebiveis->where('status', 'PAGO')->where('parcela', '<=', 3)->sum('valor'),
+                'pendente' => $recebiveis->where('status', 'PENDENTE')->where('parcela', '<=', 3)->sum('valor'),
+            ],
+            'vitalicio' => [
+                'pago' => $recebiveis->where('status', 'PAGO')->where('parcela', '>=', 4)->sum('valor'),
+                'pendente' => $recebiveis->where('status', 'PENDENTE')->where('parcela', '>=', 4)->sum('valor'),
+            ],
+        ];
+
         return response()->json([
             'success' => true,
             'totais' => [
                 'pago' => (float) $totais['pago'],
                 'pendente' => (float) $totais['pendente'],
                 'atraso' => (float) $totais['atraso'],
+            ],
+            'totais_por_tipo' => [
+                'parcelas' => [
+                    'pago' => (float) $totaisPorTipo['parcelas']['pago'],
+                    'pendente' => (float) $totaisPorTipo['parcelas']['pendente'],
+                ],
+                'vitalicio' => [
+                    'pago' => (float) $totaisPorTipo['vitalicio']['pago'],
+                    'pendente' => (float) $totaisPorTipo['vitalicio']['pendente'],
+                ],
             ],
         ]);
     }

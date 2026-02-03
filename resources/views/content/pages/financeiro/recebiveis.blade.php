@@ -55,7 +55,8 @@
 
     {{-- KPI Cards --}}
     <section class="kpi-section">
-        <div class="kpi-grid">
+        {{-- Linha 1: KPIs Gerais --}}
+        <div class="kpi-grid kpi-grid-3">
             {{-- Total Recebido --}}
             <article class="kpi-card kpi-success">
                 <div class="kpi-background">
@@ -155,6 +156,91 @@
                             <line x1="12" y1="16" x2="12.01" y2="16"/>
                         </svg>
                         <span>Requer acao</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        {{-- Linha 2: KPIs por Tipo (Parcelas vs Vitalicio) --}}
+        <div class="kpi-grid kpi-grid-2" style="margin-top: 1.5rem;">
+            {{-- Parcelas de Pagamento (1-3) --}}
+            <article class="kpi-card kpi-parcela">
+                <div class="kpi-background">
+                    <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="M7 15h0M2 9h20"/>
+                    </svg>
+                </div>
+                <div class="kpi-header">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                            <path d="M7 15h0M2 9h20"/>
+                        </svg>
+                    </div>
+                    <span class="kpi-badge">Parcelas 1-3</span>
+                </div>
+                <div class="kpi-body">
+                    <span class="kpi-value" id="kpi-parcelas-total">
+                        R$ {{ number_format($totaisPorTipo['parcelas']['pago'] + $totaisPorTipo['parcelas']['pendente'], 2, ',', '.') }}
+                    </span>
+                    <span class="kpi-label">Receita de Parcelas</span>
+                </div>
+                <div class="kpi-footer kpi-footer-split">
+                    <div class="kpi-split-item">
+                        <span class="split-label">Recebido</span>
+                        <span class="split-value split-success" id="kpi-parcelas-pago">
+                            R$ {{ number_format($totaisPorTipo['parcelas']['pago'], 2, ',', '.') }}
+                        </span>
+                    </div>
+                    <div class="kpi-split-divider"></div>
+                    <div class="kpi-split-item">
+                        <span class="split-label">Pendente</span>
+                        <span class="split-value split-warning" id="kpi-parcelas-pendente">
+                            R$ {{ number_format($totaisPorTipo['parcelas']['pendente'], 2, ',', '.') }}
+                        </span>
+                    </div>
+                </div>
+            </article>
+
+            {{-- Vitalicio (4+) --}}
+            <article class="kpi-card kpi-vitalicio">
+                <div class="kpi-background">
+                    <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <div class="kpi-header">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <span class="kpi-badge">Vitalicio 4+</span>
+                </div>
+                <div class="kpi-body">
+                    <span class="kpi-value" id="kpi-vitalicio-total">
+                        R$ {{ number_format($totaisPorTipo['vitalicio']['pago'] + $totaisPorTipo['vitalicio']['pendente'], 2, ',', '.') }}
+                    </span>
+                    <span class="kpi-label">Receita Vitalicia</span>
+                </div>
+                <div class="kpi-footer kpi-footer-split">
+                    <div class="kpi-split-item">
+                        <span class="split-label">Recebido</span>
+                        <span class="split-value split-success" id="kpi-vitalicio-pago">
+                            R$ {{ number_format($totaisPorTipo['vitalicio']['pago'], 2, ',', '.') }}
+                        </span>
+                    </div>
+                    <div class="kpi-split-divider"></div>
+                    <div class="kpi-split-item">
+                        <span class="split-label">Pendente</span>
+                        <span class="split-value split-warning" id="kpi-vitalicio-pendente">
+                            R$ {{ number_format($totaisPorTipo['vitalicio']['pendente'], 2, ',', '.') }}
+                        </span>
                     </div>
                 </div>
             </article>
