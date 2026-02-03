@@ -1109,6 +1109,109 @@ button.year-tab {
     }
 }
 
+// Custom Checkbox
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    width: 20px;
+    height: 20px;
+
+    input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+
+        &:checked ~ .checkmark {
+            background: var(--rcb-emerald);
+            border-color: var(--rcb-emerald);
+
+            &:after {
+                display: block;
+            }
+        }
+
+        &:indeterminate ~ .checkmark {
+            background: var(--rcb-emerald);
+            border-color: var(--rcb-emerald);
+
+            &:after {
+                display: block;
+                content: '';
+                width: 8px;
+                height: 2px;
+                background: white;
+                border: none;
+                transform: rotate(0deg);
+                top: 7px;
+                left: 4px;
+            }
+        }
+    }
+
+    .checkmark {
+        width: 18px;
+        height: 18px;
+        background: var(--rcb-card-bg);
+        border: 2px solid var(--rcb-card-border);
+        border-radius: 4px;
+        transition: var(--rcb-transition);
+
+        &:after {
+            content: '';
+            position: absolute;
+            display: none;
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+    }
+
+    &:hover .checkmark {
+        border-color: var(--rcb-emerald);
+    }
+}
+
+// Checkbox column
+.col-checkbox {
+    width: 40px;
+    text-align: center;
+}
+
+// Button - Excluir Selecionados
+.btn-excluir-selecionados {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: var(--rcb-danger);
+    color: white;
+    border: none;
+    border-radius: var(--rcb-radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--rcb-transition);
+
+    &:hover {
+        background: #DC2626;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(var(--rcb-danger-rgb), 0.3);
+    }
+
+    svg {
+        flex-shrink: 0;
+    }
+}
+
 // Parcela Info with Type Badge
 .parcela-info {
     display: flex;
@@ -1161,9 +1264,21 @@ button.year-tab {
 .parcelas-table-wrapper {
     overflow-x: auto;
     overflow-y: auto;
-    max-height: 400px;
+    max-height: 60vh;
     border: 1px solid var(--rcb-card-border);
     border-radius: var(--rcb-radius-md) var(--rcb-radius-md) 0 0;
+}
+
+// Modal larger size
+.parcelas-modal {
+    .modal-dialog {
+        max-width: 900px;
+    }
+
+    .modal-body {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
 }
 
 .parcelas-table {
@@ -1182,6 +1297,24 @@ button.year-tab {
             padding: 0.875rem 1rem;
             text-align: left;
             border-bottom: 1px solid var(--rcb-card-border);
+
+            &.col-checkbox {
+                width: 40px;
+                padding: 0.875rem 0.5rem;
+                text-align: center;
+            }
+        }
+    }
+
+    tbody {
+        td.col-checkbox {
+            width: 40px;
+            padding: 0.875rem 0.5rem;
+            text-align: center;
+        }
+
+        tr.selected {
+            background: rgba(var(--rcb-emerald-rgb), 0.08);
         }
     }
 

@@ -16,6 +16,9 @@ $(function () {
     let currentPage = 1;
     const itemsPerPage = 10;
 
+    // Selection variables
+    let selectedParcelas = new Set();
+
     // ============================================
     // DataTable Initialization
     // ============================================
@@ -90,6 +93,10 @@ $(function () {
             allParcelas = data;
             currentPage = 1;
 
+            // Limpar seleção ao carregar novas parcelas
+            selectedParcelas.clear();
+            updateSelectionUI();
+
             if (data.length === 0) {
                 tbody.html(`
                     <tr>
@@ -154,8 +161,17 @@ $(function () {
             // Badge de tipo (Parcela ou Vitalicio)
             const tipoBadge = getTipoBadge(parcela.parcela, parcela.tipo);
 
+            // Checkbox de seleção
+            const isChecked = selectedParcelas.has(parcela.id) ? 'checked' : '';
+
             tbody.append(`
-                <tr style="animation: fadeInUp 0.3s ease forwards; animation-delay: ${index * 30}ms; opacity: 0;">
+                <tr style="animation: fadeInUp 0.3s ease forwards; animation-delay: ${index * 30}ms; opacity: 0;" data-parcela-id="${parcela.id}">
+                    <td class="col-checkbox">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" class="parcela-checkbox" data-id="${parcela.id}" ${isChecked}>
+                            <span class="checkmark"></span>
+                        </label>
+                    </td>
                     <td>
                         <div class="parcela-info">
                             <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--rcb-emerald);">
@@ -176,6 +192,9 @@ $(function () {
                 </tr>
             `);
         });
+
+        // Atualizar estado do checkbox "selecionar todos"
+        updateSelectAllCheckbox();
     }
 
     /**
@@ -920,6 +939,160 @@ $(function () {
                     }
                 }).fail(function (xhr) {
                     const errorMsg = xhr.responseJSON?.message || 'Erro ao excluir recebiveis.';
+                    Swal.fire({
+                        title: 'Erro!',
+                        text: errorMsg,
+                        icon: 'error',
+                        customClass: {
+                            popup: 'swal-recebiveis',
+                            confirmButton: 'btn btn-danger'
+                        },
+                        buttonsStyling: false
+                    });
+                });
+            }
+        });
+    });
+
+    // ============================================
+    // Selection Handlers (Checkboxes)
+    // ============================================
+
+    // Checkbox individual
+    $(document).on('change', '.parcela-checkbox', function () {
+        const parcelaId = parseInt($(this).data('id'));
+
+        if ($(this).is(':checked')) {
+            selectedParcelas.add(parcelaId);
+        } else {
+            selectedParcelas.delete(parcelaId);
+        }
+
+        updateSelectionUI();
+        updateSelectAllCheckbox();
+    });
+
+    // Checkbox "Selecionar Todos"
+    $(document).on('change', '#selectAllParcelas', function () {
+        const isChecked = $(this).is(':checked');
+
+        if (isChecked) {
+            // Selecionar todas as parcelas (não apenas as da página atual)
+            allParcelas.forEach(p => selectedParcelas.add(p.id));
+        } else {
+            // Desmarcar todas
+            selectedParcelas.clear();
+        }
+
+        // Atualizar checkboxes visíveis
+        $('.parcela-checkbox').prop('checked', isChecked);
+        updateSelectionUI();
+    });
+
+    // Atualizar estado do checkbox "Selecionar Todos"
+    function updateSelectAllCheckbox() {
+        const totalParcelas = allParcelas.length;
+        const totalSelecionadas = selectedParcelas.size;
+
+        if (totalParcelas === 0) {
+            $('#selectAllParcelas').prop('checked', false).prop('indeterminate', false);
+        } else if (totalSelecionadas === totalParcelas) {
+            $('#selectAllParcelas').prop('checked', true).prop('indeterminate', false);
+        } else if (totalSelecionadas > 0) {
+            $('#selectAllParcelas').prop('checked', false).prop('indeterminate', true);
+        } else {
+            $('#selectAllParcelas').prop('checked', false).prop('indeterminate', false);
+        }
+    }
+
+    // Atualizar UI de seleção (mostrar/esconder botão, contador)
+    function updateSelectionUI() {
+        const count = selectedParcelas.size;
+        $('#countSelecionados').text(count);
+
+        if (count > 0) {
+            $('#btnExcluirSelecionados').show();
+        } else {
+            $('#btnExcluirSelecionados').hide();
+        }
+    }
+
+    // Excluir Parcelas Selecionadas
+    $(document).on('click', '#btnExcluirSelecionados', function () {
+        const count = selectedParcelas.size;
+
+        if (count === 0) {
+            showToast('warning', 'Nenhuma parcela selecionada.');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Excluir Parcelas Selecionadas',
+            html: `
+                <div style="text-align: left; padding: 1rem 0;">
+                    <p style="margin-bottom: 0.75rem;">Voce tem certeza que deseja excluir <strong>${count} parcela(s)</strong> selecionada(s)?</p>
+                    <div style="background: rgba(239, 68, 68, 0.1); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem;">
+                        <p style="color: var(--rcb-danger); font-size: 0.875rem; margin: 0; display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Esta acao nao pode ser desfeita.
+                        </p>
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            iconColor: '#EF4444',
+            showCancelButton: true,
+            confirmButtonText: `Sim, excluir ${count} parcela(s)`,
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                popup: 'swal-recebiveis',
+                confirmButton: 'btn btn-danger me-2',
+                cancelButton: 'btn btn-secondary'
+            },
+            buttonsStyling: false
+        }).then(result => {
+            if (result.isConfirmed) {
+                showLoadingSwal('Excluindo parcelas...');
+
+                const parcelaIds = Array.from(selectedParcelas);
+
+                $.ajax({
+                    url: '/financeiro/recebiveis/parcelas/excluir-multiplas',
+                    method: 'POST',
+                    data: {
+                        parcela_ids: parcelaIds
+                    },
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                }).done(function (response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Parcelas Excluidas!',
+                            text: response.message,
+                            icon: 'success',
+                            iconColor: '#10B981',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal-recebiveis',
+                                confirmButton: 'btn btn-success'
+                            },
+                            buttonsStyling: false
+                        }).then(() => {
+                            // Limpar seleção
+                            selectedParcelas.clear();
+                            updateSelectionUI();
+
+                            // Atualizar dados
+                            atualizarKPIs();
+                            atualizarLinhaContrato(currentVendaId);
+                            carregarParcelas(currentVendaId);
+                        });
+                    }
+                }).fail(function (xhr) {
+                    const errorMsg = xhr.responseJSON?.message || 'Erro ao excluir parcelas.';
                     Swal.fire({
                         title: 'Erro!',
                         text: errorMsg,

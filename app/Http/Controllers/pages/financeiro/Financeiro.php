@@ -480,6 +480,49 @@ class Financeiro extends Controller
     }
 
     /**
+     * Excluir múltiplas parcelas de uma vez
+     */
+    public function excluirMultiplasParcelas(Request $request)
+    {
+        $request->validate([
+            'parcela_ids' => 'required|array|min:1',
+            'parcela_ids.*' => 'integer|exists:recebiveis,id',
+        ]);
+
+        $parcelaIds = $request->parcela_ids;
+        $empresaId = auth()->user()->empresa_id;
+
+        // Verificar se todas as parcelas pertencem à empresa do usuário
+        $parcelas = Recebivel::whereIn('id', $parcelaIds)
+            ->where('empresa_id', $empresaId)
+            ->get();
+
+        if ($parcelas->count() !== count($parcelaIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Algumas parcelas não foram encontradas ou você não tem permissão para excluí-las.',
+            ], 403);
+        }
+
+        // Pegar o venda_id para retornar (assumindo que todas são do mesmo contrato)
+        $vendaId = $parcelas->first()->venda_id;
+
+        // Excluir as parcelas
+        $totalExcluido = Recebivel::whereIn('id', $parcelaIds)
+            ->where('empresa_id', $empresaId)
+            ->delete();
+
+        Log::info("Excluídas {$totalExcluido} parcelas da venda {$vendaId} pelo usuário " . auth()->user()->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$totalExcluido} parcela(s) excluída(s) com sucesso.",
+            'total_excluido' => $totalExcluido,
+            'venda_id' => $vendaId,
+        ]);
+    }
+
+    /**
      * Excluir todos os recebíveis de uma venda
      */
     public function excluirTodosRecebiveis(int $vendaId)
