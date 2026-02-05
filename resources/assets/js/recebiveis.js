@@ -1297,6 +1297,266 @@ $(function () {
         }, 300);
     });
 
+    // Generate Manual Receivables
+    $(document).on('click', '#btnGerarManual', function () {
+        if (!currentVendaId) {
+            showToast('error', 'ID do contrato nao encontrado.');
+            return;
+        }
+
+        const hoje = new Date().toISOString().split('T')[0];
+
+        // Hide Bootstrap modal before showing SweetAlert2 to avoid aria-hidden conflict
+        $('#parcelasModal').modal('hide');
+
+        // Wait for modal to fully hide before showing SweetAlert
+        setTimeout(() => {
+            Swal.fire({
+                title: 'Gerar Parcelas Manualmente',
+                html: `
+                    <div style="text-align: left; padding: 1rem 0;">
+                        <div style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid rgba(124, 58, 237, 0.2);">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%); display: flex; align-items: center; justify-content: center;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="8" x2="12" y2="16"/>
+                                        <line x1="8" y1="12" x2="16" y2="12"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p style="margin: 0; font-weight: 700; font-size: 1rem; color: var(--rcb-text-primary);">Geracao Manual</p>
+                                    <p style="margin: 0; font-size: 0.8125rem; color: var(--rcb-text-muted);">As parcelas serao criadas a partir do ultimo numero existente</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 1.25rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--rcb-text-primary);">
+                                Quantidade de Parcelas
+                            </label>
+                            <input type="number" id="swalQuantidade" min="1" max="120" value="1"
+                                   inputmode="numeric"
+                                   autocomplete="off"
+                                   style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--rcb-card-border); border-radius: 10px; font-size: 1rem; font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace; background: var(--rcb-card-bg); color: var(--rcb-text-primary); transition: all 0.2s ease;" />
+                        </div>
+
+                        <div style="margin-bottom: 1.25rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--rcb-text-primary);">
+                                Data Inicial
+                            </label>
+                            <input type="date" id="swalDataInicial" value="${hoje}"
+                                   style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--rcb-card-border); border-radius: 10px; font-size: 1rem; background: var(--rcb-card-bg); color: var(--rcb-text-primary); transition: all 0.2s ease;" />
+                            <p style="color: var(--rcb-text-muted); font-size: 0.75rem; margin: 0.5rem 0 0 0;">
+                                As demais parcelas terao datas incrementadas mes a mes
+                            </p>
+                        </div>
+
+                        <div style="margin-bottom: 1.25rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--rcb-text-primary);">
+                                Valor por Parcela <span style="font-weight: 400; color: var(--rcb-text-muted);">(opcional - usa valor da regra)</span>
+                            </label>
+                            <div style="position: relative;">
+                                <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--rcb-text-muted); font-weight: 600; font-size: 0.875rem;">R$</span>
+                                <input type="text" id="swalValor"
+                                       inputmode="numeric"
+                                       autocomplete="off"
+                                       placeholder="Automatico"
+                                       style="width: 100%; padding: 0.75rem 1rem 0.75rem 40px; border: 1px solid var(--rcb-card-border); border-radius: 10px; font-size: 1rem; font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace; background: var(--rcb-card-bg); color: var(--rcb-text-primary); transition: all 0.2s ease;" />
+                            </div>
+                            <p style="color: var(--rcb-text-muted); font-size: 0.75rem; margin: 0.5rem 0 0 0;">
+                                Se nao informado, sera utilizado o percentual vitalicio da regra de comissionamento
+                            </p>
+                        </div>
+
+                        <div style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(34, 211, 238, 0.05) 100%); padding: 0.875rem 1rem; border-radius: 10px; border: 1px solid rgba(6, 182, 212, 0.2);">
+                            <div style="display: flex; align-items: flex-start; gap: 0.625rem;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="2" style="flex-shrink: 0; margin-top: 1px;">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="16" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                </svg>
+                                <div style="font-size: 0.8125rem; color: var(--rcb-text-secondary); line-height: 1.5;">
+                                    <strong style="color: var(--rcb-info);">Exemplo:</strong> Data 01/01/2026, 3 parcelas<br>
+                                    Parcela 1: 01/01 → Parcela 2: 01/02 → Parcela 3: 01/03
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                icon: null,
+                showCancelButton: true,
+                confirmButtonText: 'Gerar Parcelas',
+                cancelButtonText: 'Cancelar',
+                customClass: {
+                    popup: 'swal-recebiveis swal-wide',
+                    confirmButton: 'btn btn-primary me-2',
+                    cancelButton: 'btn btn-secondary'
+                },
+                buttonsStyling: false,
+                didOpen: () => {
+                    // Apply currency mask after modal opens
+                    const valorInput = document.getElementById('swalValor');
+                    if (valorInput) {
+                        aplicarMascaraMoeda(valorInput);
+                    }
+                    // Focus on the first input
+                    const qtdInput = document.getElementById('swalQuantidade');
+                    if (qtdInput) {
+                        qtdInput.focus();
+                        qtdInput.select();
+                    }
+                },
+                preConfirm: () => {
+                    const quantidade = parseInt(document.getElementById('swalQuantidade').value);
+                    const dataInicial = document.getElementById('swalDataInicial').value;
+                    const valorTexto = document.getElementById('swalValor').value;
+
+                    if (!quantidade || quantidade < 1) {
+                        Swal.showValidationMessage('Informe a quantidade de parcelas.');
+                        return false;
+                    }
+
+                    if (!dataInicial) {
+                        Swal.showValidationMessage('Informe a data inicial.');
+                        return false;
+                    }
+
+                    let valor = null;
+                    if (valorTexto && valorTexto.trim() !== '') {
+                        valor = parseMoeda(valorTexto);
+                        if (valor === null || valor <= 0) {
+                            Swal.showValidationMessage('Informe um valor valido maior que zero.');
+                            return false;
+                        }
+                    }
+
+                    return { quantidade, dataInicial, valor };
+                }
+            }).then(result => {
+                if (result.isConfirmed) {
+                    const { quantidade, dataInicial, valor } = result.value;
+
+                    showLoadingSwal('Gerando parcelas...');
+
+                    const payload = {
+                        quantidade_parcelas: quantidade,
+                        data_inicial: dataInicial
+                    };
+
+                    if (valor) {
+                        payload.valor = valor;
+                    }
+
+                    $.ajax({
+                        url: `/financeiro/recebiveis/${currentVendaId}/gerar-manual`,
+                        method: 'POST',
+                        data: payload,
+                        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                    }).done(function (response) {
+                        if (response.success) {
+                            let detalhesHtml = '';
+
+                            if (response.parcelas_criadas && response.parcelas_criadas.length > 0) {
+                                detalhesHtml = `
+                                    <div style="text-align: left; margin-top: 1.5rem;">
+                                        <h6 style="font-weight: 600; margin-bottom: 0.75rem; color: var(--rcb-success); display: flex; align-items: center; gap: 0.5rem;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <line x1="12" y1="8" x2="12" y2="16"/>
+                                                <line x1="8" y1="12" x2="16" y2="12"/>
+                                            </svg>
+                                            Parcelas Criadas
+                                        </h6>
+                                        <div style="overflow-x: auto; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; background: rgba(16, 185, 129, 0.05); max-height: 250px; overflow-y: auto;">
+                                            <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                                                <thead style="position: sticky; top: 0; background: rgba(16, 185, 129, 0.1);">
+                                                    <tr>
+                                                        <th style="padding: 0.625rem 0.75rem; text-align: left; font-weight: 600;">Parcela</th>
+                                                        <th style="padding: 0.625rem 0.75rem; text-align: right; font-weight: 600;">Valor</th>
+                                                        <th style="padding: 0.625rem 0.75rem; text-align: left; font-weight: 600;">Vencimento</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>`;
+
+                                response.parcelas_criadas.forEach(p => {
+                                    detalhesHtml += `
+                                        <tr style="border-top: 1px solid rgba(16, 185, 129, 0.15);">
+                                            <td style="padding: 0.5rem 0.75rem; font-weight: 600;">${p.parcela}</td>
+                                            <td style="padding: 0.5rem 0.75rem; text-align: right; font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;">${formatCurrency(p.valor)}</td>
+                                            <td style="padding: 0.5rem 0.75rem;">${p.data_prevista}</td>
+                                        </tr>`;
+                                });
+
+                                detalhesHtml += '</tbody></table></div></div>';
+
+                                // Summary
+                                const totalValor = response.parcelas_criadas.reduce((sum, p) => sum + parseFloat(p.valor), 0);
+                                detalhesHtml += `
+                                    <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1)); padding: 1rem; border-radius: 10px; margin-top: 1rem; text-align: left;">
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span style="font-weight: 500;">Total gerado:</span>
+                                            <span style="font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace; font-weight: 600; color: var(--rcb-success);">${formatCurrency(totalValor)}</span>
+                                        </div>
+                                    </div>`;
+                            }
+
+                            Swal.fire({
+                                title: 'Parcelas Geradas!',
+                                html: response.message + detalhesHtml,
+                                icon: 'success',
+                                iconColor: '#10B981',
+                                width: 550,
+                                customClass: {
+                                    popup: 'swal-recebiveis',
+                                    confirmButton: 'btn btn-success'
+                                },
+                                buttonsStyling: false
+                            }).then(() => {
+                                atualizarKPIs();
+                                atualizarLinhaContrato(currentVendaId);
+                                carregarParcelas(currentVendaId);
+                                // Reabrir modal de parcelas
+                                $('#parcelasModal').modal('show');
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Atencao!',
+                                text: response.message,
+                                icon: 'warning',
+                                iconColor: '#F59E0B',
+                                customClass: {
+                                    popup: 'swal-recebiveis',
+                                    confirmButton: 'btn btn-warning'
+                                },
+                                buttonsStyling: false
+                            }).then(() => {
+                                $('#parcelasModal').modal('show');
+                            });
+                        }
+                    }).fail(function (xhr) {
+                        const errorMsg = xhr.responseJSON?.message || 'Erro ao gerar parcelas.';
+                        Swal.fire({
+                            title: 'Erro!',
+                            text: errorMsg,
+                            icon: 'error',
+                            customClass: {
+                                popup: 'swal-recebiveis',
+                                confirmButton: 'btn btn-danger'
+                            },
+                            buttonsStyling: false
+                        }).then(() => {
+                            $('#parcelasModal').modal('show');
+                        });
+                    });
+                } else if (result.isDismissed) {
+                    // User cancelled - reopen the parcelas modal
+                    $('#parcelasModal').modal('show');
+                }
+            });
+        }, 300);
+    });
+
     // Recalculate Values
     $(document).on('click', '#btnRecalcular', function () {
         if (!currentVendaId) {

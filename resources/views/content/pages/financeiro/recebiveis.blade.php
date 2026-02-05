@@ -474,6 +474,14 @@
                         </svg>
                         <span>Excluir Selecionados (<span id="countSelecionados">0</span>)</span>
                     </button>
+                    <button class="btn-recalcular" id="btnGerarManual" style="background: linear-gradient(135deg, var(--rcb-primary, #7C3AED), var(--rcb-primary-light, #A78BFA)); color: #fff;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="16"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        <span>Gerar Parcelas</span>
+                    </button>
                     <button class="btn-recalcular" id="btnRecalcular">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="23 4 23 10 17 10"/>

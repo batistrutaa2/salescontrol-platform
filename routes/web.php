@@ -389,6 +389,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/parcelas/editar-multiplas', [Financeiro::class, 'editarMultiplasParcelas'])
         ->name('financeiro.recebiveis.editarMultiplas');
 
+    // Gerar recebíveis manualmente
+    Route::post('/{vendaId}/gerar-manual', [Financeiro::class, 'gerarRecebiveisManuais'])
+        ->name('financeiro.recebiveis.gerarManual');
+
     // Excluir todos os recebíveis de uma venda
     Route::delete('/{vendaId}/todos', [Financeiro::class, 'excluirTodosRecebiveis'])
         ->name('financeiro.recebiveis.excluirTodos');

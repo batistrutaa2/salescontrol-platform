@@ -1018,4 +1018,115 @@ class Financeiro extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Gera recebíveis manualmente para um contrato
+     */
+    public function gerarRecebiveisManuais(Request $request, int $vendaId)
+    {
+        $request->validate([
+            'quantidade_parcelas' => 'required|integer|min:1|max:120',
+            'data_inicial' => 'required|date',
+            'valor' => 'nullable|numeric|min:0',
+        ]);
+
+        $venda = Vendas::findOrFail($vendaId);
+
+        // Verificar permissão (empresa_id)
+        if ($venda->empresa_id !== auth()->user()->empresa_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sem permissão para acessar este contrato.',
+            ], 403);
+        }
+
+        $quantidadeParcelas = (int) $request->quantidade_parcelas;
+        $dataInicial = Carbon::parse($request->data_inicial);
+        $valorCustom = $request->valor;
+
+        // Buscar operadora
+        $operadora = Operadora::where('nome', $venda->operadora)->first();
+
+        // Resolver valor por parcela
+        $valorParcela = $valorCustom;
+
+        if (! $valorParcela && $operadora) {
+            $regra = RegrasComissionamento::where('empresa_id', $venda->empresa_id)
+                ->where('operadora_id', $operadora->id)
+                ->first();
+
+            if ($regra && $regra->vitalicio && $regra->percentual_vitalicio > 0) {
+                $valorParcela = ($regra->percentual_vitalicio / 100) * $venda->valor_contrato;
+            }
+        }
+
+        if (! $valorParcela || $valorParcela <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Não foi possível determinar o valor das parcelas. Informe o valor manualmente.',
+            ], 422);
+        }
+
+        // Buscar última parcela existente
+        $ultimaParcela = Recebivel::where('venda_id', $venda->id)->max('parcela') ?? 0;
+
+        // Resolver nome do plano
+        $planoNome = 'N/A';
+        if (! empty($venda->plano_id)) {
+            $plano = Plano::find($venda->plano_id);
+            $planoNome = $plano?->nome ?? $venda->nome_plano ?? 'N/A';
+        } elseif (! empty($venda->nome_plano)) {
+            $planoNome = $venda->nome_plano;
+        }
+
+        $parcelasCriadas = [];
+
+        DB::beginTransaction();
+        try {
+            for ($i = 0; $i < $quantidadeParcelas; $i++) {
+                $numeroParcela = $ultimaParcela + $i + 1;
+                $dataPrevista = $dataInicial->copy()->addMonths($i);
+
+                Recebivel::create([
+                    'empresa_id' => $venda->empresa_id,
+                    'venda_id' => $venda->id,
+                    'vendedor_id' => $venda->user_id,
+                    'operadora' => $operadora?->nome ?? $venda->operadora,
+                    'plano' => $planoNome,
+                    'parcela' => $numeroParcela,
+                    'valor' => $valorParcela,
+                    'data_prevista' => $dataPrevista,
+                    'status' => 'PENDENTE',
+                ]);
+
+                $parcelasCriadas[] = [
+                    'parcela' => $numeroParcela,
+                    'valor' => $valorParcela,
+                    'data_prevista' => $dataPrevista->format('d/m/Y'),
+                ];
+            }
+
+            DB::commit();
+
+            Log::info("[Recebiveis] Geradas {$quantidadeParcelas} parcela(s) manuais para venda {$venda->id}");
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$quantidadeParcelas} parcela(s) gerada(s) com sucesso.",
+                'parcelas_criadas' => $parcelasCriadas,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao gerar recebíveis manuais', [
+                'venda_id' => $vendaId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao gerar parcelas: '.$e->getMessage(),
+            ], 500);
+        }
+    }
 }
