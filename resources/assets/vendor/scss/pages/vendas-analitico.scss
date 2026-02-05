@@ -852,6 +852,10 @@
         font-weight: 600;
         font-size: 0.8125rem;
         color: var(--dash-primary);
+
+        &.angariacao {
+            color: var(--dash-warning);
+        }
     }
 
     .status-badge {

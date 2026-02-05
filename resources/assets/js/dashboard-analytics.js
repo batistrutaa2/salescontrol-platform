@@ -558,16 +558,46 @@
         const totalContatosImportados = data.quantidadeContatosImportados || 0;
         const conversaoMensal = parseFloat(data.conversaoMensal) || 0;
 
+        // Calculate angariação totals
+        const totalAngariacaoCadastradas = vendasCadastradas.reduce((acc, item) => acc + parseFloat(item.total_angariacao || 0), 0);
+        const totalAngariacaoImplantadas = vendasImplantadas.reduce((acc, item) => acc + parseFloat(item.total_angariacao || 0), 0);
+
         // Animate KPI values
         const valorCadastradoEl = document.querySelector('.js-valorCadastrado');
+        const angariacaoEl = document.querySelector('.js-angariacao');
         const implantadoEl = document.querySelector('.js-implantado');
         const contatosEl = document.querySelector('.js-quantidadeContatosImportados');
-        const conversaoEl = document.querySelector('.js-conversao');
 
         if (valorCadastradoEl) animateValue(valorCadastradoEl, 0, totalCadastradas);
+        if (angariacaoEl) animateValue(angariacaoEl, 0, totalAngariacaoCadastradas);
         if (implantadoEl) animateValue(implantadoEl, 0, totalImplantadas);
         if (contatosEl) animateValue(contatosEl, 0, totalContatosImportados);
-        if (conversaoEl) animateValue(conversaoEl, 0, conversaoMensal);
+
+        // Update trends
+        const trendCadastradoEl = document.querySelector('.js-trend-cadastrado');
+        const trendAngariacaoEl = document.querySelector('.js-trend-angariacao');
+        const trendImplantadoEl = document.querySelector('.js-trend-implantado');
+
+        if (trendCadastradoEl) {
+            const qtdCadastradas = vendasCadastradas.reduce((acc, item) => acc + 1, 0);
+            trendCadastradoEl.textContent = qtdCadastradas + ' vendedor(es)';
+        }
+
+        if (trendAngariacaoEl) {
+            if (totalAngariacaoImplantadas > 0) {
+                trendAngariacaoEl.textContent = formatCurrency(totalAngariacaoImplantadas) + ' implantada';
+            } else {
+                trendAngariacaoEl.textContent = 'Total cadastrado';
+            }
+        }
+
+        if (trendImplantadoEl) {
+            if (totalAngariacaoImplantadas > 0) {
+                trendImplantadoEl.textContent = formatCurrency(totalAngariacaoImplantadas) + ' angariacao';
+            } else {
+                trendImplantadoEl.textContent = 'Sem angariacao';
+            }
+        }
 
         // Update Sales Performance Chart
         if (salesPerformanceChart) {
@@ -628,6 +658,14 @@
         updateTables(data.contratosCadastrados || [], data.contratosImplantados || []);
     }
 
+    function formatAngariacao(item) {
+        if (item.angariacao_status === 'SIM' && parseFloat(item.angariacao_valor || 0) > 0) {
+            const valor = formatCurrency(parseFloat(item.angariacao_valor));
+            return `<span class="contract-value angariacao">${valor}</span>`;
+        }
+        return '<span class="contract-value muted">--</span>';
+    }
+
     function updateTables(dataCadastrados, dataImplantados) {
         // Update counts
         const countCadastradosEl = document.querySelector('.js-count-cadastrados');
@@ -642,7 +680,8 @@
             const valorFormatado = formatCurrency(parseFloat(item.valor_contrato || 0));
             tableContratosCadastrados.row.add([
                 `<span class="contract-name">${item.nome_contrato || 'N/A'}</span>`,
-                `<span class="contract-value">${valorFormatado}</span>`
+                `<span class="contract-value">${valorFormatado}</span>`,
+                formatAngariacao(item)
             ]);
         });
         tableContratosCadastrados.draw();
@@ -653,7 +692,8 @@
             const valorFormatado = formatCurrency(parseFloat(item.valor_contrato || 0));
             tableContratosImplantados.row.add([
                 `<span class="contract-name">${item.nome_contrato || 'N/A'}</span>`,
-                `<span class="contract-value success">${valorFormatado}</span>`
+                `<span class="contract-value success">${valorFormatado}</span>`,
+                formatAngariacao(item)
             ]);
         });
         tableContratosImplantados.draw();

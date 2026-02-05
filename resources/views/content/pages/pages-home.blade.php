@@ -97,7 +97,30 @@
             <div class="kpi-glow"></div>
         </div>
 
-        <div class="kpi-card kpi-success" data-aos="fade-up" data-aos-delay="100">
+        <div class="kpi-card kpi-warning" data-aos="fade-up" data-aos-delay="100">
+            <div class="kpi-icon-wrapper">
+                <div class="kpi-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <div class="kpi-pulse"></div>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Angariacao</span>
+                <h2 class="kpi-value js-angariacao">R$ 0,00</h2>
+                <div class="kpi-trend trend-up">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                        <polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                    <span class="js-trend-angariacao">--</span>
+                </div>
+            </div>
+            <div class="kpi-glow"></div>
+        </div>
+
+        <div class="kpi-card kpi-success" data-aos="fade-up" data-aos-delay="200">
             <div class="kpi-icon-wrapper">
                 <div class="kpi-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -121,7 +144,7 @@
             <div class="kpi-glow"></div>
         </div>
 
-        <div class="kpi-card kpi-info" data-aos="fade-up" data-aos-delay="200">
+        <div class="kpi-card kpi-info" data-aos="fade-up" data-aos-delay="300">
             <div class="kpi-icon-wrapper">
                 <div class="kpi-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -141,30 +164,6 @@
                         <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
                     <span>Novos leads</span>
-                </div>
-            </div>
-            <div class="kpi-glow"></div>
-        </div>
-
-        <div class="kpi-card kpi-warning" data-aos="fade-up" data-aos-delay="300">
-            <div class="kpi-icon-wrapper">
-                <div class="kpi-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
-                        <path d="M22 12A10 10 0 0 0 12 2v10z"/>
-                    </svg>
-                </div>
-                <div class="kpi-pulse"></div>
-            </div>
-            <div class="kpi-content">
-                <span class="kpi-label">Conversao Mensal</span>
-                <h2 class="kpi-value"><span class="js-conversao">0</span>%</h2>
-                <div class="kpi-trend trend-up">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                        <polyline points="17 6 23 6 23 12"/>
-                    </svg>
-                    <span>Taxa de sucesso</span>
                 </div>
             </div>
             <div class="kpi-glow"></div>
@@ -270,6 +269,7 @@
                             <tr>
                                 <th>Nome do Contrato</th>
                                 <th class="text-end">Valor</th>
+                                <th class="text-end">Angariacao</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -302,6 +302,7 @@
                             <tr>
                                 <th>Nome do Contrato</th>
                                 <th class="text-end">Valor</th>
+                                <th class="text-end">Angariacao</th>
                             </tr>
                         </thead>
                         <tbody>

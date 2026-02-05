@@ -300,9 +300,30 @@
         if (data.resumo_geral) {
             updateElement('totalContratos', formatNumber(data.resumo_geral.total_contratos || 0));
             updateElement('valorTotal', formatCurrency(data.resumo_geral.valor_total || 0));
+            updateElement('valorAngariacao', formatCurrency(data.resumo_geral.valor_angariacao || 0));
             updateElement('valorImplantado', formatCurrency(data.resumo_geral.valor_implantado || 0));
             updateElement('totalVidas', formatNumber(data.resumo_geral.total_vidas || 0));
-            updateElement('ticketMedio', formatCurrency(data.resumo_geral.ticket_medio || 0));
+
+            // Update angariação trend
+            const trendAng = document.getElementById('trendAngariacao');
+            if (trendAng) {
+                const angImpl = parseFloat(data.resumo_geral.valor_angariacao_implantada || 0);
+                trendAng.textContent = angImpl > 0 ? formatCurrency(angImpl) + ' implantada' : 'Total cadastrado';
+            }
+
+            // Update implantado trend
+            const trendImpl = document.getElementById('trendImplantado');
+            if (trendImpl) {
+                const angImpl = parseFloat(data.resumo_geral.valor_angariacao_implantada || 0);
+                trendImpl.textContent = angImpl > 0 ? formatCurrency(angImpl) + ' angariacao' : 'Confirmado';
+            }
+
+            // Update ticket médio trend no card cadastrado
+            const trendTicket = document.getElementById('trendTicketMedio');
+            if (trendTicket) {
+                const ticketMedio = parseFloat(data.resumo_geral.ticket_medio || 0);
+                trendTicket.textContent = ticketMedio > 0 ? 'Ticket ' + formatCurrency(ticketMedio) : 'Ticket medio';
+            }
         }
 
         // Update charts
@@ -858,7 +879,7 @@
         if (!vendas || vendas.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8">
+                    <td colspan="9">
                         <div class="empty-state">
                             <div class="empty-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -878,6 +899,9 @@
         tbody.innerHTML = vendas.map(venda => {
             const status = venda.contato_corretor?.tabulacao?.descricao || 'N/A';
             const statusClass = getStatusClass(status);
+            const angariacao = venda.angariacao_status === 'SIM' && parseFloat(venda.angariacao_valor || 0) > 0
+                ? `<span class="contract-value angariacao">${formatCurrency(venda.angariacao_valor)}</span>`
+                : '<span class="text-muted">--</span>';
 
             return `
                 <tr>
@@ -888,6 +912,7 @@
                     <td>${venda.operadora || '-'}</td>
                     <td>${truncateText(venda.nome_plano || '-', 30)}</td>
                     <td class="contract-value">${formatCurrency(venda.valor_contrato)}</td>
+                    <td>${angariacao}</td>
                     <td><span class="status-badge ${statusClass}">${status}</span></td>
                 </tr>
             `;

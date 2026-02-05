@@ -680,6 +680,15 @@
         &.success {
             color: var(--dash-success);
         }
+
+        &.angariacao {
+            color: var(--dash-warning);
+        }
+
+        &.muted {
+            color: var(--dash-text-muted);
+            font-weight: 400;
+        }
     }
 }
 

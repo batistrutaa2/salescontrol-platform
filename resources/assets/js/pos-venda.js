@@ -417,6 +417,18 @@
                   Gerar Recebíveis
                 </a>
               </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item text-danger" href="javascript:void(0)" onclick="posVenda.excluirContrato(${contrato.id}, '${escapeHtml(contrato.nome_contrato || '')}')">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    <line x1="10" y1="11" x2="10" y2="17"/>
+                    <line x1="14" y1="11" x2="14" y2="17"/>
+                  </svg>
+                  Excluir Contrato
+                </a>
+              </li>
             </ul>
           </div>
         </td>
@@ -1059,6 +1071,62 @@
     }
   }
 
+  // Excluir contrato
+  async function excluirContrato(vendaId, nomeContrato) {
+    const result = await Swal.fire({
+      title: 'Excluir Contrato?',
+      html: `<p>Tem certeza que deseja excluir o contrato:</p><p class="fw-bold text-danger">"${escapeHtml(nomeContrato)}"</p><p class="text-muted small">Esta ação não pode ser desfeita.</p>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Excluir',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        confirmButton: 'btn btn-danger me-2',
+        cancelButton: 'btn btn-secondary'
+      },
+      buttonsStyling: false,
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const response = await fetch(`/back-office/deletar-contrato/${vendaId}`, {
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+          'Accept': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Contrato excluído',
+          text: data.message,
+          confirmButtonColor: '#7C3AED'
+        });
+        loadData();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro',
+          text: data.message || 'Não foi possível excluir o contrato.',
+          confirmButtonColor: '#7C3AED'
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao excluir contrato:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: 'Não foi possível excluir o contrato.',
+        confirmButtonColor: '#7C3AED'
+      });
+    }
+  }
+
   // Utility: Show/hide loading
   function showLoading(show) {
     elements.loading.style.display = show ? 'flex' : 'none';
@@ -1111,7 +1179,8 @@
     openHistorico,
     gerarRecebiveis,
     openAlterarDataImplantacao,
-    openBoasVindas
+    openBoasVindas,
+    excluirContrato
   };
 
   // Initialize when DOM is ready

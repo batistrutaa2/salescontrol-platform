@@ -475,19 +475,28 @@ class Vendas extends Controller
             $q->where('tabulacao_id', Tabulations::IMPLANTADO);
         });
 
-        // Calcular valor total com regra temporal (angariacao apenas para 2026+)
-        $valorTotal = (clone $query)->selectRaw("SUM(CASE WHEN YEAR(created_at) >= 2026 THEN valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END ELSE valor_contrato END) as total")->value('total') ?? 0;
+        // Calcular valor total (somente valor_contrato)
+        $valorTotal = (clone $query)->sum('valor_contrato') ?? 0;
 
-        // Calcular valor implantado com regra temporal (angariacao apenas para 2026+)
-        $valorImplantado = (clone $queryImplantadas)->selectRaw("SUM(CASE WHEN YEAR(created_at) >= 2026 THEN valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END ELSE valor_contrato END) as total")->value('total') ?? 0;
+        // Calcular valor implantado (somente valor_contrato)
+        $valorImplantado = (clone $queryImplantadas)->sum('valor_contrato') ?? 0;
+
+        // Calcular angariação total
+        $valorAngariacao = (clone $query)->where('angariacao_status', 'SIM')
+            ->sum('angariacao_valor') ?? 0;
+
+        // Calcular angariação implantada
+        $valorAngariacaoImplantada = (clone $queryImplantadas)->where('angariacao_status', 'SIM')
+            ->sum('angariacao_valor') ?? 0;
 
         return [
             'total_contratos' => $query->count(),
             'valor_total' => $valorTotal,
+            'valor_angariacao' => $valorAngariacao,
+            'valor_angariacao_implantada' => $valorAngariacaoImplantada,
             'valor_implantado' => $valorImplantado,
             'total_vidas' => $query->sum('vidas') ?? 0,
             'ticket_medio' => $query->avg('valor_contrato') ?? 0,
-            'vidas_por_contrato' => $query->avg('vidas') ?? 0
         ];
     }
 

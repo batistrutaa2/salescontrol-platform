@@ -89,7 +89,31 @@
                         <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
                         <polyline points="17 6 23 6 23 12"/>
                     </svg>
-                    <span>Total geral</span>
+                    <span id="trendTicketMedio">Ticket medio</span>
+                </div>
+            </div>
+            <div class="kpi-glow"></div>
+        </div>
+
+        {{-- Angariacao --}}
+        <div class="kpi-card kpi-warning">
+            <div class="kpi-icon-wrapper">
+                <div class="kpi-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <div class="kpi-pulse"></div>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Angariacao</span>
+                <h2 class="kpi-value" id="valorAngariacao">R$ 0,00</h2>
+                <div class="kpi-trend trend-up">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                        <polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                    <span id="trendAngariacao">--</span>
                 </div>
             </div>
             <div class="kpi-glow"></div>
@@ -114,14 +138,14 @@
                         <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
                         <polyline points="17 6 23 6 23 12"/>
                     </svg>
-                    <span>Confirmado</span>
+                    <span id="trendImplantado">Confirmado</span>
                 </div>
             </div>
             <div class="kpi-glow"></div>
         </div>
 
         {{-- Total Vidas --}}
-        <div class="kpi-card kpi-warning">
+        <div class="kpi-card kpi-danger">
             <div class="kpi-icon-wrapper">
                 <div class="kpi-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -141,31 +165,6 @@
                         <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
                     <span>Beneficiarios</span>
-                </div>
-            </div>
-            <div class="kpi-glow"></div>
-        </div>
-
-        {{-- Ticket Medio --}}
-        <div class="kpi-card kpi-danger">
-            <div class="kpi-icon-wrapper">
-                <div class="kpi-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
-                        <path d="M22 12A10 10 0 0 0 12 2v10z"/>
-                    </svg>
-                </div>
-                <div class="kpi-pulse"></div>
-            </div>
-            <div class="kpi-content">
-                <span class="kpi-label">Ticket Medio</span>
-                <h2 class="kpi-value" id="ticketMedio">R$ 0,00</h2>
-                <div class="kpi-trend trend-up">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                        <polyline points="17 6 23 6 23 12"/>
-                    </svg>
-                    <span>Media por contrato</span>
                 </div>
             </div>
             <div class="kpi-glow"></div>
@@ -392,6 +391,7 @@
                             <th>Operadora</th>
                             <th>Plano</th>
                             <th>Valor</th>
+                            <th>Angariacao</th>
                             <th>Status</th>
                         </tr>
                     </thead>
