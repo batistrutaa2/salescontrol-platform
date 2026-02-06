@@ -389,6 +389,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/parcelas/editar-multiplas', [Financeiro::class, 'editarMultiplasParcelas'])
         ->name('financeiro.recebiveis.editarMultiplas');
 
+    // Dar baixa em múltiplas parcelas de uma vez
+    Route::post('/parcelas/dar-baixa-multiplas', [Financeiro::class, 'darBaixaMultiplasParcelas'])
+        ->name('financeiro.recebiveis.darBaixaMultiplas');
+
     // Gerar recebíveis manualmente
     Route::post('/{vendaId}/gerar-manual', [Financeiro::class, 'gerarRecebiveisManuais'])
         ->name('financeiro.recebiveis.gerarManual');

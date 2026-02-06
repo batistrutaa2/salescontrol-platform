@@ -1010,13 +1010,16 @@ $(function () {
         const count = selectedParcelas.size;
         $('#countSelecionados').text(count);
         $('#countEditarSelecionados').text(count);
+        $('#countDarBaixa').text(count);
 
         if (count > 0) {
             $('#btnExcluirSelecionados').show();
             $('#btnEditarSelecionados').show();
+            $('#btnDarBaixaSelecionados').show();
         } else {
             $('#btnExcluirSelecionados').hide();
             $('#btnEditarSelecionados').hide();
+            $('#btnDarBaixaSelecionados').hide();
         }
     }
 
@@ -1096,6 +1099,124 @@ $(function () {
                     }
                 }).fail(function (xhr) {
                     const errorMsg = xhr.responseJSON?.message || 'Erro ao excluir parcelas.';
+                    Swal.fire({
+                        title: 'Erro!',
+                        text: errorMsg,
+                        icon: 'error',
+                        customClass: {
+                            popup: 'swal-recebiveis',
+                            confirmButton: 'btn btn-danger'
+                        },
+                        buttonsStyling: false
+                    });
+                });
+            }
+        });
+    });
+
+    // Dar Baixa em Parcelas Selecionadas (Pendente → Pago)
+    $(document).on('click', '#btnDarBaixaSelecionados', function () {
+        const count = selectedParcelas.size;
+
+        if (count === 0) {
+            showToast('warning', 'Nenhuma parcela selecionada.');
+            return;
+        }
+
+        // Filtrar apenas parcelas pendentes
+        const parcelasPendentes = allParcelas.filter(p => selectedParcelas.has(p.id) && p.status === 'PENDENTE');
+        const countPendentes = parcelasPendentes.length;
+
+        if (countPendentes === 0) {
+            Swal.fire({
+                title: 'Nenhuma parcela pendente',
+                text: 'As parcelas selecionadas já estão pagas ou canceladas.',
+                icon: 'info',
+                iconColor: '#06B6D4',
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal-recebiveis',
+                    confirmButton: 'btn btn-primary'
+                },
+                buttonsStyling: false
+            });
+            return;
+        }
+
+        const valorTotal = parcelasPendentes.reduce((sum, p) => sum + parseFloat(p.valor || 0), 0);
+
+        Swal.fire({
+            title: 'Dar Baixa em Parcelas',
+            html: `
+                <div style="text-align: left; padding: 1rem 0;">
+                    <p style="margin-bottom: 0.75rem;">Confirmar pagamento de <strong>${countPendentes} parcela(s)</strong> pendente(s)?</p>
+                    <div style="background: rgba(16, 185, 129, 0.1); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.75rem;">
+                        <p style="color: var(--rcb-success, #10B981); font-size: 0.875rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                            Valor total: <strong style="font-family: 'JetBrains Mono', monospace;">R$ ${valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                        </p>
+                    </div>
+                    <div style="background: rgba(6, 182, 212, 0.1); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.5rem;">
+                        <p style="color: var(--rcb-info, #06B6D4); font-size: 0.8125rem; margin: 0; display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            A data de recebimento sera igual a data de vencimento de cada parcela.
+                        </p>
+                    </div>
+                </div>
+            `,
+            icon: 'question',
+            iconColor: '#10B981',
+            showCancelButton: true,
+            confirmButtonText: `Confirmar Baixa (${countPendentes})`,
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                popup: 'swal-recebiveis',
+                confirmButton: 'btn btn-success me-2',
+                cancelButton: 'btn btn-secondary'
+            },
+            buttonsStyling: false
+        }).then(result => {
+            if (result.isConfirmed) {
+                showLoadingSwal('Processando baixa das parcelas...');
+
+                const parcelaIds = parcelasPendentes.map(p => p.id);
+
+                $.ajax({
+                    url: '/financeiro/recebiveis/parcelas/dar-baixa-multiplas',
+                    method: 'POST',
+                    data: {
+                        parcela_ids: parcelaIds
+                    },
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                }).done(function (response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Baixa Realizada!',
+                            text: response.message,
+                            icon: 'success',
+                            iconColor: '#10B981',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal-recebiveis',
+                                confirmButton: 'btn btn-success'
+                            },
+                            buttonsStyling: false
+                        }).then(() => {
+                            selectedParcelas.clear();
+                            updateSelectionUI();
+                            atualizarKPIs();
+                            atualizarLinhaContrato(currentVendaId);
+                            carregarParcelas(currentVendaId);
+                        });
+                    }
+                }).fail(function (xhr) {
+                    const errorMsg = xhr.responseJSON?.message || 'Erro ao dar baixa nas parcelas.';
                     Swal.fire({
                         title: 'Erro!',
                         text: errorMsg,

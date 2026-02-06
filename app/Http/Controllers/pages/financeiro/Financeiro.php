@@ -546,6 +546,68 @@ class Financeiro extends Controller
     }
 
     /**
+     * Dar baixa em múltiplas parcelas de uma vez
+     * - Muda status de PENDENTE para PAGO
+     * - A data de recebimento será igual à data de vencimento (data_prevista)
+     */
+    public function darBaixaMultiplasParcelas(Request $request)
+    {
+        $request->validate([
+            'parcela_ids' => 'required|array|min:1',
+            'parcela_ids.*' => 'integer|exists:recebiveis,id',
+        ]);
+
+        $parcelaIds = $request->parcela_ids;
+        $empresaId = auth()->user()->empresa_id;
+
+        $parcelas = Recebivel::whereIn('id', $parcelaIds)
+            ->where('empresa_id', $empresaId)
+            ->where('status', 'PENDENTE')
+            ->orderBy('parcela')
+            ->get();
+
+        if ($parcelas->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nenhuma parcela pendente encontrada entre as selecionadas.',
+            ], 422);
+        }
+
+        $totalBaixa = 0;
+        $parcelasVitalicias = collect();
+
+        foreach ($parcelas as $parcela) {
+            $parcela->update([
+                'status' => 'PAGO',
+                'data_recebimento' => $parcela->data_prevista,
+            ]);
+            $totalBaixa++;
+
+            $novaGerada = $this->gerarProximaParcelaVitalicia($parcela);
+            if ($novaGerada) {
+                $parcelasVitalicias->push($parcela->parcela);
+            }
+        }
+
+        $vendaId = $parcelas->first()->venda_id;
+
+        Log::info("Baixa em {$totalBaixa} parcelas da venda {$vendaId} pelo usuário " . auth()->user()->id);
+
+        $message = "{$totalBaixa} parcela(s) marcada(s) como paga(s) com sucesso.";
+        if ($parcelasVitalicias->isNotEmpty()) {
+            $message .= " Nova(s) parcela(s) vitalícia(s) gerada(s).";
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'total_baixa' => $totalBaixa,
+            'venda_id' => $vendaId,
+            'parcelas_vitalicias_geradas' => $parcelasVitalicias->count(),
+        ]);
+    }
+
+    /**
      * Editar múltiplas parcelas de uma vez
      * - O valor é replicado para todas as parcelas selecionadas
      * - A data de pagamento é incrementada mês a mês para cada parcela (ordenadas por número)
