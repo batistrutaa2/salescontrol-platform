@@ -73,7 +73,7 @@ $(function () {
         // Show loading state
         tbody.html(`
             <tr class="loading-row">
-                <td colspan="6" class="text-center py-4">
+                <td colspan="8" class="text-center py-4">
                     <div class="loading-spinner">
                         <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
@@ -100,7 +100,7 @@ $(function () {
             if (data.length === 0) {
                 tbody.html(`
                     <tr>
-                        <td colspan="6" class="text-center py-4">
+                        <td colspan="8" class="text-center py-4">
                             <span style="color: var(--rcb-text-muted)">Nenhuma parcela encontrada</span>
                         </td>
                     </tr>
@@ -125,7 +125,7 @@ $(function () {
         }).fail(function () {
             tbody.html(`
                 <tr>
-                    <td colspan="6" class="text-center py-4">
+                    <td colspan="8" class="text-center py-4">
                         <span style="color: var(--rcb-danger)">Erro ao carregar parcelas</span>
                     </td>
                 </tr>
@@ -158,6 +158,11 @@ $(function () {
                 currency: 'BRL'
             });
 
+            // Custo Atual (apenas para parcelas vitalícias 4+)
+            const custoAtualFormatado = parcela.custo_atual
+                ? parseFloat(parcela.custo_atual).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                : null;
+
             // Badge de tipo (Parcela ou Vitalicio)
             const tipoBadge = getTipoBadge(parcela.parcela, parcela.tipo);
 
@@ -184,6 +189,11 @@ $(function () {
                         <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600;">
                             ${valorFormatado}
                         </span>
+                    </td>
+                    <td>
+                        ${custoAtualFormatado
+                            ? `<span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600;">${custoAtualFormatado}</span>`
+                            : '<span style="color: var(--rcb-text-muted)">—</span>'}
                     </td>
                     <td>${parcela.data_prevista}</td>
                     <td>${dataRecebimento}</td>
@@ -378,53 +388,6 @@ $(function () {
     // Reactive Update Functions
     // ============================================
 
-    /**
-     * Atualiza os KPIs via AJAX sem recarregar a página
-     */
-    function atualizarKPIs() {
-        // Get current filter parameters from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const ano = urlParams.get('ano') || '';
-
-        $.ajax({
-            url: '/financeiro/recebiveis/kpis',
-            method: 'GET',
-            data: { ano: ano }
-        }).done(function (response) {
-            if (response.success) {
-                // Atualiza os valores dos KPIs gerais
-                $('#kpi-pago').text(formatCurrency(response.totais.pago));
-                $('#kpi-pendente').text(formatCurrency(response.totais.pendente));
-                $('#kpi-atraso').text(formatCurrency(response.totais.atraso));
-
-                // Atualiza os KPIs por tipo (Parcelas vs Vitalicio)
-                if (response.totais_por_tipo) {
-                    const parcelas = response.totais_por_tipo.parcelas;
-                    const vitalicio = response.totais_por_tipo.vitalicio;
-
-                    // Parcelas (1-3)
-                    const totalParcelas = parcelas.pago + parcelas.pendente;
-                    $('#kpi-parcelas-total').text(formatCurrency(totalParcelas));
-                    $('#kpi-parcelas-pago').text(formatCurrency(parcelas.pago));
-                    $('#kpi-parcelas-pendente').text(formatCurrency(parcelas.pendente));
-
-                    // Vitalicio (4+)
-                    const totalVitalicio = vitalicio.pago + vitalicio.pendente;
-                    $('#kpi-vitalicio-total').text(formatCurrency(totalVitalicio));
-                    $('#kpi-vitalicio-pago').text(formatCurrency(vitalicio.pago));
-                    $('#kpi-vitalicio-pendente').text(formatCurrency(vitalicio.pendente));
-                }
-
-                // Adiciona animação de highlight nos valores atualizados
-                $('.kpi-value, .split-value').addClass('highlight-update');
-                setTimeout(() => {
-                    $('.kpi-value, .split-value').removeClass('highlight-update');
-                }, 1000);
-            }
-        }).fail(function () {
-            console.error('Erro ao atualizar KPIs');
-        });
-    }
 
     /**
      * Atualiza a linha do contrato na tabela via AJAX
@@ -544,7 +507,6 @@ $(function () {
                         buttonsStyling: false
                     }).then(() => {
                         // Atualiza de forma reativa sem recarregar a página
-                        atualizarKPIs();
                         atualizarLinhaContrato(currentVendaId);
                         carregarParcelas(currentVendaId);
                     });
@@ -755,8 +717,7 @@ $(function () {
                             buttonsStyling: false
                         }).then(() => {
                             // Atualiza de forma reativa sem recarregar a página
-                            atualizarKPIs();
-                            atualizarLinhaContrato(currentVendaId);
+                                atualizarLinhaContrato(currentVendaId);
                             carregarParcelas(currentVendaId);
                             // Reabre o modal de parcelas
                             $('#parcelasModal').modal('show');
@@ -839,8 +800,7 @@ $(function () {
                             buttonsStyling: false
                         }).then(() => {
                             // Atualiza de forma reativa
-                            atualizarKPIs();
-                            atualizarLinhaContrato(currentVendaId);
+                                atualizarLinhaContrato(currentVendaId);
                             carregarParcelas(currentVendaId);
                         });
                     }
@@ -924,8 +884,7 @@ $(function () {
                             $('#parcelasModal').modal('hide');
 
                             // Atualiza KPIs
-                            atualizarKPIs();
-
+    
                             // Remove a linha do contrato da tabela
                             const row = $(`tr[data-venda-id="${vendaIdToRemove}"]`);
                             table.row(row).remove().draw(false);
@@ -1092,8 +1051,7 @@ $(function () {
                             updateSelectionUI();
 
                             // Atualizar dados
-                            atualizarKPIs();
-                            atualizarLinhaContrato(currentVendaId);
+                                atualizarLinhaContrato(currentVendaId);
                             carregarParcelas(currentVendaId);
                         });
                     }
@@ -1210,8 +1168,7 @@ $(function () {
                         }).then(() => {
                             selectedParcelas.clear();
                             updateSelectionUI();
-                            atualizarKPIs();
-                            atualizarLinhaContrato(currentVendaId);
+                                atualizarLinhaContrato(currentVendaId);
                             carregarParcelas(currentVendaId);
                         });
                     }
@@ -1386,8 +1343,7 @@ $(function () {
                                 updateSelectionUI();
 
                                 // Atualizar dados
-                                atualizarKPIs();
-                                atualizarLinhaContrato(currentVendaId);
+                                        atualizarLinhaContrato(currentVendaId);
                                 carregarParcelas(currentVendaId);
 
                                 // Reabrir modal de parcelas
@@ -1634,8 +1590,7 @@ $(function () {
                                 },
                                 buttonsStyling: false
                             }).then(() => {
-                                atualizarKPIs();
-                                atualizarLinhaContrato(currentVendaId);
+                                        atualizarLinhaContrato(currentVendaId);
                                 carregarParcelas(currentVendaId);
                                 // Reabrir modal de parcelas
                                 $('#parcelasModal').modal('show');
@@ -1977,12 +1932,6 @@ style.textContent = `
 
     .highlight-update {
         animation: highlightPulse 1s ease-out forwards;
-    }
-
-    .kpi-value.highlight-update {
-        animation: highlightPulse 1s ease-out forwards;
-        border-radius: 8px;
-        padding: 2px 8px;
     }
 
     tr.highlight-update td {

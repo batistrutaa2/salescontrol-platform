@@ -8,6 +8,7 @@ use App\Models\Plano;
 use App\Models\Recebivel;
 use App\Models\RegrasComissionamento;
 use App\Models\RegrasComissionamentoParcela;
+use App\Models\User;
 use App\Models\Vendas;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -170,43 +171,6 @@ class Financeiro extends Controller
         $empresaId = auth()->user()->empresa_id;
         $anoSelecionado = $request->ano;
 
-        // Query base para filtros
-        $baseQuery = Recebivel::where('empresa_id', $empresaId);
-
-        if ($anoSelecionado) {
-            $baseQuery->whereHas('venda', function ($q) use ($anoSelecionado) {
-                $q->whereYear('data_implantacao', $anoSelecionado);
-            });
-        }
-
-        // Calcular totais via SQL (muito mais rápido)
-        $totaisQuery = (clone $baseQuery)->selectRaw("
-            SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) as pago,
-            SUM(CASE WHEN status = 'PENDENTE' THEN valor ELSE 0 END) as pendente,
-            SUM(CASE WHEN status = 'PENDENTE' AND data_prevista < NOW() THEN valor ELSE 0 END) as atraso,
-            SUM(CASE WHEN status = 'PAGO' AND parcela <= 3 THEN valor ELSE 0 END) as parcelas_pago,
-            SUM(CASE WHEN status = 'PENDENTE' AND parcela <= 3 THEN valor ELSE 0 END) as parcelas_pendente,
-            SUM(CASE WHEN status = 'PAGO' AND parcela >= 4 THEN valor ELSE 0 END) as vitalicio_pago,
-            SUM(CASE WHEN status = 'PENDENTE' AND parcela >= 4 THEN valor ELSE 0 END) as vitalicio_pendente
-        ")->first();
-
-        $totais = [
-            'pago' => (float) ($totaisQuery->pago ?? 0),
-            'pendente' => (float) ($totaisQuery->pendente ?? 0),
-            'atraso' => (float) ($totaisQuery->atraso ?? 0),
-        ];
-
-        $totaisPorTipo = [
-            'parcelas' => [
-                'pago' => (float) ($totaisQuery->parcelas_pago ?? 0),
-                'pendente' => (float) ($totaisQuery->parcelas_pendente ?? 0),
-            ],
-            'vitalicio' => [
-                'pago' => (float) ($totaisQuery->vitalicio_pago ?? 0),
-                'pendente' => (float) ($totaisQuery->vitalicio_pendente ?? 0),
-            ],
-        ];
-
         // Agrupar contratos via SQL (evita carregar todos os recebíveis)
         $contratosQuery = Recebivel::where('recebiveis.empresa_id', $empresaId)
             ->join('vendas', 'recebiveis.venda_id', '=', 'vendas.id')
@@ -263,8 +227,6 @@ class Financeiro extends Controller
 
         return view('content.pages.financeiro.recebiveis', [
             'contratos' => $contratos,
-            'totais' => $totais,
-            'totaisPorTipo' => $totaisPorTipo,
             'anosDisponiveis' => $anosDisponiveis,
             'anoSelecionado' => $anoSelecionado,
         ]);
@@ -324,18 +286,42 @@ class Financeiro extends Controller
 
     public function getParcelas($vendaId)
     {
+        $venda = Vendas::find($vendaId);
+
+        // Buscar percentual vitalício da regra de comissionamento
+        $percentualVitalicio = null;
+        if ($venda) {
+            $operadora = Operadora::where('nome', $venda->operadora)->first();
+            if ($operadora) {
+                $regra = RegrasComissionamento::where('empresa_id', $venda->empresa_id)
+                    ->where('operadora_id', $operadora->id)
+                    ->first();
+                if ($regra && $regra->percentual_vitalicio && $regra->percentual_vitalicio > 0) {
+                    $percentualVitalicio = $regra->percentual_vitalicio;
+                }
+            }
+        }
+
         $parcelas = Recebivel::where('venda_id', $vendaId)
             ->orderBy('parcela')
             ->get()
-            ->map(fn ($p) => [
-                'id' => $p->id,
-                'parcela' => $p->parcela,
-                'valor' => $p->valor,
-                'data_prevista' => \Carbon\Carbon::parse($p->data_prevista)->format('d/m/Y'),
-                'data_recebimento' => $p->data_recebimento ? \Carbon\Carbon::parse($p->data_recebimento)->format('d/m/Y') : null,
-                'status' => $p->status,
-                'tipo' => $p->parcela >= 4 ? 'vitalicio' : 'parcela',
-            ]);
+            ->map(function ($p) use ($percentualVitalicio) {
+                $custoAtual = null;
+                if ($p->parcela >= 4 && $percentualVitalicio) {
+                    $custoAtual = $p->valor / ($percentualVitalicio / 100);
+                }
+
+                return [
+                    'id' => $p->id,
+                    'parcela' => $p->parcela,
+                    'valor' => $p->valor,
+                    'custo_atual' => $custoAtual,
+                    'data_prevista' => \Carbon\Carbon::parse($p->data_prevista)->format('d/m/Y'),
+                    'data_recebimento' => $p->data_recebimento ? \Carbon\Carbon::parse($p->data_recebimento)->format('d/m/Y') : null,
+                    'status' => $p->status,
+                    'tipo' => $p->parcela >= 4 ? 'vitalicio' : 'parcela',
+                ];
+            });
 
         return response()->json($parcelas);
     }
@@ -702,157 +688,348 @@ class Financeiro extends Controller
 
     public function relatorioFinanceiro()
     {
-        $operadoras = Operadora::orderBy('nome')->get();
+        $empresaId = auth()->user()->empresa_id;
+        $operadoras = Operadora::where('empresa_id', $empresaId)->orderBy('nome')->get();
+        $vendedores = User::where('empresa_id', $empresaId)->where('ativo', 'Y')->orderBy('name')->get();
 
-        return view('content.pages.financeiro.relatorio-financeiro', compact('operadoras'));
+        return view('content.pages.financeiro.relatorio-financeiro', compact('operadoras', 'vendedores'));
     }
 
     public function relatorioFinanceiroFetch(Request $request)
     {
         $empresaId = auth()->user()->empresa_id;
-        $query = Recebivel::where('empresa_id', $empresaId);
 
-        if ($request->filled('data_inicial')) {
-            $query->whereDate('data_prevista', '>=', $request->data_inicial);
-        }
-        if ($request->filled('data_final')) {
-            $query->whereDate('data_prevista', '<=', $request->data_final);
-        }
-        if ($request->filled('operadora_id')) {
-            $query->where('operadora', Operadora::find($request->operadora_id)?->nome);
+        // ── Filtros ──
+        $dataInicial = $request->input('data_inicial');
+        $dataFinal = $request->input('data_final');
+        $operadoraId = $request->input('operadora_id');
+        $vendedorId = $request->input('vendedor_id');
+        $tipoReceita = $request->input('tipo_receita', 'todas'); // todas|fixa|vitalicio
+
+        $operadoraNome = null;
+        if ($operadoraId) {
+            $operadoraNome = Operadora::find($operadoraId)?->nome;
         }
 
-        $recebiveis = $query->get();
+        // Closure para aplicar filtros comuns
+        $baseFilter = function ($query) use ($empresaId, $dataInicial, $dataFinal, $operadoraNome, $vendedorId, $tipoReceita) {
+            $query->where('empresa_id', $empresaId);
+            if ($dataInicial) {
+                $query->whereDate('data_prevista', '>=', $dataInicial);
+            }
+            if ($dataFinal) {
+                $query->whereDate('data_prevista', '<=', $dataFinal);
+            }
+            if ($operadoraNome) {
+                $query->where('operadora', $operadoraNome);
+            }
+            if ($vendedorId) {
+                $query->where('vendedor_id', $vendedorId);
+            }
+            if ($tipoReceita === 'fixa') {
+                $query->where('parcela', '<=', 3);
+            } elseif ($tipoReceita === 'vitalicio') {
+                $query->where('parcela', '>=', 4);
+            }
+        };
 
-        // Resumo geral
-        $resumo = [
-            'total_previsto' => $recebiveis->sum('valor'),
-            'total_recebido' => $recebiveis->where('status', 'PAGO')->sum('valor'),
-            'total_aberto' => $recebiveis->where('status', 'PENDENTE')->sum('valor'),
-            'total_cancelado' => $recebiveis->where('status', 'CANCELADO')->sum('valor'),
-            'taxa_recebimento' => $recebiveis->sum('valor') > 0
-                ? ($recebiveis->where('status', 'PAGO')->sum('valor') / $recebiveis->sum('valor')) * 100
+        // ══════════════════════════════════════════
+        // 1. KPIs — query única com CASE WHEN
+        // ══════════════════════════════════════════
+        $kpiQuery = Recebivel::query();
+        $baseFilter($kpiQuery);
+
+        $kpis = $kpiQuery->selectRaw("
+            SUM(CASE WHEN status IN ('PAGO','PENDENTE') THEN valor ELSE 0 END) as receita_total,
+            SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) as receita_recebida,
+            SUM(CASE WHEN status = 'PENDENTE' AND data_prevista < NOW() THEN valor ELSE 0 END) as inadimplencia,
+            SUM(CASE WHEN status = 'PENDENTE' AND data_prevista < NOW() THEN 1 ELSE 0 END) as inadimplencia_qtd,
+            SUM(CASE WHEN parcela <= 3 AND status = 'PAGO' THEN valor ELSE 0 END) as receita_fixa,
+            SUM(CASE WHEN parcela >= 4 AND status = 'PAGO' THEN valor ELSE 0 END) as receita_vitalicio,
+            SUM(CASE WHEN status = 'CANCELADO' THEN valor ELSE 0 END) as receita_cancelada,
+            SUM(valor) as total_geral
+        ")->first();
+
+        $receitaTotal = (float) ($kpis->receita_total ?? 0);
+        $receitaRecebida = (float) ($kpis->receita_recebida ?? 0);
+        $inadimplencia = (float) ($kpis->inadimplencia ?? 0);
+        $inadimplenciaQtd = (int) ($kpis->inadimplencia_qtd ?? 0);
+        $receitaFixa = (float) ($kpis->receita_fixa ?? 0);
+        $receitaVitalicio = (float) ($kpis->receita_vitalicio ?? 0);
+        $receitaCancelada = (float) ($kpis->receita_cancelada ?? 0);
+        $totalGeral = (float) ($kpis->total_geral ?? 0);
+
+        $taxaRecebimento = $receitaTotal > 0 ? round(($receitaRecebida / $receitaTotal) * 100, 2) : 0;
+        $receitaVitalicioPercentual = $receitaRecebida > 0 ? round(($receitaVitalicio / $receitaRecebida) * 100, 1) : 0;
+        $taxaCancelamento = $totalGeral > 0 ? round(($receitaCancelada / $totalGeral) * 100, 1) : 0;
+
+        // ── MRR (últimos 3 meses, parcela>=4, PAGO) — ignora filtro de data ──
+        $mrrBaseFilter = function ($query) use ($empresaId, $operadoraNome, $vendedorId) {
+            $query->where('empresa_id', $empresaId);
+            if ($operadoraNome) {
+                $query->where('operadora', $operadoraNome);
+            }
+            if ($vendedorId) {
+                $query->where('vendedor_id', $vendedorId);
+            }
+        };
+
+        $mrr3Meses = Recebivel::query()->tap($mrrBaseFilter)
+            ->where('parcela', '>=', 4)
+            ->where('status', 'PAGO')
+            ->where('data_recebimento', '>=', Carbon::now()->subMonths(3)->startOfMonth())
+            ->sum('valor');
+        $mrr = round((float) $mrr3Meses / 3, 2);
+
+        $mrrAnterior3Meses = Recebivel::query()->tap($mrrBaseFilter)
+            ->where('parcela', '>=', 4)
+            ->where('status', 'PAGO')
+            ->where('data_recebimento', '>=', Carbon::now()->subMonths(6)->startOfMonth())
+            ->where('data_recebimento', '<', Carbon::now()->subMonths(3)->startOfMonth())
+            ->sum('valor');
+        $mrrAnterior = round((float) $mrrAnterior3Meses / 3, 2);
+        $mrrVariacao = $mrrAnterior > 0 ? round((($mrr - $mrrAnterior) / $mrrAnterior) * 100, 1) : 0;
+
+        // ── Contratos ativos (DISTINCT venda_id com parcela PENDENTE) ──
+        $contratosQuery = Recebivel::query();
+        $baseFilter($contratosQuery);
+        $contratosAtivos = (int) $contratosQuery->where('status', 'PENDENTE')
+            ->distinct('venda_id')
+            ->count('venda_id');
+
+        // Valor da carteira
+        $vendaIds = Recebivel::query()->tap(function ($q) use ($empresaId, $operadoraNome, $vendedorId, $tipoReceita) {
+            $q->where('empresa_id', $empresaId);
+            if ($operadoraNome) {
+                $q->where('operadora', $operadoraNome);
+            }
+            if ($vendedorId) {
+                $q->where('vendedor_id', $vendedorId);
+            }
+            if ($tipoReceita === 'fixa') {
+                $q->where('parcela', '<=', 3);
+            } elseif ($tipoReceita === 'vitalicio') {
+                $q->where('parcela', '>=', 4);
+            }
+        })->where('status', 'PENDENTE')->distinct()->pluck('venda_id');
+
+        $valorCarteira = $vendaIds->isNotEmpty()
+            ? (float) Vendas::whereIn('id', $vendaIds)->sum('valor_contrato')
+            : 0;
+
+        // ── Variação anual (comparar mesmo período ano anterior) ──
+        $variacaoAnual = 0;
+        if ($dataInicial && $dataFinal) {
+            $anoAnteriorInicio = Carbon::parse($dataInicial)->subYear()->format('Y-m-d');
+            $anoAnteriorFim = Carbon::parse($dataFinal)->subYear()->format('Y-m-d');
+            $receitaAnoAnterior = (float) Recebivel::where('empresa_id', $empresaId)
+                ->whereDate('data_prevista', '>=', $anoAnteriorInicio)
+                ->whereDate('data_prevista', '<=', $anoAnteriorFim)
+                ->where('status', 'PAGO')
+                ->when($operadoraNome, fn ($q) => $q->where('operadora', $operadoraNome))
+                ->when($vendedorId, fn ($q) => $q->where('vendedor_id', $vendedorId))
+                ->sum('valor');
+            $variacaoAnual = $receitaAnoAnterior > 0
+                ? round((($receitaRecebida - $receitaAnoAnterior) / $receitaAnoAnterior) * 100, 1)
+                : 0;
+        }
+
+        // ══════════════════════════════════════════
+        // 2. Evolução Mensal (Receita Fixa vs Vitalício)
+        // ══════════════════════════════════════════
+        $evolucaoQuery = Recebivel::query();
+        $baseFilter($evolucaoQuery);
+
+        $evolucaoMensal = $evolucaoQuery->where('status', 'PAGO')
+            ->selectRaw("
+                DATE_FORMAT(data_prevista, '%Y-%m') as mes,
+                SUM(CASE WHEN parcela <= 3 THEN valor ELSE 0 END) as receita_fixa,
+                SUM(CASE WHEN parcela >= 4 THEN valor ELSE 0 END) as receita_vitalicio,
+                SUM(valor) as total
+            ")
+            ->groupByRaw("DATE_FORMAT(data_prevista, '%Y-%m')")
+            ->orderByRaw("DATE_FORMAT(data_prevista, '%Y-%m')")
+            ->get()
+            ->map(fn ($row) => [
+                'mes' => Carbon::parse($row->mes.'-01')->format('m/Y'),
+                'receita_fixa' => (float) $row->receita_fixa,
+                'receita_vitalicio' => (float) $row->receita_vitalicio,
+                'total' => (float) $row->total,
+            ]);
+
+        // ══════════════════════════════════════════
+        // 3. Taxa de Recebimento (Gauge)
+        // ══════════════════════════════════════════
+        $gaugeQuery = Recebivel::query();
+        $baseFilter($gaugeQuery);
+        $gauge = $gaugeQuery->selectRaw("
+            SUM(CASE WHEN status IN ('PAGO','PENDENTE') THEN valor ELSE 0 END) as total_previsto,
+            SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) as total_recebido,
+            SUM(CASE WHEN status = 'PENDENTE' THEN valor ELSE 0 END) as total_aberto
+        ")->first();
+
+        $taxaRecebimentoGauge = [
+            'total_previsto' => (float) ($gauge->total_previsto ?? 0),
+            'total_recebido' => (float) ($gauge->total_recebido ?? 0),
+            'total_aberto' => (float) ($gauge->total_aberto ?? 0),
+            'percentual' => ($gauge->total_previsto ?? 0) > 0
+                ? round(((float) $gauge->total_recebido / (float) $gauge->total_previsto) * 100, 1)
                 : 0,
         ];
 
-        // Dados por operadora
-        $porOperadora = $recebiveis->groupBy('operadora')->map(function ($items, $operadora) {
+        // ══════════════════════════════════════════
+        // 4. Receita por Operadora (top 10)
+        // ══════════════════════════════════════════
+        $opQuery = Recebivel::query();
+        $baseFilter($opQuery);
+        $porOperadora = $opQuery->selectRaw("
+            operadora,
+            SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) as recebido,
+            SUM(CASE WHEN status = 'PENDENTE' THEN valor ELSE 0 END) as pendente,
+            SUM(CASE WHEN status = 'CANCELADO' THEN valor ELSE 0 END) as cancelado,
+            SUM(valor) as previsto,
+            COUNT(CASE WHEN status = 'PAGO' THEN 1 END) as qtd_pago,
+            AVG(CASE WHEN status = 'PAGO' THEN valor END) as ticket_medio
+        ")
+            ->groupBy('operadora')
+            ->orderByRaw("SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) DESC")
+            ->limit(10)
+            ->get()
+            ->map(fn ($row) => [
+                'operadora' => $row->operadora ?: 'Não informado',
+                'recebido' => (float) $row->recebido,
+                'pendente' => (float) $row->pendente,
+                'cancelado' => (float) $row->cancelado,
+                'previsto' => (float) $row->previsto,
+                'ticket_medio' => round((float) ($row->ticket_medio ?? 0), 2),
+                'taxa_recebimento' => $row->previsto > 0 ? round(($row->recebido / $row->previsto) * 100, 1) : 0,
+            ]);
+
+        // ══════════════════════════════════════════
+        // 6. Comparativo Anual (YoY) — últimos 3 anos
+        // ══════════════════════════════════════════
+        $anoAtual = (int) Carbon::now()->format('Y');
+        $anosYoy = [$anoAtual, $anoAtual - 1, $anoAtual - 2];
+
+        $yoyQuery = Recebivel::where('empresa_id', $empresaId)
+            ->where('status', 'PAGO')
+            ->whereIn(DB::raw('YEAR(data_recebimento)'), $anosYoy)
+            ->when($operadoraNome, fn ($q) => $q->where('operadora', $operadoraNome))
+            ->when($vendedorId, fn ($q) => $q->where('vendedor_id', $vendedorId))
+            ->when($tipoReceita === 'fixa', fn ($q) => $q->where('parcela', '<=', 3))
+            ->when($tipoReceita === 'vitalicio', fn ($q) => $q->where('parcela', '>=', 4))
+            ->selectRaw("YEAR(data_recebimento) as ano, MONTH(data_recebimento) as mes, SUM(valor) as total")
+            ->groupByRaw('YEAR(data_recebimento), MONTH(data_recebimento)')
+            ->get();
+
+        $comparativoAnual = ['anos' => $anosYoy, 'series' => []];
+        foreach ($anosYoy as $ano) {
+            $meses = array_fill(0, 12, 0);
+            foreach ($yoyQuery->where('ano', $ano) as $row) {
+                $meses[$row->mes - 1] = (float) $row->total;
+            }
+            $comparativoAnual['series'][$ano] = $meses;
+        }
+
+        // ══════════════════════════════════════════
+        // 7. Previsão de Receita (Histórico + Futuro)
+        // ══════════════════════════════════════════
+        $historico = Recebivel::where('empresa_id', $empresaId)
+            ->where('status', 'PAGO')
+            ->where('data_recebimento', '>=', Carbon::now()->subMonths(12)->startOfMonth())
+            ->when($operadoraNome, fn ($q) => $q->where('operadora', $operadoraNome))
+            ->when($vendedorId, fn ($q) => $q->where('vendedor_id', $vendedorId))
+            ->when($tipoReceita === 'fixa', fn ($q) => $q->where('parcela', '<=', 3))
+            ->when($tipoReceita === 'vitalicio', fn ($q) => $q->where('parcela', '>=', 4))
+            ->selectRaw("DATE_FORMAT(data_recebimento, '%Y-%m') as mes, SUM(valor) as valor")
+            ->groupByRaw("DATE_FORMAT(data_recebimento, '%Y-%m')")
+            ->orderByRaw("DATE_FORMAT(data_recebimento, '%Y-%m')")
+            ->get()
+            ->map(fn ($r) => ['mes' => Carbon::parse($r->mes.'-01')->format('m/Y'), 'valor' => (float) $r->valor]);
+
+        $previsao = Recebivel::where('empresa_id', $empresaId)
+            ->where('status', 'PENDENTE')
+            ->where('data_prevista', '>=', Carbon::now()->startOfMonth())
+            ->where('data_prevista', '<=', Carbon::now()->addMonths(6)->endOfMonth())
+            ->when($operadoraNome, fn ($q) => $q->where('operadora', $operadoraNome))
+            ->when($vendedorId, fn ($q) => $q->where('vendedor_id', $vendedorId))
+            ->when($tipoReceita === 'fixa', fn ($q) => $q->where('parcela', '<=', 3))
+            ->when($tipoReceita === 'vitalicio', fn ($q) => $q->where('parcela', '>=', 4))
+            ->selectRaw("DATE_FORMAT(data_prevista, '%Y-%m') as mes, SUM(valor) as valor")
+            ->groupByRaw("DATE_FORMAT(data_prevista, '%Y-%m')")
+            ->orderByRaw("DATE_FORMAT(data_prevista, '%Y-%m')")
+            ->get()
+            ->map(fn ($r) => ['mes' => Carbon::parse($r->mes.'-01')->format('m/Y'), 'valor' => (float) $r->valor]);
+
+        $previsaoReceita = [
+            'historico' => $historico->values(),
+            'previsao' => $previsao->values(),
+        ];
+
+        // ══════════════════════════════════════════
+        // 9. Análise de Coorte por Ano de Implantação
+        // ══════════════════════════════════════════
+        $cohort = Recebivel::where('recebiveis.empresa_id', $empresaId)
+            ->join('vendas', 'recebiveis.venda_id', '=', 'vendas.id')
+            ->when($operadoraNome, fn ($q) => $q->where('recebiveis.operadora', $operadoraNome))
+            ->when($vendedorId, fn ($q) => $q->where('recebiveis.vendedor_id', $vendedorId))
+            ->selectRaw("
+                YEAR(vendas.data_implantacao) as ano_implantacao,
+                COUNT(DISTINCT recebiveis.venda_id) as qtd_contratos,
+                SUM(CASE WHEN recebiveis.parcela <= 3 AND recebiveis.status = 'PAGO' THEN recebiveis.valor ELSE 0 END) as receita_fixa,
+                SUM(CASE WHEN recebiveis.parcela >= 4 AND recebiveis.status = 'PAGO' THEN recebiveis.valor ELSE 0 END) as receita_vitalicio,
+                SUM(CASE WHEN recebiveis.status = 'PAGO' THEN recebiveis.valor ELSE 0 END) as receita_total
+            ")
+            ->groupByRaw('YEAR(vendas.data_implantacao)')
+            ->orderByRaw('YEAR(vendas.data_implantacao) DESC')
+            ->get();
+
+        // Buscar valor_contrato separado para evitar duplicação pelo join
+        $cohortAnalise = $cohort->map(function ($row) use ($empresaId) {
+            $valorContratos = (float) Vendas::where('empresa_id', $empresaId)
+                ->whereYear('data_implantacao', $row->ano_implantacao)
+                ->sum('valor_contrato');
+
+            $receitaTotal = (float) $row->receita_total;
+
             return [
-                'operadora' => $operadora ?: 'Não informado',
-                'previsto' => $items->sum('valor'),
-                'recebido' => $items->where('status', 'PAGO')->sum('valor'),
-                'aberto' => $items->where('status', 'PENDENTE')->sum('valor'),
-                'cancelado' => $items->where('status', 'CANCELADO')->sum('valor'),
+                'ano_implantacao' => $row->ano_implantacao ?? 'N/D',
+                'qtd_contratos' => (int) $row->qtd_contratos,
+                'valor_total_contratos' => $valorContratos,
+                'receita_fixa' => (float) $row->receita_fixa,
+                'receita_vitalicio' => (float) $row->receita_vitalicio,
+                'receita_total' => $receitaTotal,
+                'roi' => $valorContratos > 0 ? round(($receitaTotal / $valorContratos) * 100, 1) : 0,
             ];
         })->values();
 
-        // Evolução mensal
-        $evolucaoMensal = $recebiveis->groupBy(function ($item) {
-            return \Carbon\Carbon::parse($item->data_prevista)->format('Y-m');
-        })->map(function ($items, $mes) {
-            return [
-                'mes' => \Carbon\Carbon::parse($mes.'-01')->format('m/Y'),
-                'previsto' => $items->sum('valor'),
-                'recebido' => $items->where('status', 'PAGO')->sum('valor'),
-                'aberto' => $items->where('status', 'PENDENTE')->sum('valor'),
-            ];
-        })->sortKeys()->values();
-
-        // Status distribution
-        $statusDistribuicao = [
-            ['status' => 'Recebido', 'valor' => $recebiveis->where('status', 'PAGO')->sum('valor')],
-            ['status' => 'Pendente', 'valor' => $recebiveis->where('status', 'PENDENTE')->sum('valor')],
-            ['status' => 'Cancelado', 'valor' => $recebiveis->where('status', 'CANCELADO')->sum('valor')],
-        ];
-
-        // Recebíveis em atraso
-        $emAtraso = $recebiveis->where('status', 'PENDENTE')
-            ->where('data_prevista', '<', now())
-            ->sum('valor');
-
-        // Top vendedores
-        $topVendedores = $recebiveis->where('status', 'PAGO')
-            ->groupBy('vendedor_id')
-            ->map(function ($items) {
-                $vendedor = $items->first()->vendedor;
-
-                return [
-                    'vendedor' => $vendedor ? $vendedor->name : 'Não informado',
-                    'valor' => $items->sum('valor'),
-                    'quantidade' => $items->count(),
-                ];
-            })
-            ->sortByDesc('valor')
-            ->take(10)
-            ->values();
-
+        // ══════════════════════════════════════════
+        // Response
+        // ══════════════════════════════════════════
         return response()->json([
-            'resumo' => [
-                'total_previsto' => (float) $resumo['total_previsto'],
-                'total_recebido' => (float) $resumo['total_recebido'],
-                'total_aberto' => (float) $resumo['total_aberto'],
-                'total_cancelado' => (float) $resumo['total_cancelado'],
-                'taxa_recebimento' => round($resumo['taxa_recebimento'], 2),
-                'em_atraso' => (float) $emAtraso,
+            'kpis' => [
+                'receita_total' => $receitaTotal,
+                'receita_recebida' => $receitaRecebida,
+                'mrr' => $mrr,
+                'mrr_variacao' => $mrrVariacao,
+                'inadimplencia' => $inadimplencia,
+                'inadimplencia_qtd' => $inadimplenciaQtd,
+                'receita_fixa' => $receitaFixa,
+                'receita_vitalicio' => $receitaVitalicio,
+                'receita_vitalicio_percentual' => $receitaVitalicioPercentual,
+                'contratos_ativos' => $contratosAtivos,
+                'valor_carteira' => $valorCarteira,
+                'receita_cancelada' => $receitaCancelada,
+                'taxa_cancelamento' => $taxaCancelamento,
+                'taxa_recebimento' => $taxaRecebimento,
+                'variacao_anual' => $variacaoAnual,
             ],
-            'porOperadora' => $porOperadora->map(fn ($op) => [
-                'operadora' => $op['operadora'],
-                'previsto' => (float) $op['previsto'],
-                'recebido' => (float) $op['recebido'],
-                'aberto' => (float) $op['aberto'],
-                'cancelado' => (float) $op['cancelado'],
-            ]),
-            'evolucaoMensal' => $evolucaoMensal,
-            'statusDistribuicao' => $statusDistribuicao,
-            'topVendedores' => $topVendedores,
-        ]);
-    }
-
-    /**
-     * Retorna os KPIs dos recebíveis (para atualização via AJAX) - Otimizado
-     */
-    public function getKpis(Request $request)
-    {
-        $empresaId = auth()->user()->empresa_id;
-        $anoSelecionado = $request->ano;
-
-        // Query base
-        $query = Recebivel::where('empresa_id', $empresaId);
-
-        if ($anoSelecionado) {
-            $query->whereHas('venda', function ($q) use ($anoSelecionado) {
-                $q->whereYear('data_implantacao', $anoSelecionado);
-            });
-        }
-
-        // Calcular tudo em uma única query SQL
-        $totaisQuery = $query->selectRaw("
-            SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) as pago,
-            SUM(CASE WHEN status = 'PENDENTE' THEN valor ELSE 0 END) as pendente,
-            SUM(CASE WHEN status = 'PENDENTE' AND data_prevista < NOW() THEN valor ELSE 0 END) as atraso,
-            SUM(CASE WHEN status = 'PAGO' AND parcela <= 3 THEN valor ELSE 0 END) as parcelas_pago,
-            SUM(CASE WHEN status = 'PENDENTE' AND parcela <= 3 THEN valor ELSE 0 END) as parcelas_pendente,
-            SUM(CASE WHEN status = 'PAGO' AND parcela >= 4 THEN valor ELSE 0 END) as vitalicio_pago,
-            SUM(CASE WHEN status = 'PENDENTE' AND parcela >= 4 THEN valor ELSE 0 END) as vitalicio_pendente
-        ")->first();
-
-        return response()->json([
-            'success' => true,
-            'totais' => [
-                'pago' => (float) ($totaisQuery->pago ?? 0),
-                'pendente' => (float) ($totaisQuery->pendente ?? 0),
-                'atraso' => (float) ($totaisQuery->atraso ?? 0),
-            ],
-            'totais_por_tipo' => [
-                'parcelas' => [
-                    'pago' => (float) ($totaisQuery->parcelas_pago ?? 0),
-                    'pendente' => (float) ($totaisQuery->parcelas_pendente ?? 0),
-                ],
-                'vitalicio' => [
-                    'pago' => (float) ($totaisQuery->vitalicio_pago ?? 0),
-                    'pendente' => (float) ($totaisQuery->vitalicio_pendente ?? 0),
-                ],
-            ],
+            'evolucaoMensal' => $evolucaoMensal->values(),
+            'taxaRecebimentoGauge' => $taxaRecebimentoGauge,
+            'porOperadora' => $porOperadora->values(),
+            'comparativoAnual' => $comparativoAnual,
+            'previsaoReceita' => $previsaoReceita,
+            'cohortAnalise' => $cohortAnalise,
         ]);
     }
 

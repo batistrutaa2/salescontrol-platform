@@ -1,7 +1,6 @@
 /**
- * Relatório Financeiro Styles
- * Modern Glass Morphism + Gradient Design System
- * Extends dashboard-analytics.scss patterns
+ * Relatório Financeiro — Visão CFO
+ * Glass Morphism + Gradient Design System
  */
 
 // ============================================
@@ -217,9 +216,9 @@
 
     .filter-group {
         flex: 1;
-        min-width: 180px;
+        min-width: 160px;
 
-        &.filter-group-sm {
+        &.filter-group-btns {
             flex: 0 0 auto;
             min-width: auto;
         }
@@ -276,6 +275,11 @@
         padding-right: 2.5rem;
     }
 
+    .filter-btn-row {
+        display: flex;
+        gap: 0.5rem;
+    }
+
     .btn-filter {
         display: inline-flex;
         align-items: center;
@@ -307,6 +311,72 @@
             transform: translateY(0);
         }
     }
+
+    .btn-limpar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: var(--fin-text-secondary);
+        background: transparent;
+        border: 1px solid var(--fin-card-border);
+        border-radius: var(--fin-border-radius-sm);
+        cursor: pointer;
+        transition: var(--fin-transition);
+        white-space: nowrap;
+
+        svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        &:hover {
+            color: var(--fin-primary);
+            border-color: var(--fin-primary);
+            background: rgba(var(--fin-primary-rgb), 0.05);
+        }
+    }
+}
+
+// ============================================
+// Filter Pills (Tipo Receita Toggle)
+// ============================================
+.filter-pills {
+    display: inline-flex;
+    background: var(--fin-glass-bg);
+    border: 1px solid var(--fin-card-border);
+    border-radius: var(--fin-border-radius-sm);
+    padding: 3px;
+    gap: 2px;
+
+    .pill-option {
+        padding: 0.5rem 1rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: var(--fin-text-secondary);
+        background: transparent;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: var(--fin-transition);
+        white-space: nowrap;
+
+        &:hover {
+            color: var(--fin-primary);
+            background: rgba(var(--fin-primary-rgb), 0.05);
+        }
+
+        &.active {
+            color: white;
+            background: linear-gradient(135deg, var(--fin-primary) 0%, var(--fin-primary-light) 100%);
+            box-shadow: 0 2px 8px rgba(var(--fin-primary-rgb), 0.3);
+        }
+    }
 }
 
 // ============================================
@@ -316,7 +386,7 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 
     @media (max-width: 1200px) {
         grid-template-columns: repeat(2, 1fr);
@@ -415,6 +485,21 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+
+        &.kpi-value-int {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+    }
+
+    .kpi-sublabel {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--fin-text-muted);
+        padding: 0.2rem 0.5rem;
+        background: rgba(var(--fin-primary-rgb), 0.06);
+        border-radius: 6px;
     }
 
     .kpi-trend {
@@ -459,18 +544,15 @@
         pointer-events: none;
     }
 
-    // KPI Variants
+    // ── KPI Variants ──
+
     &.kpi-primary {
         .kpi-icon {
             background: linear-gradient(135deg, var(--fin-primary) 0%, var(--fin-primary-light) 100%);
             color: white;
         }
-        .kpi-pulse {
-            background: var(--fin-primary);
-        }
-        .kpi-glow {
-            background: radial-gradient(circle, rgba(var(--fin-primary-rgb), 0.2) 0%, transparent 70%);
-        }
+        .kpi-pulse { background: var(--fin-primary); }
+        .kpi-glow { background: radial-gradient(circle, rgba(var(--fin-primary-rgb), 0.2) 0%, transparent 70%); }
     }
 
     &.kpi-success {
@@ -478,12 +560,17 @@
             background: linear-gradient(135deg, var(--fin-success) 0%, var(--fin-success-light) 100%);
             color: white;
         }
-        .kpi-pulse {
-            background: var(--fin-success);
+        .kpi-pulse { background: var(--fin-success); }
+        .kpi-glow { background: radial-gradient(circle, rgba(var(--fin-success-rgb), 0.2) 0%, transparent 70%); }
+    }
+
+    &.kpi-info {
+        .kpi-icon {
+            background: linear-gradient(135deg, var(--fin-info) 0%, var(--fin-info-light) 100%);
+            color: white;
         }
-        .kpi-glow {
-            background: radial-gradient(circle, rgba(var(--fin-success-rgb), 0.2) 0%, transparent 70%);
-        }
+        .kpi-pulse { background: var(--fin-info); }
+        .kpi-glow { background: radial-gradient(circle, rgba(var(--fin-info-rgb), 0.2) 0%, transparent 70%); }
     }
 
     &.kpi-warning {
@@ -491,12 +578,8 @@
             background: linear-gradient(135deg, var(--fin-warning) 0%, var(--fin-warning-light) 100%);
             color: white;
         }
-        .kpi-pulse {
-            background: var(--fin-warning);
-        }
-        .kpi-glow {
-            background: radial-gradient(circle, rgba(var(--fin-warning-rgb), 0.2) 0%, transparent 70%);
-        }
+        .kpi-pulse { background: var(--fin-warning); }
+        .kpi-glow { background: radial-gradient(circle, rgba(var(--fin-warning-rgb), 0.2) 0%, transparent 70%); }
     }
 
     &.kpi-danger {
@@ -504,20 +587,20 @@
             background: linear-gradient(135deg, var(--fin-danger) 0%, var(--fin-danger-light) 100%);
             color: white;
         }
-        .kpi-pulse {
-            background: var(--fin-danger);
-        }
-        .kpi-glow {
-            background: radial-gradient(circle, rgba(var(--fin-danger-rgb), 0.2) 0%, transparent 70%);
-        }
+        .kpi-pulse { background: var(--fin-danger); }
+        .kpi-glow { background: radial-gradient(circle, rgba(var(--fin-danger-rgb), 0.2) 0%, transparent 70%); }
     }
 }
 
-// Stagger animations
-.kpi-grid > *:nth-child(1) { animation-delay: 0ms; }
-.kpi-grid > *:nth-child(2) { animation-delay: 100ms; }
-.kpi-grid > *:nth-child(3) { animation-delay: 200ms; }
-.kpi-grid > *:nth-child(4) { animation-delay: 300ms; }
+// Stagger animations (8 KPIs across 2 rows)
+.kpi-grid:first-of-type > *:nth-child(1) { animation-delay: 0ms; }
+.kpi-grid:first-of-type > *:nth-child(2) { animation-delay: 100ms; }
+.kpi-grid:first-of-type > *:nth-child(3) { animation-delay: 200ms; }
+.kpi-grid:first-of-type > *:nth-child(4) { animation-delay: 300ms; }
+.kpi-grid:nth-of-type(2) > *:nth-child(1) { animation-delay: 400ms; }
+.kpi-grid:nth-of-type(2) > *:nth-child(2) { animation-delay: 500ms; }
+.kpi-grid:nth-of-type(2) > *:nth-child(3) { animation-delay: 600ms; }
+.kpi-grid:nth-of-type(2) > *:nth-child(4) { animation-delay: 700ms; }
 
 // ============================================
 // Charts Section
@@ -563,6 +646,11 @@
         min-width: 0;
     }
 
+    &.chart-full {
+        flex: none;
+        width: 100%;
+    }
+
     .chart-header {
         display: flex;
         justify-content: space-between;
@@ -592,6 +680,14 @@
                 rgba(var(--fin-primary-rgb), 0.05) 100%
             );
             color: var(--fin-primary);
+
+            &.aging {
+                background: linear-gradient(135deg,
+                    rgba(var(--fin-danger-rgb), 0.15) 0%,
+                    rgba(var(--fin-danger-rgb), 0.05) 100%
+                );
+                color: var(--fin-danger);
+            }
 
             svg {
                 width: 18px;
@@ -636,41 +732,74 @@
             &.info { background: var(--fin-info); }
             &.warning { background: var(--fin-warning); }
             &.danger { background: var(--fin-danger); }
+
+            &.dashed {
+                background: transparent;
+                border: 2px dashed var(--fin-primary);
+                width: 16px;
+                height: 0;
+                border-radius: 0;
+            }
         }
     }
 
     .chart-body {
         padding: 1.25rem 1rem;
+        position: relative;
 
-        > div {
-            min-height: 280px;
+        > div:first-child {
+            min-height: 260px;
+        }
+
+        &.loading-overlay {
+            &::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: var(--fin-card-bg);
+                opacity: 0.6;
+                z-index: 5;
+                border-radius: 0 0 var(--fin-border-radius) var(--fin-border-radius);
+            }
         }
     }
+}
 
-    .chart-actions {
-        .btn-chart-action {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-            border: none;
-            border-radius: 8px;
-            color: var(--fin-text-muted);
-            cursor: pointer;
-            transition: var(--fin-transition-fast);
+// ============================================
+// Gauge Stats (mini stats below gauge)
+// ============================================
+.gauge-stats {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 0.75rem 0 0;
+    border-top: 1px solid var(--fin-card-border);
+    margin-top: 0.5rem;
 
-            svg {
-                width: 18px;
-                height: 18px;
-            }
+    .gauge-stat-item {
+        text-align: center;
+    }
 
-            &:hover {
-                background: rgba(var(--fin-primary-rgb), 0.1);
-                color: var(--fin-primary);
-            }
-        }
+    .gauge-stat-label {
+        display: block;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--fin-text-muted);
+        margin-bottom: 0.25rem;
+    }
+
+    .gauge-stat-value {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+
+        &.primary { color: var(--fin-primary); }
+        &.success { color: var(--fin-success); }
+        &.warning { color: var(--fin-warning); }
+        &.danger { color: var(--fin-danger); }
     }
 }
 
@@ -687,6 +816,11 @@
 
     &:hover {
         box-shadow: var(--fin-shadow-lg);
+    }
+
+    // Spacing between consecutive table cards
+    & + .table-card {
+        margin-top: 1.5rem;
     }
 
     .table-header {
@@ -719,6 +853,22 @@
             rgba(var(--fin-primary-rgb), 0.05) 100%
         );
         color: var(--fin-primary);
+
+        &.vendedores {
+            background: linear-gradient(135deg,
+                rgba(var(--fin-warning-rgb), 0.15) 0%,
+                rgba(var(--fin-warning-rgb), 0.05) 100%
+            );
+            color: var(--fin-warning);
+        }
+
+        &.cohort {
+            background: linear-gradient(135deg,
+                rgba(var(--fin-info-rgb), 0.15) 0%,
+                rgba(var(--fin-info-rgb), 0.05) 100%
+            );
+            color: var(--fin-info);
+        }
 
         svg {
             width: 20px;
@@ -824,6 +974,112 @@
 }
 
 // ============================================
+// Medal Badge (Top Vendedores)
+// ============================================
+.medal-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: white;
+
+    &.gold {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+    }
+
+    &.silver {
+        background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%);
+        box-shadow: 0 2px 8px rgba(192, 192, 192, 0.4);
+    }
+
+    &.bronze {
+        background: linear-gradient(135deg, #CD7F32 0%, #B8860B 100%);
+        box-shadow: 0 2px 8px rgba(205, 127, 50, 0.4);
+    }
+}
+
+.rank-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--fin-text-muted);
+    background: rgba(var(--fin-primary-rgb), 0.05);
+}
+
+// ============================================
+// ROI Bar (Cohort Table)
+// ============================================
+.roi-bar-wrapper {
+    position: relative;
+    width: 100%;
+    min-width: 80px;
+    height: 24px;
+    background: rgba(var(--fin-primary-rgb), 0.06);
+    border-radius: 12px;
+    overflow: hidden;
+
+    .roi-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        border-radius: 12px;
+        transition: width 0.6s ease;
+
+        &.success { background: linear-gradient(90deg, var(--fin-success) 0%, var(--fin-success-light) 100%); }
+        &.warning { background: linear-gradient(90deg, var(--fin-warning) 0%, var(--fin-warning-light) 100%); }
+        &.danger { background: linear-gradient(90deg, var(--fin-danger) 0%, var(--fin-danger-light) 100%); }
+    }
+
+    .roi-label {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.6875rem;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--fin-text-primary);
+        z-index: 1;
+        text-shadow: 0 0 4px var(--fin-card-bg);
+    }
+}
+
+// ============================================
+// Skeleton Loading Animation
+// ============================================
+@keyframes skeleton-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.skeleton {
+    color: transparent !important;
+    background: linear-gradient(
+        90deg,
+        rgba(var(--fin-primary-rgb), 0.06) 25%,
+        rgba(var(--fin-primary-rgb), 0.12) 50%,
+        rgba(var(--fin-primary-rgb), 0.06) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 6px;
+    pointer-events: none;
+}
+
+// ============================================
 // DataTables Override
 // ============================================
 .dataTables_wrapper {
@@ -916,18 +1172,6 @@
 }
 
 // ============================================
-// Loading State
-// ============================================
-@keyframes pulse-loading {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-}
-
-.loading-state {
-    animation: pulse-loading 1.5s ease-in-out infinite;
-}
-
-// ============================================
 // Animations
 // ============================================
 @keyframes fade-in-up {
@@ -973,10 +1217,25 @@
 
         .filter-group {
             width: 100%;
+            min-width: 0;
         }
 
-        .btn-filter {
+        .filter-btn-row {
             width: 100%;
+
+            .btn-filter,
+            .btn-limpar {
+                flex: 1;
+            }
+        }
+    }
+
+    .filter-pills {
+        width: 100%;
+
+        .pill-option {
+            flex: 1;
+            text-align: center;
         }
     }
 
@@ -994,6 +1253,14 @@
 
         .chart-legend {
             width: 100%;
+        }
+    }
+
+    .gauge-stats {
+        gap: 0.75rem;
+
+        .gauge-stat-value {
+            font-size: 0.75rem;
         }
     }
 }
@@ -1014,11 +1281,30 @@
         break-inside: avoid;
     }
 
-    .filter-card {
+    .kpi-card {
+        animation: none !important;
+        opacity: 1 !important;
+    }
+
+    .filter-card,
+    .header-actions {
         display: none !important;
     }
 
-    .header-actions {
-        display: none !important;
+    .chart-card.chart-full,
+    .chart-card.chart-large,
+    .chart-card.chart-medium,
+    .chart-card.chart-half {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .medal-badge {
+        box-shadow: none !important;
+    }
+
+    .roi-bar-wrapper {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 }

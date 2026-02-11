@@ -349,10 +349,6 @@ Route::middleware(['auth'])->group(function () {
       Route::get('/', [Financeiro::class, 'indexRecebiveis'])
           ->name('financeiro.recebiveis.index');
 
-      // 📊 KPIs para atualização via AJAX
-      Route::get('/kpis', [Financeiro::class, 'getKpis'])
-          ->name('financeiro.recebiveis.kpis');
-
       // 📄 Resumo de contrato para atualização via AJAX
       Route::get('/contrato/{vendaId}/resumo', [Financeiro::class, 'getContratoResumo'])
           ->name('financeiro.recebiveis.contratoResumo');
