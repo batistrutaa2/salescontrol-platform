@@ -63,6 +63,16 @@
                         </select>
                     </div>
 
+                    @if (!($isBackoffice ?? false))
+                    <div class="filter-item">
+                        <label>Responsável</label>
+                        <select id="filter-backoffice" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option value="sem">Sem responsável</option>
+                        </select>
+                    </div>
+                    @endif
+
                     <div class="filter-item">
                         <label>Mês</label>
                         <select id="filter-mes" class="form-select form-select-sm">
@@ -110,19 +120,59 @@
             </div>
         </div>
 
-        <!-- Loading State -->
-        <div class="kanban-loading" id="kanban-loading">
-            <div class="spinner-wrapper">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Carregando...</span>
+        <!-- Tab Navigation -->
+        <div class="kb-tabs">
+            <button type="button" class="kb-tab active" data-tab="kanban">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                <span>Kanban</span>
+            </button>
+            <button type="button" class="kb-tab" data-tab="demandas">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+                <span>Demandas</span>
+                <span class="kb-tab-badge" id="tab-demandas-count" style="display: none;">0</span>
+            </button>
+            <div class="kb-tab-indicator"></div>
+        </div>
+
+        <!-- Tab: Kanban -->
+        <div class="kb-tab-pane active" id="pane-kanban">
+            <!-- Loading State -->
+            <div class="kanban-loading" id="kanban-loading">
+                <div class="spinner-wrapper">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p>Carregando contratos...</p>
                 </div>
-                <p>Carregando contratos...</p>
+            </div>
+
+            <!-- Kanban Board -->
+            <div class="kanban-board" id="kanban-board" style="display: none;">
+                <!-- Columns will be rendered by JavaScript -->
             </div>
         </div>
 
-        <!-- Kanban Board -->
-        <div class="kanban-board" id="kanban-board" style="display: none;">
-            <!-- Columns will be rendered by JavaScript -->
+        <!-- Tab: Demandas -->
+        <div class="kb-tab-pane" id="pane-demandas" style="display: none;">
+            <div class="demandas-loading" id="demandas-loading" style="display: none;">
+                <div class="spinner-wrapper">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p>Carregando demandas...</p>
+                </div>
+            </div>
+            <div class="demandas-backlog" id="demandas-backlog">
+                <!-- Populated by JS -->
+            </div>
         </div>
     </div>
 

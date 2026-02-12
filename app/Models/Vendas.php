@@ -122,6 +122,11 @@ class Vendas extends Model
     return $this->belongsTo(User::class, 'backoffice_id');
   }
 
+  public function demandas()
+  {
+    return $this->hasMany(VendaDemanda::class, 'venda_id');
+  }
+
 
   public function getCreatedAtAttribute($value)
   {

@@ -90,33 +90,100 @@
 
     {{-- Backoffice: Badge do responsavel --}}
     @if ($backofficeUser ?? null)
-    <div class="alert alert-light border d-flex align-items-center justify-content-between mb-3">
-        <div>
-            <strong>Backoffice Responsavel:</strong> {{ $backofficeUser->name }}
-            @if ($isOwner ?? false)
-                <span class="badge bg-success ms-2">Voce</span>
-            @endif
+    <div class="responsavel-card">
+        <div class="responsavel-left">
+            <div class="responsavel-avatar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+            </div>
+            <div class="responsavel-info">
+                <span class="responsavel-label">Backoffice Responsável</span>
+                <span class="responsavel-name">
+                    {{ $backofficeUser->name }}
+                    @if ($isOwner ?? false)
+                        <span class="responsavel-badge-you">Você</span>
+                    @endif
+                </span>
+            </div>
         </div>
         @if ($canReassign ?? false)
-        <div class="d-flex align-items-center gap-2">
-            <select id="reatribuir-select" class="form-select form-select-sm" style="width: auto;">
-                <option value="">Reatribuir para...</option>
-                @foreach ($backofficeUsers ?? collect() as $bu)
-                    <option value="{{ $bu->id }}" {{ $contract->backoffice_id == $bu->id ? 'selected' : '' }}>
-                        {{ $bu->name }}
-                    </option>
-                @endforeach
-            </select>
-            <button type="button" class="btn btn-sm btn-outline-primary" id="btn-reatribuir"
-                    data-venda-id="{{ $contract->id }}">
-                Reatribuir
-            </button>
+        <div class="responsavel-right">
+            <div class="responsavel-reassign">
+                <select id="reatribuir-select" class="responsavel-select">
+                    <option value="">Reatribuir para...</option>
+                    @foreach ($backofficeUsers ?? collect() as $bu)
+                        <option value="{{ $bu->id }}" {{ $contract->backoffice_id == $bu->id ? 'selected' : '' }}>
+                            {{ $bu->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <button type="button" class="responsavel-btn" id="btn-reatribuir"
+                        data-venda-id="{{ $contract->id }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="17 1 21 5 17 9"></polyline>
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                        <polyline points="7 23 3 19 7 15"></polyline>
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                    </svg>
+                    <span>Reatribuir</span>
+                </button>
+            </div>
         </div>
         @endif
     </div>
     @endif
 
     <div class="row g-4 contract-page">
+
+        {{-- PAINEL DE DEMANDAS DO CONTRATO --}}
+        <div class="col-12">
+            <div class="demandas-panel">
+                <div class="demandas-panel-header" id="demandas-panel-toggle">
+                    <div class="demandas-panel-left">
+                        <div class="demandas-panel-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 11l3 3L22 4"></path>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                            </svg>
+                        </div>
+                        <div class="demandas-panel-info">
+                            <span class="demandas-panel-title">Demandas do Contrato</span>
+                            <span class="demandas-panel-subtitle" id="demandas-count">Carregando...</span>
+                        </div>
+                    </div>
+                    <div class="demandas-panel-right">
+                        <div class="demandas-progress" id="demandas-progress" style="display: none;">
+                            <div class="demandas-progress-bar">
+                                <div class="demandas-progress-fill" id="demandas-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="demandas-progress-text" id="demandas-progress-text">0%</span>
+                        </div>
+                        <button type="button" class="btn-nova-demanda" data-bs-toggle="modal" data-bs-target="#modalAddDemanda" onclick="event.stopPropagation()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <span>Nova Demanda</span>
+                        </button>
+                        <button type="button" class="btn-panel-chevron" id="btn-panel-chevron">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="demandas-panel-body" id="demandas-panel-body">
+                    <div class="demandas-list" id="demandas-list"></div>
+                    <div class="demandas-empty" id="demandas-empty" style="display: none;">
+                        <div class="demandas-empty-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                        </div>
+                        <p class="demandas-empty-text">Nenhuma demanda cadastrada</p>
+                        <p class="demandas-empty-hint">Clique em "Nova Demanda" para adicionar tarefas operacionais</p>
+                    </div>
+                    <div class="demandas-loading" id="demandas-loading">
+                        <div class="loading-spinner"></div>
+                        <span>Carregando demandas...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         {{-- COLUNA ESQUERDA: Apólice + Empresa --}}
         <div class="col-12 col-xl-5">
@@ -574,6 +641,90 @@
             </div>
         </div>
 
+    </div>
+
+    {{-- Modal: Adicionar/Editar Demanda --}}
+    <div class="modal fade" id="modalAddDemanda" tabindex="-1" aria-labelledby="modalAddDemandaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-demanda">
+                <div class="modal-header">
+                    <div class="modal-icon modal-icon-warning">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 11l3 3L22 4"></path>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h5 class="modal-title" id="modalAddDemandaLabel">Nova Demanda</h5>
+                        <p class="modal-subtitle">Cadastre uma tarefa operacional para este contrato</p>
+                    </div>
+                    <button type="button" class="btn-close-modal" data-bs-dismiss="modal" aria-label="Fechar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <form id="form-demanda" novalidate>
+                    <input type="hidden" name="venda_id" value="{{ $contract->id }}">
+                    <input type="hidden" name="demanda_id" id="demanda_id" value="">
+
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label-demanda">Tipo <span class="required">*</span></label>
+                            <select name="tipo" id="demanda_tipo" class="form-control-demanda" required>
+                                <option value="">Selecione o tipo...</option>
+                                <option value="CANCELAMENTO">Cancelamento</option>
+                                <option value="CARTA_PERMANENCIA">Carta de Permanência</option>
+                                <option value="PORTABILIDADE">Portabilidade</option>
+                                <option value="TROCA_EMAIL">Troca de E-mail</option>
+                                <option value="OUTRO">Outro</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label-demanda">Título <span class="required">*</span></label>
+                            <input type="text" name="titulo" id="demanda_titulo" class="form-control-demanda" placeholder="Título da demanda" required>
+                            <span class="input-hint">Preenchido automaticamente pelo tipo ou digite livremente</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label-demanda">Descrição <span class="optional">(opcional)</span></label>
+                            <textarea name="descricao" id="demanda_descricao" class="form-control-demanda" rows="3" placeholder="Detalhes adicionais sobre a demanda..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-cancel-demanda" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-save-demanda" id="btn-save-demanda">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path></svg>
+                            <span id="btn-save-demanda-text">Salvar Demanda</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal: Confirmação de Exclusão de Demanda --}}
+    <div class="modal fade" id="modalDeleteDemanda" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content modal-delete-demanda">
+                <div class="modal-body text-center">
+                    <div class="delete-icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </div>
+                    <h5 class="delete-title">Remover Demanda?</h5>
+                    <p class="delete-text">Esta ação não poderá ser desfeita.</p>
+                    <input type="hidden" id="delete_demanda_id" value="">
+                    <div class="delete-actions">
+                        <button type="button" class="btn-cancel-demanda" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn-delete-confirm" id="btn-confirm-delete-demanda">Remover</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Modal: Adicionar/Editar Acesso --}}

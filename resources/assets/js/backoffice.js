@@ -103,11 +103,14 @@ $(function () {
         statusConfirmed: false,
         draggedItem: null,
         draggedFromColumn: null,
+        activeTab: 'kanban',
+        demandasLoaded: false,
 
         async init() {
             await this.loadContratos();
             this.initFilters();
             this.initEventListeners();
+            this.initTabs();
         },
 
         async loadContratos() {
@@ -121,10 +124,12 @@ $(function () {
                 const ano = $('#filter-ano').val();
                 const busca = $('#filter-busca').val();
                 const custodia = $('#filter-custodia').val();
+                const backoffice = $('#filter-backoffice').val();
 
                 if (vendedor) params.append('vendedor_id', vendedor);
                 if (busca) params.append('busca', busca);
                 if (custodia) params.append('custodia', custodia);
+                if (backoffice) params.append('backoffice_id', backoffice);
 
                 // Calcular datas baseado em mês/ano
                 if (mes && ano) {
@@ -146,7 +151,15 @@ $(function () {
                     this.data = result;
                     this.renderBoard(result.pipeline);
                     this.populateVendedorFilter(result.vendedores);
+                    this.populateBackofficeFilter(result.backoffices);
                     this.initDragDrop();
+                    // Update demandas badge count from KPI data
+                    this.updateDemandasBadge(result.kpis?.total_demandas_pendentes || 0);
+                    // Reset demandas tab; if active, reload it now
+                    this.demandasLoaded = false;
+                    if (this.activeTab === 'demandas') {
+                        this.loadDemandasList();
+                    }
                 } else {
                     throw new Error(result.message || 'Erro ao carregar dados');
                 }
@@ -331,6 +344,13 @@ $(function () {
                             : `<span class="bo-name bo-livre">Livre</span>`
                         }
                     </div>
+
+                    ${contract.demandas_pendentes > 0 ? `
+                        <div class="card-demandas-badge js-scroll-demandas" title="Clique para ver demandas pendentes">
+                            <i class="ri-todo-line"></i>
+                            <span>${contract.demandas_pendentes} demanda${contract.demandas_pendentes > 1 ? 's' : ''}</span>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         },
@@ -344,6 +364,26 @@ $(function () {
             if (vendedores && vendedores.length) {
                 vendedores.forEach(v => {
                     select.append(`<option value="${v.id}">${escapeHtml(v.name)}</option>`);
+                });
+            }
+
+            if (currentValue) {
+                select.val(currentValue);
+            }
+        },
+
+        populateBackofficeFilter(backoffices) {
+            const select = $('#filter-backoffice');
+            if (!select.length) return; // Não existe para backoffice users
+
+            const currentValue = select.val();
+
+            // Manter "Todos" e "Sem responsável" (primeiras 2 options)
+            select.find('option:not(:nth-child(-n+2))').remove();
+
+            if (backoffices && backoffices.length) {
+                backoffices.forEach(b => {
+                    select.append(`<option value="${b.id}">${escapeHtml(b.name)}</option>`);
                 });
             }
 
@@ -466,6 +506,9 @@ $(function () {
                     self.statusConfirmed = true;
                     self.updateColumnCounts();
 
+                    // Invalidar aba de demandas para refletir novo status
+                    self.demandasLoaded = false;
+
                     // Toast de sucesso moderno
                     showModernToast('success', 'Status Atualizado!', result.message || 'O contrato foi movido com sucesso.');
                 } else {
@@ -496,6 +539,227 @@ $(function () {
             }
         },
 
+        initTabs() {
+            const self = this;
+
+            $(document).on('click', '.kb-tab', function () {
+                const tab = $(this).data('tab');
+                if (tab === self.activeTab) return;
+
+                // Switch active tab
+                $('.kb-tab').removeClass('active');
+                $(this).addClass('active');
+
+                // Switch panes
+                $('.kb-tab-pane').hide().removeClass('active');
+                $(`#pane-${tab}`).show().addClass('active');
+
+                self.activeTab = tab;
+
+                // Load demandas on first switch
+                if (tab === 'demandas' && !self.demandasLoaded) {
+                    self.loadDemandasList();
+                }
+            });
+        },
+
+        getFilterParams() {
+            const params = new URLSearchParams();
+            const vendedor = $('#filter-vendedor').val();
+            const mes = $('#filter-mes').val();
+            const ano = $('#filter-ano').val();
+            const busca = $('#filter-busca').val();
+            const custodia = $('#filter-custodia').val();
+            const backoffice = $('#filter-backoffice').val();
+
+            if (vendedor) params.append('vendedor_id', vendedor);
+            if (busca) params.append('busca', busca);
+            if (custodia) params.append('custodia', custodia);
+            if (backoffice) params.append('backoffice_id', backoffice);
+
+            if (mes && ano) {
+                const startDate = `${ano}-${String(mes).padStart(2, '0')}-01`;
+                const lastDay = new Date(ano, mes, 0).getDate();
+                const endDate = `${ano}-${String(mes).padStart(2, '0')}-${lastDay}`;
+                params.append('data_inicio', startDate);
+                params.append('data_fim', endDate);
+            } else if (ano) {
+                params.append('data_inicio', `${ano}-01-01`);
+                params.append('data_fim', `${ano}-12-31`);
+            }
+            return params;
+        },
+
+        async loadDemandasList() {
+            try {
+                $('#demandas-loading').show();
+                $('#demandas-backlog').hide();
+
+                const params = this.getFilterParams();
+                const url = `/back-office/demandas-pendentes-kanban${params.toString() ? '?' + params.toString() : ''}`;
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    this.demandasLoaded = true;
+                    this.renderDemandasList(result.demandas);
+                    const pendentes = result.demandas.filter(d => d.status === 'PENDENTE').length;
+                    this.updateDemandasBadge(pendentes);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar demandas:', error);
+            } finally {
+                $('#demandas-loading').hide();
+                $('#demandas-backlog').show();
+            }
+        },
+
+        updateDemandasBadge(count) {
+            const badge = $('#tab-demandas-count');
+            if (count > 0) {
+                badge.text(count).show();
+            } else {
+                badge.hide();
+            }
+        },
+
+        renderDemandasList(demandas) {
+            const container = $('#demandas-backlog');
+
+            if (!demandas || demandas.length === 0) {
+                container.html(`
+                    <div class="demandas-empty-state">
+                        <div class="empty-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                        </div>
+                        <h5>Nenhuma demanda pendente</h5>
+                        <p>Todos os contratos estão em dia!</p>
+                    </div>
+                `);
+                return;
+            }
+
+            // Agrupar por contrato
+            const grouped = {};
+            demandas.forEach(d => {
+                if (!grouped[d.venda_id]) {
+                    grouped[d.venda_id] = {
+                        venda_id: d.venda_id,
+                        contrato_nome: d.contrato_nome,
+                        contrato_proposta: d.contrato_proposta,
+                        contrato_operadora: d.contrato_operadora,
+                        backoffice_nome: d.backoffice_nome,
+                        status_atual: d.status_atual,
+                        demandas: [],
+                        pendentes: 0,
+                    };
+                }
+                grouped[d.venda_id].demandas.push(d);
+                if (d.status === 'PENDENTE') grouped[d.venda_id].pendentes++;
+            });
+
+            const tipoLabels = {
+                'CANCELAMENTO': 'Cancelamento',
+                'CARTA_PERMANENCIA': 'Carta Perm.',
+                'PORTABILIDADE': 'Portabilidade',
+                'TROCA_EMAIL': 'Troca E-mail',
+                'OUTRO': 'Outro',
+            };
+            const tipoClasses = {
+                'CANCELAMENTO': 'tipo-danger',
+                'CARTA_PERMANENCIA': 'tipo-warning',
+                'PORTABILIDADE': 'tipo-info',
+                'TROCA_EMAIL': 'tipo-primary',
+                'OUTRO': 'tipo-muted',
+            };
+
+            let html = '';
+            Object.values(grouped).forEach(contract => {
+                const boHtml = contract.backoffice_nome
+                    ? `<span class="bl-responsavel has-owner"><i class="ri-shield-user-line"></i> ${escapeHtml(contract.backoffice_nome)}</span>`
+                    : `<span class="bl-responsavel no-owner"><i class="ri-shield-user-line"></i> Sem responsável</span>`;
+
+                const statusHtml = contract.status_atual
+                    ? `<span class="bl-status-tag">${escapeHtml(contract.status_atual)}</span>`
+                    : '';
+
+                const concluidas = contract.demandas.length - contract.pendentes;
+
+                let demandasHtml = '';
+                contract.demandas.forEach(d => {
+                    const isConcluida = d.status === 'CONCLUIDA';
+                    const tipoLabel = tipoLabels[d.tipo] || d.tipo;
+                    const tipoClass = tipoClasses[d.tipo] || 'tipo-muted';
+
+                    if (isConcluida) {
+                        demandasHtml += `
+                            <div class="bl-demanda-row concluida">
+                                <span class="demanda-tipo-tag tipo-success">${escapeHtml(tipoLabel)}</span>
+                                <span class="bl-demanda-titulo">${escapeHtml(d.titulo)}</span>
+                                <span class="bl-demanda-status-done">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    Concluída
+                                </span>
+                                <span class="bl-demanda-criador">
+                                    <i class="ri-user-line"></i> ${escapeHtml(d.criador)}
+                                </span>
+                            </div>
+                        `;
+                    } else {
+                        let urgenciaClass = '';
+                        if (d.dias_pendente > 7) urgenciaClass = 'urgente';
+                        else if (d.dias_pendente > 3) urgenciaClass = 'atencao';
+                        const diasLabel = d.dias_pendente === 0 ? 'Hoje' : d.dias_pendente === 1 ? '1 dia' : `${d.dias_pendente}d`;
+
+                        demandasHtml += `
+                            <div class="bl-demanda-row ${urgenciaClass}">
+                                <span class="demanda-tipo-tag ${tipoClass}">${escapeHtml(tipoLabel)}</span>
+                                <span class="bl-demanda-titulo">${escapeHtml(d.titulo)}</span>
+                                <span class="bl-demanda-dias ${urgenciaClass}">
+                                    <i class="ri-time-line"></i> ${diasLabel}
+                                </span>
+                                <span class="bl-demanda-criador">
+                                    <i class="ri-user-line"></i> ${escapeHtml(d.criador)}
+                                </span>
+                                <button type="button" class="demanda-btn-concluir js-concluir-demanda" data-id="${d.id}" title="Concluir">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                </button>
+                            </div>
+                        `;
+                    }
+                });
+
+                html += `
+                    <div class="bl-contract-group">
+                        <div class="bl-contract-header">
+                            <div class="bl-contract-info">
+                                <a href="/back-office/abrir-contrato/${contract.venda_id}" class="bl-contract-name">
+                                    ${escapeHtml(contract.contrato_nome || 'Sem nome')}
+                                </a>
+                                <div class="bl-contract-meta">
+                                    ${contract.contrato_proposta ? `<span class="bl-proposta">#${escapeHtml(contract.contrato_proposta)}</span>` : ''}
+                                    ${contract.contrato_operadora ? `<span class="bl-operadora">${escapeHtml(contract.contrato_operadora)}</span>` : ''}
+                                    ${statusHtml}
+                                </div>
+                            </div>
+                            <div class="bl-contract-right">
+                                ${boHtml}
+                                <span class="bl-demanda-count" title="${contract.pendentes} pendente${contract.pendentes > 1 ? 's' : ''}${concluidas > 0 ? `, ${concluidas} concluída${concluidas > 1 ? 's' : ''}` : ''}">${contract.pendentes}</span>
+                            </div>
+                        </div>
+                        <div class="bl-demandas-list">
+                            ${demandasHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.html(html);
+        },
+
         updateColumnCounts() {
             document.querySelectorAll('.kanban-column').forEach(column => {
                 const count = column.querySelectorAll('.kanban-card').length;
@@ -523,7 +787,7 @@ $(function () {
             });
 
             // Immediate filters
-            $('#filter-vendedor, #filter-mes, #filter-ano, #filter-custodia').on('change', function () {
+            $('#filter-vendedor, #filter-mes, #filter-ano, #filter-custodia, #filter-backoffice').on('change', function () {
                 self.loadContratos();
             });
 
@@ -534,6 +798,7 @@ $(function () {
                 $('#filter-ano').val('');
                 $('#filter-busca').val('');
                 $('#filter-custodia').val('meus');
+                $('#filter-backoffice').val('');
                 self.loadContratos();
             });
         },
@@ -662,6 +927,48 @@ $(function () {
             // Form submit - mark as confirmed
             $('#transferLead').on('submit', function () {
                 self.confirmStatusChange();
+            });
+
+            // Concluir demanda
+            $(document).on('click', '.js-concluir-demanda', async function (e) {
+                e.stopPropagation();
+                const btn = $(this);
+                const demandaId = btn.data('id');
+
+                btn.prop('disabled', true).addClass('loading');
+
+                try {
+                    const response = await fetch(`/back-office/demandas-contrato/${demandaId}/toggle`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json',
+                        },
+                    });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showModernToast('success', 'Demanda Concluída!', result.message || 'Demanda finalizada com sucesso.');
+                        // Reload kanban (updates badge counts) and demandas list
+                        self.loadContratos();
+                        if (self.demandasLoaded) {
+                            self.loadDemandasList();
+                        }
+                    } else {
+                        showModernToast('error', 'Erro', result.message || 'Não foi possível concluir a demanda.');
+                        btn.prop('disabled', false).removeClass('loading');
+                    }
+                } catch (error) {
+                    showModernToast('error', 'Erro', 'Falha na conexão.');
+                    btn.prop('disabled', false).removeClass('loading');
+                }
+            });
+
+            // Click badge on kanban card → switch to demandas tab
+            $(document).on('click', '.js-scroll-demandas', function (e) {
+                e.stopPropagation();
+                $('.kb-tab[data-tab="demandas"]').trigger('click');
             });
         },
 

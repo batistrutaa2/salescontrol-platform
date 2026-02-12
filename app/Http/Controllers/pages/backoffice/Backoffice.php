@@ -33,6 +33,8 @@ use App\Jobs\GerarRecebiveisJob;
 use App\Models\Recebivel;
 use App\Models\RegrasComissionamento;
 use App\Models\PosVendaAnotacao;
+use App\Models\VendaDemanda;
+use App\Enums\TipoDemandaContrato;
 use Carbon\Carbon;
 
 class Backoffice extends Controller
@@ -1606,6 +1608,7 @@ class Backoffice extends Controller
       $vendedorId = $request->input('vendedor_id');
       $busca = $request->input('busca');
       $custodia = $request->input('custodia', '');
+      $backofficeId = $request->input('backoffice_id');
       $isBackoffice = Auth::user()->user_role_id == UserRole::BACKOFFICE;
 
       // Buscar vendas com status de backoffice usando contatos_corretores
@@ -1663,7 +1666,29 @@ class Backoffice extends Controller
         });
       }
 
+      // Filtro por responsável (backoffice_id) — usado pelo admin
+      if ($backofficeId) {
+        if ($backofficeId === 'sem') {
+          $query->whereNull('vendas.backoffice_id');
+        } else {
+          $query->where('vendas.backoffice_id', $backofficeId);
+        }
+      }
+
       $vendas = $query->orderBy('vendas.created_at', 'desc')->get();
+
+      // Contagem de demandas pendentes por venda
+      $vendaIds = $vendas->pluck('id')->toArray();
+      $demandasPendentesMap = [];
+      if (!empty($vendaIds)) {
+        $demandasPendentesMap = DB::table('venda_demandas')
+          ->select('venda_id', DB::raw('COUNT(*) as total'))
+          ->whereIn('venda_id', $vendaIds)
+          ->where('status', 'PENDENTE')
+          ->groupBy('venda_id')
+          ->pluck('total', 'venda_id')
+          ->toArray();
+      }
 
       // Status permitidos no Kanban (ordem definida pelo usuário)
       $statusPermitidos = [
@@ -1740,6 +1765,7 @@ class Backoffice extends Controller
               'contato_id' => $v->contato_id,
               'backoffice_id' => $v->backoffice_id,
               'backoffice_nome' => $v->backoffice_nome,
+              'demandas_pendentes' => $demandasPendentesMap[$v->id] ?? 0,
             ];
           })->values(),
         ];
@@ -1768,6 +1794,14 @@ class Backoffice extends Controller
         ->orderBy('users.name')
         ->get();
 
+      // Backoffices para filtro (admin) - busca usuários backoffice que são responsáveis por contratos
+      $backoffices = User::select('users.id', 'users.name')
+        ->join('vendas', 'vendas.backoffice_id', '=', 'users.id')
+        ->where('vendas.empresa_id', $empresaId)
+        ->distinct()
+        ->orderBy('users.name')
+        ->get();
+
       return response()->json([
         'success' => true,
         'pipeline' => $pipeline,
@@ -1780,8 +1814,11 @@ class Backoffice extends Controller
           'tempo_medio' => $tempoMedio,
           'valor_total' => $vendas->sum('valor_contrato'),
           'valor_implantado' => $vendas->where('status_atual', 'IMPLANTADO')->sum('valor_contrato'),
+          'total_demandas_pendentes' => array_sum($demandasPendentesMap),
+          'contratos_com_demandas' => count($demandasPendentesMap),
         ],
         'vendedores' => $vendedores,
+        'backoffices' => $backoffices,
         'tabulacoes' => $tabulacoes,
         'isBackoffice' => $isBackoffice,
       ]);
@@ -1789,6 +1826,131 @@ class Backoffice extends Controller
       return response()->json([
         'success' => false,
         'message' => 'Erro ao buscar dados: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Retorna demandas pendentes para o painel overview do kanban
+   */
+  public function getDemandasPendentesKanban(Request $request)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+      $dataInicio = $request->input('data_inicio');
+      $dataFim = $request->input('data_fim');
+      $vendedorId = $request->input('vendedor_id');
+      $busca = $request->input('busca');
+      $custodia = $request->input('custodia', '');
+      $backofficeId = $request->input('backoffice_id');
+      $isBackoffice = Auth::user()->user_role_id == UserRole::BACKOFFICE;
+
+      // Reconstruir query base para obter IDs de vendas visíveis (mesmos filtros do kanban)
+      $query = DB::table('vendas')
+        ->select('vendas.id')
+        ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+        ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+        ->where('vendas.empresa_id', $empresaId)
+        ->where('tabulacoes.tipo_tabulacao', 'A');
+
+      if ($dataInicio) {
+        $query->whereDate('vendas.created_at', '>=', $dataInicio);
+      }
+      if ($dataFim) {
+        $query->whereDate('vendas.created_at', '<=', $dataFim);
+      }
+      if ($vendedorId) {
+        $query->where('vendas.user_id', $vendedorId);
+      }
+      if ($busca) {
+        $query->where(function ($q) use ($busca) {
+          $q->where('vendas.nome_contrato', 'like', "%{$busca}%")
+            ->orWhere('vendas.numero_proposta', 'like', "%{$busca}%")
+            ->orWhere('vendas.operadora', 'like', "%{$busca}%");
+        });
+      }
+
+      if ($isBackoffice && $custodia !== 'todos') {
+        $query->where(function ($q) {
+          $q->where('vendas.backoffice_id', Auth::id())
+            ->orWhereNull('vendas.backoffice_id');
+        });
+      }
+
+      // Filtro por responsável (backoffice_id) — usado pelo admin
+      if ($backofficeId) {
+        if ($backofficeId === 'sem') {
+          $query->whereNull('vendas.backoffice_id');
+        } else {
+          $query->where('vendas.backoffice_id', $backofficeId);
+        }
+      }
+
+      $vendaIds = $query->pluck('vendas.id')->toArray();
+
+      if (empty($vendaIds)) {
+        return response()->json(['success' => true, 'demandas' => []]);
+      }
+
+      // Buscar info extra dos contratos (backoffice, status)
+      $vendaInfoMap = DB::table('vendas')
+        ->select('vendas.id', 'vendas.backoffice_id', 'bo.name as backoffice_nome', 'tabulacoes.descricao as status_atual')
+        ->leftJoin('users as bo', 'bo.id', '=', 'vendas.backoffice_id')
+        ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
+        ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+        ->whereIn('vendas.id', $vendaIds)
+        ->get()
+        ->keyBy('id');
+
+      // Contratos que ainda têm pelo menos 1 demanda pendente
+      $vendasComPendente = VendaDemanda::where('empresa_id', $empresaId)
+        ->where('status', 'PENDENTE')
+        ->whereIn('venda_id', $vendaIds)
+        ->distinct()
+        ->pluck('venda_id')
+        ->toArray();
+
+      if (empty($vendasComPendente)) {
+        return response()->json(['success' => true, 'demandas' => []]);
+      }
+
+      // Buscar TODAS as demandas (pendentes + concluídas) desses contratos
+      $demandas = VendaDemanda::with(['criador:id,name', 'venda:id,nome_contrato,numero_proposta,operadora'])
+        ->where('empresa_id', $empresaId)
+        ->whereIn('venda_id', $vendasComPendente)
+        ->orderByRaw("FIELD(status, 'PENDENTE', 'CONCLUIDA')")
+        ->orderBy('created_at', 'asc')
+        ->get()
+        ->map(function ($d) use ($vendaInfoMap) {
+          $rawCreatedAt = $d->getRawOriginal('created_at');
+          $diasPendente = $rawCreatedAt ? (int) \Carbon\Carbon::parse($rawCreatedAt)->diffInDays(now()) : 0;
+          $vendaInfo = $vendaInfoMap[$d->venda_id] ?? null;
+
+          return [
+            'id' => $d->id,
+            'venda_id' => $d->venda_id,
+            'tipo' => $d->tipo,
+            'titulo' => $d->titulo,
+            'status' => $d->status,
+            'criador' => $d->criador ? $d->criador->name : 'N/A',
+            'dias_pendente' => $diasPendente,
+            'contrato_nome' => $d->venda ? $d->venda->nome_contrato : 'N/A',
+            'contrato_proposta' => $d->venda ? $d->venda->numero_proposta : null,
+            'contrato_operadora' => $d->venda ? $d->venda->operadora : null,
+            'backoffice_nome' => $vendaInfo->backoffice_nome ?? null,
+            'status_atual' => $vendaInfo->status_atual ?? null,
+            'created_at' => $d->created_at,
+          ];
+        });
+
+      return response()->json([
+        'success' => true,
+        'demandas' => $demandas,
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao buscar demandas: ' . $e->getMessage()
       ], 500);
     }
   }
@@ -2590,6 +2752,228 @@ class Backoffice extends Controller
       return response()->json([
         'success' => false,
         'message' => 'Erro ao registrar Boas Vindas: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  // =============================================
+  // Demandas de Contrato
+  // =============================================
+
+  public function getDemandasContrato(int $vendaId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $venda = Vendas::where('id', $vendaId)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Contrato não encontrado.'
+        ], 404);
+      }
+
+      $demandas = VendaDemanda::with(['criador:id,name', 'concluidaPor:id,name'])
+        ->where('venda_id', $vendaId)
+        ->where('empresa_id', $empresaId)
+        ->orderByRaw("FIELD(status, 'PENDENTE', 'CONCLUIDA')")
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+      $pendentes = $demandas->where('status', 'PENDENTE')->count();
+      $total = $demandas->count();
+
+      return response()->json([
+        'success' => true,
+        'demandas' => $demandas,
+        'pendentes' => $pendentes,
+        'total' => $total,
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao carregar demandas: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  public function storeDemandaContrato(Request $request)
+  {
+    try {
+      $validated = $request->validate([
+        'venda_id' => 'required|integer|exists:vendas,id',
+        'tipo' => 'required|string|max:50',
+        'titulo' => 'required|string|max:255',
+        'descricao' => 'nullable|string|max:1000',
+      ]);
+
+      $empresaId = Auth::user()->empresa_id;
+
+      $venda = Vendas::where('id', $validated['venda_id'])
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$venda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Contrato não encontrado.'
+        ], 404);
+      }
+
+      $demanda = VendaDemanda::create([
+        'venda_id' => $venda->id,
+        'empresa_id' => $empresaId,
+        'created_by' => Auth::id(),
+        'tipo' => $validated['tipo'],
+        'titulo' => $validated['titulo'],
+        'descricao' => $validated['descricao'] ?? null,
+        'status' => 'PENDENTE',
+      ]);
+
+      $demanda->load(['criador:id,name', 'concluidaPor:id,name']);
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Demanda criada com sucesso.',
+        'demanda' => $demanda,
+      ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validação.',
+        'errors' => $e->errors(),
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao criar demanda: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  public function updateDemandaContrato(Request $request, int $id)
+  {
+    try {
+      $validated = $request->validate([
+        'tipo' => 'required|string|max:50',
+        'titulo' => 'required|string|max:255',
+        'descricao' => 'nullable|string|max:1000',
+      ]);
+
+      $empresaId = Auth::user()->empresa_id;
+
+      $demanda = VendaDemanda::where('id', $id)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$demanda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Demanda não encontrada.'
+        ], 404);
+      }
+
+      $demanda->update([
+        'tipo' => $validated['tipo'],
+        'titulo' => $validated['titulo'],
+        'descricao' => $validated['descricao'] ?? null,
+      ]);
+
+      $demanda->load(['criador:id,name', 'concluidaPor:id,name']);
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Demanda atualizada com sucesso.',
+        'demanda' => $demanda,
+      ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validação.',
+        'errors' => $e->errors(),
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao atualizar demanda: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  public function toggleStatusDemandaContrato(int $id)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $demanda = VendaDemanda::where('id', $id)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$demanda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Demanda não encontrada.'
+        ], 404);
+      }
+
+      if ($demanda->status === 'PENDENTE') {
+        $demanda->update([
+          'status' => 'CONCLUIDA',
+          'concluida_por' => Auth::id(),
+          'concluida_em' => now(),
+        ]);
+      } else {
+        $demanda->update([
+          'status' => 'PENDENTE',
+          'concluida_por' => null,
+          'concluida_em' => null,
+        ]);
+      }
+
+      $demanda->load(['criador:id,name', 'concluidaPor:id,name']);
+
+      return response()->json([
+        'success' => true,
+        'message' => $demanda->status === 'CONCLUIDA' ? 'Demanda concluída!' : 'Demanda reaberta.',
+        'demanda' => $demanda,
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao alterar status: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  public function destroyDemandaContrato(int $id)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $demanda = VendaDemanda::where('id', $id)
+        ->where('empresa_id', $empresaId)
+        ->first();
+
+      if (!$demanda) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Demanda não encontrada.'
+        ], 404);
+      }
+
+      $demanda->delete();
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Demanda removida com sucesso.',
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro ao remover demanda: ' . $e->getMessage()
       ], 500);
     }
   }

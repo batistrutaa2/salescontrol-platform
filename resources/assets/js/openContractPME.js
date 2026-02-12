@@ -1071,10 +1071,332 @@
     }
 
     // ============================================
+    // Demandas do Contrato
+    // ============================================
+    const demandasList = document.getElementById('demandas-list');
+    const demandasEmpty = document.getElementById('demandas-empty');
+    const demandasLoading = document.getElementById('demandas-loading');
+    const demandasCount = document.getElementById('demandas-count');
+
+    const tipoLabels = {
+        'CANCELAMENTO': 'Cancelamento',
+        'CARTA_PERMANENCIA': 'Carta de Permanência',
+        'PORTABILIDADE': 'Portabilidade',
+        'TROCA_EMAIL': 'Troca de E-mail',
+        'OUTRO': 'Outro'
+    };
+
+    // Auto-fill title based on tipo selection
+    const demandaTipo = document.getElementById('demanda_tipo');
+    if (demandaTipo) {
+        demandaTipo.addEventListener('change', function () {
+            const tipo = this.value;
+            const tituloEl = document.getElementById('demanda_titulo');
+            const demandaId = document.getElementById('demanda_id').value;
+
+            if (tipo && tipo !== 'OUTRO') {
+                tituloEl.value = tipoLabels[tipo] || tipo;
+                tituloEl.readOnly = true;
+            } else {
+                if (!demandaId) tituloEl.value = '';
+                tituloEl.readOnly = false;
+            }
+        });
+    }
+
+    // Panel collapse/expand toggle
+    const panelToggle = document.getElementById('demandas-panel-toggle');
+    if (panelToggle) {
+        panelToggle.addEventListener('click', function () {
+            const body = document.getElementById('demandas-panel-body');
+            const chevron = document.getElementById('btn-panel-chevron');
+            if (body) body.classList.toggle('collapsed');
+            if (chevron) chevron.classList.toggle('rotated');
+        });
+    }
+
+    // Stat header click toggles panel
+    const statToggle = document.getElementById('stat-demandas-toggle');
+    if (statToggle) {
+        statToggle.addEventListener('click', function () {
+            const body = document.getElementById('demandas-panel-body');
+            const chevron = document.getElementById('btn-panel-chevron');
+            if (body && body.classList.contains('collapsed')) {
+                body.classList.remove('collapsed');
+                if (chevron) chevron.classList.remove('rotated');
+            }
+            // Scroll to panel
+            const panel = document.querySelector('.demandas-panel');
+            if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    function loadDemandas() {
+        if (!vendaId || !demandasList) return;
+
+        demandasLoading.style.display = 'flex';
+        demandasEmpty.style.display = 'none';
+        demandasList.innerHTML = '';
+
+        const progressEl = document.getElementById('demandas-progress');
+        const progressFill = document.getElementById('demandas-progress-fill');
+        const progressText = document.getElementById('demandas-progress-text');
+
+        fetch(`/back-office/demandas-contrato/${vendaId}`)
+            .then(res => res.json())
+            .then(data => {
+                demandasLoading.style.display = 'none';
+
+                if (!data.demandas || data.demandas.length === 0) {
+                    demandasEmpty.style.display = 'block';
+                    if (demandasCount) demandasCount.textContent = 'Nenhuma demanda';
+                    const statCount = document.getElementById('demandas-stat-count');
+                    if (statCount) statCount.textContent = '0';
+                    if (progressEl) progressEl.style.display = 'none';
+                    return;
+                }
+
+                const pendentes = data.pendentes || 0;
+                const total = data.total || 0;
+                const concluidas = total - pendentes;
+                const pct = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+
+                if (demandasCount) demandasCount.textContent = `${pendentes} pendente${pendentes !== 1 ? 's' : ''} de ${total}`;
+
+                const statCount = document.getElementById('demandas-stat-count');
+                if (statCount) statCount.textContent = pendentes;
+
+                // Update progress bar
+                if (progressEl) progressEl.style.display = 'flex';
+                if (progressFill) progressFill.style.width = pct + '%';
+                if (progressText) progressText.textContent = pct + '%';
+
+                data.demandas.forEach((demanda, index) => {
+                    const item = criarCardDemandaPME(demanda, index);
+                    demandasList.appendChild(item);
+                });
+
+                attachDemandaEvents();
+            })
+            .catch(() => {
+                demandasLoading.style.display = 'none';
+                demandasEmpty.style.display = 'block';
+                demandasEmpty.innerHTML = '<p>Erro ao carregar demandas</p>';
+            });
+    }
+
+    function criarCardDemandaPME(demanda, index) {
+        const isConcluida = demanda.status === 'CONCLUIDA';
+        const tipoLabel = tipoLabels[demanda.tipo] || demanda.tipo;
+        const el = document.createElement('div');
+        el.className = `demanda-item ${isConcluida ? 'demanda-concluida' : 'demanda-pendente'}`;
+        el.dataset.demandaId = demanda.id;
+        el.style.animationDelay = `${index * 60}ms`;
+
+        const checkIcon = isConcluida
+            ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"></path></svg>'
+            : '';
+
+        const descricaoHtml = demanda.descricao
+            ? `<span class="demanda-desc-text">${demanda.descricao}</span>`
+            : '';
+
+        const concluidaInfo = isConcluida && demanda.concluida_por
+            ? `<span class="demanda-meta-sep">&middot;</span><span class="demanda-concluida-info">Concluída por ${demanda.concluida_por.name}</span>`
+            : '';
+
+        el.innerHTML = `
+            <button type="button" class="demanda-checkbox" data-demanda-id="${demanda.id}" title="${isConcluida ? 'Reabrir' : 'Concluir'}">
+                <span class="checkbox-visual ${isConcluida ? 'checked' : ''}">${checkIcon}</span>
+            </button>
+            <div class="demanda-body">
+                <div class="demanda-row-top">
+                    <span class="demanda-tipo tipo-${demanda.tipo.toLowerCase()}">${tipoLabel}</span>
+                    <span class="demanda-titulo-text">${demanda.titulo}</span>
+                    ${descricaoHtml}
+                </div>
+                <div class="demanda-row-bottom">
+                    <span class="demanda-meta-info">${demanda.criador ? demanda.criador.name : ''}</span>
+                    <span class="demanda-meta-sep">&middot;</span>
+                    <span class="demanda-meta-info">${demanda.created_at || ''}</span>
+                    ${concluidaInfo}
+                </div>
+            </div>
+            <div class="demanda-actions">
+                <button type="button" class="btn-edit-demanda" data-demanda-id="${demanda.id}" data-tipo="${demanda.tipo}" data-titulo="${demanda.titulo}" data-descricao="${demanda.descricao || ''}" title="Editar">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <button type="button" class="btn-delete-demanda" data-demanda-id="${demanda.id}" title="Remover">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </div>
+        `;
+
+        return el;
+    }
+
+    function attachDemandaEvents() {
+        // Toggle status
+        document.querySelectorAll('.demanda-checkbox').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const demandaId = this.dataset.demandaId;
+                this.disabled = true;
+
+                fetch(`/back-office/demandas-contrato/${demandaId}/toggle`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    }
+                })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            loadDemandas();
+                        } else {
+                            alert(result.message || 'Erro ao alterar status');
+                        }
+                    })
+                    .catch(() => {
+                        alert('Erro ao alterar status da demanda');
+                    });
+            });
+        });
+
+        // Edit buttons
+        document.querySelectorAll('.btn-edit-demanda').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const id = this.dataset.demandaId;
+                const tipo = this.dataset.tipo;
+                const titulo = this.dataset.titulo;
+                const descricao = this.dataset.descricao;
+
+                document.getElementById('demanda_id').value = id;
+                document.getElementById('demanda_tipo').value = tipo;
+                document.getElementById('demanda_titulo').value = titulo;
+                document.getElementById('demanda_descricao').value = descricao;
+
+                const tituloEl = document.getElementById('demanda_titulo');
+                tituloEl.readOnly = tipo !== 'OUTRO';
+
+                const labelEl = document.getElementById('modalAddDemandaLabel');
+                if (labelEl) labelEl.textContent = 'Editar Demanda';
+
+                const btnText = document.getElementById('btn-save-demanda-text');
+                if (btnText) btnText.textContent = 'Atualizar';
+
+                const modal = new bootstrap.Modal(document.getElementById('modalAddDemanda'));
+                modal.show();
+            });
+        });
+
+        // Delete buttons
+        document.querySelectorAll('.btn-delete-demanda').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.getElementById('delete_demanda_id').value = this.dataset.demandaId;
+                const modal = new bootstrap.Modal(document.getElementById('modalDeleteDemanda'));
+                modal.show();
+            });
+        });
+    }
+
+    // Form submit for demanda
+    const formDemanda = document.getElementById('form-demanda');
+    if (formDemanda) {
+        formDemanda.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const demandaId = document.getElementById('demanda_id').value;
+            const tipo = document.getElementById('demanda_tipo').value;
+            const titulo = document.getElementById('demanda_titulo').value;
+            const descricao = document.getElementById('demanda_descricao').value;
+
+            if (!tipo || !titulo) {
+                alert('Preencha todos os campos obrigatórios.');
+                return;
+            }
+
+            const url = demandaId
+                ? `/back-office/demandas-contrato/${demandaId}`
+                : '/back-office/demandas-contrato';
+
+            const method = demandaId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                },
+                body: JSON.stringify({
+                    venda_id: vendaId,
+                    tipo: tipo,
+                    titulo: titulo,
+                    descricao: descricao || null
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('modalAddDemanda'))?.hide();
+                        formDemanda.reset();
+                        document.getElementById('demanda_id').value = '';
+                        document.getElementById('demanda_titulo').readOnly = false;
+                        loadDemandas();
+                    } else {
+                        alert(data.message || 'Erro ao salvar demanda');
+                    }
+                })
+                .catch(() => {
+                    alert('Erro ao salvar demanda');
+                });
+        });
+    }
+
+    // Confirm delete demanda
+    const btnConfirmDeleteDemanda = document.getElementById('btn-confirm-delete-demanda');
+    if (btnConfirmDeleteDemanda) {
+        btnConfirmDeleteDemanda.addEventListener('click', function () {
+            const demandaId = document.getElementById('delete_demanda_id').value;
+
+            fetch(`/back-office/demandas-contrato/${demandaId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    bootstrap.Modal.getInstance(document.getElementById('modalDeleteDemanda'))?.hide();
+                    loadDemandas();
+                })
+                .catch(() => {
+                    alert('Erro ao remover demanda');
+                });
+        });
+    }
+
+    // Reset demanda modal on close
+    const modalAddDemanda = document.getElementById('modalAddDemanda');
+    if (modalAddDemanda) {
+        modalAddDemanda.addEventListener('hidden.bs.modal', function () {
+            formDemanda?.reset();
+            document.getElementById('demanda_id').value = '';
+            document.getElementById('demanda_titulo').readOnly = false;
+            const labelEl = document.getElementById('modalAddDemandaLabel');
+            if (labelEl) labelEl.textContent = 'Nova Demanda';
+            const btnText = document.getElementById('btn-save-demanda-text');
+            if (btnText) btnText.textContent = 'Salvar';
+        });
+    }
+
+    // ============================================
     // Initialize
     // ============================================
     document.addEventListener('DOMContentLoaded', function () {
         loadAcessos();
+        loadDemandas();
         initEditTitular();
         initEditDependente();
         initEditPortabilidade();

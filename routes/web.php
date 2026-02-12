@@ -211,6 +211,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/relatorio-performance', [Backoffice::class, 'relatorioPerformance'])->name('backoffice.relatorioPerformance');
   Route::get('/back-office/relatorio-performance/data', [Backoffice::class, 'getPerformanceData'])->name('backoffice.getPerformanceData');
   Route::get('/back-office/pipeline-data', [Backoffice::class, 'getPipelineData'])->name('backoffice.pipelineData');
+  Route::get('/back-office/demandas-pendentes-kanban', [Backoffice::class, 'getDemandasPendentesKanban'])->name('backoffice.demandasPendentesKanban');
   Route::get('/back-office/contratos-por-status/{tabulacaoId}', [Backoffice::class, 'getContratosPorStatus'])->name('backoffice.contratosPorStatus');
   Route::get('/back-office/historico/{vendaId}', [Backoffice::class, 'getHistorico'])->name('backoffice.historico');
   Route::post('/back-office/assumir-contrato', [Backoffice::class, 'assumirContrato'])->name('backoffice.assumirContrato');
@@ -221,6 +222,13 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/back-office/acessos-empresa', [Backoffice::class, 'storeAcessoEmpresa'])->name('backoffice.storeAcessoEmpresa');
   Route::put('/back-office/acessos-empresa/{id}', [Backoffice::class, 'updateAcessoEmpresa'])->name('backoffice.updateAcessoEmpresa');
   Route::delete('/back-office/acessos-empresa/{id}', [Backoffice::class, 'deleteAcessoEmpresa'])->name('backoffice.deleteAcessoEmpresa');
+
+  // Demandas de Contrato
+  Route::get('/back-office/demandas-contrato/{vendaId}', [Backoffice::class, 'getDemandasContrato'])->name('backoffice.getDemandasContrato');
+  Route::post('/back-office/demandas-contrato', [Backoffice::class, 'storeDemandaContrato'])->name('backoffice.storeDemandaContrato');
+  Route::put('/back-office/demandas-contrato/{id}', [Backoffice::class, 'updateDemandaContrato'])->name('backoffice.updateDemandaContrato');
+  Route::patch('/back-office/demandas-contrato/{id}/toggle', [Backoffice::class, 'toggleStatusDemandaContrato'])->name('backoffice.toggleStatusDemandaContrato');
+  Route::delete('/back-office/demandas-contrato/{id}', [Backoffice::class, 'destroyDemandaContrato'])->name('backoffice.destroyDemandaContrato');
 
   // Pós-Venda
   Route::get('/back-office/pos-venda', [Backoffice::class, 'posVenda'])->name('backoffice.posVenda');
