@@ -1242,7 +1242,21 @@ class Backoffice extends Controller
    */
   public function relatorioPerformance()
   {
-    return view('content.pages.backoffice.relatorio-performance');
+    $empresaId = Auth::user()->empresa_id;
+
+    $backofficeUsers = User::where('empresa_id', $empresaId)
+      ->where(function ($q) {
+        $q->where('user_role_id', UserRole::BACKOFFICE)
+          ->orWhereIn('id', function ($sub) {
+            $sub->select('backoffice_id')
+              ->from('vendas')
+              ->whereNotNull('backoffice_id');
+          });
+      })
+      ->orderBy('name')
+      ->get(['id', 'name']);
+
+    return view('content.pages.backoffice.relatorio-performance', compact('backofficeUsers'));
   }
 
   /**
@@ -1264,6 +1278,8 @@ class Backoffice extends Controller
         $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
       }
 
+      $backofficeId = $request->input('backoffice_id');
+
       // Status do backoffice em ordem de pipeline
       $statusPipeline = [
         'VENDA' => ['ordem' => 1, 'tipo' => 'entrada'],
@@ -1278,8 +1294,8 @@ class Backoffice extends Controller
         'ESTORNO' => ['ordem' => 10, 'tipo' => 'falha'],
       ];
 
-      // Buscar vendas com seus status e datas
-      $vendas = DB::table('vendas')
+      // Buscar vendas com seus status e dados de backoffice
+      $query = DB::table('vendas')
         ->select([
           'vendas.id',
           'vendas.numero_proposta',
@@ -1289,18 +1305,27 @@ class Backoffice extends Controller
           'vendas.created_at as data_venda',
           'vendas.data_implantacao',
           'vendas.updated_at',
+          'vendas.backoffice_id',
           'users.name as vendedor',
+          'backoffice_user.name as backoffice_nome',
           'tabulacoes.descricao as status_atual',
           'contatos_corretores.updated_at as status_updated_at',
           'vendas.motivo_pendencia'
         ])
         ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
+        ->leftJoin('users as backoffice_user', 'backoffice_user.id', '=', 'vendas.backoffice_id')
         ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
         ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
         ->where('vendas.empresa_id', $empresaId)
         ->whereBetween('vendas.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-        ->orderBy('vendas.created_at', 'desc')
-        ->get();
+        ->orderBy('vendas.created_at', 'desc');
+
+      // Filtrar por backoffice específico
+      if ($backofficeId) {
+        $query->where('vendas.backoffice_id', $backofficeId);
+      }
+
+      $vendas = $query->get();
 
       // Métricas gerais
       $totalVendas = $vendas->count();
@@ -1331,23 +1356,6 @@ class Backoffice extends Controller
         $tempoMaxImplantacao = max($temposImplantacao);
       }
 
-      // Calcular tempo médio em cada status (baseado em updated_at)
-      $tempoMedioPorStatus = [];
-      foreach ($vendas->whereNotNull('status_atual') as $v) {
-        $status = $v->status_atual;
-        if (!isset($tempoMedioPorStatus[$status])) {
-          $tempoMedioPorStatus[$status] = ['total_dias' => 0, 'count' => 0, 'em_aberto' => 0];
-        }
-
-        if (!in_array($status, ['IMPLANTADO', 'ESTORNO', 'DECLINADO'])) {
-          // Status em aberto - calcular dias desde o update
-          $diasEmStatus = Carbon::parse($v->status_updated_at)->diffInDays(now());
-          $tempoMedioPorStatus[$status]['total_dias'] += $diasEmStatus;
-          $tempoMedioPorStatus[$status]['em_aberto']++;
-        }
-        $tempoMedioPorStatus[$status]['count']++;
-      }
-
       // Distribuição por status
       $distribuicaoStatus = $vendas->groupBy('status_atual')->map(function ($items, $status) use ($totalVendas, $statusPipeline) {
         $count = $items->count();
@@ -1369,7 +1377,7 @@ class Backoffice extends Controller
       foreach ($vendas->whereNotIn('status_atual', ['IMPLANTADO', 'ESTORNO', 'DECLINADO', null]) as $v) {
         $diasEmStatus = Carbon::parse($v->status_updated_at)->diffInDays(now());
 
-        if ($diasEmStatus >= 3) { // Considerar gargalo após 3 dias
+        if ($diasEmStatus >= 3) {
           $gargalos[] = [
             'id' => $v->id,
             'numero_proposta' => $v->numero_proposta ?? '-',
@@ -1377,6 +1385,7 @@ class Backoffice extends Controller
             'status_atual' => $v->status_atual,
             'dias_parado' => $diasEmStatus,
             'vendedor' => $v->vendedor ?? 'N/A',
+            'backoffice' => $v->backoffice_nome ?? 'Sem responsavel',
             'operadora' => $v->operadora ?? 'N/A',
             'valor_contrato' => $v->valor_contrato,
             'motivo_pendencia' => $v->motivo_pendencia,
@@ -1384,7 +1393,6 @@ class Backoffice extends Controller
         }
       }
 
-      // Ordenar gargalos por dias parado (desc)
       usort($gargalos, fn($a, $b) => $b['dias_parado'] <=> $a['dias_parado']);
 
       // Análise por operadora
@@ -1394,7 +1402,6 @@ class Backoffice extends Controller
         $perdidos = $items->whereIn('status_atual', ['ESTORNO', 'DECLINADO'])->count();
         $emAndamento = $total - $implantados - $perdidos;
 
-        // Tempo médio de implantação por operadora
         $tempos = [];
         foreach ($items->where('status_atual', 'IMPLANTADO') as $v) {
           if ($v->data_implantacao && $v->data_venda) {
@@ -1414,30 +1421,6 @@ class Backoffice extends Controller
         ];
       })->sortByDesc('total')->values();
 
-      // Análise por vendedor
-      $porVendedor = $vendas->groupBy('vendedor')->map(function ($items, $vendedor) {
-        $total = $items->count();
-        $implantados = $items->where('status_atual', 'IMPLANTADO')->count();
-        $perdidos = $items->whereIn('status_atual', ['ESTORNO', 'DECLINADO'])->count();
-
-        $tempos = [];
-        foreach ($items->where('status_atual', 'IMPLANTADO') as $v) {
-          if ($v->data_implantacao && $v->data_venda) {
-            $tempos[] = Carbon::parse($v->data_venda)->diffInDays(Carbon::parse($v->data_implantacao));
-          }
-        }
-
-        return [
-          'vendedor' => $vendedor ?: 'N/A',
-          'total' => $total,
-          'implantados' => $implantados,
-          'perdidos' => $perdidos,
-          'taxa_conversao' => $total > 0 ? round(($implantados / $total) * 100, 1) : 0,
-          'tempo_medio' => count($tempos) > 0 ? round(array_sum($tempos) / count($tempos), 1) : null,
-          'valor_implantado' => $items->where('status_atual', 'IMPLANTADO')->sum('valor_contrato'),
-        ];
-      })->sortByDesc('implantados')->values();
-
       // Evolução mensal
       $evolucaoMensal = $vendas->groupBy(function ($item) {
         return Carbon::parse($item->data_venda)->format('Y-m');
@@ -1454,7 +1437,7 @@ class Backoffice extends Controller
         ];
       })->sortKeys()->values();
 
-      // Pipeline funil - quantidade em cada etapa
+      // Pipeline funil
       $pipelineFunil = [];
       foreach ($statusPipeline as $status => $info) {
         $quantidade = $vendas->where('status_atual', $status)->count();
@@ -1470,20 +1453,7 @@ class Backoffice extends Controller
       }
       usort($pipelineFunil, fn($a, $b) => $a['ordem'] <=> $b['ordem']);
 
-      // Tempo médio por etapa (baseado em dias no status)
-      $tempoPorEtapa = [];
-      foreach ($tempoMedioPorStatus as $status => $dados) {
-        if ($dados['em_aberto'] > 0) {
-          $tempoPorEtapa[] = [
-            'etapa' => $status,
-            'media_dias' => round($dados['total_dias'] / $dados['em_aberto'], 1),
-            'contratos' => $dados['em_aberto'],
-          ];
-        }
-      }
-      usort($tempoPorEtapa, fn($a, $b) => $b['media_dias'] <=> $a['media_dias']);
-
-      // Análise de pendências (motivos mais comuns)
+      // Análise de pendências
       $pendencias = $vendas->whereNotNull('motivo_pendencia')
         ->where('motivo_pendencia', '!=', '')
         ->groupBy('motivo_pendencia')
@@ -1496,6 +1466,54 @@ class Backoffice extends Controller
         ->sortByDesc('quantidade')
         ->take(10)
         ->values();
+
+      // =============================================
+      // Performance individual por backoffice
+      // =============================================
+      $porBackoffice = $vendas->groupBy('backoffice_id')->map(function ($items, $boId) use ($statusPipeline) {
+        $total = $items->count();
+        $implantados = $items->where('status_atual', 'IMPLANTADO')->count();
+        $perdidos = $items->whereIn('status_atual', ['ESTORNO', 'DECLINADO'])->count();
+        $emAndamento = $total - $implantados - $perdidos;
+        $pendencias = $items->where('status_atual', 'PENDENCIA')->count();
+
+        // Tempo médio de implantação
+        $tempos = [];
+        foreach ($items->where('status_atual', 'IMPLANTADO') as $v) {
+          if ($v->data_implantacao && $v->data_venda) {
+            $tempos[] = Carbon::parse($v->data_venda)->diffInDays(Carbon::parse($v->data_implantacao));
+          }
+        }
+
+        // Distribuição de status individual
+        $statusDistribuicao = [];
+        foreach ($statusPipeline as $status => $info) {
+          $qty = $items->where('status_atual', $status)->count();
+          if ($qty > 0) {
+            $statusDistribuicao[] = [
+              'status' => $status,
+              'quantidade' => $qty,
+              'tipo' => $info['tipo'],
+            ];
+          }
+        }
+
+        return [
+          'backoffice_id' => $boId,
+          'backoffice_nome' => $items->first()->backoffice_nome ?? 'Sem responsavel',
+          'total' => $total,
+          'implantados' => $implantados,
+          'em_andamento' => $emAndamento,
+          'perdidos' => $perdidos,
+          'pendencias' => $pendencias,
+          'taxa_conversao' => $total > 0 ? round(($implantados / $total) * 100, 1) : 0,
+          'taxa_perda' => $total > 0 ? round(($perdidos / $total) * 100, 1) : 0,
+          'tempo_medio' => count($tempos) > 0 ? round(array_sum($tempos) / count($tempos), 1) : null,
+          'valor_total' => $items->sum('valor_contrato'),
+          'valor_implantado' => $items->where('status_atual', 'IMPLANTADO')->sum('valor_contrato'),
+          'status_distribuicao' => $statusDistribuicao,
+        ];
+      })->sortByDesc('implantados')->values();
 
       return response()->json([
         'success' => true,
@@ -1519,11 +1537,10 @@ class Backoffice extends Controller
         ],
         'distribuicao_status' => $distribuicaoStatus,
         'pipeline_funil' => $pipelineFunil,
-        'tempo_por_etapa' => $tempoPorEtapa,
         'gargalos' => array_slice($gargalos, 0, 20),
         'total_gargalos' => count($gargalos),
         'por_operadora' => $porOperadora,
-        'por_vendedor' => $porVendedor,
+        'por_backoffice' => $porBackoffice,
         'evolucao_mensal' => $evolucaoMensal,
         'pendencias_frequentes' => $pendencias,
       ]);
