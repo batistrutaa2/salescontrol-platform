@@ -618,6 +618,88 @@
     }
 
     // ============================================
+    // Add Titular (PME)
+    // ============================================
+    function initAddTitular() {
+        const btnOpen = document.getElementById('btn-open-add-titular');
+        if (!btnOpen) return;
+
+        btnOpen.addEventListener('click', function () {
+            // Clear form
+            const form = document.getElementById('form-add-titular-pme');
+            if (form) form.reset();
+
+            // Reset plano anterior visibility
+            const opContainer = document.getElementById('add_titular_operadora_anterior_container');
+            if (opContainer) opContainer.style.display = 'none';
+
+            const modal = new bootstrap.Modal(document.getElementById('modalAddTitularPME'));
+            modal.show();
+        });
+
+        // Plano anterior change toggle
+        const planoAnteriorSelect = document.getElementById('add_titular_plano_anterior');
+        if (planoAnteriorSelect) {
+            planoAnteriorSelect.addEventListener('change', function () {
+                const opContainer = document.getElementById('add_titular_operadora_anterior_container');
+                if (opContainer) {
+                    opContainer.style.display = this.value === 'SIM' ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Form submit
+        const form = document.getElementById('form-add-titular-pme');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const data = {
+                    venda_id: vendaId,
+                    nome: document.getElementById('add_titular_nome').value,
+                    cpf: document.getElementById('add_titular_cpf').value,
+                    data_nascimento: document.getElementById('add_titular_data_nascimento').value,
+                    email: document.getElementById('add_titular_email').value,
+                    telefone: document.getElementById('add_titular_telefone').value,
+                    telefone2: document.getElementById('add_titular_telefone2').value,
+                    cargo: document.getElementById('add_titular_cargo')?.value || '',
+                    plano_id: document.getElementById('add_titular_plano_id').value,
+                    coparticipacao: document.getElementById('add_titular_coparticipacao').value,
+                    plano_anterior: document.getElementById('add_titular_plano_anterior').value,
+                    operadora_anterior_id: document.getElementById('add_titular_operadora_anterior_id')?.value || ''
+                };
+
+                const btn = document.getElementById('btn-submit-add-titular');
+                if (btn) btn.disabled = true;
+
+                fetch('/backoffice/titulares-pme', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            bootstrap.Modal.getInstance(document.getElementById('modalAddTitularPME'))?.hide();
+                            window.location.reload();
+                        } else {
+                            alert(result.message || 'Erro ao cadastrar titular');
+                        }
+                    })
+                    .catch(() => {
+                        alert('Erro ao cadastrar titular');
+                    })
+                    .finally(() => {
+                        if (btn) btn.disabled = false;
+                    });
+            });
+        }
+    }
+
+    // ============================================
     // Edit Titular
     // ============================================
     function initEditTitular() {
@@ -771,10 +853,19 @@
                     opAnteriorContainer.style.display = 'none';
                 }
 
-                // Update modal title
+                // Update modal for add mode
                 if (modalTitle) {
                     modalTitle.textContent = 'Adicionar Dependente';
                 }
+                const modalSubtitle = document.getElementById('modalDependenteSubtitle');
+                if (modalSubtitle) modalSubtitle.textContent = 'Cadastre um novo dependente ao titular';
+                const btnText = document.getElementById('btnSaveDependenteText');
+                if (btnText) btnText.textContent = 'Adicionar';
+                // Toggle icons
+                const iconAdd = document.querySelector('.icon-add-dep');
+                const iconEdit = document.querySelector('.icon-edit-dep');
+                if (iconAdd) iconAdd.style.display = '';
+                if (iconEdit) iconEdit.style.display = 'none';
 
                 const modal = new bootstrap.Modal(document.getElementById('modalEditDependente'));
                 modal.show();
@@ -806,10 +897,19 @@
                     opAnteriorContainer.style.display = planoAnterior === 'SIM' ? 'block' : 'none';
                 }
 
-                // Update modal title
+                // Update modal for edit mode
                 if (modalTitle) {
                     modalTitle.textContent = 'Editar Dependente';
                 }
+                const modalSubtitle = document.getElementById('modalDependenteSubtitle');
+                if (modalSubtitle) modalSubtitle.textContent = 'Atualize os dados do dependente';
+                const btnText = document.getElementById('btnSaveDependenteText');
+                if (btnText) btnText.textContent = 'Salvar';
+                // Toggle icons
+                const iconAdd = document.querySelector('.icon-add-dep');
+                const iconEdit = document.querySelector('.icon-edit-dep');
+                if (iconAdd) iconAdd.style.display = 'none';
+                if (iconEdit) iconEdit.style.display = '';
 
                 const modal = new bootstrap.Modal(document.getElementById('modalEditDependente'));
                 modal.show();
@@ -1392,14 +1492,70 @@
     }
 
     // ============================================
+    // Delete Titular
+    // ============================================
+    function initDeleteTitular() {
+        document.querySelectorAll('.btn-delete-titular').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const titularId = this.dataset.titularId;
+                const nome = this.dataset.titularNome || 'este titular';
+
+                document.getElementById('delete_titular_id').value = titularId;
+                document.getElementById('delete-titular-text').textContent =
+                    `O titular "${nome}" e todos os seus dependentes serão removidos.`;
+
+                const modal = new bootstrap.Modal(document.getElementById('modalDeleteTitular'));
+                modal.show();
+            });
+        });
+
+        const btnConfirmDeleteTitular = document.getElementById('btn-confirm-delete-titular');
+        if (btnConfirmDeleteTitular) {
+            btnConfirmDeleteTitular.addEventListener('click', function () {
+                const titularId = document.getElementById('delete_titular_id').value;
+                const btn = this;
+
+                btn.disabled = true;
+                btn.textContent = 'Removendo...';
+
+                fetch(`/backoffice/titulares/${titularId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    }
+                })
+                    .then(res => res.json())
+                    .then(result => {
+                        bootstrap.Modal.getInstance(document.getElementById('modalDeleteTitular'))?.hide();
+                        if (result.success) {
+                            window.location.reload();
+                        } else {
+                            alert(result.message || 'Erro ao remover titular');
+                        }
+                    })
+                    .catch(() => {
+                        alert('Erro ao remover titular');
+                    })
+                    .finally(() => {
+                        btn.disabled = false;
+                        btn.textContent = 'Remover';
+                    });
+            });
+        }
+    }
+
+    // ============================================
     // Initialize
     // ============================================
     document.addEventListener('DOMContentLoaded', function () {
         loadAcessos();
         loadDemandas();
+        initAddTitular();
         initEditTitular();
         initEditDependente();
         initEditPortabilidade();
+        initDeleteTitular();
     });
 
 })();

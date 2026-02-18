@@ -553,6 +553,39 @@ class Backoffice extends Controller
   }
 
   /**
+   * Remove um titular e seus dependentes (cascade)
+   */
+  public function destroyTitular(int $id)
+  {
+    try {
+      $titular = VendaTitular::findOrFail($id);
+      $venda = Vendas::findOrFail($titular->venda_id);
+
+      if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Acesso negado para esta venda.'
+        ], 403);
+      }
+
+      DB::transaction(function () use ($titular) {
+        $titular->dependentes()->delete();
+        $titular->delete();
+      });
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Titular removido com sucesso.'
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Falha ao remover titular: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
    * Atualiza um titular no layout PME com todos os campos
    */
   public function updateTitularPME(Request $request, int $id)
@@ -631,6 +664,86 @@ class Backoffice extends Controller
       return response()->json([
         'success' => false,
         'message' => 'Falha ao atualizar titular: ' . $e->getMessage()
+      ], 500);
+    }
+  }
+
+  /**
+   * Cria um novo titular no layout PME (AJAX)
+   */
+  public function storeTitularPME(Request $request)
+  {
+    try {
+      $request->validate([
+        'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+      ]);
+
+      $venda = Vendas::findOrFail((int) $request->input('venda_id'));
+
+      if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Acesso negado para esta venda.'
+        ], 403);
+      }
+
+      $isAmil = stripos((string) $venda->operadora, 'AMIL') !== false;
+
+      $validated = $request->validate([
+        'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+        'nome' => ['required', 'string', 'max:100'],
+        'cpf' => ['nullable', 'string', 'max:20'],
+        'data_nascimento' => ['nullable', 'string', 'max:10'],
+        'email' => ['nullable', 'email', 'max:100'],
+        'telefone' => ['nullable', 'string', 'max:20'],
+        'telefone2' => ['nullable', 'string', 'max:20'],
+        'cargo' => ['nullable', 'string', 'max:50'],
+        'plano_id' => ['required', 'integer', 'exists:planos,id'],
+        'coparticipacao' => ['nullable', Rule::in($isAmil ? ['PARCIAL', 'COMPLETA'] : ['Y', 'N'])],
+        'plano_anterior' => ['nullable', Rule::in(['SIM', 'NAO'])],
+        'operadora_anterior_id' => ['nullable', 'integer', 'exists:operadoras,id'],
+      ]);
+
+      $titular = DB::transaction(function () use ($venda, $validated) {
+        $dataNascimento = null;
+        if (!empty($validated['data_nascimento'])) {
+          $partes = explode('/', $validated['data_nascimento']);
+          if (count($partes) === 3) {
+            $dataNascimento = "{$partes[2]}-{$partes[1]}-{$partes[0]}";
+          }
+        }
+
+        return VendaTitular::create([
+          'venda_id' => $venda->id,
+          'nome' => mb_strtoupper(trim($validated['nome']), 'UTF-8'),
+          'cpf' => Helpers::cleanSpecialCharacters($validated['cpf'] ?? ''),
+          'data_nascimento' => $dataNascimento,
+          'email' => $validated['email'] ?? null,
+          'telefone' => Helpers::cleanSpecialCharacters($validated['telefone'] ?? ''),
+          'telefone2' => Helpers::cleanSpecialCharacters($validated['telefone2'] ?? ''),
+          'cargo' => $validated['cargo'] ?? null,
+          'plano_id' => (int) $validated['plano_id'],
+          'coparticipacao' => strtoupper($validated['coparticipacao'] ?? ''),
+          'plano_anterior' => $validated['plano_anterior'] ?? 'NAO',
+          'operadora_anterior_id' => !empty($validated['operadora_anterior_id']) ? (int) $validated['operadora_anterior_id'] : null,
+        ]);
+      });
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Titular cadastrado com sucesso.',
+        'titular' => $titular
+      ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Erro de validacao.',
+        'errors' => $e->errors()
+      ], 422);
+    } catch (\Throwable $e) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Falha ao cadastrar titular: ' . $e->getMessage()
       ], 500);
     }
   }

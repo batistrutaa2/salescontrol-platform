@@ -2357,4 +2357,56 @@
       }
     }
   }
+
+  .dependentes-wrap {
+    background: rgba(30, 32, 47, 0.6);
+    border-color: rgba(255, 255, 255, 0.06) !important;
+  }
+
+  .dep-item {
+    background: rgba(30, 32, 47, 0.8);
+
+    &:hover {
+      background: rgba(var(--bo-primary-rgb), 0.1);
+    }
+  }
+}
+
+// ============================================
+// Shared: btn-xs
+// ============================================
+.btn-xs {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+// ============================================
+// Dependentes Section
+// ============================================
+.dependentes-wrap {
+  background: rgba(var(--bo-primary-rgb), 0.02);
+  border-color: rgba(var(--bo-primary-rgb), 0.08) !important;
+  transition: var(--bo-transition);
+}
+
+.dep-item {
+  background: rgba(var(--bo-primary-rgb), 0.03);
+  transition: var(--bo-transition);
+  font-size: 0.82rem;
+
+  &:hover {
+    background: rgba(var(--bo-primary-rgb), 0.07);
+  }
+
+  .dep-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+    min-width: 0;
+  }
 }

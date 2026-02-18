@@ -1016,4 +1016,253 @@ $(function () {
 
   // Load demandas on page load
   carregarDemandas();
+
+  // =============================================
+  // ===== EXCLUIR TITULAR =====
+  // =============================================
+
+  // Open delete titular confirmation modal
+  $(document).on('click', '.btn-delete-titular', function () {
+    const titularId = $(this).data('titular-id');
+    const titularNome = $(this).data('titular-nome') || '';
+    $('#delete_titular_id').val(titularId);
+    $('#delete-titular-text').text(
+      titularNome
+        ? `O titular "${titularNome}" e todos os seus dependentes serão removidos.`
+        : 'O titular e todos os seus dependentes serão removidos.'
+    );
+
+    const modal = new bootstrap.Modal(document.getElementById('modalDeleteTitular'));
+    modal.show();
+  });
+
+  // Confirm delete titular
+  $(document).on('click', '#btn-confirm-delete-titular', function () {
+    const titularId = $('#delete_titular_id').val();
+    const $btn = $(this);
+
+    $btn.prop('disabled', true).text('Removendo...');
+
+    $.ajax({
+      url: `/backoffice/titulares/${titularId}`,
+      type: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      }
+    })
+      .done(function (response) {
+        if (response.success) {
+          bootstrap.Modal.getInstance(document.getElementById('modalDeleteTitular')).hide();
+
+          // Remove titular form and dependentes section from DOM
+          const $form = $(`.form-titular-update[data-titular-id="${titularId}"]`);
+          const $deps = $(`#dependentes-titular-${titularId}`);
+          $form.fadeOut(300, function () { $(this).remove(); });
+          $deps.fadeOut(300, function () { $(this).remove(); });
+
+          showToast('success', response.message || 'Titular removido com sucesso!');
+        } else {
+          showToast('error', response.message || 'Erro ao remover titular.');
+        }
+      })
+      .fail(function (xhr) {
+        let message = 'Erro ao remover titular.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          message = xhr.responseJSON.message;
+        }
+        showToast('error', message);
+      })
+      .always(function () {
+        $btn.prop('disabled', false).text('Remover');
+      });
+  });
+
+  // =============================================
+  // ===== DEPENDENTES - CRUD =====
+  // =============================================
+
+  // Open add dependente modal
+  $(document).on('click', '.btn-add-dependente', function () {
+    const titularId = $(this).data('titular-id');
+    const vendaIdDep = $(this).data('venda-id');
+
+    $('#dep_titular_id').val(titularId);
+    $('#dep_venda_id').val(vendaIdDep);
+    $('#form-dependente')[0].reset();
+    $('#dep_titular_id').val(titularId);
+    $('#dep_venda_id').val(vendaIdDep);
+    $('#btn-save-dep-text').text('Salvar Dependente');
+
+    // Apply masks
+    maskPhone($('.mask-telefone-dep')[0]);
+    maskCpf($('.mask-cpf-dep')[0]);
+
+    const modal = new bootstrap.Modal(document.getElementById('modalAddDependente'));
+    modal.show();
+  });
+
+  // Submit add dependente
+  $(document).on('submit', '#form-dependente', function (e) {
+    e.preventDefault();
+
+    const $btn = $('#btn-save-dependente');
+    const titularId = $('#dep_titular_id').val();
+
+    const data = {
+      venda_id: $('#dep_venda_id').val(),
+      titular_id: titularId,
+      nome: $('#dep_nome').val(),
+      cpf: $('#dep_cpf').val() || null,
+      data_nascimento: $('#dep_data_nascimento').val() || null,
+      telefone1: $('#dep_telefone1').val() || null,
+      parentesco: $('#dep_parentesco').val() || null
+    };
+
+    if (!data.nome) {
+      showToast('error', 'O nome do dependente é obrigatório.');
+      return;
+    }
+
+    $btn.prop('disabled', true);
+    $('#btn-save-dep-text').text('Salvando...');
+
+    $.ajax({
+      url: '/backoffice/dependentes-pme',
+      type: 'POST',
+      data: data,
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      }
+    })
+      .done(function (response) {
+        if (response.success) {
+          bootstrap.Modal.getInstance(document.getElementById('modalAddDependente')).hide();
+          showToast('success', response.message || 'Dependente adicionado com sucesso!');
+
+          // Add dependente to the DOM
+          const dep = response.dependente;
+          const $list = $(`.dependentes-list[data-titular-id="${titularId}"]`);
+
+          // Remove "nenhum dependente" message if exists
+          $list.find('p.text-muted').remove();
+
+          const parentescoLabel = dep.parentesco || '';
+          const cpfLabel = dep.cpf ? `<span class="text-muted ms-2" style="font-size: .78rem;">CPF: ${dep.cpf}</span>` : '';
+          const nascLabel = dep.data_nascimento
+            ? `<span class="text-muted ms-2" style="font-size: .78rem;">Nasc: ${formatDateBr(dep.data_nascimento)}</span>`
+            : '';
+          const badgeParentesco = parentescoLabel
+            ? `<span class="badge bg-label-info ms-1" style="font-size: .65rem;">${parentescoLabel}</span>`
+            : '';
+
+          const html = `
+            <div class="dep-item d-flex align-items-center justify-content-between py-2 px-3 mb-1 rounded" data-dep-id="${dep.id}">
+              <div class="dep-info">
+                <span class="fw-semibold">${dep.nome}</span>
+                ${badgeParentesco}
+                ${cpfLabel}
+                ${nascLabel}
+              </div>
+              <button type="button" class="btn btn-xs btn-outline-danger btn-delete-dependente" data-dep-id="${dep.id}" title="Excluir dependente">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          `;
+          $list.append(html);
+
+          // Update count badge
+          const $badge = $(`.dep-count-badge[data-titular-id="${titularId}"]`);
+          $badge.text(parseInt($badge.text() || 0) + 1);
+        } else {
+          showToast('error', response.message || 'Erro ao adicionar dependente.');
+        }
+      })
+      .fail(function (xhr) {
+        let message = 'Erro ao adicionar dependente.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          message = xhr.responseJSON.message;
+        }
+        showToast('error', message);
+      })
+      .always(function () {
+        $btn.prop('disabled', false);
+        $('#btn-save-dep-text').text('Salvar Dependente');
+      });
+  });
+
+  // Format date from yyyy-mm-dd to dd/mm/yyyy
+  function formatDateBr(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return dateStr;
+  }
+
+  // Open delete dependente confirmation modal
+  $(document).on('click', '.btn-delete-dependente', function () {
+    const depId = $(this).data('dep-id');
+    const titularId = $(this).closest('.dependentes-wrap').find('.dependentes-list').data('titular-id')
+      || $(this).closest('.dependentes-list').data('titular-id');
+
+    $('#delete_dep_id').val(depId);
+    $('#delete_dep_titular_id').val(titularId);
+
+    const modal = new bootstrap.Modal(document.getElementById('modalDeleteDependente'));
+    modal.show();
+  });
+
+  // Confirm delete dependente
+  $(document).on('click', '#btn-confirm-delete-dep', function () {
+    const depId = $('#delete_dep_id').val();
+    const titularId = $('#delete_dep_titular_id').val();
+    const $btn = $(this);
+
+    $btn.prop('disabled', true).text('Removendo...');
+
+    $.ajax({
+      url: `/backoffice/dependentes-pme/${depId}`,
+      type: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      }
+    })
+      .done(function (response) {
+        if (response.success) {
+          bootstrap.Modal.getInstance(document.getElementById('modalDeleteDependente')).hide();
+
+          // Remove from DOM
+          $(`.dep-item[data-dep-id="${depId}"]`).fadeOut(300, function () {
+            $(this).remove();
+
+            // Check if list is empty
+            const $list = $(`.dependentes-list[data-titular-id="${titularId}"]`);
+            if ($list.find('.dep-item').length === 0) {
+              $list.append('<p class="text-muted mb-0" style="font-size: .78rem;">Nenhum dependente cadastrado.</p>');
+            }
+          });
+
+          // Update count badge
+          const $badge = $(`.dep-count-badge[data-titular-id="${titularId}"]`);
+          const current = parseInt($badge.text() || 0);
+          $badge.text(Math.max(0, current - 1));
+
+          showToast('success', response.message || 'Dependente removido com sucesso!');
+        } else {
+          showToast('error', response.message || 'Erro ao remover dependente.');
+        }
+      })
+      .fail(function () {
+        showToast('error', 'Erro ao remover dependente.');
+      })
+      .always(function () {
+        $btn.prop('disabled', false).text('Remover');
+      });
+  });
+
+  // Reset dependente modal when closed
+  $('#modalAddDependente').on('hidden.bs.modal', function () {
+    $('#form-dependente')[0].reset();
+    $('#dep_titular_id').val('');
+    $('#dep_venda_id').val('');
+  });
 });

@@ -500,6 +500,62 @@
                                 <button type="submit" class="btn btn-primary">Salvar titular</button>
                             </div>
                         </form>
+
+                        {{-- Dependentes do Titular --}}
+                        <div class="dependentes-wrap border rounded p-3 mb-3" id="dependentes-titular-{{ $titular->id }}">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-semibold text-muted" style="font-size: .8rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="9" cy="7" r="4"/>
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                    </svg>
+                                    Dependentes
+                                    <span class="badge bg-label-secondary ms-1 dep-count-badge" data-titular-id="{{ $titular->id }}">{{ $titular->dependentes ? $titular->dependentes->count() : 0 }}</span>
+                                </span>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-xs btn-outline-primary btn-add-dependente"
+                                        data-titular-id="{{ $titular->id }}" data-venda-id="{{ $contract->id }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                        Adicionar
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-danger btn-delete-titular"
+                                        data-titular-id="{{ $titular->id }}" data-titular-nome="{{ $titular->nome }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                        Excluir titular
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="dependentes-list" data-titular-id="{{ $titular->id }}">
+                                @if($titular->dependentes && $titular->dependentes->count())
+                                    @foreach($titular->dependentes as $dep)
+                                        <div class="dep-item d-flex align-items-center justify-content-between py-2 px-3 mb-1 rounded" data-dep-id="{{ $dep->id }}">
+                                            <div class="dep-info">
+                                                <span class="fw-semibold">{{ $dep->nome }}</span>
+                                                @if($dep->parentesco)
+                                                    <span class="badge bg-label-info ms-1" style="font-size: .65rem;">{{ $dep->parentesco }}</span>
+                                                @endif
+                                                @if($dep->cpf)
+                                                    <span class="text-muted ms-2" style="font-size: .78rem;">CPF: {{ $dep->cpf }}</span>
+                                                @endif
+                                                @if($dep->data_nascimento)
+                                                    <span class="text-muted ms-2" style="font-size: .78rem;">Nasc: {{ \Carbon\Carbon::parse($dep->data_nascimento)->format('d/m/Y') }}</span>
+                                                @endif
+                                            </div>
+                                            @if ($canEdit ?? true)
+                                            <button type="button" class="btn btn-xs btn-outline-danger btn-delete-dependente" data-dep-id="{{ $dep->id }}" title="Excluir dependente">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                            </button>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                @else
+                                    <p class="text-muted mb-0" style="font-size: .78rem;">Nenhum dependente cadastrado.</p>
+                                @endif
+                            </div>
+                        </div>
                     @empty
 
                     @endforelse
@@ -819,6 +875,106 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal: Confirmação de Exclusão de Titular --}}
+    <div class="modal fade" id="modalDeleteTitular" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content modal-delete-demanda">
+                <div class="modal-body text-center">
+                    <div class="delete-icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </div>
+                    <h5 class="delete-title">Remover Titular?</h5>
+                    <p class="delete-text" id="delete-titular-text">O titular e todos os seus dependentes serão removidos.</p>
+                    <input type="hidden" id="delete_titular_id" value="">
+                    <div class="delete-actions">
+                        <button type="button" class="btn-cancel-demanda" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn-delete-confirm" id="btn-confirm-delete-titular">Remover</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal: Adicionar Dependente --}}
+    <div class="modal fade" id="modalAddDependente" tabindex="-1" aria-labelledby="modalAddDependenteLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalAddDependenteLabel">Adicionar Dependente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <form id="form-dependente" novalidate>
+                    <input type="hidden" name="venda_id" id="dep_venda_id" value="">
+                    <input type="hidden" name="titular_id" id="dep_titular_id" value="">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Nome <span class="text-danger">*</span></label>
+                                <input type="text" name="nome" id="dep_nome" class="form-control" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Parentesco</label>
+                                <select name="parentesco" id="dep_parentesco" class="form-select">
+                                    <option value="">Selecione...</option>
+                                    <option value="CONJUGE">Cônjuge</option>
+                                    <option value="FILHO">Filho(a)</option>
+                                    <option value="PAI_MAE">Pai/Mãe</option>
+                                    <option value="SOBRINHO">Sobrinho(a)</option>
+                                    <option value="OUTROS">Outros</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">CPF</label>
+                                <input type="text" name="cpf" id="dep_cpf" class="form-control mask-cpf-dep">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Data Nasc.</label>
+                                <input type="text" name="data_nascimento" id="dep_data_nascimento" class="form-control" placeholder="dd/mm/aaaa">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Telefone</label>
+                                <input type="text" name="telefone1" id="dep_telefone1" class="form-control mask-telefone-dep">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success" id="btn-save-dependente">
+                            <span id="btn-save-dep-text">Salvar Dependente</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal: Confirmação de Exclusão de Dependente --}}
+    <div class="modal fade" id="modalDeleteDependente" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content modal-delete-demanda">
+                <div class="modal-body text-center">
+                    <div class="delete-icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </div>
+                    <h5 class="delete-title">Remover Dependente?</h5>
+                    <p class="delete-text">Esta ação não poderá ser desfeita.</p>
+                    <input type="hidden" id="delete_dep_id" value="">
+                    <input type="hidden" id="delete_dep_titular_id" value="">
+                    <div class="delete-actions">
+                        <button type="button" class="btn-cancel-demanda" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn-delete-confirm" id="btn-confirm-delete-dep">Remover</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

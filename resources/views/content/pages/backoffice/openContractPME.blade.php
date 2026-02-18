@@ -552,6 +552,17 @@
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                         <span>Titulares e Dependentes</span>
                     </div>
+                    @if($canEdit)
+                    <button type="button" class="btn-add-titular-pme" id="btn-open-add-titular" title="Adicionar Titular">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <line x1="19" y1="8" x2="19" y2="14"/>
+                            <line x1="22" y1="11" x2="16" y2="11"/>
+                        </svg>
+                        <span>Adicionar Titular</span>
+                    </button>
+                    @endif
                 </div>
 
                 <div class="titulares-scroll">
@@ -576,6 +587,9 @@
                             <div class="titular-actions">
                                 <button type="button" class="btn-icon btn-add-dep" data-titular-id="{{ $titular->id }}" title="Adicionar Dependente">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
+                                </button>
+                                <button type="button" class="btn-icon btn-delete-titular" data-titular-id="{{ $titular->id }}" data-titular-nome="{{ $titular->nome }}" title="Excluir Titular">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                 </button>
                                 <button type="button" class="btn-icon btn-edit" data-titular-id="{{ $titular->id }}"
                                     data-nome="{{ $titular->nome }}"
@@ -927,94 +941,313 @@
         </div>
     </div>
 
+    {{-- Modal: Adicionar Titular --}}
+    <div class="modal fade" id="modalAddTitularPME" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-add-titular-pme">
+                <div class="add-titular-header">
+                    <div class="add-titular-header-left">
+                        <div class="add-titular-icon-wrapper">
+                            <div class="add-titular-icon-ring"></div>
+                            <div class="add-titular-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <line x1="19" y1="8" x2="19" y2="14"/>
+                                    <line x1="22" y1="11" x2="16" y2="11"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="add-titular-title">Adicionar Titular</h5>
+                            <span class="add-titular-subtitle">Cadastre um novo beneficiario ao contrato</span>
+                        </div>
+                    </div>
+                    <button type="button" class="add-titular-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <form id="form-add-titular-pme">
+                    <input type="hidden" name="venda_id" value="{{ $contract->id }}">
+                    <div class="add-titular-body">
+                        {{-- Dados Pessoais --}}
+                        <div class="add-titular-section">
+                            <div class="add-titular-section-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                Dados Pessoais
+                            </div>
+                            <div class="pme-grid grid-2">
+                                <div class="pme-field span-2">
+                                    <label>Nome <span class="required">*</span></label>
+                                    <input type="text" name="nome" id="add_titular_nome" class="pme-input" required>
+                                </div>
+                                <div class="pme-field">
+                                    <label>CPF</label>
+                                    <input type="text" name="cpf" id="add_titular_cpf" class="pme-input mask-cpf-modal">
+                                </div>
+                                <div class="pme-field">
+                                    <label>Data Nascimento</label>
+                                    <input type="text" name="data_nascimento" id="add_titular_data_nascimento" class="pme-input flatpickr-modal">
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Contato --}}
+                        <div class="add-titular-section">
+                            <div class="add-titular-section-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                </svg>
+                                Contato
+                            </div>
+                            <div class="pme-grid grid-2">
+                                <div class="pme-field">
+                                    <label>E-mail</label>
+                                    <input type="email" name="email" id="add_titular_email" class="pme-input">
+                                </div>
+                                <div class="pme-field field-cargo-modal" @if(($contract->tipo_contrato ?? 'PME') === 'ADESAO') style="display:none;" @endif>
+                                    <label>Cargo</label>
+                                    <select name="cargo" id="add_titular_cargo" class="pme-input">
+                                        <option value="">Selecione...</option>
+                                        @foreach($cargos as $key => $label)
+                                            <option value="{{ $key }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="pme-field">
+                                    <label>Telefone</label>
+                                    <input type="text" name="telefone" id="add_titular_telefone" class="pme-input mask-telefone-modal">
+                                </div>
+                                <div class="pme-field">
+                                    <label>Telefone 2</label>
+                                    <input type="text" name="telefone2" id="add_titular_telefone2" class="pme-input mask-telefone-modal">
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Plano --}}
+                        <div class="add-titular-section">
+                            <div class="add-titular-section-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                                </svg>
+                                Plano
+                            </div>
+                            <div class="pme-grid grid-2">
+                                <div class="pme-field">
+                                    <label>Plano <span class="required">*</span></label>
+                                    <select name="plano_id" id="add_titular_plano_id" class="pme-input" required>
+                                        <option value="">Selecione...</option>
+                                        @foreach ($planosDaOperadora as $p)
+                                            <option value="{{ $p->id }}">{{ strtoupper($p->nome) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="pme-field">
+                                    <label>Coparticipacao <span class="required">*</span></label>
+                                    <select name="coparticipacao" id="add_titular_coparticipacao" class="pme-input" required>
+                                        <option value="">Selecione...</option>
+                                        @if($isAmil)
+                                            <option value="PARCIAL">Parcial</option>
+                                            <option value="COMPLETA">Completa</option>
+                                        @else
+                                            <option value="Y">Sim</option>
+                                            <option value="N">Nao</option>
+                                        @endif
+                                    </select>
+                                </div>
+                                <div class="pme-field">
+                                    <label>Plano Anterior</label>
+                                    <select name="plano_anterior" id="add_titular_plano_anterior" class="pme-input">
+                                        <option value="NAO">Nao</option>
+                                        <option value="SIM">Sim</option>
+                                    </select>
+                                </div>
+                                <div class="pme-field" id="add_titular_operadora_anterior_container" style="display: none;">
+                                    <label>Operadora Anterior</label>
+                                    <select name="operadora_anterior_id" id="add_titular_operadora_anterior_id" class="pme-input">
+                                        <option value="">Selecione...</option>
+                                        @foreach ($operadoras ?? collect() as $op)
+                                            <option value="{{ $op->id }}">{{ $op->nome }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="add-titular-footer">
+                        <button type="button" class="btn-cancel-add-titular" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn-save-add-titular" id="btn-submit-add-titular">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <line x1="19" y1="8" x2="19" y2="14"/>
+                                <line x1="22" y1="11" x2="16" y2="11"/>
+                            </svg>
+                            Adicionar Titular
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {{-- Modal: Editar Titular --}}
     <div class="modal fade" id="modalEditTitular" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content pme-modal">
-                <div class="modal-header">
-                    <h5 class="modal-title">Editar Titular</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            <div class="modal-content modal-edit-titular-pme">
+                <div class="edit-titular-header">
+                    <div class="edit-titular-header-left">
+                        <div class="edit-titular-icon-wrapper">
+                            <div class="edit-titular-icon-ring"></div>
+                            <div class="edit-titular-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                                    <path d="m15 5 4 4"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="edit-titular-title">Editar Titular</h5>
+                            <span class="edit-titular-subtitle">Atualize os dados do beneficiario</span>
+                        </div>
+                    </div>
+                    <button type="button" class="edit-titular-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                        </svg>
+                    </button>
                 </div>
                 <form id="form-edit-titular">
                     <input type="hidden" name="titular_id" id="edit_titular_id" value="">
                     <input type="hidden" name="venda_id" value="{{ $contract->id }}">
-                    <div class="modal-body">
-                        <div class="pme-grid grid-2">
-                            <div class="pme-field span-2">
-                                <label>Nome <span class="required">*</span></label>
-                                <input type="text" name="nome" id="edit_titular_nome" class="pme-input" required>
+                    <div class="edit-titular-body">
+                        {{-- Dados Pessoais --}}
+                        <div class="edit-titular-section">
+                            <div class="edit-titular-section-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                Dados Pessoais
                             </div>
-                            <div class="pme-field">
-                                <label>CPF</label>
-                                <input type="text" name="cpf" id="edit_titular_cpf" class="pme-input mask-cpf-modal">
+                            <div class="pme-grid grid-2">
+                                <div class="pme-field span-2">
+                                    <label>Nome <span class="required">*</span></label>
+                                    <input type="text" name="nome" id="edit_titular_nome" class="pme-input" required>
+                                </div>
+                                <div class="pme-field">
+                                    <label>CPF</label>
+                                    <input type="text" name="cpf" id="edit_titular_cpf" class="pme-input mask-cpf-modal">
+                                </div>
+                                <div class="pme-field">
+                                    <label>Data Nascimento</label>
+                                    <input type="text" name="data_nascimento" id="edit_titular_data_nascimento" class="pme-input flatpickr-modal">
+                                </div>
                             </div>
-                            <div class="pme-field">
-                                <label>Data Nascimento</label>
-                                <input type="text" name="data_nascimento" id="edit_titular_data_nascimento" class="pme-input flatpickr-modal">
+                        </div>
+
+                        {{-- Contato --}}
+                        <div class="edit-titular-section">
+                            <div class="edit-titular-section-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                </svg>
+                                Contato
                             </div>
-                            <div class="pme-field">
-                                <label>E-mail</label>
-                                <input type="email" name="email" id="edit_titular_email" class="pme-input">
+                            <div class="pme-grid grid-2">
+                                <div class="pme-field">
+                                    <label>E-mail</label>
+                                    <input type="email" name="email" id="edit_titular_email" class="pme-input">
+                                </div>
+                                <div class="pme-field field-cargo-modal" @if(($contract->tipo_contrato ?? 'PME') === 'ADESAO') style="display:none;" @endif>
+                                    <label>Cargo</label>
+                                    <select name="cargo" id="edit_titular_cargo" class="pme-input">
+                                        <option value="">Selecione...</option>
+                                        @foreach($cargos as $key => $label)
+                                            <option value="{{ $key }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="pme-field">
+                                    <label>Telefone</label>
+                                    <input type="text" name="telefone" id="edit_titular_telefone" class="pme-input mask-telefone-modal">
+                                </div>
+                                <div class="pme-field">
+                                    <label>Telefone 2</label>
+                                    <input type="text" name="telefone2" id="edit_titular_telefone2" class="pme-input mask-telefone-modal">
+                                </div>
                             </div>
-                            <div class="pme-field">
-                                <label>Telefone</label>
-                                <input type="text" name="telefone" id="edit_titular_telefone" class="pme-input mask-telefone-modal">
+                        </div>
+
+                        {{-- Plano --}}
+                        <div class="edit-titular-section">
+                            <div class="edit-titular-section-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                                </svg>
+                                Plano
                             </div>
-                            <div class="pme-field">
-                                <label>Telefone 2</label>
-                                <input type="text" name="telefone2" id="edit_titular_telefone2" class="pme-input mask-telefone-modal">
-                            </div>
-                            <div class="pme-field field-cargo-modal" @if(($contract->tipo_contrato ?? 'PME') === 'ADESAO') style="display:none;" @endif>
-                                <label>Cargo</label>
-                                <select name="cargo" id="edit_titular_cargo" class="pme-input">
-                                    <option value="">Selecione...</option>
-                                    @foreach($cargos as $key => $label)
-                                        <option value="{{ $key }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="pme-field">
-                                <label>Plano <span class="required">*</span></label>
-                                <select name="plano_id" id="edit_titular_plano_id" class="pme-input" required>
-                                    <option value="">Selecione...</option>
-                                    @foreach ($planosDaOperadora as $p)
-                                        <option value="{{ $p->id }}">{{ strtoupper($p->nome) }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="pme-field">
-                                <label>Coparticipacao</label>
-                                <select name="coparticipacao" id="edit_titular_coparticipacao" class="pme-input">
-                                    @if($isAmil)
-                                        <option value="PARCIAL">Parcial</option>
-                                        <option value="COMPLETA">Completa</option>
-                                    @else
-                                        <option value="Y">Sim</option>
-                                        <option value="N">Nao</option>
-                                    @endif
-                                </select>
-                            </div>
-                            <div class="pme-field">
-                                <label>Plano Anterior</label>
-                                <select name="plano_anterior" id="edit_titular_plano_anterior" class="pme-input">
-                                    <option value="NAO">Nao</option>
-                                    <option value="SIM">Sim</option>
-                                </select>
-                            </div>
-                            <div class="pme-field" id="edit_titular_operadora_anterior_container" style="display: none;">
-                                <label>Operadora Anterior</label>
-                                <select name="operadora_anterior_id" id="edit_titular_operadora_anterior_id" class="pme-input">
-                                    <option value="">Selecione...</option>
-                                    @foreach ($operadoras ?? collect() as $op)
-                                        <option value="{{ $op->id }}">{{ $op->nome }}</option>
-                                    @endforeach
-                                </select>
+                            <div class="pme-grid grid-2">
+                                <div class="pme-field">
+                                    <label>Plano <span class="required">*</span></label>
+                                    <select name="plano_id" id="edit_titular_plano_id" class="pme-input" required>
+                                        <option value="">Selecione...</option>
+                                        @foreach ($planosDaOperadora as $p)
+                                            <option value="{{ $p->id }}">{{ strtoupper($p->nome) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="pme-field">
+                                    <label>Coparticipacao</label>
+                                    <select name="coparticipacao" id="edit_titular_coparticipacao" class="pme-input">
+                                        @if($isAmil)
+                                            <option value="PARCIAL">Parcial</option>
+                                            <option value="COMPLETA">Completa</option>
+                                        @else
+                                            <option value="Y">Sim</option>
+                                            <option value="N">Nao</option>
+                                        @endif
+                                    </select>
+                                </div>
+                                <div class="pme-field">
+                                    <label>Plano Anterior</label>
+                                    <select name="plano_anterior" id="edit_titular_plano_anterior" class="pme-input">
+                                        <option value="NAO">Nao</option>
+                                        <option value="SIM">Sim</option>
+                                    </select>
+                                </div>
+                                <div class="pme-field" id="edit_titular_operadora_anterior_container" style="display: none;">
+                                    <label>Operadora Anterior</label>
+                                    <select name="operadora_anterior_id" id="edit_titular_operadora_anterior_id" class="pme-input">
+                                        <option value="">Selecione...</option>
+                                        @foreach ($operadoras ?? collect() as $op)
+                                            <option value="{{ $op->id }}">{{ $op->nome }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="pme-btn pme-btn-outline" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="pme-btn pme-btn-primary" id="btn-save-titular">Salvar</button>
+                    <div class="edit-titular-footer">
+                        <button type="button" class="btn-cancel-edit-titular" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn-save-edit-titular" id="btn-save-titular">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Salvar Alteracoes
+                        </button>
                     </div>
                 </form>
             </div>
@@ -1024,93 +1257,161 @@
     {{-- Modal: Adicionar/Editar Dependente --}}
     <div class="modal fade" id="modalEditDependente" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content pme-modal">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalDependenteTitle">Editar Dependente</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            <div class="modal-content modal-dependente-pme">
+                <div class="dependente-modal-header">
+                    <div class="dependente-modal-header-left">
+                        <div class="dependente-modal-icon-wrapper">
+                            <div class="dependente-modal-icon-ring"></div>
+                            <div class="dependente-modal-icon" id="dependenteModalIcon">
+                                {{-- Icone padrao: adicionar (user-plus) --}}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-add-dep">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <line x1="19" y1="8" x2="19" y2="14"/>
+                                    <line x1="22" y1="11" x2="16" y2="11"/>
+                                </svg>
+                                {{-- Icone editar (pencil) --}}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-edit-dep" style="display:none;">
+                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                                    <path d="m15 5 4 4"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="dependente-modal-title" id="modalDependenteTitle">Adicionar Dependente</h5>
+                            <span class="dependente-modal-subtitle" id="modalDependenteSubtitle">Cadastre um novo dependente ao titular</span>
+                        </div>
+                    </div>
+                    <button type="button" class="dependente-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                        </svg>
+                    </button>
                 </div>
                 <form id="form-edit-dependente">
                     <input type="hidden" name="dependente_id" id="edit_dependente_id" value="">
                     <input type="hidden" name="titular_id" id="edit_dependente_titular_id" value="">
                     <input type="hidden" name="venda_id" value="{{ $contract->id }}">
-                    <div class="modal-body">
-                        <div class="pme-grid grid-2">
-                            <div class="pme-field span-2">
-                                <label>Nome <span class="required">*</span></label>
-                                <input type="text" name="nome" id="edit_dependente_nome" class="pme-input" required>
+                    <div class="dependente-modal-body">
+                        {{-- Dados Pessoais --}}
+                        <div class="dependente-modal-section">
+                            <div class="dependente-modal-section-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                Dados Pessoais
                             </div>
-                            <div class="pme-field">
-                                <label>CPF</label>
-                                <input type="text" name="cpf" id="edit_dependente_cpf" class="pme-input mask-cpf-modal">
+                            <div class="pme-grid grid-2">
+                                <div class="pme-field span-2">
+                                    <label>Nome <span class="required">*</span></label>
+                                    <input type="text" name="nome" id="edit_dependente_nome" class="pme-input" required>
+                                </div>
+                                <div class="pme-field">
+                                    <label>CPF</label>
+                                    <input type="text" name="cpf" id="edit_dependente_cpf" class="pme-input mask-cpf-modal">
+                                </div>
+                                <div class="pme-field">
+                                    <label>Data Nascimento</label>
+                                    <input type="text" name="data_nascimento" id="edit_dependente_data_nascimento" class="pme-input flatpickr-modal">
+                                </div>
                             </div>
-                            <div class="pme-field">
-                                <label>Data Nascimento</label>
-                                <input type="text" name="data_nascimento" id="edit_dependente_data_nascimento" class="pme-input flatpickr-modal">
+                        </div>
+
+                        {{-- Contato & Vinculo --}}
+                        <div class="dependente-modal-section">
+                            <div class="dependente-modal-section-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                </svg>
+                                Contato & Vinculo
                             </div>
-                            <div class="pme-field">
-                                <label>E-mail</label>
-                                <input type="email" name="email" id="edit_dependente_email" class="pme-input">
+                            <div class="pme-grid grid-2">
+                                <div class="pme-field">
+                                    <label>E-mail</label>
+                                    <input type="email" name="email" id="edit_dependente_email" class="pme-input">
+                                </div>
+                                <div class="pme-field">
+                                    <label>Parentesco</label>
+                                    <select name="parentesco" id="edit_dependente_parentesco" class="pme-input">
+                                        <option value="">Selecione...</option>
+                                        @foreach($parentescos as $key => $label)
+                                            <option value="{{ $key }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="pme-field">
+                                    <label>Telefone 1</label>
+                                    <input type="text" name="telefone1" id="edit_dependente_telefone1" class="pme-input mask-telefone-modal">
+                                </div>
+                                <div class="pme-field">
+                                    <label>Telefone 2</label>
+                                    <input type="text" name="telefone2" id="edit_dependente_telefone2" class="pme-input mask-telefone-modal">
+                                </div>
                             </div>
-                            <div class="pme-field">
-                                <label>Telefone 1</label>
-                                <input type="text" name="telefone1" id="edit_dependente_telefone1" class="pme-input mask-telefone-modal">
+                        </div>
+
+                        {{-- Plano --}}
+                        <div class="dependente-modal-section">
+                            <div class="dependente-modal-section-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                                </svg>
+                                Plano
                             </div>
-                            <div class="pme-field">
-                                <label>Telefone 2</label>
-                                <input type="text" name="telefone2" id="edit_dependente_telefone2" class="pme-input mask-telefone-modal">
-                            </div>
-                            <div class="pme-field">
-                                <label>Parentesco</label>
-                                <select name="parentesco" id="edit_dependente_parentesco" class="pme-input">
-                                    <option value="">Selecione...</option>
-                                    @foreach($parentescos as $key => $label)
-                                        <option value="{{ $key }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="pme-field">
-                                <label>Plano</label>
-                                <select name="plano_id" id="edit_dependente_plano_id" class="pme-input">
-                                    <option value="">Mesmo do titular</option>
-                                    @foreach ($planosDaOperadora as $p)
-                                        <option value="{{ $p->id }}">{{ strtoupper($p->nome) }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="pme-field">
-                                <label>Coparticipacao</label>
-                                <select name="coparticipacao" id="edit_dependente_coparticipacao" class="pme-input">
-                                    <option value="">Mesmo do titular</option>
-                                    @if($isAmil)
-                                        <option value="PARCIAL">Parcial</option>
-                                        <option value="COMPLETA">Completa</option>
-                                    @else
-                                        <option value="Y">Sim</option>
-                                        <option value="N">Nao</option>
-                                    @endif
-                                </select>
-                            </div>
-                            <div class="pme-field">
-                                <label>Plano Anterior</label>
-                                <select name="plano_anterior" id="edit_dependente_plano_anterior" class="pme-input">
-                                    <option value="NAO">Nao</option>
-                                    <option value="SIM">Sim</option>
-                                </select>
-                            </div>
-                            <div class="pme-field" id="edit_dependente_operadora_anterior_container" style="display: none;">
-                                <label>Operadora Anterior</label>
-                                <select name="operadora_anterior_id" id="edit_dependente_operadora_anterior_id" class="pme-input">
-                                    <option value="">Selecione...</option>
-                                    @foreach ($operadoras ?? collect() as $op)
-                                        <option value="{{ $op->id }}">{{ $op->nome }}</option>
-                                    @endforeach
-                                </select>
+                            <div class="pme-grid grid-2">
+                                <div class="pme-field">
+                                    <label>Plano</label>
+                                    <select name="plano_id" id="edit_dependente_plano_id" class="pme-input">
+                                        <option value="">Mesmo do titular</option>
+                                        @foreach ($planosDaOperadora as $p)
+                                            <option value="{{ $p->id }}">{{ strtoupper($p->nome) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="pme-field">
+                                    <label>Coparticipacao</label>
+                                    <select name="coparticipacao" id="edit_dependente_coparticipacao" class="pme-input">
+                                        <option value="">Mesmo do titular</option>
+                                        @if($isAmil)
+                                            <option value="PARCIAL">Parcial</option>
+                                            <option value="COMPLETA">Completa</option>
+                                        @else
+                                            <option value="Y">Sim</option>
+                                            <option value="N">Nao</option>
+                                        @endif
+                                    </select>
+                                </div>
+                                <div class="pme-field">
+                                    <label>Plano Anterior</label>
+                                    <select name="plano_anterior" id="edit_dependente_plano_anterior" class="pme-input">
+                                        <option value="NAO">Nao</option>
+                                        <option value="SIM">Sim</option>
+                                    </select>
+                                </div>
+                                <div class="pme-field" id="edit_dependente_operadora_anterior_container" style="display: none;">
+                                    <label>Operadora Anterior</label>
+                                    <select name="operadora_anterior_id" id="edit_dependente_operadora_anterior_id" class="pme-input">
+                                        <option value="">Selecione...</option>
+                                        @foreach ($operadoras ?? collect() as $op)
+                                            <option value="{{ $op->id }}">{{ $op->nome }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="pme-btn pme-btn-outline" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="pme-btn pme-btn-primary" id="btn-save-dependente">Salvar</button>
+                    <div class="dependente-modal-footer">
+                        <button type="button" class="btn-cancel-dependente" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn-save-dependente" id="btn-save-dependente">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <span id="btnSaveDependenteText">Adicionar</span>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -1184,6 +1485,40 @@
                     <div class="d-flex gap-2 justify-content-center mt-3">
                         <button type="button" class="pme-btn pme-btn-outline" data-bs-dismiss="modal">Cancelar</button>
                         <button type="button" class="pme-btn pme-btn-danger" id="btn-confirm-delete-port">Remover</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal: Excluir Titular --}}
+    <div class="modal fade" id="modalDeleteTitular" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content modal-delete-titular-pme">
+                <div class="modal-body text-center">
+                    <div class="delete-titular-icon-wrapper">
+                        <div class="delete-titular-icon-ring"></div>
+                        <div class="delete-titular-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <line x1="17" y1="11" x2="23" y2="11"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <h5 class="delete-titular-title">Remover Titular?</h5>
+                    <p class="delete-titular-text" id="delete-titular-text">O titular e todos os seus dependentes serão removidos.</p>
+                    <div class="delete-titular-warning">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span>Esta ação não poderá ser desfeita</span>
+                    </div>
+                    <input type="hidden" id="delete_titular_id" value="">
+                    <div class="delete-titular-actions">
+                        <button type="button" class="btn-cancel-titular" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn-confirm-delete-titular" id="btn-confirm-delete-titular">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            Remover Titular
+                        </button>
                     </div>
                 </div>
             </div>

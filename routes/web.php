@@ -198,7 +198,9 @@ Route::middleware(['auth'])->group(function () {
   Route::get(uri: '/back-office/getOperators', action: [Backoffice::class, 'getOperators'])->name('backoffice.getOperators');
   Route::get(uri: '/back-office/getPlans', action: [Backoffice::class, 'getPlans'])->name('backoffice.getPlans');
   Route::put('/backoffice/titulares/{id}', [Backoffice::class, 'updateTitular'])->name('backoffice.titulares.update');
+  Route::delete('/backoffice/titulares/{id}', [Backoffice::class, 'destroyTitular'])->name('backoffice.titulares.destroy');
   Route::post('/backoffice/titulares', [Backoffice::class, 'storeTitular'])->name('backoffice.titulares.store');
+  Route::post('/backoffice/titulares-pme', [Backoffice::class, 'storeTitularPME'])->name('backoffice.titulares.storePME');
   Route::put('/backoffice/titulares-pme/{id}', [Backoffice::class, 'updateTitularPME'])->name('backoffice.titulares.updatePME');
   Route::put('/backoffice/dependentes-pme/{id}', [Backoffice::class, 'updateDependentePME'])->name('backoffice.dependentes.updatePME');
   Route::post('/backoffice/dependentes-pme', [Backoffice::class, 'storeDependentePME'])->name('backoffice.dependentes.storePME');

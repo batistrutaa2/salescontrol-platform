@@ -385,7 +385,13 @@ class Financeiro extends Controller
                 $planoNome = $venda->nome_plano;
             }
 
-            $valorVitalicio = ($regra->percentual_vitalicio / 100) * $venda->valor_contrato;
+            // Se a parcela paga já é vitalícia (além das parcelas normais),
+            // copiar o valor dela ao invés de recalcular pelo percentual
+            if ($parcelaPaga->parcela > $ultimaParcelaNormal) {
+                $valorVitalicio = $parcelaPaga->valor;
+            } else {
+                $valorVitalicio = ($regra->percentual_vitalicio / 100) * $venda->valor_contrato;
+            }
 
             Recebivel::create([
                 'empresa_id' => $venda->empresa_id,
