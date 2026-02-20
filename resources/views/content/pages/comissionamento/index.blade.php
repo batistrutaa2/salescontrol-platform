@@ -3,7 +3,16 @@
 @section('title', 'Configuração de Comissionamento')
 
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/toastr/toastr.scss', 'resources/assets/vendor/libs/animate-css/animate.scss', 'resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.scss', 'resources/assets/vendor/libs/select2/select2.scss'])
+    @vite([
+        'resources/assets/vendor/libs/toastr/toastr.scss',
+        'resources/assets/vendor/libs/animate-css/animate.scss',
+        'resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss',
+        'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss',
+        'resources/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.scss',
+        'resources/assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.scss',
+        'resources/assets/vendor/libs/select2/select2.scss',
+        'resources/assets/vendor/scss/pages/configuracoes-comissionamento.scss'
+    ])
 @endsection
 
 @section('vendor-script')
@@ -17,48 +26,87 @@
 @section('content')
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Lista de Configurações</h5>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreateComissao">
-                <i class="ri-add-line"></i> Nova Configuração
-            </button>
-        </div>
-
-        <div class="card-body">
-            <div class="table-responsive">
-                <table id="comissionamento-table" class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Usuário</th>
-                            <th>Percentual</th>
-                            <th>Imposto</th>
-                            <th>Grade</th>
-                            <th>Salário</th>
-                            <th>Periodicidade</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                </table>
+    <div class="configuracoes-comissionamento-wrapper">
+        {{-- Header Section --}}
+        <div class="cc-header">
+            <div class="header-content">
+                <div class="header-text">
+                    <span class="greeting-label">Comissionamento</span>
+                    <h1 class="main-title">Configuracoes de Comissao</h1>
+                    <p class="subtitle">Gerencie as configuracoes de comissionamento dos vendedores</p>
+                </div>
+                <div class="header-actions">
+                    <button type="button" class="btn-dash btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreateComissao">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nova Configuracao
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Modal Cadastro/Editar Comissão -->
-    <div class="modal fade" id="modalCreateComissao" tabindex="-1" aria-labelledby="modalCreateComissaoLabel"
+        {{-- Table Card --}}
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title-group">
+                    <div class="table-icon configuracoes">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="table-title">Configuracoes</h3>
+                        <span class="table-subtitle">Lista de configuracoes de comissionamento</span>
+                    </div>
+                </div>
+                <div class="table-badge configuracoes">
+                    <span id="badge-total-count">0</span> registros
+                </div>
+            </div>
+
+            <div class="table-body">
+                <div class="table-responsive">
+                    <table id="comissionamento-table" class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Vendedor</th>
+                                <th class="text-end">Percentual</th>
+                                <th class="text-end">Imposto</th>
+                                <th>Grade</th>
+                                <th class="text-end">Salario</th>
+                                <th>Periodicidade</th>
+                                <th class="text-end">Acoes</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    {{-- Modal Cadastro/Editar Comissao --}}
+    <div class="modal fade modal-modern" id="modalCreateComissao" tabindex="-1" aria-labelledby="modalCreateComissaoLabel"
         aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <form id="formComissao" method="POST" action="">
                 @csrf
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="modalCreateComissaoLabel">Nova Configuração de Comissão</h5>
+                        <h5 class="modal-title" id="modalCreateComissaoLabel">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                            Nova Configuracao de Comissao
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                     </div>
 
                     <div class="modal-body">
-                        {{-- Usuário --}}
+                        {{-- Vendedor --}}
                         <div class="mb-3">
                             <label for="user_id" class="form-label">Vendedor</label>
                             <select class="form-select select2" name="user_id" id="user_id" required>
@@ -71,13 +119,13 @@
 
                         {{-- Percentual (%) --}}
                         <div class="mb-3">
-                            <label for="percentual" class="form-label">Percentual de Comissão (%)</label>
+                            <label for="percentual" class="form-label">Percentual de Comissao (%)</label>
                             <div class="input-group">
                                 <input type="number" class="form-control" name="percentual" id="percentual" step="0.01"
                                     min="0" max="100" placeholder="Ex.: 7.50" required>
                                 <span class="input-group-text">%</span>
                             </div>
-                            <small class="text-muted">Percentual da comissão do vendedor.</small>
+                            <small class="text-muted">Percentual da comissao do vendedor.</small>
                         </div>
 
                         {{-- Imposto (%) --}}
@@ -88,29 +136,29 @@
                                     min="0" max="100" placeholder="Ex.: 5.00" required>
                                 <span class="input-group-text">%</span>
                             </div>
-                            <small class="text-muted">Percentual de imposto incidente na comissão.</small>
+                            <small class="text-muted">Percentual de imposto incidente na comissao.</small>
                         </div>
 
                         {{-- Grade --}}
                         <div class="mb-3">
                             <label for="grade" class="form-label">Grade</label>
                             <select class="form-select" name="grade" id="grade" required>
-                                <option value="JUNIOR">JÚNIOR</option>
-                                <option value="SENIOR">SÊNIOR</option>
+                                <option value="JUNIOR">JUNIOR</option>
+                                <option value="SENIOR">SENIOR</option>
                                 <option value="ADMIN">ADMIN</option>
                                 <option value="COMERCIAL">COMERCIAL</option>
                             </select>
                         </div>
 
-                        {{-- Salário (R$) --}}
+                        {{-- Salario (R$) --}}
                         <div class="mb-3">
-                            <label for="salario" class="form-label">Salário (R$)</label>
+                            <label for="salario" class="form-label">Salario (R$)</label>
                             <div class="input-group">
                                 <span class="input-group-text">R$</span>
                                 <input type="text" inputmode="decimal" class="form-control" name="salario" id="salario"
                                     placeholder="Ex.: 3.500,00" required>
                             </div>
-                            <small class="text-muted">Salário base para a grade selecionada.</small>
+                            <small class="text-muted">Salario base para a grade selecionada.</small>
                         </div>
 
                         {{-- Periodicidade --}}
@@ -126,11 +174,17 @@
                     </div>
 
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <button type="button" class="btn-dash btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-dash btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Salvar
+                        </button>
                     </div>
                 </div>
             </form>
         </div>
+    </div>
     </div>
 @endsection
