@@ -1,26 +1,26 @@
 /**
- * Empresa
+ * Usuarios - Design System
  */
 
 'use strict';
 let table;
-// Configurações globais do Toastr
+// Configuracoes globais do Toastr
 toastr.options = {
-  closeButton: true, // Adiciona um botão de fechar
-  debug: false, // Mostra mensagens de debug (opcional)
-  newestOnTop: false, // Mostra as mensagens mais recentes no topo
-  progressBar: true, // Adiciona uma barra de progresso
-  positionClass: 'toast-top-right', // Posição da notificação
-  preventDuplicates: false, // Previne a duplicação de notificações
-  onclick: null, // Função de clique (opcional)
-  showDuration: '300', // Duração do efeito de exibição
-  hideDuration: '1000', // Duração do efeito de ocultação
-  timeOut: '5000', // Tempo de exibição em milissegundos
-  extendedTimeOut: '1000', // Tempo adicional de exibição ao passar o mouse
-  showEasing: 'swing', // Efeito de exibição
-  hideEasing: 'linear', // Efeito de ocultação
-  showMethod: 'fadeIn', // Método de exibição
-  hideMethod: 'fadeOut' // Método de ocultação
+  closeButton: true,
+  debug: false,
+  newestOnTop: false,
+  progressBar: true,
+  positionClass: 'toast-top-right',
+  preventDuplicates: false,
+  onclick: null,
+  showDuration: '300',
+  hideDuration: '1000',
+  timeOut: '5000',
+  extendedTimeOut: '1000',
+  showEasing: 'swing',
+  hideEasing: 'linear',
+  showMethod: 'fadeIn',
+  hideMethod: 'fadeOut'
 };
 
 // ========== Carregar KPIs ==========
@@ -36,7 +36,7 @@ function loadKPIs() {
     },
     error: function() {
       $('#kpi-total, #kpi-ativos, #kpi-inativos, #kpi-novos').text('—');
-      toastr.error('Erro ao carregar estatísticas');
+      toastr.error('Erro ao carregar estatisticas');
     }
   });
 }
@@ -77,11 +77,7 @@ $(function () {
 
   // Variable declaration for table
   var dt_customer_table = $('.datatables-customers'),
-    select2 = $('.select2'),
-    statusObj = {
-      Y: { title: 'ATIVO', class: 'bg-label-success' },
-      N: { title: 'INATIVO', class: 'bg-label-secondary' }
-    };
+    select2 = $('.select2');
   if (select2.length) {
     var $this = select2;
     select2Focus($this);
@@ -127,27 +123,33 @@ $(function () {
           targets: 3,
           render: function (data, type, full, meta) {
             var $email = full['email'];
-            return '<span class="text-muted">' + $email + '</span>';
+            return '<span style="color: var(--dash-text-muted)">' + $email + '</span>';
           }
         },
         {
-          title: 'FUNÇÃO',
+          title: 'FUNCAO',
           targets: 4,
           render: function (data, type, full, meta) {
             var $role = full['tipo_usuario'];
-            var roleBadgeObj = {
-              VENDEDOR: '<i class="ri-user-line ri-22px text-primary me-2"></i>',
-              ADMINISTRATIVO: '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
-              SUPERVISOR: '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
-              BACKOFFICE: '<i class="ri-computer-line ri-22px text-danger me-2"></i>',
-              DEVELOPER: '<i class="ri-vip-crown-line ri-22px text-warning me-2"></i>'
+            var roleClassMap = {
+              VENDEDOR: 'role-vendedor',
+              ADMINISTRATIVO: 'role-administrativo',
+              SUPERVISOR: 'role-supervisor',
+              BACKOFFICE: 'role-backoffice',
+              DEVELOPER: 'role-developer'
             };
-            return (
-              "<span class='text-truncate d-flex align-items-center text-heading'>" +
-              roleBadgeObj[$role] +
-              $role +
-              '</span>'
-            );
+            var roleSvgMap = {
+              VENDEDOR: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+              ADMINISTRATIVO: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+              SUPERVISOR: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+              BACKOFFICE: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+              DEVELOPER: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>'
+            };
+
+            var badgeClass = roleClassMap[$role] || 'role-vendedor';
+            var svgIcon = roleSvgMap[$role] || roleSvgMap['VENDEDOR'];
+
+            return '<span class="role-badge ' + badgeClass + '">' + svgIcon + $role + '</span>';
           }
         },
         {
@@ -158,28 +160,13 @@ $(function () {
             var $userId = full['id'];
             var $userName = full['name'];
 
-            // Debug: verificar o valor exato que está vindo do banco
-            // Remover após confirmar que está funcionando
-            if (meta.row === 0) {
-              console.log('Debug Status - Primeiro usuário:', {
-                nome: $userName,
-                status_raw: $status,
-                status_type: typeof $status,
-                status_trim: String($status).trim(),
-                is_Y: $status === 'Y',
-                is_Y_loose: $status == 'Y'
-              });
-            }
-
-            // Normaliza o status (trim para remover espaços em branco)
+            // Normaliza o status
             $status = String($status).trim().toUpperCase();
             var isChecked = $status === 'Y' ? 'checked' : '';
 
             // Label e badge baseado no status
             var statusLabel = $status === 'Y' ? 'ATIVO' : 'INATIVO';
-            var statusClass = $status === 'Y' ? 'text-success' : 'text-muted';
-            var badgeClass = $status === 'Y' ? 'bg-label-success' : 'bg-label-secondary';
-            var icon = $status === 'Y' ? 'ri-checkbox-circle-line' : 'ri-close-circle-line';
+            var statusBadgeClass = $status === 'Y' ? 'status-ativo' : 'status-inativo';
 
             return (
               '<div class="d-flex align-items-center gap-2">' +
@@ -190,9 +177,7 @@ $(function () {
               'data-current-status="' + $status + '" ' +
               isChecked + '>' +
               '</div>' +
-              '<span class="badge rounded-pill ' + badgeClass + '">' +
-              '<i class="' + icon + ' me-1"></i>' + statusLabel +
-              '</span>' +
+              '<span class="status-badge ' + statusBadgeClass + '">' + statusLabel + '</span>' +
               '</div>'
             );
           }
@@ -201,26 +186,27 @@ $(function () {
         {
           // Actions
           targets: -1,
-          title: 'AÇÕES',
+          title: 'ACOES',
           searchable: false,
           orderable: false,
           render: function (data, type, full, meta) {
             return (
-              '<div class="d-flex align-items-center">' +
-              '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill waves-effect dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line ri-22px"></i></button>' +
-              '<div class="dropdown-menu dropdown-menu-end m-0">' +
-              // ✳️ NOVO: botão para modal de conta
-              '<button type="button" class="dropdown-item js-open-conta" data-user-id="' + full['id'] + '" data-user-name="' + (full['name'] || '') + '">' +
-              '<i class="ri-bank-card-line me-2"></i><span>Nova conta bancária</span>' +
-              '</button>' +
-              '<a href="usuarios/editar-usuario/' + full['id'] + '" class="dropdown-item">' +
-              '<i class="ri-edit-box-line me-2"></i><span>Edit</span>' +
+              '<div class="actions-cell">' +
+              '<a href="usuarios/editar-usuario/' + full['id'] + '" class="btn-action btn-action-edit" title="Editar">' +
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+              '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
+              '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' +
+              '</svg>' +
               '</a>' +
-              '</div>' +
+              '<button type="button" class="btn-action btn-action-bank js-open-conta" title="Nova conta bancaria" data-user-id="' + full['id'] + '" data-user-name="' + (full['name'] || '') + '">' +
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+              '<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>' +
+              '<line x1="1" y1="10" x2="23" y2="10"/>' +
+              '</svg>' +
+              '</button>' +
               '</div>'
             );
           }
-
         }
       ],
       order: [[2, 'desc']],
@@ -238,12 +224,12 @@ $(function () {
         search: '',
         searchPlaceholder: 'Pesquisar Usuario'
       },
-      // Botões com Dropdown
+      // Botoes com Dropdown
       buttons: [
         {
           extend: 'collection',
-          className: 'btn btn-outline-secondary dropdown-toggle me-4 waves-effect waves-light',
-          text: '<i class="ri-download-line ri-16px me-1 align-baseline"></i> <span class="d-none d-sm-inline-block">Baixar</span>',
+          className: 'btn-dash btn-secondary',
+          text: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> <span class="d-none d-sm-inline-block">Baixar</span>',
           buttons: [
             {
               extend: 'print',
@@ -268,7 +254,6 @@ $(function () {
                 }
               },
               customize: function (win) {
-                // Customizar a visualização de impressão para tema escuro
                 $(win.document.body)
                   .css('color', headingColor)
                   .css('border-color', borderColor)
@@ -283,7 +268,7 @@ $(function () {
             },
             {
               extend: 'csv',
-              text: '<i class="ri-file-text-line me-1" ></i>Csv',
+              text: '<i class="ri-file-text-line me-1"></i>Csv',
               className: 'dropdown-item',
               exportOptions: {
                 columns: [0, 1, 2, 3, 4, 5],
@@ -374,29 +359,26 @@ $(function () {
               }
             }
           ]
-        },
-        {
-          text: '<i class="ri-add-line ri-16px me-0 me-sm-1_5 align-baseline"></i><span class="d-none d-sm-inline-block">Criar Usuario</span>',
-          className: 'add-new btn btn-primary waves-effect waves-light',
-          attr: {
-            'data-bs-toggle': 'offcanvas',
-            'data-bs-target': '#offcanvasEcommerceCustomerAdd'
-          }
         }
       ],
+      drawCallback: function () {
+        // Atualiza badge de contagem
+        var info = this.api().page.info();
+        $('#badge-total-count').text(info.recordsTotal);
+      },
       // Para popup responsivo
       responsive: {
         details: {
           display: $.fn.dataTable.Responsive.display.modal({
             header: function (row) {
               var data = row.data();
-              return 'Details of ' + data['nome_fantasia'];
+              return 'Detalhes de ' + data['name'];
             }
           }),
           type: 'column',
           renderer: function (api, rowIdx, columns) {
             var data = $.map(columns, function (col, i) {
-              return col.title !== '' // Não mostrar linha no popup modal se o título estiver vazio (para check box)
+              return col.title !== ''
                 ? '<tr data-dt-row="' +
                 col.rowIndex +
                 '" data-dt-column="' +
@@ -432,17 +414,9 @@ $(function () {
     const currentStatus = String($switch.data('current-status')).trim().toUpperCase();
     const newStatus = $switch.is(':checked') ? 'Y' : 'N';
 
-    console.log('Toggle Status:', {
-      userId: userId,
-      currentStatus: currentStatus,
-      newStatus: newStatus,
-      isChecked: $switch.is(':checked')
-    });
-
-    // Confirmação ao desativar usuário
+    // Confirmacao ao desativar usuario
     if (newStatus === 'N') {
-      if (!confirm(`Tem certeza que deseja desativar o usuário "${userName}"?`)) {
-        // Reverte o switch se o usuário cancelar
+      if (!confirm(`Tem certeza que deseja desativar o usuario "${userName}"?`)) {
         $switch.prop('checked', true);
         return;
       }
@@ -460,55 +434,41 @@ $(function () {
       success: function(response) {
         if (response.success) {
           toastr.success(response.message);
-          // Atualiza o data attribute
           $switch.data('current-status', response.status);
 
-          // Recarrega a tabela e os KPIs
           if (table) {
             table.ajax.reload(null, false);
           }
           loadKPIs();
         } else {
-          toastr.error(response.message || 'Erro ao alterar status do usuário');
-          // Reverte o switch em caso de erro
+          toastr.error(response.message || 'Erro ao alterar status do usuario');
           $switch.prop('checked', currentStatus === 'Y');
         }
       },
       error: function(xhr) {
-        const errorMsg = xhr?.responseJSON?.message || 'Erro ao alterar status do usuário';
+        const errorMsg = xhr?.responseJSON?.message || 'Erro ao alterar status do usuario';
         toastr.error(errorMsg);
-        // Reverte o switch em caso de erro
         $switch.prop('checked', currentStatus === 'Y');
       },
       complete: function() {
-        // Reabilita o switch
         $switch.prop('disabled', false);
       }
     });
   });
 
   // ========== Event: Filtros de Status ==========
-  $('#status-filter-buttons button').on('click', function() {
+  $('#status-filter-buttons .filter-btn').on('click', function() {
     const $btn = $(this);
     const status = $btn.data('status');
 
-    // Atualiza visual dos botões
-    $('#status-filter-buttons button').each(function() {
-      const $thisBtn = $(this);
-      if ($thisBtn.data('status') === status) {
-        $thisBtn.removeClass('btn-outline-success btn-outline-secondary btn-outline-primary')
-                .addClass('btn-' + ($thisBtn.data('status') === 'Y' ? 'success' : ($thisBtn.data('status') === 'N' ? 'secondary' : 'primary')));
-      } else {
-        const originalClass = $thisBtn.data('status') === 'Y' ? 'success' : ($thisBtn.data('status') === 'N' ? 'secondary' : 'primary');
-        $thisBtn.removeClass('btn-success btn-secondary btn-primary')
-                .addClass('btn-outline-' + originalClass);
-      }
-    });
+    // Atualiza visual dos botoes
+    $('#status-filter-buttons .filter-btn').removeClass('active');
+    $btn.addClass('active');
 
     // Aplica filtro na tabela
     if (table) {
       if (status === 'all') {
-        table.column(4).search('').draw(); // Coluna de status é a 5ª (índice 4)
+        table.column(4).search('').draw();
       } else {
         const searchText = status === 'Y' ? 'ATIVO' : 'INATIVO';
         table.column(4).search(searchText).draw();
@@ -536,31 +496,31 @@ $(function () {
       customerName: {
         validators: {
           notEmpty: {
-            message: 'Nome da Empresa é obrigatorio '
+            message: 'Nome do usuario e obrigatorio'
           }
         }
       },
       customerCnpj: {
         validators: {
           notEmpty: {
-            message: 'CNPJ/CPF da Empresa é obrigatorio '
+            message: 'CNPJ/CPF e obrigatorio'
           }
         }
       },
       customerEmail: {
         validators: {
           notEmpty: {
-            message: 'E-mail da Empresa é obrigatorio'
+            message: 'E-mail e obrigatorio'
           },
           emailAddress: {
-            message: 'Esse E-mail não é valido'
+            message: 'Esse E-mail nao e valido'
           }
         }
       },
       customerPassword: {
         validators: {
           notEmpty: {
-            message: 'Senha é obrigatorio '
+            message: 'Senha e obrigatorio'
           }
         }
       }
@@ -611,7 +571,6 @@ $(function () {
           },
           error: function (error) {
             var errorMessage = error.responseJSON ? error.responseJSON.message : 'Ocorreu um erro desconhecido';
-
             toastr.error(error, errorMessage);
           }
         });
@@ -623,7 +582,7 @@ $(function () {
   const $rootContas = $('#contas-root');
   if (!$rootContas.length) return;
 
-  const SAVE_CONTA_BASE = String($rootContas.data('save-conta-base') || ''); // .../usuarios/USER_ID/contas/salvar
+  const SAVE_CONTA_BASE = String($rootContas.data('save-conta-base') || '');
   const modalEl = document.getElementById('modalConta');
   const modal = new bootstrap.Modal(modalEl);
 
@@ -637,7 +596,7 @@ $(function () {
   const inpConta = document.getElementById('conta_conta');
   const inpDigito = document.getElementById('conta_digito');
 
-  // Abre modal a partir da linha do usuário
+  // Abre modal a partir da linha do usuario
   $(document).on('click', '.js-open-conta', function() {
     const userId = this.getAttribute('data-user-id');
     const userName = this.getAttribute('data-user-name') || '—';
@@ -655,28 +614,27 @@ $(function () {
     modal.show();
   });
 
-  // Envia formulário
+  // Envia formulario
   document.getElementById('formConta').addEventListener('submit', function(e) {
     e.preventDefault();
 
     const userId = inpUserId.value;
     if (!userId) {
-      toastr.error('Usuário inválido.');
+      toastr.error('Usuario invalido.');
       return;
     }
 
-    // Regras mínimas: precisa ter PIX OU (Agência e Conta)
+    // Regras minimas: precisa ter PIX OU (Agencia e Conta)
     const hasPix = (inpPix.value || '').trim().length > 0;
     const hasBank = (inpAgencia.value || '').trim().length > 0 && (inpConta.value || '').trim().length > 0;
 
     if (!hasPix && !hasBank) {
-      toastr.warning('Informe uma Chave PIX ou Agência + Conta.');
+      toastr.warning('Informe uma Chave PIX ou Agencia + Conta.');
       return;
     }
 
     const url = SAVE_CONTA_BASE.replace('USER_ID', encodeURIComponent(userId));
     const payload = {
-      // sempre default = 1
       is_default: 1,
       descricao: (inpDescricao.value || '').trim() || null,
       banco: (inpBanco.value || '').trim() || null,
@@ -686,19 +644,16 @@ $(function () {
       digito: (inpDigito.value || '').trim() || null
     };
 
-    // CSRF
     const CSRF = $('meta[name="csrf-token"]').attr('content');
 
     $.ajax({
       url: url,
       method: 'POST',
       headers: { 'X-CSRF-TOKEN': CSRF },
-      data: payload, // form-urlencoded
+      data: payload,
       success: function(resp) {
         toastr.success(resp?.message || 'Conta salva com sucesso.');
         modal.hide();
-        // se quiser, recarrega a tabela de usuários:
-        // if (window.table?.ajax) table.ajax.reload(null, false);
       },
       error: function(xhr) {
         const msg = xhr?.responseJSON?.message || 'Falha ao salvar a conta.';
