@@ -1,0 +1,627 @@
+// ============================================
+// Criar Lead - Design System
+// ============================================
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+
+// Design System Variables
+:root {
+    --dash-primary: #7C3AED;
+    --dash-primary-light: #A78BFA;
+    --dash-primary-rgb: 124, 58, 237;
+
+    --dash-success: #10B981;
+    --dash-success-light: #34D399;
+    --dash-success-rgb: 16, 185, 129;
+
+    --dash-info: #06B6D4;
+    --dash-info-light: #22D3EE;
+    --dash-info-rgb: 6, 182, 212;
+
+    --dash-warning: #F59E0B;
+    --dash-warning-light: #FBBF24;
+    --dash-warning-rgb: 245, 158, 11;
+
+    --dash-danger: #EF4444;
+    --dash-danger-light: #F87171;
+    --dash-danger-rgb: 239, 68, 68;
+
+    --dash-gradient-start: #7C3AED;
+    --dash-gradient-end: #06B6D4;
+
+    --dash-card-bg: rgba(255, 255, 255, 0.95);
+    --dash-card-border: rgba(255, 255, 255, 0.2);
+    --dash-glass-bg: rgba(255, 255, 255, 0.7);
+    --dash-glass-blur: 12px;
+
+    --dash-input-bg: #ffffff;
+    --dash-input-border: rgba(107, 114, 128, 0.3);
+
+    --dash-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --dash-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --dash-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+    --dash-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.15);
+
+    --dash-text-primary: #1F2937;
+    --dash-text-secondary: #6B7280;
+    --dash-text-muted: #9CA3AF;
+
+    --dash-border-radius: 16px;
+    --dash-border-radius-sm: 12px;
+    --dash-border-radius-lg: 24px;
+
+    --dash-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --dash-transition-fast: all 0.15s ease;
+}
+
+// Dark Theme
+.dark-style {
+    --dash-card-bg: rgba(30, 32, 47, 0.95);
+    --dash-card-border: rgba(255, 255, 255, 0.08);
+    --dash-glass-bg: rgba(30, 32, 47, 0.8);
+
+    --dash-input-bg: rgba(45, 48, 65, 0.95);
+    --dash-input-border: rgba(255, 255, 255, 0.15);
+
+    --dash-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --dash-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --dash-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
+    --dash-shadow-glow: 0 0 60px rgba(124, 58, 237, 0.25);
+
+    --dash-text-primary: #F9FAFB;
+    --dash-text-secondary: #D1D5DB;
+    --dash-text-muted: #9CA3AF;
+}
+
+// ============================================
+// Page Wrapper
+// ============================================
+.criar-lead-wrapper {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 0;
+    min-height: 100vh;
+
+    // ============================================
+    // Header Section
+    // ============================================
+    .cl-header {
+        margin-bottom: 2rem;
+        position: relative;
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .header-text {
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .greeting-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--dash-primary);
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: rgba(var(--dash-primary-rgb), 0.1);
+            border-radius: 20px;
+        }
+
+        .main-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--dash-text-primary);
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 0.9375rem;
+            color: var(--dash-text-secondary);
+            margin: 0;
+            max-width: 500px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+    }
+
+    // ============================================
+    // Dashboard Buttons
+    // ============================================
+    .btn-dash {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border-radius: var(--dash-border-radius-sm);
+        border: none;
+        cursor: pointer;
+        transition: var(--dash-transition);
+        text-decoration: none;
+
+        svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        &.btn-primary {
+            background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-light));
+            color: white;
+            box-shadow: 0 4px 12px rgba(var(--dash-primary-rgb), 0.3);
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(var(--dash-primary-rgb), 0.4);
+            }
+        }
+
+        &.btn-secondary {
+            background: var(--dash-glass-bg);
+            color: var(--dash-text-primary);
+            border: 1px solid var(--dash-card-border);
+
+            &:hover {
+                background: var(--dash-card-bg);
+                border-color: var(--dash-primary);
+                color: var(--dash-primary);
+            }
+        }
+
+        &.btn-success {
+            background: linear-gradient(135deg, var(--dash-success), var(--dash-success-light));
+            color: white;
+            box-shadow: 0 4px 12px rgba(var(--dash-success-rgb), 0.3);
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(var(--dash-success-rgb), 0.4);
+            }
+        }
+    }
+
+    // ============================================
+    // Table Card (Form Card)
+    // ============================================
+    .table-card {
+        background: var(--dash-card-bg);
+        border-radius: var(--dash-border-radius);
+        box-shadow: var(--dash-shadow-md);
+        border: 1px solid var(--dash-card-border);
+        overflow: hidden;
+        transition: var(--dash-transition);
+
+        .table-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--dash-card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            background: linear-gradient(135deg,
+                rgba(var(--dash-primary-rgb), 0.02) 0%,
+                transparent 100%
+            );
+        }
+
+        .table-title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .table-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--dash-border-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            svg {
+                width: 20px;
+                height: 20px;
+            }
+
+            &.lead {
+                background: linear-gradient(135deg, rgba(var(--dash-info-rgb), 0.15), rgba(var(--dash-info-rgb), 0.05));
+                color: var(--dash-info);
+            }
+        }
+
+        .table-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--dash-text-primary);
+            margin: 0;
+        }
+
+        .table-subtitle {
+            font-size: 0.8125rem;
+            color: var(--dash-text-muted);
+            margin: 0;
+        }
+
+        .table-body {
+            padding: 0;
+        }
+    }
+
+    // ============================================
+    // Edit Form Body
+    // ============================================
+    .edit-form-body {
+        padding: 2rem;
+
+        .form-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--dash-text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.625rem 1rem;
+            border: 2px solid var(--dash-input-border);
+            border-radius: var(--dash-border-radius-sm);
+            background: var(--dash-input-bg);
+            color: var(--dash-text-primary);
+            transition: var(--dash-transition-fast);
+
+            &:hover {
+                border-color: rgba(var(--dash-primary-rgb), 0.6);
+            }
+
+            &:focus {
+                outline: none;
+                border-color: var(--dash-primary);
+                box-shadow: 0 0 0 4px rgba(var(--dash-primary-rgb), 0.15);
+            }
+
+            &::placeholder {
+                color: var(--dash-text-muted);
+            }
+
+            &[readonly] {
+                background: var(--dash-glass-bg);
+                opacity: 0.7;
+                cursor: not-allowed;
+            }
+        }
+
+        .form-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--dash-card-border);
+        }
+    }
+
+    // ============================================
+    // Form Section Title
+    // ============================================
+    .form-section-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--dash-text-muted);
+        margin-bottom: 1.25rem;
+        margin-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--dash-card-border);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        svg {
+            width: 16px;
+            height: 16px;
+            color: var(--dash-primary-light);
+        }
+    }
+
+    // ============================================
+    // Campanha Alice Toggle
+    // ============================================
+    .campanha-alice-toggle {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border: 2px solid var(--dash-input-border);
+        border-radius: var(--dash-border-radius-sm);
+        background: var(--dash-glass-bg);
+        transition: var(--dash-transition);
+        margin-bottom: 1.5rem;
+
+        .campanha-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--dash-border-radius-sm);
+            background: linear-gradient(135deg, rgba(var(--dash-warning-rgb), 0.15), rgba(var(--dash-warning-rgb), 0.05));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+
+            svg {
+                width: 20px;
+                height: 20px;
+                color: var(--dash-warning);
+            }
+        }
+
+        .campanha-text {
+            flex: 1;
+
+            .campanha-label {
+                font-size: 0.875rem;
+                font-weight: 700;
+                color: var(--dash-text-primary);
+                display: block;
+                margin-bottom: 0.125rem;
+            }
+
+            .campanha-description {
+                font-size: 0.75rem;
+                color: var(--dash-text-muted);
+                display: block;
+            }
+        }
+
+        .form-check.form-switch {
+            margin: 0;
+            padding-left: 2.5rem;
+
+            .form-check-input {
+                cursor: pointer;
+                width: 2.75rem;
+                height: 1.375rem;
+                border: 2px solid var(--dash-input-border);
+                background-color: var(--dash-input-bg);
+                transition: var(--dash-transition);
+
+                &:checked {
+                    background-color: var(--dash-warning);
+                    border-color: var(--dash-warning);
+                }
+
+                &:focus {
+                    box-shadow: 0 0 0 3px rgba(var(--dash-warning-rgb), 0.2);
+                    border-color: var(--dash-warning-light);
+                }
+            }
+        }
+
+        &.active {
+            border-color: var(--dash-warning);
+            background: rgba(var(--dash-warning-rgb), 0.05);
+            box-shadow: 0 0 20px rgba(var(--dash-warning-rgb), 0.1);
+        }
+    }
+
+    // ============================================
+    // Campanha Disabled (nome_cliente field)
+    // ============================================
+    .campanha-disabled {
+        border-style: dashed !important;
+        border-color: var(--dash-warning) !important;
+        opacity: 0.7;
+        background: rgba(var(--dash-warning-rgb), 0.05) !important;
+        cursor: not-allowed;
+    }
+
+    // ============================================
+    // Monetary Value
+    // ============================================
+    .monetary-value {
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+
+    // ============================================
+    // Alert Modern
+    // ============================================
+    .alert-modern {
+        border-radius: var(--dash-border-radius-sm);
+        padding: 1rem 1.25rem;
+        font-size: 0.875rem;
+        border: none;
+        margin-bottom: 1.5rem;
+
+        &.alert-success {
+            background: rgba(var(--dash-success-rgb), 0.1);
+            color: var(--dash-success);
+            border: 1px solid rgba(var(--dash-success-rgb), 0.2);
+        }
+
+        &.alert-danger {
+            background: rgba(var(--dash-danger-rgb), 0.1);
+            color: var(--dash-danger);
+            border: 1px solid rgba(var(--dash-danger-rgb), 0.2);
+        }
+    }
+}
+
+// ============================================
+// Dark Mode Overrides
+// ============================================
+.dark-style {
+    .criar-lead-wrapper {
+        // Table card
+        .table-card {
+            background: #232838;
+            border-color: rgba(255, 255, 255, 0.08);
+
+            .table-header {
+                border-bottom-color: rgba(255, 255, 255, 0.08);
+            }
+        }
+
+        // Edit form body
+        .edit-form-body {
+            .form-control,
+            .form-select {
+                background: #1a1e2a;
+                border-color: rgba(255, 255, 255, 0.15);
+                color: #F9FAFB;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+
+                &::placeholder {
+                    color: #6B7280;
+                }
+
+                &:hover {
+                    border-color: rgba(255, 255, 255, 0.25);
+                }
+
+                &:focus {
+                    border-color: var(--dash-primary);
+                    box-shadow: 0 0 0 3px rgba(var(--dash-primary-rgb), 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.2);
+                }
+
+                &[readonly] {
+                    background: rgba(255, 255, 255, 0.03);
+                }
+            }
+
+            .form-actions {
+                border-top-color: rgba(255, 255, 255, 0.08);
+            }
+        }
+
+        // Form section title
+        .form-section-title {
+            border-bottom-color: rgba(255, 255, 255, 0.08);
+        }
+
+        // Campanha Alice toggle
+        .campanha-alice-toggle {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.12);
+
+            .form-check.form-switch .form-check-input {
+                background-color: #1a1e2a;
+                border-color: rgba(255, 255, 255, 0.2);
+
+                &:checked {
+                    background-color: var(--dash-warning);
+                    border-color: var(--dash-warning);
+                }
+            }
+
+            &.active {
+                border-color: var(--dash-warning);
+                background: rgba(var(--dash-warning-rgb), 0.08);
+            }
+        }
+
+        // Campanha disabled field
+        .campanha-disabled {
+            background: rgba(var(--dash-warning-rgb), 0.08) !important;
+        }
+    }
+}
+
+// ============================================
+// Animations
+// ============================================
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.criar-lead-wrapper {
+    .table-card {
+        animation: fadeInUp 0.5s ease both;
+        animation-delay: 200ms;
+    }
+}
+
+// ============================================
+// Responsive
+// ============================================
+@media (max-width: 1200px) {
+    .criar-lead-wrapper {
+        .edit-form-body {
+            padding: 1.5rem;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .criar-lead-wrapper {
+        .cl-header {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .main-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+
+        .campanha-alice-toggle {
+            flex-wrap: wrap;
+
+            .campanha-text {
+                min-width: 200px;
+            }
+        }
+    }
+}
+
+@media (max-width: 576px) {
+    .criar-lead-wrapper {
+        .cl-header .main-title {
+            font-size: 1.25rem;
+        }
+
+        .edit-form-body {
+            padding: 1rem;
+        }
+
+        .campanha-alice-toggle {
+            padding: 0.875rem 1rem;
+            gap: 0.75rem;
+        }
+    }
+}

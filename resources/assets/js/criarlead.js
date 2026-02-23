@@ -4,6 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', function (e) {
   (function () {
+    // Monetary field mask
     const monetaryFields = document.querySelectorAll('.monetary-field');
 
     monetaryFields.forEach(function (field) {
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
       });
     });
 
+    // CPF/CNPJ mask
     const inputcpf = document.getElementById('cpf');
 
     let cleave = new Cleave(inputcpf, applyMaskBasedOnLength(inputcpf.value));
@@ -35,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
       cleave.setRawValue(cleanValue);
     });
 
+    // Phone masks
     const telefones = document.querySelectorAll('.mask-telefone');
     telefones.forEach(mask => {
       new Cleave(mask, {
@@ -59,6 +62,51 @@ document.addEventListener('DOMContentLoaded', function (e) {
           blocks: [3, 3, 3, 2]
         };
       }
+    }
+
+    // Flatpickr - Data de Nascimento
+    const dataNascimentoInput = document.getElementById('data_nascimento');
+    if (dataNascimentoInput) {
+      flatpickr(dataNascimentoInput, {
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd/m/Y',
+        locale: 'pt'
+      });
+    }
+
+    // ============================================
+    // Campanha Alice Toggle
+    // ============================================
+    const campanhaAliceCheckbox = document.getElementById('campanhaAlice');
+    const campanhaAliceContainer = document.getElementById('campanhaAliceContainer');
+    const nomeClienteInput = document.getElementById('nome_cliente');
+
+    if (campanhaAliceCheckbox && nomeClienteInput) {
+      campanhaAliceCheckbox.addEventListener('change', function () {
+        if (this.checked) {
+          nomeClienteInput.dataset.previousValue = nomeClienteInput.value;
+          nomeClienteInput.value = 'CAMPANHA_ALICE';
+          nomeClienteInput.disabled = true;
+          nomeClienteInput.classList.add('campanha-disabled');
+          campanhaAliceContainer.classList.add('active');
+        } else {
+          nomeClienteInput.value = nomeClienteInput.dataset.previousValue || '';
+          nomeClienteInput.disabled = false;
+          nomeClienteInput.classList.remove('campanha-disabled');
+          campanhaAliceContainer.classList.remove('active');
+        }
+      });
+    }
+
+    // Re-habilitar campo no submit (disabled não envia valor no POST)
+    const form = document.getElementById('formCriarLead');
+    if (form) {
+      form.addEventListener('submit', function () {
+        if (nomeClienteInput && nomeClienteInput.disabled) {
+          nomeClienteInput.disabled = false;
+        }
+      });
     }
   })();
 });
