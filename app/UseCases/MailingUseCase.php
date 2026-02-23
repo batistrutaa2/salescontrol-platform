@@ -101,7 +101,7 @@ class MailingUseCase
         'id_operacao' => $uniqueIdBase,
         'empresa_id' => Auth::user()->empresa_id,
         'user_import_id' => Auth::user()->id,
-        'nome_base' => 'BASE_IMPORTACAO_' . Auth::user()->name . '_' . Carbon::now(),
+        'nome_base' => !empty($data['nome_base']) ? $data['nome_base'] : 'BASE_IMPORTACAO_' . Auth::user()->name . '_' . Carbon::now(),
         'nome_cliente' => $data['nome_cliente'],
         'data_nascimento' => $data['nome_cliente'],
         'cpf' => Helpers::cleanSpecialCharacters($data['cpf']),

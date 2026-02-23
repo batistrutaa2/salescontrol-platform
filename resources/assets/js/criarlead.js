@@ -80,31 +80,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
     // ============================================
     const campanhaAliceCheckbox = document.getElementById('campanhaAlice');
     const campanhaAliceContainer = document.getElementById('campanhaAliceContainer');
-    const nomeClienteInput = document.getElementById('nome_cliente');
+    const nomeBaseInput = document.getElementById('nome_base');
 
-    if (campanhaAliceCheckbox && nomeClienteInput) {
+    if (campanhaAliceCheckbox && nomeBaseInput) {
       campanhaAliceCheckbox.addEventListener('change', function () {
         if (this.checked) {
-          nomeClienteInput.dataset.previousValue = nomeClienteInput.value;
-          nomeClienteInput.value = 'CAMPANHA_ALICE';
-          nomeClienteInput.disabled = true;
-          nomeClienteInput.classList.add('campanha-disabled');
+          nomeBaseInput.value = 'CAMPANHA_ALICE';
           campanhaAliceContainer.classList.add('active');
         } else {
-          nomeClienteInput.value = nomeClienteInput.dataset.previousValue || '';
-          nomeClienteInput.disabled = false;
-          nomeClienteInput.classList.remove('campanha-disabled');
+          nomeBaseInput.value = '';
           campanhaAliceContainer.classList.remove('active');
-        }
-      });
-    }
-
-    // Re-habilitar campo no submit (disabled não envia valor no POST)
-    const form = document.getElementById('formCriarLead');
-    if (form) {
-      form.addEventListener('submit', function () {
-        if (nomeClienteInput && nomeClienteInput.disabled) {
-          nomeClienteInput.disabled = false;
         }
       });
     }

@@ -428,17 +428,6 @@
     }
 
     // ============================================
-    // Campanha Disabled (nome_cliente field)
-    // ============================================
-    .campanha-disabled {
-        border-style: dashed !important;
-        border-color: var(--dash-warning) !important;
-        opacity: 0.7;
-        background: rgba(var(--dash-warning-rgb), 0.05) !important;
-        cursor: not-allowed;
-    }
-
-    // ============================================
     // Monetary Value
     // ============================================
     .monetary-value {
@@ -542,10 +531,6 @@
             }
         }
 
-        // Campanha disabled field
-        .campanha-disabled {
-            background: rgba(var(--dash-warning-rgb), 0.08) !important;
-        }
     }
 }
 

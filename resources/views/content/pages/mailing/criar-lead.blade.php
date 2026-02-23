@@ -107,6 +107,7 @@
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" id="campanhaAlice">
                         </div>
+                        <input type="hidden" id="nome_base" name="nome_base" value="">
                     </div>
 
                     {{-- Secao: Dados Pessoais --}}
