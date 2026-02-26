@@ -33,7 +33,7 @@ $(function () {
         { data: 'telefone', title: 'Telefone' },
         { data: 'valor_plano_atual', title: 'Valor do Plano' },
         { data: 'status', title: 'Status' },
-        { data: 'Prazo', title: 'Prazo' },
+        { data: 'nome_base', title: 'Base' },
         { data: 'created_at', title: 'Criado Em' },
         { data: null, title: 'Ações' }
       ],
@@ -101,17 +101,6 @@ $(function () {
 
             let value = parseFloat(data); // Converte o valor para número
             return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          }
-        },
-        {
-          targets: 8, // Coluna com valor
-          render: function (data, type, row) {
-            // Verifica o valor de 'TRATATIVA' e aplica a cor
-            if (data === 'Fora do Prazo') {
-              return '<span style="color: red;">' + data + '</span>';
-            } else {
-              return '<span style="color: green;">' + data + '</span>';
-            }
           }
         },
         {

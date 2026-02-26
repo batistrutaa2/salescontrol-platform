@@ -139,16 +139,7 @@ class ContatosRepository implements ContatosRepositoryInterface
               ELSE c.descricao
           END as status
         "),
-        'a.created_at',
-        DB::raw("
-          CASE
-              WHEN b.contato_id IS NULL THEN 'N/A'
-              WHEN b.tabulacao_id = 1 AND DATEDIFF(CURDATE(), DATE(b.created_at)) > 5 THEN 'Fora do Prazo'
-              WHEN b.tabulacao_id = 2 AND DATEDIFF(CURDATE(), DATE(b.created_at)) > 10 THEN 'Fora do Prazo'
-              WHEN b.tabulacao_id = 3 AND DATEDIFF(CURDATE(), DATE(b.updated_at)) > 15 THEN 'Fora do Prazo'
-              ELSE 'Dentro do Prazo'
-          END AS Prazo
-        ")
+        'a.created_at'
       )
       ->leftJoin('contatos_corretores as b', function($join) use ($empresa_id) {
           $join->on('b.contato_id', '=', 'a.id')

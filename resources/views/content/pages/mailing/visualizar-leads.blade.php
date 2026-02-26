@@ -79,7 +79,7 @@
                         <th>Status</th>
                         <th>Criado em:</th>
                         <th>Status</th>
-                        <th>Prazo</th>
+                        <th>Base</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
