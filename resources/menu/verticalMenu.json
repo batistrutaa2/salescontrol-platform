@@ -476,19 +476,6 @@
       ]
     },
     {
-      "url": "/ranking-vendas",
-      "name": "Ranking de Vendas",
-      "icon": "menu-icon tf-icons ri-trophy-line",
-      "slug": "ranking-vendas",
-      "rules": [
-        "VENDEDOR",
-        "DEVELOPER",
-        "ADMINISTRATIVO",
-        "BACKOFFICE",
-        "SUPERVISOR"
-      ]
-    },
-    {
       "name": "Comissionamento",
       "icon": "menu-icon tf-icons ri-hand-coin-line",
       "slug": "comissionamento",

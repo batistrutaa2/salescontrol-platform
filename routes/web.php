@@ -291,9 +291,10 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/ranking', [RankingVendas::class, 'index'])->name('ranking.index');
   Route::get('/ranking/configuracao/edit/{id}', [RankingVendas::class, 'edit'])->name('ranking.edit');
   Route::get('/ranking/configuracao', [RankingVendas::class, 'config'])->name('ranking.config');
-  Route::get('/ranking-vendas', [RankingVendas::class, 'rankingVendas'])->name('ranking.rankingVendas');
-  Route::get('/rankingVendasData', [RankingVendas::class, 'rankingVendasData'])->name('ranking.rankingVendasData');
-  Route::get('/vendas/valores-mensais', [RankingVendas::class, 'valoresMensais'])->name('ranking.valoresMensais');
+  // Ranking de vendas desativado temporariamente
+  // Route::get('/ranking-vendas', [RankingVendas::class, 'rankingVendas'])->name('ranking.rankingVendas');
+  // Route::get('/rankingVendasData', [RankingVendas::class, 'rankingVendasData'])->name('ranking.rankingVendasData');
+  // Route::get('/vendas/valores-mensais', [RankingVendas::class, 'valoresMensais'])->name('ranking.valoresMensais');
 
   /** COMISSIONAMENTO */
   Route::get('/comissionamento', [Comissionamento::class, 'index'])->name('comissionamento.index');
