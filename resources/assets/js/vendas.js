@@ -143,7 +143,17 @@ $(document).ready(function () {
                   </span>`;
                 }
               },
-              { data: 'valor_contrato', render: (d) => formatMoeda(d) },
+              {
+                data: 'valor_contrato',
+                render: function (d, type, row) {
+                  let valor = parseFloat(d) || 0;
+                  const ano = row.created_at ? new Date(row.created_at).getFullYear() : 0;
+                  if (ano >= 2026 && row.angariacao_status === 'SIM') {
+                    valor += parseFloat(row.angariacao_valor) || 0;
+                  }
+                  return formatMoeda(valor);
+                }
+              },
               {
                 data: null,
                 orderable: false,
