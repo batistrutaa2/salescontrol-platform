@@ -1000,6 +1000,19 @@ class Relatorios extends Controller
         $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
                 $q->where('empresa_id', $empresaId);
             })
+            ->whereHas('contatoCorretor', function ($q) {
+                $q->whereIn('tabulacao_id', [
+                    Tabulations::VENDA,
+                    Tabulations::IMPLANTADO,
+                    Tabulations::PENDENCIA,
+                    Tabulations::ANALISE_OPERADORA,
+                    Tabulations::BOLETO_DISPONIVEL,
+                    Tabulations::REGULARIZADO,
+                    Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                    Tabulations::ANALISE_DOCUMENTOS,
+                    Tabulations::AGUARD_ASSINATURA_DS,
+                ]);
+            })
             ->whereYear('vendas.created_at', $ano);
 
         if ($vendedorId) {
@@ -1007,7 +1020,7 @@ class Relatorios extends Controller
         }
 
         $totalVendas = $queryVendas->count();
-        $valorTotal = $queryVendas->sum('valor_contrato') ?? 0;
+        $valorTotal = (clone $queryVendas)->selectRaw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as total')->value('total') ?? 0;
         $ticketMedio = $totalVendas > 0 ? $valorTotal / $totalVendas : 0;
 
         // Taxa de conversão
@@ -1046,6 +1059,19 @@ class Relatorios extends Controller
             $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
                     $q->where('empresa_id', $empresaId);
                 })
+                ->whereHas('contatoCorretor', function ($q) {
+                    $q->whereIn('tabulacao_id', [
+                        Tabulations::VENDA,
+                        Tabulations::IMPLANTADO,
+                        Tabulations::PENDENCIA,
+                        Tabulations::ANALISE_OPERADORA,
+                        Tabulations::BOLETO_DISPONIVEL,
+                        Tabulations::REGULARIZADO,
+                        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                        Tabulations::ANALISE_DOCUMENTOS,
+                        Tabulations::AGUARD_ASSINATURA_DS,
+                    ]);
+                })
                 ->whereYear('vendas.created_at', $ano)
                 ->whereRaw('MONTH(vendas.created_at) BETWEEN ? AND ?', [$mesInicio, $mesFim]);
 
@@ -1054,7 +1080,8 @@ class Relatorios extends Controller
             }
 
             $totalVendas = $queryVendas->count();
-            $valorTotal = $queryVendas->sum('valor_contrato') ?? 0;
+            $valorTotal = (clone $queryVendas)->selectRaw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as total')->value('total') ?? 0;
+            $valorAngariacao = (clone $queryVendas)->selectRaw('SUM(CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as total')->value('total') ?? 0;
             $ticketMedio = $totalVendas > 0 ? $valorTotal / $totalVendas : 0;
             $taxaConversao = $leadsUnicos > 0 ? round(($totalVendas / $leadsUnicos) * 100, 2) : 0;
 
@@ -1064,6 +1091,7 @@ class Relatorios extends Controller
                 'leads_unicos' => $leadsUnicos,
                 'total_vendas' => $totalVendas,
                 'valor_total' => $valorTotal,
+                'valor_angariacao' => $valorAngariacao,
                 'ticket_medio' => $ticketMedio,
                 'taxa_conversao' => $taxaConversao
             ];
@@ -1094,6 +1122,19 @@ class Relatorios extends Controller
             $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
                     $q->where('empresa_id', $empresaId);
                 })
+                ->whereHas('contatoCorretor', function ($q) {
+                    $q->whereIn('tabulacao_id', [
+                        Tabulations::VENDA,
+                        Tabulations::IMPLANTADO,
+                        Tabulations::PENDENCIA,
+                        Tabulations::ANALISE_OPERADORA,
+                        Tabulations::BOLETO_DISPONIVEL,
+                        Tabulations::REGULARIZADO,
+                        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                        Tabulations::ANALISE_DOCUMENTOS,
+                        Tabulations::AGUARD_ASSINATURA_DS,
+                    ]);
+                })
                 ->whereYear('vendas.created_at', $ano)
                 ->whereMonth('vendas.created_at', $mes);
 
@@ -1102,7 +1143,7 @@ class Relatorios extends Controller
             }
 
             $totalVendas = $queryVendas->count();
-            $valorTotal = $queryVendas->sum('valor_contrato') ?? 0;
+            $valorTotal = (clone $queryVendas)->selectRaw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as total')->value('total') ?? 0;
 
             $meses[] = [
                 'mes' => $mes,
@@ -1122,10 +1163,23 @@ class Relatorios extends Controller
                 'nome_plano',
                 'operadora',
                 DB::raw('COUNT(*) as total_vendas'),
-                DB::raw('SUM(valor_contrato) as valor_total')
+                DB::raw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as valor_total')
             )
             ->whereHas('user', function ($q) use ($empresaId) {
                 $q->where('empresa_id', $empresaId);
+            })
+            ->whereHas('contatoCorretor', function ($q) {
+                $q->whereIn('tabulacao_id', [
+                    Tabulations::VENDA,
+                    Tabulations::IMPLANTADO,
+                    Tabulations::PENDENCIA,
+                    Tabulations::ANALISE_OPERADORA,
+                    Tabulations::BOLETO_DISPONIVEL,
+                    Tabulations::REGULARIZADO,
+                    Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                    Tabulations::ANALISE_DOCUMENTOS,
+                    Tabulations::AGUARD_ASSINATURA_DS,
+                ]);
             })
             ->whereYear('vendas.created_at', $ano);
 
@@ -1145,11 +1199,24 @@ class Relatorios extends Controller
         $query = VendasModel::select(
                 'operadora',
                 DB::raw('COUNT(*) as total_vendas'),
-                DB::raw('SUM(valor_contrato) as valor_total'),
-                DB::raw('AVG(valor_contrato) as ticket_medio')
+                DB::raw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as valor_total'),
+                DB::raw('AVG(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as ticket_medio')
             )
             ->whereHas('user', function ($q) use ($empresaId) {
                 $q->where('empresa_id', $empresaId);
+            })
+            ->whereHas('contatoCorretor', function ($q) {
+                $q->whereIn('tabulacao_id', [
+                    Tabulations::VENDA,
+                    Tabulations::IMPLANTADO,
+                    Tabulations::PENDENCIA,
+                    Tabulations::ANALISE_OPERADORA,
+                    Tabulations::BOLETO_DISPONIVEL,
+                    Tabulations::REGULARIZADO,
+                    Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                    Tabulations::ANALISE_DOCUMENTOS,
+                    Tabulations::AGUARD_ASSINATURA_DS,
+                ]);
             })
             ->whereYear('vendas.created_at', $ano);
 
@@ -1181,6 +1248,19 @@ class Relatorios extends Controller
 
             $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
                     $q->where('empresa_id', $empresaId);
+                })
+                ->whereHas('contatoCorretor', function ($q) {
+                    $q->whereIn('tabulacao_id', [
+                        Tabulations::VENDA,
+                        Tabulations::IMPLANTADO,
+                        Tabulations::PENDENCIA,
+                        Tabulations::ANALISE_OPERADORA,
+                        Tabulations::BOLETO_DISPONIVEL,
+                        Tabulations::REGULARIZADO,
+                        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                        Tabulations::ANALISE_DOCUMENTOS,
+                        Tabulations::AGUARD_ASSINATURA_DS,
+                    ]);
                 })
                 ->whereYear('vendas.created_at', $ano)
                 ->whereMonth('vendas.created_at', $mes);
@@ -1214,14 +1294,27 @@ class Relatorios extends Controller
 
         // Subquery para vendas por vendedor
         $vendasSubquery = DB::table('vendas as v')
+            ->leftJoin('contatos_corretores as cc', 'cc.contato_id', '=', 'v.contato_id')
             ->select(
-                'user_id',
+                'v.user_id',
                 DB::raw('COUNT(DISTINCT v.id) as total_vendas'),
-                DB::raw('SUM(v.valor_contrato) as valor_total'),
-                DB::raw('AVG(v.valor_contrato) as ticket_medio')
+                DB::raw('SUM(v.valor_contrato + CASE WHEN v.angariacao_status = "SIM" THEN v.angariacao_valor ELSE 0 END) as valor_total'),
+                DB::raw('AVG(v.valor_contrato + CASE WHEN v.angariacao_status = "SIM" THEN v.angariacao_valor ELSE 0 END) as ticket_medio')
             )
-            ->whereYear('created_at', $ano)
-            ->groupBy('user_id');
+            ->where('v.empresa_id', $empresaId)
+            ->whereYear('v.created_at', $ano)
+            ->whereIn('cc.tabulacao_id', [
+                Tabulations::VENDA,
+                Tabulations::IMPLANTADO,
+                Tabulations::PENDENCIA,
+                Tabulations::ANALISE_OPERADORA,
+                Tabulations::BOLETO_DISPONIVEL,
+                Tabulations::REGULARIZADO,
+                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+                Tabulations::ANALISE_DOCUMENTOS,
+                Tabulations::AGUARD_ASSINATURA_DS,
+            ])
+            ->groupBy('v.user_id');
 
         return DB::table('users as u')
             ->leftJoinSub($leadsSubquery, 'leads', function ($join) {

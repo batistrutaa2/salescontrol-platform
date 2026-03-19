@@ -148,6 +148,10 @@ $(document).ready(function () {
               <span class="da-trim-value">${formatarNumero(trimestre.total_vendas)}</span>
             </div>
             <div class="da-trim-row">
+              <span class="da-trim-label">Angariação</span>
+              <span class="da-trim-value">${formatarMoeda(trimestre.valor_angariacao)}</span>
+            </div>
+            <div class="da-trim-row">
               <span class="da-trim-label">Valor</span>
               <span class="da-trim-value">${formatarMoeda(trimestre.valor_total)}</span>
             </div>
