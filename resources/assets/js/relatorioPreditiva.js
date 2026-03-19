@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Update charts
                     atualizarGraficoAtividadeDiaria(response.grafico_diario);
-                    atualizarGraficoStatus(response.grafico_status);
+                    atualizarGraficoVendedores(response.grafico_vendedores);
 
                     if (response.grafico_tabulacao) {
                         atualizarGraficoTabulacao(response.grafico_tabulacao);
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ============================================
     // Charts
     // ============================================
-    let chartAtividadeDiaria, chartStatus, chartTabulacao;
+    let chartAtividadeDiaria, chartVendedores, chartTabulacao;
 
     function atualizarGraficoAtividadeDiaria(dados) {
         const el = document.getElementById('grafico-atividade-diaria');
@@ -350,95 +350,238 @@ document.addEventListener('DOMContentLoaded', function () {
         chartAtividadeDiaria.render();
     }
 
-    function atualizarGraficoStatus(dados) {
-        const el = document.getElementById('grafico-status');
+    function atualizarGraficoVendedores(dados) {
+        const el = document.getElementById('grafico-vendedores');
         if (!el) return;
 
-        // Destroy existing chart first
-        if (chartStatus) {
-            chartStatus.destroy();
-            chartStatus = null;
+        if (chartVendedores) {
+            chartVendedores.destroy();
+            chartVendedores = null;
         }
 
-        // Clear any empty state
         el.innerHTML = '';
 
-        if (!dados || !dados.valores || dados.valores.length === 0) {
-            el.innerHTML = createEmptyChartState('Sem dados de status');
+        if (!dados || !dados.nomes || dados.nomes.length === 0) {
+            el.innerHTML = createEmptyChartState('Sem dados de vendedores');
+            document.getElementById('vendedor-highlights').style.display = 'none';
             return;
         }
 
+        // Update highlight strip
+        atualizarHighlights(dados);
+
         const options = {
-            series: dados.valores || [],
+            series: [
+                {
+                    name: 'Convertidos',
+                    type: 'bar',
+                    data: dados.convertidos || []
+                },
+                {
+                    name: 'Descartados',
+                    type: 'bar',
+                    data: dados.descartados || []
+                },
+                {
+                    name: 'Taxa de Conversao',
+                    type: 'line',
+                    data: dados.taxa || []
+                }
+            ],
             chart: {
-                height: 300,
-                type: 'donut',
+                height: 380,
+                type: 'line',
+                stacked: false,
+                toolbar: { show: false },
                 fontFamily: 'Plus Jakarta Sans, sans-serif',
                 background: 'transparent'
             },
-            labels: dados.labels || [],
-            colors: [colors.success, colors.danger, colors.warning, colors.info, colors.primary],
-            dataLabels: {
-                enabled: true,
-                formatter: function (val) {
-                    return val.toFixed(1) + '%';
-                },
-                style: {
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    colors: ['#fff']
-                },
-                dropShadow: { enabled: false }
-            },
             plotOptions: {
-                pie: {
-                    donut: {
-                        size: '70%',
-                        labels: {
-                            show: true,
-                            name: {
-                                show: true,
-                                fontSize: '14px',
-                                fontWeight: 600,
-                                color: headingColor
-                            },
-                            value: {
-                                show: true,
-                                fontSize: '24px',
-                                fontWeight: 800,
-                                fontFamily: 'JetBrains Mono, monospace',
-                                color: headingColor,
-                                formatter: function (val) {
-                                    return val;
-                                }
-                            },
-                            total: {
-                                show: true,
-                                label: 'Total',
-                                fontSize: '12px',
-                                color: labelColor,
-                                formatter: function (w) {
-                                    return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                                }
-                            }
-                        }
-                    }
+                bar: {
+                    horizontal: false,
+                    borderRadius: 8,
+                    borderRadiusApplication: 'end',
+                    columnWidth: '50%'
                 }
             },
-            stroke: {
-                width: 0
+            colors: [colors.success, colors.danger, colors.warning],
+            fill: {
+                opacity: [1, 1, 1]
             },
+            stroke: {
+                width: [0, 0, 3],
+                curve: 'smooth'
+            },
+            markers: {
+                size: [0, 0, 5],
+                strokeColors: isDarkStyle ? '#1e202f' : '#fff',
+                strokeWidth: 2,
+                hover: { size: 7 }
+            },
+            dataLabels: {
+                enabled: true,
+                enabledOnSeries: [2],
+                formatter: function (val) {
+                    return val + '%';
+                },
+                style: {
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    fontFamily: 'JetBrains Mono, monospace'
+                },
+                background: {
+                    enabled: true,
+                    foreColor: colors.warning,
+                    borderRadius: 6,
+                    padding: 5,
+                    opacity: 0.9,
+                    borderWidth: 0,
+                    borderColor: 'transparent',
+                    dropShadow: { enabled: false }
+                },
+                offsetY: -8
+            },
+            grid: {
+                borderColor: borderColor,
+                strokeDashArray: 4,
+                padding: { top: 10, bottom: 0 }
+            },
+            xaxis: {
+                categories: dados.nomes,
+                labels: {
+                    style: {
+                        colors: labelColor,
+                        fontSize: '11px',
+                        fontWeight: 600
+                    },
+                    rotate: dados.nomes.length > 5 ? -45 : 0,
+                    rotateAlways: dados.nomes.length > 5
+                },
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: [
+                {
+                    title: {
+                        text: 'Quantidade',
+                        style: {
+                            color: labelColor,
+                            fontWeight: 600,
+                            fontSize: '12px'
+                        }
+                    },
+                    labels: {
+                        style: { colors: labelColor },
+                        formatter: function (val) { return Math.round(val); }
+                    },
+                    min: 0
+                },
+                {
+                    show: false
+                },
+                {
+                    opposite: true,
+                    title: {
+                        text: 'Taxa %',
+                        style: {
+                            color: colors.warning,
+                            fontWeight: 600,
+                            fontSize: '12px'
+                        }
+                    },
+                    labels: {
+                        style: { colors: colors.warning },
+                        formatter: function (val) { return Math.round(val) + '%'; }
+                    },
+                    min: 0,
+                    max: 100
+                }
+            ],
             legend: {
-                position: 'bottom',
-                labels: { colors: legendColor }
+                show: false
             },
             tooltip: {
-                theme: isDarkStyle ? 'dark' : 'light'
+                shared: true,
+                intersect: false,
+                theme: isDarkStyle ? 'dark' : 'light',
+                custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+                    const nome = dados.nomes[dataPointIndex];
+                    const conv = dados.convertidos[dataPointIndex];
+                    const desc = dados.descartados[dataPointIndex];
+                    const total = dados.total[dataPointIndex];
+                    const taxa = dados.taxa[dataPointIndex];
+                    const taxaColor = taxa >= 50 ? colors.success : (taxa >= 25 ? colors.warning : colors.danger);
+                    const tooltipBg = isDarkStyle ? 'rgba(30, 32, 47, 0.98)' : 'rgba(255, 255, 255, 0.98)';
+                    const tooltipBorder = isDarkStyle ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
+                    return `<div style="padding: 14px 18px; font-family: Plus Jakarta Sans, sans-serif; background: ${tooltipBg}; border: 1px solid ${tooltipBorder}; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);">
+                        <div style="font-weight: 800; font-size: 13px; margin-bottom: 10px; color: ${headingColor}; letter-spacing: -0.01em;">${nome}</div>
+                        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                                <span style="display: flex; align-items: center; gap: 6px; color: ${labelColor}">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.primary}; display: inline-block;"></span>
+                                    Total
+                                </span>
+                                <span style="font-weight: 700; font-family: JetBrains Mono, monospace; color: ${headingColor}">${total}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                                <span style="display: flex; align-items: center; gap: 6px; color: ${colors.success}">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.success}; display: inline-block;"></span>
+                                    Convertidos
+                                </span>
+                                <span style="font-weight: 700; font-family: JetBrains Mono, monospace; color: ${colors.success}">${conv}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                                <span style="display: flex; align-items: center; gap: 6px; color: ${colors.danger}">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.danger}; display: inline-block;"></span>
+                                    Descartados
+                                </span>
+                                <span style="font-weight: 700; font-family: JetBrains Mono, monospace; color: ${colors.danger}">${desc}</span>
+                            </div>
+                            <div style="border-top: 1px solid ${tooltipBorder}; margin-top: 4px; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                                <span style="color: ${labelColor}; font-weight: 600;">Taxa de Conversao</span>
+                                <span style="font-weight: 800; font-size: 14px; font-family: JetBrains Mono, monospace; color: ${taxaColor}">${taxa}%</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }
             }
         };
 
-        chartStatus = new ApexCharts(el, options);
-        chartStatus.render();
+        chartVendedores = new ApexCharts(el, options);
+        chartVendedores.render();
+    }
+
+    function atualizarHighlights(dados) {
+        const highlightsEl = document.getElementById('vendedor-highlights');
+        if (!highlightsEl || !dados || !dados.nomes || dados.nomes.length === 0) return;
+
+        highlightsEl.style.display = '';
+
+        // Best conversion rate (with at least 1 contact)
+        let bestIdx = 0;
+        let bestTaxa = -1;
+        for (let i = 0; i < dados.taxa.length; i++) {
+            if (dados.total[i] > 0 && dados.taxa[i] > bestTaxa) {
+                bestTaxa = dados.taxa[i];
+                bestIdx = i;
+            }
+        }
+
+        // Highest volume
+        let volIdx = 0;
+        let maxVol = 0;
+        for (let i = 0; i < dados.total.length; i++) {
+            if (dados.total[i] > maxVol) {
+                maxVol = dados.total[i];
+                volIdx = i;
+            }
+        }
+
+        document.getElementById('best-seller-name').textContent = dados.nomes[bestIdx];
+        document.getElementById('best-seller-taxa').textContent = dados.taxa[bestIdx] + '%';
+        document.getElementById('volume-seller-name').textContent = dados.nomes[volIdx];
+        document.getElementById('volume-seller-total').textContent = dados.total[volIdx] + ' contatos';
     }
 
     function atualizarGraficoTabulacao(dados) {

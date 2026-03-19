@@ -129,24 +129,40 @@ class Relatorios extends Controller
             })->toArray()
         ];
 
-        // Preparar dados para gráfico de status
-        $statusCount = $logs->groupBy('acao')->map->count();
+        // Preparar dados de desempenho por vendedor
+        $logsPorVendedor = $logs->groupBy(function ($log) {
+            return $log->user->name ?? 'N/A';
+        });
 
-        // Traduzir os status para exibição
-        $statusLabels = $statusCount->keys()->map(function ($key) {
-            switch ($key) {
-                case 'CONVERSAO':
-                    return 'Convertido';
-                case 'DESCARTE':
-                    return 'Descartado';
-                default:
-                    return $key;
-            }
-        })->toArray();
+        $vendedorNomes = [];
+        $vendedorConvertidos = [];
+        $vendedorDescartados = [];
+        $vendedorTotal = [];
+        $vendedorTaxa = [];
 
-        $dadosGraficoStatus = [
-            'labels' => $statusLabels,
-            'valores' => $statusCount->values()->toArray()
+        foreach ($logsPorVendedor as $nome => $logsVendedor) {
+            $vendedorNomes[] = $nome;
+            $conv = $logsVendedor->where('acao', 'CONVERSAO')->count();
+            $desc = $logsVendedor->where('acao', 'DESCARTE')->count();
+            $tot = $logsVendedor->count();
+            $vendedorConvertidos[] = $conv;
+            $vendedorDescartados[] = $desc;
+            $vendedorTotal[] = $tot;
+            $vendedorTaxa[] = $tot > 0 ? round(($conv / $tot) * 100, 1) : 0;
+        }
+
+        // Ordenar por taxa de conversão decrescente
+        $indices = range(0, count($vendedorNomes) - 1);
+        usort($indices, function ($a, $b) use ($vendedorTaxa) {
+            return $vendedorTaxa[$b] <=> $vendedorTaxa[$a];
+        });
+
+        $dadosGraficoVendedores = [
+            'nomes' => array_map(fn($i) => $vendedorNomes[$i], $indices),
+            'convertidos' => array_map(fn($i) => $vendedorConvertidos[$i], $indices),
+            'descartados' => array_map(fn($i) => $vendedorDescartados[$i], $indices),
+            'total' => array_map(fn($i) => $vendedorTotal[$i], $indices),
+            'taxa' => array_map(fn($i) => $vendedorTaxa[$i], $indices),
         ];
 
         // Adicionar dados de tabulação
@@ -155,7 +171,6 @@ class Relatorios extends Controller
             'labels' => $tabulacaoCount->keys()->toArray(),
             'valores' => $tabulacaoCount->values()->toArray()
         ];
-
 
         return response()->json([
             'success' => true,
@@ -167,7 +182,7 @@ class Relatorios extends Controller
                 'taxa_conversao' => $taxaConversao
             ],
             'grafico_diario' => $dadosGraficoDiario,
-            'grafico_status' => $dadosGraficoStatus,
+            'grafico_vendedores' => $dadosGraficoVendedores,
             'grafico_tabulacao' => $dadosGraficoTabulacao
         ]);
     }

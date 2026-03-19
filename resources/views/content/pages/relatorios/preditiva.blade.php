@@ -236,21 +236,68 @@
             </div>
         </div>
 
-        {{-- Status and Tabulation Charts --}}
+        {{-- Desempenho por Vendedor --}}
         <div class="chart-row">
-            <div class="chart-card chart-half">
+            <div class="chart-card chart-full vendedor-performance-card">
                 <div class="chart-header">
                     <div class="chart-title-group">
-                        <h3 class="chart-title">Distribuicao por Status</h3>
-                        <span class="chart-subtitle">Proporcao de conversoes e descartes</span>
+                        <h3 class="chart-title">Desempenho por Vendedor</h3>
+                        <span class="chart-subtitle">Volume de atendimentos e taxa de conversao</span>
+                    </div>
+                    <div class="chart-legend">
+                        <span class="legend-item">
+                            <span class="legend-dot success"></span>
+                            Convertidos
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-dot danger"></span>
+                            Descartados
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-dot warning" style="width: 16px; height: 3px; border-radius: 2px;"></span>
+                            Taxa de Conversao
+                        </span>
+                    </div>
+                </div>
+                {{-- Top performers strip --}}
+                <div class="vendedor-highlights" id="vendedor-highlights">
+                    <div class="highlight-item highlight-best" id="highlight-best">
+                        <div class="highlight-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                        </div>
+                        <div class="highlight-text">
+                            <span class="highlight-label">Melhor conversao</span>
+                            <span class="highlight-value" id="best-seller-name">--</span>
+                        </div>
+                        <span class="highlight-badge success" id="best-seller-taxa">--%</span>
+                    </div>
+                    <div class="highlight-divider"></div>
+                    <div class="highlight-item highlight-top-volume" id="highlight-volume">
+                        <div class="highlight-icon volume">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="14"/>
+                            </svg>
+                        </div>
+                        <div class="highlight-text">
+                            <span class="highlight-label">Maior volume</span>
+                            <span class="highlight-value" id="volume-seller-name">--</span>
+                        </div>
+                        <span class="highlight-badge primary" id="volume-seller-total">-- contatos</span>
                     </div>
                 </div>
                 <div class="chart-body">
-                    <div id="grafico-status"></div>
+                    <div id="grafico-vendedores"></div>
                 </div>
             </div>
+        </div>
 
-            <div class="chart-card chart-half">
+        {{-- Distribuicao por Tabulacao --}}
+        <div class="chart-row">
+            <div class="chart-card chart-full">
                 <div class="chart-header">
                     <div class="chart-title-group">
                         <h3 class="chart-title">Distribuicao por Tabulacao</h3>
