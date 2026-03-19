@@ -42,8 +42,8 @@ class DashboardController extends Controller
 
         $validTabulations = $this->getValidTabulations();
 
-        $valorSql = "CASE WHEN YEAR(a.created_at) >= 2026 THEN a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END ELSE a.valor_contrato END";
-        $valorExpression = DB::raw($valorSql);
+        $valorSql = "a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END";
+        $sumValorSql = "SUM($valorSql)";
 
         // Vendas Cadastradas (valor)
         $salesRegistered = DB::table('vendas as a')
@@ -53,7 +53,8 @@ class DashboardController extends Controller
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
             ->whereIn('c.tabulacao_id', $validTabulations)
-            ->sum($valorExpression);
+            ->selectRaw("$sumValorSql as total")
+            ->value('total') ?? 0;
 
         // Vendas Implantadas (valor)
         $salesImplanted = DB::table('vendas as a')
@@ -63,7 +64,8 @@ class DashboardController extends Controller
             ->where('c.tabulacao_id', Tabulations::IMPLANTADO)
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
-            ->sum($valorExpression);
+            ->selectRaw("$sumValorSql as total")
+            ->value('total') ?? 0;
 
         // Quantidade de vendas cadastradas (usado para ticket médio)
         $qtyRegistered = DB::table('vendas as a')
@@ -113,7 +115,7 @@ class DashboardController extends Controller
         $monthlyOverview = DB::table('vendas as a')
             ->select(
                 DB::raw('MONTH(a.created_at) as month'),
-                DB::raw("SUM($valorSql) as total")
+                DB::raw("$sumValorSql as total")
             )
             ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->where('a.user_id', $user->id)
@@ -132,12 +134,10 @@ class DashboardController extends Controller
         $quarterStartMonth = ($currentQuarter - 1) * 3 + 1;
         $quarterEndMonth = $currentQuarter * 3;
 
-        $rankingValorSql = "SUM(a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END)";
-
         // Ranking mensal - todos vendedores da empresa
         $rankingMensal = DB::table('vendas as a')
             ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
-            ->select('a.user_id', DB::raw("$rankingValorSql as total_vendas"))
+            ->select('a.user_id', DB::raw("$sumValorSql as total_vendas"))
             ->where('a.empresa_id', $empresaId)
             ->whereYear('a.created_at', $currentYear)
             ->whereMonth('a.created_at', $currentMonth)
@@ -158,7 +158,7 @@ class DashboardController extends Controller
         // Ranking trimestral - todos vendedores da empresa
         $rankingTrimestral = DB::table('vendas as a')
             ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
-            ->select('a.user_id', DB::raw("$rankingValorSql as total_vendas"))
+            ->select('a.user_id', DB::raw("$sumValorSql as total_vendas"))
             ->where('a.empresa_id', $empresaId)
             ->whereYear('a.created_at', $currentYear)
             ->whereRaw('MONTH(a.created_at) BETWEEN ? AND ?', [$quarterStartMonth, $quarterEndMonth])
@@ -199,7 +199,7 @@ class DashboardController extends Controller
             ->map(function ($venda) {
                 $createdAt = Carbon::parse($venda->created_at);
                 $valor = (float) $venda->valor_contrato;
-                if ($venda->angariacao_status === 'SIM' && $createdAt->year >= 2026) {
+                if ($venda->angariacao_status === 'SIM') {
                     $valor += (float) ($venda->angariacao_valor ?? 0);
                 }
                 $venda->valor_total = $valor;
