@@ -98,6 +98,8 @@ class Relatorios extends Controller
         // Calcular resumo
         $total = $logs->count();
         $convertidos = $logs->where('acao', 'CONVERSAO')->count();
+        $cotacoes = $logs->where('tabulacao', 'COTACAO')->count();
+        $ligarDepois = $logs->where('tabulacao', 'LIGAR_DEPOIS')->count();
         $descartados = $logs->where('acao', 'DESCARTE')->count();
         $taxaConversao = $total > 0 ? round(($convertidos / $total) * 100, 1) . '%' : '0%';
 
@@ -124,6 +126,12 @@ class Relatorios extends Controller
             'convertidos' => $periodoCompleto->map(function ($data) use ($logsPorDia) {
                 return $logsPorDia->get($data, collect())->where('acao', 'CONVERSAO')->count();
             })->toArray(),
+            'cotacoes' => $periodoCompleto->map(function ($data) use ($logsPorDia) {
+                return $logsPorDia->get($data, collect())->where('tabulacao', 'COTACAO')->count();
+            })->toArray(),
+            'ligar_depois' => $periodoCompleto->map(function ($data) use ($logsPorDia) {
+                return $logsPorDia->get($data, collect())->where('tabulacao', 'LIGAR_DEPOIS')->count();
+            })->toArray(),
             'descartados' => $periodoCompleto->map(function ($data) use ($logsPorDia) {
                 return $logsPorDia->get($data, collect())->where('acao', 'DESCARTE')->count();
             })->toArray()
@@ -136,6 +144,8 @@ class Relatorios extends Controller
 
         $vendedorNomes = [];
         $vendedorConvertidos = [];
+        $vendedorCotacoes = [];
+        $vendedorLigarDepois = [];
         $vendedorDescartados = [];
         $vendedorTotal = [];
         $vendedorTaxa = [];
@@ -143,9 +153,13 @@ class Relatorios extends Controller
         foreach ($logsPorVendedor as $nome => $logsVendedor) {
             $vendedorNomes[] = $nome;
             $conv = $logsVendedor->where('acao', 'CONVERSAO')->count();
+            $cot = $logsVendedor->where('tabulacao', 'COTACAO')->count();
+            $lig = $logsVendedor->where('tabulacao', 'LIGAR_DEPOIS')->count();
             $desc = $logsVendedor->where('acao', 'DESCARTE')->count();
             $tot = $logsVendedor->count();
             $vendedorConvertidos[] = $conv;
+            $vendedorCotacoes[] = $cot;
+            $vendedorLigarDepois[] = $lig;
             $vendedorDescartados[] = $desc;
             $vendedorTotal[] = $tot;
             $vendedorTaxa[] = $tot > 0 ? round(($conv / $tot) * 100, 1) : 0;
@@ -160,6 +174,8 @@ class Relatorios extends Controller
         $dadosGraficoVendedores = [
             'nomes' => array_map(fn($i) => $vendedorNomes[$i], $indices),
             'convertidos' => array_map(fn($i) => $vendedorConvertidos[$i], $indices),
+            'cotacoes' => array_map(fn($i) => $vendedorCotacoes[$i], $indices),
+            'ligar_depois' => array_map(fn($i) => $vendedorLigarDepois[$i], $indices),
             'descartados' => array_map(fn($i) => $vendedorDescartados[$i], $indices),
             'total' => array_map(fn($i) => $vendedorTotal[$i], $indices),
             'taxa' => array_map(fn($i) => $vendedorTaxa[$i], $indices),
@@ -178,6 +194,8 @@ class Relatorios extends Controller
             'resumo' => [
                 'total' => $total,
                 'convertidos' => $convertidos,
+                'cotacoes' => $cotacoes,
+                'ligar_depois' => $ligarDepois,
                 'descartados' => $descartados,
                 'taxa_conversao' => $taxaConversao
             ],

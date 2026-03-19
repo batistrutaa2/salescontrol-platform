@@ -1031,7 +1031,7 @@ class Comercial extends Controller
       'empresa_id' => $empresaId,
       'user_id' => $userId,
       'contato_id' => $contatoId,
-      'tabulacao' => 'CONVERTIDO',
+      'tabulacao' => $request->tabulacao ?? 'CONVERTIDO',
       'acao' => 'CONVERSAO'
     ]);
 

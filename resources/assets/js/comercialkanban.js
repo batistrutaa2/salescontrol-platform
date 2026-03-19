@@ -1032,7 +1032,28 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    converterCliente(id);
+    Swal.fire({
+      title: 'Tipo de conversão',
+      text: 'Qual o motivo da conversão deste lead?',
+      icon: 'question',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: 'Cotação',
+      denyButtonText: 'Ligar Depois',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        confirmButton: 'btn btn-success waves-effect me-2',
+        denyButton: 'btn btn-info waves-effect me-2',
+        cancelButton: 'btn btn-secondary waves-effect'
+      },
+      buttonsStyling: false
+    }).then((result) => {
+      if (result.isConfirmed) {
+        converterCliente(id, 'COTACAO');
+      } else if (result.isDenied) {
+        converterCliente(id, 'LIGAR_DEPOIS');
+      }
+    });
   });
 
   // Função para buscar cliente da fila preditiva
@@ -1196,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Função para converter cliente
-  function converterCliente(id) {
+  function converterCliente(id, tabulacao) {
     loadingElement.classList.remove('d-none');
     clienteContainer.classList.add('d-none');
 
@@ -1207,7 +1228,8 @@ document.addEventListener('DOMContentLoaded', function () {
         'X-CSRF-TOKEN': token
       },
       body: JSON.stringify({
-        contato_id: id
+        contato_id: id,
+        tabulacao: tabulacao
       })
     })
       .then(response => response.json())

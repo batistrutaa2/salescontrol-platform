@@ -190,7 +190,7 @@
 // ============================================
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
     margin-bottom: 2rem;
 
@@ -376,6 +376,8 @@
 .kpi-grid > *:nth-child(2) { animation-delay: 100ms; }
 .kpi-grid > *:nth-child(3) { animation-delay: 200ms; }
 .kpi-grid > *:nth-child(4) { animation-delay: 300ms; }
+.kpi-grid > *:nth-child(5) { animation-delay: 400ms; }
+.kpi-grid > *:nth-child(6) { animation-delay: 500ms; }
 
 // ============================================
 // Filter Card
@@ -921,6 +923,25 @@
         .table-subtitle {
             font-size: 0.75rem;
             color: var(--dash-text-muted);
+        }
+    }
+
+    .table-filter {
+        .form-select {
+            border-radius: var(--dash-border-radius-sm);
+            border: 1px solid var(--dash-card-border);
+            background: var(--dash-glass-bg);
+            color: var(--dash-text-primary, #1F2937);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            padding: 0.5rem 2rem 0.5rem 0.75rem;
+            transition: var(--dash-transition-fast);
+
+            &:focus {
+                border-color: var(--dash-primary);
+                box-shadow: 0 0 0 3px rgba(var(--dash-primary-rgb), 0.15);
+            }
         }
     }
 

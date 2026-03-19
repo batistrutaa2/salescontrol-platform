@@ -137,6 +137,30 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Table vendor filter
+    const filtroVendedorTabela = document.getElementById('filtro-vendedor-tabela');
+    if (filtroVendedorTabela && dt) {
+        filtroVendedorTabela.addEventListener('change', function () {
+            dt.column(1).search(this.value ? '^' + $.fn.dataTable.util.escapeRegex(this.value) + '$' : '', true, false).draw();
+        });
+    }
+
+    function atualizarFiltroVendedorTabela(atividades) {
+        if (!filtroVendedorTabela) return;
+        const vendedores = [...new Set(atividades.map(a => a.usuario))].sort();
+        const valorAtual = filtroVendedorTabela.value;
+        filtroVendedorTabela.innerHTML = '<option value="">Todos os vendedores</option>';
+        vendedores.forEach(function (v) {
+            if (v && v !== 'N/A') {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                filtroVendedorTabela.appendChild(opt);
+            }
+        });
+        filtroVendedorTabela.value = valorAtual;
+    }
+
     // ============================================
     // Filter Toggle
     // ============================================
@@ -193,6 +217,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Update table
                     if (dt) {
+                        atualizarFiltroVendedorTabela(response.atividades);
                         dt.clear().rows.add(response.atividades).draw();
                     }
 
@@ -219,6 +244,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function atualizarKPIs(resumo) {
         animateValue('total-contatos', resumo.total || 0);
         animateValue('total-convertidos', resumo.convertidos || 0);
+        animateValue('total-cotacoes', resumo.cotacoes || 0);
+        animateValue('total-ligar-depois', resumo.ligar_depois || 0);
         animateValue('total-descartados', resumo.descartados || 0);
         document.getElementById('taxa-conversao').textContent = resumo.taxa_conversao || '0%';
     }
@@ -277,8 +304,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     data: dados.contatos || []
                 },
                 {
-                    name: 'Convertidos',
-                    data: dados.convertidos || []
+                    name: 'Cotacoes',
+                    data: dados.cotacoes || []
+                },
+                {
+                    name: 'Ligar Depois',
+                    data: dados.ligar_depois || []
                 },
                 {
                     name: 'Descartados',
@@ -292,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 fontFamily: 'Plus Jakarta Sans, sans-serif',
                 background: 'transparent'
             },
-            colors: [colors.primary, colors.success, colors.danger],
+            colors: [colors.primary, colors.success, colors.warning, colors.danger],
             fill: {
                 type: 'gradient',
                 gradient: {
@@ -373,9 +404,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const options = {
             series: [
                 {
-                    name: 'Convertidos',
+                    name: 'Cotacoes',
                     type: 'bar',
-                    data: dados.convertidos || []
+                    data: dados.cotacoes || []
+                },
+                {
+                    name: 'Ligar Depois',
+                    type: 'bar',
+                    data: dados.ligar_depois || []
                 },
                 {
                     name: 'Descartados',
@@ -399,28 +435,28 @@ document.addEventListener('DOMContentLoaded', function () {
             plotOptions: {
                 bar: {
                     horizontal: false,
-                    borderRadius: 8,
+                    borderRadius: 6,
                     borderRadiusApplication: 'end',
-                    columnWidth: '50%'
+                    columnWidth: '55%'
                 }
             },
-            colors: [colors.success, colors.danger, colors.warning],
+            colors: [colors.success, colors.info, colors.danger, colors.warning],
             fill: {
-                opacity: [1, 1, 1]
+                opacity: [1, 1, 0.45, 1]
             },
             stroke: {
-                width: [0, 0, 3],
+                width: [0, 0, 0, 3],
                 curve: 'smooth'
             },
             markers: {
-                size: [0, 0, 5],
+                size: [0, 0, 0, 5],
                 strokeColors: isDarkStyle ? '#1e202f' : '#fff',
                 strokeWidth: 2,
                 hover: { size: 7 }
             },
             dataLabels: {
                 enabled: true,
-                enabledOnSeries: [2],
+                enabledOnSeries: [3],
                 formatter: function (val) {
                     return val + '%';
                 },
@@ -480,6 +516,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     show: false
                 },
                 {
+                    show: false
+                },
+                {
                     opposite: true,
                     title: {
                         text: 'Taxa %',
@@ -506,7 +545,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 theme: isDarkStyle ? 'dark' : 'light',
                 custom: function ({ series, seriesIndex, dataPointIndex, w }) {
                     const nome = dados.nomes[dataPointIndex];
-                    const conv = dados.convertidos[dataPointIndex];
+                    const cot = dados.cotacoes[dataPointIndex];
+                    const lig = dados.ligar_depois[dataPointIndex];
                     const desc = dados.descartados[dataPointIndex];
                     const total = dados.total[dataPointIndex];
                     const taxa = dados.taxa[dataPointIndex];
@@ -520,23 +560,30 @@ document.addEventListener('DOMContentLoaded', function () {
                             <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
                                 <span style="display: flex; align-items: center; gap: 6px; color: ${labelColor}">
                                     <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.primary}; display: inline-block;"></span>
-                                    Total
+                                    Total Leads
                                 </span>
                                 <span style="font-weight: 700; font-family: JetBrains Mono, monospace; color: ${headingColor}">${total}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
                                 <span style="display: flex; align-items: center; gap: 6px; color: ${colors.success}">
                                     <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.success}; display: inline-block;"></span>
-                                    Convertidos
+                                    Cotacoes
                                 </span>
-                                <span style="font-weight: 700; font-family: JetBrains Mono, monospace; color: ${colors.success}">${conv}</span>
+                                <span style="font-weight: 700; font-family: JetBrains Mono, monospace; color: ${colors.success}">${cot}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
-                                <span style="display: flex; align-items: center; gap: 6px; color: ${colors.danger}">
-                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.danger}; display: inline-block;"></span>
+                                <span style="display: flex; align-items: center; gap: 6px; color: ${colors.info}">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.info}; display: inline-block;"></span>
+                                    Ligar Depois
+                                </span>
+                                <span style="font-weight: 700; font-family: JetBrains Mono, monospace; color: ${colors.info}">${lig}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                                <span style="display: flex; align-items: center; gap: 6px; color: ${colors.danger}; opacity: 0.7;">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.danger}; opacity: 0.6; display: inline-block;"></span>
                                     Descartados
                                 </span>
-                                <span style="font-weight: 700; font-family: JetBrains Mono, monospace; color: ${colors.danger}">${desc}</span>
+                                <span style="font-weight: 700; font-family: JetBrains Mono, monospace; color: ${colors.danger}; opacity: 0.7;">${desc}</span>
                             </div>
                             <div style="border-top: 1px solid ${tooltipBorder}; margin-top: 4px; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 20px;">
                                 <span style="color: ${labelColor}; font-weight: 600;">Taxa de Conversao</span>
@@ -568,12 +615,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Highest volume
+        // Most cotacoes
         let volIdx = 0;
-        let maxVol = 0;
-        for (let i = 0; i < dados.total.length; i++) {
-            if (dados.total[i] > maxVol) {
-                maxVol = dados.total[i];
+        let maxCot = 0;
+        for (let i = 0; i < dados.cotacoes.length; i++) {
+            if (dados.cotacoes[i] > maxCot) {
+                maxCot = dados.cotacoes[i];
                 volIdx = i;
             }
         }
@@ -581,7 +628,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('best-seller-name').textContent = dados.nomes[bestIdx];
         document.getElementById('best-seller-taxa').textContent = dados.taxa[bestIdx] + '%';
         document.getElementById('volume-seller-name').textContent = dados.nomes[volIdx];
-        document.getElementById('volume-seller-total').textContent = dados.total[volIdx] + ' contatos';
+        document.getElementById('volume-seller-total').textContent = dados.cotacoes[volIdx] + ' cotacoes';
     }
 
     function atualizarGraficoTabulacao(dados) {

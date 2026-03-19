@@ -101,6 +101,57 @@
             <div class="kpi-glow"></div>
         </div>
 
+        {{-- Cotacoes --}}
+        <div class="kpi-card kpi-success">
+            <div class="kpi-icon-wrapper">
+                <div class="kpi-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                </div>
+                <div class="kpi-pulse"></div>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Cotacoes</span>
+                <h2 class="kpi-value" id="total-cotacoes">0</h2>
+                <div class="kpi-trend trend-up">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                        <polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                    <span>Interesse real</span>
+                </div>
+            </div>
+            <div class="kpi-glow"></div>
+        </div>
+
+        {{-- Ligar Depois --}}
+        <div class="kpi-card kpi-warning">
+            <div class="kpi-icon-wrapper">
+                <div class="kpi-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <div class="kpi-pulse"></div>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Ligar Depois</span>
+                <h2 class="kpi-value" id="total-ligar-depois">0</h2>
+                <div class="kpi-trend trend-neutral">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    <span>Retorno agendado</span>
+                </div>
+            </div>
+            <div class="kpi-glow"></div>
+        </div>
+
         {{-- Descartados --}}
         <div class="kpi-card kpi-danger">
             <div class="kpi-icon-wrapper">
@@ -222,7 +273,11 @@
                         </span>
                         <span class="legend-item">
                             <span class="legend-dot success"></span>
-                            Convertidos
+                            Cotacoes
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-dot warning"></span>
+                            Ligar Depois
                         </span>
                         <span class="legend-item">
                             <span class="legend-dot danger"></span>
@@ -242,15 +297,19 @@
                 <div class="chart-header">
                     <div class="chart-title-group">
                         <h3 class="chart-title">Desempenho por Vendedor</h3>
-                        <span class="chart-subtitle">Volume de atendimentos e taxa de conversao</span>
+                        <span class="chart-subtitle">Conversoes por tipo, descartes e taxa de conversao</span>
                     </div>
                     <div class="chart-legend">
                         <span class="legend-item">
                             <span class="legend-dot success"></span>
-                            Convertidos
+                            Cotacoes
                         </span>
                         <span class="legend-item">
-                            <span class="legend-dot danger"></span>
+                            <span class="legend-dot info"></span>
+                            Ligar Depois
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-dot danger" style="opacity: 0.45;"></span>
                             Descartados
                         </span>
                         <span class="legend-item">
@@ -283,10 +342,10 @@
                             </svg>
                         </div>
                         <div class="highlight-text">
-                            <span class="highlight-label">Maior volume</span>
+                            <span class="highlight-label">Mais cotacoes</span>
                             <span class="highlight-value" id="volume-seller-name">--</span>
                         </div>
-                        <span class="highlight-badge primary" id="volume-seller-total">-- contatos</span>
+                        <span class="highlight-badge primary" id="volume-seller-total">-- cotacoes</span>
                     </div>
                 </div>
                 <div class="chart-body">
@@ -328,6 +387,11 @@
                         <h3 class="table-title">Detalhamento de Atividades</h3>
                         <span class="table-subtitle">Historico completo de contatos</span>
                     </div>
+                </div>
+                <div class="table-filter">
+                    <select id="filtro-vendedor-tabela" class="form-select" style="min-width: 200px;">
+                        <option value="">Todos os vendedores</option>
+                    </select>
                 </div>
             </div>
             <div class="table-body">
