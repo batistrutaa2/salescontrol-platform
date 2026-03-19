@@ -1,0 +1,512 @@
+/**
+ * Criar Estudo Styles
+ * Glass Morphism + Gradient Design System
+ */
+
+// ============================================
+// CSS Variables & Theme Support
+// ============================================
+:root {
+    --ec-primary: #7C3AED;
+    --ec-primary-light: #A78BFA;
+    --ec-primary-rgb: 124, 58, 237;
+
+    --ec-success: #10B981;
+    --ec-success-light: #34D399;
+    --ec-success-rgb: 16, 185, 129;
+
+    --ec-info: #06B6D4;
+    --ec-info-light: #22D3EE;
+    --ec-info-rgb: 6, 182, 212;
+
+    --ec-warning: #F59E0B;
+    --ec-warning-light: #FBBF24;
+    --ec-warning-rgb: 245, 158, 11;
+
+    --ec-danger: #EF4444;
+    --ec-danger-light: #F87171;
+    --ec-danger-rgb: 239, 68, 68;
+
+    --ec-card-bg: rgba(255, 255, 255, 0.95);
+    --ec-card-border: #E5E7EB;
+    --ec-glass-bg: rgba(255, 255, 255, 0.85);
+    --ec-table-border: #E5E7EB;
+    --ec-table-hover: rgba(0, 0, 0, 0.04);
+    --ec-table-stripe: rgba(0, 0, 0, 0.02);
+    --ec-glass-blur: 12px;
+
+    --ec-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --ec-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --ec-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+    --ec-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.15);
+
+    --ec-text-primary: #1F2937;
+    --ec-text-secondary: #6B7280;
+    --ec-text-muted: #9CA3AF;
+
+    --ec-border-radius: 16px;
+    --ec-border-radius-sm: 12px;
+
+    --ec-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --ec-transition-fast: all 0.15s ease;
+}
+
+// Dark Theme
+.dark-style {
+    --ec-card-bg: rgba(30, 32, 47, 0.95);
+    --ec-card-border: rgba(255, 255, 255, 0.12);
+    --ec-glass-bg: rgba(40, 42, 58, 0.85);
+    --ec-table-border: rgba(255, 255, 255, 0.1);
+    --ec-table-hover: rgba(255, 255, 255, 0.05);
+    --ec-table-stripe: rgba(255, 255, 255, 0.02);
+
+    --ec-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --ec-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --ec-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
+    --ec-shadow-glow: 0 0 60px rgba(124, 58, 237, 0.25);
+
+    --ec-text-primary: #F9FAFB;
+    --ec-text-secondary: #D1D5DB;
+    --ec-text-muted: #9CA3AF;
+}
+
+// ============================================
+// Typography
+// ============================================
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+
+// ============================================
+// Wrapper
+// ============================================
+.ec-wrapper {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 0;
+    min-height: 100vh;
+}
+
+// ============================================
+// Page Header
+// ============================================
+.ec-page-header {
+    margin-bottom: 2rem;
+    padding: 1.5rem 0;
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -50%;
+        right: -50%;
+        height: 100%;
+        background: linear-gradient(135deg,
+            rgba(var(--ec-primary-rgb), 0.03) 0%,
+            rgba(var(--ec-info-rgb), 0.02) 100%
+        );
+        z-index: -1;
+        border-radius: 0 0 50% 50%;
+    }
+
+    .ec-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+
+    .ec-header-text {
+        .ec-greeting-label {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--ec-primary);
+            background: linear-gradient(135deg,
+                rgba(var(--ec-primary-rgb), 0.1) 0%,
+                rgba(var(--ec-info-rgb), 0.1) 100%
+            );
+            padding: 0.375rem 0.875rem;
+            border-radius: 20px;
+            margin-bottom: 0.75rem;
+        }
+
+        .ec-main-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            background: linear-gradient(135deg, var(--ec-text-primary) 0%, var(--ec-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .ec-subtitle {
+            font-size: 0.9375rem;
+            color: var(--ec-text-secondary);
+            margin: 0;
+            font-weight: 500;
+        }
+    }
+}
+
+// ============================================
+// Form Card
+// ============================================
+.ec-form-card {
+    background: var(--ec-card-bg);
+    border-radius: var(--ec-border-radius);
+    border: 1px solid var(--ec-card-border);
+    box-shadow: var(--ec-shadow-md);
+    overflow: hidden;
+    transition: var(--ec-transition);
+    margin-bottom: 2rem;
+    animation: ecFadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
+
+    &:hover {
+        box-shadow: var(--ec-shadow-lg);
+    }
+
+    .ec-form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--ec-card-border);
+        background: linear-gradient(135deg,
+            rgba(var(--ec-primary-rgb), 0.02) 0%,
+            transparent 100%
+        );
+    }
+
+    .ec-form-title-group {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+    }
+
+    .ec-form-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--ec-border-radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg,
+            rgba(var(--ec-primary-rgb), 0.15) 0%,
+            rgba(var(--ec-primary-rgb), 0.05) 100%
+        );
+        color: var(--ec-primary);
+
+        svg { width: 20px; height: 20px; }
+    }
+
+    .ec-form-title {
+        font-size: 0.9375rem;
+        font-weight: 700;
+        color: var(--ec-text-primary);
+        margin: 0;
+    }
+
+    .ec-form-subtitle {
+        font-size: 0.75rem;
+        color: var(--ec-text-muted);
+    }
+
+    .ec-form-body {
+        padding: 1.5rem;
+    }
+}
+
+// ============================================
+// Form Elements
+// ============================================
+.ec-form-group {
+    margin-bottom: 1.25rem;
+}
+
+.ec-form-label {
+    display: block;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--ec-text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.ec-form-input,
+.ec-form-select {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    width: 100%;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    border: 1px solid var(--ec-card-border);
+    border-radius: var(--ec-border-radius-sm);
+    background: var(--ec-glass-bg);
+    color: var(--ec-text-primary);
+    transition: var(--ec-transition-fast);
+
+    &:focus {
+        outline: none;
+        border-color: var(--ec-primary);
+        box-shadow: 0 0 0 3px rgba(var(--ec-primary-rgb), 0.1);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+// ============================================
+// Selector Row
+// ============================================
+.ec-selector-row {
+    display: grid;
+    grid-template-columns: 2fr 2fr auto;
+    gap: 1rem;
+    align-items: end;
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.ec-btn-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, var(--ec-primary) 0%, var(--ec-primary-light) 100%);
+    border: none;
+    border-radius: var(--ec-border-radius-sm);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--ec-transition);
+    white-space: nowrap;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(var(--ec-primary-rgb), 0.4);
+    }
+
+    svg { width: 18px; height: 18px; }
+}
+
+// ============================================
+// Estudos Container (JS-rendered cards)
+// ============================================
+#estudosContainer {
+    margin-top: 1.5rem;
+
+    .estudo {
+        background: var(--ec-card-bg);
+        border-radius: var(--ec-border-radius);
+        border: 1px solid var(--ec-card-border);
+        box-shadow: var(--ec-shadow-sm);
+        overflow: hidden;
+        transition: var(--ec-transition);
+        margin-bottom: 1.5rem;
+
+        &:hover {
+            box-shadow: var(--ec-shadow-md);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--ec-card-border);
+            background: linear-gradient(135deg,
+                rgba(var(--ec-primary-rgb), 0.03) 0%,
+                transparent 100%
+            );
+
+            h6 {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-size: 0.9375rem;
+                font-weight: 700;
+                color: var(--ec-text-primary);
+                margin: 0;
+            }
+        }
+
+        .card-body {
+            padding: 1.25rem;
+
+            label {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-size: 0.6875rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                color: var(--ec-text-muted);
+                margin-bottom: 0.375rem;
+                display: block;
+            }
+
+            .form-control {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-size: 0.875rem;
+                padding: 0.5rem 0.75rem;
+                border: 1px solid var(--ec-card-border);
+                border-radius: 8px;
+                background: var(--ec-glass-bg);
+                color: var(--ec-text-primary);
+                transition: var(--ec-transition-fast);
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--ec-primary);
+                    box-shadow: 0 0 0 3px rgba(var(--ec-primary-rgb), 0.1);
+                }
+            }
+        }
+
+        // Table inside estudo card
+        .table {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin-bottom: 0;
+
+            thead th {
+                font-size: 0.6875rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                color: var(--ec-text-muted);
+                padding: 0.625rem 0.75rem;
+                border-bottom: 2px solid var(--ec-table-border);
+                background: var(--ec-table-stripe);
+            }
+
+            tbody td {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.875rem;
+                color: var(--ec-text-primary);
+                border-bottom: 1px solid var(--ec-table-border);
+                vertical-align: middle;
+
+                .form-control {
+                    padding: 0.375rem 0.5rem;
+                    font-size: 0.8125rem;
+                    text-align: center;
+                }
+
+                &.total {
+                    font-family: 'JetBrains Mono', monospace;
+                    font-weight: 600;
+                    color: var(--ec-primary);
+                }
+            }
+
+            tfoot {
+                tr {
+                    background: var(--ec-table-stripe) !important;
+                }
+
+                th {
+                    font-size: 0.8125rem;
+                    font-weight: 700;
+                    color: var(--ec-text-primary);
+                    padding: 0.75rem;
+                    border-top: 2px solid var(--ec-card-border);
+                }
+
+                .totalVidas,
+                .totalGeral {
+                    font-family: 'JetBrains Mono', monospace;
+                    font-weight: 700;
+                    color: var(--ec-success);
+                }
+            }
+        }
+
+        .remover-estudo {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            padding: 0.375rem 0.875rem;
+            background: linear-gradient(135deg, var(--ec-danger) 0%, var(--ec-danger-light) 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--ec-transition);
+
+            &:hover {
+                box-shadow: 0 4px 12px rgba(var(--ec-danger-rgb), 0.35);
+            }
+        }
+    }
+}
+
+// ============================================
+// Save Button (appended by JS)
+// ============================================
+.ec-form-body > .btn-success,
+.ec-form-body > .ec-btn-save {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.5rem;
+    background: linear-gradient(135deg, var(--ec-success) 0%, var(--ec-success-light) 100%);
+    border: none;
+    border-radius: var(--ec-border-radius-sm);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--ec-transition);
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(var(--ec-success-rgb), 0.4);
+        color: white;
+    }
+}
+
+// ============================================
+// Animations
+// ============================================
+@keyframes ecFadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+// ============================================
+// Responsive
+// ============================================
+@media (max-width: 768px) {
+    .ec-page-header {
+        .ec-header-text .ec-main-title { font-size: 1.5rem; }
+    }
+
+    #estudosContainer .col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+// ============================================
+// Print
+// ============================================
+@media print {
+    .ec-wrapper { background: white !important; }
+    .ec-form-card, #estudosContainer .estudo {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+    }
+    .ec-btn-add, .remover-estudo, .ec-btn-save { display: none !important; }
+}

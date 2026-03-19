@@ -159,7 +159,7 @@ $(document).ready(function () {
                 orderable: false,
                 render: function (data, type, row) {
                   return `
-                    <button type="button" class="btn-view-sale btn-visualizar-venda"
+                    <button type="button" class="lv-btn-view btn-visualizar-venda"
                             data-venda-id="${row.id}"
                             data-bs-toggle="tooltip"
                             title="Visualizar Detalhes">
@@ -258,8 +258,8 @@ $(document).ready(function () {
     // Status badge com novo estilo clean
     const statusBadge = $('#venda-status-badge');
     const statusText = (venda.descricao || 'N/D').toUpperCase();
-    statusBadge.removeClass('status-badge-clean success warning danger primary');
-    statusBadge.addClass('status-badge-clean');
+    statusBadge.removeClass('lv-status-badge success warning danger primary');
+    statusBadge.addClass('lv-status-badge');
 
     switch (statusText) {
       case 'IMPLANTADO':
@@ -375,17 +375,17 @@ $(document).ready(function () {
       const statusBadgeColor = getStatusBadgeColor(item.status_novo);
 
       let html = `
-        <div class="timeline-item ${statusClass}">
-          <div class="timeline-card">
-            <div class="timeline-header">
-              <div class="timeline-status">
+        <div class="lv-timeline-item ${statusClass}">
+          <div class="lv-timeline-card">
+            <div class="lv-timeline-header">
+              <div class="lv-timeline-status">
                 <i class="${statusIcon}"></i>
-                <span class="timeline-status-badge" style="background: ${statusBadgeColor}; color: #fff;">
+                <span class="lv-timeline-badge" style="background: ${statusBadgeColor};">
                   ${escapeHtml(item.status_novo || 'Status não informado')}
                 </span>
-                ${item.tempo_formatado ? `<span class="timeline-tempo"><i class="ri-time-line"></i> ${escapeHtml(item.tempo_formatado)}</span>` : ''}
+                ${item.tempo_formatado ? `<span class="lv-timeline-tempo"><i class="ri-time-line"></i> ${escapeHtml(item.tempo_formatado)}</span>` : ''}
               </div>
-              <span class="timeline-date">
+              <span class="lv-timeline-date">
                 <i class="ri-calendar-line me-1"></i>${item.data || 'Data não informada'}
               </span>
             </div>
@@ -394,17 +394,17 @@ $(document).ready(function () {
       // Mostrar transição de status (de → para)
       if (item.status_anterior) {
         html += `
-            <div class="timeline-transition">
-              <span class="status-from">${escapeHtml(item.status_anterior)}</span>
-              <span class="arrow"><i class="ri-arrow-right-line"></i></span>
-              <span class="status-to">${escapeHtml(item.status_novo)}</span>
+            <div class="lv-timeline-transition">
+              <span class="lv-status-from">${escapeHtml(item.status_anterior)}</span>
+              <span class="lv-arrow"><i class="ri-arrow-right-line"></i></span>
+              <span class="lv-status-to">${escapeHtml(item.status_novo)}</span>
             </div>
         `;
       }
 
       // Metadados (usuário)
       html += `
-            <div class="timeline-meta">
+            <div class="lv-timeline-meta">
               <span><i class="ri-user-line me-1"></i> ${escapeHtml(item.usuario || 'Sistema')}</span>
             </div>
       `;
@@ -413,7 +413,7 @@ $(document).ready(function () {
       const observacao = item.motivo_pendencia || item.observacao;
       if (observacao) {
         html += `
-            <div class="timeline-observacao">
+            <div class="lv-timeline-obs">
               <i class="ri-chat-quote-line me-1 text-muted"></i>
               ${escapeHtml(observacao)}
             </div>

@@ -420,7 +420,7 @@
       "url": "/dashboard-vendedor",
       "name": "Dashboard",
       "icon": "menu-icon tf-icons ri-pie-chart-2-line",
-      "slug": "dashboard-vendedor",
+      "slug": "dashboard.vendedor",
       "rules": [
         "VENDEDOR"
       ]
@@ -495,7 +495,7 @@
     {
       "name": "Estudo",
       "icon": "menu-icon tf-icons ri-book-2-line",
-      "slug": "dashboard",
+      "slug": "pages-estudo",
       "rules": [
         "VENDEDOR"
       ],

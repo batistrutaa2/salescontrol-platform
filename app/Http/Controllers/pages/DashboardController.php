@@ -40,25 +40,22 @@ class DashboardController extends Controller
         $user = Auth::user();
         $empresaId = $user->empresa_id;
 
+        $validTabulations = $this->getValidTabulations();
+
+        $valorSql = "CASE WHEN YEAR(a.created_at) >= 2026 THEN a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END ELSE a.valor_contrato END";
+        $valorExpression = DB::raw($valorSql);
+
+        // Vendas Cadastradas (valor)
         $salesRegistered = DB::table('vendas as a')
             ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->whereYear('a.created_at', $year)
             ->whereMonth('a.created_at', $month)
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
-            ->whereIn('c.tabulacao_id', [
-                Tabulations::VENDA,
-                Tabulations::IMPLANTADO,
-                Tabulations::PENDENCIA,
-                Tabulations::ANALISE_OPERADORA,
-                Tabulations::BOLETO_DISPONIVEL,
-                Tabulations::REGULARIZADO,
-                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                Tabulations::ANALISE_DOCUMENTOS,
-                Tabulations::AGUARD_ASSINATURA_DS,
-            ])
-            ->sum(DB::raw("CASE WHEN YEAR(a.created_at) >= 2026 THEN a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END ELSE a.valor_contrato END"));
+            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->sum($valorExpression);
 
+        // Vendas Implantadas (valor)
         $salesImplanted = DB::table('vendas as a')
             ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->whereYear('a.created_at', $year)
@@ -66,36 +63,192 @@ class DashboardController extends Controller
             ->where('c.tabulacao_id', Tabulations::IMPLANTADO)
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
-            ->sum(DB::raw("CASE WHEN YEAR(a.created_at) >= 2026 THEN a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END ELSE a.valor_contrato END"));
+            ->sum($valorExpression);
 
-        $leadsStatus = DB::table('contatos_corretores as cc')
-            ->select('t.descricao as tabulacao', DB::raw('count(*) as total'))
-            ->join('tabulacoes as t', 't.id', '=', 'cc.tabulacao_id')
-            ->where('cc.user_id', $user->id)
-            ->where('t.tipo_tabulacao', 'C')
+        // Quantidade de vendas cadastradas (usado para ticket médio)
+        $qtyRegistered = DB::table('vendas as a')
+            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
+            ->whereYear('a.created_at', $year)
+            ->whereMonth('a.created_at', $month)
+            ->where('a.empresa_id', $empresaId)
+            ->where('a.user_id', $user->id)
+            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->count();
 
-            ->groupBy('t.descricao')
-            ->get();
+        // Ticket médio
+        $ticketMedio = $qtyRegistered > 0 ? $salesRegistered / $qtyRegistered : 0;
 
+        // Operadora mais vendida (ano inteiro)
+        $operadoraMaisVendida = DB::table('vendas as a')
+            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
+            ->select('a.operadora', DB::raw('COUNT(*) as total'))
+            ->whereYear('a.created_at', $year)
+            ->where('a.empresa_id', $empresaId)
+            ->where('a.user_id', $user->id)
+            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->whereNotNull('a.operadora')
+            ->where('a.operadora', '!=', '')
+            ->groupBy('a.operadora')
+            ->orderByDesc('total')
+            ->first();
+
+        // Taxa de conversão
+        $leadsTrabalhados = DB::table('contatos_corretores')
+            ->where('user_id', $user->id)
+            ->where('empresa_id', $empresaId)
+            ->distinct('contato_id')
+            ->count('contato_id');
+
+        $vendasCount = DB::table('vendas as a')
+            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
+            ->whereYear('a.created_at', $year)
+            ->where('a.empresa_id', $empresaId)
+            ->where('a.user_id', $user->id)
+            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->count();
+
+        $taxaConversao = $leadsTrabalhados > 0 ? round(($vendasCount / $leadsTrabalhados) * 100, 1) : 0;
+
+        // Evolução mensal
         $monthlyOverview = DB::table('vendas as a')
             ->select(
                 DB::raw('MONTH(a.created_at) as month'),
-                DB::raw("SUM(CASE WHEN YEAR(a.created_at) >= 2026 THEN a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END ELSE a.valor_contrato END) as total")
+                DB::raw("SUM($valorSql) as total")
             )
+            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->where('a.user_id', $user->id)
             ->where('a.empresa_id', $empresaId)
             ->whereYear('a.created_at', $year)
+            ->whereIn('c.tabulacao_id', $validTabulations)
             ->groupBy(DB::raw('MONTH(a.created_at)'))
             ->orderBy('month')
             ->get();
 
+        // Ranking mensal e trimestral (não segue filtro de seleção, sempre mês/trimestre vigente)
+        $now = Carbon::now();
+        $currentMonth = $now->month;
+        $currentYear = $now->year;
+        $currentQuarter = $now->quarter;
+        $quarterStartMonth = ($currentQuarter - 1) * 3 + 1;
+        $quarterEndMonth = $currentQuarter * 3;
+
+        $rankingValorSql = "SUM(a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END)";
+
+        // Ranking mensal - todos vendedores da empresa
+        $rankingMensal = DB::table('vendas as a')
+            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
+            ->select('a.user_id', DB::raw("$rankingValorSql as total_vendas"))
+            ->where('a.empresa_id', $empresaId)
+            ->whereYear('a.created_at', $currentYear)
+            ->whereMonth('a.created_at', $currentMonth)
+            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->groupBy('a.user_id')
+            ->orderByDesc('total_vendas')
+            ->get();
+
+        $posicaoMensal = null;
+        $totalVendedoresMes = $rankingMensal->count();
+        foreach ($rankingMensal->values() as $index => $item) {
+            if ($item->user_id == $user->id) {
+                $posicaoMensal = $index + 1;
+                break;
+            }
+        }
+
+        // Ranking trimestral - todos vendedores da empresa
+        $rankingTrimestral = DB::table('vendas as a')
+            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
+            ->select('a.user_id', DB::raw("$rankingValorSql as total_vendas"))
+            ->where('a.empresa_id', $empresaId)
+            ->whereYear('a.created_at', $currentYear)
+            ->whereRaw('MONTH(a.created_at) BETWEEN ? AND ?', [$quarterStartMonth, $quarterEndMonth])
+            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->groupBy('a.user_id')
+            ->orderByDesc('total_vendas')
+            ->get();
+
+        $posicaoTrimestral = null;
+        $totalVendedoresTrimestre = $rankingTrimestral->count();
+        foreach ($rankingTrimestral->values() as $index => $item) {
+            if ($item->user_id == $user->id) {
+                $posicaoTrimestral = $index + 1;
+                break;
+            }
+        }
+
+        // Vendas recentes (últimas 10)
+        $vendasRecentes = DB::table('vendas as a')
+            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
+            ->leftJoin('tabulacoes as t', 't.id', '=', 'c.tabulacao_id')
+            ->select(
+                'a.nome_contrato',
+                'a.operadora',
+                'a.nome_plano',
+                'a.valor_contrato',
+                'a.angariacao_status',
+                'a.angariacao_valor',
+                'a.created_at',
+                't.descricao as status'
+            )
+            ->where('a.empresa_id', $empresaId)
+            ->where('a.user_id', $user->id)
+            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->orderByDesc('a.created_at')
+            ->limit(10)
+            ->get()
+            ->map(function ($venda) {
+                $createdAt = Carbon::parse($venda->created_at);
+                $valor = (float) $venda->valor_contrato;
+                if ($venda->angariacao_status === 'SIM' && $createdAt->year >= 2026) {
+                    $valor += (float) ($venda->angariacao_valor ?? 0);
+                }
+                $venda->valor_total = $valor;
+                $venda->created_at = $createdAt->format('d/m/Y');
+                return $venda;
+            });
+
         $data = [
-            'sales_registered' => $salesRegistered,
-            'sales_implanted' => $salesImplanted,
-            'leads_status' => $leadsStatus,
-            'monthly_overview' => $monthlyOverview
+            'sales_registered' => (float) $salesRegistered,
+            'sales_implanted' => (float) $salesImplanted,
+            'ticket_medio' => round((float) $ticketMedio, 2),
+            'operadora_mais_vendida' => $operadoraMaisVendida ? [
+                'operadora' => $operadoraMaisVendida->operadora,
+                'total' => $operadoraMaisVendida->total,
+            ] : null,
+            'taxa_conversao' => [
+                'leads_trabalhados' => $leadsTrabalhados,
+                'vendas' => $vendasCount,
+                'percentual' => $taxaConversao,
+            ],
+            'ranking_mensal' => [
+                'posicao' => $posicaoMensal,
+                'total_vendedores' => $totalVendedoresMes,
+                'mes' => $currentMonth,
+            ],
+            'ranking_trimestral' => [
+                'posicao' => $posicaoTrimestral,
+                'total_vendedores' => $totalVendedoresTrimestre,
+                'trimestre' => $currentQuarter,
+            ],
+            'monthly_overview' => $monthlyOverview,
+            'vendas_recentes' => $vendasRecentes,
         ];
 
         return response()->json($data);
+    }
+
+    private function getValidTabulations(): array
+    {
+        return [
+            Tabulations::VENDA,
+            Tabulations::IMPLANTADO,
+            Tabulations::PENDENCIA,
+            Tabulations::ANALISE_OPERADORA,
+            Tabulations::BOLETO_DISPONIVEL,
+            Tabulations::REGULARIZADO,
+            Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+            Tabulations::ANALISE_DOCUMENTOS,
+            Tabulations::AGUARD_ASSINATURA_DS,
+        ];
     }
 }

@@ -1,0 +1,691 @@
+/**
+ * Agendamentos Styles
+ * Glass Morphism + Gradient Design System
+ */
+
+// ============================================
+// CSS Variables & Theme Support
+// ============================================
+:root {
+    --ag-primary: #7C3AED;
+    --ag-primary-light: #A78BFA;
+    --ag-primary-rgb: 124, 58, 237;
+
+    --ag-success: #10B981;
+    --ag-success-light: #34D399;
+    --ag-success-rgb: 16, 185, 129;
+
+    --ag-info: #06B6D4;
+    --ag-info-light: #22D3EE;
+    --ag-info-rgb: 6, 182, 212;
+
+    --ag-warning: #F59E0B;
+    --ag-warning-light: #FBBF24;
+    --ag-warning-rgb: 245, 158, 11;
+
+    --ag-danger: #EF4444;
+    --ag-danger-light: #F87171;
+    --ag-danger-rgb: 239, 68, 68;
+
+    --ag-card-bg: rgba(255, 255, 255, 0.95);
+    --ag-card-border: #E5E7EB;
+    --ag-glass-bg: rgba(255, 255, 255, 0.85);
+    --ag-table-border: #E5E7EB;
+    --ag-table-hover: rgba(0, 0, 0, 0.04);
+    --ag-table-stripe: rgba(0, 0, 0, 0.02);
+    --ag-glass-blur: 12px;
+
+    --ag-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --ag-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --ag-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+    --ag-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.15);
+
+    --ag-text-primary: #1F2937;
+    --ag-text-secondary: #6B7280;
+    --ag-text-muted: #9CA3AF;
+
+    --ag-border-radius: 16px;
+    --ag-border-radius-sm: 12px;
+    --ag-border-radius-lg: 24px;
+
+    --ag-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --ag-transition-fast: all 0.15s ease;
+}
+
+// Dark Theme
+.dark-style {
+    --ag-card-bg: rgba(30, 32, 47, 0.95);
+    --ag-card-border: rgba(255, 255, 255, 0.12);
+    --ag-glass-bg: rgba(40, 42, 58, 0.85);
+    --ag-table-border: rgba(255, 255, 255, 0.1);
+    --ag-table-hover: rgba(255, 255, 255, 0.05);
+    --ag-table-stripe: rgba(255, 255, 255, 0.02);
+
+    --ag-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --ag-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --ag-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
+    --ag-shadow-glow: 0 0 60px rgba(124, 58, 237, 0.25);
+
+    --ag-text-primary: #F9FAFB;
+    --ag-text-secondary: #D1D5DB;
+    --ag-text-muted: #9CA3AF;
+}
+
+// ============================================
+// Typography
+// ============================================
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+
+// ============================================
+// Wrapper
+// ============================================
+.ag-wrapper {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 0;
+    min-height: 100vh;
+}
+
+// ============================================
+// Page Header
+// ============================================
+.ag-page-header {
+    margin-bottom: 2rem;
+    padding: 1.5rem 0;
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -50%;
+        right: -50%;
+        height: 100%;
+        background: linear-gradient(135deg,
+            rgba(var(--ag-primary-rgb), 0.03) 0%,
+            rgba(var(--ag-info-rgb), 0.02) 100%
+        );
+        z-index: -1;
+        border-radius: 0 0 50% 50%;
+    }
+
+    .ag-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+
+    .ag-header-text {
+        .ag-greeting-label {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--ag-primary);
+            background: linear-gradient(135deg,
+                rgba(var(--ag-primary-rgb), 0.1) 0%,
+                rgba(var(--ag-info-rgb), 0.1) 100%
+            );
+            padding: 0.375rem 0.875rem;
+            border-radius: 20px;
+            margin-bottom: 0.75rem;
+        }
+
+        .ag-main-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--ag-text-primary);
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+
+            background: linear-gradient(135deg,
+                var(--ag-text-primary) 0%,
+                var(--ag-primary) 100%
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .ag-subtitle {
+            font-size: 0.9375rem;
+            color: var(--ag-text-secondary);
+            margin: 0;
+            font-weight: 500;
+        }
+    }
+}
+
+// ============================================
+// Alert
+// ============================================
+.ag-alert {
+    padding: 1rem 1.25rem;
+    border-radius: var(--ag-border-radius-sm);
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: agFadeInUp 0.4s ease forwards;
+
+    &.ag-alert-success {
+        background: rgba(var(--ag-success-rgb), 0.1);
+        color: var(--ag-success);
+        border: 1px solid rgba(var(--ag-success-rgb), 0.2);
+    }
+
+    &.ag-alert-error {
+        background: rgba(var(--ag-danger-rgb), 0.1);
+        color: var(--ag-danger);
+        border: 1px solid rgba(var(--ag-danger-rgb), 0.2);
+    }
+
+    .ag-alert-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    &.ag-alert-success .ag-alert-icon {
+        background: rgba(var(--ag-success-rgb), 0.15);
+    }
+
+    &.ag-alert-error .ag-alert-icon {
+        background: rgba(var(--ag-danger-rgb), 0.15);
+    }
+}
+
+// ============================================
+// Table Card
+// ============================================
+.ag-table-card {
+    background: var(--ag-card-bg);
+    border-radius: var(--ag-border-radius);
+    border: 1px solid var(--ag-card-border);
+    box-shadow: var(--ag-shadow-md);
+    overflow: hidden;
+    transition: var(--ag-transition);
+    margin-bottom: 2rem;
+    animation: agFadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
+    animation-delay: 200ms;
+
+    &:hover {
+        box-shadow: var(--ag-shadow-lg);
+    }
+
+    .ag-table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--ag-card-border);
+        background: linear-gradient(135deg,
+            rgba(var(--ag-primary-rgb), 0.02) 0%,
+            transparent 100%
+        );
+    }
+
+    .ag-table-title-group {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+    }
+
+    .ag-table-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--ag-border-radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg,
+            rgba(var(--ag-primary-rgb), 0.15) 0%,
+            rgba(var(--ag-primary-rgb), 0.05) 100%
+        );
+        color: var(--ag-primary);
+
+        svg { width: 20px; height: 20px; }
+    }
+
+    .ag-table-title {
+        font-size: 0.9375rem;
+        font-weight: 700;
+        color: var(--ag-text-primary);
+        margin: 0;
+    }
+
+    .ag-table-subtitle {
+        font-size: 0.75rem;
+        color: var(--ag-text-muted);
+    }
+
+    .ag-table-body {
+        padding: 0.5rem 1rem 1rem;
+    }
+}
+
+// ============================================
+// DataTable Overrides
+// ============================================
+.ag-wrapper {
+    .datatables-schedules {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+
+        thead th {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--ag-text-muted);
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid var(--ag-table-border);
+            background: var(--ag-table-stripe);
+        }
+
+        tbody {
+            tr {
+                transition: var(--ag-transition-fast);
+
+                &:hover {
+                    background: var(--ag-table-hover) !important;
+                }
+
+                &:nth-child(even) {
+                    background: var(--ag-table-stripe);
+                }
+
+                &.selected,
+                &.selected td {
+                    background-color: transparent !important;
+                }
+
+                td {
+                    padding: 0.875rem 1rem;
+                    font-size: 0.875rem;
+                    color: var(--ag-text-primary);
+                    border-bottom: 1px solid var(--ag-table-border);
+                    vertical-align: middle;
+                }
+
+                &:last-child td {
+                    border-bottom: none;
+                }
+            }
+        }
+    }
+
+    .dataTables_wrapper {
+        .dataTables_filter {
+            margin-bottom: 1rem;
+
+            input {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-size: 0.875rem;
+                padding: 0.5rem 1rem;
+                border: 1px solid var(--ag-card-border);
+                border-radius: var(--ag-border-radius-sm);
+                background: var(--ag-glass-bg);
+                color: var(--ag-text-primary);
+                transition: var(--ag-transition-fast);
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--ag-primary);
+                    box-shadow: 0 0 0 3px rgba(var(--ag-primary-rgb), 0.1);
+                }
+            }
+        }
+
+        .dataTables_length {
+            margin-bottom: 1rem;
+
+            select {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-size: 0.875rem;
+                padding: 0.5rem 2rem 0.5rem 1rem;
+                border: 1px solid var(--ag-card-border);
+                border-radius: var(--ag-border-radius-sm);
+                background: var(--ag-glass-bg);
+                color: var(--ag-text-primary);
+                cursor: pointer;
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--ag-primary);
+                }
+            }
+        }
+
+        .dataTables_info {
+            font-size: 0.8125rem;
+            color: var(--ag-text-muted);
+            padding: 1rem 0 0.5rem;
+        }
+
+        .dataTables_paginate {
+            padding: 1rem 0 0.5rem;
+
+            .paginate_button {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-size: 0.8125rem;
+                font-weight: 500;
+                padding: 0.375rem 0.75rem;
+                margin: 0 0.125rem;
+                border-radius: 8px;
+                background: transparent;
+                color: var(--ag-text-secondary) !important;
+                border: 1px solid transparent;
+                transition: var(--ag-transition-fast);
+                cursor: pointer;
+
+                &:hover {
+                    background: rgba(var(--ag-primary-rgb), 0.1);
+                    color: var(--ag-primary) !important;
+                    border-color: transparent;
+                }
+
+                &.current {
+                    background: var(--ag-primary) !important;
+                    color: white !important;
+                    border-color: var(--ag-primary);
+                }
+
+                &.disabled {
+                    opacity: 0.4;
+                    cursor: not-allowed;
+
+                    &:hover {
+                        background: transparent;
+                        color: var(--ag-text-muted) !important;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ============================================
+// Action Buttons
+// ============================================
+.ag-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ag-btn-action {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: var(--ag-transition);
+    cursor: pointer;
+    color: white;
+    text-decoration: none;
+
+    &:hover {
+        transform: scale(1.1);
+        color: white;
+    }
+
+    &.ag-btn-open {
+        background: linear-gradient(135deg, var(--ag-info) 0%, var(--ag-info-light) 100%);
+        &:hover { box-shadow: 0 4px 12px rgba(var(--ag-info-rgb), 0.4); }
+    }
+
+    &.ag-btn-reschedule {
+        background: linear-gradient(135deg, var(--ag-primary) 0%, var(--ag-primary-light) 100%);
+        &:hover { box-shadow: 0 4px 12px rgba(var(--ag-primary-rgb), 0.4); }
+    }
+
+    &.ag-btn-done {
+        background: linear-gradient(135deg, var(--ag-success) 0%, var(--ag-success-light) 100%);
+        &:hover { box-shadow: 0 4px 12px rgba(var(--ag-success-rgb), 0.4); }
+    }
+
+    &.ag-btn-discard {
+        background: linear-gradient(135deg, var(--ag-danger) 0%, var(--ag-danger-light) 100%);
+        &:hover { box-shadow: 0 4px 12px rgba(var(--ag-danger-rgb), 0.4); }
+    }
+}
+
+// ============================================
+// Modals
+// ============================================
+.ag-wrapper {
+    & ~ .modal {
+        .modal-content {
+            border: none;
+            border-radius: var(--ag-border-radius);
+            overflow: hidden;
+            background: var(--ag-card-bg);
+            box-shadow: var(--ag-shadow-lg);
+        }
+
+        .ag-modal-header {
+            padding: 1.25rem 1.5rem;
+            background: var(--ag-card-bg);
+            border-bottom: 1px solid var(--ag-card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ag-modal-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--ag-text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0;
+        }
+
+        .ag-modal-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--ag-border-radius-sm);
+
+            &.reschedule {
+                background: linear-gradient(135deg,
+                    rgba(var(--ag-primary-rgb), 0.15) 0%,
+                    rgba(var(--ag-primary-rgb), 0.05) 100%
+                );
+                color: var(--ag-primary);
+            }
+
+            &.discard {
+                background: linear-gradient(135deg,
+                    rgba(var(--ag-danger-rgb), 0.15) 0%,
+                    rgba(var(--ag-danger-rgb), 0.05) 100%
+                );
+                color: var(--ag-danger);
+            }
+
+            &.queue {
+                background: linear-gradient(135deg,
+                    rgba(var(--ag-success-rgb), 0.15) 0%,
+                    rgba(var(--ag-success-rgb), 0.05) 100%
+                );
+                color: var(--ag-success);
+            }
+        }
+
+        .ag-btn-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(var(--ag-primary-rgb), 0.05);
+            border: none;
+            border-radius: 8px;
+            color: var(--ag-text-muted);
+            cursor: pointer;
+            transition: var(--ag-transition-fast);
+
+            &:hover {
+                background: rgba(var(--ag-primary-rgb), 0.1);
+                color: var(--ag-text-primary);
+            }
+        }
+
+        .ag-modal-body {
+            padding: 1.5rem;
+            background: var(--ag-card-bg);
+
+            .ag-modal-description {
+                font-size: 0.875rem;
+                color: var(--ag-text-secondary);
+                margin-bottom: 1.25rem;
+            }
+
+            .ag-form-group {
+                margin-bottom: 1rem;
+            }
+
+            .ag-form-label {
+                display: block;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                color: var(--ag-text-muted);
+                margin-bottom: 0.5rem;
+            }
+
+            .ag-form-input,
+            .ag-form-select {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                width: 100%;
+                padding: 0.625rem 1rem;
+                font-size: 0.875rem;
+                border: 1px solid var(--ag-card-border);
+                border-radius: var(--ag-border-radius-sm);
+                background: var(--ag-glass-bg);
+                color: var(--ag-text-primary);
+                transition: var(--ag-transition-fast);
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--ag-primary);
+                    box-shadow: 0 0 0 3px rgba(var(--ag-primary-rgb), 0.1);
+                }
+            }
+        }
+
+        .ag-modal-footer {
+            padding: 1rem 1.5rem;
+            background: var(--ag-card-bg);
+            border-top: 1px solid var(--ag-card-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .ag-btn-cancel {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            padding: 0.5rem 1.25rem;
+            background: rgba(var(--ag-primary-rgb), 0.05);
+            border: 1px solid var(--ag-card-border);
+            border-radius: var(--ag-border-radius-sm);
+            color: var(--ag-text-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--ag-transition-fast);
+
+            &:hover {
+                background: rgba(var(--ag-primary-rgb), 0.1);
+            }
+        }
+
+        .ag-btn-submit {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            padding: 0.5rem 1.25rem;
+            border: none;
+            border-radius: var(--ag-border-radius-sm);
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--ag-transition);
+
+            &.primary {
+                background: linear-gradient(135deg, var(--ag-primary) 0%, var(--ag-primary-light) 100%);
+                &:hover { box-shadow: 0 4px 12px rgba(var(--ag-primary-rgb), 0.4); }
+            }
+
+            &.success {
+                background: linear-gradient(135deg, var(--ag-success) 0%, var(--ag-success-light) 100%);
+                &:hover { box-shadow: 0 4px 12px rgba(var(--ag-success-rgb), 0.4); }
+            }
+
+            &.danger {
+                background: linear-gradient(135deg, var(--ag-danger) 0%, var(--ag-danger-light) 100%);
+                &:hover { box-shadow: 0 4px 12px rgba(var(--ag-danger-rgb), 0.4); }
+            }
+        }
+    }
+}
+
+// ============================================
+// Animations
+// ============================================
+@keyframes agFadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+// ============================================
+// Responsive
+// ============================================
+@media (max-width: 768px) {
+    .ag-page-header {
+        .ag-header-text .ag-main-title { font-size: 1.5rem; }
+    }
+
+    .ag-actions {
+        flex-wrap: wrap;
+    }
+
+    .ag-btn-action {
+        width: 32px;
+        height: 32px;
+        font-size: 0.875rem;
+    }
+}
+
+// ============================================
+// Print
+// ============================================
+@media print {
+    .ag-wrapper { background: white !important; }
+
+    .ag-table-card {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+        break-inside: avoid;
+    }
+}

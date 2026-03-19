@@ -40,18 +40,18 @@ $(function () {
           orderable: false,
           render: function (data, type, full, meta) {
             return `
-                  <div class="d-flex">
-                      <a href="/comercial/abrir-cliente/${data.id}" class="btn btn-secondary me-1" title="Abrir cliente">
+                  <div class="ag-actions">
+                      <a href="/comercial/abrir-cliente/${data.id}" class="ag-btn-action ag-btn-open" title="Abrir cliente">
                           <i class="ri-user-line"></i>
                       </a>
-                      <button class="btn btn-primary me-1 reagendar" title="reagendar" data-bs-toggle="modal" data-bs-target="#scheduleModal" id="reagendar">
-                          <i class="ri-add-line"></i>
+                      <button class="ag-btn-action ag-btn-reschedule reagendar" title="Reagendar" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                          <i class="ri-calendar-schedule-line"></i>
                       </button>
-                      <button class="btn btn-success me-1 visto" title="marca como visto" data-bs-toggle="modal" data-bs-target="#backKanban">
+                      <button class="ag-btn-action ag-btn-done visto" title="Marcar como visto" data-bs-toggle="modal" data-bs-target="#backKanban">
                           <i class="ri-check-line"></i>
                       </button>
-                      <button class="btn btn-danger descarte" title="descartar" data-bs-toggle="modal" data-bs-target="#discardModal">
-                          <i class="ri-delete-bin-5-fill"></i>
+                      <button class="ag-btn-action ag-btn-discard descarte" title="Descartar" data-bs-toggle="modal" data-bs-target="#discardModal">
+                          <i class="ri-delete-bin-5-line"></i>
                       </button>
                   </div>
               `;

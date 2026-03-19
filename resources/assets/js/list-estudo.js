@@ -18,10 +18,12 @@ $(function () {
                     const url = `${window.location.origin}/visualizar-estudo/${row.link_unico}`;
                     const editUrl = `${window.location.origin}/editar-estudo/${row.id}`;
                     return `
-                        <a href="/visualizar-estudo/${row.link_unico}" class="btn btn-sm btn-primary">Ver</a>
-                        <a href="${editUrl}" class="btn btn-sm btn-warning">Editar</a>
-                        <button class="btn btn-sm btn-info copy-link" data-url="${url}">Copiar Link</button>
-                        <button class="btn btn-sm btn-danger delete-estudo" data-id="${row.id}">Excluir</button>
+                        <div class="es-actions">
+                            <a href="/visualizar-estudo/${row.link_unico}" class="es-btn-action es-btn-view"><i class="ri-eye-line"></i> Ver</a>
+                            <a href="${editUrl}" class="es-btn-action es-btn-edit"><i class="ri-pencil-line"></i> Editar</a>
+                            <button class="es-btn-action es-btn-copy copy-link" data-url="${url}"><i class="ri-link"></i> Copiar</button>
+                            <button class="es-btn-action es-btn-delete delete-estudo" data-id="${row.id}"><i class="ri-delete-bin-line"></i> Excluir</button>
+                        </div>
                     `;
                 }
 

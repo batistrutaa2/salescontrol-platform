@@ -1,0 +1,495 @@
+/**
+ * Lista de Estudos Styles
+ * Glass Morphism + Gradient Design System
+ */
+
+// ============================================
+// CSS Variables & Theme Support
+// ============================================
+:root {
+    --es-primary: #7C3AED;
+    --es-primary-light: #A78BFA;
+    --es-primary-rgb: 124, 58, 237;
+
+    --es-success: #10B981;
+    --es-success-light: #34D399;
+    --es-success-rgb: 16, 185, 129;
+
+    --es-info: #06B6D4;
+    --es-info-light: #22D3EE;
+    --es-info-rgb: 6, 182, 212;
+
+    --es-warning: #F59E0B;
+    --es-warning-light: #FBBF24;
+    --es-warning-rgb: 245, 158, 11;
+
+    --es-danger: #EF4444;
+    --es-danger-light: #F87171;
+    --es-danger-rgb: 239, 68, 68;
+
+    --es-card-bg: rgba(255, 255, 255, 0.95);
+    --es-card-border: #E5E7EB;
+    --es-glass-bg: rgba(255, 255, 255, 0.85);
+    --es-table-border: #E5E7EB;
+    --es-table-hover: rgba(0, 0, 0, 0.04);
+    --es-table-stripe: rgba(0, 0, 0, 0.02);
+    --es-glass-blur: 12px;
+
+    --es-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --es-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --es-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+    --es-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.15);
+
+    --es-text-primary: #1F2937;
+    --es-text-secondary: #6B7280;
+    --es-text-muted: #9CA3AF;
+
+    --es-border-radius: 16px;
+    --es-border-radius-sm: 12px;
+
+    --es-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --es-transition-fast: all 0.15s ease;
+}
+
+// Dark Theme
+.dark-style {
+    --es-card-bg: rgba(30, 32, 47, 0.95);
+    --es-card-border: rgba(255, 255, 255, 0.12);
+    --es-glass-bg: rgba(40, 42, 58, 0.85);
+    --es-table-border: rgba(255, 255, 255, 0.1);
+    --es-table-hover: rgba(255, 255, 255, 0.05);
+    --es-table-stripe: rgba(255, 255, 255, 0.02);
+
+    --es-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --es-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --es-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
+    --es-shadow-glow: 0 0 60px rgba(124, 58, 237, 0.25);
+
+    --es-text-primary: #F9FAFB;
+    --es-text-secondary: #D1D5DB;
+    --es-text-muted: #9CA3AF;
+}
+
+// ============================================
+// Typography
+// ============================================
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+
+// ============================================
+// Wrapper
+// ============================================
+.es-wrapper {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 0;
+    min-height: 100vh;
+}
+
+// ============================================
+// Page Header
+// ============================================
+.es-page-header {
+    margin-bottom: 2rem;
+    padding: 1.5rem 0;
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -50%;
+        right: -50%;
+        height: 100%;
+        background: linear-gradient(135deg,
+            rgba(var(--es-primary-rgb), 0.03) 0%,
+            rgba(var(--es-info-rgb), 0.02) 100%
+        );
+        z-index: -1;
+        border-radius: 0 0 50% 50%;
+    }
+
+    .es-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+
+    .es-header-text {
+        .es-greeting-label {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--es-primary);
+            background: linear-gradient(135deg,
+                rgba(var(--es-primary-rgb), 0.1) 0%,
+                rgba(var(--es-info-rgb), 0.1) 100%
+            );
+            padding: 0.375rem 0.875rem;
+            border-radius: 20px;
+            margin-bottom: 0.75rem;
+        }
+
+        .es-main-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--es-text-primary);
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+
+            background: linear-gradient(135deg,
+                var(--es-text-primary) 0%,
+                var(--es-primary) 100%
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .es-subtitle {
+            font-size: 0.9375rem;
+            color: var(--es-text-secondary);
+            margin: 0;
+            font-weight: 500;
+        }
+    }
+}
+
+// ============================================
+// New Button
+// ============================================
+.es-btn-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, var(--es-primary) 0%, var(--es-primary-light) 100%);
+    border: none;
+    border-radius: var(--es-border-radius-sm);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--es-transition);
+    cursor: pointer;
+
+    &:hover {
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(var(--es-primary-rgb), 0.4);
+    }
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+// ============================================
+// Table Card
+// ============================================
+.es-table-card {
+    background: var(--es-card-bg);
+    border-radius: var(--es-border-radius);
+    border: 1px solid var(--es-card-border);
+    box-shadow: var(--es-shadow-md);
+    overflow: hidden;
+    transition: var(--es-transition);
+    margin-bottom: 2rem;
+    animation: esFadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
+    animation-delay: 200ms;
+
+    &:hover {
+        box-shadow: var(--es-shadow-lg);
+    }
+
+    .es-table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--es-card-border);
+        background: linear-gradient(135deg,
+            rgba(var(--es-primary-rgb), 0.02) 0%,
+            transparent 100%
+        );
+    }
+
+    .es-table-title-group {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+    }
+
+    .es-table-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--es-border-radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg,
+            rgba(var(--es-primary-rgb), 0.15) 0%,
+            rgba(var(--es-primary-rgb), 0.05) 100%
+        );
+        color: var(--es-primary);
+
+        svg { width: 20px; height: 20px; }
+    }
+
+    .es-table-title {
+        font-size: 0.9375rem;
+        font-weight: 700;
+        color: var(--es-text-primary);
+        margin: 0;
+    }
+
+    .es-table-subtitle {
+        font-size: 0.75rem;
+        color: var(--es-text-muted);
+    }
+
+    .es-table-body {
+        padding: 0.5rem 1rem 1rem;
+    }
+}
+
+// ============================================
+// DataTable Overrides
+// ============================================
+.es-wrapper {
+    #tabela-estudos {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+
+        thead th {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--es-text-muted);
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid var(--es-table-border);
+            background: var(--es-table-stripe);
+        }
+
+        tbody {
+            tr {
+                transition: var(--es-transition-fast);
+
+                &:hover {
+                    background: var(--es-table-hover);
+                }
+
+                &:nth-child(even) {
+                    background: var(--es-table-stripe);
+                }
+
+                &:nth-child(even):hover {
+                    background: var(--es-table-hover);
+                }
+
+                td {
+                    padding: 0.875rem 1rem;
+                    font-size: 0.875rem;
+                    color: var(--es-text-primary);
+                    border-bottom: 1px solid var(--es-table-border);
+                    vertical-align: middle;
+                }
+
+                &:last-child td {
+                    border-bottom: none;
+                }
+            }
+        }
+    }
+
+    .dataTables_wrapper {
+        .dataTables_filter {
+            margin-bottom: 1rem;
+
+            input {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-size: 0.875rem;
+                padding: 0.5rem 1rem;
+                border: 1px solid var(--es-card-border);
+                border-radius: var(--es-border-radius-sm);
+                background: var(--es-glass-bg);
+                color: var(--es-text-primary);
+                transition: var(--es-transition-fast);
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--es-primary);
+                    box-shadow: 0 0 0 3px rgba(var(--es-primary-rgb), 0.1);
+                }
+            }
+        }
+
+        .dataTables_length {
+            margin-bottom: 1rem;
+
+            select {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-size: 0.875rem;
+                padding: 0.5rem 2rem 0.5rem 1rem;
+                border: 1px solid var(--es-card-border);
+                border-radius: var(--es-border-radius-sm);
+                background: var(--es-glass-bg);
+                color: var(--es-text-primary);
+                cursor: pointer;
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--es-primary);
+                }
+            }
+        }
+
+        .dataTables_info {
+            font-size: 0.8125rem;
+            color: var(--es-text-muted);
+            padding: 1rem 0 0.5rem;
+        }
+
+        .dataTables_paginate {
+            padding: 1rem 0 0.5rem;
+
+            .paginate_button {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-size: 0.8125rem;
+                font-weight: 500;
+                padding: 0.375rem 0.75rem;
+                margin: 0 0.125rem;
+                border-radius: 8px;
+                background: transparent;
+                color: var(--es-text-secondary) !important;
+                border: 1px solid transparent;
+                transition: var(--es-transition-fast);
+                cursor: pointer;
+
+                &:hover {
+                    background: rgba(var(--es-primary-rgb), 0.1);
+                    color: var(--es-primary) !important;
+                    border-color: transparent;
+                }
+
+                &.current {
+                    background: var(--es-primary) !important;
+                    color: white !important;
+                    border-color: var(--es-primary);
+                }
+
+                &.disabled {
+                    opacity: 0.4;
+                    cursor: not-allowed;
+
+                    &:hover {
+                        background: transparent;
+                        color: var(--es-text-muted) !important;
+                    }
+                }
+            }
+        }
+
+        .dataTables_processing {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--es-text-muted);
+        }
+    }
+}
+
+// ============================================
+// Action Buttons (rendered by JS)
+// ============================================
+.es-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.es-btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    padding: 0.375rem 0.75rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: var(--es-transition);
+    cursor: pointer;
+    color: white;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+        transform: translateY(-1px);
+        color: white;
+    }
+
+    &.es-btn-view {
+        background: linear-gradient(135deg, var(--es-primary) 0%, var(--es-primary-light) 100%);
+        &:hover { box-shadow: 0 4px 12px rgba(var(--es-primary-rgb), 0.35); }
+    }
+
+    &.es-btn-edit {
+        background: linear-gradient(135deg, var(--es-warning) 0%, var(--es-warning-light) 100%);
+        &:hover { box-shadow: 0 4px 12px rgba(var(--es-warning-rgb), 0.35); }
+    }
+
+    &.es-btn-copy {
+        background: linear-gradient(135deg, var(--es-info) 0%, var(--es-info-light) 100%);
+        &:hover { box-shadow: 0 4px 12px rgba(var(--es-info-rgb), 0.35); }
+    }
+
+    &.es-btn-delete {
+        background: linear-gradient(135deg, var(--es-danger) 0%, var(--es-danger-light) 100%);
+        &:hover { box-shadow: 0 4px 12px rgba(var(--es-danger-rgb), 0.35); }
+    }
+}
+
+// ============================================
+// Animations
+// ============================================
+@keyframes esFadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+// ============================================
+// Responsive
+// ============================================
+@media (max-width: 768px) {
+    .es-page-header {
+        .es-header-content { flex-direction: column; }
+        .es-header-text .es-main-title { font-size: 1.5rem; }
+    }
+
+    .es-actions { gap: 0.375rem; }
+
+    .es-btn-action {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.6875rem;
+    }
+}
+
+// ============================================
+// Print
+// ============================================
+@media print {
+    .es-wrapper { background: white !important; }
+    .es-table-card {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+    }
+    .es-btn-new, .es-actions { display: none !important; }
+}

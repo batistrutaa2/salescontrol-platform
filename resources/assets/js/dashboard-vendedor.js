@@ -1,157 +1,59 @@
 /**
  * Dashboard Vendedor JS
+ * ApexCharts + Glass Morphism Design System
  */
 'use strict';
 
 (function () {
-    // Color Variables
-    const colors = {
-        purple: '#8c57ff',
-        yellow: '#ffe800',
-        cyan: '#28dac6',
-        orange: '#FF8132',
-        orangeLight: '#ffcf5c',
-        oceanBlue: '#299AFF',
-        grey: '#4F5D70',
-        greyLight: '#EDF1F4',
-        blue: '#2B9AFF',
-        blueLight: '#84D0FF'
-    };
-
-    let cardColor, headingColor, labelColor, borderColor, legendColor;
+    // Theme configuration
+    let cardColor, labelColor, headingColor, borderColor;
 
     if (isDarkStyle) {
         cardColor = config.colors_dark.cardColor;
-        headingColor = config.colors_dark.headingColor;
         labelColor = config.colors_dark.textMuted;
-        legendColor = config.colors_dark.bodyColor;
+        headingColor = config.colors_dark.headingColor;
         borderColor = config.colors_dark.borderColor;
     } else {
         cardColor = config.colors.cardColor;
-        headingColor = config.colors.headingColor;
         labelColor = config.colors.textMuted;
-        legendColor = config.colors.bodyColor;
+        headingColor = config.colors.headingColor;
         borderColor = config.colors.borderColor;
     }
 
-    // Set height according to their data-height
-    const chartList = document.querySelectorAll('.chartjs');
-    chartList.forEach(chartListItem => {
-        chartListItem.height = chartListItem.dataset.height;
-    });
+    // Design system colors
+    const dsColors = {
+        primary: '#7C3AED',
+        primaryLight: '#A78BFA',
+        success: '#10B981',
+        successLight: '#34D399',
+        info: '#06B6D4',
+        infoLight: '#22D3EE',
+        warning: '#F59E0B',
+        warningLight: '#FBBF24'
+    };
 
-    // Charts Initialization
-    const leadsStatusChartElement = document.getElementById('leadsStatusChart');
-    let leadsStatusChart;
-
-    const monthlyOverviewChartElement = document.getElementById('monthlyOverviewChart');
-    let monthlyOverviewChart;
-
-    // Initialize Leads Status Chart (Bar or Pie? Requirement says "quantos leads ele tem em cada status". Bar is good.)
-    if (leadsStatusChartElement) {
-        leadsStatusChart = new Chart(leadsStatusChartElement, {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Leads',
-                    data: [],
-                    backgroundColor: colors.oceanBlue,
-                    borderColor: 'transparent',
-                    maxBarThickness: 30,
-                    borderRadius: { topRight: 10, topLeft: 10 }
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 500 },
-                plugins: {
-                    tooltip: {
-                        rtl: isRtl,
-                        backgroundColor: cardColor,
-                        titleColor: headingColor,
-                        bodyColor: legendColor,
-                        borderWidth: 1,
-                        borderColor: borderColor
-                    },
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        grid: { color: borderColor, drawBorder: false, borderColor: borderColor },
-                        ticks: { color: labelColor, font: { size: '13px' } }
-                    },
-                    y: {
-                        min: 0,
-                        grid: { color: borderColor, drawBorder: false, borderColor: borderColor },
-                        ticks: { stepSize: 1, color: labelColor, font: { size: '13px' } }
-                    }
-                }
-            }
+    // Format currency helper
+    function formatCurrency(value) {
+        return parseFloat(value || 0).toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
         });
     }
 
-    // Initialize Monthly Overview Chart (Line or Bar)
-    if (monthlyOverviewChartElement) {
-        monthlyOverviewChart = new Chart(monthlyOverviewChartElement, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
-                datasets: [{
-                    label: 'Vendas (R$)',
-                    data: [],
-                    borderColor: colors.purple,
-                    backgroundColor: 'transparent',
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 500 },
-                plugins: {
-                    tooltip: {
-                        rtl: isRtl,
-                        backgroundColor: cardColor,
-                        titleColor: headingColor,
-                        bodyColor: legendColor,
-                        borderWidth: 1,
-                        borderColor: borderColor,
-                        callbacks: {
-                            label: tooltipItem => {
-                                return new Intl.NumberFormat('pt-BR', {
-                                    style: 'currency',
-                                    currency: 'BRL'
-                                }).format(tooltipItem.raw);
-                            }
-                        }
-                    },
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        grid: { color: borderColor, drawBorder: false, borderColor: borderColor },
-                        ticks: { color: labelColor, font: { size: '13px' } }
-                    },
-                    y: {
-                        min: 0,
-                        grid: { color: borderColor, drawBorder: false, borderColor: borderColor },
-                        ticks: { color: labelColor, font: { size: '13px' } }
-                    }
-                }
-            }
-        });
-    }
+    // Chart instances
+    let monthlyChart = null;
 
-    // Fetch Metrics Function
+    // ========================================
+    // Fetch Metrics
+    // ========================================
     async function fetchMetrics(month, year) {
-        const url = `/dashboard-vendedor/metrics?month=${month}&year=${year}`;
+        // Show loading
+        document.querySelectorAll('.dv-kpi-value').forEach(el => {
+            el.style.opacity = '0.4';
+        });
 
         try {
-            const response = await fetch(url, {
+            const response = await fetch(`/dashboard-vendedor/metrics?month=${month}&year=${year}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -159,79 +61,249 @@
                 }
             });
 
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
+            if (!response.ok) throw new Error('Network response was not ok');
 
             const data = await response.json();
-            updateDashboard(data);
+
+            updateKPIs(data);
+            updateSecondaryCards(data);
+            updateCharts(data);
+            updateRecentSales(data);
         } catch (error) {
-            console.error('There was a problem with the fetch operation:', error);
+            console.error('Erro ao buscar métricas:', error);
+        } finally {
+            document.querySelectorAll('.dv-kpi-value').forEach(el => {
+                el.style.opacity = '1';
+            });
         }
     }
 
-    // Update Dashboard UI
-    function updateDashboard(data) {
-        // Update Cards
-        const salesRegisteredFormatted = parseFloat(data.sales_registered).toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        });
-        const salesImplantedFormatted = parseFloat(data.sales_implanted).toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        });
+    // ========================================
+    // Update KPI Cards
+    // ========================================
+    function updateKPIs(data) {
+        document.getElementById('dv-sales-registered').textContent = formatCurrency(data.sales_registered);
+        document.getElementById('dv-sales-implanted').textContent = formatCurrency(data.sales_implanted);
+        document.getElementById('dv-ticket-medio').textContent = formatCurrency(data.ticket_medio);
+    }
 
-        document.querySelector('.js-sales-registered').textContent = salesRegisteredFormatted;
-        document.querySelector('.js-sales-implanted').textContent = salesImplantedFormatted;
-
-        // Update Leads Status Chart
-        if (leadsStatusChart) {
-            const labels = data.leads_status.map(item => item.tabulacao);
-            const values = data.leads_status.map(item => item.total);
-
-            leadsStatusChart.data.labels = labels;
-            leadsStatusChart.data.datasets[0].data = values;
-            leadsStatusChart.update();
+    // ========================================
+    // Update Secondary Cards
+    // ========================================
+    function updateSecondaryCards(data) {
+        // Ranking mensal
+        const rankingMes = data.ranking_mensal;
+        if (rankingMes) {
+            const mesNomes = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            if (rankingMes.posicao) {
+                document.getElementById('dv-ranking-mes-pos').textContent = rankingMes.posicao;
+                document.getElementById('dv-ranking-mes-suffix').textContent = 'º';
+                document.getElementById('dv-ranking-mes-detail').textContent = `de ${rankingMes.total_vendedores} vendedores`;
+            } else {
+                document.getElementById('dv-ranking-mes-pos').textContent = '—';
+                document.getElementById('dv-ranking-mes-suffix').textContent = '';
+                document.getElementById('dv-ranking-mes-detail').textContent = 'Sem vendas no mês';
+            }
+            document.getElementById('dv-ranking-mes-label').textContent = `Sua posição em ${mesNomes[rankingMes.mes] || ''}`;
         }
 
-        // Update Monthly Overview Chart
-        if (monthlyOverviewChart) {
-            // Initialize array with 0s for 12 months
-            const monthlyData = new Array(12).fill(0);
+        // Ranking trimestral
+        const rankingTri = data.ranking_trimestral;
+        if (rankingTri) {
+            if (rankingTri.posicao) {
+                document.getElementById('dv-ranking-tri-pos').textContent = rankingTri.posicao;
+                document.getElementById('dv-ranking-tri-suffix').textContent = 'º';
+                document.getElementById('dv-ranking-tri-detail').textContent = `de ${rankingTri.total_vendedores} vendedores`;
+            } else {
+                document.getElementById('dv-ranking-tri-pos').textContent = '—';
+                document.getElementById('dv-ranking-tri-suffix').textContent = '';
+                document.getElementById('dv-ranking-tri-detail').textContent = 'Sem vendas no trimestre';
+            }
+            document.getElementById('dv-ranking-tri-label').textContent = `Sua posição no ${rankingTri.trimestre}º trimestre`;
+        }
 
+        // Operadora mais vendida
+        const operadora = data.operadora_mais_vendida;
+        if (operadora) {
+            document.getElementById('dv-operadora-nome').textContent = operadora.operadora;
+            document.getElementById('dv-operadora-detail').textContent = `${operadora.total} vendas realizadas`;
+            // Progress bar - max 100%
+            const progressPercent = Math.min(operadora.total * 2, 100);
+            document.getElementById('dv-operadora-progress').style.width = `${progressPercent}%`;
+        } else {
+            document.getElementById('dv-operadora-nome').textContent = '—';
+            document.getElementById('dv-operadora-detail').textContent = 'Nenhuma venda registrada';
+            document.getElementById('dv-operadora-progress').style.width = '0%';
+        }
+
+        // Taxa de conversão
+        const conversao = data.taxa_conversao;
+        if (conversao) {
+            document.getElementById('dv-taxa-conversao').textContent = `${conversao.percentual}%`;
+            document.getElementById('dv-leads-trabalhados').textContent = conversao.leads_trabalhados;
+            document.getElementById('dv-vendas-realizadas').textContent = conversao.vendas;
+        }
+    }
+
+    // ========================================
+    // Update Charts
+    // ========================================
+    function updateCharts(data) {
+        // Destroy existing chart
+        if (monthlyChart) {
+            monthlyChart.destroy();
+            monthlyChart = null;
+        }
+
+        // Monthly Overview - Area Chart
+        const monthLabels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const monthlyData = new Array(12).fill(0);
+
+        if (data.monthly_overview) {
             data.monthly_overview.forEach(item => {
-                // item.month is 1-12, array index is 0-11
                 if (item.month >= 1 && item.month <= 12) {
                     monthlyData[item.month - 1] = parseFloat(item.total);
                 }
             });
+        }
 
-            monthlyOverviewChart.data.datasets[0].data = monthlyData;
-            monthlyOverviewChart.update();
+        const monthlyChartEl = document.querySelector('#dvMonthlyChart');
+        if (monthlyChartEl) {
+            monthlyChart = new ApexCharts(monthlyChartEl, {
+                chart: {
+                    type: 'area',
+                    height: 300,
+                    toolbar: { show: false },
+                    fontFamily: 'Plus Jakarta Sans, sans-serif'
+                },
+                series: [{
+                    name: 'Vendas (R$)',
+                    data: monthlyData
+                }],
+                colors: [dsColors.primary],
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.4,
+                        opacityTo: 0.1,
+                        stops: [0, 90, 100]
+                    }
+                },
+                stroke: {
+                    width: 3,
+                    curve: 'smooth'
+                },
+                xaxis: {
+                    categories: monthLabels,
+                    labels: {
+                        style: { colors: labelColor }
+                    },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false }
+                },
+                yaxis: {
+                    labels: {
+                        style: { colors: labelColor },
+                        formatter: function (val) {
+                            if (val >= 1000) {
+                                return 'R$ ' + (val / 1000).toFixed(0) + 'k';
+                            }
+                            return 'R$ ' + val.toFixed(0);
+                        }
+                    }
+                },
+                grid: {
+                    borderColor: borderColor,
+                    strokeDashArray: 4
+                },
+                dataLabels: { enabled: false },
+                tooltip: {
+                    theme: isDarkStyle ? 'dark' : 'light',
+                    y: {
+                        formatter: function (val) {
+                            return formatCurrency(val);
+                        }
+                    }
+                },
+                markers: {
+                    size: 4,
+                    colors: [dsColors.primary],
+                    strokeColors: cardColor,
+                    strokeWidth: 2,
+                    hover: { size: 6 }
+                }
+            });
+            monthlyChart.render();
         }
     }
 
-    // Event Listeners
-    async function updateMetrics() {
-        const month = document.getElementById('select-month').value;
-        const year = document.getElementById('select-year').value;
-        await fetchMetrics(month, year);
+    // ========================================
+    // Update Recent Sales Table
+    // ========================================
+    function updateRecentSales(data) {
+        const tbody = document.getElementById('dv-recent-sales-body');
+        const vendas = data.vendas_recentes || [];
+
+        // Update count badge
+        const countEl = document.getElementById('dv-table-count');
+        if (countEl) {
+            countEl.innerHTML = `<span>${vendas.length}</span> vendas`;
+        }
+
+        if (vendas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="dv-empty-state">Nenhuma venda encontrada</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = vendas.map(venda => {
+            const statusClass = getStatusClass(venda.status);
+            return `<tr>
+                <td>${venda.created_at || '—'}</td>
+                <td class="dv-contract-name">${venda.nome_contrato || '—'}</td>
+                <td>${venda.operadora || '—'}</td>
+                <td>${venda.nome_plano || '—'}</td>
+                <td class="dv-contract-value">${formatCurrency(venda.valor_total)}</td>
+                <td><span class="dv-status-badge ${statusClass}">${venda.status || '—'}</span></td>
+            </tr>`;
+        }).join('');
     }
 
-    document.getElementById('select-month').addEventListener('change', updateMetrics);
-    document.getElementById('select-year').addEventListener('change', updateMetrics);
+    function getStatusClass(status) {
+        if (!status) return 'default';
+        const s = status.toLowerCase();
+        if (s.includes('implantado')) return 'implantado';
+        if (s.includes('venda')) return 'venda';
+        if (s.includes('pend') || s.includes('boleto') || s.includes('regularizado')) return 'pendencia';
+        if (s.includes('analis') || s.includes('aguard') || s.includes('assinatura')) return 'analise';
+        return 'default';
+    }
 
-    // Initial Fetch
+    // ========================================
+    // Event Listeners
+    // ========================================
+    const monthSelect = document.getElementById('dv-select-month');
+    const yearSelect = document.getElementById('dv-select-year');
+
+    if (monthSelect) {
+        monthSelect.addEventListener('change', () => {
+            fetchMetrics(monthSelect.value, yearSelect.value);
+        });
+    }
+
+    if (yearSelect) {
+        yearSelect.addEventListener('change', () => {
+            fetchMetrics(monthSelect.value, yearSelect.value);
+        });
+    }
+
+    // ========================================
+    // Init
+    // ========================================
     document.addEventListener('DOMContentLoaded', () => {
-        const monthSelect = document.getElementById('select-month');
-        const yearSelect = document.getElementById('select-year');
-
-        // Set current date if not set (though HTML has defaults, JS ensures sync)
-        // Actually HTML defaults are "Mês" and "Ano", we should set them to current
         const now = new Date();
-        monthSelect.value = now.getMonth() + 1;
-        yearSelect.value = now.getFullYear();
+        if (monthSelect) monthSelect.value = now.getMonth() + 1;
+        if (yearSelect) yearSelect.value = now.getFullYear();
 
         fetchMetrics(monthSelect.value, yearSelect.value);
     });
