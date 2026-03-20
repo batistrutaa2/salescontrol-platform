@@ -37,6 +37,7 @@ Route::get('/visualizar-estudo/{uuid}', [Estudo::class, 'showStudy'])->name('est
 // Rotas públicas para TV Comercial
 Route::get('/tv-comercial/painel', [\App\Http\Controllers\TvComercialController::class, 'painelTv'])->name('tv-comercial.painel');
 Route::get('/tv-comercial/dados', [\App\Http\Controllers\TvComercialController::class, 'getDadosTv'])->name('tv-comercial.dados');
+Route::get('/tv-comercial/ranking', [\App\Http\Controllers\TvComercialController::class, 'getRankingTv'])->name('tv-comercial.ranking');
 
 Route::middleware(['auth'])->group(function () {
 

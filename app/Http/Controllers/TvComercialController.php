@@ -231,6 +231,61 @@ class TvComercialController extends Controller
     }
 
     /**
+     * Retorna o ranking semanal para a TV (API pública, sem auth)
+     */
+    public function getRankingTv(Request $request): JsonResponse
+    {
+        $empresaId = $request->query('empresa_id');
+
+        if (!$empresaId) {
+            return response()->json(['error' => 'empresa_id é obrigatório'], 400);
+        }
+
+        $dataInicio = Carbon::today()->startOfWeek();
+        $dataFim = Carbon::today();
+
+        $ranking = MetaDiaria::select(
+                'user_id',
+                DB::raw('SUM(cotacoes_realizadas) as total_realizadas'),
+                DB::raw('SUM(meta_cotacoes) as total_meta')
+            )
+            ->where('empresa_id', $empresaId)
+            ->whereBetween('data', [$dataInicio->format('Y-m-d'), $dataFim->format('Y-m-d')])
+            ->whereHas('user', function ($query) {
+                $query->where('ativo', 'Y')
+                      ->where('user_role_id', 1);
+            })
+            ->groupBy('user_id')
+            ->orderByDesc('total_realizadas')
+            ->get();
+
+        $userIds = $ranking->pluck('user_id');
+        $users = User::whereIn('id', $userIds)->pluck('name', 'id');
+
+        $resultado = $ranking->map(function ($item) use ($users) {
+            return [
+                'user_id' => $item->user_id,
+                'vendedor' => $users[$item->user_id] ?? 'Desconhecido',
+                'total_realizadas' => (int) $item->total_realizadas,
+                'total_meta' => (int) $item->total_meta,
+                'percentual' => $item->total_meta > 0
+                    ? round(($item->total_realizadas / $item->total_meta) * 100, 1)
+                    : 0,
+            ];
+        });
+
+        return response()->json([
+            'ranking' => $resultado,
+            'total' => $resultado->sum('total_realizadas'),
+            'periodo' => [
+                'data_inicio' => $dataInicio->format('d/m/Y'),
+                'data_fim' => $dataFim->format('d/m/Y'),
+            ],
+            'ultima_atualizacao' => Carbon::now()->format('d/m/Y H:i:s'),
+        ]);
+    }
+
+    /**
      * Retorna o ranking de cotações por vendedor em um período
      * Dados vindos da tabela metas_diarias (cotacoes_realizadas)
      */
