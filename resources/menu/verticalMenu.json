@@ -228,6 +228,11 @@
           "url": "/vendas/import-sys",
           "name": "Importar Vendas (SYS)",
           "slug": "pages-import-vendas-sys"
+        },
+        {
+          "url": "/back-office/faqs",
+          "name": "FAQs",
+          "slug": "pages-faqs"
         }
       ]
     },
@@ -505,6 +510,18 @@
           "name": "Listar Estudos",
           "slug": "pages-estudo-criar"
         }
+      ]
+    },
+    {
+      "url": "/comercial/faqs",
+      "name": "FAQs",
+      "icon": "menu-icon tf-icons ri-question-answer-line",
+      "slug": "pages-faqs-vendedor",
+      "rules": [
+        "VENDEDOR",
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "SUPERVISOR"
       ]
     }
   ]

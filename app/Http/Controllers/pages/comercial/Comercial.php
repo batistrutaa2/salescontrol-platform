@@ -6,6 +6,7 @@ use App\Models\Comentarios;
 use App\Models\Contatos;
 use App\Models\Demanda;
 use App\Models\Dependentes;
+use App\Models\Faq;
 use App\Models\Operadora;
 use App\Models\Plano;
 use App\Models\User;
@@ -1305,5 +1306,28 @@ class Comercial extends Controller
         'error' => 'Erro ao processar análise: ' . $e->getMessage()
       ], 500);
     }
+  }
+
+  public function faqsVendedor()
+  {
+      $empresaId = Auth::user()->empresa_id;
+
+      $faqs = Faq::with('operadora')
+          ->where('empresa_id', $empresaId)
+          ->where('status', 'Y')
+          ->orderBy('ordem')
+          ->orderBy('titulo')
+          ->get();
+
+      $faqsPorOperadora = $faqs->groupBy(function ($faq) {
+          return $faq->operadora->nome ?? 'Sem Operadora';
+      });
+
+      $operadoras = $faqs->pluck('operadora')->unique('id')->filter()->sortBy('nome');
+
+      return view('content.pages.comercial.faqs-vendedor', [
+          'faqsPorOperadora' => $faqsPorOperadora,
+          'operadoras' => $operadoras,
+      ]);
   }
 }

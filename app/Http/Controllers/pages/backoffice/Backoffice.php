@@ -6,6 +6,7 @@ use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Events\ContratoImplantado;
 use App\Helpers\Helpers;
+use App\Models\Faq;
 use App\Models\Operadora;
 use App\Models\Plano;
 use App\Models\Tabulacoes;
@@ -3106,5 +3107,110 @@ class Backoffice extends Controller
         'message' => 'Erro ao remover demanda: ' . $e->getMessage()
       ], 500);
     }
+  }
+
+  // ==================== FAQs ====================
+
+  public function faqs()
+  {
+      $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)
+          ->where('status', 'Y')
+          ->orderBy('nome')
+          ->get();
+
+      return view('content.pages.backoffice.faqs', [
+          'operadoras' => $operadoras
+      ]);
+  }
+
+  public function getFaqs(Request $request)
+  {
+      $query = Faq::with('operadora')
+          ->where('empresa_id', Auth::user()->empresa_id)
+          ->orderBy('ordem')
+          ->orderBy('created_at', 'desc');
+
+      if ($request->filled('operadora_id')) {
+          $query->where('operadora_id', $request->operadora_id);
+      }
+
+      return response()->json($query->get());
+  }
+
+  public function createFaq(Request $request)
+  {
+      if (!in_array(Auth::user()->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER, UserRole::SUPERVISOR])) {
+          return response()->json(['success' => false, 'message' => 'Sem permissão.'], 403);
+      }
+
+      $request->validate([
+          'operadora_id' => 'required|exists:operadoras,id',
+          'titulo' => 'required|string|max:255',
+          'resposta' => 'required|string',
+          'status' => 'nullable|in:Y,N',
+          'ordem' => 'nullable|integer|min:0',
+      ]);
+
+      try {
+          Faq::create([
+              'empresa_id' => Auth::user()->empresa_id,
+              'operadora_id' => $request->operadora_id,
+              'titulo' => $request->titulo,
+              'resposta' => $request->resposta,
+              'status' => $request->status ?? 'Y',
+              'ordem' => $request->ordem ?? 0,
+          ]);
+
+          return response()->json(['success' => true, 'message' => 'FAQ cadastrado com sucesso!'], 201);
+      } catch (\Exception $e) {
+          return response()->json(['success' => false, 'message' => 'Erro ao cadastrar FAQ.'], 500);
+      }
+  }
+
+  public function updateFaq(Request $request, $id)
+  {
+      if (!in_array(Auth::user()->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER, UserRole::SUPERVISOR])) {
+          return response()->json(['success' => false, 'message' => 'Sem permissão.'], 403);
+      }
+
+      $request->validate([
+          'operadora_id' => 'required|exists:operadoras,id',
+          'titulo' => 'required|string|max:255',
+          'resposta' => 'required|string',
+          'status' => 'nullable|in:Y,N',
+          'ordem' => 'nullable|integer|min:0',
+      ]);
+
+      try {
+          $faq = Faq::where('empresa_id', Auth::user()->empresa_id)->findOrFail($id);
+
+          $faq->update([
+              'operadora_id' => $request->operadora_id,
+              'titulo' => $request->titulo,
+              'resposta' => $request->resposta,
+              'status' => $request->status ?? 'Y',
+              'ordem' => $request->ordem ?? 0,
+          ]);
+
+          return response()->json(['success' => true, 'message' => 'FAQ atualizado com sucesso!']);
+      } catch (\Exception $e) {
+          return response()->json(['success' => false, 'message' => 'Erro ao atualizar FAQ.'], 500);
+      }
+  }
+
+  public function deleteFaq(Request $request, $id)
+  {
+      if (!in_array(Auth::user()->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER, UserRole::SUPERVISOR])) {
+          return response()->json(['success' => false, 'message' => 'Sem permissão.'], 403);
+      }
+
+      try {
+          $faq = Faq::where('empresa_id', Auth::user()->empresa_id)->findOrFail($id);
+          $faq->delete();
+
+          return response()->json(['success' => true, 'message' => 'FAQ excluído com sucesso!']);
+      } catch (\Exception $e) {
+          return response()->json(['success' => false, 'message' => 'Erro ao excluir FAQ.'], 500);
+      }
   }
 }

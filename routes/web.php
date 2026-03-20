@@ -243,6 +243,16 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/back-office/pos-venda/data-implantacao', [Backoffice::class, 'updateDataImplantacao'])->name('backoffice.updateDataImplantacao');
   Route::post('/back-office/pos-venda/boas-vindas', [Backoffice::class, 'marcarBoasVindas'])->name('backoffice.marcarBoasVindas');
 
+  // FAQs (Back-office)
+  Route::get('/back-office/faqs', [Backoffice::class, 'faqs'])->name('backoffice.faqs');
+  Route::get('/back-office/getFaqs', [Backoffice::class, 'getFaqs'])->name('backoffice.getFaqs');
+  Route::post('/back-office/createFaq', [Backoffice::class, 'createFaq'])->name('backoffice.createFaq');
+  Route::post('/back-office/updateFaq/{id}', [Backoffice::class, 'updateFaq'])->name('backoffice.updateFaq');
+  Route::delete('/back-office/deleteFaq/{id}', [Backoffice::class, 'deleteFaq'])->name('backoffice.deleteFaq');
+
+  // FAQs (Vendedor - visualização)
+  Route::get('/comercial/faqs', [Comercial::class, 'faqsVendedor'])->name('comercial.faqs');
+
   /** VENDAS */
   Route::get('/vendas/lista-vendas', [Vendas::class, 'index'])->name('sale.listSale');
   Route::get('/vendas/lista-vendas-mes', [Vendas::class, 'salesOfTheMonth'])->name('sale.salesOfTheMonth');
