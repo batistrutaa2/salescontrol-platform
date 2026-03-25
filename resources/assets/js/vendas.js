@@ -26,13 +26,13 @@ $(document).ready(function () {
     els.forEach(el => new bootstrap.Tooltip(el, { container: tableEl }));
   }
 
-  function fetchData(mes, ano) {
-    if (!mes || !ano) return;
+  function fetchData(dataInicio, dataFim) {
+    if (!dataInicio || !dataFim) return;
 
     $.ajax({
       url: endpoint,
       method: 'GET',
-      data: { mes, ano },
+      data: { data_inicio: dataInicio, data_fim: dataFim },
       beforeSend: function () {
         $('.js-valorCadastrado, .js-implantado, .js-quantidadeContatosImportados, .js-conversao').text('...');
       },
@@ -198,19 +198,41 @@ $(document).ready(function () {
     });
   });
 
-  // filtros mês/ano
-  $('#select-month, #select-year').on('change', function () {
-    const mes = parseInt($('#select-month').val(), 10);
-    const ano = parseInt($('#select-year').val(), 10);
-    if (!isNaN(mes) && !isNaN(ano)) fetchData(mes, ano);
+  // helpers de data
+  function formatDateToBackend(date) {
+    const d = new Date(date);
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  // iniciar flatpickr com range do mês atual
+  const now = new Date();
+  const ano = now.getFullYear();
+  const mes = now.getMonth(); // 0-indexed
+  const primeiroDiaMes = `${String(1).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}/${ano}`;
+  const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+  const ultimoDiaMes = `${String(ultimoDia).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}/${ano}`;
+
+  const fp = flatpickr('#filtro-periodo', {
+    mode: 'range',
+    dateFormat: 'd/m/Y',
+    locale: 'pt',
+    allowInput: true,
+    defaultDate: [primeiroDiaMes, ultimoDiaMes],
+    onChange: function (selectedDates) {
+      if (selectedDates.length === 2) {
+        fetchData(formatDateToBackend(selectedDates[0]), formatDateToBackend(selectedDates[1]));
+      }
+    }
   });
 
-  // iniciar com mês/ano atual
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-  $('#select-month').val(currentMonth);
-  $('#select-year').val(currentYear);
-  fetchData(currentMonth, currentYear);
+  // carregar dados iniciais (mês atual)
+  fetchData(
+    `${ano}-${String(mes + 1).padStart(2, '0')}-01`,
+    `${ano}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`
+  );
 
   // Handler para visualizar venda
   $(document).on('click', '.btn-visualizar-venda', function () {

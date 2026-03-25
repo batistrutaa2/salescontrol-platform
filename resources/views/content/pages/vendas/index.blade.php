@@ -3,7 +3,7 @@
 @section('title', 'Relatorio de Vendas | ' . auth()->user()->name)
 
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/toastr/toastr.scss', 'resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss'])
+    @vite(['resources/assets/vendor/libs/toastr/toastr.scss', 'resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss', 'resources/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss'])
 @endsection
 
 @section('page-style')
@@ -11,7 +11,7 @@
 @endsection
 
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/toastr/toastr.js', 'resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.js'])
+    @vite(['resources/assets/vendor/libs/toastr/toastr.js', 'resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js'])
 @endsection
 
 @section('page-script')
@@ -32,31 +32,8 @@
             <div class="lv-header-filters">
                 <div class="lv-filter-group">
                     <div class="lv-filter-item">
-                        <span class="lv-filter-label">Mês</span>
-                        <select class="lv-filter-select" id="select-month">
-                            <option value="">Mês</option>
-                            <option value="1">Janeiro</option>
-                            <option value="2">Fevereiro</option>
-                            <option value="3">Março</option>
-                            <option value="4">Abril</option>
-                            <option value="5">Maio</option>
-                            <option value="6">Junho</option>
-                            <option value="7">Julho</option>
-                            <option value="8">Agosto</option>
-                            <option value="9">Setembro</option>
-                            <option value="10">Outubro</option>
-                            <option value="11">Novembro</option>
-                            <option value="12">Dezembro</option>
-                        </select>
-                    </div>
-                    <div class="lv-filter-item">
-                        <span class="lv-filter-label">Ano</span>
-                        <select class="lv-filter-select" id="select-year">
-                            <option value="">Ano</option>
-                            @foreach ($anosDisponiveis as $ano)
-                                <option value="{{ $ano }}">{{ $ano }}</option>
-                            @endforeach
-                        </select>
+                        <span class="lv-filter-label">Período</span>
+                        <input type="text" class="lv-filter-select" id="filtro-periodo" placeholder="Selecione o período">
                     </div>
                 </div>
             </div>

@@ -580,10 +580,12 @@ class Vendas extends Controller
 
     public function getResultsBroker(Request $request)
     {
+        $dataInicio = $request->data_inicio;
+        $dataFim = $request->data_fim;
+
         $vendasCadastradasMes = VendasModel::where('user_id', Auth::user()->id)
             ->where('empresa_id', Auth::user()->empresa_id)
-            ->whereMonth('created_at', $request->mes)
-            ->whereYear('created_at', $request->ano)
+            ->when($dataInicio && $dataFim, fn($q) => $q->whereBetween('created_at', [$dataInicio . ' 00:00:00', $dataFim . ' 23:59:59']))
             ->selectRaw("SUM(valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END) as total")
             ->value('total') ?? 0;
 
@@ -591,24 +593,20 @@ class Vendas extends Controller
             ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
             ->where('b.tabulacao_id', Tabulations::IMPLANTADO)
             ->where('a.user_id', Auth::user()->id)
-            ->whereMonth('a.created_at', $request->mes)
-            ->whereYear('a.created_at', $request->ano)
+            ->when($dataInicio && $dataFim, fn($q) => $q->whereBetween('a.created_at', [$dataInicio . ' 00:00:00', $dataFim . ' 23:59:59']))
             ->selectRaw("SUM(a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END) as total")
             ->value('total') ?? 0;
-
 
         $quantidadeContatosMes = DB::table('contatos as a')
             ->leftJoin('contatos_corretores as b', 'a.id', '=', 'b.contato_id')
             ->where('b.user_id', auth()->user()->id)
             ->where('b.empresa_id', Auth::user()->empresa_id)
-            ->whereMonth('a.created_at', $request->mes)
-            ->whereYear('a.created_at', $request->ano)
+            ->when($dataInicio && $dataFim, fn($q) => $q->whereBetween('a.created_at', [$dataInicio . ' 00:00:00', $dataFim . ' 23:59:59']))
             ->count();
 
         $quantidadeVendasMes = VendasModel::where('user_id', Auth::user()->id)
             ->where('empresa_id', Auth::user()->empresa_id)
-            ->whereMonth('created_at', $request->mes)
-            ->whereYear('created_at', $request->ano)
+            ->when($dataInicio && $dataFim, fn($q) => $q->whereBetween('created_at', [$dataInicio . ' 00:00:00', $dataFim . ' 23:59:59']))
             ->count();
 
         $conversao = $this->calculoConversao($quantidadeContatosMes, $quantidadeVendasMes);
@@ -618,8 +616,7 @@ class Vendas extends Controller
             ->leftJoin('tabulacoes as c', 'c.id', '=', 'b.tabulacao_id')
             ->leftJoin('users as backoffice', 'backoffice.id', '=', 'a.backoffice_id')
             ->where('a.user_id', auth()->user()->id)
-            ->whereMonth('a.created_at', $request->mes)
-            ->whereYear('a.created_at', $request->ano)
+            ->when($dataInicio && $dataFim, fn($q) => $q->whereBetween('a.created_at', [$dataInicio . ' 00:00:00', $dataFim . ' 23:59:59']))
             ->select(
                 'a.id',
                 'a.nome_contrato',
