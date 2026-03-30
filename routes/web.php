@@ -117,6 +117,14 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/mailing/excluir-lead-descartado/{id}', [Mailing::class, 'deleteMailingLeadsDescarted'])->name('mailing.deleteMailingLeadsDescarted');
   Route::post('/mailing/send-descartado-preditiva', [Mailing::class, 'sendDiscardedLeadToPreditiva'])->name('mailing.sendDiscardedToPreditiva');
   Route::post('/mailing/send-multiple-descartados-preditiva', [Mailing::class, 'sendMultipleDiscardedLeadsToPreditiva'])->name('mailing.sendMultipleDiscardedToPreditiva');
+  Route::get('/mailing/getAllLeadsServerSide', [Mailing::class, 'getAllLeadsServerSide'])->name('mailing.getAllLeadsServerSide');
+  Route::get('/mailing/getLeadKPIs', [Mailing::class, 'getLeadKPIs'])->name('mailing.getLeadKPIs');
+  Route::get('/mailing/getImportDates', [Mailing::class, 'getImportDates'])->name('mailing.getImportDates');
+  Route::post('/mailing/reactivate-lead', [Mailing::class, 'reactivateLead'])->name('mailing.reactivateLead');
+  Route::post('/mailing/bulk-reactivate-leads', [Mailing::class, 'bulkReactivateLeads'])->name('mailing.bulkReactivateLeads');
+  Route::post('/mailing/bulk-delete-leads', [Mailing::class, 'bulkDeleteLeads'])->name('mailing.bulkDeleteLeads');
+  Route::post('/mailing/bulk-discard-leads', [Mailing::class, 'bulkDiscardLeads'])->name('mailing.bulkDiscardLeads');
+  Route::post('/mailing/discard-lead', [Mailing::class, 'discardLead'])->name('mailing.discardLead');
 
   /** COMERCIAL */
   Route::get('/comercial/kanban', [Comercial::class, 'index'])->name('comercial.kanban');

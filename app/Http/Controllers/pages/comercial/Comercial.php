@@ -520,11 +520,20 @@ class Comercial extends Controller
       );
 
       if ($updateLead && $clearComments && $saveTranfer) {
+        if ($request->wantsJson()) {
+          return response()->json(['success' => true, 'message' => 'Transferencia concluida com sucesso']);
+        }
         return redirect()->back()->with('status', 'success')->with('message', 'Transferencia concluida com sucesso');
       } else {
+        if ($request->wantsJson()) {
+          return response()->json(['success' => false, 'message' => 'Erro ao efetuar transferencia de lead'], 500);
+        }
         return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead');
       }
     } catch (\Throwable $th) {
+      if ($request->wantsJson()) {
+        return response()->json(['success' => false, 'message' => 'Erro ao efetuar transferencia de lead.'], 500);
+      }
       return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferencia de lead.');
     }
   }
@@ -534,6 +543,9 @@ class Comercial extends Controller
     try {
       $leadIds = explode(',', $request->selectedLeadIds);
       array_map(function ($leadId) use ($request) {
+        // Limpar preditiva se existir
+        DB::table('preditiva')->where('contato_id', $leadId)->delete();
+
         $fromUser = $this->repositoryContatosCorretores->getContactOwner($leadId);
         $this->transferenciaContatoRepository->saveTransfer(
           Auth::user()->empresa_id,
@@ -547,11 +559,20 @@ class Comercial extends Controller
       $updateLead = $this->repositoryContatosCorretores->transferContactInNulk($request->all());
 
       if ($updateLead && $clearComments) {
+        if ($request->wantsJson()) {
+          return response()->json(['success' => true, 'message' => 'Transferência concluída com sucesso']);
+        }
         return redirect()->back()->with('status', 'success')->with('message', 'Transferência concluída com sucesso');
       } else {
+        if ($request->wantsJson()) {
+          return response()->json(['success' => false, 'message' => 'Erro ao efetuar transferência de lead'], 500);
+        }
         return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
       }
     } catch (\Throwable $th) {
+      if ($request->wantsJson()) {
+        return response()->json(['success' => false, 'message' => 'Erro ao efetuar transferência de lead'], 500);
+      }
       return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
     }
   }

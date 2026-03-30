@@ -35,6 +35,7 @@ use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
 use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
 use App\Repositories\Eloquent\PreditivaRegraRepository;
 use App\Models\PreditivaRegraPriorizacao;
+use App\Services\LeadManagementService;
 use Carbon\Carbon;
 
 
@@ -48,6 +49,7 @@ class Mailing extends Controller
   protected ContatosRepository $contatosRepository;
   protected VendasRepository $vendasRepository;
   protected PreditivaRegraRepository $preditivaRegraRepository;
+  protected LeadManagementService $leadManagementService;
   private $rulesUpload = [
     'base' => 'required|string',
     'file' => 'required|file',
@@ -70,6 +72,7 @@ class Mailing extends Controller
     $this->baseLegaceRespository = $baseLegaceRespositoryInterface;
     $this->vendasRepository = $vendasRepositoryInterface;
     $this->preditivaRegraRepository = $preditivaRegraRepositoryInterface;
+    $this->leadManagementService = app(LeadManagementService::class);
   }
 
   public function index()
@@ -200,12 +203,19 @@ class Mailing extends Controller
 
   public function viewLeads()
   {
-    $users = $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
-    $tabulations = $this->tabulacoesRepository->getAll(Auth::user()->empresa_id);
+    $empresaId = Auth::user()->empresa_id;
+    $users = $this->usuarioRepository->getUserByCompany($empresaId);
+    $tabulations = $this->tabulacoesRepository->getAll($empresaId);
+    $kpis = $this->leadManagementService->getLeadKPIs($empresaId);
+    $importDates = $this->leadManagementService->getImportDatesByMonth($empresaId, now()->month, now()->year);
 
     return view('content.pages.mailing.visualizar-leads', [
       'users' => $users,
-      'tabulations' => $tabulations
+      'tabulations' => $tabulations,
+      'kpis' => $kpis,
+      'importDates' => $importDates,
+      'currentMonth' => now()->month,
+      'currentYear' => now()->year,
     ]);
   }
 
@@ -226,6 +236,77 @@ class Mailing extends Controller
   {
     $data = $this->contatosRepository->getLeads(Auth::user()->empresa_id);
     return response()->json(['data' => $data]);
+  }
+
+  public function getAllLeadsServerSide(Request $request)
+  {
+    $data = $this->contatosRepository->getAllLeadsServerSide(Auth::user()->empresa_id, $request);
+    return response()->json($data);
+  }
+
+  public function getLeadKPIs(Request $request)
+  {
+    $kpis = $this->leadManagementService->getLeadKPIs(Auth::user()->empresa_id, $request);
+    return response()->json($kpis);
+  }
+
+  public function getImportDates(Request $request)
+  {
+    $month = $request->input('month', now()->month);
+    $year = $request->input('year', now()->year);
+    $data = $this->leadManagementService->getImportDatesByMonth(Auth::user()->empresa_id, $month, $year);
+    return response()->json($data);
+  }
+
+  public function reactivateLead(Request $request)
+  {
+    $result = $this->leadManagementService->reactivateLead($request->id, Auth::user()->empresa_id);
+    return response()->json([
+      'success' => $result,
+      'message' => $result ? 'Lead reativado com sucesso.' : 'Erro ao reativar lead.'
+    ]);
+  }
+
+  public function bulkReactivateLeads(Request $request)
+  {
+    $ids = $request->input('ids', []);
+    $result = $this->leadManagementService->bulkReactivateLeads($ids, Auth::user()->empresa_id);
+    return response()->json([
+      'success' => true,
+      'message' => "{$result['success']} leads reativados com sucesso.",
+      'details' => $result
+    ]);
+  }
+
+  public function bulkDeleteLeads(Request $request)
+  {
+    $ids = $request->input('ids', []);
+    $result = $this->leadManagementService->bulkDeleteLeads($ids, Auth::user()->empresa_id);
+    return response()->json([
+      'success' => true,
+      'message' => "{$result['success']} leads excluidos.",
+      'details' => $result
+    ]);
+  }
+
+  public function discardLead(Request $request)
+  {
+    $result = $this->leadManagementService->discardLead($request->id, Auth::user()->empresa_id);
+    return response()->json([
+      'success' => $result,
+      'message' => $result ? 'Lead descartado com sucesso.' : 'Erro ao descartar lead.'
+    ]);
+  }
+
+  public function bulkDiscardLeads(Request $request)
+  {
+    $ids = $request->input('ids', []);
+    $result = $this->leadManagementService->bulkDiscardLeads($ids, Auth::user()->empresa_id);
+    return response()->json([
+      'success' => true,
+      'message' => "{$result['success']} leads descartados.",
+      'details' => $result
+    ]);
   }
 
   public function getLeadsLegacy($id_mailing)

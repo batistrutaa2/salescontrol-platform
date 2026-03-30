@@ -1,0 +1,971 @@
+/**
+ * Gerenciar Leads - Hub Central
+ * Design: Refined Glass Morphism with warm accents
+ */
+
+// ============================================
+// Light Theme Variables (scoped)
+// ============================================
+.gerenciar-leads-wrapper {
+    --gl-bg-primary: #FFFFFF;
+    --gl-bg-secondary: #F8F9FC;
+    --gl-bg-elevated: #FFFFFF;
+    --gl-border: rgba(0, 0, 0, 0.06);
+    --gl-border-hover: rgba(0, 0, 0, 0.12);
+    --gl-text-primary: #111827;
+    --gl-text-secondary: #6B7280;
+    --gl-text-muted: #9CA3AF;
+    --gl-text-on-color: #FFFFFF;
+    --gl-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --gl-shadow-elevated: 0 4px 24px rgba(0, 0, 0, 0.08);
+    --gl-shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --gl-scrollbar-thumb: rgba(0, 0, 0, 0.12);
+    --gl-scrollbar-track: transparent;
+    --gl-input-bg: #F3F4F6;
+    --gl-input-border: #E5E7EB;
+    --gl-input-focus: var(--dash-primary, #7C3AED);
+    --gl-overlay-light: rgba(255, 255, 255, 0.6);
+    --gl-table-stripe: rgba(0, 0, 0, 0.015);
+    --gl-table-hover: rgba(124, 58, 237, 0.03);
+    --gl-selected-bg: rgba(124, 58, 237, 0.06);
+
+    // Semantic status colors (explicit, no nesting in var())
+    --gl-status-vendedor: #059669;
+    --gl-status-vendedor-bg: rgba(5, 150, 105, 0.1);
+    --gl-status-preditiva: #0891B2;
+    --gl-status-preditiva-bg: rgba(8, 145, 178, 0.1);
+    --gl-status-descartado: #DC2626;
+    --gl-status-descartado-bg: rgba(220, 38, 38, 0.1);
+    --gl-status-remarketing: #D97706;
+    --gl-status-remarketing-bg: rgba(217, 119, 6, 0.1);
+    --gl-status-sem-atribuicao: #6B7280;
+    --gl-status-sem-atribuicao-bg: rgba(107, 114, 128, 0.08);
+
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 0;
+}
+
+// ============================================
+// Dark Theme Variables
+// ============================================
+.dark-style .gerenciar-leads-wrapper {
+    --gl-bg-primary: #1E1E2D;
+    --gl-bg-secondary: #171723;
+    --gl-bg-elevated: #252537;
+    --gl-border: rgba(255, 255, 255, 0.06);
+    --gl-border-hover: rgba(255, 255, 255, 0.12);
+    --gl-text-primary: #F1F1F4;
+    --gl-text-secondary: #A1A1B5;
+    --gl-text-muted: #6C6C80;
+    --gl-text-on-color: #FFFFFF;
+    --gl-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --gl-shadow-elevated: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --gl-shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --gl-scrollbar-thumb: rgba(255, 255, 255, 0.1);
+    --gl-scrollbar-track: transparent;
+    --gl-input-bg: rgba(255, 255, 255, 0.04);
+    --gl-input-border: rgba(255, 255, 255, 0.08);
+    --gl-input-focus: var(--dash-primary-light, #A78BFA);
+    --gl-overlay-light: rgba(30, 30, 45, 0.6);
+    --gl-table-stripe: rgba(255, 255, 255, 0.02);
+    --gl-table-hover: rgba(124, 58, 237, 0.06);
+    --gl-selected-bg: rgba(124, 58, 237, 0.12);
+
+    --gl-status-vendedor: #34D399;
+    --gl-status-vendedor-bg: rgba(52, 211, 153, 0.12);
+    --gl-status-preditiva: #22D3EE;
+    --gl-status-preditiva-bg: rgba(34, 211, 238, 0.12);
+    --gl-status-descartado: #F87171;
+    --gl-status-descartado-bg: rgba(248, 113, 113, 0.12);
+    --gl-status-remarketing: #FBBF24;
+    --gl-status-remarketing-bg: rgba(251, 191, 36, 0.12);
+    --gl-status-sem-atribuicao: #A1A1B5;
+    --gl-status-sem-atribuicao-bg: rgba(161, 161, 181, 0.1);
+}
+
+// ============================================
+// Page Header
+// ============================================
+.gl-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    .gl-page-title-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .gl-page-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--dash-primary, #7C3AED), var(--dash-info, #06B6D4));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        svg {
+            width: 20px;
+            height: 20px;
+            color: #fff;
+            stroke: #fff;
+        }
+    }
+
+    .gl-page-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--gl-text-primary);
+        margin: 0;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+    }
+
+    .gl-page-subtitle {
+        font-size: 0.8rem;
+        color: var(--gl-text-muted);
+        font-weight: 500;
+        margin: 0;
+    }
+}
+
+// ============================================
+// KPI Grid
+// ============================================
+.gl-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    @media (max-width: 1200px) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (max-width: 768px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.gl-kpi-card {
+    background: var(--gl-bg-elevated);
+    border: 1px solid var(--gl-border);
+    border-radius: 14px;
+    padding: 1.15rem 1.25rem;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--gl-shadow-card);
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--kpi-color), var(--kpi-color-light));
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+
+    &:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--gl-shadow-hover);
+        border-color: var(--gl-border-hover);
+
+        &::before { opacity: 1; }
+
+        .gl-kpi-icon-ring {
+            transform: scale(1.08);
+        }
+    }
+
+    &.active {
+        border-color: var(--kpi-color);
+        box-shadow: 0 0 0 1px var(--kpi-color), var(--gl-shadow-elevated);
+
+        &::before { opacity: 1; }
+    }
+
+    .gl-kpi-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.85rem;
+    }
+
+    .gl-kpi-icon-ring {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--kpi-color), var(--kpi-color-light));
+        transition: transform 0.25s ease;
+
+        svg {
+            width: 20px;
+            height: 20px;
+            color: #fff;
+            stroke: #fff;
+        }
+    }
+
+    .gl-kpi-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--gl-text-muted);
+        margin-bottom: 0.2rem;
+        display: block;
+    }
+
+    .gl-kpi-value {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--gl-text-primary);
+        margin: 0;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+    }
+
+    // Color variants
+    &.kpi-total {
+        --kpi-color: #7C3AED;
+        --kpi-color-light: #A78BFA;
+    }
+
+    &.kpi-vendedor {
+        --kpi-color: #059669;
+        --kpi-color-light: #34D399;
+    }
+
+    &.kpi-preditiva {
+        --kpi-color: #0891B2;
+        --kpi-color-light: #22D3EE;
+    }
+
+    &.kpi-descartados {
+        --kpi-color: #DC2626;
+        --kpi-color-light: #F87171;
+    }
+
+    &.kpi-remarketing {
+        --kpi-color: #D97706;
+        --kpi-color-light: #FBBF24;
+    }
+}
+
+// Stagger entrance
+.gl-kpi-grid > * {
+    opacity: 0;
+    animation: glKpiIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@for $i from 1 through 5 {
+    .gl-kpi-grid > *:nth-child(#{$i}) {
+        animation-delay: #{($i - 1) * 60}ms;
+    }
+}
+
+@keyframes glKpiIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+// ============================================
+// Main Layout
+// ============================================
+.gl-main-layout {
+    display: grid;
+    grid-template-columns: 272px 1fr;
+    gap: 1.25rem;
+    align-items: start;
+
+    @media (max-width: 992px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+// ============================================
+// Imports Panel (Sidebar)
+// ============================================
+.gl-imports-panel {
+    background: var(--gl-bg-elevated);
+    border: 1px solid var(--gl-border);
+    border-radius: 14px;
+    box-shadow: var(--gl-shadow-card);
+    overflow: hidden;
+    position: sticky;
+    top: 80px;
+
+    @media (max-width: 992px) {
+        position: static;
+    }
+}
+
+.gl-imports-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--gl-border);
+
+    h6 {
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--gl-text-muted);
+        margin: 0;
+    }
+}
+
+.gl-month-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+
+    .gl-month-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--gl-text-primary);
+        min-width: 72px;
+        text-align: center;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    button {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        border: 1px solid var(--gl-border);
+        background: var(--gl-input-bg);
+        color: var(--gl-text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        padding: 0;
+
+        &:hover {
+            background: var(--kpi-color, var(--dash-primary, #7C3AED));
+            color: #fff;
+            border-color: transparent;
+        }
+
+        svg {
+            width: 14px;
+            height: 14px;
+        }
+    }
+}
+
+.gl-imports-list {
+    max-height: 520px;
+    overflow-y: auto;
+    padding: 0.4rem;
+
+    &::-webkit-scrollbar { width: 3px; }
+    &::-webkit-scrollbar-track { background: var(--gl-scrollbar-track); }
+    &::-webkit-scrollbar-thumb {
+        background: var(--gl-scrollbar-thumb);
+        border-radius: 3px;
+    }
+}
+
+.gl-import-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.7rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    margin-bottom: 2px;
+
+    &:hover {
+        background: var(--gl-table-hover);
+        border-color: var(--gl-border);
+    }
+
+    &.active {
+        background: var(--gl-selected-bg);
+        border-color: rgba(124, 58, 237, 0.2);
+
+        .gl-import-date {
+            background: var(--dash-primary, #7C3AED);
+            color: #fff;
+        }
+    }
+
+    .gl-import-date {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: var(--dash-primary, #7C3AED);
+        background: var(--gl-selected-bg);
+        padding: 0.2rem 0.45rem;
+        border-radius: 5px;
+        white-space: nowrap;
+        transition: all 0.15s ease;
+    }
+
+    .gl-import-info {
+        flex: 1;
+        min-width: 0;
+
+        .gl-import-base {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--gl-text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+    }
+
+    .gl-import-count {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: var(--gl-text-muted);
+        background: var(--gl-input-bg);
+        padding: 0.15rem 0.4rem;
+        border-radius: 5px;
+        white-space: nowrap;
+    }
+}
+
+.gl-imports-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--gl-text-muted);
+    font-size: 0.78rem;
+
+    svg {
+        display: block;
+        margin: 0 auto 0.75rem;
+        opacity: 0.3;
+    }
+}
+
+// ============================================
+// Table Card
+// ============================================
+.gl-table-area {
+    min-width: 0;
+}
+
+.gl-table-card {
+    background: var(--gl-bg-elevated);
+    border: 1px solid var(--gl-border);
+    border-radius: 14px;
+    box-shadow: var(--gl-shadow-card);
+    overflow: hidden;
+}
+
+// ============================================
+// Filter Bar
+// ============================================
+.gl-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--gl-border);
+    align-items: center;
+    background: var(--gl-bg-secondary);
+
+    .gl-filter-item {
+        flex: 1;
+        min-width: 130px;
+        max-width: 190px;
+
+        select, input {
+            width: 100%;
+            font-size: 0.78rem;
+            font-weight: 500;
+            border-radius: 8px;
+            border: 1px solid var(--gl-input-border);
+            padding: 0.4rem 0.65rem;
+            background: var(--gl-bg-elevated);
+            color: var(--gl-text-primary);
+            transition: all 0.15s ease;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            appearance: auto;
+
+            &:focus {
+                outline: none;
+                border-color: var(--gl-input-focus);
+                box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
+            }
+
+            option {
+                background: var(--gl-bg-elevated);
+                color: var(--gl-text-primary);
+            }
+        }
+    }
+
+    .gl-filter-date-range {
+        min-width: 180px;
+        max-width: 220px;
+
+        input {
+            cursor: pointer;
+        }
+    }
+
+    .gl-filter-clear {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--gl-text-muted);
+        cursor: pointer;
+        padding: 0.4rem 0.7rem;
+        border-radius: 8px;
+        border: 1px dashed var(--gl-border);
+        background: transparent;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+
+        svg {
+            width: 13px;
+            height: 13px;
+        }
+
+        &:hover {
+            color: var(--gl-status-descartado);
+            border-color: var(--gl-status-descartado);
+            background: var(--gl-status-descartado-bg);
+        }
+    }
+}
+
+// ============================================
+// Bulk Toolbar
+// ============================================
+.gl-bulk-toolbar {
+    display: none;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1.1rem;
+    background: var(--gl-selected-bg);
+    border-bottom: 1px solid rgba(124, 58, 237, 0.12);
+    flex-wrap: wrap;
+
+    &.visible {
+        display: flex;
+        animation: glToolbarIn 0.2s ease;
+    }
+
+    .gl-selected-count {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--dash-primary, #7C3AED);
+        margin-right: 0.35rem;
+        white-space: nowrap;
+    }
+
+    .gl-bulk-btn {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.35rem 0.75rem;
+        border-radius: 7px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        white-space: nowrap;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+
+        svg {
+            width: 13px;
+            height: 13px;
+            flex-shrink: 0;
+        }
+
+        &.gl-btn-transfer {
+            background: var(--gl-status-vendedor-bg);
+            color: var(--gl-status-vendedor);
+
+            &:hover {
+                background: var(--gl-status-vendedor);
+                color: var(--gl-text-on-color);
+            }
+        }
+
+        &.gl-btn-preditiva {
+            background: var(--gl-status-preditiva-bg);
+            color: var(--gl-status-preditiva);
+
+            &:hover {
+                background: var(--gl-status-preditiva);
+                color: var(--gl-text-on-color);
+            }
+        }
+
+        &.gl-btn-discard {
+            background: var(--gl-status-remarketing-bg);
+            color: var(--gl-status-remarketing);
+
+            &:hover {
+                background: var(--gl-status-remarketing);
+                color: var(--gl-text-on-color);
+            }
+        }
+
+        &.gl-btn-reactivate {
+            background: var(--gl-selected-bg);
+            color: var(--dash-primary, #7C3AED);
+            border-color: var(--gl-border);
+
+            &:hover {
+                background: var(--dash-primary, #7C3AED);
+                color: var(--gl-text-on-color);
+                border-color: transparent;
+            }
+        }
+
+        &.gl-btn-delete {
+            background: var(--gl-status-descartado-bg);
+            color: var(--gl-status-descartado);
+
+            &:hover {
+                background: var(--gl-status-descartado);
+                color: var(--gl-text-on-color);
+            }
+        }
+    }
+}
+
+@keyframes glToolbarIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+// ============================================
+// Situacao Badges
+// ============================================
+.gl-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.22rem 0.55rem;
+    border-radius: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+
+    .gl-badge-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    &.badge-com-vendedor {
+        background: var(--gl-status-vendedor-bg);
+        color: var(--gl-status-vendedor);
+        .gl-badge-dot { background: var(--gl-status-vendedor); }
+    }
+
+    &.badge-preditiva {
+        background: var(--gl-status-preditiva-bg);
+        color: var(--gl-status-preditiva);
+        .gl-badge-dot { background: var(--gl-status-preditiva); }
+    }
+
+    &.badge-descartado {
+        background: var(--gl-status-descartado-bg);
+        color: var(--gl-status-descartado);
+        .gl-badge-dot { background: var(--gl-status-descartado); }
+    }
+
+    &.badge-remarketing {
+        background: var(--gl-status-remarketing-bg);
+        color: var(--gl-status-remarketing);
+        .gl-badge-dot { background: var(--gl-status-remarketing); }
+    }
+
+    &.badge-sem-atribuicao {
+        background: var(--gl-status-sem-atribuicao-bg);
+        color: var(--gl-status-sem-atribuicao);
+        .gl-badge-dot { background: var(--gl-status-sem-atribuicao); }
+    }
+}
+
+// ============================================
+// Table Overrides
+// ============================================
+.gl-table-card {
+    .dataTables_wrapper {
+        padding: 0 1rem 1rem;
+    }
+
+    table.dataTable {
+        border-collapse: collapse !important;
+        width: 100% !important;
+
+        thead th {
+            font-size: 0.67rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--gl-text-muted);
+            border-bottom: 2px solid var(--gl-border);
+            padding: 0.7rem 0.45rem;
+            background: transparent;
+            white-space: nowrap;
+        }
+
+        tbody td {
+            font-size: 0.8rem;
+            color: var(--gl-text-primary);
+            padding: 0.6rem 0.45rem;
+            border-bottom: 1px solid var(--gl-border);
+            vertical-align: middle;
+        }
+
+        tbody tr {
+            transition: background 0.1s ease;
+        }
+
+        tbody tr:hover td {
+            background: var(--gl-table-hover);
+        }
+
+        tbody tr.selected td,
+        tbody tr.selected:hover td {
+            background: var(--gl-selected-bg) !important;
+        }
+    }
+
+    .dataTables_info {
+        font-size: 0.73rem;
+        color: var(--gl-text-muted);
+        font-weight: 500;
+    }
+
+    .dataTables_paginate .paginate_button {
+        font-size: 0.78rem;
+        border-radius: 7px !important;
+        color: var(--gl-text-secondary) !important;
+
+        &.current {
+            background: var(--dash-primary, #7C3AED) !important;
+            color: #fff !important;
+            border-color: transparent !important;
+        }
+
+        &:hover:not(.current) {
+            background: var(--gl-table-hover) !important;
+            color: var(--gl-text-primary) !important;
+            border-color: transparent !important;
+        }
+    }
+
+    .dataTables_length {
+        select {
+            font-size: 0.78rem;
+            border-radius: 7px;
+            border: 1px solid var(--gl-input-border);
+            background: var(--gl-bg-elevated);
+            color: var(--gl-text-primary);
+            padding: 0.3rem 0.5rem;
+        }
+    }
+
+    .dataTables_filter {
+        input {
+            font-size: 0.78rem;
+            border-radius: 8px;
+            border: 1px solid var(--gl-input-border);
+            background: var(--gl-input-bg);
+            color: var(--gl-text-primary);
+            padding: 0.4rem 0.7rem;
+            transition: all 0.15s ease;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+
+            &:focus {
+                outline: none;
+                border-color: var(--gl-input-focus);
+                box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
+                background: var(--gl-bg-elevated);
+            }
+        }
+    }
+
+    // Checkbox
+    .dt-checkboxes-cell .form-check-input,
+    .form-check-input.gl-row-check {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 1.5px solid var(--gl-input-border);
+        cursor: pointer;
+
+        &:checked {
+            background-color: var(--dash-primary, #7C3AED);
+            border-color: var(--dash-primary, #7C3AED);
+        }
+    }
+}
+
+// ============================================
+// Modal Refinement
+// ============================================
+
+// Light theme modals (using IDs for reliable targeting)
+#modalTransfer,
+#modalComentarios,
+#modalConfirm {
+    .modal-content {
+        background-color: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    }
+
+    .gl-modal-header {
+        background-color: #F8F9FC;
+        border-bottom: 1px solid #E5E7EB;
+        padding: 1.1rem 1.35rem;
+
+        .modal-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #111827;
+        }
+
+        .btn-close {
+            opacity: 0.5;
+            &:hover { opacity: 1; }
+        }
+    }
+
+    .modal-body {
+        color: #111827;
+        background-color: #FFFFFF;
+    }
+
+    .modal-footer {
+        border-top: 1px solid #E5E7EB;
+        background-color: #FFFFFF;
+    }
+}
+
+// Dark theme modals
+.dark-style {
+    #modalTransfer,
+    #modalComentarios,
+    #modalConfirm {
+        .modal-content {
+            background-color: #252537;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .gl-modal-header {
+            background-color: #1E1E2D;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+            .modal-title {
+                color: #F1F1F4;
+            }
+
+            .btn-close {
+                filter: invert(1) grayscale(100%) brightness(200%);
+            }
+        }
+
+        .modal-body {
+            color: #F1F1F4;
+            background-color: #252537;
+
+            .text-muted {
+                color: #A1A1B5 !important;
+            }
+
+            .form-label {
+                color: #D1D5DB;
+            }
+
+            .form-select,
+            .form-control {
+                background-color: #1E1E2D;
+                border-color: rgba(255, 255, 255, 0.08);
+                color: #F1F1F4;
+
+                option {
+                    background-color: #1E1E2D;
+                    color: #F1F1F4;
+                }
+            }
+        }
+
+        .modal-footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            background-color: #252537;
+        }
+
+        // Confirm modal specific
+        #confirmMessage {
+            color: #D1D5DB;
+        }
+    }
+}
+
+// ============================================
+// Responsive Tweaks
+// ============================================
+@media (max-width: 992px) {
+    .gl-imports-panel {
+        .gl-imports-list {
+            max-height: 200px;
+        }
+    }
+
+    .gl-filter-bar .gl-filter-item {
+        min-width: 100%;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .gl-page-header {
+        .gl-page-title { font-size: 1.05rem; }
+    }
+
+    .gl-bulk-toolbar {
+        gap: 0.4rem;
+        .gl-bulk-btn {
+            font-size: 0.68rem;
+            padding: 0.3rem 0.55rem;
+        }
+    }
+}
