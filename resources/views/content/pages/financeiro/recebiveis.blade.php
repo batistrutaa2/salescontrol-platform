@@ -53,6 +53,32 @@
         </div>
     </header>
 
+    {{-- Main Tabs --}}
+    <nav class="main-tabs-nav">
+        <button class="main-tab active" data-target="tab-parcelas">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="3" y1="15" x2="21" y2="15"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+            </svg>
+            Recebiveis
+        </button>
+        <button class="main-tab" data-target="tab-relatorio">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            Relatorio
+        </button>
+    </nav>
+
+    {{-- ═══════════════════════════════════════ --}}
+    {{-- TAB: Parcelas (Recebiveis)             --}}
+    {{-- ═══════════════════════════════════════ --}}
+    <div class="tab-content active" id="tab-parcelas">
+
     {{-- Filtro por Ano de Implantação --}}
     <section class="filter-section">
         <div class="timeline-filter-card">
@@ -219,13 +245,23 @@
                                     @endif
                                 </td>
                                 <td class="col-actions">
-                                    <button class="btn-view-parcelas view-parcelas" data-id="{{ $contrato->venda->id }}" title="Ver parcelas">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                        <span>Parcelas</span>
-                                    </button>
+                                    <div class="actions-group">
+                                        <button class="btn-view-parcelas view-parcelas" data-id="{{ $contrato->venda->id }}" title="Ver parcelas">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                            <span>Parcelas</span>
+                                        </button>
+                                        <button class="btn-excluir-lancamento" data-id="{{ $contrato->venda->id }}" title="Excluir lançamento completo">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                <line x1="10" y1="11" x2="10" y2="17"/>
+                                                <line x1="14" y1="11" x2="14" y2="17"/>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             @endforeach
@@ -235,6 +271,218 @@
             </div>
         </div>
     </section>
+
+    </div>{{-- /tab-parcelas --}}
+
+    {{-- ═══════════════════════════════════════ --}}
+    {{-- TAB: Relatorio                         --}}
+    {{-- ═══════════════════════════════════════ --}}
+    <div class="tab-content" id="tab-relatorio">
+
+        {{-- KPI Cards --}}
+        <section class="kpi-section">
+            <div class="kpi-grid kpi-grid-4">
+                {{-- Total Esperado --}}
+                <div class="kpi-card kpi-primary">
+                    <div class="kpi-header">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, var(--rcb-emerald), var(--rcb-emerald-dark));">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="kpi-body">
+                        <span class="kpi-value" style="font-family: 'JetBrains Mono', monospace;">R$ {{ number_format($kpis->total_esperado ?? 0, 2, ',', '.') }}</span>
+                        <span class="kpi-label" style="display:block; font-size:0.8125rem; color:var(--rcb-text-secondary); margin-top:0.25rem;">Total Esperado</span>
+                    </div>
+                    <div class="kpi-background">
+                        <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="currentColor" style="color: var(--rcb-emerald);">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                </div>
+
+                {{-- Total Recebido --}}
+                <div class="kpi-card kpi-success">
+                    <div class="kpi-header">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, var(--rcb-success), #059669);">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="kpi-body">
+                        <span class="kpi-value" style="font-family: 'JetBrains Mono', monospace; color: var(--rcb-success);">R$ {{ number_format($kpis->total_recebido ?? 0, 2, ',', '.') }}</span>
+                        <span class="kpi-label" style="display:block; font-size:0.8125rem; color:var(--rcb-text-secondary); margin-top:0.25rem;">Total Recebido</span>
+                    </div>
+                    <div class="kpi-background">
+                        <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="currentColor" style="color: var(--rcb-success);">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                </div>
+
+                {{-- Total Pendente --}}
+                <div class="kpi-card kpi-warning">
+                    <div class="kpi-header">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, var(--rcb-warning), #D97706);">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="kpi-body">
+                        <span class="kpi-value" style="font-family: 'JetBrains Mono', monospace; color: var(--rcb-warning);">R$ {{ number_format($kpis->total_pendente ?? 0, 2, ',', '.') }}</span>
+                        <span class="kpi-label" style="display:block; font-size:0.8125rem; color:var(--rcb-text-secondary); margin-top:0.25rem;">Total Pendente</span>
+                    </div>
+                    <div class="kpi-background">
+                        <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="currentColor" style="color: var(--rcb-warning);">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                </div>
+
+                {{-- Total Atrasado --}}
+                <div class="kpi-card kpi-danger">
+                    <div class="kpi-header">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, var(--rcb-danger), #DC2626);">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="kpi-body">
+                        <span class="kpi-value" style="font-family: 'JetBrains Mono', monospace; color: var(--rcb-danger);">R$ {{ number_format($kpis->total_atrasado ?? 0, 2, ',', '.') }}</span>
+                        <span class="kpi-label" style="display:block; font-size:0.8125rem; color:var(--rcb-text-secondary); margin-top:0.25rem;">Total Atrasado</span>
+                    </div>
+                    <div class="kpi-background">
+                        <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="currentColor" style="color: var(--rcb-danger);">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {{-- Tabela de Reconciliação por Ano --}}
+        <section class="reconciliation-section">
+            <div class="reconciliation-card">
+                <div class="reconciliation-header">
+                    <div class="reconciliation-title-group">
+                        <div class="reconciliation-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="14"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="reconciliation-title">Panorama por Ano</h3>
+                            <p class="reconciliation-subtitle">Resumo consolidado de recebiveis por ano de implantacao</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="reconciliation-body">
+                    <table class="reconciliation-table">
+                        <thead>
+                            <tr>
+                                <th>Ano</th>
+                                <th>Contratos</th>
+                                <th>Esperado</th>
+                                <th>Recebido</th>
+                                <th>Pendente</th>
+                                <th>Atrasado</th>
+                                <th>Progresso</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php
+                                $grandTotalEsperado = 0;
+                                $grandTotalRecebido = 0;
+                                $grandTotalPendente = 0;
+                                $grandTotalAtrasado = 0;
+                                $grandTotalContratos = 0;
+                            @endphp
+                            @forelse($resumoPorAno as $resumo)
+                                @php
+                                    $progresso = $resumo->total_esperado > 0
+                                        ? round(($resumo->total_recebido / $resumo->total_esperado) * 100, 1)
+                                        : 0;
+                                    $grandTotalEsperado += $resumo->total_esperado;
+                                    $grandTotalRecebido += $resumo->total_recebido;
+                                    $grandTotalPendente += $resumo->total_pendente;
+                                    $grandTotalAtrasado += $resumo->total_atrasado;
+                                    $grandTotalContratos += $resumo->total_contratos;
+                                @endphp
+                                <tr class="year-row">
+                                    <td><span class="ano-badge">{{ $resumo->ano ?? 'N/D' }}</span></td>
+                                    <td><span class="contratos-count">{{ $resumo->total_contratos }}</span></td>
+                                    <td><span class="valor-mono">R$ {{ number_format($resumo->total_esperado, 2, ',', '.') }}</span></td>
+                                    <td><span class="valor-mono valor-recebido">R$ {{ number_format($resumo->total_recebido, 2, ',', '.') }}</span></td>
+                                    <td><span class="valor-mono valor-pendente-rel">R$ {{ number_format($resumo->total_pendente, 2, ',', '.') }}</span></td>
+                                    <td><span class="valor-mono valor-atrasado">R$ {{ number_format($resumo->total_atrasado, 2, ',', '.') }}</span></td>
+                                    <td class="col-progresso">
+                                        <div class="progress-bar-mini">
+                                            <div class="progress-bar-fill" style="width: {{ $progresso }}%"></div>
+                                        </div>
+                                        <span class="progress-label">{{ $progresso }}%</span>
+                                    </td>
+                                    <td>
+                                        @if($progresso >= 100)
+                                            <span class="status-badge status-success">Quitado</span>
+                                        @elseif($resumo->total_atrasado > 0)
+                                            <span class="status-badge status-danger">Atrasado</span>
+                                        @else
+                                            <span class="status-badge status-warning">Pendente</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--rcb-text-muted);">
+                                        Nenhum dado disponivel
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                        @if($resumoPorAno->count() > 0)
+                        <tfoot>
+                            @php
+                                $grandProgresso = $grandTotalEsperado > 0
+                                    ? round(($grandTotalRecebido / $grandTotalEsperado) * 100, 1)
+                                    : 0;
+                            @endphp
+                            <tr class="total-row">
+                                <td><strong>Total</strong></td>
+                                <td><strong>{{ $grandTotalContratos }}</strong></td>
+                                <td><span class="valor-mono"><strong>R$ {{ number_format($grandTotalEsperado, 2, ',', '.') }}</strong></span></td>
+                                <td><span class="valor-mono valor-recebido"><strong>R$ {{ number_format($grandTotalRecebido, 2, ',', '.') }}</strong></span></td>
+                                <td><span class="valor-mono valor-pendente-rel"><strong>R$ {{ number_format($grandTotalPendente, 2, ',', '.') }}</strong></span></td>
+                                <td><span class="valor-mono valor-atrasado"><strong>R$ {{ number_format($grandTotalAtrasado, 2, ',', '.') }}</strong></span></td>
+                                <td class="col-progresso">
+                                    <div class="progress-bar-mini">
+                                        <div class="progress-bar-fill" style="width: {{ $grandProgresso }}%"></div>
+                                    </div>
+                                    <span class="progress-label">{{ $grandProgresso }}%</span>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                        @endif
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </div>{{-- /tab-relatorio --}}
+
 </div>
 
 {{-- Modal Parcelas --}}

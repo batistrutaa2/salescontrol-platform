@@ -113,6 +113,254 @@
 }
 
 // ============================================
+// Main Tabs Navigation
+// ============================================
+.main-tabs-nav {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    padding: 0.375rem;
+    background: var(--rcb-slate-100);
+    border-radius: var(--rcb-radius-md);
+    border: 1px solid var(--rcb-card-border);
+    width: fit-content;
+}
+
+.main-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border: none;
+    border-radius: var(--rcb-radius-sm);
+    background: transparent;
+    color: var(--rcb-text-secondary);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--rcb-transition);
+
+    svg {
+        width: 18px;
+        height: 18px;
+        opacity: 0.6;
+        transition: var(--rcb-transition);
+    }
+
+    &:hover {
+        color: var(--rcb-text-primary);
+        background: rgba(var(--rcb-emerald-rgb), 0.05);
+
+        svg { opacity: 0.8; }
+    }
+
+    &.active {
+        background: var(--rcb-card-bg);
+        color: var(--rcb-emerald);
+        box-shadow: var(--rcb-shadow-sm);
+
+        svg {
+            opacity: 1;
+            color: var(--rcb-emerald);
+        }
+    }
+}
+
+// Tab Content
+.tab-content {
+    display: none;
+
+    &.active {
+        display: block;
+        animation: fadeInUp 0.3s ease forwards;
+    }
+}
+
+// ============================================
+// Reconciliation Section — Panorama por Ano
+// ============================================
+.reconciliation-section {
+    margin-bottom: 2rem;
+}
+
+.reconciliation-card {
+    background: var(--rcb-card-bg);
+    border-radius: var(--rcb-radius-lg);
+    border: 1px solid var(--rcb-card-border);
+    box-shadow: var(--rcb-shadow-md);
+    overflow: hidden;
+    transition: var(--rcb-transition-slow);
+
+    &:hover {
+        box-shadow: var(--rcb-shadow-lg);
+    }
+}
+
+.reconciliation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--rcb-card-border);
+}
+
+.reconciliation-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.reconciliation-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--rcb-radius-md);
+    background: linear-gradient(135deg, var(--rcb-emerald) 0%, var(--rcb-emerald-dark) 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reconciliation-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--rcb-text-primary);
+    margin: 0;
+}
+
+.reconciliation-subtitle {
+    font-size: 0.8125rem;
+    color: var(--rcb-text-muted);
+    margin: 0;
+}
+
+.reconciliation-body {
+    padding: 0;
+    overflow-x: auto;
+}
+
+.reconciliation-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+
+    thead {
+        background: var(--rcb-slate-50);
+
+        th {
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--rcb-text-muted);
+            border-bottom: 1px solid var(--rcb-card-border);
+            white-space: nowrap;
+            text-align: left;
+        }
+    }
+
+    tbody .year-row {
+        transition: var(--rcb-transition);
+
+        &:hover {
+            background: rgba(var(--rcb-emerald-rgb), 0.04);
+        }
+
+        td {
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid var(--rcb-card-border);
+            vertical-align: middle;
+        }
+    }
+
+    tfoot .total-row {
+        background: var(--rcb-slate-50);
+
+        td {
+            padding: 0.875rem 1rem;
+            border-top: 2px solid var(--rcb-card-border);
+            font-weight: 600;
+        }
+    }
+}
+
+.ano-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    background: rgba(var(--rcb-emerald-rgb), 0.1);
+    color: var(--rcb-emerald);
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+}
+
+.contratos-count {
+    font-weight: 600;
+    color: var(--rcb-text-primary);
+}
+
+.valor-mono {
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--rcb-text-primary);
+
+    &.valor-recebido { color: var(--rcb-success); }
+    &.valor-pendente-rel { color: var(--rcb-warning); }
+    &.valor-atrasado { color: var(--rcb-danger); }
+}
+
+.progress-bar-mini {
+    width: 80px;
+    height: 6px;
+    background: var(--rcb-slate-200);
+    border-radius: 3px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        background: linear-gradient(90deg, var(--rcb-emerald) 0%, var(--rcb-emerald-light) 100%);
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+}
+
+.progress-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--rcb-text-secondary);
+}
+
+.col-progresso {
+    white-space: nowrap;
+}
+
+// Dark mode overrides for reconciliation
+.dark-style {
+    .reconciliation-table thead {
+        background: var(--rcb-slate-100);
+    }
+
+    .reconciliation-table tfoot .total-row {
+        background: var(--rcb-slate-100);
+    }
+
+    .reconciliation-table .year-row:hover {
+        background: rgba(var(--rcb-emerald-rgb), 0.08);
+    }
+
+    .progress-bar-mini {
+        background: var(--rcb-slate-200);
+    }
+}
+
+// ============================================
 // Page Header
 // ============================================
 .page-header {
@@ -194,6 +442,10 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
+
+    &.kpi-grid-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
 
     &.kpi-grid-3 {
         grid-template-columns: repeat(3, 1fr);
@@ -965,7 +1217,13 @@ button.year-tab {
     50% { opacity: 0.7; transform: scale(1.2); }
 }
 
-// Action Button
+// Action Buttons
+.actions-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .btn-view-parcelas {
     display: inline-flex;
     align-items: center;
@@ -984,6 +1242,59 @@ button.year-tab {
         background: var(--rcb-emerald-dark);
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(var(--rcb-emerald-rgb), 0.3);
+    }
+}
+
+.btn-excluir-lancamento {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    background: var(--rcb-danger-light);
+    color: var(--rcb-danger);
+    border: 1px solid rgba(var(--rcb-danger-rgb), 0.2);
+    border-radius: var(--rcb-radius-sm);
+    cursor: pointer;
+    transition: var(--rcb-transition);
+    position: relative;
+    overflow: hidden;
+
+    svg {
+        position: relative;
+        z-index: 1;
+        width: 16px;
+        height: 16px;
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, var(--rcb-danger), #DC2626);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    &:hover {
+        color: #fff;
+        border-color: var(--rcb-danger);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(var(--rcb-danger-rgb), 0.35);
+
+        &::before {
+            opacity: 1;
+        }
+
+        svg {
+            color: #fff;
+        }
+    }
+
+    &:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(var(--rcb-danger-rgb), 0.25);
     }
 }
 
@@ -1825,6 +2136,7 @@ button.year-tab {
 
     .filter-tabs,
     .btn-view-parcelas,
+    .btn-excluir-lancamento,
     .parcelas-pagination {
         display: none !important;
     }

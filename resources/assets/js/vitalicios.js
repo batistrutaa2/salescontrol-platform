@@ -1,33 +1,10 @@
 /**
- * Recebiveis Page JavaScript
+ * Vitalicios Page JavaScript
  * Premium Financial Dashboard
  */
 'use strict';
 
 $(function () {
-    // ============================================
-    // Main Tabs (Parcelas / Relatorio)
-    // ============================================
-    $('.main-tab').on('click', function () {
-        const target = $(this).data('target');
-
-        // Update tab buttons
-        $('.main-tab').removeClass('active');
-        $(this).addClass('active');
-
-        // Switch content
-        $('.tab-content').removeClass('active');
-        $('#' + target).addClass('active');
-
-        // Recalculate DataTable columns when switching to parcelas tab
-        if (target === 'tab-parcelas') {
-            const table = $.fn.dataTable.tables({ api: true });
-            if (table) {
-                table.columns.adjust();
-            }
-        }
-    });
-
     // ============================================
     // Variables
     // ============================================
@@ -45,7 +22,7 @@ $(function () {
     // ============================================
     // DataTable Initialization
     // ============================================
-    const table = $('#recebiveisTable').DataTable({
+    const table = $('#vitaliciosTable').DataTable({
         pageLength: 10,
         responsive: true,
         order: [[4, 'desc']],
@@ -96,7 +73,7 @@ $(function () {
         // Show loading state
         tbody.html(`
             <tr class="loading-row">
-                <td colspan="7" class="text-center py-4">
+                <td colspan="8" class="text-center py-4">
                     <div class="loading-spinner">
                         <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
@@ -111,7 +88,7 @@ $(function () {
         // Hide pagination while loading
         $('#parcelasPagination').hide();
 
-        $.get(`/financeiro/recebiveis/${vendaId}/parcelas`, function (data) {
+        $.get(`/financeiro/recebiveis/vitalicios/${vendaId}/parcelas`, function (data) {
             // Store all parcelas and reset to first page
             allParcelas = data;
             currentPage = 1;
@@ -123,7 +100,7 @@ $(function () {
             if (data.length === 0) {
                 tbody.html(`
                     <tr>
-                        <td colspan="7" class="text-center py-4">
+                        <td colspan="8" class="text-center py-4">
                             <span style="color: var(--rcb-text-muted)">Nenhuma parcela encontrada</span>
                         </td>
                     </tr>
@@ -148,7 +125,7 @@ $(function () {
         }).fail(function () {
             tbody.html(`
                 <tr>
-                    <td colspan="7" class="text-center py-4">
+                    <td colspan="8" class="text-center py-4">
                         <span style="color: var(--rcb-danger)">Erro ao carregar parcelas</span>
                     </td>
                 </tr>
@@ -181,6 +158,11 @@ $(function () {
                 currency: 'BRL'
             });
 
+            // Custo Atual (valor do contrato calculado a partir do percentual vitalício)
+            const custoAtualFormatado = parcela.custo_atual
+                ? parseFloat(parcela.custo_atual).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                : null;
+
             // Checkbox de seleção
             const isChecked = selectedParcelas.has(parcela.id) ? 'checked' : '';
 
@@ -194,8 +176,8 @@ $(function () {
                     </td>
                     <td>
                         <div class="parcela-info">
-                            <span style="font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace; font-weight: 600; color: var(--rcb-emerald);">
-                                Parcela ${parcela.parcela}
+                            <span style="font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace; font-weight: 600; color: var(--rcb-primary);">
+                                Vitalicio ${parcela.parcela}
                             </span>
                         </div>
                     </td>
@@ -203,6 +185,11 @@ $(function () {
                         <span style="font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace; font-weight: 600;">
                             ${valorFormatado}
                         </span>
+                    </td>
+                    <td>
+                        ${custoAtualFormatado
+                            ? `<span style="font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace; font-weight: 600;">${custoAtualFormatado}</span>`
+                            : '<span style="color: var(--rcb-text-muted)">—</span>'}
                     </td>
                     <td>${parcela.data_prevista}</td>
                     <td>${dataRecebimento}</td>
@@ -379,48 +366,8 @@ $(function () {
      * Atualiza a linha do contrato na tabela via AJAX
      */
     function atualizarLinhaContrato(vendaId) {
-        $.ajax({
-            url: `/financeiro/recebiveis/contrato/${vendaId}/resumo`,
-            method: 'GET'
-        }).done(function (response) {
-            if (response.success) {
-                const row = $(`tr[data-venda-id="${vendaId}"]`);
-
-                if (response.removido) {
-                    // Contrato foi removido (sem mais recebíveis)
-                    // Remove a linha do DataTable
-                    table.row(row).remove().draw(false);
-                    return;
-                }
-
-                const dados = response.dados;
-
-                // Atualiza os valores na linha
-                row.find('.valor-total').text(formatCurrency(dados.valor_total));
-                row.find('.valor-pago').text(formatCurrency(dados.valor_pago));
-                row.find('.valor-pendente').text(formatCurrency(dados.valor_pendente));
-
-                // Atualiza o badge de status
-                const statusBadge = row.find('.status-badge');
-                statusBadge.removeClass('status-success status-warning status-danger');
-                statusBadge.addClass(dados.status_class);
-                statusBadge.text(dados.status);
-
-                // Atualiza o valor do status na coluna oculta (para filtro)
-                row.find('td').eq(7).text(dados.status);
-
-                // Adiciona animação de highlight
-                row.addClass('highlight-update');
-                setTimeout(() => {
-                    row.removeClass('highlight-update');
-                }, 1000);
-
-                // Reaplicar o filtro de tab ativo
-                reaplicarFiltroTab();
-            }
-        }).fail(function () {
-            console.error('Erro ao atualizar linha do contrato');
-        });
+        // Reload a página para atualizar os totais dos vitalícios
+        window.location.reload();
     }
 
     /**
@@ -849,7 +796,7 @@ $(function () {
                 const vendaIdToRemove = currentVendaId;
 
                 $.ajax({
-                    url: `/financeiro/recebiveis/${vendaIdToRemove}/todos`,
+                    url: `/financeiro/recebiveis/vitalicios/${vendaIdToRemove}/todos`,
                     method: 'DELETE',
                     headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
                 }).done(function (response) {
@@ -884,94 +831,6 @@ $(function () {
                     }
                 }).fail(function (xhr) {
                     const errorMsg = xhr.responseJSON?.message || 'Erro ao excluir recebiveis.';
-                    Swal.fire({
-                        title: 'Erro!',
-                        text: errorMsg,
-                        icon: 'error',
-                        customClass: {
-                            popup: 'swal-recebiveis',
-                            confirmButton: 'btn btn-danger'
-                        },
-                        buttonsStyling: false
-                    });
-                });
-            }
-        });
-    });
-
-    // ============================================
-    // Excluir Lancamento Completo (da tabela principal)
-    // ============================================
-    $(document).on('click', '.btn-excluir-lancamento', function (e) {
-        e.stopPropagation();
-        const vendaId = $(this).data('id');
-
-        if (!vendaId) {
-            showToast('error', 'ID do contrato nao encontrado.');
-            return;
-        }
-
-        Swal.fire({
-            title: 'Excluir Lancamento Completo',
-            html: `
-                <div style="text-align: left; padding: 1rem 0;">
-                    <p style="margin-bottom: 0.75rem;">Voce tem certeza que deseja excluir <strong>TODO o lancamento</strong> deste contrato?</p>
-                    <p style="margin-bottom: 0.75rem; font-size: 0.875rem; color: var(--rcb-text-muted);">Isso ira remover <strong>todas as parcelas fixas e vitalicios</strong> vinculados a esta venda.</p>
-                    <div style="background: rgba(239, 68, 68, 0.1); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem;">
-                        <p style="color: var(--rcb-danger); font-size: 0.875rem; margin: 0; display: flex; align-items: flex-start; gap: 0.5rem;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                <line x1="12" y1="9" x2="12" y2="13"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                            Esta acao e irreversivel. Use para vendas que nao foram concluidas de fato.
-                        </p>
-                    </div>
-                </div>
-            `,
-            icon: 'warning',
-            iconColor: '#EF4444',
-            showCancelButton: true,
-            confirmButtonText: 'Sim, excluir tudo',
-            cancelButtonText: 'Cancelar',
-            customClass: {
-                popup: 'swal-recebiveis',
-                confirmButton: 'btn btn-danger me-2',
-                cancelButton: 'btn btn-secondary'
-            },
-            buttonsStyling: false
-        }).then(result => {
-            if (result.isConfirmed) {
-                showLoadingSwal('Excluindo lancamento completo...');
-
-                $.ajax({
-                    url: `/financeiro/recebiveis/${vendaId}/completo`,
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-                }).done(function (response) {
-                    if (response.success) {
-                        Swal.fire({
-                            title: 'Lancamento Excluido!',
-                            text: response.message,
-                            icon: 'success',
-                            iconColor: '#10B981',
-                            confirmButtonText: 'OK',
-                            customClass: {
-                                popup: 'swal-recebiveis',
-                                confirmButton: 'btn btn-success'
-                            },
-                            buttonsStyling: false
-                        }).then(() => {
-                            // Remove a linha do contrato da tabela
-                            const row = $(`tr[data-venda-id="${vendaId}"]`);
-                            table.row(row).remove().draw(false);
-
-                            // Atualiza o contador
-                            updateContractsCount();
-                        });
-                    }
-                }).fail(function (xhr) {
-                    const errorMsg = xhr.responseJSON?.message || 'Erro ao excluir lancamento.';
                     Swal.fire({
                         title: 'Erro!',
                         text: errorMsg,

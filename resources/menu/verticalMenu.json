@@ -39,6 +39,11 @@
           "slug": "financeiro-recebiveis"
         },
         {
+          "url": "/financeiro/recebiveis/vitalicios",
+          "name": "Vitalícios",
+          "slug": "financeiro-vitalicios"
+        },
+        {
           "url": "/financeiro/recebiveis/relatorio-financeiro",
           "name": "Relatório Financeiro",
           "slug": "financeiro-relatorio"

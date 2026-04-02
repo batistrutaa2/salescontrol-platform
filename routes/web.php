@@ -427,6 +427,20 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/{vendaId}/todos', [Financeiro::class, 'excluirTodosRecebiveis'])
         ->name('financeiro.recebiveis.excluirTodos');
 
+    // Excluir lançamento completo (fixas + vitalícios)
+    Route::delete('/{vendaId}/completo', [Financeiro::class, 'excluirLancamentoCompleto'])
+        ->name('financeiro.recebiveis.excluirCompleto');
+
+    // 📋 Vitalícios
+    Route::get('/vitalicios', [Financeiro::class, 'indexVitalicios'])
+        ->name('financeiro.vitalicios.index');
+
+    Route::get('/vitalicios/{venda}/parcelas', [Financeiro::class, 'getParcelasVitalicias'])
+        ->name('financeiro.vitalicios.parcelas');
+
+    Route::delete('/vitalicios/{vendaId}/todos', [Financeiro::class, 'excluirTodosVitalicios'])
+        ->name('financeiro.vitalicios.excluirTodos');
+
     // 📊 Relatório financeiro
     Route::get('/relatorio-financeiro', [Financeiro::class, 'relatorioFinanceiro'])
         ->name('financeiro.relatorio');
