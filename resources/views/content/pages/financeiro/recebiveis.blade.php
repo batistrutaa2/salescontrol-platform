@@ -284,88 +284,74 @@
             <div class="kpi-grid kpi-grid-4">
                 {{-- Total Esperado --}}
                 <div class="kpi-card kpi-primary">
-                    <div class="kpi-header">
-                        <div class="kpi-icon" style="background: linear-gradient(135deg, var(--rcb-emerald), var(--rcb-emerald-dark));">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <div class="kpi-icon-wrapper">
+                        <div class="kpi-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                             </svg>
                         </div>
+                        <div class="kpi-pulse"></div>
                     </div>
-                    <div class="kpi-body">
-                        <span class="kpi-value" style="font-family: 'JetBrains Mono', monospace;">R$ {{ number_format($kpis->total_esperado ?? 0, 2, ',', '.') }}</span>
-                        <span class="kpi-label" style="display:block; font-size:0.8125rem; color:var(--rcb-text-secondary); margin-top:0.25rem;">Total Esperado</span>
+                    <div class="kpi-content">
+                        <span class="kpi-label">Total Esperado</span>
+                        <h2 class="kpi-value">R$ {{ number_format($kpis->total_esperado ?? 0, 2, ',', '.') }}</h2>
                     </div>
-                    <div class="kpi-background">
-                        <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="currentColor" style="color: var(--rcb-emerald);">
-                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                        </svg>
-                    </div>
+                    <div class="kpi-glow"></div>
                 </div>
 
                 {{-- Total Recebido --}}
                 <div class="kpi-card kpi-success">
-                    <div class="kpi-header">
-                        <div class="kpi-icon" style="background: linear-gradient(135deg, var(--rcb-success), #059669);">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <div class="kpi-icon-wrapper">
+                        <div class="kpi-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                 <polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
                         </div>
+                        <div class="kpi-pulse"></div>
                     </div>
-                    <div class="kpi-body">
-                        <span class="kpi-value" style="font-family: 'JetBrains Mono', monospace; color: var(--rcb-success);">R$ {{ number_format($kpis->total_recebido ?? 0, 2, ',', '.') }}</span>
-                        <span class="kpi-label" style="display:block; font-size:0.8125rem; color:var(--rcb-text-secondary); margin-top:0.25rem;">Total Recebido</span>
+                    <div class="kpi-content">
+                        <span class="kpi-label">Total Recebido</span>
+                        <h2 class="kpi-value">R$ {{ number_format($kpis->total_recebido ?? 0, 2, ',', '.') }}</h2>
                     </div>
-                    <div class="kpi-background">
-                        <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="currentColor" style="color: var(--rcb-success);">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                    </div>
+                    <div class="kpi-glow"></div>
                 </div>
 
                 {{-- Total Pendente --}}
                 <div class="kpi-card kpi-warning">
-                    <div class="kpi-header">
-                        <div class="kpi-icon" style="background: linear-gradient(135deg, var(--rcb-warning), #D97706);">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <div class="kpi-icon-wrapper">
+                        <div class="kpi-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"/>
                                 <polyline points="12 6 12 12 16 14"/>
                             </svg>
                         </div>
+                        <div class="kpi-pulse"></div>
                     </div>
-                    <div class="kpi-body">
-                        <span class="kpi-value" style="font-family: 'JetBrains Mono', monospace; color: var(--rcb-warning);">R$ {{ number_format($kpis->total_pendente ?? 0, 2, ',', '.') }}</span>
-                        <span class="kpi-label" style="display:block; font-size:0.8125rem; color:var(--rcb-text-secondary); margin-top:0.25rem;">Total Pendente</span>
+                    <div class="kpi-content">
+                        <span class="kpi-label">Total Pendente</span>
+                        <h2 class="kpi-value">R$ {{ number_format($kpis->total_pendente ?? 0, 2, ',', '.') }}</h2>
                     </div>
-                    <div class="kpi-background">
-                        <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="currentColor" style="color: var(--rcb-warning);">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                    </div>
+                    <div class="kpi-glow"></div>
                 </div>
 
                 {{-- Total Atrasado --}}
                 <div class="kpi-card kpi-danger">
-                    <div class="kpi-header">
-                        <div class="kpi-icon" style="background: linear-gradient(135deg, var(--rcb-danger), #DC2626);">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <div class="kpi-icon-wrapper">
+                        <div class="kpi-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                                 <line x1="12" y1="9" x2="12" y2="13"/>
                                 <line x1="12" y1="17" x2="12.01" y2="17"/>
                             </svg>
                         </div>
+                        <div class="kpi-pulse"></div>
                     </div>
-                    <div class="kpi-body">
-                        <span class="kpi-value" style="font-family: 'JetBrains Mono', monospace; color: var(--rcb-danger);">R$ {{ number_format($kpis->total_atrasado ?? 0, 2, ',', '.') }}</span>
-                        <span class="kpi-label" style="display:block; font-size:0.8125rem; color:var(--rcb-text-secondary); margin-top:0.25rem;">Total Atrasado</span>
+                    <div class="kpi-content">
+                        <span class="kpi-label">Total Atrasado</span>
+                        <h2 class="kpi-value">R$ {{ number_format($kpis->total_atrasado ?? 0, 2, ',', '.') }}</h2>
                     </div>
-                    <div class="kpi-background">
-                        <svg class="kpi-bg-icon" viewBox="0 0 24 24" fill="currentColor" style="color: var(--rcb-danger);">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                        </svg>
-                    </div>
+                    <div class="kpi-glow"></div>
                 </div>
             </div>
         </section>

@@ -54,7 +54,8 @@ class Vendas extends Model
     'tipo_empresa',
     'data_abertura',
     'boas_vindas_enviado_em',
-    'boas_vindas_enviado_por'
+    'boas_vindas_enviado_por',
+    'vitalicio_ativo'
   ];
 
   protected $casts = [
@@ -70,6 +71,7 @@ class Vendas extends Model
     'angariacao_paga' => 'boolean',
     'data_pagamento_comissao' => 'datetime',
     'data_pagamento_angariacao' => 'datetime',
+    'vitalicio_ativo' => 'boolean',
   ];
 
   public function titulares()

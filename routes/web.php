@@ -441,6 +441,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/vitalicios/{vendaId}/todos', [Financeiro::class, 'excluirTodosVitalicios'])
         ->name('financeiro.vitalicios.excluirTodos');
 
+    Route::patch('/vitalicios/{vendaId}/toggle-ativo', [Financeiro::class, 'toggleVitalicioAtivo'])
+        ->name('financeiro.vitalicios.toggleAtivo');
+
     // 📊 Relatório financeiro
     Route::get('/relatorio-financeiro', [Financeiro::class, 'relatorioFinanceiro'])
         ->name('financeiro.relatorio');

@@ -6,7 +6,8 @@
     @vite([
         'resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss',
         'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss',
-        'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss'
+        'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss',
+        'resources/assets/vendor/libs/flatpickr/flatpickr.scss'
     ])
 @endsection
 
@@ -17,7 +18,8 @@
 @section('vendor-script')
     @vite([
         'resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js',
-        'resources/assets/vendor/libs/sweetalert2/sweetalert2.js'
+        'resources/assets/vendor/libs/sweetalert2/sweetalert2.js',
+        'resources/assets/vendor/libs/flatpickr/flatpickr.js'
     ])
 @endsection
 
@@ -53,9 +55,53 @@
         </div>
     </header>
 
+    {{-- Filtro por Data de Implantacao --}}
+    <section class="filter-section">
+        <div class="filter-bar">
+            <div class="filter-bar-left">
+                <div class="filter-bar-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                </div>
+                <span class="filter-bar-label">Implantacao</span>
+            </div>
+            <div class="filter-controls">
+                <div class="filter-date-group">
+                    <label class="filter-date-label">De</label>
+                    <input type="text" id="filtro-data-inicial" class="filter-select filter-date-input" placeholder="dd/mm/aaaa"
+                           value="{{ $dataInicial ? \Carbon\Carbon::parse($dataInicial)->format('d/m/Y') : '' }}">
+                </div>
+                <div class="filter-date-group">
+                    <label class="filter-date-label">Ate</label>
+                    <input type="text" id="filtro-data-final" class="filter-select filter-date-input" placeholder="dd/mm/aaaa"
+                           value="{{ $dataFinal ? \Carbon\Carbon::parse($dataFinal)->format('d/m/Y') : '' }}">
+                </div>
+                <button type="button" id="btnFiltrar" class="btn-filtrar" title="Filtrar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <span>Filtrar</span>
+                </button>
+                @if($dataInicial && $dataFinal)
+                    <a href="{{ route('financeiro.vitalicios.index') }}" class="btn-limpar-filtro" title="Limpar filtro">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </a>
+                @endif
+            </div>
+        </div>
+    </section>
+
     {{-- KPI Cards --}}
     <section class="kpi-section">
-        <div class="kpi-grid">
+        <div class="kpi-grid kpi-grid-4">
             {{-- Total Esperado --}}
             <div class="kpi-card kpi-primary">
                 <div class="kpi-icon-wrapper">
@@ -241,7 +287,7 @@
                         </thead>
                         <tbody>
                             @foreach($contratos as $contrato)
-                            <tr class="contract-row" data-venda-id="{{ $contrato->venda->id }}">
+                            <tr class="contract-row {{ !$contrato->vitalicio_ativo ? 'vitalicio-desativado' : '' }}" data-venda-id="{{ $contrato->venda->id }}">
                                 <td class="col-contract">
                                     <div class="contract-info">
                                         <span class="contract-name">{{ $contrato->venda->nome_contrato ?? 'N/A' }}</span>
@@ -281,13 +327,31 @@
                                     @endif
                                 </td>
                                 <td class="col-actions">
-                                    <button class="btn-view-parcelas view-parcelas" data-id="{{ $contrato->venda->id }}" title="Ver parcelas">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                        <span>Parcelas</span>
-                                    </button>
+                                    <div class="actions-group">
+                                        <button class="btn-toggle-vitalicio {{ $contrato->vitalicio_ativo ? 'active' : '' }}"
+                                                data-venda-id="{{ $contrato->venda->id }}"
+                                                title="{{ $contrato->vitalicio_ativo ? 'Desativar vitalicio' : 'Reativar vitalicio' }}">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                                                <line x1="12" y1="2" x2="12" y2="12"/>
+                                            </svg>
+                                        </button>
+                                        <button class="btn-excluir-lancamento btn-delete-all-vitalicios"
+                                                data-venda-id="{{ $contrato->venda->id }}"
+                                                title="Excluir todos os vitalicios">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            </svg>
+                                        </button>
+                                        <button class="btn-view-parcelas view-parcelas" data-id="{{ $contrato->venda->id }}" title="Ver parcelas">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                            <span>Parcelas</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             @endforeach

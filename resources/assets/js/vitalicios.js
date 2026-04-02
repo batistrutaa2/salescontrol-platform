@@ -6,6 +6,105 @@
 
 $(function () {
     // ============================================
+    // Filtro por Data de Implantacao (2 campos)
+    // ============================================
+
+    // Mascara dd/mm/aaaa nos inputs de data
+    function aplicarMascaraData(input) {
+        input.addEventListener('input', function (e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 8) v = v.slice(0, 8);
+            if (v.length > 4) {
+                v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
+            } else if (v.length > 2) {
+                v = v.slice(0, 2) + '/' + v.slice(2);
+            }
+            e.target.value = v;
+        });
+    }
+
+    const elInicial = document.getElementById('filtro-data-inicial');
+    const elFinal = document.getElementById('filtro-data-final');
+    if (elInicial) aplicarMascaraData(elInicial);
+    if (elFinal) aplicarMascaraData(elFinal);
+
+    const fpInicial = flatpickr('#filtro-data-inicial', {
+        dateFormat: 'd/m/Y',
+        locale: 'pt',
+        allowInput: true,
+        onChange: function (selectedDates) {
+            if (selectedDates.length > 0) {
+                // Data final não pode ser menor que a inicial
+                fpFinal.set('minDate', selectedDates[0]);
+
+                // Se a data final já está preenchida e é menor, limpa
+                const finalDates = fpFinal.selectedDates;
+                if (finalDates.length > 0 && finalDates[0] < selectedDates[0]) {
+                    fpFinal.clear();
+                }
+            }
+        }
+    });
+
+    const fpFinal = flatpickr('#filtro-data-final', {
+        dateFormat: 'd/m/Y',
+        locale: 'pt',
+        allowInput: true,
+        onChange: function (selectedDates) {
+            if (selectedDates.length > 0) {
+                // Data inicial não pode ser maior que a final
+                fpInicial.set('maxDate', selectedDates[0]);
+            }
+        }
+    });
+
+    // Se já tem filtro aplicado, setar os limites cruzados
+    if (fpInicial.selectedDates.length > 0) {
+        fpFinal.set('minDate', fpInicial.selectedDates[0]);
+    }
+    if (fpFinal.selectedDates.length > 0) {
+        fpInicial.set('maxDate', fpFinal.selectedDates[0]);
+    }
+
+    function converterDataParaBackend(dataBrasileira) {
+        if (!dataBrasileira) return '';
+        const partes = dataBrasileira.split('/');
+        if (partes.length !== 3) return '';
+        return `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+    }
+
+    // Botão Filtrar
+    $(document).on('click', '#btnFiltrar', function () {
+        const dataIni = $('#filtro-data-inicial').val();
+        const dataFim = $('#filtro-data-final').val();
+
+        if (!dataIni || !dataFim) {
+            Swal.fire({
+                title: 'Preencha as duas datas',
+                text: 'Informe a data inicial e a data final para filtrar.',
+                icon: 'warning',
+                iconColor: '#F59E0B',
+                confirmButtonText: 'OK',
+                customClass: { popup: 'swal-recebiveis', confirmButton: 'btn btn-warning' },
+                buttonsStyling: false
+            });
+            return;
+        }
+
+        const ini = converterDataParaBackend(dataIni);
+        const fim = converterDataParaBackend(dataFim);
+        window.location.href = `/financeiro/recebiveis/vitalicios?data_inicial=${ini}&data_final=${fim}`;
+    });
+
+    // Enter nos campos de data dispara o filtro
+    $('#filtro-data-inicial, #filtro-data-final').on('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            $('#btnFiltrar').trigger('click');
+        }
+    });
+
+    // ============================================
     // Variables
     // ============================================
     let currentVendaId = null;
@@ -754,18 +853,16 @@ $(function () {
         });
     });
 
-    // Excluir Todos os Recebiveis
-    $(document).on('click', '#btnExcluirTodos', function () {
-        if (!currentVendaId) {
-            showToast('error', 'ID do contrato nao encontrado.');
-            return;
-        }
-
+    // ============================================
+    // Excluir Todos os Vitalicios (funcao reutilizavel)
+    // ============================================
+    function excluirTodosVitalicios(vendaId) {
         Swal.fire({
-            title: 'Excluir Todos os Recebiveis',
+            title: 'Excluir Todos os Vitalicios',
             html: `
                 <div style="text-align: left; padding: 1rem 0;">
-                    <p style="margin-bottom: 0.75rem;">Voce tem certeza que deseja excluir <strong>TODAS</strong> as parcelas deste contrato?</p>
+                    <p style="margin-bottom: 0.75rem;">Voce tem certeza que deseja excluir <strong>TODOS</strong> os vitalicios deste contrato?</p>
+                    <p style="font-size: 0.875rem; color: var(--rcb-text-muted); margin-bottom: 0.75rem;">As parcelas fixas (1-3) nao serao afetadas.</p>
                     <div style="background: rgba(239, 68, 68, 0.1); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem;">
                         <p style="color: var(--rcb-danger); font-size: 0.875rem; margin: 0; display: flex; align-items: flex-start; gap: 0.5rem;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
@@ -773,7 +870,7 @@ $(function () {
                                 <line x1="12" y1="9" x2="12" y2="13"/>
                                 <line x1="12" y1="17" x2="12.01" y2="17"/>
                             </svg>
-                            Esta acao ira remover permanentemente todos os recebiveis. Nao pode ser desfeita.
+                            Esta acao e irreversivel.
                         </p>
                     </div>
                 </div>
@@ -791,18 +888,16 @@ $(function () {
             buttonsStyling: false
         }).then(result => {
             if (result.isConfirmed) {
-                showLoadingSwal('Excluindo recebiveis...');
-
-                const vendaIdToRemove = currentVendaId;
+                showLoadingSwal('Excluindo vitalicios...');
 
                 $.ajax({
-                    url: `/financeiro/recebiveis/vitalicios/${vendaIdToRemove}/todos`,
+                    url: `/financeiro/recebiveis/vitalicios/${vendaId}/todos`,
                     method: 'DELETE',
                     headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
                 }).done(function (response) {
                     if (response.success) {
                         Swal.fire({
-                            title: 'Recebiveis Excluidos!',
+                            title: 'Vitalicios Excluidos!',
                             text: response.message,
                             icon: 'success',
                             iconColor: '#10B981',
@@ -813,24 +908,15 @@ $(function () {
                             },
                             buttonsStyling: false
                         }).then(() => {
-                            // Fecha o modal
                             $('#parcelasModal').modal('hide');
-
-                            // Atualiza KPIs
-    
-                            // Remove a linha do contrato da tabela
-                            const row = $(`tr[data-venda-id="${vendaIdToRemove}"]`);
+                            const row = $(`tr[data-venda-id="${vendaId}"]`);
                             table.row(row).remove().draw(false);
-
-                            // Atualiza o contador
                             updateContractsCount();
-
-                            // Limpa o currentVendaId
                             currentVendaId = null;
                         });
                     }
                 }).fail(function (xhr) {
-                    const errorMsg = xhr.responseJSON?.message || 'Erro ao excluir recebiveis.';
+                    const errorMsg = xhr.responseJSON?.message || 'Erro ao excluir vitalicios.';
                     Swal.fire({
                         title: 'Erro!',
                         text: errorMsg,
@@ -841,6 +927,68 @@ $(function () {
                         },
                         buttonsStyling: false
                     });
+                });
+            }
+        });
+    }
+
+    // Excluir do modal
+    $(document).on('click', '#btnExcluirTodos', function () {
+        if (!currentVendaId) {
+            showToast('error', 'ID do contrato nao encontrado.');
+            return;
+        }
+        excluirTodosVitalicios(currentVendaId);
+    });
+
+    // Excluir da linha da tabela
+    $(document).on('click', '.btn-delete-all-vitalicios', function (e) {
+        e.stopPropagation();
+        const vendaId = $(this).data('venda-id');
+        if (!vendaId) return;
+        excluirTodosVitalicios(vendaId);
+    });
+
+    // ============================================
+    // Toggle Vitalicio Ativo/Inativo
+    // ============================================
+    $(document).on('click', '.btn-toggle-vitalicio', function (e) {
+        e.stopPropagation();
+        const btn = $(this);
+        const vendaId = btn.data('venda-id');
+        const isActive = btn.hasClass('active');
+
+        Swal.fire({
+            title: isActive ? 'Desativar Vitalicio' : 'Reativar Vitalicio',
+            html: isActive
+                ? '<p>Novas parcelas <strong>nao serao mais geradas</strong> para este contrato. Parcelas existentes nao serao afetadas.</p>'
+                : '<p>Novas parcelas <strong>voltarao a ser geradas</strong> quando a ultima parcela for paga.</p>',
+            icon: 'question',
+            iconColor: isActive ? '#F59E0B' : '#10B981',
+            showCancelButton: true,
+            confirmButtonText: isActive ? 'Sim, desativar' : 'Sim, reativar',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                popup: 'swal-recebiveis',
+                confirmButton: isActive ? 'btn btn-warning me-2' : 'btn btn-success me-2',
+                cancelButton: 'btn btn-secondary'
+            },
+            buttonsStyling: false
+        }).then(result => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `/financeiro/recebiveis/vitalicios/${vendaId}/toggle-ativo`,
+                    method: 'PATCH',
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                }).done(function (response) {
+                    if (response.success) {
+                        btn.toggleClass('active');
+                        btn.attr('title', response.vitalicio_ativo ? 'Desativar vitalicio' : 'Reativar vitalicio');
+                        btn.closest('tr').toggleClass('vitalicio-desativado');
+                        showToast('success', response.message);
+                    }
+                }).fail(function () {
+                    showToast('error', 'Erro ao alterar status do vitalicio.');
                 });
             }
         });
