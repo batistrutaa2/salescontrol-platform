@@ -27,7 +27,7 @@ class WhatsappService
             ])->timeout(15)->post(self::ENDPOINT, [
                 'number'      => $formattedNumber,
                 'body'        => $body,
-                'saveOnTicket' => true,
+                'saveOnTicket' => false,
                 'linkPreview' => true,
             ]);
 
