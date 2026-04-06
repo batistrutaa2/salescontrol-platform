@@ -524,7 +524,6 @@
   // Abre o modal de Boas Vindas e carrega dados via API
   async function openBoasVindas(vendaId) {
     document.getElementById('boas-vindas-venda-id').value = vendaId;
-    document.getElementById('boas-vindas-observacao').value = '';
     document.getElementById('bv-no-token-alert').classList.add('d-none');
 
     const modal = new bootstrap.Modal(elements.modalBoasVindas);
@@ -685,7 +684,6 @@
   // Confirmar envio de boas vindas
   async function confirmarBoasVindas() {
     const vendaId = document.getElementById('boas-vindas-venda-id').value;
-    const observacao = document.getElementById('boas-vindas-observacao').value.trim();
     const btnConfirmar = document.getElementById('btn-confirmar-boas-vindas');
 
     if (!vendaId) {
@@ -694,7 +692,7 @@
     }
 
     // Montar payload conforme modo
-    const payload = { venda_id: vendaId, tipo_envio: bvModoSelecionado, observacao };
+    const payload = { venda_id: vendaId, tipo_envio: bvModoSelecionado };
 
     if (bvModoSelecionado === 'padrao') {
       const telefone = document.getElementById('bv-telefone-padrao').value.trim();
@@ -840,7 +838,17 @@
     }
   };
 
-  // Abrir modal de prévia WhatsApp
+  // Abrir modal de prévia WhatsApp — modo personalizado
+  window.abrirPreviewWhatsappPersonalizado = function() {
+    const texto = document.getElementById('bv-mensagem-personalizada').value.trim();
+    if (!texto) {
+      Swal.fire({ icon: 'info', title: 'Escreva a mensagem', text: 'Digite o conteúdo da mensagem para visualizar a prévia.', confirmButtonColor: '#25D366' });
+      return;
+    }
+    abrirModalPreview(texto);
+  };
+
+  // Abrir modal de prévia WhatsApp — modo padrão
   window.abrirPreviewWhatsapp = function() {
     atualizarPreviewPadrao();
     const texto = document.getElementById('bv-preview-padrao').value;
@@ -848,8 +856,10 @@
       Swal.fire({ icon: 'info', title: 'Preencha os dados', text: 'Preencha os campos do formulário para visualizar a prévia.', confirmButtonColor: '#25D366' });
       return;
     }
+    abrirModalPreview(texto);
+  };
 
-    // Formatar *negrito* para <strong>
+  function abrirModalPreview(texto) {
     const html = texto
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -866,7 +876,7 @@
       now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
 
     new bootstrap.Modal(document.getElementById('modalPreviewWhatsapp')).show();
-  };
+  }
 
   // Abrir modal de token e carregar info atual
   async function abrirConfigToken() {

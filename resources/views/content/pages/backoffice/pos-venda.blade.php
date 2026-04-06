@@ -619,7 +619,16 @@
                         </div>
                         <div class="pv-form-group mb-3">
                             <label class="pv-form-label">Mensagem</label>
-                            <textarea class="pv-form-textarea" id="bv-mensagem-personalizada" rows="8" placeholder="Digite a mensagem completa aqui..."></textarea>
+                            <textarea class="pv-form-textarea" id="bv-mensagem-personalizada" rows="7" placeholder="Digite a mensagem completa aqui..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <button type="button" class="bv-preview-btn" onclick="abrirPreviewWhatsappPersonalizado()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                Visualizar Prévia
+                            </button>
                         </div>
                     </div>
 
@@ -631,12 +640,6 @@
                             </svg>
                             <span>Nenhuma mensagem será enviada. O Boas Vindas será apenas registrado no histórico.</span>
                         </div>
-                    </div>
-
-                    <!-- Observação -->
-                    <div class="pv-form-group mt-2">
-                        <label for="boas-vindas-observacao" class="pv-form-label">Observação (opcional)</label>
-                        <textarea class="pv-form-textarea" id="boas-vindas-observacao" rows="2" placeholder="Observação adicional para o histórico..."></textarea>
                     </div>
 
                     <div class="pv-modal-actions mt-3">
