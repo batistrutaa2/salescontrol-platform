@@ -595,15 +595,17 @@
                             </div>
                         </div>
 
-                        <div class="pv-form-group mb-3">
-                            <label class="pv-form-label">
-                                Pré-visualização da Mensagem
-                                <button type="button" class="bv-refresh-preview" onclick="atualizarPreviewPadrao()" title="Atualizar preview">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                                </button>
-                            </label>
-                            <textarea class="pv-form-textarea bv-preview-area" id="bv-preview-padrao" rows="7" readonly placeholder="Preencha os campos acima para visualizar..."></textarea>
+                        <div class="mb-3">
+                            <button type="button" class="bv-preview-btn" id="btn-visualizar-previa" onclick="abrirPreviewWhatsapp()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                Visualizar Prévia
+                            </button>
                         </div>
+                        {{-- campo oculto para manter compatibilidade com o JS --}}
+                        <textarea id="bv-preview-padrao" class="d-none"></textarea>
                     </div>
 
                     <!-- Formulário Modo Personalizado -->
@@ -685,6 +687,59 @@
                             Salvar Token
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Prévia WhatsApp -->
+    <div class="modal fade" id="modalPreviewWhatsapp" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered wpp-preview-dialog">
+            <div class="modal-content wpp-preview-modal">
+                <!-- Phone frame header -->
+                <div class="wpp-phone-bar">
+                    <div class="wpp-phone-notch"></div>
+                </div>
+                <!-- WhatsApp header -->
+                <div class="wpp-header">
+                    <button type="button" class="wpp-back-btn" data-bs-dismiss="modal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <div class="wpp-avatar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+                    </div>
+                    <div class="wpp-contact-info">
+                        <span class="wpp-contact-name" id="wpp-preview-contact">Cliente</span>
+                        <span class="wpp-contact-status">online</span>
+                    </div>
+                    <div class="wpp-header-actions">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.59a16 16 0 0 0 7.5 7.5l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                    </div>
+                </div>
+                <!-- Chat area -->
+                <div class="wpp-chat-area">
+                    <div class="wpp-date-pill">Hoje</div>
+                    <div class="wpp-bubble-wrap">
+                        <div class="wpp-bubble" id="wpp-bubble-content"></div>
+                        <div class="wpp-bubble-meta">
+                            <span class="wpp-time" id="wpp-preview-time"></span>
+                            <svg class="wpp-tick" xmlns="http://www.w3.org/2000/svg" width="16" height="11" viewBox="0 0 16 11">
+                                <path d="M11.071.653a.75.75 0 0 1 .025 1.06l-6.09 6.44a.75.75 0 0 1-1.085 0L1.4 5.307a.75.75 0 1 1 1.085-1.035l2.01 2.108L10.01.677a.75.75 0 0 1 1.06-.024z" fill="#53bdeb"/>
+                                <path d="M15.071.653a.75.75 0 0 1 .025 1.06l-6.09 6.44a.75.75 0 0 1-.617.242.75.75 0 0 0 .532-.218l6.09-6.44a.75.75 0 0 0-.025-1.06.75.75 0 0 1 .085-.024z" fill="#53bdeb"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <!-- Bottom bar -->
+                <div class="wpp-input-bar">
+                    <div class="wpp-fake-input">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                        <span>Mensagem</span>
+                    </div>
+                    <button class="wpp-mic-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                    </button>
                 </div>
             </div>
         </div>

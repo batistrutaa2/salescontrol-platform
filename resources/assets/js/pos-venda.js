@@ -840,6 +840,34 @@
     }
   };
 
+  // Abrir modal de prévia WhatsApp
+  window.abrirPreviewWhatsapp = function() {
+    atualizarPreviewPadrao();
+    const texto = document.getElementById('bv-preview-padrao').value;
+    if (!texto.trim()) {
+      Swal.fire({ icon: 'info', title: 'Preencha os dados', text: 'Preencha os campos do formulário para visualizar a prévia.', confirmButtonColor: '#25D366' });
+      return;
+    }
+
+    // Formatar *negrito* para <strong>
+    const html = texto
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+
+    document.getElementById('wpp-bubble-content').innerHTML = html;
+    document.getElementById('wpp-preview-contact').textContent =
+      document.getElementById('bv-contrato-nome').textContent || 'Cliente';
+
+    const now = new Date();
+    document.getElementById('wpp-preview-time').textContent =
+      now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+    new bootstrap.Modal(document.getElementById('modalPreviewWhatsapp')).show();
+  };
+
   // Abrir modal de token e carregar info atual
   async function abrirConfigToken() {
     document.getElementById('input-whatsapp-token').value = '';
