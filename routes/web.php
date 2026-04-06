@@ -250,6 +250,9 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/back-office/pos-venda/anotacoes', [Backoffice::class, 'storeAnotacaoPosVenda'])->name('backoffice.storeAnotacaoPosVenda');
   Route::post('/back-office/pos-venda/data-implantacao', [Backoffice::class, 'updateDataImplantacao'])->name('backoffice.updateDataImplantacao');
   Route::post('/back-office/pos-venda/boas-vindas', [Backoffice::class, 'marcarBoasVindas'])->name('backoffice.marcarBoasVindas');
+  Route::get('/back-office/pos-venda/beneficiarios/{vendaId}', [Backoffice::class, 'getBeneficiariosParaBoasVindas'])->name('backoffice.getBeneficiariosParaBoasVindas');
+  Route::get('/back-office/configuracoes/whatsapp-token', [Backoffice::class, 'getWhatsappConfig'])->name('backoffice.getWhatsappConfig');
+  Route::post('/back-office/configuracoes/whatsapp-token', [Backoffice::class, 'updateWhatsappToken'])->name('backoffice.updateWhatsappToken');
 
   // FAQs (Back-office)
   Route::get('/back-office/faqs', [Backoffice::class, 'faqs'])->name('backoffice.faqs');

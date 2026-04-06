@@ -36,6 +36,8 @@ use App\Models\RegrasComissionamento;
 use App\Models\PosVendaAnotacao;
 use App\Models\VendaDemanda;
 use App\Enums\TipoDemandaContrato;
+use App\Models\Empresa;
+use App\Services\WhatsappService;
 use Carbon\Carbon;
 
 class Backoffice extends Controller
@@ -2830,14 +2832,69 @@ class Backoffice extends Controller
   }
 
   /**
-   * Marca o Boas Vindas como enviado para uma venda
+   * Retorna dados da venda + titulares para o modal de Boas Vindas
+   */
+  public function getBeneficiariosParaBoasVindas(Request $request, int $vendaId)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $venda = Vendas::where('id', $vendaId)
+        ->where('empresa_id', $empresaId)
+        ->select('id', 'nome_contrato', 'operadora', 'nome_plano', 'telefone1', 'telefone2', 'data_implantacao')
+        ->first();
+
+      if (!$venda) {
+        return response()->json(['success' => false, 'message' => 'Contrato não encontrado.'], 404);
+      }
+
+      $titulares = VendaTitular::where('venda_id', $vendaId)
+        ->select('id', 'nome')
+        ->get();
+
+      $empresa = Empresa::find($empresaId);
+      $hasToken = !empty($empresa?->whatsapp_token);
+
+      return response()->json([
+        'success' => true,
+        'venda' => [
+          'nome_contrato'    => $venda->nome_contrato,
+          'operadora'        => $venda->operadora,
+          'plano'            => $venda->nome_plano,
+          'telefone1'        => $venda->telefone1,
+          'telefone2'        => $venda->telefone2,
+          'data_implantacao' => $venda->data_implantacao
+            ? Carbon::parse($venda->data_implantacao)->format('d/m/Y')
+            : null,
+        ],
+        'titulares' => $titulares,
+        'has_token' => $hasToken,
+        'nome_empresa' => $empresa?->nome_fantasia ?? '',
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json(['success' => false, 'message' => 'Erro ao buscar dados: ' . $e->getMessage()], 500);
+    }
+  }
+
+  /**
+   * Marca o Boas Vindas como enviado e, opcionalmente, dispara via WhatsApp
    */
   public function marcarBoasVindas(Request $request)
   {
     try {
       $request->validate([
-        'venda_id' => 'required|integer|exists:vendas,id',
-        'observacao' => 'nullable|string|max:500',
+        'venda_id'              => 'required|integer|exists:vendas,id',
+        'tipo_envio'            => 'required|in:padrao,personalizado,sem_whatsapp',
+        'telefone_whatsapp'     => 'required_unless:tipo_envio,sem_whatsapp|nullable|string|max:30',
+        'beneficiarios'         => 'required_if:tipo_envio,padrao|nullable|array',
+        'beneficiarios.*.nome'  => 'required_if:tipo_envio,padrao|string',
+        'beneficiarios.*.codigo'=> 'required_if:tipo_envio,padrao|string',
+        'login_app'             => 'required_if:tipo_envio,padrao|nullable|string|max:100',
+        'senha_app'             => 'required_if:tipo_envio,padrao|nullable|string|max:100',
+        'portal_user'           => 'nullable|string|max:100',
+        'portal_senha'          => 'nullable|string|max:100',
+        'mensagem_personalizada'=> 'required_if:tipo_envio,personalizado|nullable|string',
+        'observacao'            => 'nullable|string|max:500',
       ]);
 
       $empresaId = Auth::user()->empresa_id;
@@ -2847,44 +2904,184 @@ class Backoffice extends Controller
         ->first();
 
       if (!$venda) {
-        return response()->json([
-          'success' => false,
-          'message' => 'Contrato não encontrado.'
-        ], 404);
+        return response()->json(['success' => false, 'message' => 'Contrato não encontrado.'], 404);
+      }
+
+      $whatsappEnviado = false;
+      $tipoEnvio = $request->tipo_envio;
+
+      if ($tipoEnvio !== 'sem_whatsapp') {
+        $empresa = Empresa::find($empresaId);
+
+        if (empty($empresa?->whatsapp_token)) {
+          return response()->json([
+            'success' => false,
+            'message' => 'Token do WhatsApp não configurado. Configure o token nas configurações.',
+          ], 422);
+        }
+
+        $mensagem = $tipoEnvio === 'padrao'
+          ? $this->buildMensagemPadraoWhatsapp($request, $empresa->nome_fantasia, $venda->operadora)
+          : $request->mensagem_personalizada;
+
+        $whatsappService = new WhatsappService();
+        $resultado = $whatsappService->send(
+          $empresa->whatsapp_token,
+          $request->telefone_whatsapp,
+          $mensagem
+        );
+
+        if (!$resultado['success']) {
+          return response()->json([
+            'success' => false,
+            'message' => 'Erro ao enviar WhatsApp: ' . $resultado['message'],
+          ], 422);
+        }
+
+        $whatsappEnviado = true;
       }
 
       $venda->update([
-        'boas_vindas_enviado_em' => now(),
+        'boas_vindas_enviado_em'  => now(),
         'boas_vindas_enviado_por' => Auth::id(),
       ]);
 
-      // Criar anotação automática no histórico
+      $modoLabel = match ($tipoEnvio) {
+        'padrao'        => 'padrão',
+        'personalizado' => 'personalizado',
+        default         => 'sem WhatsApp',
+      };
+
+      $descricaoAnotacao = $whatsappEnviado
+        ? "Boas Vindas enviado via WhatsApp (modo {$modoLabel}) para " . $request->telefone_whatsapp . '.'
+        : 'Boas Vindas registrado (sem envio de WhatsApp).';
+
+      if ($request->observacao) {
+        $descricaoAnotacao .= ' Obs: ' . $request->observacao;
+      }
+
       PosVendaAnotacao::create([
         'empresa_id' => $empresaId,
-        'venda_id' => $venda->id,
-        'user_id' => Auth::id(),
-        'descricao' => 'Boas Vindas enviado ao cliente.' .
-          ($request->observacao ? ' Obs: ' . $request->observacao : ''),
+        'venda_id'   => $venda->id,
+        'user_id'    => Auth::id(),
+        'descricao'  => $descricaoAnotacao,
       ]);
 
       return response()->json([
-        'success' => true,
-        'message' => 'Boas Vindas registrado com sucesso!',
-        'boas_vindas_enviado_em' => now()->format('d/m/Y H:i'),
+        'success'               => true,
+        'message'               => $whatsappEnviado
+          ? 'Boas Vindas enviado via WhatsApp com sucesso!'
+          : 'Boas Vindas registrado com sucesso!',
+        'whatsapp_enviado'      => $whatsappEnviado,
+        'boas_vindas_enviado_em'  => now()->format('d/m/Y H:i'),
         'boas_vindas_enviado_por' => Auth::user()->name,
       ]);
     } catch (\Illuminate\Validation\ValidationException $e) {
       return response()->json([
         'success' => false,
         'message' => 'Erro de validação.',
-        'errors' => $e->errors(),
+        'errors'  => $e->errors(),
       ], 422);
     } catch (\Throwable $e) {
       return response()->json([
         'success' => false,
-        'message' => 'Erro ao registrar Boas Vindas: ' . $e->getMessage()
+        'message' => 'Erro ao registrar Boas Vindas: ' . $e->getMessage(),
       ], 500);
     }
+  }
+
+  /**
+   * Monta a mensagem padrão de boas-vindas para WhatsApp
+   */
+  private function buildMensagemPadraoWhatsapp(Request $request, string $nomeEmpresa, string $operadora): string
+  {
+    $nomeContrato = $request->input('nome_contrato', '');
+    $beneficiarios = $request->input('beneficiarios', []);
+    $loginApp    = $request->input('login_app', '');
+    $senhaApp    = $request->input('senha_app', '');
+    $linkIos     = $request->input('link_ios', '');
+    $linkAndroid = $request->input('link_android', '');
+    $portalUser  = $request->input('portal_user', '');
+    $portalSenha = $request->input('portal_senha', '');
+
+    $linhasBeneficiarios = '';
+    foreach ($beneficiarios as $b) {
+      $nome   = strtoupper($b['nome'] ?? '');
+      $codigo = $b['codigo'] ?? '';
+      $linhasBeneficiarios .= "\n{$nome} - {$codigo}";
+    }
+
+    $msg  = "Prezado(a) {$nomeContrato},\n\n";
+    $msg .= "É com grande prazer que damos as boas-vindas à *{$nomeEmpresa}* em conjunto com a *{$operadora}*. ";
+    $msg .= "Parabenizamos pela escolha e confiança depositada em nossos serviços. Estamos certos de que essa parceria será um sucesso!\n\n";
+    $msg .= "*Detalhes do Acesso e Benefícios*\n\n";
+    $msg .= "*📋 Matrículas e Beneficiários:*{$linhasBeneficiarios}\n\n";
+    $msg .= "*📱 Login e Senha — Aplicativo da Operadora:*\n";
+    $msg .= "• Login: {$loginApp}\n";
+    $msg .= "• Senha: {$senhaApp}\n";
+
+    if (!empty($linkIos) || !empty($linkAndroid)) {
+      $msg .= "\n*📲 Download do Aplicativo:*\n";
+      if (!empty($linkIos))     $msg .= "• iOS: {$linkIos}\n";
+      if (!empty($linkAndroid)) $msg .= "• Android: {$linkAndroid}\n";
+    }
+
+    if (!empty($portalUser)) {
+      $msg .= "\n*🖥️ Acesso ao Portal Corporativo:*\n";
+      $msg .= "• Usuário: {$portalUser}\n";
+      $msg .= "• Senha: {$portalSenha}\n";
+    }
+
+    $msg .= "\nEstamos à disposição para auxiliá-lo em qualquer dúvida ou necessidade. ";
+    $msg .= "Nossa equipe está pronta para fornecer todo o suporte necessário! 😊";
+
+    return $msg;
+  }
+
+  /**
+   * Salva o token do WhatsApp (Ticketz) da empresa
+   */
+  public function updateWhatsappToken(Request $request)
+  {
+    try {
+      $request->validate([
+        'whatsapp_token' => 'required|string|min:10',
+      ]);
+
+      $empresaId = Auth::user()->empresa_id;
+      Empresa::where('id', $empresaId)->update([
+        'whatsapp_token' => $request->whatsapp_token,
+      ]);
+
+      return response()->json(['success' => true, 'message' => 'Token salvo com sucesso!']);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+      return response()->json(['success' => false, 'message' => 'Informe um token válido.'], 422);
+    } catch (\Throwable $e) {
+      return response()->json(['success' => false, 'message' => 'Erro ao salvar token.'], 500);
+    }
+  }
+
+  /**
+   * Retorna informações sobre o token WhatsApp configurado (sem expor o valor completo)
+   */
+  public function getWhatsappConfig()
+  {
+    $empresaId = Auth::user()->empresa_id;
+    $empresa   = Empresa::find($empresaId);
+    $token     = $empresa?->whatsapp_token ?? '';
+
+    $preview = '';
+    if (!empty($token)) {
+      $preview = strlen($token) > 8
+        ? str_repeat('*', strlen($token) - 4) . substr($token, -4)
+        : '****';
+    }
+
+    return response()->json([
+      'success'       => true,
+      'has_token'     => !empty($token),
+      'token_preview' => $preview,
+    ]);
   }
 
   // =============================================

@@ -19,6 +19,7 @@ class Empresa extends Model
     'cpf_cnpj',
     'telefone',
     'email',
+    'whatsapp_token',
     'created_at',
     'updated_at'
   ];
