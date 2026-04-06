@@ -2925,6 +2925,15 @@ class Backoffice extends Controller
           : $request->mensagem_personalizada;
 
         $whatsappService = new WhatsappService();
+
+        // 1ª mensagem: apresentação do canal de suporte
+        $msgApresentacao = $this->buildMensagemApresentacao($venda->nome_contrato, $empresa->nome_fantasia);
+        $whatsappService->send($empresa->whatsapp_token, $request->telefone_whatsapp, $msgApresentacao);
+
+        // Pequena pausa para as mensagens chegarem em ordem
+        sleep(2);
+
+        // 2ª mensagem: boas-vindas
         $resultado = $whatsappService->send(
           $empresa->whatsapp_token,
           $request->telefone_whatsapp,
@@ -3034,6 +3043,21 @@ class Backoffice extends Controller
 
     $msg .= "\nEstamos à disposição para auxiliá-lo em qualquer dúvida ou necessidade. ";
     $msg .= "Nossa equipe está pronta para fornecer todo o suporte necessário! 😊";
+
+    return $msg;
+  }
+
+  /**
+   * Monta a mensagem de apresentação do canal de suporte (enviada antes do boas-vindas)
+   */
+  private function buildMensagemApresentacao(string $nomeContrato, string $nomeEmpresa): string
+  {
+    $primeiroNome = explode(' ', trim($nomeContrato))[0];
+
+    $msg  = "Olá, *{$primeiroNome}*! 😊\n\n";
+    $msg .= "Aqui é a equipe da *{$nomeEmpresa}*. Este é o nosso WhatsApp oficial de suporte e pós-venda.\n\n";
+    $msg .= "Salve nosso contato para que possa nos encontrar facilmente sempre que precisar. ";
+    $msg .= "Estamos à disposição para qualquer dúvida sobre o seu plano!";
 
     return $msg;
   }
