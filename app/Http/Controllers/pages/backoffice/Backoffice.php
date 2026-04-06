@@ -2926,8 +2926,10 @@ class Backoffice extends Controller
 
         $whatsappService = new WhatsappService();
 
-        // 1ª mensagem: apresentação do canal de suporte
-        $msgApresentacao = $this->buildMensagemApresentacao($venda->nome_contrato, $empresa->nome_fantasia);
+        // 1ª mensagem: apresentação do canal de suporte (usa nome do titular)
+        $titular = VendaTitular::where('venda_id', $venda->id)->select('nome')->first();
+        $nomeTitular = $titular?->nome ?: $venda->nome_contrato;
+        $msgApresentacao = $this->buildMensagemApresentacao($nomeTitular, $empresa->nome_fantasia);
         $whatsappService->send($empresa->whatsapp_token, $request->telefone_whatsapp, $msgApresentacao);
 
         // Pequena pausa para as mensagens chegarem em ordem
