@@ -254,6 +254,11 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/configuracoes/whatsapp-token', [Backoffice::class, 'getWhatsappConfig'])->name('backoffice.getWhatsappConfig');
   Route::post('/back-office/configuracoes/whatsapp-token', [Backoffice::class, 'updateWhatsappToken'])->name('backoffice.updateWhatsappToken');
 
+  // Carteira de Clientes
+  Route::get('/back-office/carteira-clientes', [Backoffice::class, 'carteiraClientes'])->name('backoffice.carteiraClientes');
+  Route::get('/back-office/carteira-clientes/data', [Backoffice::class, 'getCarteiraClientesData'])->name('backoffice.getCarteiraClientesData');
+  Route::get('/back-office/carteira-clientes/detalhe/{cnpj}', [Backoffice::class, 'getDetalheClienteCarteira'])->name('backoffice.getDetalheClienteCarteira');
+
   // FAQs (Back-office)
   Route::get('/back-office/faqs', [Backoffice::class, 'faqs'])->name('backoffice.faqs');
   Route::get('/back-office/getFaqs', [Backoffice::class, 'getFaqs'])->name('backoffice.getFaqs');

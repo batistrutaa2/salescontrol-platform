@@ -3111,6 +3111,224 @@ class Backoffice extends Controller
   }
 
   // =============================================
+  // Carteira de Clientes
+  // =============================================
+
+  public function carteiraClientes()
+  {
+    $empresaId = Auth::user()->empresa_id;
+
+    $operadoras = DB::table('vendas')
+      ->where('empresa_id', $empresaId)
+      ->whereNotNull('operadora')
+      ->where('operadora', '!=', '')
+      ->distinct()
+      ->orderBy('operadora')
+      ->pluck('operadora');
+
+    return view('content.pages.backoffice.carteira-clientes', compact('operadoras'));
+  }
+
+  public function getCarteiraClientesData(Request $request)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+      $page    = max(1, (int) $request->input('page', 1));
+      $perPage = min(100, max(10, (int) $request->input('per_page', 15)));
+
+      $query = DB::table('vendas as v')
+        ->leftJoin('contatos_corretores as cc', 'cc.contato_id', '=', 'v.contato_id')
+        ->where('v.empresa_id', $empresaId)
+        ->whereNotNull('v.cpf_cnpj')
+        ->where('v.cpf_cnpj', '!=', '')
+        ->groupBy('v.cpf_cnpj')
+        ->select([
+          'v.cpf_cnpj',
+          DB::raw('MAX(v.nome_contrato) as nome_contrato'),
+          DB::raw('COUNT(v.id) as total_contratos'),
+          DB::raw('SUM(CASE WHEN cc.tabulacao_id = ' . Tabulations::IMPLANTADO . ' THEN 1 ELSE 0 END) as contratos_ativos'),
+          DB::raw('SUM(CASE WHEN cc.tabulacao_id = ' . Tabulations::ESTORNO . ' THEN 1 ELSE 0 END) as contratos_cancelados'),
+          DB::raw('SUM(CASE WHEN cc.tabulacao_id = ' . Tabulations::IMPLANTADO . ' THEN v.valor_contrato ELSE 0 END) as valor_ativo'),
+          DB::raw('SUM(CASE WHEN cc.tabulacao_id = ' . Tabulations::IMPLANTADO . ' THEN COALESCE(v.vidas,0) ELSE 0 END) as vidas_ativas'),
+          DB::raw('MIN(v.data_implantacao) as primeiro_contrato'),
+          DB::raw('MAX(v.data_implantacao) as ultimo_contrato'),
+          DB::raw('GROUP_CONCAT(DISTINCT v.operadora ORDER BY v.operadora SEPARATOR \', \') as operadoras'),
+        ]);
+
+      // Filtros
+      if ($request->filled('busca')) {
+        $busca = $request->busca;
+        $query->where(function ($q) use ($busca) {
+          $q->where('v.cpf_cnpj', 'like', "%{$busca}%")
+            ->orWhere('v.nome_contrato', 'like', "%{$busca}%");
+        });
+      }
+      if ($request->filled('operadora')) {
+        $query->where('v.operadora', $request->operadora);
+      }
+
+      // Filtro de status aplicado via HAVING
+      if ($request->filled('status')) {
+        match ($request->status) {
+          'ativo'   => $query->havingRaw('contratos_ativos > 0 AND contratos_cancelados = 0'),
+          'misto'   => $query->havingRaw('contratos_ativos > 0 AND contratos_cancelados > 0'),
+          'inativo' => $query->havingRaw('contratos_ativos = 0'),
+          default   => null,
+        };
+      }
+
+      $total   = DB::table(DB::raw("({$query->toSql()}) as sub"))
+        ->mergeBindings($query)
+        ->count();
+      $offset  = ($page - 1) * $perPage;
+      $results = $query->orderByRaw('contratos_ativos DESC, primeiro_contrato ASC')
+        ->skip($offset)->take($perPage)->get();
+
+      $clientes = $results->map(function ($c) {
+        $meses = $c->primeiro_contrato
+          ? Carbon::parse($c->primeiro_contrato)->diffInMonths(now())
+          : 0;
+
+        $anos        = intdiv($meses, 12);
+        $mesesRest   = $meses % 12;
+        $tempoLabel  = $anos > 0
+          ? "{$anos} ano" . ($anos > 1 ? 's' : '') . ($mesesRest > 0 ? " {$mesesRest} m" : '')
+          : "{$meses} " . ($meses === 1 ? 'mês' : 'meses');
+
+        $status = match (true) {
+          $c->contratos_ativos > 0 && $c->contratos_cancelados == 0 => 'ativo',
+          $c->contratos_ativos > 0 && $c->contratos_cancelados > 0  => 'misto',
+          default => 'inativo',
+        };
+
+        return [
+          'cpf_cnpj'            => $c->cpf_cnpj,
+          'cpf_cnpj_formatado'  => $this->formatarCpfCnpj($c->cpf_cnpj),
+          'nome_contrato'       => $c->nome_contrato,
+          'total_contratos'     => (int) $c->total_contratos,
+          'contratos_ativos'    => (int) $c->contratos_ativos,
+          'contratos_cancelados'=> (int) $c->contratos_cancelados,
+          'valor_ativo'         => (float) $c->valor_ativo,
+          'vidas_ativas'        => (int) $c->vidas_ativas,
+          'primeiro_contrato'   => $c->primeiro_contrato
+            ? Carbon::parse($c->primeiro_contrato)->format('d/m/Y')
+            : null,
+          'meses_cliente'       => $meses,
+          'tempo_label'         => $tempoLabel,
+          'operadoras'          => $c->operadoras,
+          'status'              => $status,
+        ];
+      });
+
+      // KPIs — mesma query base sem paginação
+      $kpiBase = DB::table(DB::raw("(
+        SELECT
+          SUM(CASE WHEN cc2.tabulacao_id = " . Tabulations::IMPLANTADO . " THEN 1 ELSE 0 END) as ca,
+          SUM(CASE WHEN cc2.tabulacao_id = " . Tabulations::ESTORNO . " THEN 1 ELSE 0 END) as cc2,
+          SUM(CASE WHEN cc2.tabulacao_id = " . Tabulations::IMPLANTADO . " THEN v2.valor_contrato ELSE 0 END) as va,
+          SUM(CASE WHEN cc2.tabulacao_id = " . Tabulations::IMPLANTADO . " THEN COALESCE(v2.vidas,0) ELSE 0 END) as vi
+        FROM vendas v2
+        LEFT JOIN contatos_corretores cc2 ON cc2.contato_id = v2.contato_id
+        WHERE v2.empresa_id = {$empresaId}
+          AND v2.cpf_cnpj IS NOT NULL AND v2.cpf_cnpj != ''
+        GROUP BY v2.cpf_cnpj
+      ) as kpi_sub"))->select([
+        DB::raw('COUNT(*) as total_clientes'),
+        DB::raw('SUM(CASE WHEN ca > 0 THEN 1 ELSE 0 END) as clientes_ativos'),
+        DB::raw('SUM(CASE WHEN ca = 0 THEN 1 ELSE 0 END) as clientes_inativos'),
+        DB::raw('SUM(va) as valor_carteira'),
+        DB::raw('SUM(vi) as total_vidas'),
+      ])->first();
+
+      return response()->json([
+        'success'  => true,
+        'clientes' => $clientes,
+        'pagination' => [
+          'current_page' => $page,
+          'per_page'     => $perPage,
+          'total'        => $total,
+          'total_pages'  => max(1, (int) ceil($total / $perPage)),
+          'has_prev'     => $page > 1,
+          'has_next'     => $page < ceil($total / $perPage),
+        ],
+        'kpis' => [
+          'total_clientes'    => (int) ($kpiBase->total_clientes ?? 0),
+          'clientes_ativos'   => (int) ($kpiBase->clientes_ativos ?? 0),
+          'clientes_inativos' => (int) ($kpiBase->clientes_inativos ?? 0),
+          'valor_carteira'    => (float) ($kpiBase->valor_carteira ?? 0),
+          'total_vidas'       => (int) ($kpiBase->total_vidas ?? 0),
+        ],
+      ]);
+    } catch (\Throwable $e) {
+      return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+  }
+
+  public function getDetalheClienteCarteira(Request $request, string $cnpj)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $contratos = DB::table('vendas as v')
+        ->leftJoin('contatos_corretores as cc', 'cc.contato_id', '=', 'v.contato_id')
+        ->leftJoin('tabulacoes as t', 't.id', '=', 'cc.tabulacao_id')
+        ->leftJoin('users as u', 'u.id', '=', 'v.user_id')
+        ->where('v.empresa_id', $empresaId)
+        ->where('v.cpf_cnpj', $cnpj)
+        ->orderByDesc('v.data_implantacao')
+        ->select([
+          'v.id', 'v.numero_proposta', 'v.nome_contrato',
+          'v.operadora', 'v.nome_plano', 'v.valor_contrato',
+          'v.vidas', 'v.data_implantacao', 'v.data_vigencia',
+          'v.boas_vindas_enviado_em',
+          'v.tipo_empresa',
+          't.descricao as status_descricao', 'cc.tabulacao_id',
+          'u.name as vendedor',
+        ])
+        ->get()
+        ->map(function ($c, $idx) {
+          return [
+            'id'               => $c->id,
+            'numero_proposta'  => $c->numero_proposta,
+            'nome_contrato'    => $c->nome_contrato,
+            'operadora'        => $c->operadora,
+            'nome_plano'       => $c->nome_plano,
+            'valor_contrato'   => (float) $c->valor_contrato,
+            'vidas'            => (int) $c->vidas,
+            'data_implantacao' => $c->data_implantacao
+              ? Carbon::parse($c->data_implantacao)->format('d/m/Y')
+              : null,
+            'data_vigencia'    => $c->data_vigencia
+              ? Carbon::parse($c->data_vigencia)->format('d/m/Y')
+              : null,
+            'boas_vindas'      => !empty($c->boas_vindas_enviado_em),
+            'status_descricao' => $c->status_descricao ?? 'Sem status',
+            'tabulacao_id'     => $c->tabulacao_id,
+            'is_ativo'         => $c->tabulacao_id == Tabulations::IMPLANTADO,
+            'vendedor'         => $c->vendedor,
+            'primeiro'         => $idx === 0, // mais recente
+          ];
+        });
+
+      return response()->json(['success' => true, 'contratos' => $contratos]);
+    } catch (\Throwable $e) {
+      return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+  }
+
+  private function formatarCpfCnpj(string $valor): string
+  {
+    $v = preg_replace('/\D/', '', $valor);
+    if (strlen($v) === 14) {
+      return preg_replace('/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/', '$1.$2.$3/$4-$5', $v);
+    }
+    if (strlen($v) === 11) {
+      return preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $v);
+    }
+    return $valor;
+  }
+
+  // =============================================
   // Demandas de Contrato
   // =============================================
 

@@ -211,6 +211,11 @@
           "slug": "pages-pos-venda"
         },
         {
+          "url": "/back-office/carteira-clientes",
+          "name": "Carteira de Clientes",
+          "slug": "pages-carteira-clientes"
+        },
+        {
           "url": "/back-office/cadastrar-operadora",
           "name": "Cadastrar Operadora",
           "slug": "pages-cadastro-operadora"
