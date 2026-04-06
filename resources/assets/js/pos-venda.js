@@ -507,6 +507,22 @@
   let bvTitulares = [];
   let bvVendaInfo = {};
 
+  // Links dos apps por operadora (adicione novas operadoras conforme necessário)
+  const LINKS_APP_OPERADORAS = {
+    amil: {
+      ios:     'https://apps.apple.com/br/app/amil-clientes/id471890526',
+      android: 'https://play.google.com/store/apps/details?id=br.com.amil.beneficiarios&hl=pt_BR',
+    },
+  };
+
+  function getLinksAppPorOperadora(operadora) {
+    const key = operadora.toLowerCase().trim();
+    for (const [nome, links] of Object.entries(LINKS_APP_OPERADORAS)) {
+      if (key.includes(nome)) return links;
+    }
+    return { ios: '', android: '' };
+  }
+
   // Abre o modal de Boas Vindas e carrega dados via API
   async function openBoasVindas(vendaId) {
     document.getElementById('boas-vindas-venda-id').value = vendaId;
@@ -534,6 +550,11 @@
       const tel1 = data.venda.telefone1 || '';
       document.getElementById('bv-telefone-padrao').value = tel1;
       document.getElementById('bv-telefone-personalizado').value = tel1;
+
+      // Pré-preencher links do app conforme operadora
+      const linksApp = getLinksAppPorOperadora(data.venda.operadora || '');
+      document.getElementById('bv-link-ios').value = linksApp.ios;
+      document.getElementById('bv-link-android').value = linksApp.android;
 
       // Montar lista de beneficiários
       renderBeneficiarios(bvTitulares);
