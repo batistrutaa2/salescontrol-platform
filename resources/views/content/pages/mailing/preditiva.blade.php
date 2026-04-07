@@ -181,6 +181,67 @@
     color: white;
 }
 
+.pd-btn-config {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .5rem .9rem;
+    border-radius: 10px;
+    font-size: .8rem;
+    font-weight: 600;
+    background: rgba(124, 58, 237, 0.08);
+    color: var(--pd-primary);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    cursor: pointer;
+    transition: var(--pd-transition);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.pd-btn-config:hover {
+    background: var(--pd-primary);
+    color: #fff;
+    border-color: transparent;
+    transform: translateY(-1px);
+}
+.dark-style .pd-btn-config {
+    background: rgba(167, 139, 250, 0.1);
+    border-color: rgba(167, 139, 250, 0.25);
+    color: var(--pd-primary-light);
+}
+.dark-style .pd-btn-config:hover {
+    background: var(--pd-primary);
+    color: #fff;
+}
+
+.badge-tab-hard {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    background: rgba(239, 68, 68, 0.1);
+    color: #DC2626;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 6px;
+    padding: .25rem .6rem;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+}
+.dark-style .badge-tab-hard {
+    background: rgba(248, 113, 113, 0.12);
+    color: #F87171;
+    border-color: rgba(248, 113, 113, 0.25);
+}
+.btn-remove-tab-hard {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: inherit;
+    opacity: .6;
+    display: flex;
+    align-items: center;
+}
+.btn-remove-tab-hard:hover { opacity: 1; }
+
 .pd-btn-import svg {
     width: 18px;
     height: 18px;
@@ -1331,14 +1392,103 @@
                     <p>Gerencie a fila de leads para discagem automatica</p>
                 </div>
             </div>
-            <a href="{{ route('preditiva.importar') }}" class="pd-btn-import">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                Importar Leads
-            </a>
+            <div style="display:flex;gap:.6rem;align-items:center;">
+                <button type="button" class="pd-btn-config" id="btnAbrirConfiguracoes" title="Configuracoes da Preditiva">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+                    Configuracoes
+                </button>
+                <a href="{{ route('preditiva.importar') }}" class="pd-btn-import">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Importar Leads
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal: Configuracoes da Preditiva --}}
+    <div class="modal fade" id="modalConfiguracoesPreditiva" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:linear-gradient(135deg,#7C3AED,#A78BFA);padding:1.25rem 1.5rem;">
+                    <div style="display:flex;align-items:center;gap:.75rem;">
+                        <div style="width:36px;height:36px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                        </div>
+                        <h5 class="modal-title mb-0" style="color:#fff;font-weight:700;font-size:.95rem;">Configuracoes da Preditiva</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding:1.5rem;">
+
+                    {{-- Secao: Parametros gerais --}}
+                    <p class="text-muted mb-3" style="font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Parametros Gerais</p>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-size:.82rem;font-weight:600;">Cooldown entre tentativas (horas)
+                                <span class="text-muted fw-normal">— 0 = sem espera</span>
+                            </label>
+                            <input type="number" id="cfgCooldownHoras" class="form-control form-control-sm"
+                                min="0" max="168" value="{{ $config->cooldown_horas ?? 0 }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-size:.82rem;font-weight:600;">Exclusao por vendedor (dias)
+                                <span class="text-muted fw-normal">— vazio = permanente</span>
+                            </label>
+                            <input type="number" id="cfgExclusaoDias" class="form-control form-control-sm"
+                                min="1" max="3650" placeholder="Permanente"
+                                value="{{ $config->exclusao_usuario_dias ?? '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-size:.82rem;font-weight:600;">Limite de descartes SOFT</label>
+                            <input type="number" id="cfgLimiteSoft" class="form-control form-control-sm"
+                                min="1" max="50" value="{{ $config->limite_descartes_soft ?? 5 }}">
+                            <div class="form-text">Lead sem retorno — maximo de tentativas antes de sair da fila.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-size:.82rem;font-weight:600;">Limite de descartes HARD</label>
+                            <input type="number" id="cfgLimiteHard" class="form-control form-control-sm"
+                                min="1" max="10" value="{{ $config->limite_descartes_hard ?? 1 }}">
+                            <div class="form-text">Descarte definitivo — recomendado: 1 (remove na primeira negativa).</div>
+                        </div>
+                    </div>
+
+                    <hr style="border-color:rgba(0,0,0,.06);margin:1.25rem 0;">
+
+                    {{-- Secao: Tabulacoes HARD --}}
+                    <p class="text-muted mb-1" style="font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Tabulacoes de Descarte Definitivo (HARD)</p>
+                    <p style="font-size:.8rem;color:#6B7280;margin-bottom:1rem;">Quando o cliente <strong>atende</strong> e da uma negativa definitiva. Um unico descarte com essas tabulacoes remove o lead imediatamente.</p>
+
+                    <div class="input-group input-group-sm mb-3">
+                        <input type="text" id="inputNovaTabHard" class="form-control" placeholder="Ex: NAO TEM INTERESSE" style="text-transform:uppercase;">
+                        <button class="btn btn-primary btn-sm" type="button" id="btnAdicionarTabHard">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Adicionar
+                        </button>
+                    </div>
+
+                    <div id="listaTabsHard" style="display:flex;flex-wrap:wrap;gap:.4rem;min-height:40px;">
+                        @foreach($tabsHard as $tab)
+                        <span class="badge-tab-hard" data-tab="{{ $tab }}">
+                            {{ $tab }}
+                            <button type="button" class="btn-remove-tab-hard" data-tab="{{ $tab }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </span>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid rgba(0,0,0,.06);">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnSalvarConfiguracoes">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Salvar Configuracoes
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

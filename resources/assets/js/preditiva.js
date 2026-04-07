@@ -878,3 +878,133 @@ $(function () {
     carregarCamposDisponiveis();
     carregarRegras();
 });
+
+// ============================================================
+// Configuracoes da Preditiva
+// ============================================================
+(function () {
+    'use strict';
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Abre o modal
+    $('#btnAbrirConfiguracoes').on('click', function () {
+        $('#modalConfiguracoesPreditiva').modal('show');
+    });
+
+    // Salvar parametros gerais
+    $('#btnSalvarConfiguracoes').on('click', function () {
+        const dados = {
+            cooldown_horas:        parseInt($('#cfgCooldownHoras').val()) || 0,
+            exclusao_usuario_dias: $('#cfgExclusaoDias').val() ? parseInt($('#cfgExclusaoDias').val()) : null,
+            limite_descartes_soft: parseInt($('#cfgLimiteSoft').val()) || 5,
+            limite_descartes_hard: parseInt($('#cfgLimiteHard').val()) || 1,
+        };
+
+        $.ajax({
+            url: '/comercial/preditiva/configuracoes',
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            data: dados,
+            success: function (res) {
+                if (res.success) {
+                    toastr.success('Configuracoes salvas com sucesso.');
+                } else {
+                    toastr.error(res.message || 'Erro ao salvar.');
+                }
+            },
+            error: function (xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Erro ao salvar configuracoes.');
+            }
+        });
+    });
+
+    // Adicionar tabulacao HARD
+    function adicionarTabHard(tabulacao) {
+        tabulacao = tabulacao.toUpperCase().trim();
+        if (!tabulacao) return;
+
+        $.ajax({
+            url: '/comercial/preditiva/tabulacoes-hard',
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            data: { tabulacao },
+            success: function (res) {
+                if (res.success) {
+                    renderBadgeTabHard(res.id, res.tabulacao);
+                    $('#inputNovaTabHard').val('');
+                } else {
+                    toastr.warning(res.message);
+                }
+            },
+            error: function (xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Erro ao adicionar tabulacao.');
+            }
+        });
+    }
+
+    function renderBadgeTabHard(id, tabulacao) {
+        if ($('#listaTabsHard').find('[data-id="' + id + '"]').length) return;
+        const badge = $(
+            '<span class="badge-tab-hard" data-id="' + id + '" data-tab="' + tabulacao + '">' +
+            tabulacao +
+            '<button type="button" class="btn-remove-tab-hard" data-id="' + id + '">' +
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">' +
+            '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' +
+            '</svg></button></span>'
+        );
+        $('#listaTabsHard').append(badge);
+    }
+
+    $('#btnAdicionarTabHard').on('click', function () {
+        adicionarTabHard($('#inputNovaTabHard').val());
+    });
+
+    $('#inputNovaTabHard').on('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); adicionarTabHard($(this).val()); }
+    });
+
+    $('#inputNovaTabHard').on('input', function () {
+        const pos = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(pos, pos);
+    });
+
+    // Remover tabulacao HARD
+    // Badges do servidor (gerados pelo @foreach) nao tem data-id numerico — usamos o nome para buscar o id
+    $(document).on('click', '.btn-remove-tab-hard', function () {
+        const btn    = $(this);
+        const badge  = btn.closest('.badge-tab-hard');
+        const id     = btn.data('id');
+
+        if (id) {
+            removerTabHardPorId(id, badge);
+            return;
+        }
+
+        // Badge do servidor: faz upsert para obter o id e entao remove
+        const tabName = badge.data('tab');
+        $.ajax({
+            url: '/comercial/preditiva/tabulacoes-hard',
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            data: { tabulacao: tabName },
+            success: function (r) {
+                if (r.success) removerTabHardPorId(r.id, badge);
+            }
+        });
+    });
+
+    function removerTabHardPorId(id, badge) {
+        $.ajax({
+            url: '/comercial/preditiva/tabulacoes-hard/' + id,
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            success: function (res) {
+                if (res.success) badge.remove();
+                else toastr.error(res.message);
+            },
+            error: function () { toastr.error('Erro ao remover tabulacao.'); }
+        });
+    }
+})();

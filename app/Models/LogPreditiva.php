@@ -13,7 +13,8 @@ class LogPreditiva extends Model
         'user_id',
         'contato_id',
         'tabulacao',
-        'acao'
+        'acao',
+        'tipo_descarte',
     ];
 
     public function contato()

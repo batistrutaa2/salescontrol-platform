@@ -18,11 +18,12 @@ class LogPreditivaRepository implements LogPreditivaRepositoryInterface
     {
       try {
         return $this->model->create([
-          'empresa_id' => $data['empresa_id'],
-          'user_id' => $data['user_id'],
-          'contato_id' => $data['contato_id'],
-          'tabulacao' => $data['tabulacao'],
-          'acao' => $data['acao'],
+          'empresa_id'    => $data['empresa_id'],
+          'user_id'       => $data['user_id'],
+          'contato_id'    => $data['contato_id'],
+          'tabulacao'     => $data['tabulacao'],
+          'acao'          => $data['acao'],
+          'tipo_descarte' => $data['tipo_descarte'] ?? null,
         ]);
       }catch (\Exception){
         return false;

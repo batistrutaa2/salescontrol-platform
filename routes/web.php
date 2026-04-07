@@ -111,6 +111,10 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/comercial/preditiva/regras/reordenar', [Mailing::class, 'regrasReordenar'])->name('preditiva.regras.reordenar');
   Route::get('/comercial/preditiva/regras/campos', [Mailing::class, 'getCamposDisponiveis'])->name('preditiva.regras.campos');
   Route::get('/comercial/preditiva/regras/valores/{campo}', [Mailing::class, 'getValoresUnicos'])->name('preditiva.regras.valores');
+  Route::get('/comercial/preditiva/configuracoes', [Mailing::class, 'getConfiguracaoPreditiva'])->name('preditiva.configuracoes.get');
+  Route::post('/comercial/preditiva/configuracoes', [Mailing::class, 'salvarConfiguracaoPreditiva'])->name('preditiva.configuracoes.save');
+  Route::post('/comercial/preditiva/tabulacoes-hard', [Mailing::class, 'storeTabulacaoHard'])->name('preditiva.tabulacoes-hard.store');
+  Route::delete('/comercial/preditiva/tabulacoes-hard/{id}', [Mailing::class, 'destroyTabulacaoHard'])->name('preditiva.tabulacoes-hard.destroy');
   Route::get('/mailing/leads-descartados', [Mailing::class, 'leadDescartados'])->name('mailing.leadDescartados');
   Route::get('/mailing/get-leads-descartados', [Mailing::class, 'getLeadsDescartados'])->name('comercial.getLeadsDescartados');
   Route::get('/mailing/getComentariosLead/{id}', [Mailing::class, 'getComentariosLead'])->name('comercial.getComentariosLead');

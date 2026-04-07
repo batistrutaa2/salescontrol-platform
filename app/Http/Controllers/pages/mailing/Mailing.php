@@ -35,6 +35,8 @@ use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
 use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
 use App\Repositories\Eloquent\PreditivaRegraRepository;
 use App\Models\PreditivaRegraPriorizacao;
+use App\Models\PreditivaConfiguracao;
+use App\Models\PreditivaTabulacaoHard;
 use App\Services\LeadManagementService;
 use Carbon\Carbon;
 
@@ -330,11 +332,17 @@ class Mailing extends Controller
 
   public function preditiva()
   {
-    $users = $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
-    $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
+    $empresaId  = Auth::user()->empresa_id;
+    $users      = $this->usuarioRepository->getUserByCompany($empresaId);
+    $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial($empresaId);
+    $config     = PreditivaConfiguracao::getOrDefault($empresaId);
+    $tabsHard   = PreditivaTabulacaoHard::listForEmpresa($empresaId);
+
     return view('content.pages.mailing.preditiva', [
-      'users' => $users,
-      'tabulacoes' => $tabulacoes
+      'users'      => $users,
+      'tabulacoes' => $tabulacoes,
+      'config'     => $config,
+      'tabsHard'   => $tabsHard,
     ]);
   }
 
@@ -1260,6 +1268,99 @@ class Mailing extends Controller
         'success' => false,
         'message' => 'Erro ao buscar valores: ' . $th->getMessage()
       ], 500);
+    }
+  }
+
+  // ============================================================
+  // Configurações da Preditiva
+  // ============================================================
+
+  public function getConfiguracaoPreditiva()
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+      $config    = PreditivaConfiguracao::getOrDefault($empresaId);
+      $tabsHard  = PreditivaTabulacaoHard::listForEmpresa($empresaId);
+
+      return response()->json([
+        'success'  => true,
+        'config'   => $config,
+        'tabs_hard' => $tabsHard,
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json(['success' => false, 'message' => $th->getMessage()], 500);
+    }
+  }
+
+  public function salvarConfiguracaoPreditiva(Request $request)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+
+      $request->validate([
+        'cooldown_horas'        => 'required|integer|min:0|max:168',
+        'exclusao_usuario_dias' => 'nullable|integer|min:1|max:3650',
+        'limite_descartes_soft' => 'required|integer|min:1|max:50',
+        'limite_descartes_hard' => 'required|integer|min:1|max:10',
+      ]);
+
+      PreditivaConfiguracao::updateOrCreate(
+        ['empresa_id' => $empresaId],
+        [
+          'cooldown_horas'        => $request->cooldown_horas,
+          'exclusao_usuario_dias' => $request->exclusao_usuario_dias,
+          'limite_descartes_soft' => $request->limite_descartes_soft,
+          'limite_descartes_hard' => $request->limite_descartes_hard,
+        ]
+      );
+
+      return response()->json(['success' => true, 'message' => 'Configuracoes salvas com sucesso.']);
+    } catch (\Throwable $th) {
+      return response()->json(['success' => false, 'message' => $th->getMessage()], 500);
+    }
+  }
+
+  public function storeTabulacaoHard(Request $request)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+      $tabulacao = strtoupper(trim($request->tabulacao ?? ''));
+
+      if (empty($tabulacao)) {
+        return response()->json(['success' => false, 'message' => 'Tabulacao nao pode ser vazia.'], 422);
+      }
+
+      $tab = PreditivaTabulacaoHard::firstOrCreate([
+        'empresa_id' => $empresaId,
+        'tabulacao'  => $tabulacao,
+      ]);
+
+      return response()->json([
+        'success'   => true,
+        'message'   => 'Tabulacao HARD adicionada.',
+        'id'        => $tab->id,
+        'tabulacao' => $tab->tabulacao,
+      ]);
+    } catch (\Throwable $th) {
+      return response()->json(['success' => false, 'message' => $th->getMessage()], 500);
+    }
+  }
+
+  public function destroyTabulacaoHard(int $id)
+  {
+    try {
+      $empresaId = Auth::user()->empresa_id;
+      $deleted   = PreditivaTabulacaoHard::where('id', $id)
+        ->where('empresa_id', $empresaId)
+        ->delete();
+
+      if (!$deleted) {
+        return response()->json(['success' => false, 'message' => 'Tabulacao nao encontrada.'], 404);
+      }
+
+      return response()->json(['success' => true, 'message' => 'Tabulacao removida.']);
+    } catch (\Throwable $th) {
+      return response()->json(['success' => false, 'message' => $th->getMessage()], 500);
     }
   }
 

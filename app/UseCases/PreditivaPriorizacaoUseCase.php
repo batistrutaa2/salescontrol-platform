@@ -5,6 +5,7 @@ namespace App\UseCases;
 use App\Models\PreditivaRegraPriorizacao;
 use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class PreditivaPriorizacaoUseCase
 {
@@ -106,31 +107,32 @@ class PreditivaPriorizacaoUseCase
     }
 
     /**
-     * Escapa string para uso em SQL
+     * Escapa string para uso em SQL usando o driver PDO ativo
      *
      * @param string $value
-     * @return string
+     * @return string Valor escapado sem as aspas envolventes
      */
     protected function escapeString(string $value): string
     {
-        return addslashes($value);
+        $quoted = DB::getPdo()->quote($value);
+        return substr($quoted, 1, -1);
     }
 
     /**
-     * Retorna o score calculado como soma dos pesos
+     * Retorna o score calculado como soma dos pesos de todas as regras satisfeitas.
+     * Uma única query ao banco — sem dupla consulta.
      *
      * @param int $empresaId
      * @return string Expressão SQL completa com alias
      */
     public function getScoreExpression(int $empresaId): string
     {
-        $scoreSQL = $this->buildScoreSQL($empresaId);
+        $regras = $this->regraRepository->getRegrasByEmpresa($empresaId, true);
 
-        if ($scoreSQL === '0') {
+        if ($regras->isEmpty()) {
             return '0 as score_priorizacao';
         }
 
-        $regras = $this->regraRepository->getRegrasByEmpresa($empresaId, true);
         $sumParts = [];
 
         foreach ($regras as $regra) {

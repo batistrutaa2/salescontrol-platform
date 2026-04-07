@@ -15,6 +15,8 @@ use Carbon\Carbon;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Models\Preditiva;
+use App\Models\PreditivaConfiguracao;
+use App\Models\PreditivaTabulacaoHard;
 use App\Enums\Tabulations;
 use App\Models\LogPreditiva;
 use Illuminate\Http\Request;
@@ -901,82 +903,135 @@ class Comercial extends Controller
     $userId = Auth::id();
     $empresaId = Auth::user()->empresa_id;
 
+    // Liberar locks expirados deste usuário (mais de 2h sem ação)
     Preditiva::where('user_id', $userId)
       ->where('data_atribuicao', '<', now()->subHours(2))
-      ->update([
-        'user_id' => null,
-        'data_atribuicao' => null
-      ]);
+      ->update(['user_id' => null, 'data_atribuicao' => null]);
 
     $scoreExpression = $this->preditivaPriorizacaoUseCase->getScoreExpression($empresaId);
+    $config          = PreditivaConfiguracao::getOrDefault($empresaId);
+    $maxTentativas   = 20;
 
-    $cliente = DB::table('preditiva as p')
-      ->join('contatos as c', 'p.contato_id', '=', 'c.id')
-      ->leftJoin(DB::raw('(
-                SELECT contato_id, COUNT(*) as descartes, MAX(created_at) as ultimo_descarte
-                FROM log_preditiva
-                WHERE acao = "DESCARTE"
-                GROUP BY contato_id
-            ) as lp'), 'p.contato_id', '=', 'lp.contato_id')
-      ->select(
-        'c.id',
-        'c.nome_cliente as nome',
-        'c.telefone1 as telefone',
-        'c.email',
-        'c.plano',
-        'c.categoria',
-        'c.entidade',
-        'c.cpf',
-        'c.data_nascimento',
-        'c.valor_plano_atual',
-        'c.created_at',
-        DB::raw($scoreExpression)
-      )
-      ->where('p.empresa_id', $empresaId)
-      ->where('p.status', 'Y')
-      ->where(function ($query) {
-        $query->whereNull('p.user_id')
-          ->orWhere('p.user_id', Auth::id());
-      })
-      ->where(function ($query) {
-        $query->whereNull('lp.descartes')
-          ->orWhere('lp.descartes', '<', 5);
-      })
-      ->whereNotExists(function ($query) use ($userId) {
-        $query->select(DB::raw(1))
-          ->from('log_preditiva')
-          ->whereColumn('log_preditiva.contato_id', 'p.contato_id')
-          ->where('log_preditiva.user_id', $userId)
-          ->where('log_preditiva.acao', 'DESCARTE');
-      })
-      ->orderByDesc('score_priorizacao')
-      ->orderBy('lp.ultimo_descarte', 'asc')
-      ->orderBy('p.created_at', 'asc')
-      ->limit(1)
-      ->first();
+    for ($tentativa = 0; $tentativa < $maxTentativas; $tentativa++) {
+      $eid = (int) $empresaId;
 
-    if ($cliente) {
+      $cliente = DB::table('preditiva as p')
+        ->join('contatos as c', 'p.contato_id', '=', 'c.id')
+        ->leftJoin(DB::raw("(
+                  SELECT
+                    contato_id,
+                    SUM(CASE WHEN tipo_descarte = 'SOFT' OR tipo_descarte IS NULL THEN 1 ELSE 0 END) AS descartes_soft,
+                    SUM(CASE WHEN tipo_descarte = 'HARD' THEN 1 ELSE 0 END) AS descartes_hard,
+                    MAX(created_at) AS ultimo_descarte
+                  FROM log_preditiva
+                  WHERE acao = 'DESCARTE' AND empresa_id = {$eid}
+                  GROUP BY contato_id
+              ) as lp"), 'p.contato_id', '=', 'lp.contato_id')
+        ->select(
+          'c.id',
+          'c.nome_cliente as nome',
+          'c.telefone1 as telefone',
+          'c.email',
+          'c.plano',
+          'c.categoria',
+          'c.entidade',
+          'c.cpf',
+          'c.data_nascimento',
+          'c.valor_plano_atual',
+          'c.created_at',
+          DB::raw($scoreExpression)
+        )
+        ->where('p.empresa_id', $empresaId)
+        ->where('p.status', 'Y')
+        ->where(function ($q) use ($userId) {
+          $q->whereNull('p.user_id')->orWhere('p.user_id', $userId);
+        })
+        ->whereNotNull('c.telefone1')
+        ->where('c.telefone1', '!=', '')
+        // Filtro: limites por tipo de descarte
+        ->where(function ($q) use ($config) {
+          $q->whereNull('lp.contato_id')
+            ->orWhere(function ($q2) use ($config) {
+              $q2->where(function ($q3) use ($config) {
+                $q3->whereNull('lp.descartes_soft')
+                  ->orWhere('lp.descartes_soft', '<', $config->limite_descartes_soft);
+              })->where(function ($q3) use ($config) {
+                $q3->whereNull('lp.descartes_hard')
+                  ->orWhere('lp.descartes_hard', '<', $config->limite_descartes_hard);
+              });
+            });
+        })
+        // Filtro: cooldown entre tentativas (se configurado)
+        ->when($config->cooldown_horas > 0, function ($q) use ($config) {
+          $q->where(function ($q2) use ($config) {
+            $q2->whereNull('lp.ultimo_descarte')
+              ->orWhere('lp.ultimo_descarte', '<', now()->subHours($config->cooldown_horas));
+          });
+        })
+        // Filtro: exclusão por usuário (permanente ou com prazo configurável)
+        ->whereNotExists(function ($q) use ($userId, $empresaId, $config) {
+          $q->select(DB::raw(1))
+            ->from('log_preditiva')
+            ->whereColumn('log_preditiva.contato_id', 'p.contato_id')
+            ->where('log_preditiva.user_id', $userId)
+            ->where('log_preditiva.empresa_id', $empresaId)
+            ->where('log_preditiva.acao', 'DESCARTE')
+            ->when(
+              !is_null($config->exclusao_usuario_dias),
+              fn($q2) => $q2->where(
+                'log_preditiva.created_at',
+                '>=',
+                now()->subDays($config->exclusao_usuario_dias)
+              )
+            );
+        })
+        ->orderByDesc('score_priorizacao')
+        ->orderBy('lp.ultimo_descarte', 'asc')
+        ->orderBy('p.created_at', 'asc')
+        ->limit(1)
+        ->first();
+
+      if (!$cliente) {
+        break;
+      }
+
+      // CPF inválido: descarte HARD automático — remove e continua no loop
       if (empty($cliente->cpf) || is_null($cliente->cpf)) {
         Preditiva::where('contato_id', $cliente->id)
           ->where('empresa_id', $empresaId)
-          ->update(['status' => 'N']);
+          ->delete();
 
         LogPreditiva::create([
-          'empresa_id' => $empresaId,
-          'user_id' => $userId,
-          'contato_id' => $cliente->id,
-          'tabulacao' => 'CPF VAZIO/INVÁLIDO',
-          'acao' => 'DESCARTE'
+          'empresa_id'    => $empresaId,
+          'user_id'       => $userId,
+          'contato_id'    => $cliente->id,
+          'tabulacao'     => 'CPF VAZIO/INVALIDO',
+          'acao'          => 'DESCARTE',
+          'tipo_descarte' => 'HARD',
         ]);
 
-        return $this->getClientesPreditiva($request);
+        continue;
       }
 
-      Preditiva::where('contato_id', $cliente->id)
+      // Atribuição atômica: atualiza apenas se o lead ainda está disponível.
+      // Evita race condition entre vendedores simultâneos — se affected rows = 0,
+      // outro vendedor pegou o lead antes; o loop tenta o próximo candidato.
+      $atualizado = DB::table('preditiva')
+        ->where('contato_id', $cliente->id)
+        ->where('empresa_id', $empresaId)
+        ->where('status', 'Y')
+        ->where(function ($query) use ($userId) {
+          $query->whereNull('user_id')
+            ->orWhere('user_id', $userId);
+        })
         ->update([
           'user_id' => $userId,
           'data_atribuicao' => now()
         ]);
+
+      if ($atualizado === 0) {
+        continue;
+      }
 
       $dependentes = Dependentes::where('contato_id', $cliente->id)
         ->select('id', 'nome', 'cpf', 'idade', 'parentesco', 'telefone_1', 'telefone_2', 'telefone_3', 'valor_plano')
@@ -987,59 +1042,90 @@ class Comercial extends Controller
 
       return response()->json([$clienteData]);
     }
+
     return response()->json([]);
   }
 
   public function descartarClientePreditiva(Request $request)
   {
-    $userId = Auth::id();
+    $userId    = Auth::id();
     $empresaId = Auth::user()->empresa_id;
     $contatoId = $request->contato_id;
-    $tabulacao = $request->tabulacao ?? 'SEM TABULAÇÃO';
+    $tabulacao = strtoupper(trim($request->tabulacao ?? 'SEM TABULACAO'));
+
+    // Carrega configurações da empresa (com defaults seguros se não existir)
+    $config = PreditivaConfiguracao::getOrDefault($empresaId);
+
+    // Determina o tipo: HARD remove imediatamente, SOFT acumula até o limite
+    $isHard       = PreditivaTabulacaoHard::isHard($empresaId, $tabulacao);
+    $tipoDescarte = $isHard ? 'HARD' : 'SOFT';
 
     LogPreditiva::create([
-      'empresa_id' => $empresaId,
-      'user_id' => $userId,
-      'contato_id' => $contatoId,
-      'tabulacao' => $tabulacao,
-      'acao' => 'DESCARTE'
+      'empresa_id'    => $empresaId,
+      'user_id'       => $userId,
+      'contato_id'    => $contatoId,
+      'tabulacao'     => $tabulacao,
+      'acao'          => 'DESCARTE',
+      'tipo_descarte' => $tipoDescarte,
     ]);
 
-    $totalDescartes = DB::table('log_preditiva')
-      ->where('contato_id', $contatoId)
-      ->where('empresa_id', $empresaId)
-      ->where('acao', 'DESCARTE')
-      ->count();
-
-    if ($totalDescartes >= 5) {
+    // HARD: remoção imediata — cliente atendeu e disse que não tem interesse
+    if ($isHard) {
       Preditiva::where('contato_id', $contatoId)
         ->where('empresa_id', $empresaId)
         ->delete();
 
       Contatos::where('id', $contatoId)
         ->where('empresa_id', $empresaId)
-        ->update([
-          'status' => 'N',
-          'updated_at' => now()
-        ]);
+        ->update(['status' => 'N', 'updated_at' => now()]);
 
       return response()->json([
-        'success' => true,
+        'success'    => true,
         'desativado' => true,
-        'message' => 'Lead atingiu 5 descartes e foi removido automaticamente da preditiva.'
+        'tipo'       => 'HARD',
+        'message'    => 'Lead removido definitivamente da preditiva.',
       ]);
     }
 
-    Preditiva::where('contato_id', $contatoId)
-      ->update([
-        'user_id' => null,
-        'data_atribuicao' => null
+    // SOFT: contabiliza e verifica se atingiu o limite configurado
+    // Legado (tipo_descarte NULL) é tratado como SOFT para compatibilidade
+    $totalSoft = DB::table('log_preditiva')
+      ->where('contato_id', $contatoId)
+      ->where('empresa_id', $empresaId)
+      ->where('acao', 'DESCARTE')
+      ->where(function ($q) {
+        $q->where('tipo_descarte', 'SOFT')->orWhereNull('tipo_descarte');
+      })
+      ->count();
+
+    if ($totalSoft >= $config->limite_descartes_soft) {
+      Preditiva::where('contato_id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->delete();
+
+      Contatos::where('id', $contatoId)
+        ->where('empresa_id', $empresaId)
+        ->update(['status' => 'N', 'updated_at' => now()]);
+
+      return response()->json([
+        'success'    => true,
+        'desativado' => true,
+        'tipo'       => 'SOFT',
+        'message'    => "Lead atingiu {$config->limite_descartes_soft} tentativas sem sucesso e foi removido da preditiva.",
       ]);
+    }
+
+    // Libera o lock — o cooldown é aplicado na próxima busca, não aqui
+    Preditiva::where('contato_id', $contatoId)
+      ->update(['user_id' => null, 'data_atribuicao' => null]);
+
+    $restantes = $config->limite_descartes_soft - $totalSoft;
 
     return response()->json([
-      'success' => true,
-      'desativado' => false,
-      'tentativas_restantes' => 5 - $totalDescartes
+      'success'              => true,
+      'desativado'           => false,
+      'tipo'                 => 'SOFT',
+      'tentativas_restantes' => $restantes,
     ]);
   }
 
