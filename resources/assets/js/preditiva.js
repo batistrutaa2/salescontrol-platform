@@ -887,9 +887,60 @@ $(function () {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
-    // Abre o modal
+    // Inicializa Select2 com tags (permite digitar tabulacoes novas)
+    function initSelect2TabHard() {
+        $('#inputNovaTabHard').select2({
+            dropdownParent: $('#modalConfiguracoesPreditiva'),
+            placeholder: 'Selecione ou digite uma tabulacao...',
+            allowClear: true,
+            tags: true,          // permite criar opcao nova digitando
+            createTag: function (params) {
+                const term = $.trim(params.term).toUpperCase();
+                if (!term) return null;
+                return { id: term, text: term, newTag: true };
+            },
+            language: {
+                noResults: function () { return 'Nenhuma tabulacao encontrada'; },
+                inputTooShort: function () { return ''; },
+                searching: function () { return 'Buscando...'; },
+            },
+        });
+    }
+
+    // Carrega tabulacoes existentes no log_preditiva e popula o Select2,
+    // excluindo as que ja sao HARD (ja estao na lista)
+    function carregarOpcoesTabHard() {
+        const jaHard = [];
+        $('#listaTabsHard .badge-tab-hard').each(function () {
+            jaHard.push($(this).data('tab'));
+        });
+
+        $.get('/comercial/preditiva/tabulacoes', function (res) {
+            if (!res.success) return;
+
+            const select = $('#inputNovaTabHard');
+            select.find('option:not([value=""])').remove();
+
+            res.tabulacoes.forEach(function (tab) {
+                if (!jaHard.includes(tab)) {
+                    select.append(new Option(tab, tab, false, false));
+                }
+            });
+
+            select.trigger('change.select2');
+        });
+    }
+
+    // Abre o modal e (re)carrega as opcoes
     $('#btnAbrirConfiguracoes').on('click', function () {
         $('#modalConfiguracoesPreditiva').modal('show');
+    });
+
+    $('#modalConfiguracoesPreditiva').on('shown.bs.modal', function () {
+        if (!$('#inputNovaTabHard').hasClass('select2-hidden-accessible')) {
+            initSelect2TabHard();
+        }
+        carregarOpcoesTabHard();
     });
 
     // Salvar parametros gerais
@@ -920,9 +971,9 @@ $(function () {
     });
 
     // Adicionar tabulacao HARD
-    function adicionarTabHard(tabulacao) {
-        tabulacao = tabulacao.toUpperCase().trim();
-        if (!tabulacao) return;
+    function adicionarTabHard() {
+        const tabulacao = ($('#inputNovaTabHard').val() || '').toUpperCase().trim();
+        if (!tabulacao) { toastr.warning('Selecione ou digite uma tabulacao.'); return; }
 
         $.ajax({
             url: '/comercial/preditiva/tabulacoes-hard',
@@ -932,7 +983,9 @@ $(function () {
             success: function (res) {
                 if (res.success) {
                     renderBadgeTabHard(res.id, res.tabulacao);
-                    $('#inputNovaTabHard').val('');
+                    // Remove a opcao do dropdown (ja e HARD) e limpa a selecao
+                    $('#inputNovaTabHard option[value="' + res.tabulacao + '"]').remove();
+                    $('#inputNovaTabHard').val(null).trigger('change');
                 } else {
                     toastr.warning(res.message);
                 }
@@ -956,19 +1009,7 @@ $(function () {
         $('#listaTabsHard').append(badge);
     }
 
-    $('#btnAdicionarTabHard').on('click', function () {
-        adicionarTabHard($('#inputNovaTabHard').val());
-    });
-
-    $('#inputNovaTabHard').on('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); adicionarTabHard($(this).val()); }
-    });
-
-    $('#inputNovaTabHard').on('input', function () {
-        const pos = this.selectionStart;
-        this.value = this.value.toUpperCase();
-        this.setSelectionRange(pos, pos);
-    });
+    $('#btnAdicionarTabHard').on('click', adicionarTabHard);
 
     // Remover tabulacao HARD
     // Badges do servidor (gerados pelo @foreach) nao tem data-id numerico — usamos o nome para buscar o id

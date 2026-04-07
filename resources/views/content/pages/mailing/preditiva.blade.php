@@ -1462,9 +1462,13 @@
                     <p class="text-muted mb-1" style="font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Tabulacoes de Descarte Definitivo (HARD)</p>
                     <p style="font-size:.8rem;color:#6B7280;margin-bottom:1rem;">Quando o cliente <strong>atende</strong> e da uma negativa definitiva. Um unico descarte com essas tabulacoes remove o lead imediatamente.</p>
 
-                    <div class="input-group input-group-sm mb-3">
-                        <input type="text" id="inputNovaTabHard" class="form-control" placeholder="Ex: NAO TEM INTERESSE" style="text-transform:uppercase;">
-                        <button class="btn btn-primary btn-sm" type="button" id="btnAdicionarTabHard">
+                    <div class="d-flex gap-2 mb-3">
+                        <div style="flex:1;">
+                            <select id="inputNovaTabHard" class="form-select form-select-sm select2-tab-hard" style="width:100%;">
+                                <option value=""></option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-sm px-3 flex-shrink-0" type="button" id="btnAdicionarTabHard">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             Adicionar
                         </button>
