@@ -49,12 +49,12 @@
         data: function (d) {
           d.situacao = activeSituacaoFilter || $('#filterSituacao').val();
           d.corretor = $('#filterCorretor').val();
+          var baseVal = $('#filterBase').val() || activeImportBase || '';
+          if (baseVal) d.nome_base = baseVal;
           if (filterDateStart && filterDateEnd) {
             d.data_inicio = filterDateStart;
             d.data_fim = filterDateEnd;
-          }
-          if (activeImportBase) d.nome_base = activeImportBase;
-          if (activeImportDate) {
+          } else if (activeImportDate) {
             d.data_importacao = activeImportDate;
           }
         }
@@ -274,6 +274,8 @@
   // ============================================
   // Filters
   // ============================================
+  var filterBaseTimer = null;
+
   function initFilters() {
     $('#filterSituacao, #filterCorretor').on('change', function () {
       // sync KPI card active state if situacao changed manually
@@ -288,8 +290,22 @@
       refreshKPIs();
     });
 
+    // Base name filter with debounce
+    $('#filterBase').on('input', function () {
+      clearTimeout(filterBaseTimer);
+      filterBaseTimer = setTimeout(function () {
+        // If user typed manually, clear sidebar selection but keep date range
+        activeImportDate = null;
+        activeImportBase = null;
+        $('.gl-import-item').removeClass('active');
+        table.ajax.reload();
+        refreshKPIs();
+      }, 400);
+    });
+
     $('#btnClearFilters').on('click', function () {
       $('#filterSituacao, #filterCorretor').val('');
+      $('#filterBase').val('');
       activeSituacaoFilter = '';
       activeImportDate = null;
       activeImportBase = null;
@@ -318,6 +334,9 @@
           var d2 = selectedDates[1];
           filterDateStart = String(d1.getDate()).padStart(2, '0') + '/' + String(d1.getMonth() + 1).padStart(2, '0') + '/' + d1.getFullYear();
           filterDateEnd = String(d2.getDate()).padStart(2, '0') + '/' + String(d2.getMonth() + 1).padStart(2, '0') + '/' + d2.getFullYear();
+          // Date range is mutually exclusive with sidebar exact-date selection
+          activeImportDate = null;
+          $('.gl-import-item').removeClass('active');
           table.ajax.reload();
           refreshKPIs();
         }
@@ -358,13 +377,14 @@
   function getActiveFilters() {
     var filters = {};
     var corretor = $('#filterCorretor').val();
-    var base = activeImportBase || '';
+    var base = $('#filterBase').val() || activeImportBase || '';
     if (corretor) filters.corretor = corretor;
     if (base) filters.nome_base = base;
-    if (activeImportDate) filters.data_importacao = activeImportDate;
     if (filterDateStart && filterDateEnd) {
       filters.data_inicio = filterDateStart;
       filters.data_fim = filterDateEnd;
+    } else if (activeImportDate) {
+      filters.data_importacao = activeImportDate;
     }
     return filters;
   }
@@ -444,12 +464,18 @@
       if (activeImportDate === date && activeImportBase === base) {
         activeImportDate = null;
         activeImportBase = null;
+        $('#filterBase').val('');
         $(this).removeClass('active');
       } else {
         $('.gl-import-item').removeClass('active');
         $(this).addClass('active');
         activeImportDate = date;
         activeImportBase = base;
+        // Populate base filter and clear date range (sidebar = exact date, not range)
+        $('#filterBase').val(base === 'Sem nome' ? '' : base);
+        filterDateStart = '';
+        filterDateEnd = '';
+        if (window.dateRangePicker) window.dateRangePicker.clear();
       }
       table.ajax.reload();
       refreshKPIs();

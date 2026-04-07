@@ -525,11 +525,31 @@
         }
     }
 
+    .gl-filter-base {
+        min-width: 160px;
+        max-width: 200px;
+    }
+
     .gl-filter-date-range {
-        min-width: 180px;
-        max-width: 220px;
+        min-width: 210px;
+        max-width: 260px;
+    }
+
+    .gl-date-range-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        .gl-date-icon {
+            position: absolute;
+            left: 0.55rem;
+            color: var(--gl-text-muted);
+            pointer-events: none;
+            flex-shrink: 0;
+        }
 
         input {
+            padding-left: 2rem !important;
             cursor: pointer;
         }
     }
