@@ -14,7 +14,6 @@ use App\Models\User;
 use App\Models\Vendas;
 use App\Models\VendaTitular;
 use App\Models\VendaDependente;
-use App\Models\VendaDependente;
 use App\Models\VendaPortabilidade;
 use App\Models\VendaHistorico;
 use App\Notifications\StatusPropostaAlterada;
