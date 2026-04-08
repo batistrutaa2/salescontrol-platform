@@ -358,7 +358,7 @@ class Comercial extends Controller
     $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
 
     $permiteEdition = false;
-    if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER || Auth::user()->role->id === UserRole::SUPERVISOR) {
+    if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER || Auth::user()->role->id === UserRole::SUPERVISOR || Auth::user()->role->id === UserRole::VENDEDOR) {
       $permiteEdition = true;
     }
     $cotacoes = [];

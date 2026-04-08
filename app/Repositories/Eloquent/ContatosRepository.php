@@ -91,7 +91,7 @@ class ContatosRepository implements ContatosRepositoryInterface
   {
     try {
       $serchClient = ["id" => $data['id']];
-      if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER) {
+      if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER || Auth::user()->role->id === UserRole::VENDEDOR) {
         $dataClient = [
           'nome_cliente' => $data['nome_cliente'],
           'email' => $data['email'],
