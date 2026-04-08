@@ -32,12 +32,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Jobs\GerarRecebiveisJob;
 use App\Models\Recebivel;
+use App\Services\WhatsappService;
 use App\Models\RegrasComissionamento;
 use App\Models\PosVendaAnotacao;
 use App\Models\VendaDemanda;
 use App\Enums\TipoDemandaContrato;
 use App\Models\Empresa;
-use App\Services\WhatsappService;
 use Carbon\Carbon;
 
 class Backoffice extends Controller

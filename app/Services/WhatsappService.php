@@ -28,7 +28,7 @@ class WhatsappService
                 'number'      => $formattedNumber,
                 'body'        => $body,
                 'saveOnTicket' => false,
-                'linkPreview' => true,
+                'linkPreview' => false,
             ]);
 
             if ($response->successful()) {
