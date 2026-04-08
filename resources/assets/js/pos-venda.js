@@ -526,6 +526,9 @@
     document.getElementById('boas-vindas-venda-id').value = vendaId;
     document.getElementById('bv-no-token-alert').classList.add('d-none');
 
+    // Definir modo padrão ANTES do fetch para que o modal já abra com estado correto
+    selecionarModoBoasVindas('padrao');
+
     const modal = new bootstrap.Modal(elements.modalBoasVindas);
     modal.show();
 
@@ -558,9 +561,6 @@
       if (!data.has_token) {
         document.getElementById('bv-no-token-alert').classList.remove('d-none');
       }
-
-      // Selecionar modo padrão ao abrir
-      selecionarModoBoasVindas('padrao');
 
     } catch (e) {
       console.error('Erro ao carregar dados da venda:', e);
