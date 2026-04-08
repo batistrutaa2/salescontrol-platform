@@ -86,7 +86,7 @@
     document.getElementById('btn-config-token')?.addEventListener('click', abrirConfigToken);
 
     // Live preview no modo padrão
-    ['bv-login-app', 'bv-senha-app', 'bv-portal-user', 'bv-portal-senha', 'bv-telefone-padrao', 'bv-link-ios', 'bv-link-android'].forEach(id => {
+    ['bv-login-app', 'bv-senha-app', 'bv-portal-user', 'bv-portal-senha', 'bv-link-ios', 'bv-link-android'].forEach(id => {
       document.getElementById(id)?.addEventListener('input', atualizarPreviewPadrao);
     });
 
@@ -543,18 +543,16 @@
       document.getElementById('bv-plano').textContent = data.venda.plano || '-';
       document.getElementById('bv-data-implantacao').textContent = data.venda.data_implantacao || '-';
 
-      // Pré-preencher telefone
-      const tel1 = data.venda.telefone1 || '';
-      document.getElementById('bv-telefone-padrao').value = tel1;
-      document.getElementById('bv-telefone-personalizado').value = tel1;
-
       // Pré-preencher links do app conforme operadora
       const linksApp = getLinksAppPorOperadora(data.venda.operadora || '');
       document.getElementById('bv-link-ios').value = linksApp.ios;
       document.getElementById('bv-link-android').value = linksApp.android;
 
-      // Montar lista de beneficiários
+      // Montar lista de beneficiários (conteúdo da mensagem)
       renderBeneficiarios(bvTitulares);
+
+      // Montar lista de destinatários (para quem enviar)
+      renderDestinatarios(data.titulares || [], data.dependentes || [], data.venda.telefone1 || '');
 
       // Aviso se não tem token
       if (!data.has_token) {
@@ -567,6 +565,41 @@
     } catch (e) {
       console.error('Erro ao carregar dados da venda:', e);
     }
+  }
+
+  function renderDestinatarios(titulares, dependentes, telVenda) {
+    const container = document.getElementById('bv-destinatarios-list');
+    container.innerHTML = '';
+
+    // Titulares — pré-marcados, phone vem de vendas_titulares.telefone ou fallback vendas.telefone1
+    if (titulares.length > 0) {
+      titulares.forEach(t => {
+        const tel = t.telefone || telVenda || '';
+        container.innerHTML += buildDestinatarioRow(t.nome, tel, 'Titular', true);
+      });
+    } else {
+      // Sem titular cadastrado: adicionar linha vazia pré-marcada com telefone da venda
+      container.innerHTML += buildDestinatarioRow('', telVenda, 'Titular', true);
+    }
+
+    // Dependentes — desmarcados por padrão
+    dependentes.forEach(d => {
+      const tel = d.telefone1 || '';
+      const label = d.parentesco ? `Dependente (${d.parentesco})` : 'Dependente';
+      container.innerHTML += buildDestinatarioRow(d.nome, tel, label, false);
+    });
+  }
+
+  function buildDestinatarioRow(nome, telefone, tipo, checked) {
+    return `
+      <div class="bv-destinatario-row">
+        <input type="checkbox" class="bv-dest-check" ${checked ? 'checked' : ''}>
+        <div class="bv-dest-info">
+          <span class="bv-dest-nome">${escapeHtml(nome || 'Sem nome')}</span>
+          <span class="bv-dest-tipo">${escapeHtml(tipo)}</span>
+        </div>
+        <input type="text" class="pv-form-input bv-dest-tel" placeholder="(85) 99999-8888" value="${escapeHtml(telefone)}">
+      </div>`;
   }
 
   function renderBeneficiarios(titulares) {
@@ -609,6 +642,9 @@
     // Atualizar cards
     document.querySelectorAll('.bv-mode-card').forEach(c => c.classList.remove('active'));
     document.querySelector(`.bv-mode-card[data-mode="${modo}"]`).classList.add('active');
+
+    // Destinatários: visível para padrao e personalizado
+    document.getElementById('bv-destinatarios-section').classList.toggle('d-none', modo === 'sem_whatsapp');
 
     // Mostrar formulário correto
     document.getElementById('bv-form-padrao').classList.toggle('d-none', modo !== 'padrao');
@@ -691,16 +727,27 @@
       return;
     }
 
-    // Montar payload conforme modo
-    const payload = { venda_id: vendaId, tipo_envio: bvModoSelecionado };
+    // Coletar destinatários marcados (compartilhado entre modos)
+    const destinatarios = [];
+    if (bvModoSelecionado !== 'sem_whatsapp') {
+      document.querySelectorAll('#bv-destinatarios-list .bv-destinatario-row').forEach(row => {
+        const checked = row.querySelector('.bv-dest-check')?.checked;
+        if (!checked) return;
+        const nome = row.querySelector('.bv-dest-nome')?.textContent?.trim() || '';
+        const telefone = row.querySelector('.bv-dest-tel')?.value?.trim() || '';
+        if (telefone) destinatarios.push({ nome, telefone });
+      });
 
-    if (bvModoSelecionado === 'padrao') {
-      const telefone = document.getElementById('bv-telefone-padrao').value.trim();
-      if (!telefone) {
-        Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Informe o número do WhatsApp.', confirmButtonColor: '#7C3AED' });
+      if (destinatarios.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Selecione ao menos um destinatário com telefone preenchido.', confirmButtonColor: '#7C3AED' });
         return;
       }
+    }
 
+    // Montar payload conforme modo
+    const payload = { venda_id: vendaId, tipo_envio: bvModoSelecionado, destinatarios };
+
+    if (bvModoSelecionado === 'padrao') {
       // Coletar beneficiários
       const nomes = document.querySelectorAll('#bv-beneficiarios-list .bv-nome-input');
       const codigos = document.querySelectorAll('#bv-beneficiarios-list .bv-codigo-input');
@@ -716,28 +763,21 @@
         return;
       }
 
-      payload.telefone_whatsapp   = telefone;
-      payload.beneficiarios       = beneficiarios;
-      payload.nome_contrato       = document.getElementById('bv-contrato-nome').textContent;
-      payload.login_app           = document.getElementById('bv-login-app').value.trim();
-      payload.senha_app           = document.getElementById('bv-senha-app').value.trim();
-      payload.link_ios            = document.getElementById('bv-link-ios').value.trim();
-      payload.link_android        = document.getElementById('bv-link-android').value.trim();
-      payload.portal_user         = document.getElementById('bv-portal-user').value.trim();
-      payload.portal_senha        = document.getElementById('bv-portal-senha').value.trim();
+      payload.beneficiarios = beneficiarios;
+      payload.nome_contrato = document.getElementById('bv-contrato-nome').textContent;
+      payload.login_app     = document.getElementById('bv-login-app').value.trim();
+      payload.senha_app     = document.getElementById('bv-senha-app').value.trim();
+      payload.link_ios      = document.getElementById('bv-link-ios').value.trim();
+      payload.link_android  = document.getElementById('bv-link-android').value.trim();
+      payload.portal_user   = document.getElementById('bv-portal-user').value.trim();
+      payload.portal_senha  = document.getElementById('bv-portal-senha').value.trim();
 
     } else if (bvModoSelecionado === 'personalizado') {
-      const telefone = document.getElementById('bv-telefone-personalizado').value.trim();
       const mensagem = document.getElementById('bv-mensagem-personalizada').value.trim();
-      if (!telefone) {
-        Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Informe o número do WhatsApp.', confirmButtonColor: '#7C3AED' });
-        return;
-      }
       if (!mensagem) {
         Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Escreva a mensagem personalizada.', confirmButtonColor: '#7C3AED' });
         return;
       }
-      payload.telefone_whatsapp    = telefone;
       payload.mensagem_personalizada = mensagem;
     }
 

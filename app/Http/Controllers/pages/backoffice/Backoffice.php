@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\Vendas;
 use App\Models\VendaTitular;
 use App\Models\VendaDependente;
+use App\Models\VendaDependente;
 use App\Models\VendaPortabilidade;
 use App\Models\VendaHistorico;
 use App\Notifications\StatusPropostaAlterada;
@@ -2849,7 +2850,11 @@ class Backoffice extends Controller
       }
 
       $titulares = VendaTitular::where('venda_id', $vendaId)
-        ->select('id', 'nome')
+        ->select('id', 'nome', 'telefone', 'telefone2')
+        ->get();
+
+      $dependentes = VendaDependente::where('venda_id', $vendaId)
+        ->select('id', 'nome', 'telefone1', 'parentesco')
         ->get();
 
       $empresa = Empresa::find($empresaId);
@@ -2867,8 +2872,9 @@ class Backoffice extends Controller
             ? Carbon::parse($venda->data_implantacao)->format('d/m/Y')
             : null,
         ],
-        'titulares' => $titulares,
-        'has_token' => $hasToken,
+        'titulares'   => $titulares,
+        'dependentes' => $dependentes,
+        'has_token'   => $hasToken,
         'nome_empresa' => $empresa?->nome_fantasia ?? '',
       ]);
     } catch (\Throwable $e) {
@@ -2883,18 +2889,20 @@ class Backoffice extends Controller
   {
     try {
       $request->validate([
-        'venda_id'              => 'required|integer|exists:vendas,id',
-        'tipo_envio'            => 'required|in:padrao,personalizado,sem_whatsapp',
-        'telefone_whatsapp'     => 'required_unless:tipo_envio,sem_whatsapp|nullable|string|max:30',
-        'beneficiarios'         => 'required_if:tipo_envio,padrao|nullable|array',
-        'beneficiarios.*.nome'  => 'required_if:tipo_envio,padrao|string',
-        'beneficiarios.*.codigo'=> 'required_if:tipo_envio,padrao|string',
-        'login_app'             => 'required_if:tipo_envio,padrao|nullable|string|max:100',
-        'senha_app'             => 'required_if:tipo_envio,padrao|nullable|string|max:100',
-        'portal_user'           => 'nullable|string|max:100',
-        'portal_senha'          => 'nullable|string|max:100',
-        'mensagem_personalizada'=> 'required_if:tipo_envio,personalizado|nullable|string',
-        'observacao'            => 'nullable|string|max:500',
+        'venda_id'                   => 'required|integer|exists:vendas,id',
+        'tipo_envio'                 => 'required|in:padrao,personalizado,sem_whatsapp',
+        'destinatarios'              => 'required_unless:tipo_envio,sem_whatsapp|nullable|array|min:1',
+        'destinatarios.*.nome'       => 'required_unless:tipo_envio,sem_whatsapp|string|max:150',
+        'destinatarios.*.telefone'   => 'required_unless:tipo_envio,sem_whatsapp|string|max:30',
+        'beneficiarios'              => 'required_if:tipo_envio,padrao|nullable|array',
+        'beneficiarios.*.nome'       => 'required_if:tipo_envio,padrao|string',
+        'beneficiarios.*.codigo'     => 'required_if:tipo_envio,padrao|string',
+        'login_app'                  => 'required_if:tipo_envio,padrao|nullable|string|max:100',
+        'senha_app'                  => 'required_if:tipo_envio,padrao|nullable|string|max:100',
+        'portal_user'                => 'nullable|string|max:100',
+        'portal_senha'               => 'nullable|string|max:100',
+        'mensagem_personalizada'     => 'required_if:tipo_envio,personalizado|nullable|string',
+        'observacao'                 => 'nullable|string|max:500',
       ]);
 
       $empresaId = Auth::user()->empresa_id;
@@ -2925,17 +2933,27 @@ class Backoffice extends Controller
           : $request->mensagem_personalizada;
 
         $whatsappService = new WhatsappService();
+        $destinatarios   = $request->input('destinatarios', []);
+        $erros           = [];
 
-        $resultado = $whatsappService->send(
-          $empresa->whatsapp_token,
-          $request->telefone_whatsapp,
-          $mensagem
-        );
+        foreach ($destinatarios as $i => $dest) {
+          if ($i > 0) sleep(1);
 
-        if (!$resultado['success']) {
+          $resultado = $whatsappService->send(
+            $empresa->whatsapp_token,
+            $dest['telefone'],
+            $mensagem
+          );
+
+          if (!$resultado['success']) {
+            $erros[] = ($dest['nome'] ?? $dest['telefone']) . ': ' . $resultado['message'];
+          }
+        }
+
+        if (!empty($erros) && count($erros) === count($destinatarios)) {
           return response()->json([
             'success' => false,
-            'message' => 'Erro ao enviar WhatsApp: ' . $resultado['message'],
+            'message' => 'Erro ao enviar WhatsApp: ' . implode('; ', $erros),
           ], 422);
         }
 
@@ -2953,9 +2971,14 @@ class Backoffice extends Controller
         default         => 'sem WhatsApp',
       };
 
-      $descricaoAnotacao = $whatsappEnviado
-        ? "Boas Vindas enviado via WhatsApp (modo {$modoLabel}) para " . $request->telefone_whatsapp . '.'
-        : 'Boas Vindas registrado (sem envio de WhatsApp).';
+      if ($whatsappEnviado) {
+        $listaDestinatarios = collect($request->input('destinatarios', []))
+          ->map(fn($d) => ($d['nome'] ?? '') . ' (' . ($d['telefone'] ?? '') . ')')
+          ->implode(', ');
+        $descricaoAnotacao = "Boas Vindas enviado via WhatsApp (modo {$modoLabel}) para: {$listaDestinatarios}.";
+      } else {
+        $descricaoAnotacao = 'Boas Vindas registrado (sem envio de WhatsApp).';
+      }
 
       if ($request->observacao) {
         $descricaoAnotacao .= ' Obs: ' . $request->observacao;

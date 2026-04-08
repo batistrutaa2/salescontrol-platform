@@ -535,16 +535,17 @@
                         </div>
                     </div>
 
+                    <!-- Destinatários (compartilhado entre modos padrao e personalizado) -->
+                    <div id="bv-destinatarios-section" class="mb-3 d-none">
+                        <label class="pv-form-label">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            Destinatários
+                        </label>
+                        <div id="bv-destinatarios-list" class="bv-destinatarios-list"></div>
+                    </div>
+
                     <!-- Formulário Modo Padrão -->
                     <div id="bv-form-padrao" class="bv-form-section">
-                        <div class="pv-form-group mb-3">
-                            <label class="pv-form-label">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.59a16 16 0 0 0 7.5 7.5l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                                Número do WhatsApp
-                            </label>
-                            <input type="text" class="pv-form-input" id="bv-telefone-padrao" placeholder="(85) 99999-8888">
-                        </div>
-
                         <div class="mb-3">
                             <label class="pv-form-label">Beneficiários e Códigos</label>
                             <div id="bv-beneficiarios-list" class="bv-beneficiarios-list"></div>
@@ -610,13 +611,6 @@
 
                     <!-- Formulário Modo Personalizado -->
                     <div id="bv-form-personalizado" class="bv-form-section d-none">
-                        <div class="pv-form-group mb-3">
-                            <label class="pv-form-label">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.59a16 16 0 0 0 7.5 7.5l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                                Número do WhatsApp
-                            </label>
-                            <input type="text" class="pv-form-input" id="bv-telefone-personalizado" placeholder="(85) 99999-8888">
-                        </div>
                         <div class="pv-form-group mb-3">
                             <label class="pv-form-label">Mensagem</label>
                             <textarea class="pv-form-textarea" id="bv-mensagem-personalizada" rows="7" placeholder="Digite a mensagem completa aqui..."></textarea>
