@@ -913,7 +913,8 @@ class Comercial extends Controller
     $maxTentativas   = 20;
 
     for ($tentativa = 0; $tentativa < $maxTentativas; $tentativa++) {
-      $eid = (int) $empresaId;
+      $eid          = (int) $empresaId;
+      $cooldownHoras = (int) $config->cooldown_horas;
 
       $cliente = DB::table('preditiva as p')
         ->join('contatos as c', 'p.contato_id', '=', 'c.id')
@@ -939,7 +940,15 @@ class Comercial extends Controller
           'c.data_nascimento',
           'c.valor_plano_atual',
           'c.created_at',
-          DB::raw($scoreExpression)
+          DB::raw($scoreExpression),
+          // Cooldown como prioridade: 0 = fora do cooldown (preferido), 1 = ainda em cooldown
+          // Leads em cooldown são despriorizados mas não excluídos — evita vitrine vazia
+          DB::raw("CASE
+            WHEN {$cooldownHoras} = 0 THEN 0
+            WHEN lp.ultimo_descarte IS NULL THEN 0
+            WHEN lp.ultimo_descarte < NOW() - INTERVAL {$cooldownHoras} HOUR THEN 0
+            ELSE 1
+          END AS em_cooldown")
         )
         ->where('p.empresa_id', $empresaId)
         ->where('p.status', 'Y')
@@ -961,13 +970,6 @@ class Comercial extends Controller
               });
             });
         })
-        // Filtro: cooldown entre tentativas (se configurado)
-        ->when($config->cooldown_horas > 0, function ($q) use ($config) {
-          $q->where(function ($q2) use ($config) {
-            $q2->whereNull('lp.ultimo_descarte')
-              ->orWhere('lp.ultimo_descarte', '<', now()->subHours($config->cooldown_horas));
-          });
-        })
         // Filtro: exclusão por usuário (permanente ou com prazo configurável)
         ->whereNotExists(function ($q) use ($userId, $empresaId, $config) {
           $q->select(DB::raw(1))
@@ -985,6 +987,7 @@ class Comercial extends Controller
               )
             );
         })
+        ->orderBy('em_cooldown', 'asc')       // leads fora do cooldown primeiro
         ->orderByDesc('score_priorizacao')
         ->orderBy('lp.ultimo_descarte', 'asc')
         ->orderBy('p.created_at', 'asc')
