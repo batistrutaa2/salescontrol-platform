@@ -588,6 +588,17 @@
       const label = d.parentesco ? `Dependente (${d.parentesco})` : 'Dependente';
       container.innerHTML += buildDestinatarioRow(d.nome, tel, label, false);
     });
+
+    // Aplicar máscara de telefone nos campos recém-criados
+    container.querySelectorAll('.bv-dest-tel').forEach(applyPhoneMask);
+  }
+
+  function applyPhoneMask(el) {
+    new Cleave(el, {
+      delimiters: ['(', ') ', '-'],
+      blocks: [0, 2, 5, 4],
+      numericOnly: true
+    });
   }
 
   function buildDestinatarioRow(nome, telefone, tipo, checked) {
