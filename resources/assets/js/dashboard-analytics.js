@@ -47,7 +47,7 @@
     // ============================================
     const tableContratosCadastrados = $('#tableContratosCadastrados').DataTable({
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
         },
         pageLength: 5,
         lengthMenu: [5, 10, 25],
@@ -58,7 +58,7 @@
 
     const tableContratosImplantados = $('#tableContratosImplantados').DataTable({
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
         },
         pageLength: 5,
         lengthMenu: [5, 10, 25],

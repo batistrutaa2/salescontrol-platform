@@ -31,7 +31,7 @@ $(function () {
         ],
         order: [[0, 'desc']],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
+            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
         },
         pageLength: 10
     });

@@ -95,7 +95,7 @@ let chartEvolucao, chartGauge, chartOperadora, chartYoY, chartPrevisao;
     // DataTables — 3 tabelas
     // ════════════════════════════════════════════
     function initDataTables() {
-        const dtLang = { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json' };
+        const dtLang = { url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json' };
         const dtBase = { paging: true, pageLength: 10, searching: false, info: true, language: dtLang };
 
         // 1. Operadoras
