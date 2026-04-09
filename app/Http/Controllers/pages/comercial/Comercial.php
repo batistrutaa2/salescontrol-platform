@@ -955,8 +955,8 @@ class Comercial extends Controller
         ->where(function ($q) use ($userId) {
           $q->whereNull('p.user_id')->orWhere('p.user_id', $userId);
         })
-        ->whereNotNull('c.telefone1')
-        ->where('c.telefone1', '!=', '')
+        ->whereNotNull('c.cpf')
+        ->where('c.cpf', '!=', '')
         // Filtro: limites por tipo de descarte
         ->where(function ($q) use ($config) {
           $q->whereNull('lp.contato_id')
