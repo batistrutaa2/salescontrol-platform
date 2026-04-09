@@ -2890,9 +2890,9 @@ class Backoffice extends Controller
       $request->validate([
         'venda_id'                   => 'required|integer|exists:vendas,id',
         'tipo_envio'                 => 'required|in:padrao,personalizado,sem_whatsapp',
-        'destinatarios'              => 'required_unless:tipo_envio,sem_whatsapp|nullable|array|min:1',
-        'destinatarios.*.nome'       => 'required_unless:tipo_envio,sem_whatsapp|string|max:150',
-        'destinatarios.*.telefone'   => 'required_unless:tipo_envio,sem_whatsapp|string|max:30',
+        'destinatarios'              => 'exclude_if:tipo_envio,sem_whatsapp|required|array|min:1',
+        'destinatarios.*.nome'       => 'exclude_if:tipo_envio,sem_whatsapp|required|string|max:150',
+        'destinatarios.*.telefone'   => 'exclude_if:tipo_envio,sem_whatsapp|required|string|max:30',
         'beneficiarios'              => 'required_if:tipo_envio,padrao|nullable|array',
         'beneficiarios.*.nome'       => 'required_if:tipo_envio,padrao|string',
         'beneficiarios.*.codigo'     => 'required_if:tipo_envio,padrao|string',
