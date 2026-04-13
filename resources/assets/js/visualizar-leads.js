@@ -327,6 +327,7 @@
       mode: 'range',
       dateFormat: 'd/m/Y',
       locale: 'pt',
+      allowInput: true,
       disableMobile: true,
       onChange: function (selectedDates) {
         if (selectedDates.length === 2) {

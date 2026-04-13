@@ -46,13 +46,47 @@
     }
 
     // ============================================
+    // Date input mask (DD/MM/AAAA) - compatível com Flatpickr
+    // ============================================
+    function applyDateMask(element) {
+        if (!element || element.dataset.dateMaskApplied === '1') return;
+        element.dataset.dateMaskApplied = '1';
+
+        element.addEventListener('input', function (e) {
+            // Preserva posição do cursor para não pular ao deletar
+            const isDeleting = e.inputType === 'deleteContentBackward' || e.inputType === 'deleteContentForward';
+            let val = this.value.replace(/\D/g, '').substring(0, 8);
+            if (val.length >= 5) {
+                val = val.substring(0, 2) + '/' + val.substring(2, 4) + '/' + val.substring(4);
+            } else if (val.length >= 3) {
+                val = val.substring(0, 2) + '/' + val.substring(2);
+            }
+            if (!isDeleting || this.value !== val) {
+                this.value = val;
+            }
+        });
+
+        element.addEventListener('keydown', function (e) {
+            // Permite: backspace, delete, tab, escape, setas, home, end
+            const allowed = [8, 9, 27, 46, 37, 38, 39, 40, 35, 36];
+            if (allowed.includes(e.keyCode)) return;
+            // Bloqueia tudo que não é número
+            if ((e.keyCode < 48 || e.keyCode > 57) && (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    // ============================================
     // Initialize Flatpickr for date fields
     // ============================================
     if (typeof flatpickr !== 'undefined') {
         flatpickr('.flatpickr-date', {
-            dateFormat: 'd/m/Y'
+            dateFormat: 'd/m/Y',
+            allowInput: true
         });
     }
+    document.querySelectorAll('.flatpickr-date').forEach(applyDateMask);
 
     // ============================================
     // CNPJ Mask
@@ -111,6 +145,7 @@
                 allowInput: true
             });
         }
+        applyDateMask(element);
     }
 
     document.querySelectorAll('.flatpickr-nascimento').forEach(applyFlatpickrNascimento);
