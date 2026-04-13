@@ -15,16 +15,20 @@
   <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
   @vite(['resources/assets/js/config.js'])
 
-<!-- Laravel Echo para notificações em tempo real -->
 @vite(['resources/js/app.js'])
 
-<!-- Variáveis globais do usuário para notificações em tempo real -->
+<!-- Variáveis globais do usuário -->
 <script>
     window.userId = {{ auth()->user()->id ?? 0 }};
     window.userEmpresaId = {{ auth()->user()->empresa_id ?? 0 }};
     window.userRoleId = {{ auth()->user()->user_role_id ?? 0 }};
     window.userName = "{{ auth()->user()->name ?? 'Usuário' }}";
 </script>
+
+{{-- Echo/Reverb carregado apenas para administrativos (role 2) que usam notificações em tempo real --}}
+@if(auth()->check() && auth()->user()->user_role_id === 2)
+    @vite(['resources/js/echo.js'])
+@endif
 
 @if ($configData['hasCustomizer'])
 <script type="module">

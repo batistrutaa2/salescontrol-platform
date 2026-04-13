@@ -378,54 +378,59 @@ class Mailing extends Controller
       ->count();
 
 
-    // Query otimizada: buscar última tabulação por contato usando GROUP BY simples
+    // Derived table: contagem de tentativas por contato (uma passagem no log)
+    $tentativasSub = DB::table('log_preditiva')
+      ->select('contato_id', DB::raw('COUNT(*) as total'))
+      ->where('empresa_id', $empresaId)
+      ->groupBy('contato_id');
+
+    // Derived table: max id por contato para obter a última tabulação sem subquery correlacionado
+    $maxLogIdSub = DB::table('log_preditiva')
+      ->select('contato_id', DB::raw('MAX(id) as max_id'))
+      ->where('empresa_id', $empresaId)
+      ->groupBy('contato_id');
+
+    $ultimaTabulacaoSub = DB::table('log_preditiva as linner')
+      ->joinSub($maxLogIdSub, 'lmax', fn($j) => $j->on('linner.id', '=', 'lmax.max_id'))
+      ->select('linner.contato_id', 'linner.tabulacao');
+
     $query = DB::table('preditiva as p')
       ->join('contatos as c', 'c.id', '=', 'p.contato_id')
-      ->leftJoin('log_preditiva as l', function($join) use ($empresaId) {
-        $join->on('l.contato_id', '=', 'p.contato_id')
-             ->where('l.empresa_id', '=', $empresaId);
-      })
+      ->leftJoinSub($tentativasSub, 'tent', fn($j) => $j->on('tent.contato_id', '=', 'p.contato_id'))
+      ->leftJoinSub($ultimaTabulacaoSub, 'ut', fn($j) => $j->on('ut.contato_id', '=', 'p.contato_id'))
       ->where('p.status', 'Y')
-      ->where('p.empresa_id', $empresaId);
-
-    // Filtro por nome do cliente
-    if ($request->has('nome_cliente') && $request->nome_cliente !== '') {
-      $query->where('c.nome_cliente', 'LIKE', '%' . $request->nome_cliente . '%');
-    }
-
-    // Buscar os dados com última tabulação
-    $leadsData = $query->select(
+      ->where('p.empresa_id', $empresaId)
+      ->select(
         'p.id as preditiva_id',
         'c.nome_cliente',
         'c.valor_plano_atual',
         'c.telefone1',
         'p.contato_id',
-        DB::raw('COUNT(DISTINCT l.id) as tentativas'),
-        DB::raw('(SELECT tabulacao FROM log_preditiva WHERE contato_id = p.contato_id AND empresa_id = ' . $empresaId . ' ORDER BY id DESC LIMIT 1) as ultima_tabulacao')
-      )
-      ->groupBy('p.id', 'c.nome_cliente', 'c.valor_plano_atual', 'c.telefone1', 'p.contato_id')
-      ->get();
+        DB::raw('COALESCE(tent.total, 0) as tentativas'),
+        'ut.tabulacao as ultima_tabulacao'
+      );
 
-    // Aplicar filtros na coleção
-    $leads = $leadsData;
+    // Filtro por nome do cliente
+    if ($request->filled('nome_cliente')) {
+      $query->where('c.nome_cliente', 'LIKE', '%' . $request->nome_cliente . '%');
+    }
 
+    // Filtro por última tabulação aplicado na query (mais eficiente que filtrar na coleção)
     if ($request->filled('ultima_tabulacao')) {
-      $leads = $leads->filter(function($lead) use ($request) {
-        return $lead->ultima_tabulacao === $request->ultima_tabulacao;
-      })->values();
+      $query->where('ut.tabulacao', $request->ultima_tabulacao);
     }
 
     // Filtro por quantidade de tentativas
     if ($request->filled('tentativas')) {
       $tentativasFiltro = $request->tentativas;
-
-      $leads = $leads->filter(function($lead) use ($tentativasFiltro) {
-        if ($tentativasFiltro === '5+') {
-          return $lead->tentativas >= 5;
-        }
-        return $lead->tentativas == $tentativasFiltro;
-      })->values();
+      if ($tentativasFiltro === '5+') {
+        $query->where(DB::raw('COALESCE(tent.total, 0)'), '>=', 5);
+      } else {
+        $query->where(DB::raw('COALESCE(tent.total, 0)'), '=', (int) $tentativasFiltro);
+      }
     }
+
+    $leads = $query->get();
 
     return response()->json([
       'total_leads_fila' => $totalLeadsFila,
