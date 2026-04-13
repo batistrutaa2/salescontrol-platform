@@ -18,6 +18,8 @@
   let pendingConfirmAction = null;
   let filterDateStart = '';
   let filterDateEnd = '';
+  let filterUltimoContatoStart = '';
+  let filterUltimoContatoEnd = '';
 
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -28,6 +30,7 @@
     initDataTable();
     initFilters();
     initDateRangeFilter();
+    initUltimoContatoFilter();
     initKpiCards();
     initImportsSidebar();
     initBulkActions();
@@ -57,6 +60,10 @@
           } else if (activeImportDate) {
             d.data_importacao = activeImportDate;
           }
+          if (filterUltimoContatoStart && filterUltimoContatoEnd) {
+            d.ultimo_contato_inicio = filterUltimoContatoStart;
+            d.ultimo_contato_fim = filterUltimoContatoEnd;
+          }
         }
       },
       columns: [
@@ -69,6 +76,7 @@
         { data: 'tabulacao', title: 'Tabulacao' },
         { data: 'nome_base', title: 'Base' },
         { data: 'created_at', title: 'Importado em' },
+        { data: 'ultimo_contato', title: 'Último Contato', searchable: false },
         { data: null, title: 'Acoes', orderable: false, searchable: false }
       ],
       columnDefs: [
@@ -128,6 +136,13 @@
         },
         {
           targets: 9,
+          render: function (data) {
+            if (!data) return '<span class="text-muted">-</span>';
+            return '<span title="Último contato registrado">' + data + '</span>';
+          }
+        },
+        {
+          targets: 10,
           render: function (data, type, full) {
             const sit = full.situacao;
             let items = '';
@@ -311,7 +326,10 @@
       activeImportBase = null;
       filterDateStart = '';
       filterDateEnd = '';
+      filterUltimoContatoStart = '';
+      filterUltimoContatoEnd = '';
       if (window.dateRangePicker) window.dateRangePicker.clear();
+      if (window.ultimoContatoPicker) window.ultimoContatoPicker.clear();
       $('.gl-kpi-card').removeClass('active');
       $('.gl-import-item').removeClass('active');
       table.ajax.reload();
@@ -346,6 +364,37 @@
         if (selectedDates.length === 0) {
           filterDateStart = '';
           filterDateEnd = '';
+          table.ajax.reload();
+          refreshKPIs();
+        }
+      }
+    });
+  }
+
+  // ============================================
+  // Ultimo Contato Range Filter (Flatpickr)
+  // ============================================
+  function initUltimoContatoFilter() {
+    window.ultimoContatoPicker = flatpickr('#filterUltimoContato', {
+      mode: 'range',
+      dateFormat: 'd/m/Y',
+      locale: 'pt',
+      allowInput: true,
+      disableMobile: true,
+      onChange: function (selectedDates) {
+        if (selectedDates.length === 2) {
+          var d1 = selectedDates[0];
+          var d2 = selectedDates[1];
+          filterUltimoContatoStart = String(d1.getDate()).padStart(2, '0') + '/' + String(d1.getMonth() + 1).padStart(2, '0') + '/' + d1.getFullYear();
+          filterUltimoContatoEnd = String(d2.getDate()).padStart(2, '0') + '/' + String(d2.getMonth() + 1).padStart(2, '0') + '/' + d2.getFullYear();
+          table.ajax.reload();
+          refreshKPIs();
+        }
+      },
+      onClose: function (selectedDates) {
+        if (selectedDates.length === 0) {
+          filterUltimoContatoStart = '';
+          filterUltimoContatoEnd = '';
           table.ajax.reload();
           refreshKPIs();
         }

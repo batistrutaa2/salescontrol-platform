@@ -181,6 +181,12 @@
                             <input type="text" id="filterDateRange" class="form-control form-control-sm" placeholder="Periodo de importacao">
                         </div>
                     </div>
+                    <div class="gl-filter-item gl-filter-date-range">
+                        <div class="gl-date-range-wrapper">
+                            <svg class="gl-date-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            <input type="text" id="filterUltimoContato" class="form-control form-control-sm" placeholder="Periodo de ultimo contato">
+                        </div>
+                    </div>
                     <button type="button" class="gl-filter-clear" id="btnClearFilters">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         Limpar
@@ -226,6 +232,7 @@
                                 <th>Tabulacao</th>
                                 <th>Base</th>
                                 <th>Importado em</th>
+                                <th>Último Contato</th>
                                 <th>Acoes</th>
                             </tr>
                         </thead>

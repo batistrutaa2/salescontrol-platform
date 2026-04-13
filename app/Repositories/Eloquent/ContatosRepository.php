@@ -265,6 +265,20 @@ class ContatosRepository implements ContatosRepositoryInterface
             WHEN b.contato_id IS NOT NULL THEN 'COM VENDEDOR'
             ELSE 'SEM ATRIBUICAO'
           END as situacao
+        "),
+        DB::raw("
+          (
+            SELECT DATE_FORMAT(MAX(uc_max), '%d/%m/%Y')
+            FROM (
+              SELECT MAX(created_at) as uc_max FROM comentarios     WHERE contato_id = a.id AND empresa_id = {$empresaId}
+              UNION ALL
+              SELECT MAX(created_at)             FROM ligacoes       WHERE contato_id = a.id AND empresa_id = {$empresaId}
+              UNION ALL
+              SELECT MAX(created_at)             FROM agendamentos   WHERE contato_id = a.id AND empresa_id = {$empresaId}
+              UNION ALL
+              SELECT MAX(created_at)             FROM lead_atividades WHERE contato_id = a.id AND empresa_id = {$empresaId}
+            ) _uc
+          ) as ultimo_contato
         ")
       );
 
@@ -323,6 +337,29 @@ class ContatosRepository implements ContatosRepositoryInterface
       }
     }
 
+    // Filtro: ultimo_contato range (dd/mm/yyyy a dd/mm/yyyy)
+    if ($request->filled('ultimo_contato_inicio') && $request->filled('ultimo_contato_fim')) {
+      $inicParts = explode('/', $request->ultimo_contato_inicio);
+      $fimParts  = explode('/', $request->ultimo_contato_fim);
+      if (count($inicParts) === 3 && count($fimParts) === 3) {
+        $dataInicio = "{$inicParts[2]}-{$inicParts[1]}-{$inicParts[0]}";
+        $dataFim    = "{$fimParts[2]}-{$fimParts[1]}-{$fimParts[0]}";
+        $baseQuery->whereRaw("
+          (
+            SELECT MAX(uc_max) FROM (
+              SELECT MAX(created_at) as uc_max FROM comentarios    WHERE contato_id = a.id AND empresa_id = {$empresaId}
+              UNION ALL
+              SELECT MAX(created_at)            FROM ligacoes       WHERE contato_id = a.id AND empresa_id = {$empresaId}
+              UNION ALL
+              SELECT MAX(created_at)            FROM agendamentos   WHERE contato_id = a.id AND empresa_id = {$empresaId}
+              UNION ALL
+              SELECT MAX(created_at)            FROM lead_atividades WHERE contato_id = a.id AND empresa_id = {$empresaId}
+            ) _uc_f
+          ) BETWEEN ? AND ?
+        ", [$dataInicio . ' 00:00:00', $dataFim . ' 23:59:59']);
+      }
+    }
+
     // Total records (sem filtro de busca)
     $recordsTotal = DB::table('contatos')->where('empresa_id', $empresaId)->count();
 
@@ -344,7 +381,7 @@ class ContatosRepository implements ContatosRepositoryInterface
     // Ordenação
     $orderColumnIndex = $request->input('order.0.column', 0);
     $orderDir = $request->input('order.0.dir', 'desc');
-    $columns = ['a.id', 'a.id', 'a.nome_cliente', 'a.cpf', 'd.name', 'situacao', 'c.descricao', 'a.nome_base', 'a.created_at'];
+    $columns = ['a.id', 'a.id', 'a.nome_cliente', 'a.cpf', 'd.name', 'situacao', 'c.descricao', 'a.nome_base', 'a.created_at', 'ultimo_contato'];
     $orderColumn = $columns[$orderColumnIndex] ?? 'a.id';
 
     if ($orderColumn === 'situacao') {
@@ -357,6 +394,8 @@ class ContatosRepository implements ContatosRepositoryInterface
           ELSE 'SEM ATRIBUICAO'
         END {$orderDir}
       ");
+    } elseif ($orderColumn === 'ultimo_contato') {
+      $baseQuery->orderByRaw("ultimo_contato {$orderDir}");
     } else {
       $baseQuery->orderBy($orderColumn, $orderDir);
     }

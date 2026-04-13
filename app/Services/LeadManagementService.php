@@ -186,7 +186,7 @@ class LeadManagementService
     {
         DB::beginTransaction();
         try {
-            Contatos::where('id', $contatoId)->where('empresa_id', $empresaId)->update(['status' => 'N']);
+            Contatos::where('id', $contatoId)->where('empresa_id', $empresaId)->update(['status' => 'N', 'updated_at' => now()]);
             ContatosCorretores::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             Preditiva::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             DB::commit();
