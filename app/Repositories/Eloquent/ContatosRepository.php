@@ -251,9 +251,7 @@ class ContatosRepository implements ContatosRepositoryInterface
         'a.cpf',
         'a.telefone1',
         'a.valor_plano_atual',
-        'a.nome_base',
         'a.status as lead_status',
-        DB::raw("DATE_FORMAT(a.created_at, '%d/%m/%Y') as created_at"),
         'd.name as nome_corretor',
         'c.descricao as tabulacao',
         'b.tabulacao_id',
@@ -309,20 +307,6 @@ class ContatosRepository implements ContatosRepositoryInterface
     // Filtro: corretor
     if ($request->filled('corretor')) {
       $baseQuery->where('b.user_id', $request->corretor);
-    }
-
-    // Filtro: nome_base
-    if ($request->filled('nome_base')) {
-      $baseQuery->where('a.nome_base', $request->nome_base);
-    }
-
-    // Filtro: data_importacao (dd/mm/yyyy)
-    if ($request->filled('data_importacao')) {
-      $dateParts = explode('/', $request->data_importacao);
-      if (count($dateParts) === 3) {
-        $dateFormatted = "{$dateParts[2]}-{$dateParts[1]}-{$dateParts[0]}";
-        $baseQuery->whereDate('a.created_at', $dateFormatted);
-      }
     }
 
     // Filtro: data range (dd/mm/yyyy a dd/mm/yyyy)
@@ -381,7 +365,7 @@ class ContatosRepository implements ContatosRepositoryInterface
     // Ordenação
     $orderColumnIndex = $request->input('order.0.column', 0);
     $orderDir = $request->input('order.0.dir', 'desc');
-    $columns = ['a.id', 'a.id', 'a.nome_cliente', 'a.cpf', 'd.name', 'situacao', 'c.descricao', 'a.nome_base', 'a.created_at', 'ultimo_contato'];
+    $columns = ['a.id', 'a.id', 'a.nome_cliente', 'a.cpf', 'd.name', 'situacao', 'c.descricao', 'ultimo_contato'];
     $orderColumn = $columns[$orderColumnIndex] ?? 'a.id';
 
     if ($orderColumn === 'situacao') {

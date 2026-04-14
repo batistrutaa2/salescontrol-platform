@@ -209,15 +209,11 @@ class Mailing extends Controller
     $users = $this->usuarioRepository->getUserByCompany($empresaId);
     $tabulations = $this->tabulacoesRepository->getAll($empresaId);
     $kpis = $this->leadManagementService->getLeadKPIs($empresaId);
-    $importDates = $this->leadManagementService->getImportDatesByMonth($empresaId, now()->month, now()->year);
 
     return view('content.pages.mailing.visualizar-leads', [
       'users' => $users,
       'tabulations' => $tabulations,
       'kpis' => $kpis,
-      'importDates' => $importDates,
-      'currentMonth' => now()->month,
-      'currentYear' => now()->year,
     ]);
   }
 
@@ -250,14 +246,6 @@ class Mailing extends Controller
   {
     $kpis = $this->leadManagementService->getLeadKPIs(Auth::user()->empresa_id, $request);
     return response()->json($kpis);
-  }
-
-  public function getImportDates(Request $request)
-  {
-    $month = $request->input('month', now()->month);
-    $year = $request->input('year', now()->year);
-    $data = $this->leadManagementService->getImportDatesByMonth(Auth::user()->empresa_id, $month, $year);
-    return response()->json($data);
   }
 
   public function reactivateLead(Request $request)

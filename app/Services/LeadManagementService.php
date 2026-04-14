@@ -46,16 +46,6 @@ class LeadManagementService
             if ($request->filled('corretor')) {
                 $query->where('b.user_id', $request->corretor);
             }
-            if ($request->filled('nome_base')) {
-                $query->where('a.nome_base', $request->nome_base);
-            }
-            if ($request->filled('data_importacao')) {
-                $dateParts = explode('/', $request->data_importacao);
-                if (count($dateParts) === 3) {
-                    $dateFormatted = "{$dateParts[2]}-{$dateParts[1]}-{$dateParts[0]}";
-                    $query->whereDate('a.created_at', $dateFormatted);
-                }
-            }
             if ($request->filled('data_inicio') && $request->filled('data_fim')) {
                 $inicParts = explode('/', $request->data_inicio);
                 $fimParts = explode('/', $request->data_fim);
@@ -64,6 +54,27 @@ class LeadManagementService
                     $dataFim = "{$fimParts[2]}-{$fimParts[1]}-{$fimParts[0]}";
                     $query->whereDate('a.created_at', '>=', $dataInicio)
                         ->whereDate('a.created_at', '<=', $dataFim);
+                }
+            }
+            if ($request->filled('ultimo_contato_inicio') && $request->filled('ultimo_contato_fim')) {
+                $inicParts = explode('/', $request->ultimo_contato_inicio);
+                $fimParts  = explode('/', $request->ultimo_contato_fim);
+                if (count($inicParts) === 3 && count($fimParts) === 3) {
+                    $dataInicio = "{$inicParts[2]}-{$inicParts[1]}-{$inicParts[0]}";
+                    $dataFim    = "{$fimParts[2]}-{$fimParts[1]}-{$fimParts[0]}";
+                    $query->whereRaw("
+                        (
+                            SELECT MAX(uc_max) FROM (
+                                SELECT MAX(created_at) as uc_max FROM comentarios     WHERE contato_id = a.id AND empresa_id = {$empresaId}
+                                UNION ALL
+                                SELECT MAX(created_at)             FROM ligacoes       WHERE contato_id = a.id AND empresa_id = {$empresaId}
+                                UNION ALL
+                                SELECT MAX(created_at)             FROM agendamentos   WHERE contato_id = a.id AND empresa_id = {$empresaId}
+                                UNION ALL
+                                SELECT MAX(created_at)             FROM lead_atividades WHERE contato_id = a.id AND empresa_id = {$empresaId}
+                            ) _uc_f
+                        ) BETWEEN ? AND ?
+                    ", [$dataInicio . ' 00:00:00', $dataFim . ' 23:59:59']);
                 }
             }
         }
@@ -86,24 +97,6 @@ class LeadManagementService
             'remarketing' => (int) ($result->remarketing ?? 0),
             'sem_atribuicao' => (int) ($result->sem_atribuicao ?? 0),
         ];
-    }
-
-    public function getImportDatesByMonth(int $empresaId, int $month, int $year): array
-    {
-        $imports = DB::table('contatos')
-            ->where('empresa_id', $empresaId)
-            ->whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->selectRaw("
-                DATE(created_at) as data_importacao,
-                nome_base,
-                COUNT(*) as quantidade
-            ")
-            ->groupBy('data_importacao', 'nome_base')
-            ->orderBy('data_importacao', 'asc')
-            ->get();
-
-        return $imports->toArray();
     }
 
     public function reactivateLead(int $contatoId, int $empresaId): bool

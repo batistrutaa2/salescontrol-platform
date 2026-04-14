@@ -28,9 +28,6 @@
     <script>
         window.leadHubConfig = {
             kpis: @json($kpis),
-            importDates: @json($importDates),
-            currentMonth: {{ $currentMonth }},
-            currentYear: {{ $currentYear }},
             csrfToken: '{{ csrf_token() }}'
         };
     </script>
@@ -129,25 +126,6 @@
     {{-- Main Layout --}}
     <div class="gl-main-layout">
 
-        {{-- Sidebar: Import Dates --}}
-        <div class="gl-imports-panel">
-            <div class="gl-imports-header">
-                <h6>Importacoes</h6>
-                <div class="gl-month-nav">
-                    <button type="button" id="btnPrevMonth">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-                    </button>
-                    <span class="gl-month-label" id="monthLabel"></span>
-                    <button type="button" id="btnNextMonth">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
-                </div>
-            </div>
-            <div class="gl-imports-list" id="importsList">
-                {{-- Rendered via JS --}}
-            </div>
-        </div>
-
         {{-- Table Area --}}
         <div class="gl-table-area">
             <div class="gl-table-card">
@@ -171,9 +149,6 @@
                                 <option value="{{ $user->id }}">{{ strtoupper($user->name) }}</option>
                             @endforeach
                         </select>
-                    </div>
-                    <div class="gl-filter-item gl-filter-base">
-                        <input type="text" id="filterBase" class="form-control form-control-sm" placeholder="Filtrar por base...">
                     </div>
                     <div class="gl-filter-item gl-filter-date-range">
                         <div class="gl-date-range-wrapper">
@@ -230,8 +205,6 @@
                                 <th>Corretor</th>
                                 <th>Situacao</th>
                                 <th>Tabulacao</th>
-                                <th>Base</th>
-                                <th>Importado em</th>
                                 <th>Último Contato</th>
                                 <th>Acoes</th>
                             </tr>

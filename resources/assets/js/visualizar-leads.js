@@ -10,18 +10,12 @@
 
   let table;
   let selectedIds = new Set();
-  let currentMonth = config.currentMonth || new Date().getMonth() + 1;
-  let currentYear = config.currentYear || new Date().getFullYear();
-  let activeImportDate = null;
-  let activeImportBase = null;
   let activeSituacaoFilter = '';
   let pendingConfirmAction = null;
   let filterDateStart = '';
   let filterDateEnd = '';
   let filterUltimoContatoStart = '';
   let filterUltimoContatoEnd = '';
-
-  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
   // ============================================
   // Init
@@ -32,11 +26,8 @@
     initDateRangeFilter();
     initUltimoContatoFilter();
     initKpiCards();
-    initImportsSidebar();
     initBulkActions();
     initModals();
-    renderImportDates(config.importDates || []);
-    updateMonthLabel();
   });
 
   // ============================================
@@ -52,13 +43,9 @@
         data: function (d) {
           d.situacao = activeSituacaoFilter || $('#filterSituacao').val();
           d.corretor = $('#filterCorretor').val();
-          var baseVal = $('#filterBase').val() || activeImportBase || '';
-          if (baseVal) d.nome_base = baseVal;
           if (filterDateStart && filterDateEnd) {
             d.data_inicio = filterDateStart;
             d.data_fim = filterDateEnd;
-          } else if (activeImportDate) {
-            d.data_importacao = activeImportDate;
           }
           if (filterUltimoContatoStart && filterUltimoContatoEnd) {
             d.ultimo_contato_inicio = filterUltimoContatoStart;
@@ -74,8 +61,6 @@
         { data: 'nome_corretor', title: 'Corretor' },
         { data: 'situacao', title: 'Situacao' },
         { data: 'tabulacao', title: 'Tabulacao' },
-        { data: 'nome_base', title: 'Base' },
-        { data: 'created_at', title: 'Importado em' },
         { data: 'ultimo_contato', title: 'Último Contato', searchable: false },
         { data: null, title: 'Acoes', orderable: false, searchable: false }
       ],
@@ -128,21 +113,11 @@
           targets: 7,
           render: function (data) {
             if (!data) return '<span class="text-muted">-</span>';
-            if (data.length > 18) {
-              return '<span title="' + data + '" style="cursor:help">' + data.substring(0, 18) + '...</span>';
-            }
-            return data;
-          }
-        },
-        {
-          targets: 9,
-          render: function (data) {
-            if (!data) return '<span class="text-muted">-</span>';
             return '<span title="Último contato registrado">' + data + '</span>';
           }
         },
         {
-          targets: 10,
+          targets: 8,
           render: function (data, type, full) {
             const sit = full.situacao;
             let items = '';
@@ -289,8 +264,6 @@
   // ============================================
   // Filters
   // ============================================
-  var filterBaseTimer = null;
-
   function initFilters() {
     $('#filterSituacao, #filterCorretor').on('change', function () {
       // sync KPI card active state if situacao changed manually
@@ -305,25 +278,9 @@
       refreshKPIs();
     });
 
-    // Base name filter with debounce
-    $('#filterBase').on('input', function () {
-      clearTimeout(filterBaseTimer);
-      filterBaseTimer = setTimeout(function () {
-        // If user typed manually, clear sidebar selection but keep date range
-        activeImportDate = null;
-        activeImportBase = null;
-        $('.gl-import-item').removeClass('active');
-        table.ajax.reload();
-        refreshKPIs();
-      }, 400);
-    });
-
     $('#btnClearFilters').on('click', function () {
       $('#filterSituacao, #filterCorretor').val('');
-      $('#filterBase').val('');
       activeSituacaoFilter = '';
-      activeImportDate = null;
-      activeImportBase = null;
       filterDateStart = '';
       filterDateEnd = '';
       filterUltimoContatoStart = '';
@@ -331,7 +288,6 @@
       if (window.dateRangePicker) window.dateRangePicker.clear();
       if (window.ultimoContatoPicker) window.ultimoContatoPicker.clear();
       $('.gl-kpi-card').removeClass('active');
-      $('.gl-import-item').removeClass('active');
       table.ajax.reload();
       refreshKPIs();
     });
@@ -353,9 +309,6 @@
           var d2 = selectedDates[1];
           filterDateStart = String(d1.getDate()).padStart(2, '0') + '/' + String(d1.getMonth() + 1).padStart(2, '0') + '/' + d1.getFullYear();
           filterDateEnd = String(d2.getDate()).padStart(2, '0') + '/' + String(d2.getMonth() + 1).padStart(2, '0') + '/' + d2.getFullYear();
-          // Date range is mutually exclusive with sidebar exact-date selection
-          activeImportDate = null;
-          $('.gl-import-item').removeClass('active');
           table.ajax.reload();
           refreshKPIs();
         }
@@ -427,14 +380,14 @@
   function getActiveFilters() {
     var filters = {};
     var corretor = $('#filterCorretor').val();
-    var base = $('#filterBase').val() || activeImportBase || '';
     if (corretor) filters.corretor = corretor;
-    if (base) filters.nome_base = base;
     if (filterDateStart && filterDateEnd) {
       filters.data_inicio = filterDateStart;
       filters.data_fim = filterDateEnd;
-    } else if (activeImportDate) {
-      filters.data_importacao = activeImportDate;
+    }
+    if (filterUltimoContatoStart && filterUltimoContatoEnd) {
+      filters.ultimo_contato_inicio = filterUltimoContatoStart;
+      filters.ultimo_contato_fim = filterUltimoContatoEnd;
     }
     return filters;
   }
@@ -452,84 +405,6 @@
 
   function animateValue(selector, newVal) {
     $(selector).text(newVal.toLocaleString('pt-BR'));
-  }
-
-  // ============================================
-  // Imports Sidebar
-  // ============================================
-  function initImportsSidebar() {
-    $('#btnPrevMonth').on('click', function () {
-      currentMonth--;
-      if (currentMonth < 1) { currentMonth = 12; currentYear--; }
-      fetchImportDates();
-    });
-
-    $('#btnNextMonth').on('click', function () {
-      currentMonth++;
-      if (currentMonth > 12) { currentMonth = 1; currentYear++; }
-      fetchImportDates();
-    });
-  }
-
-  function updateMonthLabel() {
-    $('#monthLabel').text(monthNames[currentMonth - 1] + '/' + currentYear);
-  }
-
-  function fetchImportDates() {
-    updateMonthLabel();
-    $.get('/mailing/getImportDates', { month: currentMonth, year: currentYear }, function (data) {
-      renderImportDates(data);
-    });
-  }
-
-  function renderImportDates(imports) {
-    const container = $('#importsList');
-    container.empty();
-
-    if (!imports || imports.length === 0) {
-      container.html('<div class="gl-imports-empty"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Nenhuma importacao neste mes</div>');
-      return;
-    }
-
-    imports.forEach(function (item) {
-      const dateParts = item.data_importacao.split('-');
-      const dateFormatted = dateParts[2] + '/' + dateParts[1];
-      const baseName = item.nome_base || 'Sem nome';
-      const itemKey = dateParts[2] + '/' + dateParts[1] + '/' + dateParts[0] + '|' + baseName;
-      const activeKey = activeImportDate ? activeImportDate + '|' + (activeImportBase || '') : null;
-      const activeCls = activeKey === itemKey ? ' active' : '';
-
-      const html = '<div class="gl-import-item' + activeCls + '" data-date="' + dateParts[2] + '/' + dateParts[1] + '/' + dateParts[0] + '" data-base="' + baseName + '">' +
-        '<span class="gl-import-date">' + dateFormatted + '</span>' +
-        '<div class="gl-import-info"><span class="gl-import-base" title="' + baseName + '">' + baseName + '</span></div>' +
-        '<span class="gl-import-count">' + item.quantidade + '</span>' +
-        '</div>';
-      container.append(html);
-    });
-
-    // Click handler
-    container.find('.gl-import-item').on('click', function () {
-      const date = $(this).data('date');
-      const base = $(this).data('base');
-      if (activeImportDate === date && activeImportBase === base) {
-        activeImportDate = null;
-        activeImportBase = null;
-        $('#filterBase').val('');
-        $(this).removeClass('active');
-      } else {
-        $('.gl-import-item').removeClass('active');
-        $(this).addClass('active');
-        activeImportDate = date;
-        activeImportBase = base;
-        // Populate base filter and clear date range (sidebar = exact date, not range)
-        $('#filterBase').val(base === 'Sem nome' ? '' : base);
-        filterDateStart = '';
-        filterDateEnd = '';
-        if (window.dateRangePicker) window.dateRangePicker.clear();
-      }
-      table.ajax.reload();
-      refreshKPIs();
-    });
   }
 
   // ============================================
@@ -748,7 +623,6 @@
     clearSelection();
     table.ajax.reload();
     refreshKPIs();
-    fetchImportDates();
   }
 
   // ============================================
