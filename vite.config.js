@@ -58,6 +58,7 @@ export default defineConfig({
         'resources/css/app.css',
         'resources/assets/css/demo.css',
         'resources/js/app.js',
+        'resources/js/echo.js',
         'resources/assets/js/comercialkanban.js',
         'resources/assets/js/importmailing.js',
         ...pageJsFiles,
