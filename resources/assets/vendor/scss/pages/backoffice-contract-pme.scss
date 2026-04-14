@@ -1020,7 +1020,6 @@ textarea.pme-input {
     border-top: none;
     border-radius: 0 0 var(--pme-border-radius-sm) var(--pme-border-radius-sm);
     padding: 0.6rem;
-    max-height: calc(100vh - 200px);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
