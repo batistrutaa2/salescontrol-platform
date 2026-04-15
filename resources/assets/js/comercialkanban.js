@@ -967,71 +967,162 @@
 })();
 
 document.addEventListener('DOMContentLoaded', function () {
-  // Botão para abrir a modal
-  const btnFilaPreditiva = document.getElementById('btn-fila-preditiva');
-  const modalFilaPreditiva = new bootstrap.Modal(document.getElementById('modal-fila-preditiva'));
+  // ──────────────────────────────────────────────────────────────
+  // Elementos DOM
+  // ──────────────────────────────────────────────────────────────
+  const btnFilaPreditiva  = document.getElementById('btn-fila-preditiva');
+  const modalEl           = document.getElementById('modal-fila-preditiva');
+  if (!modalEl) return; // página sem o modal (outros perfis)
 
-  // Elementos da modal
-  const loadingElement = document.getElementById('loading-fila-preditiva');
+  const modalFilaPreditiva = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+  const loadingElement   = document.getElementById('loading-fila-preditiva');
   const noResultsElement = document.getElementById('no-results-fila-preditiva');
   const clienteContainer = document.getElementById('cliente-preditiva-container');
-  const tabulacaoSelect = document.getElementById('tabulacao-preditiva');
-  const btnDescartar = document.getElementById('btn-descartar-cliente');
-  const btnConverter = document.getElementById('btn-converter-cliente');
+  const btnDescartar     = document.getElementById('btn-descartar-cliente');
+  const btnConverter     = document.getElementById('btn-converter-cliente');
+  const clienteId        = document.getElementById('cliente-id');
+  const token            = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-  // Campos do cliente
-  const clienteId = document.getElementById('cliente-id');
-  const clienteNome = document.getElementById('cliente-nome');
-  const clienteEmail = document.getElementById('cliente-email');
-  const clienteTelefone = document.getElementById('cliente-telefone');
-  const clientecpf = document.getElementById('cliente-cpf');
-  const clienteNascimento = document.getElementById('cliente-nascimento');
-  const clientePlano = document.getElementById('cliente-plano');
-  const clienteCategoria = document.getElementById('cliente-categoria');
-  const clienteEntidade = document.getElementById('cliente-entidade');
-  const clienteValor = document.getElementById('cliente-valor');
+  // ──────────────────────────────────────────────────────────────
+  // Estado de sessão
+  // ──────────────────────────────────────────────────────────────
+  let sessionHistory    = []; // { type, id, nome, plano, entidade, acao, tabulacao, clienteData, consultaData, cpf }
+  let clienteAtivo      = null;
+  let modoVisualizacao  = false;
+  let indiceVisualizando = -1;
 
-  // Obter token CSRF
-  const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  // Salva o resultado da última consulta de CPF para armazenar no histórico
+  document.addEventListener('kp:consultaDone', function(e) {
+    window._kpConsultaAtual = e.detail;
+  });
 
-  // Evento para abrir a modal e buscar cliente
-  if (btnFilaPreditiva != null) {
-      btnFilaPreditiva.addEventListener('click', function () {
-      resetarModal();
+  // ──────────────────────────────────────────────────────────────
+  // Abrir modal
+  // ──────────────────────────────────────────────────────────────
+  if (btnFilaPreditiva) {
+    btnFilaPreditiva.addEventListener('click', function () {
+      sessionHistory     = [];
+      clienteAtivo       = null;
+      modoVisualizacao   = false;
+      indiceVisualizando = -1;
+      window._kpConsultaAtual = null;
+      resetarPainelAtivo();
+      renderizarHistorico();
       modalFilaPreditiva.show();
       buscarClientePreditiva();
     });
   }
 
-
-  // Evento para habilitar/desabilitar botão de descartar
-  tabulacaoSelect.addEventListener('change', function () {
-    btnDescartar.disabled = !this.value;
+  // Limpar sessão ao fechar a modal
+  modalEl.addEventListener('hidden.bs.modal', function () {
+    sessionHistory     = [];
+    clienteAtivo       = null;
+    modoVisualizacao   = false;
+    indiceVisualizando = -1;
+    window._kpConsultaAtual = null;
   });
 
-  // Evento para descartar cliente
+  // ──────────────────────────────────────────────────────────────
+  // Descartar — abre Swal para seleção do motivo
+  // ──────────────────────────────────────────────────────────────
   btnDescartar.addEventListener('click', function () {
     const id = clienteId.value;
-    const tabulacao = tabulacaoSelect.value;
-
-    if (!id || !tabulacao) {
-      alert('Selecione uma tabulação antes de descartar o cliente.');
+    if (!id) {
+      Swal.fire('Atenção', 'Nenhum cliente selecionado.', 'warning');
       return;
     }
 
-    descartarCliente(id, tabulacao);
-
+    Swal.fire({
+      title: 'Motivo do Descarte',
+      html: `
+        <p style="font-size:0.9375rem;color:#6B7280;margin:0 0 1rem">
+          Selecione o motivo pelo qual este lead está sendo descartado:
+        </p>
+        <div id="swal-motivos" style="display:flex;flex-direction:column;gap:0.5rem">
+          ${[
+            { valor: 'NAO ATENDE',        label: 'Não atende',          icon: '📵' },
+            { valor: 'NUMERO INEXISTENTE', label: 'Número inexistente',  icon: '🚫' },
+            { valor: 'NAO INTERESSADO',    label: 'Não interessado',     icon: '👎' },
+            { valor: 'JA POSSUI PLANO',    label: 'Já possui plano',     icon: '✅' },
+          ].map(op => `
+            <label class="swal-motivo-option" style="
+              display:flex;align-items:center;gap:0.75rem;
+              padding:0.75rem 1rem;border-radius:10px;cursor:pointer;
+              border:2px solid #E5E7EB;transition:all 0.15s;
+              font-family:'Plus Jakarta Sans',sans-serif;font-size:0.9375rem;font-weight:600;
+              color:#374151;background:#fff;
+            ">
+              <input type="radio" name="swal-tabulacao" value="${op.valor}"
+                style="accent-color:#7C3AED;width:18px;height:18px;flex-shrink:0">
+              <span style="font-size:1.1rem">${op.icon}</span>
+              ${op.label}
+            </label>
+          `).join('')}
+        </div>`,
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar Descarte',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        confirmButton: 'btn btn-danger waves-effect me-2',
+        cancelButton:  'btn btn-secondary waves-effect',
+        popup: 'swal-descarte-popup',
+      },
+      buttonsStyling: false,
+      didOpen: () => {
+        // Estilo hover nas opções via JS (evita conflito com Swal CSS)
+        document.querySelectorAll('.swal-motivo-option').forEach(label => {
+          label.addEventListener('mouseenter', () => {
+            label.style.borderColor = '#7C3AED';
+            label.style.background  = 'rgba(124,58,237,0.05)';
+          });
+          label.addEventListener('mouseleave', () => {
+            const radio = label.querySelector('input');
+            if (!radio.checked) {
+              label.style.borderColor = '#E5E7EB';
+              label.style.background  = '#fff';
+            }
+          });
+          label.querySelector('input').addEventListener('change', () => {
+            document.querySelectorAll('.swal-motivo-option').forEach(l => {
+              const r = l.querySelector('input');
+              if (r.checked) {
+                l.style.borderColor = '#7C3AED';
+                l.style.background  = 'rgba(124,58,237,0.06)';
+                l.style.color       = '#7C3AED';
+              } else {
+                l.style.borderColor = '#E5E7EB';
+                l.style.background  = '#fff';
+                l.style.color       = '#374151';
+              }
+            });
+          });
+        });
+      },
+      preConfirm: () => {
+        const selecionado = document.querySelector('input[name="swal-tabulacao"]:checked');
+        if (!selecionado) {
+          Swal.showValidationMessage('Selecione um motivo antes de confirmar.');
+          return false;
+        }
+        return selecionado.value;
+      },
+    }).then(result => {
+      if (result.isConfirmed && result.value) {
+        descartarCliente(id, result.value);
+      }
+    });
   });
 
-  // Evento para converter cliente
+  // ──────────────────────────────────────────────────────────────
+  // Converter
+  // ──────────────────────────────────────────────────────────────
   btnConverter.addEventListener('click', function () {
     const id = clienteId.value;
-
     if (!id) {
-      alert('Nenhum cliente selecionado.');
+      Swal.fire('Atenção', 'Nenhum cliente selecionado.', 'warning');
       return;
     }
-
     Swal.fire({
       title: 'Tipo de conversão',
       text: 'Qual o motivo da conversão deste lead?',
@@ -1039,263 +1130,599 @@ document.addEventListener('DOMContentLoaded', function () {
       showCancelButton: true,
       showDenyButton: true,
       confirmButtonText: 'Cotação',
-      denyButtonText: 'Ligar Depois',
-      cancelButtonText: 'Cancelar',
+      denyButtonText:    'Ligar Depois',
+      cancelButtonText:  'Cancelar',
       customClass: {
         confirmButton: 'btn btn-success waves-effect me-2',
-        denyButton: 'btn btn-info waves-effect me-2',
-        cancelButton: 'btn btn-secondary waves-effect'
+        denyButton:    'btn btn-info waves-effect me-2',
+        cancelButton:  'btn btn-secondary waves-effect'
       },
       buttonsStyling: false
-    }).then((result) => {
-      if (result.isConfirmed) {
-        converterCliente(id, 'COTACAO');
-      } else if (result.isDenied) {
-        converterCliente(id, 'LIGAR_DEPOIS');
-      }
+    }).then(result => {
+      if (result.isConfirmed) converterCliente(id, 'COTACAO');
+      else if (result.isDenied) converterCliente(id, 'LIGAR_DEPOIS');
     });
   });
 
-  // Função para buscar cliente da fila preditiva
+  // ──────────────────────────────────────────────────────────────
+  // buscarClientePreditiva
+  // ──────────────────────────────────────────────────────────────
   function buscarClientePreditiva() {
+    // Sair do modo visualização ao buscar novo cliente da fila
+    modoVisualizacao   = false;
+    indiceVisualizando = -1;
+    const banner = document.getElementById('kp-viewing-banner');
+    if (banner) banner.classList.add('d-none');
+    document.getElementById('btn-descartar-cliente').style.display = '';
+    document.getElementById('btn-converter-cliente').style.display = '';
+
     loadingElement.classList.remove('d-none');
     noResultsElement.classList.add('d-none');
     clienteContainer.classList.add('d-none');
+    atualizarSubtitulo('Buscando próximo cliente...');
 
     fetch('/comercial/getClientesPreditiva', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
-      },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
       body: JSON.stringify({})
     })
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
         loadingElement.classList.add('d-none');
-
         if (!data || data.length === 0) {
           noResultsElement.classList.remove('d-none');
+          atualizarSubtitulo('Fila vazia — nenhum cliente disponível');
           return;
         }
-
         const cliente = data[0];
+        clienteAtivo  = cliente;
         preencherDadosCliente(cliente);
         clienteContainer.classList.remove('d-none');
+        clienteContainer.style.display = 'flex';
+        atualizarSubtitulo(`${sessionHistory.length + 1}º cliente desta sessão`);
+        renderizarHistorico(); // atualiza active state no histórico
       })
-      .catch(error => {
-        console.error('Erro ao buscar cliente:', error);
+      .catch(err => {
+        console.error(err);
         loadingElement.classList.add('d-none');
-        alert('Erro ao buscar cliente. Tente novamente.');
+        Swal.fire('Erro', 'Erro ao buscar cliente. Tente novamente.', 'error');
       });
   }
 
-  // Função para preencher dados do cliente
+  // ──────────────────────────────────────────────────────────────
+  // preencherDadosCliente
+  // ──────────────────────────────────────────────────────────────
   function preencherDadosCliente(cliente) {
+    window._kpConsultaAtual = null; // reset ao trocar de cliente
     clienteId.value = cliente.id;
     document.getElementById('cliente-nome-header').textContent = cliente.nome || 'Cliente';
-    clienteEmail.textContent = cliente.email || '-';
-    clientecpf.textContent = cliente.cpf || '-';
-    clienteTelefone.textContent = cliente.telefone || '-';
-    clienteNascimento.textContent = formatarData(cliente.data_nascimento) || '-';
-    clientePlano.textContent = cliente.plano || '-';
-    clienteCategoria.textContent = cliente.categoria || '-';
-    clienteEntidade.textContent = cliente.entidade || '-';
-    clienteValor.textContent = formatarMoeda(cliente.valor_plano_atual) || '-';
+    document.getElementById('cliente-email').textContent      = cliente.email || '—';
+    document.getElementById('cliente-cpf').textContent        = cliente.cpf || '—';
+    document.getElementById('cliente-telefone').textContent   = cliente.telefone || '—';
+    document.getElementById('cliente-nascimento').textContent = formatarData(cliente.data_nascimento) || '—';
+    document.getElementById('cliente-plano').textContent      = cliente.plano || '—';
+    document.getElementById('cliente-categoria').textContent  = cliente.categoria || '—';
+    document.getElementById('cliente-entidade').textContent   = cliente.entidade || '—';
+    document.getElementById('cliente-valor').textContent      = formatarMoeda(cliente.valor_plano_atual) || '—';
 
-    // Preencher dependentes
+    // Ocultar dados completos ao trocar de cliente e resetar tabs
+    const consulta = document.getElementById('dados-consulta-cliente');
+    if (consulta) consulta.classList.add('d-none');
+    const dadosPessoa = document.getElementById('dados-pessoa-preditiva');
+    if (dadosPessoa) dadosPessoa.classList.add('d-none');
+
+    // Volta para a primeira tab (Dados Pessoais)
+    const nav = document.getElementById('kp-tabs-nav');
+    if (nav) {
+      nav.querySelectorAll('.kp-info-tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+      document.querySelectorAll('.kp-info-tab-pane').forEach((p, i) => p.classList.toggle('active', i === 0));
+      // Zera contagens
+      ['kp-count-telefones','kp-count-emails','kp-count-enderecos'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '0';
+      });
+    }
+
     preencherDependentes(cliente.dependentes || []);
   }
 
-  // Função para preencher dependentes
+  // ──────────────────────────────────────────────────────────────
+  // preencherDependentes
+  // ──────────────────────────────────────────────────────────────
   function preencherDependentes(dependentes) {
-    const cardDependentes = document.getElementById('card-dependentes');
-    const listaDependentes = document.getElementById('lista-dependentes');
-    const countDependentes = document.getElementById('count-dependentes');
+    const cardDep  = document.getElementById('card-dependentes');
+    const listaDep = document.getElementById('lista-dependentes');
+    const countDep = document.getElementById('count-dependentes');
 
     if (!dependentes || dependentes.length === 0) {
-      cardDependentes.classList.add('d-none');
+      cardDep.classList.add('d-none');
       return;
     }
 
-    countDependentes.textContent = dependentes.length;
-    listaDependentes.innerHTML = '';
+    countDep.textContent = dependentes.length;
+    listaDep.innerHTML   = '';
 
-    dependentes.forEach((dep, index) => {
-      const depCard = `
-        <div class="col-md-6">
-          <div class="card border">
-            <div class="card-body p-3">
-              <div class="d-flex align-items-start mb-2">
-                <div class="avatar avatar-sm flex-shrink-0 me-2">
-                  <span class="avatar-initial rounded bg-label-info">
-                    <i class="ri-user-line"></i>
-                  </span>
-                </div>
-                <div class="flex-grow-1">
-                  <h6 class="mb-0">${dep.nome || 'Sem nome'}</h6>
-                  <small class="text-muted">${dep.parentesco || 'Dependente'}</small>
-                </div>
-              </div>
-              ${dep.cpf ? `
-                <div class="mb-1">
-                  <small class="text-muted">
-                    <i class="ri-id-card-line me-1"></i>${dep.cpf}
-                  </small>
-                </div>
-              ` : ''}
-              ${dep.idade ? `
-                <div class="mb-1">
-                  <small class="text-muted">
-                    <i class="ri-calendar-line me-1"></i>${dep.idade} anos
-                  </small>
-                </div>
-              ` : ''}
-              ${dep.telefone_1 ? `
-                <div class="mb-1">
-                  <small class="text-muted">
-                    <i class="ri-phone-line me-1"></i>${dep.telefone_1}
-                  </small>
-                </div>
-              ` : ''}
-              ${dep.telefone_2 ? `
-                <div class="mb-1">
-                  <small class="text-muted">
-                    <i class="ri-phone-line me-1"></i>${dep.telefone_2}
-                  </small>
-                </div>
-              ` : ''}
-              ${dep.valor_plano ? `
-                <div class="mt-2">
-                  <span class="badge bg-label-success">${formatarMoeda(dep.valor_plano)}</span>
-                </div>
-              ` : ''}
-            </div>
-          </div>
-        </div>
+    dependentes.forEach(dep => {
+      const card = document.createElement('div');
+      card.className = 'kp-dep-card';
+      card.innerHTML = `
+        <div class="kp-dep-nome">${dep.nome || 'Sem nome'}</div>
+        <div class="kp-dep-rel">${dep.parentesco || 'Dependente'}</div>
+        ${dep.cpf    ? `<div class="kp-dep-detail"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>${dep.cpf}</div>` : ''}
+        ${dep.idade  ? `<div class="kp-dep-detail"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${dep.idade} anos</div>` : ''}
+        ${dep.telefone_1 ? `<div class="kp-dep-detail"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13"/></svg>${dep.telefone_1}</div>` : ''}
+        ${dep.telefone_2 ? `<div class="kp-dep-detail"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13"/></svg>${dep.telefone_2}</div>` : ''}
+        ${dep.valor_plano ? `<span class="kp-dep-valor">${formatarMoeda(dep.valor_plano)}</span>` : ''}
       `;
-
-      listaDependentes.innerHTML += depCard;
+      listaDep.appendChild(card);
     });
 
-    cardDependentes.classList.remove('d-none');
+    cardDep.classList.remove('d-none');
   }
 
-  // Função para descartar cliente
+  // ──────────────────────────────────────────────────────────────
+  // descartarCliente
+  // ──────────────────────────────────────────────────────────────
   function descartarCliente(id, tabulacao) {
+    window._kpConsultaAtual = null;
+    indiceVisualizando = -1;
+
     loadingElement.classList.remove('d-none');
     clienteContainer.classList.add('d-none');
 
     fetch('/comercial/descartarClientePreditiva', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
-      },
-      body: JSON.stringify({
-        contato_id: id,
-        tabulacao: tabulacao
-      })
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+      body: JSON.stringify({ contato_id: id, tabulacao })
     })
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
         if (data.success) {
-          resetarModal();
+          clienteAtivo = null;
+          resetarPainelAtivo();
           buscarClientePreditiva();
         } else {
-          alert('Erro ao descartar cliente. Tente novamente.');
+          Swal.fire('Erro', 'Erro ao descartar cliente. Tente novamente.', 'error');
           clienteContainer.classList.remove('d-none');
           loadingElement.classList.add('d-none');
         }
       })
-      .catch(error => {
-        console.error('Erro ao descartar cliente:', error);
-        alert('Erro ao descartar cliente. Tente novamente.');
+      .catch(err => {
+        console.error(err);
+        Swal.fire('Erro', 'Erro ao descartar cliente. Tente novamente.', 'error');
         clienteContainer.classList.remove('d-none');
         loadingElement.classList.add('d-none');
       });
   }
 
-  // Função para converter cliente
+  // ──────────────────────────────────────────────────────────────
+  // converterCliente
+  // ──────────────────────────────────────────────────────────────
   function converterCliente(id, tabulacao) {
     loadingElement.classList.remove('d-none');
     clienteContainer.classList.add('d-none');
 
     fetch('/comercial/converterClientePreditiva', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
-      },
-      body: JSON.stringify({
-        contato_id: id,
-        tabulacao: tabulacao
-      })
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+      body: JSON.stringify({ contato_id: id, tabulacao })
     })
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
         if (data.success) {
+          window._kpConsultaAtual = null;
+          indiceVisualizando = -1;
           Swal.fire({
             icon: 'success',
-            title: 'Cliente convertido com sucesso!',
+            title: 'Cliente convertido!',
             text: 'O cliente foi adicionado à sua lista de prospecção.',
             confirmButtonText: 'OK',
             customClass: { confirmButton: 'btn btn-success waves-effect' }
-          }).then(result => {
+          }).then(() => {
             modalFilaPreditiva.hide();
             location.reload();
           });
         } else {
-          alert('Erro ao converter cliente. Tente novamente.');
+          Swal.fire('Erro', 'Erro ao converter cliente. Tente novamente.', 'error');
           clienteContainer.classList.remove('d-none');
           loadingElement.classList.add('d-none');
         }
       })
-      .catch(error => {
-        console.error('Erro ao converter cliente:', error);
-        alert('Erro ao converter cliente. Tente novamente.');
+      .catch(err => {
+        console.error(err);
+        Swal.fire('Erro', 'Erro ao converter cliente. Tente novamente.', 'error');
         clienteContainer.classList.remove('d-none');
         loadingElement.classList.add('d-none');
       });
   }
 
-  // Função para resetar a modal
-  function resetarModal() {
-    tabulacaoSelect.value = '';
-    btnDescartar.disabled = true;
-    clienteId.value = '';
-    document.getElementById('cliente-nome-header').textContent = 'Cliente';
-    clienteEmail.textContent = '-';
-    clienteTelefone.textContent = '-';
-    clienteNascimento.textContent = '-';
-    clientePlano.textContent = '-';
-    clienteCategoria.textContent = '-';
-    clienteEntidade.textContent = '-';
-    clienteValor.textContent = '-';
+  // ──────────────────────────────────────────────────────────────
+  // renderizarHistorico — atualiza o painel esquerdo
+  // ──────────────────────────────────────────────────────────────
+  function renderizarHistorico() {
+    const list    = document.getElementById('kp-history-list');
+    const empty   = document.getElementById('kp-history-empty');
+    const counter = document.getElementById('kp-history-count');
 
-    // Limpar dependentes
+    counter.textContent = sessionHistory.length;
+
+    if (sessionHistory.length === 0) {
+      empty.style.display = '';
+      list.querySelectorAll('.kp-history-item').forEach(el => el.remove());
+      return;
+    }
+
+    empty.style.display = 'none';
+    list.querySelectorAll('.kp-history-item').forEach(el => el.remove());
+
+    // Renderiza do mais recente para o mais antigo
+    [...sessionHistory].reverse().forEach((item, reverseIdx) => {
+      const realIdx = sessionHistory.length - 1 - reverseIdx;
+      const el = document.createElement('div');
+      const isActive = realIdx === indiceVisualizando;
+
+      if (item.type === 'search') {
+        // ── Item de busca manual de CPF ──
+        el.className = 'kp-history-item kp-item-search' + (isActive ? ' kp-item-active' : '');
+        el.innerHTML = `
+          <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.2rem">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;opacity:.6">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <div class="kp-hist-nome" title="${item.nome || item.cpf || ''}">${item.nome || item.cpf || 'Sem nome'}</div>
+          </div>
+          <div class="kp-hist-plano">${item.cpf || '—'}</div>
+          <span class="kp-history-badge badge-pesquisa">Busca Manual</span>
+        `;
+      } else {
+        // ── Item de lead da fila ──
+        el.className = 'kp-history-item kp-item-lead' + (isActive ? ' kp-item-active' : '');
+        const badgeCfg = {
+          DESCARTADO: { cls: 'badge-descartado', label: 'Descartado' },
+          CONVERTIDO: { cls: 'badge-convertido', label: 'Convertido' },
+        };
+        const b = badgeCfg[item.acao] ?? { cls: 'badge-aguardando', label: 'Em análise' };
+        el.innerHTML = `
+          <div class="kp-hist-nome" title="${item.nome || ''}">${item.nome || 'Sem nome'}</div>
+          <div class="kp-hist-plano">${item.plano || item.entidade || '—'}</div>
+          <span class="kp-history-badge ${b.cls}">${b.label}</span>
+          ${item.tabulacao ? `<div class="kp-hist-tab">${item.tabulacao}</div>` : ''}
+        `;
+      }
+
+      el.style.cursor = 'pointer';
+      el.dataset.index = realIdx;
+      el.addEventListener('click', function() {
+        const idx = parseInt(this.dataset.index);
+        indiceVisualizando = idx;
+        renderizarHistorico();
+        restaurarItemNoPanel(sessionHistory[idx]);
+      });
+
+      list.insertBefore(el, list.firstChild);
+    });
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // restaurarItemNoPanel — exibe dados de um item do histórico
+  // ──────────────────────────────────────────────────────────────
+  function restaurarItemNoPanel(item) {
+    modoVisualizacao = true;
+
+    loadingElement.classList.add('d-none');
+    noResultsElement.classList.add('d-none');
+    clienteContainer.classList.remove('d-none');
+    clienteContainer.style.display = 'flex';
+
+    if (item.type === 'lead' && item.clienteData) {
+      // Preenche o hero strip com dados do lead histórico
+      const c = item.clienteData;
+      clienteId.value = '';
+      document.getElementById('cliente-nome-header').textContent = c.nome || 'Cliente';
+      document.getElementById('cliente-email').textContent      = c.email || '—';
+      document.getElementById('cliente-cpf').textContent        = c.cpf || '—';
+      document.getElementById('cliente-telefone').textContent   = c.telefone || '—';
+      document.getElementById('cliente-nascimento').textContent = formatarData(c.data_nascimento) || '—';
+      document.getElementById('cliente-plano').textContent      = c.plano || '—';
+      document.getElementById('cliente-categoria').textContent  = c.categoria || '—';
+      document.getElementById('cliente-entidade').textContent   = c.entidade || '—';
+      document.getElementById('cliente-valor').textContent      = formatarMoeda(c.valor_plano_atual) || '—';
+    } else if (item.type === 'search' && item.consultaData) {
+      clienteId.value = '';
+      document.getElementById('cliente-cpf').textContent = item.cpf || '—';
+      ['cliente-plano','cliente-categoria','cliente-entidade','cliente-valor']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
+
+      if (item.docType === 'cnpj') {
+        // Hero strip para CNPJ
+        const e = item.consultaData.empresa || {};
+        document.getElementById('cliente-nome-header').textContent = e.razao_social || e.nome_fantasia || item.cpf || '—';
+        document.getElementById('cliente-email').textContent      = (e.emails && e.emails[0]) ? e.emails[0].email : '—';
+        document.getElementById('cliente-telefone').textContent   = (e.celulares && e.celulares[0]) ? `(${e.celulares[0].ddd}) ${e.celulares[0].numero}` : '—';
+        document.getElementById('cliente-nascimento').textContent = e.data_fundacao || '—';
+      } else {
+        // Hero strip para CPF
+        const p = item.consultaData.pessoa || {};
+        document.getElementById('cliente-nome-header').textContent = p.nome || item.cpf || '—';
+        document.getElementById('cliente-email').textContent      = (p.emails && p.emails[0]) ? p.emails[0].email : '—';
+        document.getElementById('cliente-telefone').textContent   = (p.celulares && p.celulares[0]) ? `(${p.celulares[0].ddd}) ${p.celulares[0].numero}` : '—';
+        document.getElementById('cliente-nascimento').textContent = formatarData(p.data_nascimento) || '—';
+      }
+    }
+
+    // Exibe ou limpa os dados de consulta completa
+    if (item.consultaData) {
+      const isCnpjItem = item.docType === 'cnpj';
+      const exibir = isCnpjItem ? window.kpExibirDadosEmpresa : window.kpExibirDadosConsulta;
+      if (exibir) {
+        exibir(item.consultaData);
+        if (typeof window.kpAtualizarContagensTabs === 'function') {
+          setTimeout(window.kpAtualizarContagensTabs, 50);
+        }
+      }
+    } else if (window.kpLimparResultados) {
+      window.kpLimparResultados();
+    }
+
+    // Mostra o banner "Visualizando..."
+    const banner = document.getElementById('kp-viewing-banner');
+    const label  = document.getElementById('kp-viewing-label');
+    if (banner) {
+      label.textContent = item.type === 'search'
+        ? `Busca: ${item.cpf}`
+        : `Lead anterior: ${item.nome || 'Sem nome'}`;
+      banner.classList.remove('d-none');
+    }
+
+    // Oculta os botões de ação da fila
+    document.getElementById('btn-descartar-cliente').style.display = 'none';
+    document.getElementById('btn-converter-cliente').style.display = 'none';
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // sairModoVisualizacao — volta ao cliente ativo da fila
+  // ──────────────────────────────────────────────────────────────
+  function sairModoVisualizacao() {
+    modoVisualizacao   = false;
+    indiceVisualizando = -1;
+
+    const banner = document.getElementById('kp-viewing-banner');
+    if (banner) banner.classList.add('d-none');
+
+    document.getElementById('btn-descartar-cliente').style.display = '';
+    document.getElementById('btn-converter-cliente').style.display = '';
+
+    renderizarHistorico(); // remove active state dos itens
+
+    if (clienteAtivo) {
+      preencherDadosCliente(clienteAtivo);
+      if (window._kpConsultaAtual && window.kpExibirDadosConsulta) {
+        window.kpExibirDadosConsulta(window._kpConsultaAtual);
+        if (typeof window.kpAtualizarContagensTabs === 'function') {
+          setTimeout(window.kpAtualizarContagensTabs, 50);
+        }
+      }
+      loadingElement.classList.add('d-none');
+      noResultsElement.classList.add('d-none');
+      clienteContainer.classList.remove('d-none');
+      clienteContainer.style.display = 'flex';
+    } else {
+      resetarPainelAtivo();
+      buscarClientePreditiva();
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // buscarCpfManualPreditiva — busca manual de CPF no painel esq.
+  // ──────────────────────────────────────────────────────────────
+  function buscarCpfManualPreditiva(cpfRaw) {
+    // Remove todos os caracteres não numéricos antes de validar e enviar
+    const documento = cpfRaw.replace(/\D/g, '');
+
+    if (documento.length !== 11 && documento.length !== 14) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Documento inválido',
+        text: 'Digite um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.',
+        confirmButtonText: 'OK',
+        customClass: { confirmButton: 'btn btn-warning waves-effect' }
+      });
+      return;
+    }
+
+    const isCnpj = documento.length === 14;
+    const documentoFormatado = isCnpj
+      ? documento.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+      : documento.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+
+    const btnSearch  = document.getElementById('btn-kp-manual-search');
+    const spinner    = document.getElementById('kp-search-loading');
+    const icon       = document.getElementById('kp-search-icon');
+
+    if (spinner) spinner.classList.remove('d-none');
+    if (icon)    icon.style.display = 'none';
+    if (btnSearch) btnSearch.disabled = true;
+
+    // Endpoint e body diferem por tipo de documento
+    const url  = isCnpj ? '/consulta/empresa' : '/consulta/pessoa';
+    const body = isCnpj ? { cnpj: documento } : { cpf: documento };
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+      body: JSON.stringify(body)
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (spinner) spinner.classList.add('d-none');
+        if (icon)    icon.style.display = '';
+        if (btnSearch) btnSearch.disabled = false;
+
+        if (data.error) {
+          Swal.fire({ icon: 'error', title: 'Erro', text: data.error,
+            confirmButtonText: 'OK',
+            customClass: { confirmButton: 'btn btn-danger waves-effect' } });
+          return;
+        }
+
+        const nome = isCnpj
+          ? (data.empresa?.razao_social || data.empresa?.nome_fantasia || null)
+          : (data.pessoa?.nome || null);
+
+        // Limpa o campo de busca
+        const inputCpf = document.getElementById('kp-manual-cpf');
+        if (inputCpf) inputCpf.value = '';
+
+        // Salva o tipo de documento no item para restaurarItemNoPanel saber qual função usar
+        const item = {
+          type:         'search',
+          docType:      isCnpj ? 'cnpj' : 'cpf',
+          cpf:          documentoFormatado,
+          nome:         nome,
+          consultaData: data,
+        };
+
+        sessionHistory.push(item);
+
+        // Exibe no painel direito
+        indiceVisualizando = sessionHistory.length - 1;
+        renderizarHistorico();
+        restaurarItemNoPanel(item);
+      })
+      .catch(err => {
+        if (spinner) spinner.classList.add('d-none');
+        if (icon)    icon.style.display = '';
+        if (btnSearch) btnSearch.disabled = false;
+        Swal.fire({ icon: 'error', title: 'Erro na busca', text: err.message,
+          confirmButtonText: 'OK',
+          customClass: { confirmButton: 'btn btn-danger waves-effect' } });
+      });
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // resetarPainelAtivo — só limpa o painel direito, não o histórico
+  // ──────────────────────────────────────────────────────────────
+  function resetarPainelAtivo() {
+    clienteId.value = '';
+
+    const fields = ['cliente-nome-header','cliente-email','cliente-cpf',
+                    'cliente-telefone','cliente-nascimento','cliente-plano',
+                    'cliente-categoria','cliente-entidade','cliente-valor'];
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+
     document.getElementById('card-dependentes').classList.add('d-none');
     document.getElementById('lista-dependentes').innerHTML = '';
     document.getElementById('count-dependentes').textContent = '0';
+
+    const consulta = document.getElementById('dados-consulta-cliente');
+    if (consulta) consulta.classList.add('d-none');
   }
 
-  // Função para formatar data
+  // ──────────────────────────────────────────────────────────────
+  // Tabs — Dados Completos do Cliente
+  // ──────────────────────────────────────────────────────────────
+  (function setupConsultaTabs() {
+    const nav = document.getElementById('kp-tabs-nav');
+    if (!nav) return;
+
+    nav.addEventListener('click', function (e) {
+      const btn = e.target.closest('.kp-info-tab-btn');
+      if (!btn) return;
+
+      const targetId = btn.dataset.kpTab;
+
+      // Atualiza botões
+      nav.querySelectorAll('.kp-info-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Atualiza panes
+      document.querySelectorAll('.kp-info-tab-pane').forEach(p => p.classList.remove('active'));
+      const pane = document.getElementById(targetId);
+      if (pane) pane.classList.add('active');
+    });
+  })();
+
+  // Atualiza badge de contagem nas tabs após consulta ser preenchida
+  function atualizarContagensTabs() {
+    const countEl = (id) => document.getElementById(id);
+
+    const celulares = document.getElementById('celulares-preditiva');
+    const fixos     = document.getElementById('fixos-preditiva');
+    const emails    = document.getElementById('emails-preditiva');
+    const enderecos = document.getElementById('enderecos-preditiva');
+
+    const totalTel = (celulares ? celulares.children.length : 0)
+                   + (fixos     ? fixos.children.length     : 0);
+    const totalMail = emails    ? emails.children.length    : 0;
+    const totalEnd  = enderecos ? enderecos.children.length : 0;
+
+    if (countEl('kp-count-telefones')) countEl('kp-count-telefones').textContent = totalTel;
+    if (countEl('kp-count-emails'))    countEl('kp-count-emails').textContent    = totalMail;
+    if (countEl('kp-count-enderecos')) countEl('kp-count-enderecos').textContent = totalEnd;
+  }
+
+  // Expõe a função para ser chamada pelo consulta.js após preencher dados
+  window.kpAtualizarContagensTabs = atualizarContagensTabs;
+
+  // ──────────────────────────────────────────────────────────────
+  // Utilitários
+  // ──────────────────────────────────────────────────────────────
+  function atualizarSubtitulo(texto) {
+    const el = document.getElementById('kp-modal-subtitulo');
+    if (el) el.textContent = texto;
+  }
+
   function formatarData(dataString) {
     if (!dataString) return null;
     const data = new Date(dataString);
-    if (isNaN(data.getTime())) {
-      const partes = dataString.split('/');
-      if (partes.length === 3) return dataString;
-      return dataString;
-    }
+    if (isNaN(data.getTime())) return dataString;
     return data.toLocaleDateString('pt-BR');
   }
 
-  // Função para formatar moeda
   function formatarMoeda(valor) {
     if (!valor) return null;
     const numero = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
     if (isNaN(numero)) return valor;
     return numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Busca manual de CPF/CNPJ — campo no painel esquerdo
+  // ──────────────────────────────────────────────────────────────
+  const btnManualSearch = document.getElementById('btn-kp-manual-search');
+  const inputManualCpf  = document.getElementById('kp-manual-cpf');
+
+  if (btnManualSearch && inputManualCpf) {
+    // Máscara dinâmica CPF / CNPJ com Cleave.js
+    function kpMaskCpfCnpj(valor) {
+      const digits = (valor || '').replace(/\D/g, '');
+      return digits.length > 11
+        ? { delimiters: ['.', '.', '/', '-'], blocks: [2, 3, 3, 4, 2], numericOnly: true }
+        : { delimiters: ['.', '.', '-'],      blocks: [3, 3, 3, 2],    numericOnly: true };
+    }
+
+    let kpCleave = new Cleave(inputManualCpf, kpMaskCpfCnpj(''));
+
+    inputManualCpf.addEventListener('input', function () {
+      const mask = kpMaskCpfCnpj(this.value);
+      kpCleave.destroy();
+      kpCleave = new Cleave(inputManualCpf, mask);
+    });
+
+    btnManualSearch.addEventListener('click', function() {
+      buscarCpfManualPreditiva(inputManualCpf.value);
+    });
+    inputManualCpf.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') buscarCpfManualPreditiva(this.value);
+    });
+  }
+
+  // Botão "Voltar ao cliente atual"
+  const btnVoltar = document.getElementById('btn-kp-voltar');
+  if (btnVoltar) {
+    btnVoltar.addEventListener('click', sairModoVisualizacao);
   }
 });

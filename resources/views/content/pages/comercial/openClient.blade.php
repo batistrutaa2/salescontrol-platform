@@ -8,7 +8,12 @@
 @endsection
 
 @section('page-style')
-    @vite(['resources/assets/vendor/scss/pages/open-client.scss', 'resources/assets/vendor/scss/pages/comercial-open-client.scss'])
+    @vite([
+        'resources/assets/vendor/scss/pages/open-client.scss',
+        'resources/assets/vendor/scss/pages/comercial-open-client.scss',
+        'resources/assets/vendor/scss/pages/pos-venda.scss',
+        'resources/assets/vendor/scss/pages/kanban-modal.scss'
+    ])
 @endsection
 
 @section('vendor-script')
@@ -628,180 +633,230 @@
         </div>
     </div>
 
-    {{-- Modal Consulta --}}
-    <div class="modal fade" id="consultaModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Consulta de Dados</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    {{-- Modal Consulta — redesenhada com mesmo design da Fila Preditiva --}}
+    <div class="modal fade" id="consultaModal" tabindex="-1" aria-labelledby="consultaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl oc-consulta-dialog modal-dialog-centered">
+            <div class="modal-content pv-modal-modern">
+
+                {{-- Header --}}
+                <div class="pv-modal-header pv-modal-header-primary">
+                    <div class="pv-modal-header-content">
+                        <div class="pv-modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </div>
+                        <div class="pv-modal-title-group">
+                            <h5 class="pv-modal-title" id="consultaModalLabel">Consultar Dados</h5>
+                            <span class="pv-modal-subtitle" id="oc-consulta-subtitle">CPF ou CNPJ</span>
+                        </div>
+                    </div>
+                    <button type="button" class="pv-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
                 </div>
-                <div class="modal-body">
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body text-center">
-                                    <h6 class="card-title">Consulta por CPF</h6>
-                                    <div class="form-floating form-floating-outline mb-3">
-                                        <input type="text" id="cpfConsulta" class="form-control" placeholder="000.000.000-00" maxlength="14">
-                                        <label for="cpfConsulta">CPF</label>
-                                    </div>
-                                    <button type="button" class="btn btn-primary" onclick="consultarPessoa()">
-                                        <span class="spinner-border spinner-border-sm d-none" id="loadingPessoa"></span>
-                                        <i class="ri-user-search-line ri-16px me-1"></i>
-                                        Consultar CPF
+
+                {{-- Corpo: dois painéis (esquerdo: histórico + busca / direito: resultados) --}}
+                <div class="oc-consulta-panels">
+
+                    {{-- Painel esquerdo: histórico de consultas --}}
+                    <div class="oc-history-panel">
+                        <div class="oc-hist-header">
+                            <span class="oc-hist-title">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Consultas
+                            </span>
+                            <span class="oc-hist-count" id="oc-hist-count">0</span>
+                        </div>
+
+                        {{-- Campo de busca --}}
+                        <div class="oc-search-area">
+                            <div class="oc-search-wrap">
+                                <input type="text" id="oc-doc-input" class="oc-search-input"
+                                       placeholder="CPF ou CNPJ..." maxlength="18" autocomplete="off">
+                                <button type="button" id="btn-oc-consultar" class="oc-search-btn" title="Consultar">
+                                    <span class="spinner-border spinner-border-sm d-none" id="oc-consulta-loading"
+                                          style="width:.875rem;height:.875rem" role="status"></span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="oc-consulta-icon">
+                                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Lista de histórico --}}
+                        <div class="oc-hist-list" id="oc-hist-list">
+                            <div class="oc-hist-empty" id="oc-hist-empty">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3">
+                                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                <p>Nenhuma consulta ainda</p>
+                                <small>As buscas aparecem aqui</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Painel direito: resultados --}}
+                    <div class="oc-results-panel">
+
+                        {{-- Estado inicial --}}
+                        <div class="kp-empty-state" id="oc-consulta-initial">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.25">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            <p>Digite um CPF ou CNPJ para consultar</p>
+                            <small>Os dados são buscados em tempo real</small>
+                        </div>
+
+                        {{-- Erro de consulta --}}
+                        <div id="erro-consulta-cliente" class="d-none"
+                             style="color:var(--km-danger);font-size:.875rem;padding:1rem 1.5rem;display:flex;align-items:center;gap:.5rem">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span id="mensagem-erro-cliente"></span>
+                        </div>
+
+                        {{-- Resultados em tabs --}}
+                        <div class="kp-consulta-section d-none" id="dados-consulta-cliente">
+
+                            <div class="kp-consulta-header">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                <span id="oc-resultado-titulo">Dados Encontrados</span>
+                            </div>
+
+                            <div class="kp-info-tabs-wrapper d-none" id="dados-pessoa-preditiva">
+
+                                {{-- Nav das tabs --}}
+                                <nav class="kp-info-tabs-nav" id="kp-tabs-nav">
+                                    <button class="kp-info-tab-btn active" data-kp-tab="tab-pessoa">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                        </svg>
+                                        Dados
                                     </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body text-center">
-                                    <h6 class="card-title">Consulta por CNPJ</h6>
-                                    <div class="form-floating form-floating-outline mb-3">
-                                        <input type="text" id="cnpjConsulta" class="form-control" placeholder="00.000.000/0000-00" maxlength="18">
-                                        <label for="cnpjConsulta">CNPJ</label>
-                                    </div>
-                                    <button type="button" class="btn btn-success" onclick="consultarEmpresa()">
-                                        <span class="spinner-border spinner-border-sm d-none" id="loadingEmpresa"></span>
-                                        <i class="ri-building-line ri-16px me-1"></i>
-                                        Consultar CNPJ
+                                    <button class="kp-info-tab-btn" data-kp-tab="tab-telefones">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72"/>
+                                        </svg>
+                                        Telefones
+                                        <span class="kp-tab-count" id="kp-count-telefones">0</span>
                                     </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                                    <button class="kp-info-tab-btn" data-kp-tab="tab-emails">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                                        </svg>
+                                        E-mails
+                                        <span class="kp-tab-count" id="kp-count-emails">0</span>
+                                    </button>
+                                    <button class="kp-info-tab-btn" data-kp-tab="tab-enderecos">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                                        </svg>
+                                        Endereços
+                                        <span class="kp-tab-count" id="kp-count-enderecos">0</span>
+                                    </button>
+                                    <button class="kp-info-tab-btn" data-kp-tab="tab-credito">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                        </svg>
+                                        Crédito
+                                    </button>
+                                    <button class="kp-info-tab-btn" data-kp-tab="tab-societario">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                        </svg>
+                                        Societário
+                                    </button>
+                                </nav>
 
-                    <div id="dadosEmpresa" class="d-none">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="text-success mb-0">
-                                    <i class="ri-building-line ri-16px me-1"></i>
-                                    Dados da Empresa Encontrados
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p><strong>Razao Social:</strong> <span id="razaoSocial" class="text-muted"></span></p>
-                                        <p><strong>Nome Fantasia:</strong> <span id="nomeFantasia" class="text-muted"></span></p>
-                                        <p><strong>CNPJ:</strong> <span id="cnpjResult" class="text-muted"></span></p>
-                                        <p><strong>Data Fundacao:</strong> <span id="dataFundacao" class="text-muted"></span></p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p><strong>Tipo:</strong> <span id="tipoEmpresa" class="text-muted"></span></p>
-                                        <p><strong>Situacao:</strong> <span id="situacaoEmpresa" class="text-muted"></span></p>
-                                        <p><strong>CNAE:</strong> <span id="cnaeEmpresa" class="text-muted"></span></p>
-                                        <p><strong>Atividade:</strong> <span id="atividadeEmpresa" class="text-muted"></span></p>
-                                    </div>
-                                </div>
-                                <div class="row mt-4">
-                                    <div class="col-md-6">
-                                        <h6><i class="ri-smartphone-line ri-16px me-1"></i>Celulares da Empresa</h6>
-                                        <div id="celularesEmpresa" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h6><i class="ri-phone-line ri-16px me-1"></i>Telefones Fixos da Empresa</h6>
-                                        <div id="fixosEmpresa" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
-                                    </div>
-                                </div>
-                                <div class="row mt-3">
-                                    <div class="col-12">
-                                        <h6><i class="ri-mail-line ri-16px me-1"></i>E-mails da Empresa</h6>
-                                        <div id="emailsEmpresa" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
-                                    </div>
-                                </div>
-                                <div class="mt-4">
-                                    <h6><i class="ri-map-pin-line ri-16px me-1"></i>Endereco da Empresa</h6>
-                                    <div id="enderecoEmpresa" class="border rounded p-2"></div>
-                                </div>
-                                <div class="mt-4">
-                                    <h6><i class="ri-group-line ri-16px me-1"></i>Quadro Societario</h6>
-                                    <div id="sociosEmpresa" class="border rounded p-2" style="max-height: 400px; overflow-y: auto;"></div>
-                                </div>
-                                <div class="mt-4">
-                                    <h6><i class="ri-car-line ri-16px me-1"></i>Veiculos da Empresa</h6>
-                                    <div id="carrosEmpresa" class="border rounded p-2"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                                {{-- Panes --}}
+                                <div class="kp-info-tab-panes">
 
-                    <div id="resultadoConsulta" class="d-none">
-                        <div id="dadosPessoa" class="d-none">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="text-primary mb-0">
-                                        <i class="ri-user-line ri-16px me-1"></i>
-                                        Dados Pessoais Encontrados
-                                    </h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <p><strong>Nome:</strong> <span id="nome" class="text-muted"></span></p>
-                                            <p><strong>CPF:</strong> <span id="cpfResult" class="text-muted"></span></p>
-                                            <p><strong>Data Nascimento:</strong> <span id="dataNascimento" class="text-muted"></span></p>
-                                            <p><strong>Idade Atual:</strong> <span id="idade" class="text-muted"></span></p>
-                                            <p><strong>Sexo:</strong> <span id="sexo" class="text-muted"></span></p>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <p><strong>Nome da Mae:</strong> <span id="nomeMae" class="text-muted"></span></p>
-                                            <p><strong>Situacao CPF:</strong> <span id="situacaoCpf" class="text-muted"></span></p>
-                                            <p><strong>Renda:</strong> <span id="renda" class="text-muted"></span></p>
-                                            <p><strong>Ocupacao:</strong> <span id="ocupacao" class="text-muted"></span></p>
+                                    <div class="kp-info-tab-pane active" id="tab-pessoa">
+                                        <div class="kp-pessoa-grid">
+                                            <div class="kp-pessoa-field"><label>Nome</label><span id="nome-preditiva">—</span></div>
+                                            <div class="kp-pessoa-field kp-field-mono"><label>CPF / CNPJ</label><span id="cpf-result-preditiva">—</span></div>
+                                            <div class="kp-pessoa-field"><label>Nascimento / Fundação</label><span id="data-nascimento-preditiva">—</span></div>
+                                            <div class="kp-pessoa-field"><label>Idade / Tipo</label><span id="idade">—</span></div>
+                                            <div class="kp-pessoa-field"><label>Sexo</label><span id="sexo-preditiva">—</span></div>
+                                            <div class="kp-pessoa-field"><label>Nome da Mãe / Fantasia</label><span id="nome-mae-preditiva">—</span></div>
+                                            <div class="kp-pessoa-field"><label>Situação</label><span id="situacao-cpf-preditiva">—</span></div>
+                                            <div class="kp-pessoa-field kp-field-mono"><label>Renda / CNAE</label><span id="renda-preditiva">—</span></div>
+                                            <div class="kp-pessoa-field"><label>Ocupação / Segmento</label><span id="ocupacao-preditiva">—</span></div>
                                         </div>
                                     </div>
-                                    <div class="row mt-4">
-                                        <div class="col-md-6">
-                                            <h6><i class="ri-smartphone-line ri-16px me-1"></i>Celulares</h6>
-                                            <div id="celulares" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <h6><i class="ri-phone-line ri-16px me-1"></i>Telefones Fixos</h6>
-                                            <div id="fixos" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
-                                        </div>
-                                    </div>
-                                    <div class="row mt-3">
-                                        <div class="col-12">
-                                            <h6><i class="ri-mail-line ri-16px me-1"></i>E-mails</h6>
-                                            <div id="emails" class="border rounded p-2" style="min-height: 60px; max-height: 300px; overflow-y: auto;"></div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-4">
-                                        <h6><i class="ri-map-pin-line ri-16px me-1"></i>Enderecos</h6>
-                                        <div id="enderecos" class="border rounded p-2" style="max-height: 400px; overflow-y: auto;"></div>
-                                    </div>
-                                    <div class="mt-4">
-                                        <h6><i class="ri-car-line ri-16px me-1"></i>Veiculos</h6>
-                                        <div id="carros" class="border rounded p-2"></div>
-                                    </div>
-                                    <div class="mt-4">
-                                        <h6><i class="ri-links-line ri-16px me-1"></i>Vinculos Familiares</h6>
-                                        <div id="vinculos" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;"></div>
-                                    </div>
-                                    <div class="mt-4">
-                                        <h6><i class="ri-shield-check-line ri-16px me-1"></i>Analise de Credito</h6>
-                                        <div id="riscoCredito" class="border rounded p-2"></div>
-                                    </div>
-                                    <div class="mt-4">
-                                        <h6><i class="ri-building-2-line ri-16px me-1"></i>Participacao Societaria</h6>
-                                        <div id="participacaoSocietaria" class="border rounded p-2"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div id="erroConsulta" class="alert alert-danger d-none">
-                        <i class="ri-error-warning-line ri-16px me-1"></i>
-                        <span id="mensagemErro"></span>
-                    </div>
+                                    <div class="kp-info-tab-pane" id="tab-telefones">
+                                        <div class="kp-tab-list" id="celulares-preditiva-wrap">
+                                            <div class="kp-tab-list-header">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+                                                </svg>
+                                                Celulares
+                                            </div>
+                                            <div id="celulares-preditiva"></div>
+                                        </div>
+                                        <div class="kp-tab-list" id="fixos-preditiva-wrap">
+                                            <div class="kp-tab-list-header">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13"/>
+                                                </svg>
+                                                Telefones Fixos
+                                            </div>
+                                            <div id="fixos-preditiva"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="kp-info-tab-pane" id="tab-emails">
+                                        <div class="kp-tab-list">
+                                            <div class="kp-tab-list-header">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                                                </svg>
+                                                Endereços de E-mail
+                                            </div>
+                                            <div id="emails-preditiva"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="kp-info-tab-pane" id="tab-enderecos">
+                                        <div id="enderecos-preditiva"></div>
+                                    </div>
+
+                                    <div class="kp-info-tab-pane" id="tab-credito">
+                                        <div id="risco-credito-preditiva"></div>
+                                    </div>
+
+                                    <div class="kp-info-tab-pane" id="tab-societario">
+                                        <div id="participacaoSocietaria"></div>
+                                    </div>
+
+                                </div>{{-- /kp-info-tab-panes --}}
+                            </div>{{-- /dados-pessoa-preditiva --}}
+                        </div>{{-- /dados-consulta-cliente --}}
+
+                    </div>{{-- /oc-results-panel --}}
+                </div>{{-- /oc-consulta-panels --}}
+
+                {{-- Footer --}}
+                <div class="lim-modal-footer-bar">
+                    <button type="button" class="pv-btn pv-btn-ghost" data-bs-dismiss="modal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                        Fechar
+                    </button>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
-                </div>
-            </div>
+
+            </div>{{-- /modal-content --}}
         </div>
     </div>
 

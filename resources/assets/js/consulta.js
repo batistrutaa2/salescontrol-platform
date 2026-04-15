@@ -10,97 +10,312 @@
   });
 
   function setupConsultaAPI() {
-    // Configurar máscaras para os campos
     setupMascaras();
-
-    // NOVA FUNÇÃO: Configurar o botão "Consultar Lemit"
     setupConsultarLemitButton();
+    setupOcConsultaModal();
   }
 
-  // NOVA FUNÇÃO: Configurar o botão "Consultar Lemit"
+  // ── Configurar botões que abrem #consultaModal ─────────────────
   function setupConsultarLemitButton() {
-    // pega todos os botões que abrem a modal
     const btns = document.querySelectorAll('[data-bs-target="#consultaModal"]');
     if (!btns.length) return;
 
     btns.forEach(btn => {
       btn.addEventListener('click', function () {
-        let cpfSourceValue = '';
-
+        let valor = '';
         const sel = btn.getAttribute('data-cpf-from');
         if (sel) {
-          // caso dependente
           const el = document.querySelector(sel);
-          if (el) {
-            cpfSourceValue = el.value || '';
-          }
+          if (el) valor = el.value || '';
         } else {
-          // caso titular (não tem data-cpf-from)
           const titularEl = document.getElementById('cpf');
-          if (titularEl) {
-            cpfSourceValue = titularEl.value || '';
-          }
+          if (titularEl) valor = titularEl.value || '';
         }
 
-        // aguarda modal abrir completamente
-        setTimeout(() => {
-          preencherCamposEConsultar(cpfSourceValue);
-        }, 300);
+        // Aguarda modal abrir e dispara a consulta automaticamente
+        setTimeout(() => ocPreencherEConsultar(valor), 350);
       });
     });
   }
 
-
-  // NOVA FUNÇÃO: Preencher campos e executar consulta automaticamente
-  function preencherCamposEConsultar(cpfOverride) {
-    const valor = cpfOverride || (document.getElementById('cpf') ? document.getElementById('cpf').value : '');
-    if (!valor) {
-      mostrarErro('CPF/CNPJ não encontrado na página');
-      return;
-    }
+  // ── Preenche o input unificado e dispara a busca ───────────────
+  function ocPreencherEConsultar(valor) {
+    const input = document.getElementById('oc-doc-input');
+    if (!input) return;
 
     const digits = valor.replace(/\D/g, '');
-    if (digits.length === 11) {
-      const cpfConsultaInput = document.getElementById('cpfConsulta');
-      if (cpfConsultaInput) {
-        cpfConsultaInput.value = valor; // mantém formatação
-        setTimeout(() => consultarPessoa(), 100);
-      }
-    } else if (digits.length === 14) {
-      const cnpjConsultaInput = document.getElementById('cnpjConsulta');
-      if (cnpjConsultaInput) {
-        cnpjConsultaInput.value = valor;
-        setTimeout(() => consultarEmpresa(), 100);
-      }
-    } else {
-      mostrarErro('Documento inválido. CPF deve ter 11 dígitos e CNPJ deve ter 14 dígitos.');
-    }
+    if (!digits) return;
+
+    // Formata e preenche o campo com máscara
+    const formatado = digits.length > 11
+      ? digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+      : digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+
+    input.value = formatado;
+    ocBuscarDocumento(formatado);
   }
 
-  function setupMascaras() {
-    const cpfConsulta = document.getElementById('cpfConsulta');
-    const cnpjConsulta = document.getElementById('cnpjConsulta');
+  // ── Estado da sessão de consultas (openClient) ────────────────
+  let ocSessionHistory    = []; // { doc, docType, nome, consultaData }
+  let ocIndiceAtivo       = -1;
 
-    // Máscara para CPF
-    if (cpfConsulta) {
-      cpfConsulta.addEventListener('input', function (e) {
-        let value = e.target.value.replace(/\D/g, '');
-        value = value.replace(/(\d{3})(\d)/, '$1.$2');
-        value = value.replace(/(\d{3})(\d)/, '$1.$2');
-        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-        e.target.value = value;
+  // ── Setup da nova modal unificada (openClient) ─────────────────
+  function setupOcConsultaModal() {
+    const input  = document.getElementById('oc-doc-input');
+    const btn    = document.getElementById('btn-oc-consultar');
+    const tabNav = document.getElementById('kp-tabs-nav');
+
+    if (!input || !btn) return;
+
+    // Máscara dinâmica CPF/CNPJ com Cleave.js
+    if (typeof Cleave !== 'undefined') {
+      function ocMask(val) {
+        const d = (val || '').replace(/\D/g, '');
+        return d.length > 11
+          ? { delimiters: ['.', '.', '/', '-'], blocks: [2, 3, 3, 4, 2], numericOnly: true }
+          : { delimiters: ['.', '.', '-'],      blocks: [3, 3, 3, 2],    numericOnly: true };
+      }
+      let ocCleave = new Cleave(input, ocMask(''));
+      input.addEventListener('input', function () {
+        const mask = ocMask(this.value);
+        ocCleave.destroy();
+        ocCleave = new Cleave(input, mask);
       });
     }
 
-    // Máscara para CNPJ
+    btn.addEventListener('click', function () { ocBuscarDocumento(input.value); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') ocBuscarDocumento(this.value);
+    });
+
+    // Tabs
+    if (tabNav) {
+      tabNav.addEventListener('click', function (e) {
+        const tabBtn = e.target.closest('.kp-info-tab-btn');
+        if (!tabBtn) return;
+        const targetId = tabBtn.dataset.kpTab;
+        tabNav.querySelectorAll('.kp-info-tab-btn').forEach(b => b.classList.remove('active'));
+        tabBtn.classList.add('active');
+        document.querySelectorAll('.kp-info-tab-pane').forEach(p => p.classList.remove('active'));
+        const pane = document.getElementById(targetId);
+        if (pane) pane.classList.add('active');
+      });
+    }
+
+    // Reset histórico ao fechar a modal
+    const modalEl = document.getElementById('consultaModal');
+    if (modalEl) {
+      modalEl.addEventListener('hidden.bs.modal', function () {
+        ocSessionHistory = [];
+        ocIndiceAtivo    = -1;
+        ocRenderHistorico();
+        // Volta ao estado inicial
+        const initial = document.getElementById('oc-consulta-initial');
+        const results = document.getElementById('dados-consulta-cliente');
+        const errEl   = document.getElementById('erro-consulta-cliente');
+        if (initial) initial.style.display = '';
+        if (results) results.classList.add('d-none');
+        if (errEl)   errEl.classList.add('d-none');
+        const subtitle = document.getElementById('oc-consulta-subtitle');
+        if (subtitle) subtitle.textContent = 'CPF ou CNPJ';
+      });
+    }
+
+    // Contagens de tabs
+    if (!window.kpAtualizarContagensTabs) {
+      window.kpAtualizarContagensTabs = function () {
+        const cel = document.getElementById('celulares-preditiva');
+        const fix = document.getElementById('fixos-preditiva');
+        const mai = document.getElementById('emails-preditiva');
+        const end = document.getElementById('enderecos-preditiva');
+        const el  = id => document.getElementById(id);
+        const totalTel = (cel ? cel.children.length : 0) + (fix ? fix.children.length : 0);
+        if (el('kp-count-telefones')) el('kp-count-telefones').textContent = totalTel;
+        if (el('kp-count-emails'))    el('kp-count-emails').textContent    = mai ? mai.children.length : 0;
+        if (el('kp-count-enderecos')) el('kp-count-enderecos').textContent = end ? end.children.length : 0;
+      };
+    }
+  }
+
+  // ── Renderiza lista de histórico no painel esquerdo ────────────
+  function ocRenderHistorico() {
+    const list    = document.getElementById('oc-hist-list');
+    const empty   = document.getElementById('oc-hist-empty');
+    const counter = document.getElementById('oc-hist-count');
+    if (!list) return;
+
+    if (counter) counter.textContent = ocSessionHistory.length;
+
+    list.querySelectorAll('.oc-hist-item').forEach(el => el.remove());
+
+    if (ocSessionHistory.length === 0) {
+      if (empty) empty.style.display = '';
+      return;
+    }
+
+    if (empty) empty.style.display = 'none';
+
+    // Renderiza do mais recente para o mais antigo
+    [...ocSessionHistory].reverse().forEach((item, reverseIdx) => {
+      const realIdx  = ocSessionHistory.length - 1 - reverseIdx;
+      const isActive = realIdx === ocIndiceAtivo;
+      const isCnpj   = item.docType === 'cnpj';
+
+      const el = document.createElement('div');
+      el.className = 'oc-hist-item' + (isActive ? ' oc-hist-item-active' : '');
+      el.dataset.index = realIdx;
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:.375rem;margin-bottom:.2rem">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;opacity:.55">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <span class="oc-hist-nome" title="${item.nome || item.doc}">${item.nome || item.doc}</span>
+        </div>
+        <div class="oc-hist-doc">${item.doc}</div>
+        <span class="oc-hist-badge ${isCnpj ? 'badge-cnpj' : 'badge-cpf'}">${isCnpj ? 'CNPJ' : 'CPF'}</span>
+      `;
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', function () {
+        ocIndiceAtivo = parseInt(this.dataset.index);
+        ocRenderHistorico();
+        ocExibirItemHistorico(ocSessionHistory[ocIndiceAtivo]);
+      });
+
+      list.insertBefore(el, list.firstChild);
+    });
+  }
+
+  // ── Exibe resultado de um item do histórico no painel direito ──
+  function ocExibirItemHistorico(item) {
+    const initial = document.getElementById('oc-consulta-initial');
+    const errEl   = document.getElementById('erro-consulta-cliente');
+    const subtitle = document.getElementById('oc-consulta-subtitle');
+
+    if (initial) initial.style.display = 'none';
+    if (errEl)   errEl.classList.add('d-none');
+    if (subtitle) subtitle.textContent = item.nome || item.doc;
+
+    // Reseta tabs para a primeira
+    const tabNav = document.getElementById('kp-tabs-nav');
+    if (tabNav) {
+      tabNav.querySelectorAll('.kp-info-tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+      document.querySelectorAll('.kp-info-tab-pane').forEach((p, i) => p.classList.toggle('active', i === 0));
+    }
+
+    if (item.docType === 'cnpj' && window.kpExibirDadosEmpresa) {
+      window.kpExibirDadosEmpresa(item.consultaData);
+    } else if (window.kpExibirDadosConsulta) {
+      window.kpExibirDadosConsulta(item.consultaData);
+    }
+
+    if (typeof window.kpAtualizarContagensTabs === 'function') {
+      setTimeout(window.kpAtualizarContagensTabs, 50);
+    }
+  }
+
+  // ── Busca por documento (CPF ou CNPJ) ─────────────────────────
+  function ocBuscarDocumento(raw) {
+    const doc    = (raw || '').replace(/\D/g, '');
+    const isCnpj = doc.length === 14;
+    const isCpf  = doc.length === 11;
+
+    if (!isCpf && !isCnpj) {
+      ocMostrarErro('Digite um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.');
+      return;
+    }
+
+    const docFormatado = isCnpj
+      ? doc.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+      : doc.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+
+    const btnEl    = document.getElementById('btn-oc-consultar');
+    const spinner  = document.getElementById('oc-consulta-loading');
+    const icon     = document.getElementById('oc-consulta-icon');
+    const subtitle = document.getElementById('oc-consulta-subtitle');
+
+    if (spinner) spinner.classList.remove('d-none');
+    if (icon)    icon.style.display = 'none';
+    if (btnEl)   btnEl.disabled = true;
+
+    const initial = document.getElementById('oc-consulta-initial');
+    const errEl   = document.getElementById('erro-consulta-cliente');
+    if (initial) initial.style.display = 'none';
+    if (errEl)   errEl.classList.add('d-none');
+
+    const url  = isCnpj ? '/consulta/empresa' : '/consulta/pessoa';
+    const body = isCnpj ? { cnpj: doc } : { cpf: doc };
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+      body: JSON.stringify(body)
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (spinner) spinner.classList.add('d-none');
+        if (icon)    icon.style.display = '';
+        if (btnEl)   btnEl.disabled = false;
+
+        // Limpa o campo de busca
+        const input = document.getElementById('oc-doc-input');
+        if (input) input.value = '';
+
+        if (data.error) {
+          ocMostrarErro(data.error);
+          return;
+        }
+
+        const nome = isCnpj
+          ? (data.empresa?.razao_social || data.empresa?.nome_fantasia || null)
+          : (data.pessoa?.nome || null);
+
+        if (subtitle) subtitle.textContent = nome || docFormatado;
+
+        // Salva no histórico
+        const item = { doc: docFormatado, docType: isCnpj ? 'cnpj' : 'cpf', nome, consultaData: data };
+        ocSessionHistory.push(item);
+        ocIndiceAtivo = ocSessionHistory.length - 1;
+        ocRenderHistorico();
+
+        // Exibe resultado
+        ocExibirItemHistorico(item);
+      })
+      .catch(err => {
+        if (spinner) spinner.classList.add('d-none');
+        if (icon)    icon.style.display = '';
+        if (btnEl)   btnEl.disabled = false;
+        ocMostrarErro('Erro na consulta: ' + err.message);
+      });
+  }
+
+  function ocMostrarErro(msg) {
+    const el  = document.getElementById('erro-consulta-cliente');
+    const txt = document.getElementById('mensagem-erro-cliente');
+    const consulta = document.getElementById('dados-consulta-cliente');
+    if (consulta) consulta.classList.add('d-none');
+    if (el && txt) { txt.textContent = msg; el.classList.remove('d-none'); }
+  }
+
+  function setupMascaras() {
+    // Mantidas para compatibilidade, mas a nova modal usa Cleave.js
+    const cpfConsulta  = document.getElementById('cpfConsulta');
+    const cnpjConsulta = document.getElementById('cnpjConsulta');
+
+    if (cpfConsulta) {
+      cpfConsulta.addEventListener('input', function (e) {
+        let v = e.target.value.replace(/\D/g, '');
+        v = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        e.target.value = v;
+      });
+    }
+
     if (cnpjConsulta) {
       cnpjConsulta.addEventListener('input', function (e) {
-        let value = e.target.value.replace(/\D/g, '');
-        value = value.replace(/(\d{2})(\d)/, '$1.$2');
-        value = value.replace(/(\d{3})(\d)/, '$1.$2');
-        value = value.replace(/(\d{3})(\d)/, '$1/$2');
-        value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
-        e.target.value = value;
+        let v = e.target.value.replace(/\D/g, '');
+        v = v.replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2')
+             .replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+        e.target.value = v;
       });
     }
   }
@@ -979,6 +1194,12 @@
           mostrarErroCliente(data.error);
         } else {
           exibirDadosClientePreditiva(data);
+          // Atualiza contagens nos badges das tabs após preenchimento
+          if (typeof window.kpAtualizarContagensTabs === 'function') {
+            setTimeout(window.kpAtualizarContagensTabs, 50);
+          }
+          // Notifica comercialkanban.js para salvar o resultado da consulta
+          document.dispatchEvent(new CustomEvent('kp:consultaDone', { detail: data }));
         }
       })
       .catch(error => {
@@ -1232,4 +1453,63 @@
     document.getElementById('dados-pessoa-preditiva').classList.add('d-none');
     document.getElementById('erro-consulta-cliente').classList.add('d-none');
   }
+
+  // ── Exibição de EMPRESA (CNPJ) na modal preditiva ─────────────
+  function exibirDadosEmpresaPreditiva(data) {
+    const empresa = data.empresa;
+    if (!empresa) {
+      mostrarErroCliente('Dados da empresa não encontrados');
+      return;
+    }
+
+    document.getElementById('dados-consulta-cliente').classList.remove('d-none');
+    document.getElementById('dados-pessoa-preditiva').classList.remove('d-none');
+
+    // Tab Dados Pessoais → reutilizado para dados cadastrais da empresa
+    document.getElementById('nome-preditiva').textContent           = empresa.razao_social || empresa.nome_fantasia || 'N/A';
+    document.getElementById('cpf-result-preditiva').textContent     = formatarCNPJ(empresa.cnpj);
+    document.getElementById('data-nascimento-preditiva').textContent = empresa.data_fundacao || 'N/A';
+    document.getElementById('idade').textContent                    = '—';
+    document.getElementById('sexo-preditiva').textContent           = empresa.tipo || 'N/A';
+    document.getElementById('nome-mae-preditiva').textContent       = empresa.nome_fantasia || 'N/A';
+    document.getElementById('situacao-cpf-preditiva').innerHTML     = `<span class="badge ${empresa.situacao === 'ATIVA' ? 'bg-success' : 'bg-warning'}">${empresa.situacao || 'N/A'}</span>`;
+    document.getElementById('renda-preditiva').textContent          = empresa.cnae_descricao || empresa.cnae?.descricao || 'N/A';
+    document.getElementById('ocupacao-preditiva').textContent       = empresa.cnae_segmento  || empresa.cnae?.segmento  || 'N/A';
+
+    // Contatos — mesmas funções de pessoa
+    preencherCelularesPreditiva(empresa.celulares);
+    preencherFixosPreditiva(empresa.fixos);
+    preencherEmailsPreditiva(empresa.emails);
+
+    // Endereço — a API devolve objeto único 'endereco', o banco devolve array 'enderecos'
+    const enderecos = empresa.enderecos ?? (empresa.endereco ? [empresa.endereco] : []);
+    preencherEnderecosPreditiva(enderecos);
+
+    // Sócios → aba Societário (reaproveitada)
+    const container = document.getElementById('participacaoSocietaria');
+    const socios = empresa.socios ?? [];
+    if (!socios.length) {
+      container.innerHTML = '<p class="text-muted mb-0 small">Nenhum sócio encontrado</p>';
+    } else {
+      container.innerHTML = socios.map(s => `
+        <div class="mb-2 p-2 border rounded">
+          <strong>${s.nome || 'N/A'}</strong>
+          <p class="mb-1 text-muted small">CPF: ${s.cpf ? formatarCPF(s.cpf) : 'N/A'}</p>
+          <div class="d-flex gap-1 flex-wrap">
+            ${s.participacao     ? `<span class="badge bg-info small">Participação: ${s.participacao}</span>` : ''}
+            ${s.capital_social   ? `<span class="badge bg-secondary small">Capital: ${s.capital_social}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Limpa aba de crédito (não se aplica a empresa neste fluxo)
+    const riscoContainer = document.getElementById('risco-credito-preditiva');
+    if (riscoContainer) riscoContainer.innerHTML = '<p class="text-muted mb-0 small">Não disponível para CNPJ</p>';
+  }
+
+  // Expor funções para uso externo (comercialkanban.js)
+  window.kpExibirDadosConsulta  = exibirDadosClientePreditiva;
+  window.kpExibirDadosEmpresa   = exibirDadosEmpresaPreditiva;
+  window.kpLimparResultados     = limparResultadosCliente;
 })();
