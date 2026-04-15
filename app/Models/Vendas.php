@@ -129,6 +129,11 @@ class Vendas extends Model
     return $this->hasMany(VendaDemanda::class, 'venda_id');
   }
 
+  public function cancelamentosLiminares()
+  {
+    return $this->hasMany(CancelamentoLiminar::class, 'venda_id');
+  }
+
 
   public function getCreatedAtAttribute($value)
   {

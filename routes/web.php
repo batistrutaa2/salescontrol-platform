@@ -16,6 +16,7 @@ use App\Http\Controllers\pages\manager\Usuarios;
 use App\Http\Controllers\pages\comercial\Comercial;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
+use App\Http\Controllers\pages\backoffice\LiminarController;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
 use App\Http\Controllers\pages\relatorios\RelatorioAproveitamento;
@@ -256,6 +257,17 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/pos-venda/beneficiarios/{vendaId}', [Backoffice::class, 'getBeneficiariosParaBoasVindas'])->name('backoffice.getBeneficiariosParaBoasVindas');
   Route::get('/back-office/configuracoes/whatsapp-token', [Backoffice::class, 'getWhatsappConfig'])->name('backoffice.getWhatsappConfig');
   Route::post('/back-office/configuracoes/whatsapp-token', [Backoffice::class, 'updateWhatsappToken'])->name('backoffice.updateWhatsappToken');
+
+  // Cancelamento via Liminar
+  Route::get('/back-office/liminar', [LiminarController::class, 'index'])->name('backoffice.liminar.index');
+  Route::get('/back-office/liminar/data', [LiminarController::class, 'getData'])->name('backoffice.liminar.data');
+  Route::post('/back-office/liminar', [LiminarController::class, 'store'])->name('backoffice.liminar.store');
+  Route::get('/back-office/liminar/{id}', [LiminarController::class, 'show'])->name('backoffice.liminar.show');
+  Route::put('/back-office/liminar/{id}', [LiminarController::class, 'update'])->name('backoffice.liminar.update');
+  Route::post('/back-office/liminar/{id}/documentos', [LiminarController::class, 'uploadDocumento'])->name('backoffice.liminar.uploadDocumento');
+  Route::delete('/back-office/liminar/{id}/documentos/{docId}', [LiminarController::class, 'destroyDocumento'])->name('backoffice.liminar.destroyDocumento');
+  Route::get('/back-office/liminar/{id}/documentos/{docId}/download', [LiminarController::class, 'downloadDocumento'])->name('backoffice.liminar.downloadDocumento');
+  Route::get('/back-office/pos-venda/liminar/beneficiarios/{vendaId}', [LiminarController::class, 'getBeneficiarios'])->name('backoffice.liminar.getBeneficiarios');
 
   // Carteira de Clientes
   Route::get('/back-office/carteira-clientes', [Backoffice::class, 'carteiraClientes'])->name('backoffice.carteiraClientes');

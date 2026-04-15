@@ -211,6 +211,11 @@
           "slug": "pages-pos-venda"
         },
         {
+          "url": "/back-office/liminar",
+          "name": "Cancelamento via Liminar",
+          "slug": "backoffice.liminar"
+        },
+        {
           "url": "/back-office/carteira-clientes",
           "name": "Carteira de Clientes",
           "slug": "pages-carteira-clientes"
