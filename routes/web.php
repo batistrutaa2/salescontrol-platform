@@ -44,6 +44,7 @@ Route::middleware(['auth'])->group(function () {
 
   /** MANAGER */
   Route::get('manager/changeCompany/{companyId}', [Manager::class, 'changeCompany'])->name('manager.changeCompany');
+  Route::post('manager/switch-module', [Manager::class, 'switchModule'])->name('manager.switchModule');
 
   Route::get('/notificacoes/novas', function () {
     $notifications = auth()->user()->unreadNotifications
@@ -480,3 +481,40 @@ Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLead
 
 Route::post('/consulta/pessoa', [ConsultaController::class, 'consultarPessoa'])->name('consulta.pessoa');
 Route::post('/consulta/empresa', [ConsultaController::class, 'consultarEmpresa'])->name('consulta.empresa');
+
+/** ============================================================
+ *  MÓDULO LK BENEFÍCIOS
+ *  Seguro de Vida, Odontológico, Previdência, Patrimoniais
+ *  ============================================================ */
+Route::middleware(['auth', \App\Http\Middleware\SetBeneficiosMode::class])
+    ->prefix('lk-beneficios')->name('lk-beneficios.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\pages\lk_beneficios\DashboardController::class, 'index'])
+        ->name('dashboard');
+    Route::get('/dashboard/metricas', [\App\Http\Controllers\pages\lk_beneficios\DashboardController::class, 'metricasJson'])
+        ->name('dashboard.metricas');
+
+    Route::get('/contratos', [\App\Http\Controllers\pages\lk_beneficios\ContratoController::class, 'index'])
+        ->name('contratos.index');
+    Route::get('/contratos/datatable', [\App\Http\Controllers\pages\lk_beneficios\ContratoController::class, 'datatable'])
+        ->name('contratos.datatable');
+    Route::get('/contratos/{id}', [\App\Http\Controllers\pages\lk_beneficios\ContratoController::class, 'show'])
+        ->whereNumber('id')->name('contratos.show');
+    Route::post('/contratos', [\App\Http\Controllers\pages\lk_beneficios\ContratoController::class, 'store'])
+        ->name('contratos.store');
+    Route::put('/contratos/{id}', [\App\Http\Controllers\pages\lk_beneficios\ContratoController::class, 'update'])
+        ->whereNumber('id')->name('contratos.update');
+    Route::delete('/contratos/{id}', [\App\Http\Controllers\pages\lk_beneficios\ContratoController::class, 'destroy'])
+        ->whereNumber('id')->name('contratos.destroy');
+
+    Route::get('/contratos/{contratoId}/beneficiarios', [\App\Http\Controllers\pages\lk_beneficios\BeneficiarioController::class, 'index'])
+        ->whereNumber('contratoId')->name('beneficiarios.index');
+    Route::post('/contratos/{contratoId}/beneficiarios', [\App\Http\Controllers\pages\lk_beneficios\BeneficiarioController::class, 'store'])
+        ->whereNumber('contratoId')->name('beneficiarios.store');
+    Route::delete('/contratos/{contratoId}/beneficiarios/{id}', [\App\Http\Controllers\pages\lk_beneficios\BeneficiarioController::class, 'destroy'])
+        ->whereNumber('contratoId')->whereNumber('id')->name('beneficiarios.destroy');
+
+    Route::post('/consulta-lemit/cpf', [\App\Http\Controllers\pages\lk_beneficios\ConsultaLemitController::class, 'cpf'])
+        ->name('lemit.cpf');
+    Route::post('/consulta-lemit/cnpj', [\App\Http\Controllers\pages\lk_beneficios\ConsultaLemitController::class, 'cnpj'])
+        ->name('lemit.cnpj');
+});

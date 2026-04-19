@@ -1,0 +1,34 @@
+{
+  "menu": [
+    {
+      "menuHeader": "LK Benefícios",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "BENEFICIOS"
+      ]
+    },
+    {
+      "url": "/lk-beneficios",
+      "name": "Dashboard",
+      "icon": "menu-icon tf-icons ri-pie-chart-2-line",
+      "slug": "lk-beneficios.dashboard",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "BENEFICIOS"
+      ]
+    },
+    {
+      "url": "/lk-beneficios/contratos",
+      "name": "Contratos",
+      "icon": "menu-icon tf-icons ri-file-list-3-line",
+      "slug": "lk-beneficios.contratos",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "BENEFICIOS"
+      ]
+    }
+  ]
+}

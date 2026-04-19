@@ -1,6 +1,8 @@
 @php
     use Illuminate\Support\Facades\Auth;
     use App\Models\Empresa;
+    use App\Enums\UserRole;
+    use App\Providers\MenuServiceProvider;
 
     $containerNav = $configData['contentLayout'] === 'compact' ? 'container-xxl' : 'container-fluid';
     $navbarDetached = $navbarDetached ?? '';
@@ -9,6 +11,11 @@
     $notifications = Auth::user()->unreadNotifications->filter(function ($notification) {
         return !isset($notification->data['agendado_por']) || $notification->data['agendado_por'] == Auth::id();
     });
+
+    $rolesComAcessoBeneficios = [UserRole::DEVELOPER, UserRole::ADMINISTRATIVO, UserRole::BENEFICIOS];
+    $podeAlternarModulo = in_array(Auth::user()->user_role_id, $rolesComAcessoBeneficios, true);
+    $modoAtual = $crmMode ?? session(MenuServiceProvider::SESSION_KEY, MenuServiceProvider::MODE_SAUDE);
+    $ehBeneficios = $modoAtual === MenuServiceProvider::MODE_BENEFICIOS;
 @endphp
 
 @if (isset($navbarDetached) && $navbarDetached == 'navbar-detached')
@@ -46,6 +53,28 @@
                             value="{{ $empresa->id }}">{{ $empresa->nome_fantasia }}</option>
                     @endforeach
                 </select>
+            </li>
+        @endif
+
+        @if ($podeAlternarModulo)
+            <li class="nav-item me-3">
+                <form method="POST" action="{{ route('manager.switchModule') }}" id="switchModuleForm" class="d-flex align-items-center">
+                    @csrf
+                    <input type="hidden" name="mode" id="switchModuleMode"
+                        value="{{ $ehBeneficios ? MenuServiceProvider::MODE_SAUDE : MenuServiceProvider::MODE_BENEFICIOS }}">
+                    <div class="crm-mode-switch" role="group" aria-label="Módulo ativo">
+                        <button type="button"
+                            class="crm-mode-btn {{ ! $ehBeneficios ? 'is-active' : '' }}"
+                            data-mode="{{ MenuServiceProvider::MODE_SAUDE }}">
+                            <i class="ri-heart-pulse-line me-1"></i> CRM Saúde
+                        </button>
+                        <button type="button"
+                            class="crm-mode-btn {{ $ehBeneficios ? 'is-active' : '' }}"
+                            data-mode="{{ MenuServiceProvider::MODE_BENEFICIOS }}">
+                            <i class="ri-shield-star-line me-1"></i> LK Benefícios
+                        </button>
+                    </div>
+                </form>
             </li>
         @endif
 
@@ -265,3 +294,60 @@
         </div>
     @endif
     </nav>
+
+    @if ($podeAlternarModulo)
+        @once
+            <style>
+                .crm-mode-switch {
+                    display: inline-flex;
+                    background: rgba(124, 58, 237, 0.08);
+                    border: 1px solid rgba(124, 58, 237, 0.2);
+                    border-radius: 999px;
+                    padding: 3px;
+                    gap: 2px;
+                }
+                .dark-style .crm-mode-switch {
+                    background: rgba(124, 58, 237, 0.18);
+                    border-color: rgba(124, 58, 237, 0.35);
+                }
+                .crm-mode-btn {
+                    background: transparent;
+                    border: 0;
+                    color: var(--bs-body-color);
+                    padding: 5px 14px;
+                    font-size: 0.78rem;
+                    font-weight: 600;
+                    border-radius: 999px;
+                    display: inline-flex;
+                    align-items: center;
+                    line-height: 1;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    white-space: nowrap;
+                }
+                .crm-mode-btn:hover:not(.is-active) {
+                    background: rgba(124, 58, 237, 0.12);
+                }
+                .crm-mode-btn.is-active {
+                    background: linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%);
+                    color: #fff;
+                    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+                }
+                .crm-mode-btn i {
+                    font-size: 14px;
+                }
+            </style>
+            <script>
+                document.addEventListener('click', function (e) {
+                    const btn = e.target.closest('.crm-mode-btn');
+                    if (!btn || btn.classList.contains('is-active')) return;
+                    const mode = btn.dataset.mode;
+                    const form = document.getElementById('switchModuleForm');
+                    const input = document.getElementById('switchModuleMode');
+                    if (!form || !input) return;
+                    input.value = mode;
+                    form.submit();
+                });
+            </script>
+        @endonce
+    @endif

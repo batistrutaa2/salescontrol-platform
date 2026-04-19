@@ -34,4 +34,10 @@ return [
     'api_key' => env('ANTHROPIC_API_KEY'),
   ],
 
+  'lemit' => [
+    'api_key' => env('LEMIT_API_TOKEN'),
+    'base_url' => env('LEMIT_BASE_URL', 'https://api.lemit.com.br/api/v1/consulta'),
+    'cache_months' => (int) env('LEMIT_CACHE_MONTHS', 3),
+  ],
+
 ];
