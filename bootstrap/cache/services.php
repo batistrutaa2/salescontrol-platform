@@ -39,6 +39,7 @@
     35 => 'Yajra\\DataTables\\DataTablesServiceProvider',
     36 => 'App\\Providers\\AppServiceProvider',
     37 => 'App\\Providers\\MenuServiceProvider',
+    38 => 'App\\Modules\\LkBeneficios\\Providers\\LkBeneficiosServiceProvider',
   ),
   'eager' => 
   array (
@@ -65,6 +66,7 @@
     20 => 'Yajra\\DataTables\\DataTablesServiceProvider',
     21 => 'App\\Providers\\AppServiceProvider',
     22 => 'App\\Providers\\MenuServiceProvider',
+    23 => 'App\\Modules\\LkBeneficios\\Providers\\LkBeneficiosServiceProvider',
   ),
   'deferred' => 
   array (
