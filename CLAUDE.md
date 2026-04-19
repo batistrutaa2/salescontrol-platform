@@ -787,3 +787,91 @@ Usar ícones SVG inline para melhor controle de cor. Exemplos:
 6. **NUNCA** hardcodar cores - usar as variáveis
 7. **SEMPRE** incluir efeitos hover nos cards
 8. **SEMPRE** usar border-radius de 16px para cards principais
+
+---
+
+## Módulo LK Benefícios — Arquitetura e Testes
+
+Este módulo (seguros de Vida, Odonto, Previdência e Patrimoniais) é **100% isolado** do CRM de Saúde. O único ponto de convivência é o switch de contexto no navbar, que troca a sessão `crm_mode` e o menu lateral.
+
+**Regra-mãe:** toda nova feature do módulo nasce com teste unitário. Sem teste, não entra na branch principal — evolução saudável depende disso.
+
+### Onde cada coisa mora
+
+| Camada | Caminho | Responsabilidade |
+|--------|---------|------------------|
+| Models | `app/Modules/LkBeneficios/Models/` | Eloquent — `fillable`, `casts`, relacionamentos. Nada de regra de negócio aqui. |
+| Enums | `app/Modules/LkBeneficios/Enums/` | Constantes de domínio (status, tipos) com método `label()` e helpers. |
+| Repositories (Contracts) | `app/Modules/LkBeneficios/Repositories/Contracts/` | Interfaces — contrato público de persistência. |
+| Repositories (Eloquent) | `app/Modules/LkBeneficios/Repositories/Eloquent/` | Queries e mutations. Sem HTTP, sem `Request`. |
+| Services | `app/Modules/LkBeneficios/Services/` | Orquestração de múltiplos repositories, integrações externas (Lemit), regras multi-etapa. |
+| Controllers | `app/Http/Controllers/pages/lk_beneficios/` | **Finos**: valida request, delega, devolve response. Diretório com `_` para PSR-4; URL continua `lk-beneficios` (kebab). |
+| Views | `resources/views/content/pages/lk-beneficios/` | Blade estendendo `layouts/layoutMaster`. |
+| JS | `resources/assets/js/lk-beneficios-*.js` | Flat (padrão Vite do projeto). |
+| Migrations | `database/migrations/` com prefixo `lk_beneficios_` em todas as tabelas. |
+| Rotas | `routes/web.php`, grupo com `prefix('lk-beneficios')->name('lk-beneficios.')` e middleware `SetBeneficiosMode`. |
+| Menu | `resources/menu/verticalMenuBeneficios.json` — **nunca** adicionar itens de benefícios ao `verticalMenu.json` do saúde. |
+
+### Camadas e fluxo (top-down)
+
+```
+Controller  →  Service (opcional)  →  Repository (interface)  →  Model
+    ↓                                       ↓
+  Validação                             DB::transaction
+```
+
+- **Controller não consulta Eloquent direto.** Sempre via Repository injetado no construtor.
+- **Interface primeiro, implementação depois.** Todo Repository tem Contract. Binding em `LkBeneficiosServiceProvider::register()`.
+- **Service só existe quando a operação toca mais de um Repository** ou precisa de integração externa. Não crie Service só para "encapsular" — Repository já faz isso.
+- **Model é burro.** Sem `saving`/`creating` hooks que escondam regra. Se precisar de side effect, vai no Repository/Service.
+
+### Multi-tenancy (inegociável)
+
+- Toda query filtra por `empresa_id = Auth::user()->empresa_id`.
+- Toda migration tem coluna `empresa_id` (exceto tabelas filhas que herdam via `contrato_id`).
+- Toda escrita seta `empresa_id` explicitamente.
+- Teste de multi-tenancy faz parte do mínimo exigido (ver abaixo).
+
+### Integrações externas
+
+Qualquer chamada HTTP vai em `app/Modules/LkBeneficios/Services/`. **Nunca** instancie `Http::withHeaders()` num Controller. Credenciais em `.env` + `config/services.php` — zero hardcode. Exemplo: `LemitService`.
+
+### Testes — mínimo obrigatório por feature
+
+Feature = novo endpoint, novo service, nova regra de negócio. Sem teste, não merge.
+
+| Tipo | Onde | O que cobrir |
+|------|------|--------------|
+| Unit | `tests/Unit/LkBeneficios/` | Services e lógica pura (cálculos, transformações, enums). Sem DB. |
+| Feature | `tests/Feature/LkBeneficios/` | Endpoints HTTP + Repositories com DB real. Usa `RefreshDatabase`. |
+
+**Matriz mínima de cada feature:**
+1. **Happy path** — entrada válida, saída correta.
+2. **Validação** — request inválido retorna 422 com os campos errados.
+3. **Multi-tenant** — usuário de empresa A não enxerga/edita/apaga dado de empresa B.
+4. **Autorização** — role sem permissão recebe 403 (quando aplicável).
+
+**Rodar:**
+```bash
+./vendor/bin/sail artisan test --testsuite=Feature --filter=LkBeneficios
+./vendor/bin/sail artisan test --testsuite=Unit --filter=LkBeneficios
+```
+
+### Padrões de velocidade (o que NÃO fazer para ir rápido)
+
+- **Não** crie Service para CRUD simples — Repository basta.
+- **Não** crie DTO/Resource no início — arrays simples e `toArray()` do Model resolvem até a feature amadurecer.
+- **Não** abstraia antes da terceira repetição. Duplicar duas vezes é barato; abstrair errado é caro.
+- **Não** crie novo layout ou SCSS do módulo — reutilize `dashboard-analytics.scss` via `@vite`.
+- **Não** polua o Model com scopes/accessors "que talvez sejam úteis".
+- **Não** adicione colunas "só para garantir". Acrescente quando a feature exigir — migrations incrementais, não big-bang.
+
+### Checklist antes de abrir PR do módulo
+
+- [ ] Rota registrada no grupo `lk-beneficios.*` com middleware `SetBeneficiosMode`.
+- [ ] `empresa_id` filtrado em toda query nova.
+- [ ] Repository novo tem Contract e binding no `LkBeneficiosServiceProvider`.
+- [ ] Teste Unit para lógica pura + Feature para endpoint, cobrindo happy/validação/multi-tenant.
+- [ ] View usa `dashboard-analytics.scss` e classes do design system.
+- [ ] Zero credencial em código; tudo via `.env` + `config/services.php`.
+- [ ] `./vendor/bin/sail artisan test` verde.
