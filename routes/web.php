@@ -517,4 +517,35 @@ Route::middleware(['auth', \App\Http\Middleware\SetBeneficiosMode::class])
         ->name('lemit.cpf');
     Route::post('/consulta-lemit/cnpj', [\App\Http\Controllers\pages\lk_beneficios\ConsultaLemitController::class, 'cnpj'])
         ->name('lemit.cnpj');
+
+    // Kanban de leads
+    Route::get('/leads', [\App\Http\Controllers\pages\lk_beneficios\KanbanController::class, 'index'])
+        ->name('leads.kanban');
+    Route::get('/leads/dados', [\App\Http\Controllers\pages\lk_beneficios\KanbanController::class, 'dados'])
+        ->name('leads.dados');
+    Route::post('/leads/mover', [\App\Http\Controllers\pages\lk_beneficios\KanbanController::class, 'mover'])
+        ->name('leads.mover');
+
+    Route::get('/leads/novo', [\App\Http\Controllers\pages\lk_beneficios\LeadController::class, 'novo'])
+        ->name('leads.novo');
+    Route::post('/leads', [\App\Http\Controllers\pages\lk_beneficios\LeadController::class, 'store'])
+        ->name('leads.store');
+    Route::get('/leads/{id}', [\App\Http\Controllers\pages\lk_beneficios\LeadController::class, 'show'])
+        ->whereNumber('id')->name('leads.show');
+    Route::delete('/leads/{id}', [\App\Http\Controllers\pages\lk_beneficios\LeadController::class, 'destroy'])
+        ->whereNumber('id')->name('leads.destroy');
+
+    // Conversão lead -> contrato
+    Route::get('/leads/{id}/converter', [\App\Http\Controllers\pages\lk_beneficios\ConversaoController::class, 'form'])
+        ->whereNumber('id')->name('leads.converter.form');
+    Route::post('/leads/{id}/converter', [\App\Http\Controllers\pages\lk_beneficios\ConversaoController::class, 'submit'])
+        ->whereNumber('id')->name('leads.converter.submit');
+
+    // Base Saúde (fila de aquisição)
+    Route::get('/base-saude', [\App\Http\Controllers\pages\lk_beneficios\BaseSaudeController::class, 'index'])
+        ->name('base-saude.index');
+    Route::get('/base-saude/datatable', [\App\Http\Controllers\pages\lk_beneficios\BaseSaudeController::class, 'datatable'])
+        ->name('base-saude.datatable');
+    Route::post('/base-saude/pegar', [\App\Http\Controllers\pages\lk_beneficios\BaseSaudeController::class, 'pegar'])
+        ->name('base-saude.pegar');
 });

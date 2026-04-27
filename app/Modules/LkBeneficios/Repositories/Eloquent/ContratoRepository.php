@@ -64,6 +64,7 @@ class ContratoRepository implements ContratoRepositoryInterface
                 'user_id' => $data['user_id'] ?? Auth::id(),
                 'produto_id' => $data['produto_id'],
                 'venda_origem_id' => $data['venda_origem_id'] ?? null,
+                'lead_id' => $data['lead_id'] ?? null,
                 'pessoa_id' => $data['pessoa_id'] ?? null,
                 'empresa_lemit_id' => $data['empresa_lemit_id'] ?? null,
                 'numero_apolice' => $data['numero_apolice'] ?? null,

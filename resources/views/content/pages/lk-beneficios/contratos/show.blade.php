@@ -167,6 +167,15 @@
                             <span class="kpi-label d-block">Dia do Vencimento</span>
                             <strong style="color: var(--dash-text-primary);">{{ $contrato->dia_vencimento ?? '—' }}</strong>
                         </div>
+                        @if($contrato->lead_id)
+                            <div class="col-md-6">
+                                <span class="kpi-label d-block">Origem</span>
+                                <a href="{{ route('lk-beneficios.leads.show', $contrato->lead_id) }}"
+                                   style="color: var(--dash-primary); font-weight: 700; text-decoration: none;">
+                                    Lead #{{ $contrato->lead_id }} — ver histórico
+                                </a>
+                            </div>
+                        @endif
                         @if($contrato->observacoes)
                             <div class="col-12">
                                 <span class="kpi-label d-block">Observações</span>

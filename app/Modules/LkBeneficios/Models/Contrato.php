@@ -21,6 +21,7 @@ class Contrato extends Model
         'user_id',
         'produto_id',
         'venda_origem_id',
+        'lead_id',
         'pessoa_id',
         'empresa_lemit_id',
         'numero_apolice',
@@ -73,6 +74,11 @@ class Contrato extends Model
     public function vendaOrigem()
     {
         return $this->belongsTo(Vendas::class, 'venda_origem_id');
+    }
+
+    public function lead()
+    {
+        return $this->belongsTo(Lead::class, 'lead_id');
     }
 
     public function pessoa()

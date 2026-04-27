@@ -10,6 +10,11 @@ class Produto extends Model
 {
     use HasFactory;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\LkBeneficios\ProdutoFactory::new();
+    }
+
     protected $table = 'lk_beneficios_produtos';
 
     protected $fillable = [
