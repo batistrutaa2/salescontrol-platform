@@ -19,11 +19,31 @@
         "BENEFICIOS"
       ]
     },
+
+    {
+      "menuHeader": "Comercial",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "BENEFICIOS"
+      ]
+    },
     {
       "url": "/lk-beneficios/leads",
       "name": "Pipeline de Leads",
       "icon": "menu-icon tf-icons ri-kanban-view",
-      "slug": "lk-beneficios.leads",
+      "slug": "lk-beneficios.leads.kanban",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "BENEFICIOS"
+      ]
+    },
+    {
+      "url": "/lk-beneficios/leads/novo",
+      "name": "Cadastrar Lead",
+      "icon": "menu-icon tf-icons ri-user-add-line",
+      "slug": "lk-beneficios.leads.novo",
       "rules": [
         "ADMINISTRATIVO",
         "DEVELOPER",
@@ -35,6 +55,15 @@
       "name": "Base Saúde",
       "icon": "menu-icon tf-icons ri-database-2-line",
       "slug": "lk-beneficios.base-saude",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "BENEFICIOS"
+      ]
+    },
+
+    {
+      "menuHeader": "Operacional",
       "rules": [
         "ADMINISTRATIVO",
         "DEVELOPER",

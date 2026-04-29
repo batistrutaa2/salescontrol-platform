@@ -812,6 +812,44 @@ Este módulo (seguros de Vida, Odonto, Previdência e Patrimoniais) é **100% is
 | Rotas | `routes/web.php`, grupo com `prefix('lk-beneficios')->name('lk-beneficios.')` e middleware `SetBeneficiosMode`. |
 | Menu | `resources/menu/verticalMenuBeneficios.json` — **nunca** adicionar itens de benefícios ao `verticalMenu.json` do saúde. |
 
+### Menu lateral — onde encaixar cada nova feature
+
+O `verticalMenuBeneficios.json` é organizado por seções temáticas (`menuHeader`),
+espelhando a convenção do menu de Saúde. Toda nova feature entra em uma destas
+seções; se a seção ainda não existe no JSON, **adicione o `menuHeader`
+junto** com o primeiro item — não deixe headers órfãos (sem itens) no arquivo,
+o sidebar renderiza eles como texto solto.
+
+| Seção (menuHeader)  | O que entra aqui                                                                                       |
+|---------------------|--------------------------------------------------------------------------------------------------------|
+| **LK Benefícios**   | Cabeçalho do módulo + Dashboard. Sempre o primeiro bloco.                                              |
+| **Comercial**       | Pipeline/kanban de leads, cadastro de lead, base de aquisição (Base Saúde), preditiva, remarketing.    |
+| **Operacional**     | Contratos, beneficiários, gerenciamento pós-venda, fila de implantação.                                |
+| **Financeiro**      | Comissionamento (configuração, faturamento, pagamentos), recebíveis, regras de comissão.               |
+| **Administrativo**  | Cadastros de seguradoras/operadoras, planos, parceiros, regras gerais.                                 |
+| **Relatórios**      | Análises, distribuição de leads, performance, relatórios financeiros do módulo.                        |
+
+Padrão de cada item:
+
+```json
+{
+  "url": "/lk-beneficios/<recurso>",
+  "name": "Nome no menu",
+  "icon": "menu-icon tf-icons ri-<icone>-line",
+  "slug": "lk-beneficios.<recurso>",
+  "rules": ["ADMINISTRATIVO", "DEVELOPER", "BENEFICIOS"]
+}
+```
+
+- O `slug` deve ser **prefixo** do nome de rota (`Route::name(...)`) para que o
+  matcher (`str_contains($currentRouteName, $menu->slug)`) marque o item como
+  ativo em todas as rotas filhas (ex.: `lk-beneficios.contratos` cobre
+  `contratos.index`, `contratos.show`, `contratos.store`...).
+- Quando o recurso tem múltiplas telas, prefira `submenu` (mesmo padrão do menu
+  de Saúde) em vez de criar vários itens top-level.
+- `rules` segue o trio padrão `ADMINISTRATIVO`, `DEVELOPER`, `BENEFICIOS` —
+  restrinja só se a feature for específica de um papel.
+
 ### Camadas e fluxo (top-down)
 
 ```
@@ -862,9 +900,105 @@ Feature = novo endpoint, novo service, nova regra de negócio. Sem teste, não m
 - **Não** crie Service para CRUD simples — Repository basta.
 - **Não** crie DTO/Resource no início — arrays simples e `toArray()` do Model resolvem até a feature amadurecer.
 - **Não** abstraia antes da terceira repetição. Duplicar duas vezes é barato; abstrair errado é caro.
-- **Não** crie novo layout ou SCSS do módulo — reutilize `dashboard-analytics.scss` via `@vite`.
+- **Não** crie novo layout do módulo — herde `layouts/layoutMaster`. SCSS dedicado por página é OK e recomendado (ver "Design System do módulo" abaixo); o que não vale é inventar uma nova base/tema.
 - **Não** polua o Model com scopes/accessors "que talvez sejam úteis".
 - **Não** adicione colunas "só para garantir". Acrescente quando a feature exigir — migrations incrementais, não big-bang.
+
+### Design System do módulo (kanban, cards, tabelas)
+
+O módulo herda integralmente o "Design System - SalesControl UI" descrito acima
+(glass morphism + gradient, Plus Jakarta Sans, JetBrains Mono nos números),
+mas **isola sua estilização via prefixo `.lkb-*`** e variáveis CSS próprias
+`--lkb-*`. Razão: evoluir o módulo sem tocar nos SCSS do CRM Saúde, e ter um
+ponto único onde ajustar a paleta do beneficios no futuro.
+
+**Arquivo de referência canônico:**
+`resources/assets/vendor/scss/pages/lk-beneficios-kanban.scss` — copie a
+estrutura (declaração de vars, dark mode, header glass, board, coluna, card,
+toast) ao criar uma nova tela.
+
+**Variáveis CSS canônicas** (declaradas no wrapper raiz da página):
+
+| Categoria  | Variável                | Valor                              |
+|------------|-------------------------|------------------------------------|
+| Cor        | `--lkb-primary`         | `#7C3AED` (purple)                 |
+| Cor        | `--lkb-success`         | `#10B981` (green)                  |
+| Cor        | `--lkb-info`            | `#06B6D4` (cyan)                   |
+| Cor        | `--lkb-warning`         | `#F59E0B` (amber)                  |
+| Cor        | `--lkb-danger`          | `#EF4444` (red)                    |
+| Background | `--lkb-card-bg`         | `rgba(255,255,255,0.95)` (light)   |
+| Background | `--lkb-glass-bg`        | `rgba(255,255,255,0.7)`            |
+| Background | `--lkb-glass-blur`      | `12px`                             |
+| Borda      | `--lkb-border-radius`   | `16px` (containers)                |
+| Borda      | `--lkb-border-radius-sm`| `12px` (cards)                     |
+| Borda      | `--lkb-border-radius-xs`| `8px` (botões/badges)              |
+| Sombra     | `--lkb-shadow-sm/md/lg` | conforme referência                |
+| Sombra     | `--lkb-shadow-glow`     | `0 0 40px rgba(124,58,237,0.15)`   |
+| Texto      | `--lkb-text-primary`    | `#1e293b` / dark `#F9FAFB`         |
+| Texto      | `--lkb-text-secondary`  | `#64748b` / dark `#D1D5DB`         |
+| Texto      | `--lkb-text-muted`      | `#94a3b8` / dark `#9CA3AF`         |
+| Transição  | `--lkb-transition`      | `all 0.3s cubic-bezier(.4,0,.2,1)` |
+
+Para **dark mode**, sempre ter um bloco `.dark-style .lkb-{tela}-page { ... }`
+sobrescrevendo os backgrounds/textos/sombras (template no SCSS de referência).
+
+**Padrão por tipo de tela:**
+
+- **Wrapper raiz**: `.lkb-{tela}-page` (ex.: `.lkb-kanban-page`,
+  `.lkb-contratos-page`). É onde as vars `--lkb-*` são declaradas.
+- **Header**: `.lkb-{tela}-header` glass (background `--lkb-card-bg` + blur)
+  com `.lkb-title-icon` (48×48 gradient purple) + `.lkb-title-text` cujo `h4`
+  usa gradient `-webkit-text-fill-color: transparent` para clip.
+- **Botões**: `.lkb-btn` (ghost) e `.lkb-btn-primary` (gradient purple +
+  glow). Usar SVG inline `currentColor` em vez de classes de ícone.
+- **Cards de listagem (kanban)**: `.lkb-card` com `border-left: 4px solid
+  var(--lkb-card-status-color)` injetado inline pelo JS — assim a cor da
+  coluna "vaza" para o card. Hover `translateY(-2px)` + sutil glow.
+- **Tabelas**: usar a estrutura `.table-card` do design system base (seção
+  "Table Cards Pattern" deste mesmo arquivo), envolta em `.lkb-{tela}-page`
+  para herdar as vars do módulo.
+- **Toasts**: usar o helper `showModernToast(type, title, message)` (replicar
+  do `lk-beneficios-kanban.js` ou extrair para `lk-beneficios-common.js` na
+  segunda ocorrência). SweetAlert2 + classe `.custom-toast` — nunca
+  `alert()` cru ou `Swal.fire()` sem custom class.
+
+**Carregamento dos assets na view:**
+
+```blade
+@section('vendor-style')
+    @vite([
+        'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss',
+        'resources/assets/vendor/libs/animate-css/animate.scss',
+    ])
+@endsection
+
+@section('page-style')
+    @vite('resources/assets/vendor/scss/pages/lk-beneficios-{tela}.scss')
+@endsection
+
+@section('vendor-script')
+    @vite(['resources/assets/vendor/libs/sweetalert2/sweetalert2.js'])
+@endsection
+
+@section('page-script')
+    @vite(['resources/assets/js/lk-beneficios-{tela}.js'])
+@endsection
+```
+
+(O `vite.config.js` faz glob de `resources/assets/{vendor/scss,js}` — basta
+criar o arquivo, não precisa registrar nada manualmente.)
+
+**Cores de status (kanban)**: enums no PHP (`StatusLead::corGradiente()`,
+`StatusContrato::corGradiente()`…) são a fonte única. O controller exporta um
+mapa `status => {start, end}` para `window.lkb{Tela}.statusCores`, e o JS lê
+de lá para pintar `--lkb-card-status-color`. **Não duplicar cores em JS.**
+
+**Quando duplicar para o terceiro caso**: hoje cada tela tem seu SCSS dedicado
+(~600 linhas com header/board/card/toast). Quando a 3ª tela do módulo seguir
+este padrão, extrair os blocos comuns para
+`resources/assets/vendor/scss/lk-beneficios/_design-system.scss` e importá-lo
+nos SCSS de página. Antes disso, duplicação controlada é mais barata que
+abstração prematura.
 
 ### Checklist antes de abrir PR do módulo
 
@@ -872,6 +1006,8 @@ Feature = novo endpoint, novo service, nova regra de negócio. Sem teste, não m
 - [ ] `empresa_id` filtrado em toda query nova.
 - [ ] Repository novo tem Contract e binding no `LkBeneficiosServiceProvider`.
 - [ ] Teste Unit para lógica pura + Feature para endpoint, cobrindo happy/validação/multi-tenant.
-- [ ] View usa `dashboard-analytics.scss` e classes do design system.
+- [ ] View envolta em `.lkb-{tela}-page` e carrega SCSS dedicado em `resources/assets/vendor/scss/pages/lk-beneficios-{tela}.scss` (ver "Design System do módulo").
+- [ ] Toasts usam `showModernToast()` (SweetAlert2 + classe `.custom-toast`), nunca `alert()` cru.
+- [ ] Suporte a dark mode confirmado (`.dark-style .lkb-*` overrides ou herança correta de vars).
 - [ ] Zero credencial em código; tudo via `.env` + `config/services.php`.
 - [ ] `./vendor/bin/sail artisan test` verde.
