@@ -41,7 +41,7 @@ class LemitService
             ];
         }
 
-        $response = Http::withHeaders([
+        $response = Http::asForm()->withHeaders([
             'Authorization' => 'Bearer ' . $this->apiToken,
         ])->post($this->baseUrl . '/pessoa', [
             'documento' => $cpf,
@@ -74,7 +74,7 @@ class LemitService
             ];
         }
 
-        $response = Http::withHeaders([
+        $response = Http::asForm()->withHeaders([
             'Authorization' => 'Bearer ' . $this->apiToken,
         ])->post($this->baseUrl . '/empresa', [
             'documento' => $cnpj,
