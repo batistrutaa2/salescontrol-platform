@@ -3,6 +3,7 @@
 namespace App\Modules\LkBeneficios\Repositories\Contracts;
 
 use App\Modules\LkBeneficios\Models\Lead;
+use App\Modules\LkBeneficios\Models\LeadComentario;
 
 interface LeadRepositoryInterface
 {
@@ -21,4 +22,10 @@ interface LeadRepositoryInterface
     public function marcarConvertido(int $id, int $empresaId): Lead;
 
     public function soft(int $id, int $empresaId): bool;
+
+    public function adicionarComentario(int $leadId, int $empresaId, int $userId, string $anotacao): LeadComentario;
+
+    public function removerComentario(int $comentarioId, int $leadId, int $empresaId): bool;
+
+    public function atualizarInformacaoFixada(int $leadId, int $empresaId, ?string $texto): Lead;
 }

@@ -80,6 +80,26 @@
         "DEVELOPER",
         "BENEFICIOS"
       ]
+    },
+
+    {
+      "menuHeader": "Administrativo",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "BENEFICIOS"
+      ]
+    },
+    {
+      "url": "/lk-beneficios/produtos",
+      "name": "Produtos",
+      "icon": "menu-icon tf-icons ri-stack-line",
+      "slug": "lk-beneficios.produtos",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER",
+        "BENEFICIOS"
+      ]
     }
   ]
 }

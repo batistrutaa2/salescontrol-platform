@@ -21,6 +21,7 @@ class KanbanController extends Controller
         $empresaId = Auth::user()->empresa_id;
 
         $colunas = [];
+        $statusCores = [];
         foreach (StatusLead::all() as $status) {
             $cores = StatusLead::corGradiente($status);
             $colunas[] = [
@@ -29,6 +30,7 @@ class KanbanController extends Controller
                 'cor_start' => $cores[0],
                 'cor_end' => $cores[1],
             ];
+            $statusCores[$status] = ['start' => $cores[0], 'end' => $cores[1]];
         }
 
         $produtos = Produto::where('empresa_id', $empresaId)
@@ -36,7 +38,7 @@ class KanbanController extends Controller
             ->orderBy('nome')
             ->get(['id', 'nome', 'tipo']);
 
-        return view('content.pages.lk-beneficios.leads.kanban', compact('colunas', 'produtos'));
+        return view('content.pages.lk-beneficios.leads.kanban', compact('colunas', 'produtos', 'statusCores'));
     }
 
     public function dados(Request $request): JsonResponse

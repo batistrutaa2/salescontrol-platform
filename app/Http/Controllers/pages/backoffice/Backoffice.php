@@ -124,6 +124,9 @@ class Backoffice extends Controller
   public function openContract(string $idContract)
   {
     $sale = $this->vendasRepository->find($idContract);
+
+
+
     if (!$sale)
       abort(404, 'Contrato não encontrado.');
 

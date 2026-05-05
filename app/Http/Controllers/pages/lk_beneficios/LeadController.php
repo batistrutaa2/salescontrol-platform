@@ -67,4 +67,56 @@ class LeadController extends Controller
         $this->leads->soft($id, Auth::user()->empresa_id);
         return response()->json(['message' => 'Lead descartado.']);
     }
+
+    public function storeComentario(Request $request, int $leadId): JsonResponse
+    {
+        $data = $request->validate([
+            'anotacao' => 'required|string|max:5000',
+        ]);
+
+        $comentario = $this->leads->adicionarComentario(
+            $leadId,
+            Auth::user()->empresa_id,
+            Auth::id(),
+            $data['anotacao']
+        );
+
+        return response()->json([
+            'message' => 'Comentário adicionado.',
+            'comentario' => [
+                'id' => $comentario->id,
+                'anotacao' => $comentario->anotacao,
+                'created_at' => $comentario->created_at->toIso8601String(),
+                'user' => [
+                    'id' => $comentario->user?->id,
+                    'name' => $comentario->user?->name,
+                ],
+            ],
+        ], 201);
+    }
+
+    public function destroyComentario(int $leadId, int $comentarioId): JsonResponse
+    {
+        $this->leads->removerComentario($comentarioId, $leadId, Auth::user()->empresa_id);
+
+        return response()->json(['message' => 'Comentário removido.']);
+    }
+
+    public function updateInformacaoFixada(Request $request, int $leadId): JsonResponse
+    {
+        $data = $request->validate([
+            'informacao_fixada' => 'nullable|string|max:1000',
+        ]);
+
+        $lead = $this->leads->atualizarInformacaoFixada(
+            $leadId,
+            Auth::user()->empresa_id,
+            $data['informacao_fixada'] ?? null
+        );
+
+        return response()->json([
+            'message' => $lead->informacao_fixada ? 'Informação fixada.' : 'Informação removida.',
+            'informacao_fixada' => $lead->informacao_fixada,
+        ]);
+    }
 }

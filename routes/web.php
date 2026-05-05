@@ -535,6 +535,13 @@ Route::middleware(['auth', \App\Http\Middleware\SetBeneficiosMode::class])
     Route::delete('/leads/{id}', [\App\Http\Controllers\pages\lk_beneficios\LeadController::class, 'destroy'])
         ->whereNumber('id')->name('leads.destroy');
 
+    Route::post('/leads/{id}/comentarios', [\App\Http\Controllers\pages\lk_beneficios\LeadController::class, 'storeComentario'])
+        ->whereNumber('id')->name('leads.comentarios.store');
+    Route::delete('/leads/{id}/comentarios/{comentarioId}', [\App\Http\Controllers\pages\lk_beneficios\LeadController::class, 'destroyComentario'])
+        ->whereNumber('id')->whereNumber('comentarioId')->name('leads.comentarios.destroy');
+    Route::put('/leads/{id}/informacao-fixada', [\App\Http\Controllers\pages\lk_beneficios\LeadController::class, 'updateInformacaoFixada'])
+        ->whereNumber('id')->name('leads.informacao-fixada.update');
+
     // Conversão lead -> contrato
     Route::get('/leads/{id}/converter', [\App\Http\Controllers\pages\lk_beneficios\ConversaoController::class, 'form'])
         ->whereNumber('id')->name('leads.converter.form');
@@ -548,4 +555,18 @@ Route::middleware(['auth', \App\Http\Middleware\SetBeneficiosMode::class])
         ->name('base-saude.datatable');
     Route::post('/base-saude/pegar', [\App\Http\Controllers\pages\lk_beneficios\BaseSaudeController::class, 'pegar'])
         ->name('base-saude.pegar');
+
+    // Catálogo de produtos (administrativo)
+    Route::get('/produtos', [\App\Http\Controllers\pages\lk_beneficios\ProdutoController::class, 'index'])
+        ->name('produtos.index');
+    Route::get('/produtos/datatable', [\App\Http\Controllers\pages\lk_beneficios\ProdutoController::class, 'datatable'])
+        ->name('produtos.datatable');
+    Route::post('/produtos', [\App\Http\Controllers\pages\lk_beneficios\ProdutoController::class, 'store'])
+        ->name('produtos.store');
+    Route::put('/produtos/{id}', [\App\Http\Controllers\pages\lk_beneficios\ProdutoController::class, 'update'])
+        ->whereNumber('id')->name('produtos.update');
+    Route::patch('/produtos/{id}/toggle', [\App\Http\Controllers\pages\lk_beneficios\ProdutoController::class, 'toggleAtivo'])
+        ->whereNumber('id')->name('produtos.toggle');
+    Route::delete('/produtos/{id}', [\App\Http\Controllers\pages\lk_beneficios\ProdutoController::class, 'destroy'])
+        ->whereNumber('id')->name('produtos.destroy');
 });

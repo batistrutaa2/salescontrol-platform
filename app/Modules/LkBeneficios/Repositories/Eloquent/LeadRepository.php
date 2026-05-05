@@ -4,6 +4,7 @@ namespace App\Modules\LkBeneficios\Repositories\Eloquent;
 
 use App\Modules\LkBeneficios\Enums\StatusLead;
 use App\Modules\LkBeneficios\Models\Lead;
+use App\Modules\LkBeneficios\Models\LeadComentario;
 use App\Modules\LkBeneficios\Models\LeadHistorico;
 use App\Modules\LkBeneficios\Repositories\Contracts\LeadRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +44,12 @@ class LeadRepository implements LeadRepositoryInterface
 
     public function findByEmpresa(int $id, int $empresaId): ?Lead
     {
-        return Lead::with(['produtoInteresse', 'user:id,name', 'historico.user:id,name', 'contratos'])
+        return Lead::with([
+                'produtoInteresse',
+                'user:id,name',
+                'comentarios.user:id,name',
+                'contratos',
+            ])
             ->where('id', $id)
             ->where('empresa_id', $empresaId)
             ->first();
@@ -165,5 +171,37 @@ class LeadRepository implements LeadRepositoryInterface
     {
         $lead = Lead::where('id', $id)->where('empresa_id', $empresaId)->firstOrFail();
         return (bool) $lead->delete();
+    }
+
+    public function adicionarComentario(int $leadId, int $empresaId, int $userId, string $anotacao): LeadComentario
+    {
+        $lead = Lead::where('id', $leadId)->where('empresa_id', $empresaId)->firstOrFail();
+
+        $comentario = LeadComentario::create([
+            'empresa_id' => $lead->empresa_id,
+            'lead_id' => $lead->id,
+            'user_id' => $userId,
+            'anotacao' => $anotacao,
+        ]);
+
+        return $comentario->load('user:id,name');
+    }
+
+    public function removerComentario(int $comentarioId, int $leadId, int $empresaId): bool
+    {
+        $comentario = LeadComentario::where('id', $comentarioId)
+            ->where('lead_id', $leadId)
+            ->where('empresa_id', $empresaId)
+            ->firstOrFail();
+
+        return (bool) $comentario->delete();
+    }
+
+    public function atualizarInformacaoFixada(int $leadId, int $empresaId, ?string $texto): Lead
+    {
+        $lead = Lead::where('id', $leadId)->where('empresa_id', $empresaId)->firstOrFail();
+        $lead->update(['informacao_fixada' => $texto !== null && trim($texto) === '' ? null : $texto]);
+
+        return $lead->fresh();
     }
 }

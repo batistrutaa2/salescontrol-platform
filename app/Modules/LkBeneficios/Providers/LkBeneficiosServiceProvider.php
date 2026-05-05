@@ -6,10 +6,12 @@ use App\Modules\LkBeneficios\Repositories\Contracts\BaseSaudeRepositoryInterface
 use App\Modules\LkBeneficios\Repositories\Contracts\BeneficiarioRepositoryInterface;
 use App\Modules\LkBeneficios\Repositories\Contracts\ContratoRepositoryInterface;
 use App\Modules\LkBeneficios\Repositories\Contracts\LeadRepositoryInterface;
+use App\Modules\LkBeneficios\Repositories\Contracts\ProdutoRepositoryInterface;
 use App\Modules\LkBeneficios\Repositories\Eloquent\BaseSaudeRepository;
 use App\Modules\LkBeneficios\Repositories\Eloquent\BeneficiarioRepository;
 use App\Modules\LkBeneficios\Repositories\Eloquent\ContratoRepository;
 use App\Modules\LkBeneficios\Repositories\Eloquent\LeadRepository;
+use App\Modules\LkBeneficios\Repositories\Eloquent\ProdutoRepository;
 use Illuminate\Support\ServiceProvider;
 
 class LkBeneficiosServiceProvider extends ServiceProvider
@@ -20,6 +22,7 @@ class LkBeneficiosServiceProvider extends ServiceProvider
         $this->app->bind(BeneficiarioRepositoryInterface::class, BeneficiarioRepository::class);
         $this->app->bind(LeadRepositoryInterface::class, LeadRepository::class);
         $this->app->bind(BaseSaudeRepositoryInterface::class, BaseSaudeRepository::class);
+        $this->app->bind(ProdutoRepositoryInterface::class, ProdutoRepository::class);
     }
 
     public function boot(): void

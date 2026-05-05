@@ -2,8 +2,26 @@
 
 @section('title', 'Lead #' . $lead->id)
 
+@section('vendor-style')
+    @vite([
+        'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss',
+        'resources/assets/vendor/libs/animate-css/animate.scss',
+    ])
+@endsection
+
 @section('page-style')
-    @vite('resources/assets/vendor/scss/pages/dashboard-analytics.scss')
+    @vite([
+        'resources/assets/vendor/scss/pages/dashboard-analytics.scss',
+        'resources/assets/vendor/scss/pages/lk-beneficios-lead-show.scss',
+    ])
+@endsection
+
+@section('vendor-script')
+    @vite(['resources/assets/vendor/libs/sweetalert2/sweetalert2.js'])
+@endsection
+
+@section('page-script')
+    @vite('resources/assets/js/lk-beneficios-lead-show.js')
 @endsection
 
 @section('content')
@@ -12,8 +30,9 @@
     use App\Modules\LkBeneficios\Enums\TipoBeneficio;
 
     $cor = StatusLead::corGradiente($lead->status);
+    $usuarioAtual = auth()->id();
 @endphp
-<div class="dashboard-wrapper">
+<div class="dashboard-wrapper lkb-lead-show-page">
 
     <div class="dashboard-header">
         <div class="header-content">
@@ -44,6 +63,41 @@
                     </a>
                 </div>
             </div>
+        </div>
+    </div>
+
+    {{-- Informação fixada --}}
+    <div class="lkb-pinned-card {{ $lead->informacao_fixada ? 'is-filled' : 'is-empty' }}" id="lkb-pinned-card">
+        <div class="lkb-pinned-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 17v5"/>
+                <path d="M9 10.76V6h6v4.76l3 3.24v2H6v-2z"/>
+            </svg>
+        </div>
+        <div class="lkb-pinned-body">
+            <span class="lkb-pinned-eyebrow">Informação fixada</span>
+            <p class="lkb-pinned-text" id="lkb-pinned-text">
+                @if($lead->informacao_fixada)
+                    {{ $lead->informacao_fixada }}
+                @else
+                    <span class="lkb-pinned-empty">Nenhuma informação fixada. Use este espaço para destacar dados críticos do contato — preferências, restrições, contexto sensível.</span>
+                @endif
+            </p>
+        </div>
+        <div class="lkb-pinned-actions">
+            <button type="button" class="lkb-btn-pinned" id="lkb-btn-edit-pinned" title="Editar informação fixada">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                <span>{{ $lead->informacao_fixada ? 'Editar' : 'Adicionar' }}</span>
+            </button>
+            <button type="button" class="lkb-btn-pinned is-ghost" id="lkb-btn-clear-pinned" title="Remover informação fixada" {{ $lead->informacao_fixada ? '' : 'hidden' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -84,33 +138,62 @@
                 </div>
             </div>
 
-            <div class="chart-card chart-medium">
+            {{-- Comentários --}}
+            <div class="chart-card chart-medium lkb-comments-card">
                 <div class="chart-header">
                     <div class="chart-title-group">
-                        <h3 class="chart-title">Histórico</h3>
-                        <span class="chart-subtitle">Movimentações no pipeline</span>
+                        <h3 class="chart-title">Comentários</h3>
+                        <span class="chart-subtitle"><span id="lkb-comments-count">{{ $lead->comentarios->count() }}</span> registro(s)</span>
                     </div>
                 </div>
-                <div class="chart-body" style="max-height: 480px; overflow-y: auto; padding: 0;">
-                    @forelse($lead->historico as $h)
-                        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--dash-card-border);">
-                            <small style="color: var(--dash-text-muted);">
-                                {{ $h->created_at->format('d/m/Y H:i') }} · {{ $h->user?->name ?? 'Sistema' }}
-                            </small>
-                            <div style="color: var(--dash-primary); font-weight: 700; font-size: 0.875rem; margin-top: 0.25rem;">
-                                @if($h->status_anterior)
-                                    {{ StatusLead::label($h->status_anterior) }} → {{ StatusLead::label($h->status_novo) }}
-                                @else
-                                    Criado em {{ StatusLead::label($h->status_novo) }}
-                                @endif
-                            </div>
-                            @if($h->observacao)
-                                <p class="mb-0" style="font-size: 0.8125rem; color: var(--dash-text-secondary);">{{ $h->observacao }}</p>
-                            @endif
+                <div class="chart-body lkb-comments-body">
+
+                    <form id="lkb-comment-form" class="lkb-comment-form" novalidate>
+                        <textarea id="lkb-comment-input" class="lkb-comment-textarea" rows="2" maxlength="5000" placeholder="Escreva um comentário sobre este contato…" required></textarea>
+                        <div class="lkb-comment-form-footer">
+                            <span class="lkb-comment-counter"><span id="lkb-comment-len">0</span> / 5000</span>
+                            <button type="submit" class="lkb-btn-comment-submit" id="lkb-comment-submit">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"/>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                </svg>
+                                Comentar
+                            </button>
                         </div>
-                    @empty
-                        <p style="color: var(--dash-text-muted); padding: 2rem; text-align: center; margin: 0;">Sem histórico.</p>
-                    @endforelse
+                    </form>
+
+                    <ul class="lkb-comment-list" id="lkb-comment-list">
+                        @forelse($lead->comentarios as $c)
+                            <li class="lkb-comment-item" data-comentario-id="{{ $c->id }}">
+                                <div class="lkb-comment-avatar">
+                                    {{ strtoupper(mb_substr($c->user?->name ?? '?', 0, 1)) }}
+                                </div>
+                                <div class="lkb-comment-content">
+                                    <header class="lkb-comment-meta">
+                                        <span class="lkb-comment-author">{{ $c->user?->name ?? 'Sistema' }}</span>
+                                        <span class="lkb-comment-date">{{ $c->created_at->format('d/m/Y H:i') }}</span>
+                                    </header>
+                                    <p class="lkb-comment-text">{{ $c->anotacao }}</p>
+                                </div>
+                                @if($c->user_id === $usuarioAtual)
+                                    <button type="button" class="lkb-comment-delete" data-action="delete" data-id="{{ $c->id }}" title="Excluir comentário">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                        </svg>
+                                    </button>
+                                @endif
+                            </li>
+                        @empty
+                            <li class="lkb-comment-empty" id="lkb-comment-empty">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <p>Nenhum comentário ainda. Seja o primeiro a deixar uma anotação.</p>
+                            </li>
+                        @endforelse
+                    </ul>
+
                 </div>
             </div>
         </div>
@@ -159,4 +242,55 @@
         </div>
     @endif
 </div>
+
+{{-- Modal de edição da informação fixada --}}
+<div class="modal fade lkb-pinned-modal" id="lkb-pinned-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="lkb-pinned-modal-header">
+                <div class="lkb-pinned-modal-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 17v5"/><path d="M9 10.76V6h6v4.76l3 3.24v2H6v-2z"/>
+                    </svg>
+                </div>
+                <div class="lkb-pinned-modal-titles">
+                    <span class="lkb-pinned-modal-eyebrow">Lead · destaque</span>
+                    <h5 class="lkb-pinned-modal-title">Informação fixada</h5>
+                    <p class="lkb-pinned-modal-subtitle">Anotação importante que fica sempre visível no topo do lead.</p>
+                </div>
+                <button type="button" class="lkb-pinned-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="lkb-pinned-modal-body">
+                <textarea id="lkb-pinned-input" class="lkb-pinned-textarea" rows="4" maxlength="1000" placeholder="Ex.: cliente prefere contato após 18h. Tem restrição alimentar relevante para apólice de vida.">{{ $lead->informacao_fixada }}</textarea>
+                <div class="lkb-pinned-counter"><span id="lkb-pinned-len">{{ mb_strlen($lead->informacao_fixada ?? '') }}</span> / 1000</div>
+            </div>
+            <div class="lkb-pinned-modal-footer">
+                <button type="button" class="lkb-btn-pinned is-ghost" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="lkb-btn-pinned is-primary" id="lkb-pinned-save">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.lkbLeadShow = {
+        leadId: @json($lead->id),
+        usuarioAtual: @json($usuarioAtual),
+        csrf: @json(csrf_token()),
+        urls: {
+            comentarioStore: @json(route('lk-beneficios.leads.comentarios.store', ['id' => $lead->id])),
+            comentarioDeleteTemplate: @json(route('lk-beneficios.leads.comentarios.destroy', ['id' => $lead->id, 'comentarioId' => '__CID__'])),
+            informacaoFixada: @json(route('lk-beneficios.leads.informacao-fixada.update', ['id' => $lead->id])),
+        },
+    };
+</script>
 @endsection

@@ -36,6 +36,7 @@ class Lead extends Model
         'ordem_kanban',
         'data_ultima_movimentacao',
         'observacoes',
+        'informacao_fixada',
         'convertido_em',
     ];
 
@@ -73,6 +74,11 @@ class Lead extends Model
     public function contratos()
     {
         return $this->hasMany(Contrato::class, 'lead_id');
+    }
+
+    public function comentarios()
+    {
+        return $this->hasMany(LeadComentario::class, 'lead_id')->orderByDesc('created_at');
     }
 
     public function scopeAtivos($query)

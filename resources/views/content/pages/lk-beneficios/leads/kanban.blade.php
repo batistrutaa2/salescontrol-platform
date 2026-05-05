@@ -2,12 +2,22 @@
 
 @section('title', 'LK Benefícios - Pipeline')
 
+@section('vendor-style')
+    @vite([
+        'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss',
+        'resources/assets/vendor/libs/animate-css/animate.scss',
+    ])
+@endsection
+
 @section('page-style')
-    @vite('resources/assets/vendor/scss/pages/dashboard-analytics.scss')
+    @vite('resources/assets/vendor/scss/pages/lk-beneficios-kanban.scss')
 @endsection
 
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/sortablejs/sortable.js'])
+    @vite([
+        'resources/assets/vendor/libs/sortablejs/sortable.js',
+        'resources/assets/vendor/libs/sweetalert2/sweetalert2.js',
+    ])
 @endsection
 
 @section('page-script')
@@ -15,38 +25,56 @@
 @endsection
 
 @section('content')
-<div class="dashboard-wrapper">
+<div class="lkb-kanban-page">
 
-    <div class="dashboard-header">
-        <div class="header-content">
-            <div class="header-text">
-                <span class="greeting-label">Pipeline</span>
-                <h1 class="main-title">Kanban de Leads</h1>
-                <p class="subtitle">Arraste os cards entre colunas para atualizar o status</p>
+    <div class="lkb-kanban-header">
+        <div class="lkb-header-title-group">
+            <div class="lkb-title-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="9" rx="1.5"/>
+                    <rect x="14" y="3" width="7" height="5" rx="1.5"/>
+                    <rect x="14" y="12" width="7" height="9" rx="1.5"/>
+                    <rect x="3" y="16" width="7" height="5" rx="1.5"/>
+                </svg>
             </div>
-            <div class="header-filters">
-                <div class="filter-group">
-                    <a href="{{ route('lk-beneficios.leads.novo') }}" class="btn btn-sm btn-primary">
-                        <i class="ri-add-line me-1"></i> Novo Lead
-                    </a>
-                    <a href="{{ route('lk-beneficios.base-saude.index') }}" class="btn btn-sm btn-outline-primary">
-                        <i class="ri-database-2-line me-1"></i> Base Saúde
-                    </a>
-                </div>
+            <div class="lkb-title-text">
+                <span class="lkb-greeting-label">Pipeline</span>
+                <h4>Kanban de Leads</h4>
+                <p class="lkb-subtitle">Arraste os cards entre as colunas para atualizar o status</p>
             </div>
+        </div>
+
+        <div class="lkb-header-actions">
+            <a href="{{ route('lk-beneficios.base-saude.index') }}" class="lkb-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                    <path d="M3 5v6c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                    <path d="M3 11v6c0 1.66 4 3 9 3s9-1.34 9-3v-6"/>
+                </svg>
+                Base Saúde
+            </a>
+            <a href="{{ route('lk-beneficios.leads.novo') }}" class="lkb-btn lkb-btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Novo Lead
+            </a>
         </div>
     </div>
 
     <div class="lkb-kanban-board">
         @foreach($colunas as $coluna)
-            <div class="lkb-kanban-column" data-status="{{ $coluna['id'] }}">
-                <div class="lkb-kanban-column-header"
-                     style="background: linear-gradient(135deg, {{ $coluna['cor_start'] }} 0%, {{ $coluna['cor_end'] }} 100%);">
-                    <span class="lkb-kanban-column-title">{{ $coluna['label'] }}</span>
-                    <span class="lkb-kanban-column-count" data-count="{{ $coluna['id'] }}">0</span>
+            <div class="lkb-kanban-column"
+                 data-status="{{ $coluna['id'] }}"
+                 style="--lkb-col-color-start: {{ $coluna['cor_start'] }}; --lkb-col-color-end: {{ $coluna['cor_end'] }};">
+                <div class="lkb-kanban-column-header">
+                    <span class="lkb-status-indicator" aria-hidden="true"></span>
+                    <span class="lkb-status-name">{{ $coluna['label'] }}</span>
+                    <span class="lkb-status-count" data-count="{{ $coluna['id'] }}">0</span>
                 </div>
                 <div class="lkb-kanban-column-body" data-column="{{ $coluna['id'] }}">
-                    {{-- cards preenchidos via JS --}}
+                    {{-- cards renderizados via JS --}}
                 </div>
             </div>
         @endforeach
@@ -59,117 +87,8 @@
         moverUrl: @json(route('lk-beneficios.leads.mover')),
         converterUrlTemplate: @json(route('lk-beneficios.leads.converter.form', ['id' => '__ID__'])),
         showUrlTemplate: @json(route('lk-beneficios.leads.show', ['id' => '__ID__'])),
+        statusCores: @json($statusCores),
         csrf: @json(csrf_token()),
     };
 </script>
-
-<style>
-    .lkb-kanban-board {
-        display: flex;
-        gap: 1rem;
-        overflow-x: auto;
-        padding-bottom: 1rem;
-        min-height: calc(100vh - 250px);
-    }
-    .lkb-kanban-column {
-        flex: 0 0 300px;
-        background: var(--dash-glass-bg);
-        backdrop-filter: blur(var(--dash-glass-blur));
-        border: 1px solid var(--dash-card-border);
-        border-radius: var(--dash-border-radius);
-        box-shadow: var(--dash-shadow-sm);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-    .lkb-kanban-column-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.875rem 1rem;
-        color: #fff;
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-    .lkb-kanban-column-title {
-        font-weight: 700;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .lkb-kanban-column-count {
-        background: rgba(255,255,255,0.25);
-        padding: 0.125rem 0.625rem;
-        border-radius: 20px;
-        font-weight: 700;
-        font-size: 0.8125rem;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    .lkb-kanban-column-body {
-        padding: 0.75rem;
-        overflow-y: auto;
-        flex: 1;
-        min-height: 200px;
-    }
-    .lkb-card {
-        background: var(--dash-card-bg);
-        border: 1px solid var(--dash-card-border);
-        border-radius: var(--dash-border-radius-sm);
-        padding: 0.875rem;
-        margin-bottom: 0.625rem;
-        cursor: grab;
-        transition: var(--dash-transition);
-        box-shadow: var(--dash-shadow-sm);
-    }
-    .lkb-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--dash-shadow-md);
-    }
-    .lkb-card.sortable-drag { cursor: grabbing; opacity: 0.9; }
-    .lkb-card.sortable-ghost { opacity: 0.4; }
-    .lkb-card-nome {
-        font-weight: 700;
-        font-size: 0.875rem;
-        color: var(--dash-text-primary);
-        margin-bottom: 0.25rem;
-    }
-    .lkb-card-produto {
-        font-size: 0.75rem;
-        color: var(--dash-primary);
-        font-weight: 600;
-    }
-    .lkb-card-meta {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 0.5rem;
-        font-size: 0.6875rem;
-        color: var(--dash-text-muted);
-    }
-    .lkb-card-badge-origem {
-        display: inline-block;
-        padding: 0.125rem 0.5rem;
-        border-radius: 20px;
-        font-size: 0.625rem;
-        font-weight: 700;
-        text-transform: uppercase;
-    }
-    .lkb-card-badge-origem.base-saude {
-        background: rgba(var(--dash-info-rgb), 0.15);
-        color: var(--dash-info);
-    }
-    .lkb-card-badge-origem.manual {
-        background: rgba(var(--dash-primary-rgb), 0.15);
-        color: var(--dash-primary);
-    }
-    .lkb-card-actions {
-        display: flex;
-        gap: 0.375rem;
-        margin-top: 0.625rem;
-    }
-    .lkb-card-actions a, .lkb-card-actions button {
-        font-size: 0.6875rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 12px;
-        text-decoration: none;
-    }
-</style>
 @endsection

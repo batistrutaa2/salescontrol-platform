@@ -1,12 +1,10 @@
 @php
     use Illuminate\Support\Facades\Auth;
-    use App\Models\Empresa;
     use App\Enums\UserRole;
     use App\Providers\MenuServiceProvider;
 
     $containerNav = $configData['contentLayout'] === 'compact' ? 'container-xxl' : 'container-fluid';
     $navbarDetached = $navbarDetached ?? '';
-    $empresas = Empresa::all();
 
     $notifications = Auth::user()->unreadNotifications->filter(function ($notification) {
         return !isset($notification->data['agendado_por']) || $notification->data['agendado_por'] == Auth::id();
@@ -43,18 +41,6 @@
 
 <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
     <ul class="navbar-nav flex-row align-items-center ms-auto">
-
-        @if (Auth::user()->user_role_id === 4)
-            <li class="nav-item me-3">
-                <select class="form-select" id="empresaSelect">
-                    <option value="">Selecione uma empresa</option>
-                    @foreach ($empresas as $empresa)
-                        <option {{ $empresa->id == Auth::user()->empresa_id ? 'selected' : '' }}
-                            value="{{ $empresa->id }}">{{ $empresa->nome_fantasia }}</option>
-                    @endforeach
-                </select>
-            </li>
-        @endif
 
         @if ($podeAlternarModulo)
             <li class="nav-item me-3">
