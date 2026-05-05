@@ -85,6 +85,22 @@
         document.getElementById('dv-sales-registered').textContent = formatCurrency(data.sales_registered);
         document.getElementById('dv-sales-implanted').textContent = formatCurrency(data.sales_implanted);
         document.getElementById('dv-ticket-medio').textContent = formatCurrency(data.ticket_medio);
+
+        const estornos = parseInt(data.estornos_pendentes ?? 0, 10);
+        const card = document.getElementById('dv-card-estornos');
+        const countEl = document.getElementById('dv-estornos-count');
+        const hintEl = document.getElementById('dv-estornos-hint');
+        if (countEl) countEl.textContent = estornos;
+        if (card) card.classList.toggle('has-pending', estornos > 0);
+        if (hintEl) {
+            if (estornos === 0) {
+                hintEl.textContent = 'Tudo em dia';
+            } else if (estornos === 1) {
+                hintEl.textContent = '1 contrato aguardando correção →';
+            } else {
+                hintEl.textContent = `${estornos} contratos aguardando correção →`;
+            }
+        }
     }
 
     // ========================================

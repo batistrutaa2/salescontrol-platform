@@ -117,6 +117,25 @@
             </div>
             <div class="dv-kpi-glow"></div>
         </div>
+
+        <!-- Estornos Pendentes -->
+        <a href="{{ route('sale.meusEstornos') }}" class="dv-kpi-card dv-kpi-estornos" id="dv-card-estornos">
+            <div class="dv-kpi-icon-wrapper">
+                <div class="dv-kpi-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 14 4 9l5-5"/>
+                        <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>
+                    </svg>
+                </div>
+                <div class="dv-kpi-pulse"></div>
+            </div>
+            <div class="dv-kpi-content">
+                <span class="dv-kpi-label">Estornos Pendentes</span>
+                <h2 class="dv-kpi-value" id="dv-estornos-count">0</h2>
+                <span class="dv-kpi-hint" id="dv-estornos-hint">Tudo em dia</span>
+            </div>
+            <div class="dv-kpi-glow"></div>
+        </a>
     </div>
 
     <!-- Secondary Cards -->

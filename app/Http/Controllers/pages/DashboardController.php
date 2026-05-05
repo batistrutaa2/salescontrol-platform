@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers\pages;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Repositories\Contracts\VendasRepositoryInterface;
-use App\Repositories\Contracts\ContatosRepositoryInterface;
-use Illuminate\Support\Facades\DB;
 use App\Enums\Tabulations;
+use App\Http\Controllers\Controller;
+use App\Repositories\Contracts\ContatosRepositoryInterface;
+use App\Repositories\Contracts\VendasRepositoryInterface;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     protected $vendasRepository;
+
     protected $contatosRepository;
 
     public function __construct(
@@ -30,6 +31,7 @@ class DashboardController extends Controller
         $month = Carbon::now()->month;
         $year = Carbon::now()->year;
         $empresaId = $user->empresa_id;
+
         return view('content.pages.dashboard-vendedor');
     }
 
@@ -176,6 +178,14 @@ class DashboardController extends Controller
             }
         }
 
+        // Estornos pendentes — independentes do mês selecionado, pois precisam de tratativa
+        $estornosPendentes = DB::table('vendas as a')
+            ->join('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
+            ->where('a.empresa_id', $empresaId)
+            ->where('a.user_id', $user->id)
+            ->where('c.tabulacao_id', Tabulations::ESTORNO)
+            ->count();
+
         // Vendas recentes (últimas 10)
         $vendasRecentes = DB::table('vendas as a')
             ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
@@ -204,6 +214,7 @@ class DashboardController extends Controller
                 }
                 $venda->valor_total = $valor;
                 $venda->created_at = $createdAt->format('d/m/Y');
+
                 return $venda;
             });
 
@@ -232,6 +243,7 @@ class DashboardController extends Controller
             ],
             'monthly_overview' => $monthlyOverview,
             'vendas_recentes' => $vendasRecentes,
+            'estornos_pendentes' => $estornosPendentes,
         ];
 
         return response()->json($data);
