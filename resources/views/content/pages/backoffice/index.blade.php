@@ -229,9 +229,18 @@
                         </div>
 
                         <div id="proof-group-data-pendencia" class="kb-form-group" style="display: none;">
-                            <label for="data_pendencia" class="kb-form-label">Motivo da Pendência</label>
+                            <label for="data_pendencia" class="kb-form-label" id="label-motivo-pendencia">Motivo da Pendência</label>
                             <textarea id="data_pendencia" name="motivo_pendencia" class="kb-form-textarea"
-                                placeholder="Descreva o motivo da pendência..."></textarea>
+                                placeholder="Descreva o motivo..."></textarea>
+                            <small id="hint-motivo-estorno" class="text-muted d-none">
+                                O vendedor receberá esta venda na aba "Meus Estornos" com este motivo. Mínimo 10 caracteres.
+                            </small>
+                        </div>
+
+                        <div id="proof-group-observacao-estorno" class="kb-form-group" style="display: none;">
+                            <label for="observacao_estorno" class="kb-form-label">Observação interna (opcional)</label>
+                            <textarea id="observacao_estorno" name="observacao_estorno" class="kb-form-textarea"
+                                placeholder="Notas internas — não vão para o vendedor."></textarea>
                         </div>
 
                         <div id="proof-group" class="kb-form-group" style="display: none;">

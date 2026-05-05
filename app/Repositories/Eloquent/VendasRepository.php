@@ -12,6 +12,7 @@ use App\Models\VendaDependente;
 use App\Models\VendaHistorico;
 use App\Models\VendaPortabilidade;
 use App\Models\Vendas;
+use App\Models\VendaTitular;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -220,6 +221,147 @@ class VendasRepository implements VendasRepositoryInterface
         } catch (\Throwable $ex) {
             throw $ex; // Propaga o erro para o controller tratar
         }
+    }
+
+    /**
+     * Atualiza venda + filhos (titulares, dependentes, portabilidades)
+     * substituindo completamente, exatamente como `create()` faz, mas para
+     * uma venda existente. Usado pelo fluxo de estorno/reenvio do vendedor.
+     */
+    public function updateContractFull(int $vendaId, array $data): bool
+    {
+        return DB::transaction(function () use ($vendaId, $data) {
+            $venda = $this->model::where('id', $vendaId)->lockForUpdate()->firstOrFail();
+
+            $operadoraId = (int) ($data['operadora_id'] ?? $venda->operadora_id);
+            $titulares = is_array($data['titulares'] ?? null) ? $data['titulares'] : [];
+            $tipoContrato = $data['tipo_contrato'] ?? $venda->tipo_contrato ?? 'PME';
+
+            $operadora = Operadora::findOrFail($operadoraId);
+
+            $primeiroTitular = $titulares[0] ?? null;
+            $planoPrimeiro = $primeiroTitular
+                ? Plano::find($primeiroTitular['plano_id'] ?? null)
+                : null;
+
+            $copValues = array_values(array_unique(array_map(function ($t) {
+                return isset($t['coparticipacao']) && $t['coparticipacao'] !== ''
+                    ? strtoupper($t['coparticipacao'])
+                    : null;
+            }, $titulares)));
+
+            $coparticipacaoVenda = count($copValues) === 1 ? $copValues[0] : null;
+
+            $isAngariacao = $data['angariacao_status']
+                ?? ($operadora->nome === 'AMIL - SUPERMED' ? 'SIM' : 'NÃO');
+
+            // Atualiza campos da venda em si
+            $venda->fill([
+                'nome_contrato' => strtoupper(trim($data['nome_contrato'] ?? $venda->nome_contrato)),
+                'cpf_cnpj' => Helpers::cleanSpecialCharacters($data['cpf_cnpj'] ?? $venda->cpf_cnpj),
+                'email' => $data['email'] ?? null,
+                'telefone1' => Helpers::cleanSpecialCharacters($data['telefone1'] ?? ''),
+                'telefone2' => Helpers::cleanSpecialCharacters($data['telefone2'] ?? ''),
+                'operadora' => $operadora->nome,
+                'operadora_id' => $operadoraId,
+                'nome_plano' => $planoPrimeiro?->nome,
+                'plano_id' => $planoPrimeiro?->id,
+                'valor_contrato' => Helpers::converterParaDecimal($data['valor_contrato'] ?? '0'),
+                'vidas' => (int) ($data['vidas'] ?? count($titulares)),
+                'obs_contrato' => $data['obs_contrato'] ?? null,
+                'coparticipacao' => $coparticipacaoVenda,
+                'angariacao_valor' => Helpers::converterParaDecimal($data['taxa_angariacao'] ?? '0'),
+                'angariacao_status' => $isAngariacao,
+                'layout_venda' => 'NOVO',
+                'tipo_contrato' => $tipoContrato,
+                'portabilidade_status' => $data['portabilidade_status'] ?? 'NAO',
+                'qtd_portabilidade' => (int) ($data['qtd_portabilidade'] ?? 0),
+                'plano_dental' => $data['plano_dental'] ?? 'SIM',
+            ]);
+
+            if ($tipoContrato !== 'ADESAO') {
+                $venda->tipo_empresa = $data['tipo_empresa'] ?? null;
+                if (! empty($data['data_abertura'])) {
+                    $dataAbertura = $this->converterDataBrParaDb($data['data_abertura']);
+                    if ($dataAbertura) {
+                        $venda->data_abertura = $dataAbertura;
+                    }
+                } else {
+                    $venda->data_abertura = null;
+                }
+            } else {
+                $venda->tipo_empresa = null;
+                $venda->data_abertura = null;
+            }
+
+            $venda->save();
+
+            // Substitui filhos: remove antigos e recria a partir do payload.
+            // O cascade do FK também removeria; manter explícito por clareza e
+            // para não depender do storage engine.
+            VendaDependente::where('venda_id', $venda->id)->delete();
+            VendaTitular::where('venda_id', $venda->id)->delete();
+            VendaPortabilidade::where('venda_id', $venda->id)->delete();
+
+            foreach ($titulares as $titularData) {
+                $titular = $venda->titulares()->create([
+                    'nome' => mb_strtoupper(trim($titularData['nome'] ?? ''), 'UTF-8'),
+                    'email' => $titularData['email'] ?? null,
+                    'telefone' => Helpers::cleanSpecialCharacters($titularData['telefone1'] ?? $titularData['telefone'] ?? ''),
+                    'telefone2' => Helpers::cleanSpecialCharacters($titularData['telefone2'] ?? ''),
+                    'cpf' => Helpers::cleanSpecialCharacters($titularData['cpf'] ?? ''),
+                    'cargo' => ! empty($titularData['cargo']) ? $titularData['cargo'] : null,
+                    'plano_id' => ! empty($titularData['plano_id']) ? (int) $titularData['plano_id'] : null,
+                    'coparticipacao' => isset($titularData['coparticipacao']) && $titularData['coparticipacao'] !== ''
+                        ? strtoupper($titularData['coparticipacao'])
+                        : null,
+                    'plano_anterior' => $titularData['plano_anterior'] ?? 'NAO',
+                    'operadora_anterior_id' => ! empty($titularData['operadora_anterior_id'])
+                        ? (int) $titularData['operadora_anterior_id']
+                        : null,
+                    'data_nascimento' => $this->converterDataBrParaDb($titularData['data_nascimento'] ?? null),
+                ]);
+
+                foreach ($titularData['dependentes'] ?? [] as $depData) {
+                    VendaDependente::create([
+                        'venda_id' => $venda->id,
+                        'titular_id' => $titular->id,
+                        'nome' => mb_strtoupper(trim($depData['nome'] ?? ''), 'UTF-8'),
+                        'email' => $depData['email'] ?? null,
+                        'telefone1' => Helpers::cleanSpecialCharacters($depData['telefone1'] ?? ''),
+                        'telefone2' => Helpers::cleanSpecialCharacters($depData['telefone2'] ?? ''),
+                        'cpf' => ! empty($depData['cpf']) ? Helpers::cleanSpecialCharacters($depData['cpf']) : null,
+                        'parentesco' => $depData['parentesco'] ?? null,
+                        'plano_anterior' => $depData['plano_anterior'] ?? 'NAO',
+                        'operadora_anterior_id' => ! empty($depData['operadora_anterior_id'])
+                            ? (int) $depData['operadora_anterior_id']
+                            : null,
+                        'data_nascimento' => $this->converterDataBrParaDb($depData['data_nascimento'] ?? null),
+                    ]);
+                }
+            }
+
+            $sequencial = 1;
+            foreach ($data['portabilidades'] ?? [] as $portData) {
+                if (empty($portData['nome'])) {
+                    continue;
+                }
+
+                VendaPortabilidade::create([
+                    'venda_id' => $venda->id,
+                    'nome' => mb_strtoupper(trim($portData['nome'] ?? ''), 'UTF-8'),
+                    'cpf' => ! empty($portData['cpf']) ? Helpers::cleanSpecialCharacters($portData['cpf']) : null,
+                    'operadora_anterior_id' => ! empty($portData['operadora_anterior_id'])
+                        ? (int) $portData['operadora_anterior_id']
+                        : null,
+                    'plano_anterior' => $portData['plano_anterior'] ?? null,
+                    'numero_carteirinha' => $portData['numero_carteirinha'] ?? null,
+                    'sequencial' => $sequencial++,
+                ]);
+            }
+
+            return true;
+        });
     }
 
     /**
@@ -574,7 +716,7 @@ class VendasRepository implements VendasRepositoryInterface
         return DB::table('vendas as a')
             ->select(
                 'b.name',
-                DB::raw("SUM(a.valor_contrato) as total_vendas"),
+                DB::raw('SUM(a.valor_contrato) as total_vendas'),
                 DB::raw("SUM(CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END) as total_angariacao")
             )
             ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
@@ -603,7 +745,7 @@ class VendasRepository implements VendasRepositoryInterface
         return DB::table('vendas as a')
             ->select(
                 'b.name',
-                DB::raw("SUM(a.valor_contrato) as total_vendas"),
+                DB::raw('SUM(a.valor_contrato) as total_vendas'),
                 DB::raw("SUM(CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END) as total_angariacao")
             )
             ->leftJoin('users as b', 'b.id', '=', 'a.user_id')

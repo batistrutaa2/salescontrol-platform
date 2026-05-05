@@ -475,6 +475,16 @@
       ]
     },
     {
+      "url": "/vendas/meus-estornos",
+      "name": "Meus Estornos",
+      "icon": "menu-icon tf-icons ri-arrow-go-back-line",
+      "slug": "sale.meusEstornos",
+      "rules": [
+        "VENDEDOR",
+        "DEVELOPER"
+      ]
+    },
+    {
       "url": "/comercial/agendamentos",
       "name": "Agendamentos",
       "icon": "menu-icon tf-icons ri-time-line",

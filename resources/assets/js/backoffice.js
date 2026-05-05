@@ -1254,9 +1254,35 @@ $(function () {
         if (val === '55' || val === '17' || val === '53') {
             $('#proof-group-data-pendencia').show();
             $('#data_pendencia').prop('required', true);
+
+            if (val === '17') {
+                $('#label-motivo-pendencia').text('Motivo do Estorno');
+                $('#data_pendencia').attr('placeholder', 'Descreva o motivo do estorno (mínimo 10 caracteres). O vendedor receberá esta mensagem.');
+                $('#data_pendencia').attr('minlength', '10');
+                $('#hint-motivo-estorno').removeClass('d-none');
+                $('#proof-group-observacao-estorno').show();
+            } else if (val === '55') {
+                $('#label-motivo-pendencia').text('Motivo da Pendência');
+                $('#data_pendencia').attr('placeholder', 'Descreva o motivo da pendência...');
+                $('#data_pendencia').removeAttr('minlength');
+                $('#hint-motivo-estorno').addClass('d-none');
+                $('#proof-group-observacao-estorno').hide();
+                $('#observacao_estorno').val('');
+            } else {
+                $('#label-motivo-pendencia').text('Motivo do Declínio');
+                $('#data_pendencia').attr('placeholder', 'Descreva o motivo...');
+                $('#data_pendencia').removeAttr('minlength');
+                $('#hint-motivo-estorno').addClass('d-none');
+                $('#proof-group-observacao-estorno').hide();
+                $('#observacao_estorno').val('');
+            }
         } else {
             $('#proof-group-data-pendencia').hide();
             $('#data_pendencia').prop('required', false).val('');
+            $('#data_pendencia').removeAttr('minlength');
+            $('#hint-motivo-estorno').addClass('d-none');
+            $('#proof-group-observacao-estorno').hide();
+            $('#observacao_estorno').val('');
         }
 
         // BOLETO DISPONÍVEL (ID 58)

@@ -2,9 +2,10 @@
 
 namespace App\Notifications;
 
+use App\Enums\Tabulations;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\BroadcastMessage;
+use Illuminate\Notifications\Notification;
 
 class StatusPropostaAlterada extends Notification
 {
@@ -15,8 +16,8 @@ class StatusPropostaAlterada extends Notification
         public readonly string $novoStatus,
         public readonly ?int $alteradoPorId = null,
         public readonly ?string $alteradoPorNome = null,
-    ) {
-    }
+        public readonly ?int $tabulacaoId = null,
+    ) {}
 
     public function via($notifiable)
     {
@@ -25,13 +26,21 @@ class StatusPropostaAlterada extends Notification
 
     public function toDatabase($notifiable)
     {
+        $isEstorno = $this->tabulacaoId === Tabulations::ESTORNO;
+
         return [
-            'tipo' => 'status_venda',
-            'titulo' => "Status da venda #{$this->vendaId} Atualizado",
-            'mensagem' => "O status foi alterado para {$this->novoStatus}.",
+            'tipo' => $isEstorno ? 'venda_estornada' : 'status_venda',
+            'titulo' => $isEstorno
+                ? "Sua venda #{$this->vendaId} foi estornada"
+                : "Status da venda #{$this->vendaId} Atualizado",
+            'mensagem' => $isEstorno
+                ? 'Sua proposta foi estornada — abra para corrigir e reenviar ao backoffice.'
+                : "O status foi alterado para {$this->novoStatus}.",
             'venda_id' => $this->vendaId,
             'status' => $this->novoStatus,
-            'url' => route('sale.listSale'),
+            'url' => $isEstorno
+                ? route('sale.editEstorno', ['id' => $this->vendaId])
+                : route('sale.listSale'),
             'criado_por' => $this->alteradoPorNome ?? 'Sistema',
             'agendado_por' => null,
         ];
