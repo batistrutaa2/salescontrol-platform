@@ -136,6 +136,14 @@ class DashboardController extends Controller
         $quarterStartMonth = ($currentQuarter - 1) * 3 + 1;
         $quarterEndMonth = $currentQuarter * 3;
 
+        // Usuários marcados como excluir_ranking não entram nos rankings,
+        // mas continuam aparecendo em outros relatórios normalmente.
+        $usersExcluidosRanking = DB::table('users')
+            ->where('empresa_id', $empresaId)
+            ->where('excluir_ranking', true)
+            ->pluck('id')
+            ->all();
+
         // Ranking mensal - todos vendedores da empresa
         $rankingMensal = DB::table('vendas as a')
             ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
@@ -144,6 +152,7 @@ class DashboardController extends Controller
             ->whereYear('a.created_at', $currentYear)
             ->whereMonth('a.created_at', $currentMonth)
             ->whereIn('c.tabulacao_id', $validTabulations)
+            ->when(! empty($usersExcluidosRanking), fn ($q) => $q->whereNotIn('a.user_id', $usersExcluidosRanking))
             ->groupBy('a.user_id')
             ->orderByDesc('total_vendas')
             ->get();
@@ -165,6 +174,7 @@ class DashboardController extends Controller
             ->whereYear('a.created_at', $currentYear)
             ->whereRaw('MONTH(a.created_at) BETWEEN ? AND ?', [$quarterStartMonth, $quarterEndMonth])
             ->whereIn('c.tabulacao_id', $validTabulations)
+            ->when(! empty($usersExcluidosRanking), fn ($q) => $q->whereNotIn('a.user_id', $usersExcluidosRanking))
             ->groupBy('a.user_id')
             ->orderByDesc('total_vendas')
             ->get();
