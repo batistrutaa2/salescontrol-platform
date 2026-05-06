@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers\pages\comercial;
 
-use App\Models\User;
+use App\Http\Controllers\Controller;
+use App\Jobs\EnviarReuniaoAgendadaWhatsappJob;
+use App\Models\ComercialReunioes;
 use App\Models\Contatos;
 use App\Models\ContatosCorretores;
+use App\Models\User;
+use App\Notifications\NovaReuniaoAgendada;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use App\Models\ComercialReunioes;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use App\Notifications\NovaReuniaoAgendada;
-
 
 class ReunioesComercial extends Controller
 {
@@ -21,6 +21,7 @@ class ReunioesComercial extends Controller
             ->where('ativo', 'Y')
             ->where('empresa_id', Auth::user()->empresa_id)
             ->get();
+
         return view('content.pages.reunioes.index', compact('managers'));
     }
 
@@ -35,7 +36,7 @@ class ReunioesComercial extends Controller
                 $startDate = $reuniao->data_inicio ? $reuniao->data_inicio->format('Y-m-d\TH:i:s') : null;
                 $endDate = $reuniao->data_final ? $reuniao->data_final->format('Y-m-d\TH:i:s') : null;
 
-                if (!$startDate || !$endDate) {
+                if (! $startDate || ! $endDate) {
                     return null;
                 }
 
@@ -56,7 +57,7 @@ class ReunioesComercial extends Controller
                         'contato_nome' => $reuniao->contato->nome_cliente ?? null,
                         'contato_telefone' => $reuniao->contato->telefone1 ?? null,
                         'contato_cpf' => $reuniao->contato->cpf ?? null,
-                    ]
+                    ],
                 ];
             })->filter();
 
@@ -101,7 +102,7 @@ class ReunioesComercial extends Controller
             ->where('contatos.empresa_id', $empresaId)
             ->where('contatos_corretores.user_id', $userId);
 
-        if (!empty($search)) {
+        if (! empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('contatos.nome_cliente', 'like', "%{$search}%")
                     ->orWhere('contatos.telefone1', 'like', "%{$search}%")
@@ -137,7 +138,7 @@ class ReunioesComercial extends Controller
                 'data_inicio' => 'required|date',
                 'data_final' => 'required|date|after:data_inicio',
                 'location' => 'nullable|string|max:255',
-                'observacao' => 'nullable|string'
+                'observacao' => 'nullable|string',
             ]);
 
             // Obter o ID da empresa do usuário logado
@@ -149,10 +150,10 @@ class ReunioesComercial extends Controller
                 ->where('empresa_id', $empresaId)
                 ->first();
 
-            if (!$manager) {
+            if (! $manager) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'O usuário selecionado não é um gestor comercial.'
+                    'message' => 'O usuário selecionado não é um gestor comercial.',
                 ], 422);
             }
 
@@ -163,10 +164,10 @@ class ReunioesComercial extends Controller
                     ->where('empresa_id', $empresaId)
                     ->first();
 
-                if (!$contatoCorretor) {
+                if (! $contatoCorretor) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'O contato selecionado não pertence à sua carteira.'
+                        'message' => 'O contato selecionado não pertence à sua carteira.',
                     ], 422);
                 }
             }
@@ -200,6 +201,8 @@ class ReunioesComercial extends Controller
                 $admin->notify(new NovaReuniaoAgendada($reuniao));
             }
 
+            EnviarReuniaoAgendadaWhatsappJob::dispatch($reuniao->id);
+
             // Retornar dados da reunião para atualizar o calendário
             return response()->json([
                 'status' => 'success',
@@ -221,13 +224,13 @@ class ReunioesComercial extends Controller
                         'contato_nome' => $reuniao->contato->nome_cliente ?? null,
                         'contato_telefone' => $reuniao->contato->telefone1 ?? null,
                         'contato_cpf' => $reuniao->contato->cpf ?? null,
-                    ]
-                ]
+                    ],
+                ],
             ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => 'error',
-                'message' => $th->getMessage()
+                'message' => $th->getMessage(),
             ], 404);
         }
     }
@@ -242,7 +245,7 @@ class ReunioesComercial extends Controller
             'data_final' => 'required|date|after:data_inicio',
             'location' => 'nullable|string|max:255',
             'observacao' => 'nullable|string',
-            'status' => 'nullable|in:scheduled,completed,cancelled'
+            'status' => 'nullable|in:scheduled,completed,cancelled',
         ]);
 
         // Obter o ID da empresa do usuário logado
@@ -253,10 +256,10 @@ class ReunioesComercial extends Controller
             ->where('empresa_id', $empresaId)
             ->first();
 
-        if (!$reuniao) {
+        if (! $reuniao) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Reunião não encontrada ou você não tem permissão para editá-la.'
+                'message' => 'Reunião não encontrada ou você não tem permissão para editá-la.',
             ], 404);
         }
 
@@ -266,10 +269,10 @@ class ReunioesComercial extends Controller
             ->where('empresa_id', $empresaId)
             ->first();
 
-        if (!$manager) {
+        if (! $manager) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'O usuário selecionado não é um gestor comercial.'
+                'message' => 'O usuário selecionado não é um gestor comercial.',
             ], 422);
         }
 
@@ -280,10 +283,10 @@ class ReunioesComercial extends Controller
                 ->where('empresa_id', $empresaId)
                 ->first();
 
-            if (!$contatoCorretor) {
+            if (! $contatoCorretor) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'O contato selecionado não pertence à carteira do vendedor.'
+                    'message' => 'O contato selecionado não pertence à carteira do vendedor.',
                 ], 422);
             }
         }
@@ -329,8 +332,8 @@ class ReunioesComercial extends Controller
                     'contato_nome' => $reuniao->contato->nome_cliente ?? null,
                     'contato_telefone' => $reuniao->contato->telefone1 ?? null,
                     'contato_cpf' => $reuniao->contato->cpf ?? null,
-                ]
-            ]
+                ],
+            ],
         ]);
     }
 
@@ -344,10 +347,10 @@ class ReunioesComercial extends Controller
             ->where('empresa_id', $empresaId)
             ->first();
 
-        if (!$reuniao) {
+        if (! $reuniao) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Reunião não encontrada ou você não tem permissão para excluí-la.'
+                'message' => 'Reunião não encontrada ou você não tem permissão para excluí-la.',
             ], 404);
         }
 
@@ -355,7 +358,7 @@ class ReunioesComercial extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Reunião excluída com sucesso!'
+            'message' => 'Reunião excluída com sucesso!',
         ]);
     }
 
@@ -370,10 +373,10 @@ class ReunioesComercial extends Controller
             ->where('empresa_id', $empresaId)
             ->first();
 
-        if (!$manager) {
+        if (! $manager) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gestor não encontrado ou não pertence à sua empresa.'
+                'message' => 'Gestor não encontrado ou não pertence à sua empresa.',
             ], 404);
         }
 
@@ -423,7 +426,7 @@ class ReunioesComercial extends Controller
                     'end' => $slotEnd->format('Y-m-d H:i:s'),
                     'start_formatted' => $currentDate->format('H:i'),
                     'end_formatted' => $slotEnd->format('H:i'),
-                    'label' => $currentDate->format('H:i') . ' - ' . $slotEnd->format('H:i')
+                    'label' => $currentDate->format('H:i').' - '.$slotEnd->format('H:i'),
                 ];
             }
 
@@ -436,9 +439,9 @@ class ReunioesComercial extends Controller
             'date' => Carbon::parse($date)->format('d/m/Y'),
             'manager' => [
                 'id' => $manager->id,
-                'name' => $manager->name
+                'name' => $manager->name,
             ],
-            'available_slots' => $availableSlots
+            'available_slots' => $availableSlots,
         ]);
     }
 }
