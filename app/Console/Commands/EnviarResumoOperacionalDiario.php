@@ -115,7 +115,7 @@ class EnviarResumoOperacionalDiario extends Command
                         UserRole::DEVELOPER,
                         UserRole::SUPERVISOR,
                     ])
-                    ->where('ativo', 1)
+                    ->where('ativo', 'Y')
                     ->whereNotNull('whatsapp')
                     ->when($this->option('user'), fn ($q, $u) => $q->where('id', $u))
                     ->get();
