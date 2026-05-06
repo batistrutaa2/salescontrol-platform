@@ -21,15 +21,18 @@ class WhatsappService
         $formattedNumber = $this->formatNumber($number);
 
         try {
+            $payload = json_encode([
+                'number'       => $formattedNumber,
+                'body'         => $body,
+                'saveOnTicket' => false,
+                'linkPreview'  => false,
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
-                'Content-Type'  => 'application/json',
-            ])->timeout(15)->post(self::ENDPOINT, [
-                'number'      => $formattedNumber,
-                'body'        => $body,
-                'saveOnTicket' => false,
-                'linkPreview' => false,
-            ]);
+            ])->timeout(15)
+                ->withBody($payload, 'application/json')
+                ->post(self::ENDPOINT);
 
             if ($response->successful()) {
                 return ['success' => true, 'message' => 'Mensagem enviada com sucesso.'];

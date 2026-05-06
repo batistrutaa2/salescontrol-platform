@@ -13,6 +13,13 @@ Schedule::command('verificar:agendamentos')
 
 Schedule::command('birthdays:send')
     ->timezone('America/Sao_Paulo')
-    ->dailyAt('09:00') 
+    ->dailyAt('09:00')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('resumo-diario:send')
+    ->timezone('America/Sao_Paulo')
+    ->weekdays()
+    ->dailyAt('18:00')
     ->withoutOverlapping()
     ->onOneServer();

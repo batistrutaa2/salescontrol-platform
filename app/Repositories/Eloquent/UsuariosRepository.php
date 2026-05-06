@@ -49,6 +49,7 @@ class UsuariosRepository implements UsuariosRepositoryInterface
       $this->model->create([
         'name' => $data['name'],
         'email' => $data['email'],
+        'whatsapp' => $data['whatsapp'] ?? null,
         'user_role_id' => $data['user_role_id'],
         'empresa_id' => $data['empresa_id'],
         'password' => Hash::make($data['password']),
@@ -86,6 +87,7 @@ class UsuariosRepository implements UsuariosRepositoryInterface
       'name' => $data['name'],
       'password' => bcrypt($data['senha']),
       'ativo' => $data['ativo'],
+      'whatsapp' => $data['whatsapp'] ?? null,
     ];
     $user = $this->model::updateOrCreate($conditions, $values);
     return $user;

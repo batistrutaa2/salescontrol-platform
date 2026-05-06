@@ -42,6 +42,8 @@ use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
 use App\Repositories\Eloquent\PreditivaRegraRepository;
+use App\Repositories\Contracts\ResumoOperacionalRepositoryInterface;
+use App\Repositories\Eloquent\ResumoOperacionalRepository;
 use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
@@ -69,6 +71,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PreditivaRepositoryInterface::class, PreditivaRepository::class);
         $this->app->bind(LogPreditivaRepositoryInterface::class, LogPreditivaRepository::class);
         $this->app->bind(PreditivaRegraRepositoryInterface::class, PreditivaRegraRepository::class);
+        $this->app->bind(ResumoOperacionalRepositoryInterface::class, ResumoOperacionalRepository::class);
     }
 
     /**

@@ -21,6 +21,7 @@ class Usuarios extends Controller
   private $rulesCreateUser = [
     'name' => 'required|string',
     'email' => 'required|string|email|max:255|unique:users',
+    'whatsapp' => 'nullable|string|max:20',
     'user_role_id' => 'required|string',
     'empresa_id' => 'required|string',
     'password' => 'required|string'

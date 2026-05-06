@@ -255,6 +255,11 @@
                         <label for="ecommerce-customer-add-email">Email*</label>
                     </div>
                     <div class="form-floating form-floating-outline mb-5">
+                        <input type="text" id="ecommerce-customer-add-whatsapp" class="form-control phone-mask"
+                            placeholder="(11) 99999-8888" aria-label="(11) 99999-8888" name="customerWhats" />
+                        <label for="ecommerce-customer-add-whatsapp">WhatsApp (recebe o resumo diário se for ADMINISTRATIVO/DEVELOPER/SUPERVISOR)</label>
+                    </div>
+                    <div class="form-floating form-floating-outline mb-5">
                         <select id="tipo_user" class="form-select" name="user_role_id">
                             <option value="1">VENDEDOR</option>
                             <option value="2">ADMINISTRATIVO</option>

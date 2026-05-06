@@ -22,6 +22,7 @@ class User extends Authenticatable
         'empresa_id',
         'user_role_id',
         'email',
+        'whatsapp',
         'ativo',
         'password',
         'empresa_id',

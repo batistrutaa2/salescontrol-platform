@@ -89,6 +89,13 @@
                             <input type="email" class="form-control" name="email" value="{{ $user->email }}" readonly placeholder="Email do usuario" />
                         </div>
 
+                        {{-- WhatsApp --}}
+                        <div class="col-md-6">
+                            <label class="form-label">WhatsApp</label>
+                            <input type="text" class="form-control" name="whatsapp" value="{{ $user->whatsapp ?? '' }}" placeholder="(11) 99999-8888" maxlength="20" />
+                            <small class="text-muted">Necessário para receber o resumo operacional diário (perfis ADMINISTRATIVO, DEVELOPER e SUPERVISOR).</small>
+                        </div>
+
                         {{-- Status --}}
                         <div class="col-md-6">
                             <label class="form-label">Status</label>
@@ -98,7 +105,7 @@
                             </select>
                         </div>
 
-                        {{-- Observacoes do Contrato --}}
+                        {{-- Data de nascimento --}}
                         <div class="col-md-6">
                             <label class="form-label">Data de Nascimento</label>
                             <input type="date" class="form-control" name="birthdate" value="{{ $user->birthdate ?? '' }}" />
