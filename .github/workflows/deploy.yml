@@ -17,6 +17,7 @@ jobs:
 
       - name: Send Discord notification - Starting deployment
         uses: Ilshidur/action-discord@master
+        continue-on-error: true
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
@@ -83,6 +84,7 @@ jobs:
       - name: Send Discord notification - Success
         if: success()
         uses: Ilshidur/action-discord@master
+        continue-on-error: true
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
@@ -95,6 +97,7 @@ jobs:
       - name: Send Discord notification - Failure
         if: failure()
         uses: Ilshidur/action-discord@master
+        continue-on-error: true
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
