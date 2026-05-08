@@ -243,7 +243,7 @@ public function getClientInfo($idMailing)
             WHEN CAST(contatos.data_nascimento AS CHAR) REGEXP '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$'
                 THEN DATE_FORMAT(STR_TO_DATE(CAST(contatos.data_nascimento AS CHAR), '%d/%m/%Y'), '%d/%m/%Y')
             WHEN CAST(contatos.data_nascimento AS CHAR) REGEXP '^[0-9]{1,5}(\\.[0-9]+)?$'
-                THEN DATE_FORMAT(FROM_UNIXTIME((CAST(contatos.data_nascimento AS UNSIGNED) - 25569) * 86400), '%d/%m/%Y')
+                THEN DATE_FORMAT(DATE_ADD('1899-12-30', INTERVAL CAST(contatos.data_nascimento AS UNSIGNED) DAY), '%d/%m/%Y')
             ELSE NULL
         END
     ";
