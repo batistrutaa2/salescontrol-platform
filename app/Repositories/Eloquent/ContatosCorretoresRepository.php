@@ -240,11 +240,11 @@ public function getClientInfo($idMailing)
             WHEN contatos.data_nascimento IS NULL OR contatos.data_nascimento = '' THEN NULL
             WHEN CAST(contatos.data_nascimento AS CHAR) REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
                 THEN DATE_FORMAT(contatos.data_nascimento, '%d/%m/%Y')
-            WHEN CAST(contatos.data_nascimento AS CHAR) LIKE '%/%'
+            WHEN CAST(contatos.data_nascimento AS CHAR) REGEXP '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$'
                 THEN DATE_FORMAT(STR_TO_DATE(CAST(contatos.data_nascimento AS CHAR), '%d/%m/%Y'), '%d/%m/%Y')
-            WHEN CAST(contatos.data_nascimento AS CHAR) REGEXP '^[0-9]+(\\.[0-9]+)?$'
+            WHEN CAST(contatos.data_nascimento AS CHAR) REGEXP '^[0-9]{1,5}(\\.[0-9]+)?$'
                 THEN DATE_FORMAT(FROM_UNIXTIME((CAST(contatos.data_nascimento AS UNSIGNED) - 25569) * 86400), '%d/%m/%Y')
-            ELSE DATE_FORMAT(contatos.data_nascimento, '%d/%m/%Y')
+            ELSE NULL
         END
     ";
 
