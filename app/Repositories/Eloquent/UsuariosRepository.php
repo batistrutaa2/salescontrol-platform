@@ -85,12 +85,18 @@ class UsuariosRepository implements UsuariosRepositoryInterface
     $conditions = ['email' => $data['email']];
     $values = [
       'name' => $data['name'],
-      'password' => bcrypt($data['senha']),
       'ativo' => $data['ativo'],
       'whatsapp' => $data['whatsapp'] ?? null,
+      'birthdate' => $data['birthdate'] ?? null,
     ];
     $user = $this->model::updateOrCreate($conditions, $values);
     return $user;
+  }
+
+  public function updatePassword(int $userId, string $senha): bool
+  {
+    return $this->model::where('id', $userId)
+      ->update(['password' => bcrypt($senha)]) > 0;
   }
 
 }

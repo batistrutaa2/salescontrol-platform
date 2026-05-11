@@ -82,6 +82,11 @@ class Usuarios extends Controller
     return $this->useCaseUsuarios->updateUser($request->all());
   }
 
+  public function resetPassword(Request $request)
+  {
+    return $this->useCaseUsuarios->resetPassword($request->all());
+  }
+
   public function save(Request $req, $userId)
     {
         $empresaId = auth()->user()->empresa_id;

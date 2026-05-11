@@ -67,7 +67,7 @@
                 </div>
                 <div>
                     <h3 class="table-title">Dados do Usuario</h3>
-                    <span class="table-subtitle">Atualize nome, status e senha</span>
+                    <span class="table-subtitle">Atualize nome, status, WhatsApp e data de nascimento</span>
                 </div>
             </div>
         </div>
@@ -110,9 +110,51 @@
                             <label class="form-label">Data de Nascimento</label>
                             <input type="date" class="form-control" name="birthdate" value="{{ $user->birthdate ?? '' }}" />
                         </div>
+                    </div>
 
-                        {{-- Senha --}}
-                        <div class="col-md-6">
+                    <div class="form-actions">
+                        <button type="submit" class="btn-dash btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Salvar Usuario
+                        </button>
+                        <button type="button" class="btn-dash btn-warning" data-bs-toggle="modal" data-bs-target="#modalAlterarSenha">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            Alterar Senha
+                        </button>
+                        <a href="{{ route('usuarios.index') }}" class="btn-dash btn-secondary">Cancelar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Modal: Alterar Senha --}}
+    <div class="modal fade modal-modern" id="modalAlterarSenha" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form action="{{ route('usuarios.resetPassword') }}" method="POST" class="modal-content">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        Alterar Senha
+                        <small class="d-block fs-6">para <strong>{{ $user->name }}</strong></small>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" name="user_id" value="{{ $user->id }}">
+
+                    <div class="row g-3">
+                        <div class="col-md-12">
                             <label class="form-label">Nova Senha</label>
                             <div class="form-password-toggle">
                                 <div class="input-group input-group-merge">
@@ -123,8 +165,7 @@
                             </div>
                         </div>
 
-                        {{-- Confirma Senha --}}
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <label class="form-label">Confirmar Senha</label>
                             <div class="form-password-toggle">
                                 <div class="input-group input-group-merge">
@@ -135,16 +176,16 @@
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="form-actions">
-                        <button type="submit" class="btn-dash btn-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                            Salvar Usuario
-                        </button>
-                        <a href="{{ route('usuarios.index') }}" class="btn-dash btn-secondary">Cancelar</a>
-                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-dash btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn-dash btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Salvar Nova Senha
+                    </button>
                 </div>
             </form>
         </div>

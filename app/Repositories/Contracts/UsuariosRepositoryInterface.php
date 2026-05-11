@@ -13,4 +13,5 @@ interface UsuariosRepositoryInterface
   public function getUserSearchName($user_name);
   public function find($id);
   public function editUser($data);
+  public function updatePassword(int $userId, string $senha): bool;
 }
