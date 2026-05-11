@@ -33,7 +33,9 @@
         indigoLight: '#A5B4FC',
         emerald: '#34D399',
         amber: '#FBBF24',
+        amberLight: '#FCD34D',
         sky: '#38BDF8',
+        skyLight: '#7DD3FC',
         rose: '#FB7185',
         slate: '#718096'
     } : {
@@ -41,7 +43,9 @@
         indigoLight: '#6366F1',
         emerald: '#10B981',
         amber: '#F59E0B',
+        amberLight: '#FBBF24',
         sky: '#0EA5E9',
+        skyLight: '#38BDF8',
         rose: '#F43F5E',
         slate: '#64748B'
     };
@@ -477,70 +481,87 @@
             return;
         }
 
-        const topVendedores = dados.slice(0, 8);
-        const labels = topVendedores.map(item => item.vendedor || 'N/A');
-        const valores = topVendedores.map(item => parseFloat(item.valor_total) || 0);
+        // Ordena por total decrescente — barras em pé, mesmo padrão do dashboard.
+        const ordenado = [...dados].sort(
+            (a, b) => (parseFloat(b.valor_total) || 0) - (parseFloat(a.valor_total) || 0)
+        );
+        const labels = ordenado.map(item => item.vendedor || 'N/A');
+        // Primeira barra: total (valor_contrato + angariação) — mesma soma do card "Valor Cadastrado".
+        const valoresTotal = ordenado.map(item => parseFloat(item.valor_total) || 0);
+        // Segunda barra: somente angariação — mesmo valor do card "Angariação".
+        const valoresAngariacao = ordenado.map(item => parseFloat(item.valor_angariacao) || 0);
 
         const options = {
-            series: [{
-                name: 'Valor Total',
-                data: valores
-            }],
+            series: [
+                { name: 'Cadastradas', data: valoresTotal },
+                { name: 'Angariacao', data: valoresAngariacao }
+            ],
             chart: {
-                height: 300,
+                height: 360,
                 type: 'bar',
                 toolbar: { show: false },
-                fontFamily: 'DM Sans, sans-serif',
-                background: 'transparent'
+                fontFamily: 'inherit',
+                background: 'transparent',
+                stacked: false
             },
-            colors: [colors.indigo],
+            colors: [colors.sky, colors.amber],
             plotOptions: {
                 bar: {
-                    horizontal: true,
-                    borderRadius: 6,
-                    barHeight: '60%',
-                    distributed: false,
-                    dataLabels: {
-                        position: 'top'
-                    }
+                    horizontal: false,
+                    columnWidth: '55%',
+                    borderRadius: 8,
+                    borderRadiusApplication: 'end'
                 }
             },
             dataLabels: {
-                enabled: true,
-                textAnchor: 'start',
-                offsetX: 5,
-                formatter: val => formatCurrencyShort(val),
-                style: {
-                    colors: ['#fff'],
-                    fontSize: '11px',
-                    fontWeight: 600
-                }
+                enabled: false
+            },
+            stroke: {
+                show: true,
+                width: 2,
+                colors: ['transparent']
             },
             xaxis: {
                 categories: labels,
                 labels: {
-                    style: { colors: labelColor },
-                    formatter: val => formatCurrencyShort(val)
+                    style: { colors: labelColor, fontSize: '12px' },
+                    rotate: -45,
+                    rotateAlways: labels.length > 5,
+                    trim: true
                 },
                 axisBorder: { show: false },
                 axisTicks: { show: false }
             },
             yaxis: {
                 labels: {
-                    style: { colors: labelColor, fontSize: '12px' }
+                    style: { colors: labelColor, fontSize: '12px' },
+                    formatter: val => formatCurrencyShort(val)
+                }
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: isDarkStyle ? 'dark' : 'light',
+                    type: 'vertical',
+                    shadeIntensity: 0.3,
+                    gradientToColors: [colors.skyLight || colors.sky, colors.amberLight || colors.amber],
+                    inverseColors: false,
+                    opacityFrom: 1,
+                    opacityTo: 0.85,
+                    stops: [0, 100]
                 }
             },
             grid: {
                 borderColor: borderColor,
                 strokeDashArray: 4,
-                xaxis: { lines: { show: true } },
-                yaxis: { lines: { show: false } }
+                yaxis: { lines: { show: true } },
+                xaxis: { lines: { show: false } }
             },
             tooltip: {
-                y: {
-                    formatter: val => formatCurrency(val)
-                }
-            }
+                theme: isDarkStyle ? 'dark' : 'light',
+                y: { formatter: val => formatCurrency(val) }
+            },
+            legend: { show: false }
         };
 
         chartInstances.vendasPorVendedor = new ApexCharts(el, options);

@@ -186,8 +186,8 @@
                             Cadastradas
                         </span>
                         <span class="legend-item">
-                            <span class="legend-dot success"></span>
-                            Implantadas
+                            <span class="legend-dot warning"></span>
+                            Angariacao
                         </span>
                     </div>
                 </div>

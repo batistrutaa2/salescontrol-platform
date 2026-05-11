@@ -270,7 +270,7 @@
     {{-- Charts Section --}}
     <div class="charts-section">
         <div class="chart-row">
-            <div class="chart-card chart-half">
+            <div class="chart-card chart-full">
                 <div class="chart-header">
                     <div class="chart-title-group">
                         <h3 class="chart-title">Evolucao de Vendas</h3>
@@ -291,12 +291,24 @@
                     <div id="vendasPorMesChart"></div>
                 </div>
             </div>
+        </div>
 
-            <div class="chart-card chart-half">
+        <div class="chart-row">
+            <div class="chart-card chart-full">
                 <div class="chart-header">
                     <div class="chart-title-group">
                         <h3 class="chart-title">Vendas por Vendedor</h3>
-                        <span class="chart-subtitle">Ranking de performance</span>
+                        <span class="chart-subtitle">Cadastradas (valor + angariacao) e angariacao por vendedor</span>
+                    </div>
+                    <div class="chart-legend">
+                        <span class="legend-item">
+                            <span class="legend-dot info"></span>
+                            Cadastradas
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-dot warning"></span>
+                            Angariacao
+                        </span>
                     </div>
                 </div>
                 <div class="chart-body">

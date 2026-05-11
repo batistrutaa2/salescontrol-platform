@@ -109,7 +109,7 @@
     };
 
     // Sales Performance Chart Config
-    function getSalesPerformanceConfig(categories = [], dataCadastradas = [], dataImplantadas = []) {
+    function getSalesPerformanceConfig(categories = [], dataCadastradas = [], dataAngariacao = []) {
         return {
             ...commonChartConfig,
             chart: {
@@ -124,11 +124,11 @@
                     data: dataCadastradas
                 },
                 {
-                    name: 'Implantadas',
-                    data: dataImplantadas
+                    name: 'Angariacao',
+                    data: dataAngariacao
                 }
             ],
-            colors: [colors.primary, colors.success],
+            colors: [colors.primary, colors.warning],
             plotOptions: {
                 bar: {
                     horizontal: false,
@@ -175,7 +175,7 @@
                     shade: 'dark',
                     type: 'vertical',
                     shadeIntensity: 0.3,
-                    gradientToColors: [colors.primaryLight, colors.successLight],
+                    gradientToColors: [colors.primaryLight, colors.warningLight],
                     inverseColors: false,
                     opacityFrom: 1,
                     opacityTo: 0.85,
@@ -552,15 +552,16 @@
         const contatosImportados = data.contatosImportadosMesPorVendedor || [];
         const contatosTransferidos = data.quantidadeContatosTransferidos || [];
 
-        // Calculate totals
-        const totalCadastradas = vendasCadastradas.reduce((acc, item) => acc + parseFloat(item.total_vendas || 0), 0);
-        const totalImplantadas = vendasImplantadas.reduce((acc, item) => acc + parseFloat(item.total_vendas || 0), 0);
-        const totalContatosImportados = data.quantidadeContatosImportados || 0;
-        const conversaoMensal = parseFloat(data.conversaoMensal) || 0;
-
         // Calculate angariação totals
         const totalAngariacaoCadastradas = vendasCadastradas.reduce((acc, item) => acc + parseFloat(item.total_angariacao || 0), 0);
         const totalAngariacaoImplantadas = vendasImplantadas.reduce((acc, item) => acc + parseFloat(item.total_angariacao || 0), 0);
+
+        // Calculate totals — "Contratos Cadastrados" agrega valor_contrato + angariação
+        const totalContratosCadastrados = vendasCadastradas.reduce((acc, item) => acc + parseFloat(item.total_vendas || 0), 0);
+        const totalCadastradas = totalContratosCadastrados + totalAngariacaoCadastradas;
+        const totalImplantadas = vendasImplantadas.reduce((acc, item) => acc + parseFloat(item.total_vendas || 0), 0);
+        const totalContatosImportados = data.quantidadeContatosImportados || 0;
+        const conversaoMensal = parseFloat(data.conversaoMensal) || 0;
 
         // Animate KPI values
         const valorCadastradoEl = document.querySelector('.js-valorCadastrado');
@@ -602,13 +603,12 @@
         // Update Sales Performance Chart
         if (salesPerformanceChart) {
             const categories = vendasCadastradas.map(item => item.name || 'N/A');
-            const dataCadastradas = vendasCadastradas.map(item => parseFloat(item.total_vendas || 0));
-
-            // Map implanted sales to same sellers
-            const dataImplantadas = categories.map(name => {
-                const found = vendasImplantadas.find(item => item.name === name);
-                return found ? parseFloat(found.total_vendas || 0) : 0;
-            });
+            // Primeira barra: valor_contrato + angariação (mesma soma do card "Contratos Cadastrados").
+            const dataCadastradas = vendasCadastradas.map(item =>
+                parseFloat(item.total_vendas || 0) + parseFloat(item.total_angariacao || 0)
+            );
+            // Segunda barra: somente angariação (mesmo valor do card "Angariação").
+            const dataAngariacao = vendasCadastradas.map(item => parseFloat(item.total_angariacao || 0));
 
             salesPerformanceChart.updateOptions({
                 xaxis: { categories: categories }
@@ -616,14 +616,15 @@
 
             salesPerformanceChart.updateSeries([
                 { name: 'Cadastradas', data: dataCadastradas },
-                { name: 'Implantadas', data: dataImplantadas }
+                { name: 'Angariacao', data: dataAngariacao }
             ]);
         }
 
         // Update Conversion Funnel Chart
         if (conversionFunnelChart) {
-            const implantacaoRate = totalCadastradas > 0
-                ? Math.round((totalImplantadas / totalCadastradas) * 100)
+            // Compara valor_contrato a valor_contrato (sem misturar angariação).
+            const implantacaoRate = totalContratosCadastrados > 0
+                ? Math.round((totalImplantadas / totalContratosCadastrados) * 100)
                 : 0;
             const conversaoRate = Math.round(conversaoMensal);
 

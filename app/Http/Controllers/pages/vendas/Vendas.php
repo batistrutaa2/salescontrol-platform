@@ -289,7 +289,9 @@ class Vendas extends Controller
         $query = VendasModel::select(
             'users.name as vendedor',
             DB::raw('COUNT(*) as total_vendas'),
-            DB::raw("SUM(CASE WHEN YEAR(vendas.created_at) >= 2026 THEN vendas.valor_contrato + CASE WHEN vendas.angariacao_status = 'SIM' THEN COALESCE(vendas.angariacao_valor, 0) ELSE 0 END ELSE vendas.valor_contrato END) as valor_total"),
+            // valor_total agrega valor_contrato + angariação (mesmo critério do dashboard).
+            DB::raw("SUM(vendas.valor_contrato + CASE WHEN vendas.angariacao_status = 'SIM' THEN COALESCE(vendas.angariacao_valor, 0) ELSE 0 END) as valor_total"),
+            DB::raw("SUM(CASE WHEN vendas.angariacao_status = 'SIM' THEN COALESCE(vendas.angariacao_valor, 0) ELSE 0 END) as valor_angariacao"),
             DB::raw('SUM(vidas) as total_vidas')
         )->join('users', 'vendas.user_id', '=', 'users.id')
             ->where('users.empresa_id', $empresaId); // Filtro por empresa
@@ -478,12 +480,6 @@ class Vendas extends Controller
             $q->where('tabulacao_id', Tabulations::IMPLANTADO);
         });
 
-        // Calcular valor total (somente valor_contrato)
-        $valorTotal = (clone $query)->sum('valor_contrato') ?? 0;
-
-        // Calcular valor implantado (somente valor_contrato)
-        $valorImplantado = (clone $queryImplantadas)->sum('valor_contrato') ?? 0;
-
         // Calcular angariação total
         $valorAngariacao = (clone $query)->where('angariacao_status', 'SIM')
             ->sum('angariacao_valor') ?? 0;
@@ -491,6 +487,12 @@ class Vendas extends Controller
         // Calcular angariação implantada
         $valorAngariacaoImplantada = (clone $queryImplantadas)->where('angariacao_status', 'SIM')
             ->sum('angariacao_valor') ?? 0;
+
+        // Calcular valor total cadastrado (valor_contrato + angariação) — mesmo critério do dashboard.
+        $valorTotal = ((clone $query)->sum('valor_contrato') ?? 0) + $valorAngariacao;
+
+        // Calcular valor implantado (somente valor_contrato)
+        $valorImplantado = (clone $queryImplantadas)->sum('valor_contrato') ?? 0;
 
         return [
             'total_contratos' => $query->count(),
