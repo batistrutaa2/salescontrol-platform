@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Events\ContratoImplantado;
 use App\Helpers\Helpers;
 use App\Http\Controllers\Controller;
+use App\Jobs\EnviarNotificacaoStatusContratoWhatsappJob;
 use App\Jobs\GerarRecebiveisJob;
 use App\Models\AcessoEmpresa;
 use App\Models\Empresa;
@@ -329,6 +330,15 @@ class Backoffice extends Controller
                     tabulacaoId: (int) $request->tabulacao_id
                 ));
 
+                if (in_array((int) $request->tabulacao_id, EnviarNotificacaoStatusContratoWhatsappJob::WHITELIST_STATUS, true)) {
+                    EnviarNotificacaoStatusContratoWhatsappJob::dispatch(
+                        $sale->id,
+                        (int) $request->tabulacao_id,
+                        Auth::user()->name ?? null,
+                        $request->motivo_pendencia ?? null,
+                    );
+                }
+
                 // Alerta financeiro: estorno em venda com comissão paga não é estornado automaticamente.
                 if ((int) $request->tabulacao_id === Tabulations::ESTORNO && $sale->comissao_paga) {
                     $admins = User::where('empresa_id', $sale->empresa_id)
@@ -415,6 +425,15 @@ class Backoffice extends Controller
                     alteradoPorNome: Auth::user()->name ?? null,
                     tabulacaoId: (int) $tabulacaoId
                 ));
+
+                if (in_array((int) $tabulacaoId, EnviarNotificacaoStatusContratoWhatsappJob::WHITELIST_STATUS, true)) {
+                    EnviarNotificacaoStatusContratoWhatsappJob::dispatch(
+                        $sale->id,
+                        (int) $tabulacaoId,
+                        Auth::user()->name ?? null,
+                        $request->motivo_pendencia ?? null,
+                    );
+                }
 
                 return response()->json([
                     'success' => true,
