@@ -600,6 +600,7 @@ class Relatorios extends Controller
             $q->whereIn('tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
+                Tabulations::ESTORNO,
                 Tabulations::PENDENCIA,
                 Tabulations::ANALISE_OPERADORA,
                 Tabulations::BOLETO_DISPONIVEL,
@@ -1004,6 +1005,7 @@ class Relatorios extends Controller
                 $q->whereIn('tabulacao_id', [
                     Tabulations::VENDA,
                     Tabulations::IMPLANTADO,
+                    Tabulations::ESTORNO,
                     Tabulations::PENDENCIA,
                     Tabulations::ANALISE_OPERADORA,
                     Tabulations::BOLETO_DISPONIVEL,
@@ -1063,6 +1065,7 @@ class Relatorios extends Controller
                     $q->whereIn('tabulacao_id', [
                         Tabulations::VENDA,
                         Tabulations::IMPLANTADO,
+                        Tabulations::ESTORNO,
                         Tabulations::PENDENCIA,
                         Tabulations::ANALISE_OPERADORA,
                         Tabulations::BOLETO_DISPONIVEL,
@@ -1126,6 +1129,7 @@ class Relatorios extends Controller
                     $q->whereIn('tabulacao_id', [
                         Tabulations::VENDA,
                         Tabulations::IMPLANTADO,
+                        Tabulations::ESTORNO,
                         Tabulations::PENDENCIA,
                         Tabulations::ANALISE_OPERADORA,
                         Tabulations::BOLETO_DISPONIVEL,
@@ -1172,6 +1176,7 @@ class Relatorios extends Controller
                 $q->whereIn('tabulacao_id', [
                     Tabulations::VENDA,
                     Tabulations::IMPLANTADO,
+                    Tabulations::ESTORNO,
                     Tabulations::PENDENCIA,
                     Tabulations::ANALISE_OPERADORA,
                     Tabulations::BOLETO_DISPONIVEL,
@@ -1209,6 +1214,7 @@ class Relatorios extends Controller
                 $q->whereIn('tabulacao_id', [
                     Tabulations::VENDA,
                     Tabulations::IMPLANTADO,
+                    Tabulations::ESTORNO,
                     Tabulations::PENDENCIA,
                     Tabulations::ANALISE_OPERADORA,
                     Tabulations::BOLETO_DISPONIVEL,
@@ -1253,6 +1259,7 @@ class Relatorios extends Controller
                     $q->whereIn('tabulacao_id', [
                         Tabulations::VENDA,
                         Tabulations::IMPLANTADO,
+                        Tabulations::ESTORNO,
                         Tabulations::PENDENCIA,
                         Tabulations::ANALISE_OPERADORA,
                         Tabulations::BOLETO_DISPONIVEL,
@@ -1306,6 +1313,7 @@ class Relatorios extends Controller
             ->whereIn('cc.tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
+                Tabulations::ESTORNO,
                 Tabulations::PENDENCIA,
                 Tabulations::ANALISE_OPERADORA,
                 Tabulations::BOLETO_DISPONIVEL,

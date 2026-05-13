@@ -264,6 +264,7 @@ class DashboardController extends Controller
         return [
             Tabulations::VENDA,
             Tabulations::IMPLANTADO,
+            Tabulations::ESTORNO,
             Tabulations::PENDENCIA,
             Tabulations::ANALISE_OPERADORA,
             Tabulations::BOLETO_DISPONIVEL,

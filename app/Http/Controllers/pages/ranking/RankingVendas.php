@@ -52,6 +52,7 @@ class RankingVendas extends Controller
             ->whereIn('contatos_corretores.tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
+                Tabulations::ESTORNO,
                 Tabulations::PENDENCIA,
                 Tabulations::ANALISE_OPERADORA,
                 Tabulations::BOLETO_DISPONIVEL,
@@ -120,6 +121,7 @@ class RankingVendas extends Controller
             ->whereIn('contatos_corretores.tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
+                Tabulations::ESTORNO,
                 Tabulations::PENDENCIA,
                 Tabulations::ANALISE_OPERADORA,
                 Tabulations::BOLETO_DISPONIVEL,

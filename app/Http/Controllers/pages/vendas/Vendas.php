@@ -411,6 +411,7 @@ class Vendas extends Controller
             $q->whereIn('tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
+                Tabulations::ESTORNO,
                 Tabulations::PENDENCIA,
                 Tabulations::ANALISE_OPERADORA,
                 Tabulations::BOLETO_DISPONIVEL,
@@ -544,6 +545,7 @@ class Vendas extends Controller
         return Tabulacoes::whereIn('id', [
             Tabulations::VENDA,
             Tabulations::IMPLANTADO,
+            Tabulations::ESTORNO,
             Tabulations::PENDENCIA,
             Tabulations::ANALISE_OPERADORA,
             Tabulations::BOLETO_DISPONIVEL,
@@ -573,6 +575,7 @@ class Vendas extends Controller
             $q->whereIn('tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
+                Tabulations::ESTORNO,
                 Tabulations::PENDENCIA,
                 Tabulations::ANALISE_OPERADORA,
                 Tabulations::BOLETO_DISPONIVEL,

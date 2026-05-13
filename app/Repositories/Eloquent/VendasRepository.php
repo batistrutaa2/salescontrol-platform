@@ -666,6 +666,7 @@ class VendasRepository implements VendasRepositoryInterface
             ->whereIn('c.tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
+                Tabulations::ESTORNO,
                 Tabulations::PENDENCIA,
                 Tabulations::ANALISE_OPERADORA,
                 Tabulations::BOLETO_DISPONIVEL,
@@ -728,6 +729,7 @@ class VendasRepository implements VendasRepositoryInterface
             ->whereIn('c.tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
+                Tabulations::ESTORNO,
                 Tabulations::PENDENCIA,
                 Tabulations::ANALISE_OPERADORA,
                 Tabulations::BOLETO_DISPONIVEL,
@@ -770,6 +772,7 @@ class VendasRepository implements VendasRepositoryInterface
                 [
                     Tabulations::VENDA,
                     Tabulations::IMPLANTADO,
+                    Tabulations::ESTORNO,
                     Tabulations::PENDENCIA,
                     Tabulations::ANALISE_OPERADORA,
                     Tabulations::BOLETO_DISPONIVEL,
