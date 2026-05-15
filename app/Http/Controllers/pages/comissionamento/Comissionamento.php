@@ -1254,7 +1254,7 @@ class Comissionamento extends Controller
             'pagoEm'        => $pagoEmFmt,     // "DD/MM/AAAA" ou null
             'agenciaConta'  => $agenciaConta,  // string ou null
             'chavePix'      => $chavePix,      // string ou null
-            'empresaNome' => 'LK´BROKERS consultoria em seguros',
+            'empresaNome' => "Lk Broker's Corretora e Consultoria em Seguros Ltda",
             'empresaCnpj' => '42.294.064/0001-92',
         ])->setPaper('a4', 'landscape');
 
