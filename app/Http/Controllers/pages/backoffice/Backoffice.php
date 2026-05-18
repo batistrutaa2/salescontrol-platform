@@ -1828,6 +1828,8 @@ class Backoffice extends Controller
                     'vendas.operadora',
                     'vendas.nome_plano',
                     'vendas.valor_contrato',
+                    'vendas.angariacao_status',
+                    'vendas.angariacao_valor',
                     'vendas.created_at as data_venda',
                     'vendas.data_implantacao',
                     'vendas.contato_id',
@@ -1946,7 +1948,14 @@ class Backoffice extends Controller
                     'cor' => $this->getCorStatus($tab->descricao),
                     'icone' => $this->getIconeStatus($tab->descricao),
                     'quantidade' => $vendasNoStatus->count(),
-                    'valor_total' => $vendasNoStatus->sum('valor_contrato'),
+                    'valor_total' => $vendasNoStatus->sum(function ($v) {
+                        $valor = (float) ($v->valor_contrato ?? 0);
+                        if (($v->angariacao_status ?? '') === 'SIM') {
+                            $valor += (float) ($v->angariacao_valor ?? 0);
+                        }
+
+                        return $valor;
+                    }),
                     'atrasados' => $atrasados,
                     'contratos' => $vendasNoStatus->map(function ($v) {
                         // Se status_updated_at for nulo, usar data_venda como fallback

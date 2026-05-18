@@ -197,13 +197,8 @@ $(function () {
                             <div class="column-header-content">
                                 <span class="status-indicator" style="background: ${status.cor}; box-shadow: 0 0 8px ${status.cor};"></span>
                                 <span class="status-name" title="${escapeHtml(status.nome)}">${this.formatStatusName(status.nome)}</span>
-                                <span class="status-count">${status.quantidade}</span>
-                                ${status.atrasados > 0 ? `
-                                    <span class="status-atrasados" title="${status.atrasados} contrato(s) atrasado(s)">
-                                        <i class="ri-alarm-warning-line"></i>
-                                        ${status.atrasados}
-                                    </span>
-                                ` : ''}
+                                <span class="status-value">${formatCurrency(status.valor_total)}</span>
+                                <span class="status-count" title="${status.quantidade} contrato(s)">${status.quantidade}</span>
                             </div>
                         </div>
                         <div class="kanban-column-body" data-status="${status.id}">
