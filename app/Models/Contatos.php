@@ -33,6 +33,7 @@ class Contatos extends Model
     'idades',
     'valor_plano_atual',
     'valor_negociacao',
+    'ultimo_contato_preditiva',
     'created_at',
     'updated_at',
     'is_ads',

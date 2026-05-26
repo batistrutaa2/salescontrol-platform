@@ -64,15 +64,7 @@ class LeadManagementService
                     $dataFim    = "{$fimParts[2]}-{$fimParts[1]}-{$fimParts[0]}";
                     $query->whereRaw("
                         (
-                            SELECT MAX(uc_max) FROM (
-                                SELECT MAX(created_at) as uc_max FROM comentarios     WHERE contato_id = a.id AND empresa_id = {$empresaId}
-                                UNION ALL
-                                SELECT MAX(created_at)             FROM ligacoes       WHERE contato_id = a.id AND empresa_id = {$empresaId}
-                                UNION ALL
-                                SELECT MAX(created_at)             FROM agendamentos   WHERE contato_id = a.id AND empresa_id = {$empresaId}
-                                UNION ALL
-                                SELECT MAX(created_at)             FROM lead_atividades WHERE contato_id = a.id AND empresa_id = {$empresaId}
-                            ) _uc_f
+                            SELECT MAX(uc_max) FROM (" . \App\Repositories\Eloquent\ContatosRepository::ultimoContatoUnionSql($empresaId) . ") _uc_f
                         ) BETWEEN ? AND ?
                     ", [$dataInicio . ' 00:00:00', $dataFim . ' 23:59:59']);
                 }

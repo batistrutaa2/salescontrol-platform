@@ -23,3 +23,9 @@ Schedule::command('resumo-diario:send')
     ->dailyAt('18:00')
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('preditiva:reciclar-frios')
+    ->timezone('America/Sao_Paulo')
+    ->dailyAt('07:00')
+    ->withoutOverlapping()
+    ->onOneServer();

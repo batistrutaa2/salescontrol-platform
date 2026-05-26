@@ -14,13 +14,19 @@ class PreditivaConfiguracao extends Model
         'exclusao_usuario_dias',
         'limite_descartes_soft',
         'limite_descartes_hard',
+        'dias_sem_contato_reenvio',
+        'envio_automatico_ativo',
+        'limite_envio_diario',
     ];
 
     protected $casts = [
-        'cooldown_horas'        => 'integer',
-        'exclusao_usuario_dias' => 'integer',
-        'limite_descartes_soft' => 'integer',
-        'limite_descartes_hard' => 'integer',
+        'cooldown_horas'           => 'integer',
+        'exclusao_usuario_dias'    => 'integer',
+        'limite_descartes_soft'    => 'integer',
+        'limite_descartes_hard'    => 'integer',
+        'dias_sem_contato_reenvio' => 'integer',
+        'envio_automatico_ativo'   => 'boolean',
+        'limite_envio_diario'      => 'integer',
     ];
 
     /**
@@ -32,10 +38,13 @@ class PreditivaConfiguracao extends Model
         return static::firstOrNew(
             ['empresa_id' => $empresaId],
             [
-                'cooldown_horas'        => 0,
-                'exclusao_usuario_dias' => null,
-                'limite_descartes_soft' => 5,
-                'limite_descartes_hard' => 1,
+                'cooldown_horas'           => 0,
+                'exclusao_usuario_dias'    => null,
+                'limite_descartes_soft'    => 5,
+                'limite_descartes_hard'    => 1,
+                'dias_sem_contato_reenvio' => 90,
+                'envio_automatico_ativo'   => false,
+                'limite_envio_diario'      => 500,
             ]
         );
     }

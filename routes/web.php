@@ -14,6 +14,7 @@ use App\Http\Controllers\pages\mailing\Mailing;
 use App\Http\Controllers\pages\manager\Empresa;
 use App\Http\Controllers\pages\manager\Usuarios;
 use App\Http\Controllers\pages\comercial\Comercial;
+use App\Http\Controllers\pages\comercial\ReciclagemLeads;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
 use App\Http\Controllers\pages\backoffice\LiminarController;
@@ -117,6 +118,15 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/preditiva/configuracoes', [Mailing::class, 'getConfiguracaoPreditiva'])->name('preditiva.configuracoes.get');
   Route::post('/comercial/preditiva/configuracoes', [Mailing::class, 'salvarConfiguracaoPreditiva'])->name('preditiva.configuracoes.save');
   Route::post('/comercial/preditiva/tabulacoes-hard', [Mailing::class, 'storeTabulacaoHard'])->name('preditiva.tabulacoes-hard.store');
+
+  // Reciclagem de leads frios -> preditiva
+  Route::get('/comercial/reciclagem-leads', [ReciclagemLeads::class, 'index'])->name('comercial.reciclagem.index');
+  Route::get('/comercial/reciclagem-leads/elegiveis', [ReciclagemLeads::class, 'getElegiveis'])->name('comercial.reciclagem.elegiveis');
+  Route::get('/comercial/reciclagem-leads/resumo', [ReciclagemLeads::class, 'resumo'])->name('comercial.reciclagem.resumo');
+  Route::post('/comercial/reciclagem-leads/enviar', [ReciclagemLeads::class, 'enviar'])->name('comercial.reciclagem.enviar');
+  Route::get('/comercial/reciclagem-leads/config', [ReciclagemLeads::class, 'getConfig'])->name('comercial.reciclagem.config.get');
+  Route::post('/comercial/reciclagem-leads/config', [ReciclagemLeads::class, 'salvarConfig'])->name('comercial.reciclagem.config.save');
+  Route::get('/comercial/reciclagem-leads/historico', [ReciclagemLeads::class, 'historicoEnvios'])->name('comercial.reciclagem.historico');
   Route::delete('/comercial/preditiva/tabulacoes-hard/{id}', [Mailing::class, 'destroyTabulacaoHard'])->name('preditiva.tabulacoes-hard.destroy');
   Route::get('/mailing/leads-descartados', [Mailing::class, 'leadDescartados'])->name('mailing.leadDescartados');
   Route::get('/mailing/get-leads-descartados', [Mailing::class, 'getLeadsDescartados'])->name('comercial.getLeadsDescartados');

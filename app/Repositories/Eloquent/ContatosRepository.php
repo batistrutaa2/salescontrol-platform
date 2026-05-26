@@ -228,6 +228,221 @@ class ContatosRepository implements ContatosRepositoryInterface
       ->toArray();
   }
 
+  /**
+   * SQL (UNION) das fontes de "ultimo contato" de um lead, correlacionado ao
+   * alias `a` (contatos). Fonte unica reusada na listagem, no filtro de periodo,
+   * no KPI e na reciclagem de leads frios. O chamador DEVE aliasar contatos como `a`.
+   */
+  public static function ultimoContatoUnionSql(int $empresaId): string
+  {
+    return "
+      SELECT MAX(created_at) as uc_max FROM comentarios     WHERE contato_id = a.id AND empresa_id = {$empresaId}
+      UNION ALL
+      SELECT MAX(created_at)             FROM ligacoes       WHERE contato_id = a.id AND empresa_id = {$empresaId}
+      UNION ALL
+      SELECT MAX(created_at)             FROM agendamentos   WHERE contato_id = a.id AND empresa_id = {$empresaId}
+      UNION ALL
+      SELECT MAX(created_at)             FROM lead_atividades WHERE contato_id = a.id AND empresa_id = {$empresaId}
+      UNION ALL
+      SELECT a.ultimo_contato_preditiva
+    ";
+  }
+
+  /**
+   * Subquery escalar da "ultima atividade" do lead para fins de reciclagem:
+   * o MAX das fontes de ultimo contato + contatos_corretores.updated_at (trabalho
+   * do corretor) + contatos.created_at (piso para leads nunca trabalhados).
+   * Correlacionado aos aliases `a` (contatos) e `cc` (contatos_corretores).
+   */
+  private static function ultimaAtividadeSql(int $empresaId): string
+  {
+    return "(SELECT MAX(uc_max) FROM (" . self::ultimoContatoUnionSql($empresaId) . "
+      UNION ALL SELECT cc.updated_at
+      UNION ALL SELECT a.created_at
+    ) _ua)";
+  }
+
+  /**
+   * Base de elegibilidade para reciclagem (sem o filtro de "frio"):
+   * - situacao SEM ATRIBUICAO, REMARKETING ou DESCARTADO (status N);
+   * - COM VENDEDOR (status Y + corretor com tabulacao != REMARKETING) e EXCLUIDO;
+   * - lead nao esta na preditiva (status Y) e nao possui venda.
+   */
+  private function baseReciclagemQuery(int $empresaId)
+  {
+    $remarketingId = Tabulations::REMARKETING;
+
+    return DB::table('contatos as a')
+      ->leftJoin('contatos_corretores as cc', function ($join) use ($empresaId) {
+        $join->on('cc.contato_id', '=', 'a.id')
+          ->where('cc.empresa_id', '=', $empresaId);
+      })
+      ->where('a.empresa_id', $empresaId)
+      ->where(function ($q) use ($remarketingId) {
+        // status N (descartado) sempre elegivel; status Y so sem corretor ou em remarketing
+        $q->where('a.status', 'N')
+          ->orWhere(function ($q2) use ($remarketingId) {
+            $q2->where('a.status', 'Y')
+              ->where(function ($q3) use ($remarketingId) {
+                $q3->whereNull('cc.contato_id')
+                  ->orWhere('cc.tabulacao_id', $remarketingId);
+              });
+          });
+      })
+      ->whereNotExists(function ($q) use ($empresaId) {
+        $q->select(DB::raw(1))->from('preditiva as p')
+          ->whereColumn('p.contato_id', 'a.id')
+          ->where('p.empresa_id', $empresaId)
+          ->where('p.status', 'Y');
+      })
+      ->whereNotExists(function ($q) {
+        $q->select(DB::raw(1))->from('vendas as v')
+          ->whereColumn('v.contato_id', 'a.id');
+      });
+  }
+
+  /**
+   * Lista (server-side DataTable) os leads frios elegiveis para reenvio a preditiva.
+   */
+  public function getLeadsFriosElegiveis(int $empresaId, int $dias, Request $request): array
+  {
+    $remarketingId = Tabulations::REMARKETING;
+    $uaSql = self::ultimaAtividadeSql($empresaId);
+
+    $baseQuery = $this->baseReciclagemQuery($empresaId)
+      ->whereRaw("{$uaSql} <= (NOW() - INTERVAL {$dias} DAY)")
+      ->select(
+        'a.id',
+        'a.nome_cliente',
+        'a.cpf',
+        'a.telefone1',
+        'a.status as lead_status',
+        'cc.tabulacao_id',
+        DB::raw("CASE
+          WHEN a.status = 'N' THEN 'DESCARTADO'
+          WHEN cc.contato_id IS NOT NULL AND cc.tabulacao_id = {$remarketingId} THEN 'REMARKETING'
+          ELSE 'SEM ATRIBUICAO'
+        END as situacao"),
+        DB::raw("DATE_FORMAT({$uaSql}, '%d/%m/%Y') as ultima_atividade"),
+        DB::raw("DATEDIFF(NOW(), {$uaSql}) as dias_parado")
+      );
+
+    $recordsTotal = (clone $baseQuery)->count();
+
+    $searchValue = $request->input('search.value', '');
+    if ($searchValue !== '') {
+      $baseQuery->where(function ($q) use ($searchValue) {
+        $q->where('a.nome_cliente', 'LIKE', "%{$searchValue}%")
+          ->orWhere('a.cpf', 'LIKE', "%{$searchValue}%")
+          ->orWhere('a.telefone1', 'LIKE', "%{$searchValue}%");
+      });
+    }
+
+    $recordsFiltered = (clone $baseQuery)->count();
+
+    // Ordenacao (default: mais parados primeiro)
+    $columns = ['a.id', 'a.nome_cliente', 'a.cpf', 'a.telefone1', 'situacao', 'dias_parado'];
+    $orderColumnIndex = $request->input('order.0.column', 5);
+    $orderDir = $request->input('order.0.dir', 'desc');
+    $orderColumn = $columns[$orderColumnIndex] ?? 'dias_parado';
+
+    if ($orderColumn === 'dias_parado') {
+      $baseQuery->orderByRaw("dias_parado {$orderDir}");
+    } elseif ($orderColumn === 'situacao') {
+      $baseQuery->orderByRaw("situacao {$orderDir}");
+    } else {
+      $baseQuery->orderBy($orderColumn, $orderDir);
+    }
+
+    $start = $request->input('start', 0);
+    $length = $request->input('length', 25);
+    $data = $baseQuery->offset($start)->limit($length)->get();
+
+    return [
+      'draw' => (int) $request->input('draw', 1),
+      'recordsTotal' => $recordsTotal,
+      'recordsFiltered' => $recordsFiltered,
+      'data' => $data,
+    ];
+  }
+
+  /**
+   * IDs de todos os leads frios elegiveis (sem paginacao) — usado no envio em lote
+   * "todos os elegiveis" e pela rotina automatica.
+   */
+  public function getIdsLeadsFriosElegiveis(int $empresaId, int $dias, ?int $limite = null): array
+  {
+    $uaSql = self::ultimaAtividadeSql($empresaId);
+
+    $query = $this->baseReciclagemQuery($empresaId)
+      ->whereRaw("{$uaSql} <= (NOW() - INTERVAL {$dias} DAY)")
+      ->orderByRaw("{$uaSql} asc")
+      ->select('a.id');
+
+    if ($limite !== null) {
+      $query->limit($limite);
+    }
+
+    return $query->pluck('a.id')->map(fn($id) => (int) $id)->toArray();
+  }
+
+  /**
+   * Contagens dos baldes da tela de reciclagem.
+   */
+  public function getResumoReciclagem(int $empresaId, int $dias): array
+  {
+    $uaSql = self::ultimaAtividadeSql($empresaId);
+
+    $elegiveisAgora = (clone $this->baseReciclagemQuery($empresaId))
+      ->whereRaw("{$uaSql} <= (NOW() - INTERVAL {$dias} DAY)")
+      ->count();
+
+    $aguardando = (clone $this->baseReciclagemQuery($empresaId))
+      ->whereRaw("{$uaSql} > (NOW() - INTERVAL {$dias} DAY)")
+      ->count();
+
+    $naVitrine = DB::table('preditiva')
+      ->where('empresa_id', $empresaId)
+      ->where('status', 'Y')
+      ->count();
+
+    $enviados30d = DB::table('preditiva_envios')
+      ->where('empresa_id', $empresaId)
+      ->where('enviado_em', '>=', now()->subDays(30))
+      ->count();
+
+    return [
+      'elegiveis_agora' => $elegiveisAgora,
+      'aguardando'      => $aguardando,
+      'na_vitrine'      => $naVitrine,
+      'enviados_30d'    => $enviados30d,
+    ];
+  }
+
+  /**
+   * Dados de elegibilidade de UM lead (para defesa contra corrida no envio).
+   * Retorna situacao + dias_parado, ou null se nao for elegivel.
+   */
+  public function getElegibilidadeLead(int $contatoId, int $empresaId, int $dias): ?object
+  {
+    $remarketingId = Tabulations::REMARKETING;
+    $uaSql = self::ultimaAtividadeSql($empresaId);
+
+    return $this->baseReciclagemQuery($empresaId)
+      ->where('a.id', $contatoId)
+      ->whereRaw("{$uaSql} <= (NOW() - INTERVAL {$dias} DAY)")
+      ->select(
+        'a.id',
+        DB::raw("CASE
+          WHEN a.status = 'N' THEN 'DESCARTADO'
+          WHEN cc.contato_id IS NOT NULL AND cc.tabulacao_id = {$remarketingId} THEN 'REMARKETING'
+          ELSE 'SEM_ATRIBUICAO'
+        END as situacao"),
+        DB::raw("DATEDIFF(NOW(), {$uaSql}) as dias_parado")
+      )
+      ->first();
+  }
+
   public function getAllLeadsServerSide(int $empresaId, Request $request): array
   {
     $remarketingId = Tabulations::REMARKETING;
@@ -267,15 +482,7 @@ class ContatosRepository implements ContatosRepositoryInterface
         DB::raw("
           (
             SELECT DATE_FORMAT(MAX(uc_max), '%d/%m/%Y')
-            FROM (
-              SELECT MAX(created_at) as uc_max FROM comentarios     WHERE contato_id = a.id AND empresa_id = {$empresaId}
-              UNION ALL
-              SELECT MAX(created_at)             FROM ligacoes       WHERE contato_id = a.id AND empresa_id = {$empresaId}
-              UNION ALL
-              SELECT MAX(created_at)             FROM agendamentos   WHERE contato_id = a.id AND empresa_id = {$empresaId}
-              UNION ALL
-              SELECT MAX(created_at)             FROM lead_atividades WHERE contato_id = a.id AND empresa_id = {$empresaId}
-            ) _uc
+            FROM (" . self::ultimoContatoUnionSql($empresaId) . ") _uc
           ) as ultimo_contato
         ")
       );
@@ -330,15 +537,7 @@ class ContatosRepository implements ContatosRepositoryInterface
         $dataFim    = "{$fimParts[2]}-{$fimParts[1]}-{$fimParts[0]}";
         $baseQuery->whereRaw("
           (
-            SELECT MAX(uc_max) FROM (
-              SELECT MAX(created_at) as uc_max FROM comentarios    WHERE contato_id = a.id AND empresa_id = {$empresaId}
-              UNION ALL
-              SELECT MAX(created_at)            FROM ligacoes       WHERE contato_id = a.id AND empresa_id = {$empresaId}
-              UNION ALL
-              SELECT MAX(created_at)            FROM agendamentos   WHERE contato_id = a.id AND empresa_id = {$empresaId}
-              UNION ALL
-              SELECT MAX(created_at)            FROM lead_atividades WHERE contato_id = a.id AND empresa_id = {$empresaId}
-            ) _uc_f
+            SELECT MAX(uc_max) FROM (" . self::ultimoContatoUnionSql($empresaId) . ") _uc_f
           ) BETWEEN ? AND ?
         ", [$dataInicio . ' 00:00:00', $dataFim . ' 23:59:59']);
       }

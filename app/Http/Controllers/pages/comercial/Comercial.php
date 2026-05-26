@@ -1072,6 +1072,12 @@ class Comercial extends Controller
       'tipo_descarte' => $tipoDescarte,
     ]);
 
+    // Carimbo durável: vendedor trabalhou o lead na preditiva. Sobrevive ao Limpar Fila
+    // (mora em contatos, nao em log_preditiva) e alimenta o "ultimo contato" da visualizar-leads.
+    Contatos::where('id', $contatoId)
+      ->where('empresa_id', $empresaId)
+      ->update(['ultimo_contato_preditiva' => now()]);
+
     // HARD: remoção imediata — cliente atendeu e disse que não tem interesse
     if ($isHard) {
       Preditiva::where('contato_id', $contatoId)
@@ -1145,6 +1151,11 @@ class Comercial extends Controller
       'tabulacao' => $request->tabulacao ?? 'CONVERTIDO',
       'acao' => 'CONVERSAO'
     ]);
+
+    // Carimbo durável: vendedor trabalhou o lead na preditiva (conversao).
+    Contatos::where('id', $contatoId)
+      ->where('empresa_id', $empresaId)
+      ->update(['ultimo_contato_preditiva' => now()]);
 
     $existingRecord = DB::table('contatos_corretores')
       ->where('contato_id', $contatoId)
