@@ -667,19 +667,25 @@
     buttonClick: function (el, boardId) { }
   });
 
-  // Re-parenta o MIRROR do dragula pra dentro do .kanban-board de origem.
-  // Por padrão o dragula faz cloneNode(true) e anexa em document.body, fora
-  // do escopo .app-kanban .kanban-wrapper .kanban-board — então o seletor
-  // aninhado das regras de .kanban-item não casava com o clone e o card
-  // perdia toda a identidade visual durante o drag. O mirror tem
-  // `position: fixed` (viewport-relative), então mover de pai não altera a
-  // posição visual; só faz os seletores aninhados voltarem a casar.
+  // Re-parenta o MIRROR do dragula pra dentro de `.app-kanban` (NÃO
+  // `.kanban-board`!). Razão: `position: fixed` do mirror só funciona como
+  // viewport-relative se NENHUM ancestor tiver `backdrop-filter`, `transform`,
+  // `filter` ou `will-change`. O `.kanban-board` tem backdrop-filter → vira
+  // containing block do mirror e quebra: card aparece longe do cursor e atrás
+  // de outras colunas (cada board tem stacking context próprio).
+  //
+  // `.app-kanban` é seguro (só vars + font-family) e mantém o escopo do
+  // design system (vars `--kb-*` cascateiam pro mirror). O seletor das regras
+  // de `.kanban-item` foi promovido pra `.app-kanban .kanban-item` (via
+  // @at-root) pra casar com o mirror nesse escopo.
   if (kanban.drake && typeof kanban.drake.on === 'function') {
-    kanban.drake.on('cloned', function (clone, original, type) {
-      if (type !== 'mirror') return;
-      const sourceBoard = original.closest('.kanban-board');
-      if (sourceBoard) sourceBoard.appendChild(clone);
-    });
+    const appKanban = document.querySelector('.app-kanban');
+    if (appKanban) {
+      kanban.drake.on('cloned', function (clone, original, type) {
+        if (type !== 'mirror') return;
+        appKanban.appendChild(clone);
+      });
+    }
   }
 
   // Setar data-count em todos os boards após renderização

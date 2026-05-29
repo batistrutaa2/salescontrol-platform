@@ -326,12 +326,16 @@
       // =============================================================================
       // Card (.kanban-item) — segue o template do backoffice .kanban-card.
       //
-      // Regras ficam ANINHADAS dentro de .app-kanban .kanban-wrapper .kanban-board
-      // de propósito — escopo restrito ao kanban comercial. O mirror do dragula
-      // (clone do card durante drag) é re-parentado no JS para dentro do
-      // .kanban-wrapper, então essas regras casam com ele também.
+      // Escopo: `.app-kanban .kanban-item` (via @at-root com seletor manual) em
+      // vez do `.kanban-board .kanban-item` natural. Razão: `.kanban-board` tem
+      // `backdrop-filter`, o que vira "containing block" pra filhos `position:
+      // fixed` (regra do CSS). O mirror do dragula é fixed; se ficasse dentro
+      // do board, suas coordenadas passariam a ser relativas ao board, não à
+      // viewport — resultado: card aparece longe do cursor e atrás de outros
+      // boards. Re-parenteamos o mirror pra `.app-kanban` (sem backdrop-filter)
+      // no JS, então o seletor precisa casar com o card lá também.
       // =============================================================================
-      .kanban-item {
+      @at-root .app-kanban .kanban-item {
         position: relative;
         background: var(--kb-card-bg);
         border-radius: var(--kb-border-radius-sm);
