@@ -25,171 +25,92 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
 
 public function getClientComercial(string $rulerUser, string $empresa_id)
 {
+    // Colunas base usadas por todos os papéis. A contagem de comentários vai
+    // como subquery correlacionada — evita cross-product do JOIN + GROUP BY,
+    // que era o gargalo do endpoint em empresas com volume.
+    $baseSelect = [
+        'tabulacoes.id',
+        'tabulacoes.descricao as title',
+        'tabulacoes.ordem_kanban',
+        'contatos.id as idContato',
+        'contatos.nome_cliente',
+        DB::raw("
+            IF(
+                contatos.data_nascimento LIKE '%/%',
+                contatos.data_nascimento,
+                FROM_UNIXTIME((contatos.data_nascimento - 25569) * 86400, '%d/%m/%Y')
+            ) as data_nascimento_formatado
+        "),
+        'contatos.cpf',
+        'contatos.plano',
+        'contatos.is_ads',
+        'contatos.categoria',
+        'contatos.entidade',
+        'contatos.telefone1',
+        'contatos.telefone2',
+        'contatos.telefone3',
+        'contatos.email',
+        'contatos.idades',
+        'contatos.valor_plano_atual',
+        'contatos.valor_negociacao',
+        'contatos_corretores.temperatura',
+        'contatos_corretores.user_id',
+        'contatos_corretores.updated_at',
+        'contatos_corretores.created_at',
+        'users.name as nameVendedor',
+    ];
+
+    $applyJoinsAndScalarSubquery = function ($query, ?int $vendedorId = null) {
+        $query
+            ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
+            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+            ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id');
+
+        if ($vendedorId !== null) {
+            // Vendedor: conta apenas comentários do próprio usuário.
+            $query->selectSub(function ($sub) use ($vendedorId) {
+                $sub->from('comentarios')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('comentarios.contato_id', 'contatos.id')
+                    ->where('comentarios.user_id', $vendedorId);
+            }, 'qt_comentarios');
+        } else {
+            $query->selectSub(function ($sub) {
+                $sub->from('comentarios')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('comentarios.contato_id', 'contatos.id');
+            }, 'qt_comentarios');
+        }
+    };
+
     if ($rulerUser == UserRole::ADMINISTRATIVO || $rulerUser == UserRole::BACKOFFICE || $rulerUser == UserRole::SUPERVISOR) {
-        return $this->model::select(
-            'tabulacoes.id',
-            'tabulacoes.descricao as title',
-            'contatos.id as idContato',
-            'tabulacoes.ordem_kanban',
-            'contatos.nome_cliente',
-            DB::raw("
-                IF(
-                    contatos.data_nascimento LIKE '%/%',
-                    contatos.data_nascimento,
-                    FROM_UNIXTIME((contatos.data_nascimento - 25569) * 86400, '%d/%m/%Y')
-                ) as data_nascimento_formatado
-            "),
-            'contatos.cpf',
-            'contatos.plano',
-            'contatos.is_ads',
-            'contatos.categoria',
-            'contatos.entidade',
-            'contatos.telefone1',
-            'contatos.telefone2',
-            'contatos.telefone3',
-            'contatos.email',
-            'contatos.idades',
-            'contatos.valor_plano_atual',
-            'contatos.valor_negociacao',
-            'contatos_corretores.temperatura',
-            'contatos_corretores.user_id',
-            'contatos_corretores.updated_at',
-            'contatos_corretores.created_at',
-            'users.name as nameVendedor',
-            DB::raw('COUNT(comentarios.id) as qt_comentarios')
-        )
-            ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
-            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
-            ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
-            ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+        $query = $this->model::select($baseSelect);
+        $applyJoinsAndScalarSubquery($query);
+
+        return $query
             ->where('contatos_corretores.empresa_id', $empresa_id)
-            ->groupBy(
-                'tabulacoes.id',
-                'tabulacoes.descricao',
-                'contatos.id',
-                'contatos.nome_cliente',
-                'contatos.data_nascimento',
-                'contatos_corretores.temperatura',
-                'contatos_corretores.user_id',
-                'contatos_corretores.updated_at',
-                'tabulacoes.ordem_kanban',
-                'contatos_corretores.created_at',
-                'nameVendedor',
-                'contatos.is_ads'
-            )
             ->orderBy('contatos.created_at', 'desc')
             ->get();
-    } elseif ($rulerUser == UserRole::DEVELOPER) {
-        return $this->model::select(
-            'tabulacoes.id',
-            'tabulacoes.descricao as title',
-            'tabulacoes.ordem_kanban',
-            'contatos.id as idContato',
-            'contatos.nome_cliente',
-            DB::raw("
-                IF(
-                    contatos.data_nascimento LIKE '%/%',
-                    contatos.data_nascimento,
-                    FROM_UNIXTIME((contatos.data_nascimento - 25569) * 86400, '%d/%m/%Y')
-                ) as data_nascimento_formatado
-            "),
-            'contatos.cpf',
-            'contatos.plano',
-            'contatos.categoria',
-            'contatos.entidade',
-            'contatos.telefone1',
-            'contatos.is_ads',
-            'contatos.telefone2',
-            'contatos.telefone3',
-            'contatos.email',
-            'contatos.idades',
-            'contatos.valor_plano_atual',
-            'contatos.valor_negociacao',
-            'contatos_corretores.temperatura',
-            'contatos_corretores.user_id',
-            'contatos_corretores.updated_at',
-            'contatos_corretores.created_at',
-            'users.name as nameVendedor',
-            DB::raw('COUNT(comentarios.id) as qt_comentarios')
-        )
-            ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
-            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
-            ->leftJoin('comentarios', 'comentarios.contato_id', '=', 'contatos.id')
-            ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+    }
+
+    if ($rulerUser == UserRole::DEVELOPER) {
+        $query = $this->model::select($baseSelect);
+        $applyJoinsAndScalarSubquery($query);
+
+        return $query
             ->where('tabulacoes.tipo_tabulacao', 'C') // Apenas tabulações comerciais (exclui pós-venda)
-            ->groupBy(
-                'tabulacoes.id',
-                'tabulacoes.descricao',
-                'contatos.id',
-                'contatos.nome_cliente',
-                'contatos.data_nascimento',
-                'contatos_corretores.temperatura',
-                'contatos_corretores.user_id',
-                'contatos_corretores.updated_at',
-                'tabulacoes.ordem_kanban',
-                'contatos_corretores.created_at',
-                'nameVendedor',
-                'contatos.is_ads'
-            )
             ->orderBy('contatos.created_at', 'desc')
             ->get();
-    } elseif ($rulerUser == UserRole::VENDEDOR) {
-        return $this->model::select(
-            'tabulacoes.id',
-            'tabulacoes.descricao as title',
-            'tabulacoes.ordem_kanban',
-            'contatos.id as idContato',
-            'contatos.nome_cliente',
-            DB::raw("
-                IF(
-                    contatos.data_nascimento LIKE '%/%',
-                    contatos.data_nascimento,
-                    FROM_UNIXTIME((contatos.data_nascimento - 25569) * 86400, '%d/%m/%Y')
-                ) as data_nascimento_formatado
-            "),
-            'contatos.cpf',
-            'contatos.plano',
-            'contatos.categoria',
-            'contatos.entidade',
-            'contatos.telefone1',
-            'contatos.telefone2',
-            'contatos.is_ads',
-            'contatos.telefone3',
-            'contatos.email',
-            'contatos.idades',
-            'contatos.valor_plano_atual',
-            'contatos.valor_negociacao',
-            'contatos_corretores.temperatura',
-            'contatos_corretores.user_id',
-            'contatos_corretores.updated_at',
-            'contatos_corretores.created_at',
-            'users.name as nameVendedor',
-            DB::raw('COUNT(comentarios_user.id) as qt_comentarios')
-        )
-            ->leftJoin('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
-            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
-            ->leftJoin('comentarios as comentarios_user', function ($join) {
-                $join->on('comentarios_user.contato_id', '=', 'contatos.id')
-                    ->where('comentarios_user.user_id', Auth::user()->id); // Comentários do usuário logado
-            })
-            ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+    }
+
+    if ($rulerUser == UserRole::VENDEDOR) {
+        $query = $this->model::select($baseSelect);
+        $applyJoinsAndScalarSubquery($query, (int) Auth::user()->id);
+
+        return $query
             ->where('contatos_corretores.user_id', Auth::user()->id)
             ->where('contatos_corretores.empresa_id', $empresa_id)
             ->where('tabulacoes.tipo_tabulacao', 'C') // Apenas tabulações comerciais (exclui pós-venda)
-            ->groupBy(
-                'tabulacoes.id',
-                'tabulacoes.descricao',
-                'contatos.id',
-                'contatos.nome_cliente',
-                'contatos.data_nascimento',
-                'contatos_corretores.temperatura',
-                'contatos_corretores.user_id',
-                'contatos_corretores.updated_at',
-                'tabulacoes.ordem_kanban',
-                'contatos_corretores.created_at',
-                'nameVendedor',
-                'contatos.is_ads'
-            )
             ->orderBy('contatos.created_at', 'desc')
             ->get();
     }

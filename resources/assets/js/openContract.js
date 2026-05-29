@@ -27,6 +27,20 @@ $(function () {
       cleave = new Cleave(el, applyMask(el.value || ''));
     });
   }
+  function maskDateBr(el) {
+    if (!el || el.dataset.dateMaskAttached) return;
+    el.dataset.dateMaskAttached = '1';
+    el.setAttribute('maxlength', '10');
+    el.setAttribute('inputmode', 'numeric');
+    el.setAttribute('placeholder', 'dd/mm/aaaa');
+    el.addEventListener('input', function () {
+      const digits = el.value.replace(/\D/g, '').slice(0, 8);
+      let out = digits;
+      if (digits.length > 4) out = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+      else if (digits.length > 2) out = digits.slice(0, 2) + '/' + digits.slice(2);
+      el.value = out;
+    });
+  }
   function isOperadoraAmil() {
     const $sel = $('#operadoraSelect');
     const nome = ($sel.find(':selected').data('nome') || $sel.find(':selected').text() || '')
@@ -1265,4 +1279,7 @@ $(function () {
     $('#dep_titular_id').val('');
     $('#dep_venda_id').val('');
   });
+
+  // Máscara de digitação dd/mm/aaaa para data de nascimento do dependente
+  maskDateBr(document.getElementById('dep_data_nascimento'));
 });

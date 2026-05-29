@@ -429,31 +429,6 @@
         cursor: grabbing;
     }
 
-    &.card-atrasado {
-        border-left-color: var(--kb-danger) !important;
-        animation: pulse-danger 2s infinite;
-
-        &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 0;
-            height: 0;
-            border-style: solid;
-            border-width: 0 24px 24px 0;
-            border-color: transparent var(--kb-danger) transparent transparent;
-        }
-
-        .atrasado-icon {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            color: white;
-            font-size: 0.7rem;
-        }
-    }
-
     // Ghost while dragging
     &.sortable-ghost {
         opacity: 0.4;
@@ -588,49 +563,129 @@
     }
 }
 
-.card-footer-kb {
-    padding: 0.5rem 0.75rem;
+// =============================================================================
+// Seller row + days-in-queue pill
+// The seller is the protagonist of the card. The pill is a single, neutral
+// counter (days since the sale). No overdue color escalation here — by design.
+// =============================================================================
+.card-seller-row {
+    padding: 0.625rem 0.75rem 0.7rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
+    gap: 0.625rem;
     border-top: 1px solid var(--kb-card-border);
 
-    .tempo-status {
+    .seller-identity {
         display: flex;
         align-items: center;
-        gap: 0.25rem;
-        font-size: 0.7rem;
-        color: var(--kb-text-muted);
-
-        i {
-            font-size: 0.8rem;
-        }
-
-        &.atrasado {
-            color: var(--kb-danger);
-            font-weight: 600;
-        }
+        gap: 0.5rem;
+        min-width: 0;
+        flex: 1 1 auto;
     }
 
-    .vendedor-badge {
-        display: flex;
+    .seller-avatar {
+        flex-shrink: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: inline-flex;
         align-items: center;
-        gap: 0.25rem;
+        justify-content: center;
         font-size: 0.7rem;
-        color: var(--kb-text-secondary);
-        max-width: 120px;
-        overflow: hidden;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: #fff;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%);
+        box-shadow:
+            0 2px 6px rgba(var(--kb-primary-rgb), 0.25),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
 
-        i {
-            font-size: 0.8rem;
-            flex-shrink: 0;
+        // Six stable tones — chosen via sellerToneFromName(name) in JS so the
+        // same seller always renders with the same color across the board.
+        &[data-tone="1"] { background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%); }
+        &[data-tone="2"] { background: linear-gradient(135deg, #06B6D4 0%, #22D3EE 100%); }
+        &[data-tone="3"] { background: linear-gradient(135deg, #10B981 0%, #34D399 100%); }
+        &[data-tone="4"] { background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%); }
+        &[data-tone="5"] { background: linear-gradient(135deg, #EC4899 0%, #F472B6 100%); }
+        &[data-tone="6"] { background: linear-gradient(135deg, #6366F1 0%, #818CF8 100%); }
+    }
+
+    .seller-meta {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.15;
+        min-width: 0;
+        gap: 1px;
+    }
+
+    .seller-name {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--kb-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        letter-spacing: -0.005em;
+    }
+
+    .seller-label {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--kb-text-muted);
+    }
+
+    .dias-fila-pill {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.32rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(var(--kb-primary-rgb), 0.07);
+        border: 1px solid rgba(var(--kb-primary-rgb), 0.14);
+        color: var(--kb-primary);
+        font-size: 0.7rem;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+
+        svg {
+            opacity: 0.75;
         }
 
-        span {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .dias-fila-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-feature-settings: "tnum";
+            letter-spacing: -0.01em;
+        }
+    }
+}
+
+// Dark theme — lift contrast without changing the visual hierarchy.
+.dark-style .kanban-page {
+    .card-seller-row {
+        .seller-name {
+            color: var(--kb-text-primary);
+        }
+
+        .seller-label {
+            color: var(--kb-text-muted);
+        }
+
+        .seller-avatar {
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .dias-fila-pill {
+            background: rgba(var(--kb-primary-rgb), 0.16);
+            border-color: rgba(var(--kb-primary-rgb), 0.28);
+            color: #C4B5FD;
         }
     }
 }
@@ -1405,15 +1460,6 @@
 // =============================================================================
 // Animations
 // =============================================================================
-@keyframes pulse-danger {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.7;
-    }
-}
-
 @keyframes fade-in-up {
     from {
         opacity: 0;

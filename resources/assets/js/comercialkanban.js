@@ -65,26 +65,32 @@
   }
   boards = await kanbanResponse.json();
 
-  // datepicker init
-  if (datePicker) {
-    datePicker.flatpickr({
-      monthSelectorType: 'static',
-      altInput: true,
-      altFormat: 'j F, Y',
-      dateFormat: 'Y-m-d'
-    });
-  }
+  // flatpickr e Quill: init DEFERIDO pra primeira abertura da modal.
+  // Antes inicializavam no carregamento da página — em datasets grandes (admin),
+  // esse trabalho competia com o paint inicial do kanban. Agora roda só quando
+  // o usuário realmente abre a modal do cliente.
+  let modalAssetsInited = false;
+  function ensureModalAssetsInited() {
+    if (modalAssetsInited) return;
+    modalAssetsInited = true;
 
-  // Comment editor
-  if (commentEditor) {
-    new Quill(commentEditor, {
-      modules: {
-        toolbar: '.comment-toolbar'
-      },
-      placeholder: 'Atualize sua negociação..',
-      theme: 'snow'
-    });
+    if (datePicker && typeof datePicker.flatpickr === 'function') {
+      datePicker.flatpickr({
+        monthSelectorType: 'static',
+        altInput: true,
+        altFormat: 'j F, Y',
+        dateFormat: 'Y-m-d'
+      });
+    }
+    if (commentEditor && typeof Quill !== 'undefined') {
+      new Quill(commentEditor, {
+        modules: { toolbar: '.comment-toolbar' },
+        placeholder: 'Atualize sua negociação..',
+        theme: 'snow'
+      });
+    }
   }
+  kanbanModalEl.addEventListener('show.bs.modal', ensureModalAssetsInited);
 
   document.getElementById('form-client').addEventListener('submit', function (event) {
     event.preventDefault();
@@ -239,69 +245,83 @@
     return renderViewButton(idMailing);
   }
 
-  // Render modern card content
-  function renderModernCard(el) {
-    const idMailing = el.getAttribute('data-eid');
-    const nameOnCard = (el.getAttribute('data-nome_cliente') || el.textContent || '').trim();
-    const temperatura = el.getAttribute('data-badge-text') || 'FRIO';
-    const dataCreate = el.getAttribute('data-data_create') || '';
-    const dataUpdate = el.getAttribute('data-data_update') || '';
-    const comments = el.getAttribute('data-comments') || '0';
-    const userName = el.getAttribute('data-user-name') || '';
-    const showNameCard = el.getAttribute('data-show-name-card') === 'true';
+  // Colunas onde o badge de "dias parado" não faz sentido (etapas por
+  // agendamento ou processamento, não estagnação):
+  //  - FOLLOW-UP (13): tratativa futura agendada
+  //  - REUNIÃO (2): aguardando reunião
+  //  - DOCUMENTO (4): aguardando documentação
+  const STALE_EXEMPT_TABULACAO_IDS = new Set(['13', '2', '4']);
 
-    // Build stale badge
-    const staleBadge = buildStaleBadge(dataUpdate);
+  // Formata telefone para "(11) 91234-5678" se vier só com dígitos.
+  function formatPhoneBr(raw) {
+    if (!raw) return '';
+    const digits = String(raw).replace(/\D/g, '');
+    if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return String(raw);
+  }
 
-    // Build card HTML
+  // Escape mínimo para inserção em HTML — usado no pre-render de cards.
+  const HTML_ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => HTML_ESCAPE_MAP[c]);
+  }
+
+  // Render do card recebendo o item-data direto do payload do jKanban.
+  // Sem touch no DOM, sem getAttribute — usado pra colar o HTML pronto em
+  // item.title no boards.map(), economizando a passada de re-render no init.
+  function buildCardHTMLFromData(d) {
+    const idMailing = d.id;
+    const nameOnCard = (d.nome_cliente || d.title || '').trim();
+    const temperatura = d['badge-text'] || 'FRIO';
+    const dataCreate = d.data_create || '';
+    const dataUpdate = d.data_update || '';
+    const comments = String(d.comments || '0');
+    const userName = d['user-name'] || '';
+    const showNameCard = d['show-name-card'] === true || d['show-name-card'] === 'true';
+    const telefone = formatPhoneBr(d.telefone1);
+    const tabulacaoId = String(d['tabulacao-id'] || '');
+    const staleExempt = STALE_EXEMPT_TABULACAO_IDS.has(tabulacaoId);
+    const staleBadge = staleExempt ? '' : buildStaleBadge(dataUpdate);
+
+    const safeName = escapeHtml(nameOnCard);
+    const safeDataCreate = escapeHtml(dataCreate);
+    const onlyDate = escapeHtml(dataCreate.split(' ')[0] || '');
+
     let html = '<div class="card-inner">';
-
-    // Header with badges
-    html += '<div class="card-header-badges">';
-    html += '<div class="badges-left">';
+    html += '<div class="card-header-badges"><div class="badges-left">';
     html += getTempBadge(temperatura);
     if (staleBadge) html += staleBadge;
-    html += '</div>';
-    html += '</div>';
+    html += '</div></div>';
 
-    // Client name
-    html += `<h6 class="client-name">${nameOnCard}</h6>`;
+    html += `<h6 class="client-name" title="${safeName}">${safeName}</h6>`;
 
-    // Date info
-    html += `<div class="date-info"><i class="ri-calendar-line"></i><span>${dataCreate}</span></div>`;
-
-    // Footer
-    html += '<div class="card-footer-actions">';
-
-    if (showNameCard && userName) {
-      // Admin view - show broker info
-      const initials = getInitials(userName);
-      const shortName = userName.length > 15 ? userName.substring(0, 15) + '...' : userName;
-      html += `<div class="broker-info">
-        <span class="broker-avatar">${initials}</span>
-        <span>${shortName}</span>
-      </div>`;
-    } else {
-      // Seller view - show comment count
-      html += `<div class="broker-info">
-        <i class="ri-chat-3-line"></i>
-        <span>${comments} anotações</span>
-      </div>`;
+    html += '<div class="card-meta">';
+    if (telefone) {
+      html += `<span class="meta-chip meta-phone" title="Telefone principal"><i class="ri-phone-line"></i><span>${escapeHtml(telefone)}</span></span>`;
     }
-
-    // Action buttons
-    html += '<div class="action-buttons">';
-    html += `<button type="button" class="action-btn btn-schedule" data-bs-toggle="modal" data-bs-target="#scheduleModal" onclick="event.stopPropagation(); setLeadId(${idMailing})" title="Agendar">
-      <i class="ri-calendar-check-line"></i>
-    </button>`;
-    html += `<button type="button" class="action-btn btn-discard" data-bs-toggle="modal" data-bs-target="#discardModal" onclick="event.stopPropagation(); setLeadId(${idMailing})" title="Descartar">
-      <i class="ri-close-circle-line"></i>
-    </button>`;
+    if (dataCreate) {
+      html += `<span class="meta-chip meta-date" title="Cadastrado em ${safeDataCreate}"><i class="ri-calendar-line"></i><span>${onlyDate}</span></span>`;
+    }
     html += '</div>';
 
-    html += '</div>'; // footer
-    html += '</div>'; // card-inner
+    html += '<div class="card-footer-actions">';
+    if (showNameCard && userName) {
+      const initials = escapeHtml(getInitials(userName));
+      const shortName = escapeHtml(userName.length > 18 ? userName.substring(0, 18) + '…' : userName);
+      html += `<div class="broker-info" title="Vendedor: ${escapeHtml(userName)}"><span class="broker-avatar">${initials}</span><span class="broker-name">${shortName}</span></div>`;
+    } else {
+      html += `<div class="broker-info" title="${comments} anotações"><i class="ri-chat-3-line"></i><span>${escapeHtml(comments)} anotações</span></div>`;
+    }
+    html += '<div class="action-buttons">';
+    html += `<button type="button" class="action-btn btn-schedule" data-bs-toggle="modal" data-bs-target="#scheduleModal" onclick="event.stopPropagation(); setLeadId(${idMailing})" aria-label="Agendar" title="Agendar"><i class="ri-calendar-check-line"></i></button>`;
+    html += `<button type="button" class="action-btn btn-discard" data-bs-toggle="modal" data-bs-target="#discardModal" onclick="event.stopPropagation(); setLeadId(${idMailing})" aria-label="Descartar" title="Descartar"><i class="ri-close-circle-line"></i></button>`;
+    html += '</div></div>';
 
+    // View button — flutua no canto, aparece em hover (mesma cor do design kb)
+    html += `<a href="/comercial/abrir-cliente/${idMailing}" class="kanban-view-btn" title="Abrir Cliente" onclick="event.stopPropagation()"><i class="ri-eye-line"></i></a>`;
+
+    html += '</div>'; // card-inner
     return html;
   }
 
@@ -413,29 +433,50 @@
     myModal.show();
   }
 
+  // Pré-processa o payload do jKanban ANTES de ele renderizar:
+  //  - ordena itens por data de criação (chave ISO em cache, sem split por compare)
+  //  - injeta o HTML rico do card em `item.title` -> jKanban faz UMA única
+  //    escrita de DOM por item (era duas: render mínimo + re-render do card)
+  //  - injeta `data-search` (nome em lowercase) pro filtro consultar via
+  //    dataset em vez de varrer textContent (muito mais barato em datasets
+  //    grandes — admin tipicamente carrega milhares de cards)
+  for (let i = 0; i < boards.length; i++) {
+    const board = boards[i];
+    const items = board.item;
+    if (!items || items.length === 0) continue;
+
+    for (let j = 0; j < items.length; j++) {
+      const it = items[j];
+      const dc = (it.data_create || '').split(' ')[0];
+      const parts = dc.split('/');
+      it._sort_key = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '0000-00-00';
+      // Pre-render HTML do card direto no item.title — jKanban escreve uma única
+      // vez em vez de fazer render + re-render por card.
+      it.title = buildCardHTMLFromData(it);
+    }
+
+    items.sort((a, b) => b._sort_key.localeCompare(a._sort_key));
+  }
+
   // Init kanban
   const kanban = new jKanban({
     element: '.kanban-wrapper',
     gutter: '5px',
     widthBoard: '250px',
     dragItems: true,
-    boards: boards.map(board => {
-      // Título sem count - será exibido no badge circular via data-count
-      if (board.item && board.item.length > 0) {
-        board.item = board.item.sort((a, b) => {
-          const dateA = a.data_create.split(' ')[0].split('/').reverse().join('-');
-          const dateB = b.data_create.split(' ')[0].split('/').reverse().join('-');
-          if (dateA < dateB) return 1;
-          if (dateA > dateB) return -1;
-          return 0;
-        });
-      }
-      return board;
-    }),
-    dragBoards: true,
+    boards: boards,
+    // Cards podem mover entre colunas; colunas em si ficam fixas — a ordem dos
+    // status do funil é regra de negócio, não pode ser alterada por arrastar.
+    dragBoards: false,
     addItemButton: false,
     buttonContent: '+ Criar Cliente',
     itemAddOptions: { enabled: false },
+
+    // Removido o toggle de body.is-dragging: ela disparava style recalc em
+    // milhares de elementos no dragstart (causava o "lag até começar a mover").
+    // As proteções de performance agora vivem direto nos seletores envolvidos
+    // (transições restritas em .kanban-item / .kanban-board, will-change no
+    // :hover, transition: none no .gu-mirror).
 
     dropEl: function (el, target, source, sibling) {
       const contato_id = el.dataset.eid;
@@ -626,6 +667,21 @@
     buttonClick: function (el, boardId) { }
   });
 
+  // Re-parenta o MIRROR do dragula pra dentro do .kanban-board de origem.
+  // Por padrão o dragula faz cloneNode(true) e anexa em document.body, fora
+  // do escopo .app-kanban .kanban-wrapper .kanban-board — então o seletor
+  // aninhado das regras de .kanban-item não casava com o clone e o card
+  // perdia toda a identidade visual durante o drag. O mirror tem
+  // `position: fixed` (viewport-relative), então mover de pai não altera a
+  // posição visual; só faz os seletores aninhados voltarem a casar.
+  if (kanban.drake && typeof kanban.drake.on === 'function') {
+    kanban.drake.on('cloned', function (clone, original, type) {
+      if (type !== 'mirror') return;
+      const sourceBoard = original.closest('.kanban-board');
+      if (sourceBoard) sourceBoard.appendChild(clone);
+    });
+  }
+
   // Setar data-count em todos os boards após renderização
   function updateBoardCounts() {
     document.querySelectorAll('.kanban-board').forEach(board => {
@@ -689,43 +745,32 @@
     });
   }
 
-  // ========= ATUALIZADO: filtro com "stale" =========
-  function filterKanbanItems(searchTerm, userId, staleSel) {
+  // Filtro de cards. (O filtro de estagnação foi removido — não fazia sentido
+  // pra colunas como FOLLOW-UP/REUNIÃO/DOCUMENTO, e o conceito de "lead parado"
+  // já fica visível no próprio badge dos cards das outras colunas.)
+  function filterKanbanItems(searchTerm, userId) {
+    // Lê o termo já lowercased fora do loop (evita N calls de toLowerCase)
+    const needle = (searchTerm || '').toLowerCase();
     const items = document.querySelectorAll('.kanban-item');
     const typeLeadFilter = document.getElementById('type-lead') ? document.getElementById('type-lead').value : '';
 
     items.forEach(item => {
-      const itemTitle = item.textContent.toLowerCase();
+      // data-search já vem em lowercase — substitui textContent.toLowerCase()
+      // que era O(tamanho_do_card) por item e ainda disparava reflow.
+      const itemTitle = item.getAttribute('data-search') || '';
       const itemUserId = item.getAttribute('data-user-id');
       const itemTypeLead = item.getAttribute('data-tipo-lead');
 
-      // cálculo de estagnação
-      const updStr = item.getAttribute('data-data_update');
-      const diffDays = daysSince(parseDateBRorISO(updStr));
-
-      const matchesStale = (() => {
-        if (!staleSel) return true;               // sem filtro
-        if (diffDays == null) return false;       // sem data -> fora
-        switch (staleSel) {
-          case '7': return diffDays >= 7;
-          case '14': return diffDays >= 14;
-          case '20': return diffDays >= 20;
-          case '7-13': return diffDays >= 7 && diffDays < 14;
-          case '14-19': return diffDays >= 14 && diffDays < 20;
-          case '20+': return diffDays >= 20;
-          default: return true;
-        }
-      })();
-
-      const matchesSearch = itemTitle.includes(searchTerm.toLowerCase());
+      const matchesSearch = !needle || itemTitle.includes(needle);
       const matchesUserId = userId === '' || itemUserId === userId;
       const matchesTypeLead = typeLeadFilter === '' || typeLeadFilter === itemTypeLead;
 
-      if (matchesSearch && matchesUserId && matchesTypeLead && matchesStale) {
-        item.style.display = 'block';
-      } else {
-        item.style.display = 'none';
-      }
+      // Só escreve no style se a visibilidade efetiva mudar — write em style
+      // dispara layout/paint, é a parte cara do loop.
+      const shouldShow = matchesSearch && matchesUserId && matchesTypeLead;
+      const isHidden = item.style.display === 'none';
+      if (shouldShow && isHidden) item.style.display = '';
+      else if (!shouldShow && !isHidden) item.style.display = 'none';
     });
 
     // Atualizar contagem de itens visíveis em cada quadro
@@ -748,86 +793,68 @@
   }
   // ================================================
 
+  // Debounce centralizado: o input de busca dispara a cada tecla. Sem isso,
+  // o filtro percorre todos os cards N vezes em pouquíssimos ms enquanto o
+  // usuário ainda está digitando. 80ms é imperceptível pra UX e mata as
+  // execuções intermediárias.
+  let filterTimer = null;
+  function runFilterDebounced() {
+    if (filterTimer) clearTimeout(filterTimer);
+    filterTimer = setTimeout(() => {
+      const searchTerm = (document.getElementById('kanban-search') || {}).value || '';
+      const userId = (document.getElementById('user-filter') || {}).value || '';
+      filterKanbanItems(searchTerm, userId);
+    }, 80);
+  }
+
   const searchInput = document.getElementById('kanban-search');
   if (searchInput) {
-    searchInput.addEventListener('input', function () {
-      const searchTerm = this.value;
-      const userId = document.getElementById('user-filter') ? document.getElementById('user-filter').value : '';
-      const staleSel = document.getElementById('stale-filter') ? document.getElementById('stale-filter').value : '';
-      filterKanbanItems(searchTerm, userId, staleSel);
-    });
+    searchInput.addEventListener('input', runFilterDebounced);
   }
 
   const userFilterSelect = document.getElementById('user-filter');
   if (userFilterSelect) {
-    userFilterSelect.addEventListener('change', function () {
-      const searchTerm = document.getElementById('kanban-search') ? document.getElementById('kanban-search').value : '';
-      const staleSel = document.getElementById('stale-filter') ? document.getElementById('stale-filter').value : '';
-      filterKanbanItems(searchTerm, this.value, staleSel);
-    });
+    userFilterSelect.addEventListener('change', runFilterDebounced);
   }
 
   const typeLeadSelect = document.getElementById('type-lead');
   if (typeLeadSelect) {
-    typeLeadSelect.addEventListener('change', function () {
-      const searchTerm = document.getElementById('kanban-search') ? document.getElementById('kanban-search').value : '';
-      const userId = document.getElementById('user-filter') ? document.getElementById('user-filter').value : '';
-      const staleSel = document.getElementById('stale-filter') ? document.getElementById('stale-filter').value : '';
-      filterKanbanItems(searchTerm, userId, staleSel);
-    });
+    typeLeadSelect.addEventListener('change', runFilterDebounced);
   }
 
-  // NOVO: listener do seletor de estagnação
-  const staleSelect = document.getElementById('stale-filter');
-  if (staleSelect) {
-    staleSelect.addEventListener('change', function () {
-      const searchTerm = document.getElementById('kanban-search') ? document.getElementById('kanban-search').value : '';
-      const userId = document.getElementById('user-filter') ? document.getElementById('user-filter').value : '';
-      filterKanbanItems(searchTerm, userId, this.value);
-    });
-  }
+  // Filtro inicial precisa rodar porque o type-lead tem default 'A' (Ativo).
+  // Adiado pra depois do paint inicial via requestAnimationFrame — o usuário
+  // já vê a tela montada enquanto os cards 'R' são escondidos em background.
+  requestAnimationFrame(() => {
+    const initialSearchTerm = (document.getElementById('kanban-search') || {}).value || '';
+    const initialUserId = (document.getElementById('user-filter') || {}).value || '';
+    filterKanbanItems(initialSearchTerm, initialUserId);
+  });
 
-  const initialSearchTerm = document.getElementById('kanban-search')
-    ? document.getElementById('kanban-search').value
-    : '';
-  const initialUserId = document.getElementById('user-filter') ? document.getElementById('user-filter').value : '';
-  const initialStale = document.getElementById('stale-filter') ? document.getElementById('stale-filter').value : '';
-  filterKanbanItems(initialSearchTerm, initialUserId, initialStale);
+  // PerfectScrollbar removido: era caro com muitos cards e a scrollbar nativa
+  // já está estilizada via SCSS (fica visualmente igual e roda no thread nativo).
 
-  // Kanban Wrapper scrollbar
-  if (kanbanWrapper) {
-    new PerfectScrollbar(kanbanWrapper);
-  }
+  const kanbanContainer = document.querySelector('.kanban-container');
+  const kanbanTitleBoard = document.querySelectorAll('.kanban-title-board');
 
-  const kanbanContainer = document.querySelector('.kanban-container'),
-    kanbanTitleBoard = [].slice.call(document.querySelectorAll('.kanban-title-board')),
-    kanbanItem = [].slice.call(document.querySelectorAll('.kanban-item'));
-
-  // Armazenar os títulos originais dos quadros
+  // Title boards: só guarda o título original (passada cheap)
   kanbanTitleBoard.forEach(title => {
     const originalTitle = title.textContent.split(' - ')[0];
     title.setAttribute('data-original-title', originalTitle);
   });
 
-  // Render custom items with modern design
-  if (kanbanItem) {
-    kanbanItem.forEach(function (el) {
-      const idMailing = el.getAttribute('data-eid');
-      const temperatura = el.getAttribute('data-badge-text') || 'FRIO';
-
-      // Clear existing content
-      el.textContent = '';
-
-      // Add temperature class to card
-      el.classList.add(getTempClass(temperatura));
-
-      // Render modern card
-      el.insertAdjacentHTML('afterbegin', renderModernCard(el));
-
-      // Add dropdown
-      el.insertAdjacentHTML('beforeend', renderDropdown(idMailing));
-    });
-  }
+  // Passada mínima por item: só aplica classe de temperatura (o HTML do card
+  // já veio pronto via item.title -> jKanban escreveu em uma única operação).
+  // Também guarda o nome em data-search para o filtro consultar em O(1).
+  const itemNodes = document.querySelectorAll('.kanban-item');
+  itemNodes.forEach(el => {
+    const t = (el.getAttribute('data-badge-text') || 'FRIO').toUpperCase();
+    el.classList.add(t === 'QUENTE' ? 'temp-quente' : t === 'MORNO' ? 'temp-morno' : 'temp-frio');
+    // Cache da string de busca diretamente como dataset — evita textContent
+    // (que dispara reflow) na hora de filtrar.
+    const nome = el.getAttribute('data-nome_cliente') || '';
+    el.setAttribute('data-search', nome.toLowerCase());
+  });
 
   function limitUserName(userName) {
     if (!userName) return '';
@@ -838,10 +865,18 @@
     }
   }
 
-  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-  tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl);
-  });
+  // Tooltips: init lazy via delegação. Antes inicializava 1 Tooltip por
+  // elemento no carregamento — em datasets de admin, isso engasgava o thread
+  // principal por centenas de ms. Agora init só dispara no primeiro hover.
+  document.body.addEventListener('mouseenter', function (e) {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (!t.matches('[data-bs-toggle="tooltip"]')) return;
+    if (t._bsTooltipInited) return;
+    t._bsTooltipInited = true;
+    const tip = new bootstrap.Tooltip(t);
+    tip.show();
+  }, true);
 
   const tasksItemDropdown = [].slice.call(document.querySelectorAll('.kanban-tasks-item-dropdown'));
   if (tasksItemDropdown) {
@@ -864,6 +899,50 @@
   if (kanbanContainer) {
     kanbanContainer.appendChild(kanbanAddNewBoard);
   }
+
+  // ===========================================================================
+  // Top scrollbar proxy — sincroniza um scrollbar no TOPO com a barra nativa
+  // do .kanban-wrapper. Permite navegar entre colunas sem precisar rolar a
+  // página até embaixo pra alcançar o scrollbar do jKanban.
+  // ===========================================================================
+  (function setupTopScrollProxy() {
+    const topScroll = document.querySelector('.kanban-top-scroll');
+    const topInner = topScroll && topScroll.querySelector('.kanban-top-scroll-inner');
+    if (!topScroll || !topInner || !kanbanWrapper || !kanbanContainer) return;
+
+    let syncing = false;
+
+    function syncWidth() {
+      // Largura do "trilho" interno = largura total do conteúdo a rolar
+      topInner.style.width = kanbanContainer.scrollWidth + 'px';
+    }
+
+    function onTopScroll() {
+      if (syncing) return;
+      syncing = true;
+      kanbanWrapper.scrollLeft = topScroll.scrollLeft;
+      // Libera no próximo frame — evita loop entre os dois handlers
+      requestAnimationFrame(() => { syncing = false; });
+    }
+
+    function onWrapperScroll() {
+      if (syncing) return;
+      syncing = true;
+      topScroll.scrollLeft = kanbanWrapper.scrollLeft;
+      requestAnimationFrame(() => { syncing = false; });
+    }
+
+    topScroll.addEventListener('scroll', onTopScroll, { passive: true });
+    kanbanWrapper.addEventListener('scroll', onWrapperScroll, { passive: true });
+
+    // Recompõe largura quando colunas mudam ou viewport redimensiona.
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(syncWidth).observe(kanbanContainer);
+    } else {
+      window.addEventListener('resize', syncWidth);
+    }
+    syncWidth();
+  })();
 
   if (kanbanTitleBoard) {
     kanbanTitleBoard.forEach(function (elem) {

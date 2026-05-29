@@ -334,8 +334,8 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/relatorios/getList/{id_user}/{data_inicial}/{data_final}', [Relatorios::class, 'getLigacoes'])->name('pabx.getLigacoes');
   Route::get('/relatorios/preditiva', [Relatorios::class, 'predictiveReport'])->name('relatorios.preditiva.predictiveReport');
   Route::post('/relatorios/buscar', [Relatorios::class, 'get'])->name('relatorios.preditiva.buscar');
-  Route::get('/relatorios/atividade', [Relatorios::class, 'activityReport'])->name('relatorios.activityReport');
-  Route::get('/relatorios/atividade-dados/{dataInicial}/{dataFinal}/{leadsMes?}/{idVendedor?}', [Relatorios::class, 'activityReportData'])->name('relatorios.activityReportData');
+  Route::get('/relatorios/atividade', [Relatorios::class, 'performanceVendedor'])->name('relatorios.performanceVendedor');
+  Route::get('/relatorios/atividade/dados', [Relatorios::class, 'performanceVendedorData'])->name('relatorios.performanceVendedor.dados');
   Route::get('/relatorios/implantacoes', [Relatorios::class, 'implantacoes'])->name('relatorios.implantacoes');
   Route::get('/relatorios/implantacoes/dados', [Relatorios::class, 'implantacoesData'])->name('relatorios.implantacoes.dados');
   Route::get('/relatorios/implantacoes/listar', [Relatorios::class, 'implantacoesList'])->name('relatorios.implantacoes.listar');
@@ -493,7 +493,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('financeiro.relatorio.fetch');
   });
 });
-Route::get('/relatorios/lead-comentarios/{leadId}', [Relatorios::class, 'getLeadComentarios'])->name('relatorios.leadComentarios');
 
 
 Route::post('/consulta/pessoa', [ConsultaController::class, 'consultarPessoa'])->name('consulta.pessoa');

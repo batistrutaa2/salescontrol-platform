@@ -288,7 +288,7 @@
         },
         {
           "url": "/relatorios/atividade",
-          "name": "Atividade Vendedor",
+          "name": "Performance do Vendedor",
           "slug": "pages-users-atividade"
         },
         {
@@ -328,7 +328,7 @@
         },
         {
           "url": "/relatorios/atividade",
-          "name": "Atividade Vendedor",
+          "name": "Performance do Vendedor",
           "slug": "pages-users-atividade"
         },
         {

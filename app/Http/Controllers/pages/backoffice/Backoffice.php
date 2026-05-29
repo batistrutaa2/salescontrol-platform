@@ -1929,18 +1929,6 @@ class Backoffice extends Controller
             foreach ($tabulacoes as $tab) {
                 $vendasNoStatus = $vendas->where('tabulacao_id', $tab->id);
 
-                // Calcular contratos atrasados neste status
-                $atrasados = 0;
-                $prazoMaximo = $this->getPrazoMaximo($tab->descricao);
-
-                foreach ($vendasNoStatus as $v) {
-                    $dataReferencia = $v->status_updated_at ?? $v->data_venda;
-                    $diasNoStatus = $dataReferencia ? (int) Carbon::parse($dataReferencia)->diffInDays(now()) : 0;
-                    if ($prazoMaximo && $diasNoStatus > $prazoMaximo) {
-                        $atrasados++;
-                    }
-                }
-
                 $pipeline[] = [
                     'id' => $tab->id,
                     'nome' => $tab->descricao,
@@ -1956,12 +1944,10 @@ class Backoffice extends Controller
 
                         return $valor;
                     }),
-                    'atrasados' => $atrasados,
                     'contratos' => $vendasNoStatus->map(function ($v) {
-                        // Se status_updated_at for nulo, usar data_venda como fallback
-                        $dataReferencia = $v->status_updated_at ?? $v->data_venda;
-                        $diasNoStatus = $dataReferencia ? (int) Carbon::parse($dataReferencia)->diffInDays(now()) : 0;
-                        $prazoMaximo = $this->getPrazoMaximo($v->status_atual);
+                        $diasNaFila = $v->data_venda
+                            ? (int) Carbon::parse($v->data_venda)->diffInDays(now())
+                            : 0;
 
                         return [
                             'id' => $v->id,
@@ -1974,9 +1960,7 @@ class Backoffice extends Controller
                             'vendedor' => $v->vendedor,
                             'vendedor_id' => $v->vendedor_id,
                             'data_venda' => Carbon::parse($v->data_venda)->format('d/m/Y'),
-                            'dias_no_status' => $diasNoStatus,
-                            'prazo_maximo' => $prazoMaximo, // Para o badge de atraso
-                            'atrasado' => $prazoMaximo && $diasNoStatus > $prazoMaximo,
+                            'dias_na_fila' => $diasNaFila,
                             'motivo_pendencia' => $v->motivo_pendencia,
                             'contato_id' => $v->contato_id,
                             'backoffice_id' => $v->backoffice_id,
@@ -2203,8 +2187,9 @@ class Backoffice extends Controller
                 ->get();
 
             $contratosFormatados = $contratos->map(function ($c) {
-                $diasNoStatus = Carbon::parse($c->status_updated_at)->diffInDays(now());
-                $prazoMaximo = $this->getPrazoMaximo($c->status_atual);
+                $diasNaFila = $c->data_venda
+                    ? (int) Carbon::parse($c->data_venda)->diffInDays(now())
+                    : 0;
 
                 return [
                     'id' => $c->id,
@@ -2215,8 +2200,7 @@ class Backoffice extends Controller
                     'valor' => $c->valor_contrato,
                     'vendedor' => $c->vendedor,
                     'data_venda' => Carbon::parse($c->data_venda)->format('d/m/Y'),
-                    'dias_no_status' => $diasNoStatus,
-                    'atrasado' => $prazoMaximo && $diasNoStatus > $prazoMaximo,
+                    'dias_na_fila' => $diasNaFila,
                     'motivo_pendencia' => $c->motivo_pendencia,
                     'contato_id' => $c->contato_id,
                 ];

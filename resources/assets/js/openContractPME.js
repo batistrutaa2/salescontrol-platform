@@ -9,6 +9,23 @@
     let currentPropostaType = document.getElementById('tipo_contrato')?.value || 'PME';
     let cpfCnpjCleaveInstance = null;
 
+    // Máscara de digitação dd/mm/aaaa — auto-insere as barras conforme o usuário digita.
+    // Convive com flatpickr (usar allowInput: true) porque só toca em `value`.
+    function attachDateMaskBr(el) {
+        if (!el || el.dataset.dateMaskAttached) return;
+        el.dataset.dateMaskAttached = '1';
+        el.setAttribute('maxlength', '10');
+        el.setAttribute('inputmode', 'numeric');
+        if (!el.placeholder) el.placeholder = 'dd/mm/aaaa';
+        el.addEventListener('input', function () {
+            const digits = el.value.replace(/\D/g, '').slice(0, 8);
+            let out = digits;
+            if (digits.length > 4) out = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+            else if (digits.length > 2) out = digits.slice(0, 2) + '/' + digits.slice(2);
+            el.value = out;
+        });
+    }
+
     // ============================================
     // Modo read-only (backoffice)
     // ============================================
@@ -131,9 +148,11 @@
     // ============================================
     if (typeof flatpickr !== 'undefined') {
         flatpickr('.flatpickr-date', {
-            dateFormat: 'd/m/Y'
+            dateFormat: 'd/m/Y',
+            allowInput: true
         });
     }
+    document.querySelectorAll('.flatpickr-date').forEach(attachDateMaskBr);
 
     // ============================================
     // CNPJ/CPF Mask (dynamic based on tipo_contrato)
@@ -729,9 +748,11 @@
         // Initialize flatpickr for modal date fields
         if (typeof flatpickr !== 'undefined') {
             flatpickr('.flatpickr-modal', {
-                dateFormat: 'd/m/Y'
+                dateFormat: 'd/m/Y',
+                allowInput: true
             });
         }
+        document.querySelectorAll('.flatpickr-modal').forEach(attachDateMaskBr);
 
         // Edit titular button click
         document.querySelectorAll('.titular-card .btn-edit[data-titular-id]').forEach(function (btn) {

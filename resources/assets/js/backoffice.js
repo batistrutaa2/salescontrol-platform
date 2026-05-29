@@ -29,6 +29,17 @@ $(function () {
         return s.length <= n ? s : s.slice(0, n) + '…';
     }
 
+    // Derives one of 6 stable color tones for the seller avatar from the seller name.
+    // Same name → same tone across the board, so each rep keeps a consistent identity.
+    function sellerToneFromName(name) {
+        const s = String(name || '');
+        let hash = 0;
+        for (let i = 0; i < s.length; i++) {
+            hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+        }
+        return (hash % 6) + 1;
+    }
+
     /**
      * Modern Toast Notification
      * @param {string} type - 'success', 'error', 'warning', 'info'
@@ -229,26 +240,19 @@ $(function () {
         },
 
         renderCard(contract, statusColor, statusName) {
-            const atrasadoClass = contract.atrasado ? 'card-atrasado' : '';
-            const diasNoStatus = Math.floor(contract.dias_no_status || 0);
-            const tempoLabel = diasNoStatus === 1 ? '1 dia' : `${diasNoStatus} dias`;
+            const diasNaFila = Math.floor(contract.dias_na_fila || 0);
+            const tempoLabel = diasNaFila === 0
+                ? 'hoje'
+                : (diasNaFila === 1 ? '1d na fila' : `${diasNaFila}d na fila`);
 
-            // Prazo restante (se houver)
-            let prazoHtml = '';
-            const prazoMaximo = Math.floor(contract.prazo_maximo || 0);
-            if (prazoMaximo && !contract.atrasado) {
-                const restante = prazoMaximo - diasNoStatus;
-                if (restante > 0) {
-                    prazoHtml = `<span class="tempo-status" style="color: var(--kb-warning);">
-                        <i class="ri-timer-line"></i> ${restante}d restantes
-                    </span>`;
-                }
-            } else if (contract.atrasado) {
-                const atraso = diasNoStatus - prazoMaximo;
-                prazoHtml = `<span class="tempo-status atrasado">
-                    <i class="ri-alarm-warning-line"></i> ${atraso}d atrasado
-                </span>`;
-            }
+            const vendedorNome = (contract.vendedor || 'Sem vendedor').trim();
+            const vendedorIniciais = vendedorNome
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map(p => p.charAt(0).toUpperCase())
+                .join('') || '?';
+            const vendedorTone = sellerToneFromName(vendedorNome);
 
             // Motivo pendência - só exibir se o status for PENDENCIA
             let motivoHtml = '';
@@ -262,13 +266,11 @@ $(function () {
             }
 
             return `
-                <div class="kanban-card ${atrasadoClass}"
+                <div class="kanban-card"
                      data-id="${contract.id}"
                      data-venda-id="${contract.venda_id || contract.id}"
                      data-contato-id="${contract.contato_id || ''}"
                      style="--card-status-color: ${statusColor};">
-                    ${contract.atrasado ? '<i class="ri-alarm-warning-fill atrasado-icon"></i>' : ''}
-
                     <div class="card-header-kb">
                         <span class="operadora-badge" title="${escapeHtml(contract.operadora || 'N/A')}">
                             ${escapeHtml(contract.operadora || 'N/A')}
@@ -320,15 +322,22 @@ $(function () {
                         </span>
                     </div>
 
-                    <div class="card-footer-kb">
-                        <span class="tempo-status ${contract.atrasado ? 'atrasado' : ''}">
-                            <i class="ri-time-line"></i>
-                            ${tempoLabel}
-                        </span>
-                        ${prazoHtml}
-                        <span class="vendedor-badge" title="${escapeHtml(contract.vendedor || 'N/A')}">
-                            <i class="ri-user-line"></i>
-                            <span>${truncate(contract.vendedor || 'N/A', 15)}</span>
+                    <div class="card-seller-row">
+                        <div class="seller-identity" title="${escapeHtml(vendedorNome)}">
+                            <span class="seller-avatar" data-tone="${vendedorTone}">${escapeHtml(vendedorIniciais)}</span>
+                            <span class="seller-meta">
+                                <span class="seller-name">${escapeHtml(truncate(vendedorNome, 22))}</span>
+                                <span class="seller-label">Vendedor</span>
+                            </span>
+                        </div>
+                        <span class="dias-fila-pill" title="Dias na fila desde a venda (${escapeHtml(contract.data_venda || '')})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="3"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span class="dias-fila-value">${tempoLabel}</span>
                         </span>
                     </div>
 
@@ -500,6 +509,11 @@ $(function () {
                     // Sucesso - atualizar contadores
                     self.statusConfirmed = true;
                     self.updateColumnCounts();
+
+                    // Card saiu de PENDENCIA: a badge de motivo só faz sentido nesse status.
+                    // Quick change nunca tem PENDENCIA como destino (cai no modal), então remoção é incondicional.
+                    const motivoBadge = evt.item.querySelector('.motivo-badge');
+                    if (motivoBadge) motivoBadge.remove();
 
                     // Invalidar aba de demandas para refletir novo status
                     self.demandasLoaded = false;

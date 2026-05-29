@@ -712,18 +712,6 @@
             </div>
             @endif
 
-            <div class="filter-group">
-                <div class="form-floating form-floating-outline">
-                    <select class="form-select" id="stale-filter">
-                        <option value="">Todos</option>
-                        <option value="7">≥ 7 dias sem atualização</option>
-                        <option value="14">≥ 14 dias sem atualização</option>
-                        <option value="20+">20+ dias sem atualização</option>
-                    </select>
-                    <label for="stale-filter">Estagnação</label>
-                </div>
-            </div>
-
             @if ($typeUserLogeed == 'VENDEDOR')
             <div class="filter-group" style="flex: 0 0 auto;">
                 <button type="button" class="btn btn-primary h-100 px-4" id="btn-fila-preditiva">
@@ -731,6 +719,13 @@
                 </button>
             </div>
             @endif
+        </div>
+
+        <!-- Top horizontal scrollbar proxy — mirrors the kanban-container scrollLeft
+             so the user can navigate columns without scrolling down to find the
+             native bottom scrollbar. Sync is set up in comercialkanban.js. -->
+        <div class="kanban-top-scroll" aria-hidden="true">
+            <div class="kanban-top-scroll-inner"></div>
         </div>
 
         <!-- Kanban Wrapper -->
