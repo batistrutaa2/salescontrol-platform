@@ -720,7 +720,202 @@ textarea.pvd-input { resize: vertical; width: 100%; }
     &:hover { background: rgba(124, 58, 237, 0.12); }
 }
 
+// -------------------------------------------------- relatório do mês
+.pvd-report {
+    background: var(--pvd-card-bg);
+    border: 1px solid var(--pvd-card-border);
+    border-radius: var(--pvd-radius);
+    box-shadow: var(--pvd-shadow-sm);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+}
+
+.pvd-report-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.pvd-report-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--pvd-text-primary);
+
+    svg { color: var(--pvd-primary); }
+}
+
+.pvd-report-month {
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: var(--pvd-primary);
+    background: rgba(124, 58, 237, 0.1);
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+.pvd-report-mes {
+    width: auto;
+    min-width: 150px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+}
+
+.pvd-report-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.pvd-report-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: var(--pvd-radius-sm);
+    background: var(--pvd-surface-2);
+    border-left: 3px solid var(--pvd-primary);
+
+    &:nth-child(2) { border-left-color: var(--pvd-info); }
+    &:nth-child(3) { border-left-color: var(--pvd-success); }
+    &:nth-child(4) { border-left-color: var(--pvd-warning); }
+}
+
+.pvd-report-tile-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--pvd-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.pvd-report-tile-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--pvd-text-primary);
+}
+
+.pvd-report-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 16px;
+}
+
+.pvd-report-block {
+    h6 {
+        margin: 0 0 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--pvd-text-secondary);
+    }
+}
+
+.pvd-report-empty {
+    font-size: 0.82rem;
+    color: var(--pvd-text-muted);
+    padding: 10px 0;
+}
+
+// barras "por tipo"
+.pvd-report-bar-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 28px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.pvd-report-bar-label {
+    font-size: 0.8rem;
+    color: var(--pvd-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pvd-report-bar-track {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--pvd-surface-2);
+    overflow: hidden;
+
+    span {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--pvd-primary), var(--pvd-primary-light));
+    }
+}
+
+.pvd-report-bar-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--pvd-text-primary);
+    text-align: right;
+}
+
+// ranking "por responsável"
+.pvd-report-rank-row {
+    display: grid;
+    grid-template-columns: 24px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--pvd-card-border);
+
+    &:last-child { border-bottom: none; }
+}
+
+.pvd-report-rank-pos {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: rgba(124, 58, 237, 0.12);
+    color: var(--pvd-primary);
+    font-size: 0.74rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pvd-report-rank-nome {
+    font-size: 0.85rem;
+    color: var(--pvd-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pvd-report-rank-tempo {
+    font-size: 0.76rem;
+    color: var(--pvd-text-muted);
+    white-space: nowrap;
+}
+
+.pvd-report-rank-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--pvd-primary);
+    min-width: 24px;
+    text-align: right;
+}
+
 @media (max-width: 991px) {
     .pvd-kpis { grid-template-columns: 1fr; }
     .pvd-grid { grid-template-columns: 1fr; }
+    .pvd-report-tiles { grid-template-columns: 1fr 1fr; }
+    .pvd-report-cols { grid-template-columns: 1fr; }
 }

@@ -32,7 +32,8 @@
                     concluirTodas: '{{ url('back-office/pos-venda-demandas') }}',
                     storeDemanda: '{{ route('backoffice.storeDemandaContrato') }}',
                     demandaBase: '{{ url('back-office/demandas-contrato') }}',
-                    buscarContratos: '{{ route('backoffice.posVendaDemandas.buscarContratos') }}'
+                    buscarContratos: '{{ route('backoffice.posVendaDemandas.buscarContratos') }}',
+                    metricas: '{{ route('backoffice.posVendaDemandas.metricas') }}'
                 }
             };
         </script>
@@ -70,6 +71,50 @@
             <div class="pvd-kpi pvd-kpi-success">
                 <span class="pvd-kpi-label">Concluídas hoje</span>
                 <span class="pvd-kpi-value" id="kpi-hoje">0</span>
+            </div>
+        </div>
+
+        {{-- Relatório do mês --}}
+        <div class="pvd-report" id="pvd-report">
+            <div class="pvd-report-head">
+                <div class="pvd-report-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg>
+                    <span>Relatório de Pós-Venda</span>
+                    <span class="pvd-report-month" id="pvd-report-month-label">—</span>
+                </div>
+                <input type="month" id="pvd-report-mes" class="pvd-select pvd-report-mes" value="{{ now()->format('Y-m') }}">
+            </div>
+
+            <div class="pvd-report-tiles">
+                <div class="pvd-report-tile">
+                    <span class="pvd-report-tile-label">Concluídas no mês</span>
+                    <span class="pvd-report-tile-value" id="rep-concluidas">0</span>
+                </div>
+                <div class="pvd-report-tile">
+                    <span class="pvd-report-tile-label">Tempo médio de conclusão</span>
+                    <span class="pvd-report-tile-value" id="rep-tempo">—</span>
+                </div>
+                <div class="pvd-report-tile">
+                    <span class="pvd-report-tile-label">Contratos finalizados</span>
+                    <span class="pvd-report-tile-value" id="rep-finalizados">0</span>
+                </div>
+                <div class="pvd-report-tile">
+                    <span class="pvd-report-tile-label">Pendentes agora</span>
+                    <span class="pvd-report-tile-value" id="rep-pendentes">0</span>
+                </div>
+            </div>
+
+            <div class="pvd-report-cols">
+                <div class="pvd-report-block">
+                    <h6>Concluídas por tipo</h6>
+                    <div id="rep-tipos" class="pvd-report-bars"></div>
+                </div>
+                @if ($isAdmin)
+                    <div class="pvd-report-block">
+                        <h6>Por responsável</h6>
+                        <div id="rep-backoffice" class="pvd-report-rank"></div>
+                    </div>
+                @endif
             </div>
         </div>
 

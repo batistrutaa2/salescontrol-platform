@@ -263,6 +263,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/pos-venda-demandas/data', [PosVendaDemandas::class, 'data'])->name('backoffice.posVendaDemandas.data');
   Route::get('/back-office/pos-venda-demandas/templates', [PosVendaDemandas::class, 'getTemplates'])->name('backoffice.posVendaDemandas.templates');
   Route::get('/back-office/pos-venda-demandas/buscar-contratos', [PosVendaDemandas::class, 'buscarContratos'])->name('backoffice.posVendaDemandas.buscarContratos');
+  Route::get('/back-office/pos-venda-demandas/metricas', [PosVendaDemandas::class, 'metricas'])->name('backoffice.posVendaDemandas.metricas');
   Route::post('/back-office/pos-venda-demandas/{vendaId}/concluir-todas', [PosVendaDemandas::class, 'concluirTodas'])->name('backoffice.posVendaDemandas.concluirTodas');
 
   // Pós-Venda

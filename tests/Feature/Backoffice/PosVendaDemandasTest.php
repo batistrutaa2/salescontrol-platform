@@ -224,4 +224,85 @@ class PosVendaDemandasTest extends TestCase
             'status' => 'PENDENTE',
         ]);
     }
+
+    /**
+     * Insere uma demanda CONCLUIDA no contrato, criada há X horas e concluída agora.
+     */
+    private function concluirDemanda(int $vendaId, int $empresaId, int $concluidaPor, int $horasAtras = 2): void
+    {
+        DB::table('venda_demandas')->insert([
+            'venda_id' => $vendaId,
+            'empresa_id' => $empresaId,
+            'created_by' => $concluidaPor,
+            'concluida_por' => $concluidaPor,
+            'tipo' => TipoDemandaContrato::REEMBOLSO->value,
+            'titulo' => 'Reembolso',
+            'status' => 'CONCLUIDA',
+            'created_at' => now()->subHours($horasAtras),
+            'concluida_em' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    public function test_metricas_contam_concluidas_do_mes_e_pendentes(): void
+    {
+        $venda = $this->criarContratoImplantado($this->backoffice->id); // já cria 1 PENDENTE
+        $this->concluirDemanda($venda->id, $this->empresa->id, $this->backoffice->id, 2);
+
+        $response = $this->actingAs($this->backoffice)->getJson(route('backoffice.posVendaDemandas.metricas'));
+
+        $response->assertOk();
+        $json = $response->json();
+        $this->assertTrue($json['success']);
+        $this->assertSame(1, $json['metricas']['concluidas_mes']);
+        $this->assertSame(1, $json['metricas']['pendentes']);
+        $this->assertNotSame('—', $json['metricas']['tempo_medio'], 'Deve haver tempo médio para a demanda concluída.');
+        $this->assertFalse($json['is_admin']);
+    }
+
+    public function test_metricas_backoffice_nao_conta_de_outro_responsavel(): void
+    {
+        $minha = $this->criarContratoImplantado($this->backoffice->id);
+        $this->concluirDemanda($minha->id, $this->empresa->id, $this->backoffice->id);
+
+        $deOutro = $this->criarContratoImplantado($this->outroBackoffice->id);
+        $this->concluirDemanda($deOutro->id, $this->empresa->id, $this->outroBackoffice->id);
+
+        $response = $this->actingAs($this->backoffice)->getJson(route('backoffice.posVendaDemandas.metricas'));
+
+        // Só conta a concluída do próprio backoffice.
+        $this->assertSame(1, $response->json('metricas.concluidas_mes'));
+    }
+
+    public function test_metricas_admin_ve_todos_e_ranking_por_responsavel(): void
+    {
+        $a = $this->criarContratoImplantado($this->backoffice->id);
+        $this->concluirDemanda($a->id, $this->empresa->id, $this->backoffice->id);
+        $b = $this->criarContratoImplantado($this->outroBackoffice->id);
+        $this->concluirDemanda($b->id, $this->empresa->id, $this->outroBackoffice->id);
+
+        $response = $this->actingAs($this->admin)->getJson(route('backoffice.posVendaDemandas.metricas'));
+
+        $response->assertOk();
+        $this->assertTrue($response->json('is_admin'));
+        $this->assertSame(2, $response->json('metricas.concluidas_mes'));
+        $this->assertCount(2, $response->json('por_backoffice'));
+    }
+
+    public function test_metricas_multitenant_nao_conta_outra_empresa(): void
+    {
+        $venda = $this->criarContratoImplantado($this->backoffice->id);
+        $this->concluirDemanda($venda->id, $this->empresa->id, $this->backoffice->id);
+
+        $outraEmpresa = Empresa::factory()->create();
+        $adminOutra = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'ativo' => 'Y',
+        ]);
+
+        $response = $this->actingAs($adminOutra)->getJson(route('backoffice.posVendaDemandas.metricas'));
+
+        $this->assertSame(0, $response->json('metricas.concluidas_mes'));
+    }
 }

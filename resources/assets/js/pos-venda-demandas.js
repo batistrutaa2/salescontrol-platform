@@ -118,6 +118,66 @@
         document.getElementById('kpi-hoje').textContent = kpis.demandas_concluidas_hoje ?? 0;
     }
 
+    // -------------------------------------------------- relatório do mês
+
+    function loadMetricas() {
+        const params = new URLSearchParams();
+        const mes = document.getElementById('pvd-report-mes')?.value;
+        const backoffice = document.getElementById('filtro-backoffice')?.value;
+        if (mes) params.set('mes', mes);
+        if (backoffice) params.set('backoffice_id', backoffice);
+
+        fetch(`${cfg.urls.metricas}?${params.toString()}`, { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                const m = data.metricas || {};
+                document.getElementById('rep-concluidas').textContent = m.concluidas_mes ?? 0;
+                document.getElementById('rep-tempo').textContent = m.tempo_medio ?? '—';
+                document.getElementById('rep-finalizados').textContent = m.contratos_finalizados ?? 0;
+                document.getElementById('rep-pendentes').textContent = m.pendentes ?? 0;
+                const lbl = document.getElementById('pvd-report-month-label');
+                if (lbl) lbl.textContent = data.mes_label || '';
+                renderTipos(data.por_tipo || []);
+                renderRanking(data.por_backoffice || []);
+            })
+            .catch(() => {});
+    }
+
+    function renderTipos(tipos) {
+        const el = document.getElementById('rep-tipos');
+        if (!el) return;
+        if (!tipos.length) { el.innerHTML = '<div class="pvd-report-empty">Nenhuma demanda concluída neste mês.</div>'; return; }
+        const max = Math.max(...tipos.map(t => t.total), 1);
+        el.innerHTML = tipos.map(t => `
+            <div class="pvd-report-bar-row">
+                <span class="pvd-report-bar-label" title="${esc(t.label)}">${esc(t.label)}</span>
+                <div class="pvd-report-bar-track"><span style="width:${Math.round((t.total / max) * 100)}%"></span></div>
+                <span class="pvd-report-bar-value">${t.total}</span>
+            </div>
+        `).join('');
+    }
+
+    // Recarrega lista + relatório após qualquer mutação (conclusão/edição/criação).
+    function refresh() {
+        loadData();
+        loadMetricas();
+    }
+
+    function renderRanking(lista) {
+        const el = document.getElementById('rep-backoffice');
+        if (!el) return; // só existe para admin
+        if (!lista.length) { el.innerHTML = '<div class="pvd-report-empty">Sem conclusões neste mês.</div>'; return; }
+        el.innerHTML = lista.map((r, i) => `
+            <div class="pvd-report-rank-row">
+                <span class="pvd-report-rank-pos">${i + 1}</span>
+                <span class="pvd-report-rank-nome" title="${esc(r.nome)}">${esc(r.nome)}</span>
+                <span class="pvd-report-rank-tempo">${esc(r.tempo_medio)}</span>
+                <span class="pvd-report-rank-num">${r.concluidas}</span>
+            </div>
+        `).join('');
+    }
+
     // -------------------------------------------------- render
 
     function renderCard(c, index) {
@@ -217,13 +277,13 @@
     });
 
     // Recarrega a lista após um envio de boas-vindas bem-sucedido.
-    document.addEventListener('boasVindasEnviada', loadData);
+    document.addEventListener('boasVindasEnviada', refresh);
 
     function toggleDemanda(id) {
         fetch(`${cfg.urls.demandaBase}/${id}/toggle`, { method: 'PATCH', headers: jsonHeaders() })
             .then(r => r.json())
             .then(data => {
-                if (data.success) { toast('success', data.message); loadData(); }
+                if (data.success) { toast('success', data.message); refresh(); }
                 else toast('error', data.message || 'Erro.');
             })
             .catch(() => toast('error', 'Falha de conexão.'));
@@ -244,7 +304,7 @@
             fetch(`${cfg.urls.demandaBase}/${id}`, { method: 'DELETE', headers: jsonHeaders() })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.success) { toast('success', data.message); loadData(); }
+                    if (data.success) { toast('success', data.message); refresh(); }
                     else toast('error', data.message || 'Erro.');
                 })
                 .catch(() => toast('error', 'Falha de conexão.'));
@@ -266,7 +326,7 @@
             fetch(`${cfg.urls.concluirTodas}/${vendaId}/concluir-todas`, { method: 'POST', headers: jsonHeaders() })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.success) { toast('success', data.message); loadData(); }
+                    if (data.success) { toast('success', data.message); refresh(); }
                     else toast('error', data.message || 'Erro.');
                 })
                 .catch(() => toast('error', 'Falha de conexão.'));
@@ -342,7 +402,7 @@
         fetch(url, { method, headers: jsonHeaders(), body: JSON.stringify(payload) })
             .then(r => r.json())
             .then(data => {
-                if (data.success) { toast('success', data.message); closeModal(); loadData(); }
+                if (data.success) { toast('success', data.message); closeModal(); refresh(); }
                 else toast('error', data.message || 'Erro ao salvar.');
             })
             .catch(() => toast('error', 'Falha de conexão.'));
@@ -361,6 +421,10 @@
         const el = document.getElementById(id);
         el && el.addEventListener('change', loadData);
     });
+
+    // Relatório: recarrega ao trocar o mês ou o responsável (admin).
+    document.getElementById('pvd-report-mes')?.addEventListener('change', loadMetricas);
+    document.getElementById('filtro-backoffice')?.addEventListener('change', loadMetricas);
 
     // -------------------------------------------------- abrir chamado avulso
 
@@ -472,7 +536,7 @@
             })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.success) { toast('success', 'Chamado aberto com sucesso.'); closeChamado(); loadData(); }
+                    if (data.success) { toast('success', 'Chamado aberto com sucesso.'); closeChamado(); refresh(); }
                     else { toast('error', data.message || 'Erro ao abrir chamado.'); chSave.disabled = false; }
                 })
                 .catch(() => { toast('error', 'Falha de conexão.'); chSave.disabled = false; });
@@ -490,4 +554,5 @@
 
     loadTemplates();
     loadData();
+    loadMetricas();
 })();

@@ -324,6 +324,158 @@ class PosVendaDemandas extends Controller
     }
 
     /**
+     * Relatório de pós-venda do mês: demandas concluídas, tempo médio de conclusão,
+     * contratos finalizados e recortes por tipo / por responsável.
+     * BACKOFFICE vê apenas o que implantou; ADMINISTRATIVO/DEVELOPER veem tudo
+     * (com filtro opcional por responsável).
+     */
+    public function metricas(Request $request)
+    {
+        try {
+            $empresaId = Auth::user()->empresa_id;
+            $isBackoffice = Auth::user()->user_role_id == UserRole::BACKOFFICE;
+            $isAdmin = ! $isBackoffice;
+            $backofficeFiltro = $request->input('backoffice_id');
+
+            // Mês de referência (YYYY-MM); default = mês atual.
+            try {
+                $ref = $request->filled('mes')
+                    ? Carbon::createFromFormat('Y-m', $request->input('mes'))->startOfMonth()
+                    : now()->startOfMonth();
+            } catch (\Throwable $e) {
+                $ref = now()->startOfMonth();
+            }
+            $inicio = $ref->copy()->startOfMonth();
+            $fim = $ref->copy()->endOfMonth();
+
+            // Base: demandas da empresa + contrato (para o dono/backoffice).
+            $aplicarPapel = function ($q) use ($isBackoffice, $backofficeFiltro) {
+                if ($isBackoffice) {
+                    $q->where('v.backoffice_id', Auth::id());
+                } elseif ($backofficeFiltro === 'sem') {
+                    $q->whereNull('v.backoffice_id');
+                } elseif ($backofficeFiltro) {
+                    $q->where('v.backoffice_id', $backofficeFiltro);
+                }
+
+                return $q;
+            };
+
+            $base = fn () => $aplicarPapel(
+                DB::table('venda_demandas as d')
+                    ->join('vendas as v', 'v.id', '=', 'd.venda_id')
+                    ->where('d.empresa_id', $empresaId)
+            );
+
+            // Concluídas no mês + tempo médio (created_at -> concluida_em).
+            $concluidasMes = $base()
+                ->where('d.status', 'CONCLUIDA')
+                ->whereBetween('d.concluida_em', [$inicio, $fim])
+                ->count();
+
+            $tempoMedioMin = $base()
+                ->where('d.status', 'CONCLUIDA')
+                ->whereBetween('d.concluida_em', [$inicio, $fim])
+                ->whereNotNull('d.concluida_em')
+                ->avg(DB::raw('TIMESTAMPDIFF(MINUTE, d.created_at, d.concluida_em)'));
+
+            // Pendentes atuais (não dependem do mês).
+            $pendentes = $base()->where('d.status', 'PENDENTE')->count();
+
+            // Contratos com pós-venda finalizada no mês.
+            $contratosFinalizadosQ = DB::table('vendas as v')
+                ->where('v.empresa_id', $empresaId)
+                ->whereBetween('v.pos_venda_concluida_em', [$inicio, $fim]);
+            $aplicarPapel($contratosFinalizadosQ);
+            $contratosFinalizados = $contratosFinalizadosQ->count();
+
+            // Concluídas por tipo (top 6) no mês.
+            $porTipo = $base()
+                ->where('d.status', 'CONCLUIDA')
+                ->whereBetween('d.concluida_em', [$inicio, $fim])
+                ->groupBy('d.tipo')
+                ->select('d.tipo', DB::raw('COUNT(*) as total'))
+                ->orderByDesc('total')
+                ->limit(6)
+                ->get()
+                ->map(fn ($r) => [
+                    'tipo' => $r->tipo,
+                    'label' => TipoDemandaContrato::tryFrom($r->tipo)?->label() ?? $r->tipo,
+                    'total' => (int) $r->total,
+                ]);
+
+            // Por responsável (somente admin).
+            $porBackoffice = collect();
+            if ($isAdmin) {
+                $porBackoffice = $base()
+                    ->where('d.status', 'CONCLUIDA')
+                    ->whereBetween('d.concluida_em', [$inicio, $fim])
+                    ->leftJoin('users as bo', 'bo.id', '=', 'v.backoffice_id')
+                    ->groupBy('v.backoffice_id', 'bo.name')
+                    ->select(
+                        'bo.name as nome',
+                        DB::raw('COUNT(*) as concluidas'),
+                        DB::raw('AVG(TIMESTAMPDIFF(MINUTE, d.created_at, d.concluida_em)) as tempo_min')
+                    )
+                    ->orderByDesc('concluidas')
+                    ->get()
+                    ->map(fn ($r) => [
+                        'nome' => $r->nome ?? 'Sem responsável',
+                        'concluidas' => (int) $r->concluidas,
+                        'tempo_medio' => $this->formatarDuracao($r->tempo_min !== null ? (float) $r->tempo_min : null),
+                    ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'is_admin' => $isAdmin,
+                'mes_label' => $this->mesLabel($ref),
+                'metricas' => [
+                    'concluidas_mes' => $concluidasMes,
+                    'tempo_medio' => $this->formatarDuracao($tempoMedioMin !== null ? (float) $tempoMedioMin : null),
+                    'contratos_finalizados' => $contratosFinalizados,
+                    'pendentes' => $pendentes,
+                ],
+                'por_tipo' => $porTipo,
+                'por_backoffice' => $porBackoffice,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao carregar métricas: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function formatarDuracao(?float $minutos): string
+    {
+        if ($minutos === null) {
+            return '—';
+        }
+        $min = (int) round($minutos);
+        if ($min < 60) {
+            return $min.' min';
+        }
+        $horas = intdiv($min, 60);
+        if ($horas < 24) {
+            $resto = $min % 60;
+
+            return $horas.'h'.($resto ? ' '.$resto.'min' : '');
+        }
+        $dias = intdiv($horas, 24);
+        $restoH = $horas % 24;
+
+        return $dias.'d'.($restoH ? ' '.$restoH.'h' : '');
+    }
+
+    private function mesLabel(Carbon $ref): string
+    {
+        $meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+        return $meses[$ref->month - 1].'/'.$ref->year;
+    }
+
+    /**
      * Templates ativos da empresa, para o dropdown de "Adicionar demanda".
      */
     public function getTemplates()
