@@ -173,9 +173,9 @@ class Financeiro extends Controller
         $empresaId = auth()->user()->empresa_id;
         $anoSelecionado = $request->ano;
 
-        // Agrupar contratos via SQL — somente parcelas fixas (1-3)
+        // Agrupar contratos via SQL — somente parcelas fixas (vitalicio = false)
         $contratosQuery = Recebivel::where('recebiveis.empresa_id', $empresaId)
-            ->where('recebiveis.parcela', '<=', 3)
+            ->where('recebiveis.vitalicio', false)
             ->join('vendas', 'recebiveis.venda_id', '=', 'vendas.id')
             ->join('users', 'recebiveis.vendedor_id', '=', 'users.id')
             ->select([
@@ -217,9 +217,9 @@ class Financeiro extends Controller
             ]];
         });
 
-        // KPIs — totais de parcelas fixas (1-3)
+        // KPIs — totais de parcelas fixas (vitalicio = false)
         $kpisQuery = Recebivel::where('recebiveis.empresa_id', $empresaId)
-            ->where('recebiveis.parcela', '<=', 3);
+            ->where('recebiveis.vitalicio', false);
 
         if ($anoSelecionado) {
             $kpisQuery->join('vendas as v_kpi', 'recebiveis.venda_id', '=', 'v_kpi.id')
@@ -235,9 +235,9 @@ class Financeiro extends Controller
             COUNT(*) as total_parcelas
         ")->first();
 
-        // Resumo por ano — parcelas fixas (1-3)
+        // Resumo por ano — parcelas fixas (vitalicio = false)
         $resumoPorAno = Recebivel::where('recebiveis.empresa_id', $empresaId)
-            ->where('recebiveis.parcela', '<=', 3)
+            ->where('recebiveis.vitalicio', false)
             ->join('vendas as v_resumo', 'recebiveis.venda_id', '=', 'v_resumo.id')
             ->selectRaw("
                 YEAR(v_resumo.data_implantacao) as ano,
@@ -254,7 +254,7 @@ class Financeiro extends Controller
         // Anos disponíveis (query otimizada — somente parcelas fixas)
         $anosDisponiveis = Vendas::whereNotNull('data_implantacao')
             ->where('empresa_id', $empresaId)
-            ->whereIn('id', Recebivel::where('empresa_id', $empresaId)->where('parcela', '<=', 3)->select('venda_id')->distinct())
+            ->whereIn('id', Recebivel::where('empresa_id', $empresaId)->where('vitalicio', false)->select('venda_id')->distinct())
             ->selectRaw('YEAR(data_implantacao) as ano')
             ->selectRaw('COUNT(*) as total_contratos')
             ->groupBy('ano')
@@ -276,7 +276,7 @@ class Financeiro extends Controller
     // ──────────────────────────────────────────
 
     /**
-     * Listagem de contratos com parcelas vitalícias (parcela >= 4)
+     * Listagem de contratos com parcelas vitalícias (vitalicio = true)
      */
     public function indexVitalicios(Request $request)
     {
@@ -286,7 +286,7 @@ class Financeiro extends Controller
 
         // Contratos com vitalícios (filtro opcional por data de implantação)
         $contratosQuery = Recebivel::where('recebiveis.empresa_id', $empresaId)
-            ->where('recebiveis.parcela', '>=', 4)
+            ->where('recebiveis.vitalicio', true)
             ->join('vendas', 'recebiveis.venda_id', '=', 'vendas.id')
             ->join('users', 'recebiveis.vendedor_id', '=', 'users.id');
 
@@ -336,7 +336,7 @@ class Financeiro extends Controller
 
         // KPIs — totais (com filtro se aplicado)
         $kpisQuery = Recebivel::where('recebiveis.empresa_id', $empresaId)
-            ->where('recebiveis.parcela', '>=', 4);
+            ->where('recebiveis.vitalicio', true);
 
         if ($dataInicial && $dataFinal) {
             $kpisQuery->join('vendas as v_kpi', 'recebiveis.venda_id', '=', 'v_kpi.id')
@@ -361,7 +361,7 @@ class Financeiro extends Controller
     }
 
     /**
-     * Retorna parcelas vitalícias (>= 4) de um contrato para o modal
+     * Retorna parcelas vitalícias (vitalicio = true) de um contrato para o modal
      */
     public function getParcelasVitalicias($vendaId)
     {
@@ -381,7 +381,7 @@ class Financeiro extends Controller
         }
 
         $parcelas = Recebivel::where('venda_id', $vendaId)
-            ->where('parcela', '>=', 4)
+            ->where('vitalicio', true)
             ->orderBy('parcela')
             ->get()
             ->map(function ($p) use ($percentualVitalicio) {
@@ -407,7 +407,7 @@ class Financeiro extends Controller
     }
 
     /**
-     * Excluir todos os vitalícios (parcela >= 4) de um contrato
+     * Excluir todos os vitalícios (vitalicio = true) de um contrato
      */
     public function excluirTodosVitalicios(int $vendaId)
     {
@@ -420,7 +420,7 @@ class Financeiro extends Controller
             ], 403);
         }
 
-        $totalExcluido = Recebivel::where('venda_id', $vendaId)->where('parcela', '>=', 4)->count();
+        $totalExcluido = Recebivel::where('venda_id', $vendaId)->where('vitalicio', true)->count();
 
         if ($totalExcluido === 0) {
             return response()->json([
@@ -429,7 +429,7 @@ class Financeiro extends Controller
             ], 404);
         }
 
-        Recebivel::where('venda_id', $vendaId)->where('parcela', '>=', 4)->delete();
+        Recebivel::where('venda_id', $vendaId)->where('vitalicio', true)->delete();
 
         Log::info("Todos os vitalícios ({$totalExcluido}) da venda {$vendaId} foram excluídos pelo usuário ".auth()->user()->id);
 
@@ -518,9 +518,9 @@ class Financeiro extends Controller
 
     public function getParcelas($vendaId)
     {
-        // Retorna somente parcelas fixas (1-3) — vitalícios são gerenciados em tela separada
+        // Retorna somente parcelas fixas (vitalicio = false) — vitalícios são gerenciados em tela separada
         $parcelas = Recebivel::where('venda_id', $vendaId)
-            ->where('parcela', '<=', 3)
+            ->where('vitalicio', false)
             ->orderBy('parcela')
             ->get()
             ->map(function ($p) {
@@ -616,6 +616,7 @@ class Financeiro extends Controller
                 'operadora' => $operadora->nome,
                 'plano' => $planoNome,
                 'parcela' => $proximaParcela,
+                'vitalicio' => true,
                 'valor' => $valorVitalicio,
                 'data_prevista' => Carbon::parse($venda->data_implantacao)
                     ->addMonths($proximaParcela - 1),
@@ -889,7 +890,7 @@ class Financeiro extends Controller
             ], 403);
         }
 
-        $totalExcluido = Recebivel::where('venda_id', $vendaId)->where('parcela', '<=', 3)->count();
+        $totalExcluido = Recebivel::where('venda_id', $vendaId)->where('vitalicio', false)->count();
 
         if ($totalExcluido === 0) {
             return response()->json([
@@ -898,7 +899,7 @@ class Financeiro extends Controller
             ], 404);
         }
 
-        Recebivel::where('venda_id', $vendaId)->where('parcela', '<=', 3)->delete();
+        Recebivel::where('venda_id', $vendaId)->where('vitalicio', false)->delete();
 
         Log::info("Todos os recebíveis ({$totalExcluido}) da venda {$vendaId} foram excluídos pelo usuário ".auth()->user()->id);
 
@@ -990,9 +991,9 @@ class Financeiro extends Controller
                 $query->where('vendedor_id', $vendedorId);
             }
             if ($tipoReceita === 'fixa') {
-                $query->where('parcela', '<=', 3);
+                $query->where('vitalicio', false);
             } elseif ($tipoReceita === 'vitalicio') {
-                $query->where('parcela', '>=', 4);
+                $query->where('vitalicio', true);
             }
         };
 
@@ -1007,8 +1008,8 @@ class Financeiro extends Controller
             SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) as receita_recebida,
             SUM(CASE WHEN status = 'PENDENTE' AND data_prevista < NOW() THEN valor ELSE 0 END) as inadimplencia,
             SUM(CASE WHEN status = 'PENDENTE' AND data_prevista < NOW() THEN 1 ELSE 0 END) as inadimplencia_qtd,
-            SUM(CASE WHEN parcela <= 3 AND status = 'PAGO' THEN valor ELSE 0 END) as receita_fixa,
-            SUM(CASE WHEN parcela >= 4 AND status = 'PAGO' THEN valor ELSE 0 END) as receita_vitalicio,
+            SUM(CASE WHEN vitalicio = 0 AND status = 'PAGO' THEN valor ELSE 0 END) as receita_fixa,
+            SUM(CASE WHEN vitalicio = 1 AND status = 'PAGO' THEN valor ELSE 0 END) as receita_vitalicio,
             SUM(CASE WHEN status = 'CANCELADO' THEN valor ELSE 0 END) as receita_cancelada,
             SUM(valor) as total_geral
         ")->first();
@@ -1026,7 +1027,7 @@ class Financeiro extends Controller
         $receitaVitalicioPercentual = $receitaRecebida > 0 ? round(($receitaVitalicio / $receitaRecebida) * 100, 1) : 0;
         $taxaCancelamento = $totalGeral > 0 ? round(($receitaCancelada / $totalGeral) * 100, 1) : 0;
 
-        // ── MRR (últimos 3 meses, parcela>=4, PAGO) — ignora filtro de data ──
+        // ── MRR (últimos 3 meses, vitalicio, PAGO) — ignora filtro de data ──
         $mrrBaseFilter = function ($query) use ($empresaId, $operadoraNome, $vendedorId) {
             $query->where('empresa_id', $empresaId);
             if ($operadoraNome) {
@@ -1038,14 +1039,14 @@ class Financeiro extends Controller
         };
 
         $mrr3Meses = Recebivel::query()->tap($mrrBaseFilter)
-            ->where('parcela', '>=', 4)
+            ->where('vitalicio', true)
             ->where('status', 'PAGO')
             ->where('data_recebimento', '>=', Carbon::now()->subMonths(3)->startOfMonth())
             ->sum('valor');
         $mrr = round((float) $mrr3Meses / 3, 2);
 
         $mrrAnterior3Meses = Recebivel::query()->tap($mrrBaseFilter)
-            ->where('parcela', '>=', 4)
+            ->where('vitalicio', true)
             ->where('status', 'PAGO')
             ->where('data_recebimento', '>=', Carbon::now()->subMonths(6)->startOfMonth())
             ->where('data_recebimento', '<', Carbon::now()->subMonths(3)->startOfMonth())
@@ -1070,9 +1071,9 @@ class Financeiro extends Controller
                 $q->where('vendedor_id', $vendedorId);
             }
             if ($tipoReceita === 'fixa') {
-                $q->where('parcela', '<=', 3);
+                $q->where('vitalicio', false);
             } elseif ($tipoReceita === 'vitalicio') {
-                $q->where('parcela', '>=', 4);
+                $q->where('vitalicio', true);
             }
         })->where('status', 'PENDENTE')->distinct()->pluck('venda_id');
 
@@ -1106,8 +1107,8 @@ class Financeiro extends Controller
         $evolucaoMensal = $evolucaoQuery->where('status', 'PAGO')
             ->selectRaw("
                 DATE_FORMAT(data_prevista, '%Y-%m') as mes,
-                SUM(CASE WHEN parcela <= 3 THEN valor ELSE 0 END) as receita_fixa,
-                SUM(CASE WHEN parcela >= 4 THEN valor ELSE 0 END) as receita_vitalicio,
+                SUM(CASE WHEN vitalicio = 0 THEN valor ELSE 0 END) as receita_fixa,
+                SUM(CASE WHEN vitalicio = 1 THEN valor ELSE 0 END) as receita_vitalicio,
                 SUM(valor) as total
             ")
             ->groupByRaw("DATE_FORMAT(data_prevista, '%Y-%m')")
@@ -1179,8 +1180,8 @@ class Financeiro extends Controller
             ->whereIn(DB::raw('YEAR(data_recebimento)'), $anosYoy)
             ->when($operadoraNome, fn ($q) => $q->where('operadora', $operadoraNome))
             ->when($vendedorId, fn ($q) => $q->where('vendedor_id', $vendedorId))
-            ->when($tipoReceita === 'fixa', fn ($q) => $q->where('parcela', '<=', 3))
-            ->when($tipoReceita === 'vitalicio', fn ($q) => $q->where('parcela', '>=', 4))
+            ->when($tipoReceita === 'fixa', fn ($q) => $q->where('vitalicio', false))
+            ->when($tipoReceita === 'vitalicio', fn ($q) => $q->where('vitalicio', true))
             ->selectRaw('YEAR(data_recebimento) as ano, MONTH(data_recebimento) as mes, SUM(valor) as total')
             ->groupByRaw('YEAR(data_recebimento), MONTH(data_recebimento)')
             ->get();
@@ -1202,8 +1203,8 @@ class Financeiro extends Controller
             ->where('data_recebimento', '>=', Carbon::now()->subMonths(12)->startOfMonth())
             ->when($operadoraNome, fn ($q) => $q->where('operadora', $operadoraNome))
             ->when($vendedorId, fn ($q) => $q->where('vendedor_id', $vendedorId))
-            ->when($tipoReceita === 'fixa', fn ($q) => $q->where('parcela', '<=', 3))
-            ->when($tipoReceita === 'vitalicio', fn ($q) => $q->where('parcela', '>=', 4))
+            ->when($tipoReceita === 'fixa', fn ($q) => $q->where('vitalicio', false))
+            ->when($tipoReceita === 'vitalicio', fn ($q) => $q->where('vitalicio', true))
             ->selectRaw("DATE_FORMAT(data_recebimento, '%Y-%m') as mes, SUM(valor) as valor")
             ->groupByRaw("DATE_FORMAT(data_recebimento, '%Y-%m')")
             ->orderByRaw("DATE_FORMAT(data_recebimento, '%Y-%m')")
@@ -1216,8 +1217,8 @@ class Financeiro extends Controller
             ->where('data_prevista', '<=', Carbon::now()->addMonths(6)->endOfMonth())
             ->when($operadoraNome, fn ($q) => $q->where('operadora', $operadoraNome))
             ->when($vendedorId, fn ($q) => $q->where('vendedor_id', $vendedorId))
-            ->when($tipoReceita === 'fixa', fn ($q) => $q->where('parcela', '<=', 3))
-            ->when($tipoReceita === 'vitalicio', fn ($q) => $q->where('parcela', '>=', 4))
+            ->when($tipoReceita === 'fixa', fn ($q) => $q->where('vitalicio', false))
+            ->when($tipoReceita === 'vitalicio', fn ($q) => $q->where('vitalicio', true))
             ->selectRaw("DATE_FORMAT(data_prevista, '%Y-%m') as mes, SUM(valor) as valor")
             ->groupByRaw("DATE_FORMAT(data_prevista, '%Y-%m')")
             ->orderByRaw("DATE_FORMAT(data_prevista, '%Y-%m')")
@@ -1239,8 +1240,8 @@ class Financeiro extends Controller
             ->selectRaw("
                 YEAR(vendas.data_implantacao) as ano_implantacao,
                 COUNT(DISTINCT recebiveis.venda_id) as qtd_contratos,
-                SUM(CASE WHEN recebiveis.parcela <= 3 AND recebiveis.status = 'PAGO' THEN recebiveis.valor ELSE 0 END) as receita_fixa,
-                SUM(CASE WHEN recebiveis.parcela >= 4 AND recebiveis.status = 'PAGO' THEN recebiveis.valor ELSE 0 END) as receita_vitalicio,
+                SUM(CASE WHEN recebiveis.vitalicio = 0 AND recebiveis.status = 'PAGO' THEN recebiveis.valor ELSE 0 END) as receita_fixa,
+                SUM(CASE WHEN recebiveis.vitalicio = 1 AND recebiveis.status = 'PAGO' THEN recebiveis.valor ELSE 0 END) as receita_vitalicio,
                 SUM(CASE WHEN recebiveis.status = 'PAGO' THEN recebiveis.valor ELSE 0 END) as receita_total
             ")
             ->groupByRaw('YEAR(vendas.data_implantacao)')
@@ -1303,10 +1304,10 @@ class Financeiro extends Controller
     {
         $empresaId = auth()->user()->empresa_id;
 
-        // Verificar permissão e calcular tudo em uma única query — somente parcelas fixas (1-3)
+        // Verificar permissão e calcular tudo em uma única query — somente parcelas fixas (vitalicio = false)
         $resumo = Recebivel::where('venda_id', $vendaId)
             ->where('empresa_id', $empresaId)
-            ->where('parcela', '<=', 3)
+            ->where('vitalicio', false)
             ->selectRaw("
                 SUM(valor) as valor_total,
                 SUM(CASE WHEN status = 'PAGO' THEN valor ELSE 0 END) as valor_pago,
@@ -1459,6 +1460,7 @@ class Financeiro extends Controller
                         'operadora' => $operadora->nome,
                         'plano' => $planoNome,
                         'parcela' => $numeroParcela,
+                        'vitalicio' => false,
                         'valor' => $valorNovo,
                         'data_prevista' => $dataPrevista,
                         'status' => 'PENDENTE',
@@ -1597,6 +1599,7 @@ class Financeiro extends Controller
                     'operadora' => $operadora?->nome ?? $venda->operadora,
                     'plano' => $planoNome,
                     'parcela' => $numeroParcela,
+                    'vitalicio' => true,
                     'valor' => $valorParcela,
                     'data_prevista' => $dataPrevista,
                     'status' => 'PENDENTE',

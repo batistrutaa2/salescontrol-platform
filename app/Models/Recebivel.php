@@ -18,6 +18,7 @@ class Recebivel extends Model
         'operadora',
         'plano',
         'parcela',
+        'vitalicio',
         'valor',
         'data_prevista',
         'data_recebimento',
@@ -25,6 +26,7 @@ class Recebivel extends Model
     ];
 
     protected $casts = [
+        'vitalicio'       => 'boolean',
         'data_prevista'   => 'date',
         'data_recebimento'=> 'date',
         'created_at'      => 'datetime',

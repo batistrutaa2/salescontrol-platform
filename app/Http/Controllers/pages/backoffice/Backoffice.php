@@ -1368,6 +1368,7 @@ class Backoffice extends Controller
                         'vendedor_id' => $venda->user_id,
                         'operadora' => $operadora->nome,
                         'plano' => $planoNome,
+                        'vitalicio' => false,
                         'valor' => $valorParcela,
                         'data_prevista' => Carbon::parse($venda->data_implantacao)->addMonths($parcela->parcela - 1),
                         'status' => 'PENDENTE',

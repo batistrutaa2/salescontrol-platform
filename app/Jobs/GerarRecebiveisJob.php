@@ -101,6 +101,7 @@ class GerarRecebiveisJob implements ShouldQueue
                     'operadora'     => $operadora->nome,
                     'plano'         => $planoNome,
                     'parcela'       => $parcela->parcela,
+                    'vitalicio'     => false,
                     'valor'         => $valorParcela,
                     'data_prevista' => Carbon::parse($venda->data_implantacao)
                                              ->addMonths($parcela->parcela - 1),
