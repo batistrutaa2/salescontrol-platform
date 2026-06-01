@@ -206,9 +206,9 @@
           "slug": "pages-mailing-importar"
         },
         {
-          "url": "/back-office/pos-venda",
-          "name": "Pós-Venda",
-          "slug": "pages-pos-venda"
+          "url": "/back-office/pos-venda-demandas",
+          "name": "Demandas Pós-Venda",
+          "slug": "pages-pos-venda-demandas"
         },
         {
           "url": "/back-office/liminar",

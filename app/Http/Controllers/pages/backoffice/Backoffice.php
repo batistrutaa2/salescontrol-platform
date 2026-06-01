@@ -15,6 +15,7 @@ use App\Models\Faq;
 use App\Models\Operadora;
 use App\Models\Plano;
 use App\Models\PosVendaAnotacao;
+use App\Models\PosVendaDemandaTemplate;
 use App\Models\Recebivel;
 use App\Models\RegrasComissionamento;
 use App\Models\Tabulacoes;
@@ -33,6 +34,7 @@ use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\VendasRepository;
+use App\Services\PosVendaDemandaService;
 use App\Services\WhatsappService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -93,12 +95,21 @@ class Backoffice extends Controller
 
     public function index()
     {
-        $tabulations = $this->tabulacoesRepository->getTabulationsBackoffice(Auth::user()->empresa_id);
+        $empresaId = Auth::user()->empresa_id;
+        $tabulations = $this->tabulacoesRepository->getTabulationsBackoffice($empresaId);
         $isBackoffice = Auth::user()->user_role_id == UserRole::BACKOFFICE;
+
+        // Check-list de pós-venda que o backoffice escolhe no modal de implantação.
+        PosVendaDemandaTemplate::seedDefaults($empresaId);
+        $posVendaTemplates = PosVendaDemandaTemplate::where('empresa_id', $empresaId)
+            ->where('ativo', true)
+            ->orderBy('ordem')
+            ->get(['id', 'tipo', 'titulo', 'gerar_automatico']);
 
         return view('content.pages.backoffice.index', [
             'tabulacoes' => $tabulations,
             'isBackoffice' => $isBackoffice,
+            'posVendaTemplates' => $posVendaTemplates,
         ]);
     }
 
@@ -281,6 +292,14 @@ class Backoffice extends Controller
 
                 $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, $request->data_implantacao, $request->motivo_pendencia ?? null, null, $request->numero_proposta);
                 dispatch(new GerarRecebiveisJob($sale->id));
+
+                // Gera o check-list de demandas de pós-venda escolhido pelo backoffice
+                // no modal de implantação (idempotente). O hidden `demandas_enviadas`
+                // distingue "nenhuma marcada" (array vazio) de "modal antigo" (null/auto).
+                $demandasSelecionadas = $request->boolean('demandas_enviadas')
+                    ? (array) $request->input('demandas', [])
+                    : null;
+                app(PosVendaDemandaService::class)->gerarParaVenda($sale, $demandasSelecionadas, Auth::id());
 
                 // Salvar acesso da empresa (se preenchido - campos opcionais)
                 if ($request->filled('acesso_email') && $request->filled('acesso_senha')) {

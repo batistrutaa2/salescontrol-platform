@@ -18,6 +18,7 @@ use App\Http\Controllers\pages\comercial\ReciclagemLeads;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
 use App\Http\Controllers\pages\backoffice\LiminarController;
+use App\Http\Controllers\pages\backoffice\PosVendaDemandas;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
 use App\Http\Controllers\pages\relatorios\RelatorioAproveitamento;
@@ -256,6 +257,13 @@ Route::middleware(['auth'])->group(function () {
   Route::put('/back-office/demandas-contrato/{id}', [Backoffice::class, 'updateDemandaContrato'])->name('backoffice.updateDemandaContrato');
   Route::patch('/back-office/demandas-contrato/{id}/toggle', [Backoffice::class, 'toggleStatusDemandaContrato'])->name('backoffice.toggleStatusDemandaContrato');
   Route::delete('/back-office/demandas-contrato/{id}', [Backoffice::class, 'destroyDemandaContrato'])->name('backoffice.destroyDemandaContrato');
+
+  // Demandas de Pós-Venda (workspace de check-list por contrato)
+  Route::get('/back-office/pos-venda-demandas', [PosVendaDemandas::class, 'index'])->name('backoffice.posVendaDemandas');
+  Route::get('/back-office/pos-venda-demandas/data', [PosVendaDemandas::class, 'data'])->name('backoffice.posVendaDemandas.data');
+  Route::get('/back-office/pos-venda-demandas/templates', [PosVendaDemandas::class, 'getTemplates'])->name('backoffice.posVendaDemandas.templates');
+  Route::get('/back-office/pos-venda-demandas/buscar-contratos', [PosVendaDemandas::class, 'buscarContratos'])->name('backoffice.posVendaDemandas.buscarContratos');
+  Route::post('/back-office/pos-venda-demandas/{vendaId}/concluir-todas', [PosVendaDemandas::class, 'concluirTodas'])->name('backoffice.posVendaDemandas.concluirTodas');
 
   // Pós-Venda
   Route::get('/back-office/pos-venda', [Backoffice::class, 'posVenda'])->name('backoffice.posVenda');

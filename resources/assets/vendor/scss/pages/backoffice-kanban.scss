@@ -1994,6 +1994,169 @@
             background: linear-gradient(135deg, #10B981 0%, #059669 100%);
         }
     }
+
+    &.kb-card-section-info {
+        border-color: rgba(124, 58, 237, 0.3);
+
+        .kb-card-section-header {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(124, 58, 237, 0.02) 100%);
+        }
+
+        .kb-card-section-icon {
+            background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%);
+        }
+    }
+}
+
+// =============================================================================
+// Modal de implantação em 2 colunas (dados + demandas de pós-venda)
+// =============================================================================
+.modal-dialog.kb-dialog-wide {
+    max-width: 920px;
+    transition: max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kb-implantado-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 1.5rem;
+    align-items: stretch;
+    margin-bottom: 1.5rem;
+}
+
+.kb-implantado-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    .kb-form-group { margin-bottom: 1rem; }
+    .kb-form-group:last-child { margin-bottom: 0; }
+}
+
+.kb-implantado-col-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7C3AED;
+    margin-bottom: 0.9rem;
+
+    svg { color: #7C3AED; }
+}
+
+// Coluna direita (demandas) ocupa toda a altura disponível
+.kb-implantado-col-right {
+    position: relative;
+    padding-left: 1.5rem;
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0.25rem;
+        bottom: 0.25rem;
+        width: 1px;
+        background: linear-gradient(180deg, transparent, #E5E7EB 20%, #E5E7EB 80%, transparent);
+    }
+
+    // Cadeia flex com min-height:0 para o checklist preencher a altura da coluna
+    // (que acompanha a coluna esquerda) e só rolar se realmente transbordar.
+    > .kb-form-group { flex: 1; display: flex; min-height: 0; }
+
+    .kb-card-section { flex: 1; display: flex; flex-direction: column; width: 100%; min-height: 0; }
+    .kb-card-section-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+}
+
+// Toolbar da lista de demandas (hint + marcar todas)
+.kb-demandas-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.kb-demandas-selectall {
+    flex-shrink: 0;
+    border: none;
+    background: rgba(124, 58, 237, 0.1);
+    color: #7C3AED;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.35rem 0.7rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    white-space: nowrap;
+
+    &:hover { background: rgba(124, 58, 237, 0.18); }
+}
+
+// Checklist de demandas — coluna única que preenche a altura disponível do
+// painel; rola apenas se o conteúdo exceder o espaço (cap de segurança via vh).
+.kb-demandas-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    min-height: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+
+    // scrollbar discreta
+    &::-webkit-scrollbar { width: 6px; }
+    &::-webkit-scrollbar-thumb { background: rgba(124, 58, 237, 0.25); border-radius: 4px; }
+}
+
+.kb-demanda-check {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85rem;
+    color: #374151;
+    cursor: pointer;
+    padding: 0.5rem 0.6rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+
+    &:hover { background: rgba(124, 58, 237, 0.06); }
+
+    // estado marcado: leve realce
+    &:has(input:checked) {
+        background: rgba(124, 58, 237, 0.07);
+        border-color: rgba(124, 58, 237, 0.18);
+    }
+
+    input { accent-color: #7C3AED; width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; }
+}
+
+@media (max-width: 767px) {
+    .modal-dialog.kb-dialog-wide { max-width: 500px; }
+
+    .kb-implantado-grid { grid-template-columns: 1fr; gap: 1rem; }
+
+    .kb-implantado-col-right {
+        padding-left: 0;
+        padding-top: 1rem;
+
+        &::before {
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: auto;
+            width: auto;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #E5E7EB 20%, #E5E7EB 80%, transparent);
+        }
+    }
 }
 
 .kb-card-section-header {
@@ -2043,6 +2206,11 @@
     &.kb-badge-success {
         background: rgba(16, 185, 129, 0.12);
         color: #059669;
+    }
+
+    &.kb-badge-info {
+        background: rgba(124, 58, 237, 0.12);
+        color: #7C3AED;
     }
 }
 
@@ -2228,10 +2396,54 @@
                 background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%);
             }
         }
+
+        &.kb-card-section-info {
+            border-color: rgba(124, 58, 237, 0.3);
+
+            .kb-card-section-header {
+                background: linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(124, 58, 237, 0.04) 100%);
+            }
+        }
     }
 
     .kb-card-section-header {
         background: #262B40;
+    }
+
+    .kb-demanda-check {
+        color: #D1D5DB;
+
+        &:hover { background: rgba(124, 58, 237, 0.15); }
+
+        &:has(input:checked) {
+            background: rgba(124, 58, 237, 0.18);
+            border-color: rgba(167, 139, 250, 0.35);
+        }
+    }
+
+    .kb-badge.kb-badge-info {
+        background: rgba(124, 58, 237, 0.15);
+        color: #A78BFA;
+    }
+
+    .kb-implantado-col-label,
+    .kb-implantado-col-label svg { color: #A78BFA; }
+
+    .kb-implantado-col-right::before {
+        background: linear-gradient(180deg, transparent, #3B4058 20%, #3B4058 80%, transparent);
+    }
+
+    .kb-demandas-selectall {
+        background: rgba(124, 58, 237, 0.2);
+        color: #C4B5FD;
+
+        &:hover { background: rgba(124, 58, 237, 0.3); }
+    }
+
+    @media (max-width: 767px) {
+        .kb-implantado-col-right::before {
+            background: linear-gradient(90deg, transparent, #3B4058 20%, #3B4058 80%, transparent);
+        }
     }
 
     .kb-card-section-title {

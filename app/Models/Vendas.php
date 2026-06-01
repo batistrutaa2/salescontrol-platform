@@ -55,6 +55,8 @@ class Vendas extends Model
     'data_abertura',
     'boas_vindas_enviado_em',
     'boas_vindas_enviado_por',
+    'pos_venda_concluida_em',
+    'pos_venda_concluida_por',
     'vitalicio_ativo'
   ];
 
@@ -65,6 +67,7 @@ class Vendas extends Model
     'data_implantacao' => 'date',
     'data_abertura' => 'date',
     'boas_vindas_enviado_em' => 'datetime',
+    'pos_venda_concluida_em' => 'datetime',
     'operadora_id' => 'integer',
     'qtd_portabilidade' => 'integer',
     'comissao_paga' => 'boolean',
@@ -127,6 +130,11 @@ class Vendas extends Model
   public function demandas()
   {
     return $this->hasMany(VendaDemanda::class, 'venda_id');
+  }
+
+  public function posVendaConcluidaPor()
+  {
+    return $this->belongsTo(User::class, 'pos_venda_concluida_por');
   }
 
   public function cancelamentosLiminares()

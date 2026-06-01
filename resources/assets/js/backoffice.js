@@ -671,17 +671,35 @@ $(function () {
             });
 
             const tipoLabels = {
+                'ACESSO_EMPRESA': 'Acesso Empresa',
+                'LOGIN_APPS': 'Login Apps',
+                'TROCA_EMAIL': 'Alterar E-mail',
+                'CANCELAMENTO_QUALICORP': 'Cancel. Qualicorp',
+                'CANCELAMENTO_LIMITAR': 'Cancel. Limitar',
+                'BOAS_VINDAS': 'Boas-vindas',
+                'ENVIO_BOLETO': 'Envio Boleto',
+                'REEMBOLSO': 'Reembolso',
+                'INCLUSAO_BENEFICIARIO': 'Incluir Benef.',
+                'EXCLUSAO_BENEFICIARIO': 'Excluir Benef.',
                 'CANCELAMENTO': 'Cancelamento',
                 'CARTA_PERMANENCIA': 'Carta Perm.',
                 'PORTABILIDADE': 'Portabilidade',
-                'TROCA_EMAIL': 'Troca E-mail',
                 'OUTRO': 'Outro',
             };
             const tipoClasses = {
+                'ACESSO_EMPRESA': 'tipo-primary',
+                'LOGIN_APPS': 'tipo-primary',
+                'TROCA_EMAIL': 'tipo-primary',
+                'CANCELAMENTO_QUALICORP': 'tipo-danger',
+                'CANCELAMENTO_LIMITAR': 'tipo-danger',
+                'BOAS_VINDAS': 'tipo-info',
+                'ENVIO_BOLETO': 'tipo-warning',
+                'REEMBOLSO': 'tipo-warning',
+                'INCLUSAO_BENEFICIARIO': 'tipo-info',
+                'EXCLUSAO_BENEFICIARIO': 'tipo-warning',
                 'CANCELAMENTO': 'tipo-danger',
                 'CARTA_PERMANENCIA': 'tipo-warning',
                 'PORTABILIDADE': 'tipo-info',
-                'TROCA_EMAIL': 'tipo-primary',
                 'OUTRO': 'tipo-muted',
             };
 
@@ -1239,7 +1257,7 @@ $(function () {
     $(document).on('change', '#label', function () {
         const val = $(this).val();
 
-        // IMPLANTADO (ID 18)
+        // IMPLANTADO (ID 18) — modal expande para 2 colunas (implantação + demandas)
         if (val === '18') {
             $('#proof-group').show();
             $('#comprovante').prop('required', true);
@@ -1247,7 +1265,10 @@ $(function () {
             $('#proof-group-numero_proposta').show();
             $('#data_implantacao').prop('required', true);
             $('#numero_proposta').prop('required', true);
-            $('#proof-group-acesso-empresa').slideDown(300);
+            $('#proof-group-acesso-empresa').show();
+            $('#modalcommentsDialog').addClass('kb-dialog-wide');
+            $('#implantado-grid').slideDown(300);
+            atualizarContadorDemandas();
         } else {
             $('#proof-group').hide();
             $('#comprovante').prop('required', false).val('');
@@ -1255,8 +1276,10 @@ $(function () {
             $('#proof-group-numero_proposta').hide();
             $('#data_implantacao').prop('required', false).val('');
             $('#numero_proposta').prop('required', false).val('');
-            $('#proof-group-acesso-empresa').slideUp(300);
+            $('#proof-group-acesso-empresa').hide();
             $('#acesso_email, #acesso_senha, #acesso_cpf').val('');
+            $('#implantado-grid').slideUp(300);
+            $('#modalcommentsDialog').removeClass('kb-dialog-wide');
         }
 
         // PENDÊNCIA, ESTORNO, DECLINADO (IDs 55, 17, 53)
@@ -1333,6 +1356,26 @@ $(function () {
         }
     }
 
+    // ----- Demandas de pós-venda (checklist do modal de implantação) -----
+    function atualizarContadorDemandas() {
+        const $boxes = $('#kb-demandas-checklist input[type="checkbox"]');
+        const marcadas = $boxes.filter(':checked').length;
+        $('#kb-demandas-counter').text(marcadas);
+
+        const $toggle = $('#kb-demandas-toggle-all');
+        const todas = marcadas === $boxes.length && $boxes.length > 0;
+        $toggle.text(todas ? 'Desmarcar todas' : 'Marcar todas');
+    }
+
+    $(document).on('change', '#kb-demandas-checklist input[type="checkbox"]', atualizarContadorDemandas);
+
+    $(document).on('click', '#kb-demandas-toggle-all', function () {
+        const $boxes = $('#kb-demandas-checklist input[type="checkbox"]');
+        const marcarTodas = $boxes.filter(':checked').length < $boxes.length;
+        $boxes.prop('checked', marcarTodas);
+        atualizarContadorDemandas();
+    });
+
     $('#modalcomments').on('shown.bs.modal', function () {
         initAcessoCpfMask();
     });
@@ -1340,6 +1383,8 @@ $(function () {
     $('#modalcomments').on('hidden.bs.modal', function () {
         $('#acesso_email, #acesso_senha, #acesso_cpf').val('');
         $('#proof-group-acesso-empresa').hide();
+        $('#implantado-grid').hide();
+        $('#modalcommentsDialog').removeClass('kb-dialog-wide');
         $('#acesso_senha').attr('type', 'password');
         $('#icon-eye').removeClass('d-none');
         $('#icon-eye-off').addClass('d-none');
