@@ -208,6 +208,13 @@
                 <div class="pvd-progress-bar"><span style="width:${c.progresso}%"></span></div>
                 <span class="pvd-progress-text">${c.concluidas}/${c.total}</span>
             </div>
+            <div class="pvd-demandas-head">
+                <span class="pvd-demandas-label">Demandas</span>
+                <button type="button" class="pvd-add-demanda" data-action="add" data-venda-id="${c.venda_id}" title="Adicionar demanda">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>Demanda</span>
+                </button>
+            </div>
             <div class="pvd-demandas">${demandasHtml}</div>
             <div class="pvd-card-actions">
                 <div class="pvd-card-actions-left">
@@ -215,9 +222,10 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347M12.05 21.785h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
                         Boas-vindas
                     </button>
-                    <button type="button" class="pvd-btn pvd-btn-ghost" data-action="add" data-venda-id="${c.venda_id}">
-                        + Adicionar demanda
-                    </button>
+                    <a href="/back-office/abrir-contrato/${c.venda_id}" target="_blank" rel="noopener" class="pvd-btn pvd-btn-ghost" title="Abrir e editar o contrato">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                        Abrir contrato
+                    </a>
                 </div>
                 <button type="button" class="pvd-btn pvd-btn-primary" data-action="concluir" data-venda-id="${c.venda_id}" data-pendentes="${c.pendentes}">
                     Concluir todas

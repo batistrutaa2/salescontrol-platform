@@ -315,6 +315,49 @@ textarea.pvd-input { resize: vertical; width: 100%; }
     font-weight: 600;
 }
 
+// demandas list header (rótulo + atalho de adicionar)
+.pvd-demandas-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.pvd-demandas-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--pvd-text-muted);
+}
+
+.pvd-add-demanda {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px 5px 8px;
+    border-radius: 999px;
+    border: 1px dashed rgba(124, 58, 237, 0.45);
+    background: rgba(124, 58, 237, 0.06);
+    color: var(--pvd-primary);
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--pvd-transition);
+
+    svg { flex-shrink: 0; }
+
+    &:hover {
+        background: linear-gradient(135deg, var(--pvd-primary), var(--pvd-primary-light));
+        border-color: transparent;
+        color: #fff;
+        box-shadow: var(--pvd-shadow-glow);
+        transform: translateY(-1px);
+    }
+}
+
 // demandas list
 .pvd-demandas {
     display: flex;
@@ -454,10 +497,11 @@ textarea.pvd-input { resize: vertical; width: 100%; }
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
+    text-decoration: none;
     transition: var(--pvd-transition);
 
     // hover só do botão neutro/cancelar; variantes coloridas reafirmam o próprio fundo
-    &:hover { background: var(--pvd-surface-2); color: var(--pvd-text-primary); }
+    &:hover { background: var(--pvd-surface-2); color: var(--pvd-text-primary); text-decoration: none; }
 }
 
 .pvd-btn-ghost {
