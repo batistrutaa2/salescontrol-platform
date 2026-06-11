@@ -381,9 +381,22 @@ $isFooter = false;
                 <select name="titulares[__INDEX__][dependentes][__DEP_INDEX__][parentesco]" class="np-input" required>
                     <option value="">Parentesco...</option>
                     <option value="CONJUGE">Conjuge</option>
+                    <option value="COMPANHEIRO">Companheiro(a)</option>
                     <option value="FILHO">Filho(a)</option>
+                    <option value="ENTEADO">Enteado(a)</option>
                     <option value="PAI_MAE">Pai/Mae</option>
+                    <option value="SOGRO">Sogro(a)</option>
+                    <option value="IRMAO">Irmao(a)</option>
+                    <option value="NETO">Neto(a)</option>
+                    <option value="AVO">Avo(o)</option>
+                    <option value="BISNETO">Bisneto(a)</option>
+                    <option value="BISAVO">Bisavo(o)</option>
+                    <option value="TIO">Tio(a)</option>
                     <option value="SOBRINHO">Sobrinho(a)</option>
+                    <option value="PRIMO">Primo(a)</option>
+                    <option value="GENRO_NORA">Genro/Nora</option>
+                    <option value="CUNHADO">Cunhado(a)</option>
+                    <option value="TUTELADO">Tutelado(a)/Menor sob guarda</option>
                     <option value="OUTROS">Outros</option>
                 </select>
             </div>
