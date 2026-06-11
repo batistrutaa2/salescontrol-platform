@@ -75,6 +75,8 @@ class VendasRepository implements VendasRepositoryInterface
                     'empresa_id' => Auth::user()->empresa_id,
                     'user_id' => Auth::user()->id,
                     'contato_id' => $contatoId,
+                    'tabulacao_id' => Tabulations::VENDA,
+                    'tabulacao_updated_at' => now(),
                     'nome_contrato' => $nomeContrato,
                     'cpf_cnpj' => $cpfCnpj,
                     'email' => $emailEmpresa,
@@ -220,6 +222,47 @@ class VendasRepository implements VendasRepositoryInterface
             });
         } catch (\Throwable $ex) {
             throw $ex; // Propaga o erro para o controller tratar
+        }
+    }
+
+    /**
+     * Altera o status (tabulação) de UMA venda específica e registra o histórico.
+     * O status do contrato vive em vendas.tabulacao_id — nunca alterar via
+     * contatos_corretores, pois um contato pode ter várias vendas em estágios
+     * diferentes do ciclo de vida.
+     */
+    public function alterStatusVenda(int $vendaId, int $tabulacaoId, ?string $observacao = null, ?string $motivoPendencia = null): bool
+    {
+        try {
+            return DB::transaction(function () use ($vendaId, $tabulacaoId, $observacao, $motivoPendencia) {
+                $venda = $this->model::where('id', $vendaId)->lockForUpdate()->first();
+
+                if (! $venda) {
+                    return false;
+                }
+
+                $tabulacaoAnteriorId = $venda->tabulacao_id;
+
+                $venda->update([
+                    'tabulacao_id' => $tabulacaoId,
+                    'tabulacao_updated_at' => Carbon::now(),
+                ]);
+
+                VendaHistorico::create([
+                    'empresa_id' => $venda->empresa_id,
+                    'venda_id' => $venda->id,
+                    'contato_corretor_id' => optional($venda->contatoCorretor)->id,
+                    'user_id' => Auth::id(),
+                    'tabulacao_anterior_id' => $tabulacaoAnteriorId,
+                    'tabulacao_nova_id' => $tabulacaoId,
+                    'observacao' => $observacao,
+                    'motivo_pendencia' => $motivoPendencia,
+                ]);
+
+                return true;
+            });
+        } catch (\Throwable $th) {
+            return false;
         }
     }
 
@@ -406,9 +449,8 @@ class VendasRepository implements VendasRepositoryInterface
             'tabulacoes.prazo',
         ])
             ->where('vendas.empresa_id', $empresa_id)
-            ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
-            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
-            ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
+            ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
             ->orderBy('vendas.created_at', 'desc')
             ->get();
     }
@@ -431,9 +473,8 @@ class VendasRepository implements VendasRepositoryInterface
         ])
             ->whereBetween('vendas.created_at', [$startDate, $endDate])
             ->where('vendas.empresa_id', $empresa_id)
-            ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
-            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
-            ->leftJoin('users', 'users.id', '=', 'contatos_corretores.user_id')
+            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
+            ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
             ->orderBy('vendas.created_at', 'desc')
             ->get();
     }
@@ -446,9 +487,8 @@ class VendasRepository implements VendasRepositoryInterface
         if (Auth::user()->user_role_id == UserRole::VENDEDOR) {
 
             return DB::table('vendas as a')
-                ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
                 ->leftJoin('users as c', 'a.user_id', '=', 'c.id')
-                ->select('a.id', 'a.nome_contrato', 'a.email', 'a.valor_contrato', 'a.data_vigencia', 'b.tabulacao_id as status', 'a.created_at', 'c.name as nome_corretor')
+                ->select('a.id', 'a.nome_contrato', 'a.email', 'a.valor_contrato', 'a.data_vigencia', 'a.tabulacao_id as status', 'a.created_at', 'c.name as nome_corretor')
                 ->where('a.user_id', Auth::user()->id)
                 ->where('a.empresa_id', Auth::user()->empresa_id)
                 ->whereMonth('a.created_at', $currentMonth)
@@ -456,9 +496,8 @@ class VendasRepository implements VendasRepositoryInterface
                 ->get();
         } else {
             return DB::table('vendas as a')
-                ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
                 ->leftJoin('users as c', 'a.user_id', '=', 'c.id')
-                ->select('a.id', 'a.nome_contrato', 'a.email', 'a.valor_contrato', 'a.data_vigencia', 'b.tabulacao_id as status', 'a.created_at', 'c.name as nome_corretor')
+                ->select('a.id', 'a.nome_contrato', 'a.email', 'a.valor_contrato', 'a.data_vigencia', 'a.tabulacao_id as status', 'a.created_at', 'c.name as nome_corretor')
                 ->where('a.empresa_id', Auth::user()->empresa_id)
                 ->whereMonth('a.created_at', $currentMonth)
                 ->whereYear('a.created_at', $currentYear)
@@ -473,14 +512,13 @@ class VendasRepository implements VendasRepositoryInterface
 
         if ($role_user_id == UserRole::VENDEDOR) {
             $vendas = DB::table('vendas as a')
-                ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
                 ->select(
                     DB::raw('SUM(a.valor_contrato) as valor_vendido'),
                     DB::raw('COUNT(a.id) as quantidade_vendida')
                 )
                 ->where('a.user_id', $user_id)
                 ->where('a.empresa_id', $empresa_id)
-                ->whereIn('b.tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO])
+                ->whereIn('a.tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO])
                 ->whereMonth('a.created_at', $currentMonth)
                 ->whereYear('a.created_at', $currentYear)
                 ->get();
@@ -491,13 +529,12 @@ class VendasRepository implements VendasRepositoryInterface
             ];
         } else {
             $vendas = DB::table('vendas as a')
-                ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
                 ->select(
                     DB::raw('SUM(a.valor_contrato) as valor_vendido'),
                     DB::raw('COUNT(a.id) as quantidade_vendida')
                 )
                 ->where('a.empresa_id', $empresa_id)
-                ->whereIn('b.tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO])
+                ->whereIn('a.tabulacao_id', [Tabulations::VENDA, Tabulations::IMPLANTADO])
                 ->whereMonth('a.created_at', $currentMonth)
                 ->whereYear('a.created_at', $currentYear)
                 ->get();
@@ -516,14 +553,13 @@ class VendasRepository implements VendasRepositoryInterface
 
         if ($role_user_id == UserRole::VENDEDOR) {
             $vendas = DB::table('vendas as a')
-                ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
                 ->select(
                     DB::raw('SUM(a.valor_contrato) as valor_vendido'),
                     DB::raw('COUNT(a.id) as quantidade_vendida')
                 )
                 ->where('a.user_id', $user_id)
                 ->where('a.empresa_id', $empresa_id)
-                ->where('b.tabulacao_id', Tabulations::IMPLANTADO)
+                ->where('a.tabulacao_id', Tabulations::IMPLANTADO)
                 ->whereMonth('a.created_at', $currentMonth)
                 ->whereYear('a.created_at', $currentYear)
                 ->get();
@@ -534,13 +570,12 @@ class VendasRepository implements VendasRepositoryInterface
             ];
         } else {
             $vendas = DB::table('vendas as a')
-                ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
                 ->select(
                     DB::raw('SUM(a.valor_contrato) as valor_vendido'),
                     DB::raw('COUNT(a.id) as quantidade_vendida')
                 )
                 ->where('a.empresa_id', $empresa_id)
-                ->where('b.tabulacao_id', Tabulations::IMPLANTADO)
+                ->where('a.tabulacao_id', Tabulations::IMPLANTADO)
                 ->whereMonth('a.created_at', $currentMonth)
                 ->whereYear('a.created_at', $currentYear)
                 ->get();
@@ -559,14 +594,13 @@ class VendasRepository implements VendasRepositoryInterface
 
         if ($role_user_id == UserRole::VENDEDOR) {
             $estornos = DB::table('vendas as a')
-                ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
                 ->select(
                     DB::raw('SUM(a.valor_contrato) as valor_estornado'),
                     DB::raw('COUNT(a.id) as quantidade_estornada')
                 )
                 ->where('a.user_id', $user_id)
                 ->where('a.empresa_id', $empresa_id)
-                ->where('b.tabulacao_id', Tabulations::ESTORNO)
+                ->where('a.tabulacao_id', Tabulations::ESTORNO)
                 ->whereMonth('a.created_at', $currentMonth)
                 ->whereYear('a.created_at', $currentYear)
                 ->get();
@@ -577,13 +611,12 @@ class VendasRepository implements VendasRepositoryInterface
             ];
         } else {
             $estornos = DB::table('vendas as a')
-                ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
                 ->select(
                     DB::raw('SUM(a.valor_contrato) as valor_estornado'),
                     DB::raw('COUNT(a.id) as quantidade_estornada')
                 )
                 ->where('a.empresa_id', $empresa_id)
-                ->where('b.tabulacao_id', Tabulations::ESTORNO)
+                ->where('a.tabulacao_id', Tabulations::ESTORNO)
                 ->whereMonth('a.created_at', $currentMonth)
                 ->whereYear('a.created_at', $currentYear)
                 ->get();
@@ -660,10 +693,9 @@ class VendasRepository implements VendasRepositoryInterface
         // === Numerador: total de vendas no período ===
         // Mantive o filtro de tabulação, mas removi select/groupBy para contar vendas de fato.
         $quantidadeVendasMes = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->where('a.empresa_id', $empresa_id)
             ->whereBetween('a.created_at', [$inicio, $fim])
-            ->whereIn('c.tabulacao_id', [
+            ->whereIn('a.tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
                 Tabulations::ESTORNO,
@@ -721,12 +753,10 @@ class VendasRepository implements VendasRepositoryInterface
                 DB::raw("SUM(CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END) as total_angariacao")
             )
             ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
-            ->leftJoin('tabulacoes as d', 'd.id', '=', 'c.tabulacao_id')
             ->whereYear('a.created_at', $year)
             ->whereMonth('a.created_at', $month)
             ->where('a.empresa_id', $empresa_id)
-            ->whereIn('c.tabulacao_id', [
+            ->whereIn('a.tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
                 Tabulations::ESTORNO,
@@ -751,10 +781,9 @@ class VendasRepository implements VendasRepositoryInterface
                 DB::raw("SUM(CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END) as total_angariacao")
             )
             ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->whereYear('a.created_at', $year)
             ->whereMonth('a.created_at', $month)
-            ->where('c.tabulacao_id', Tabulations::IMPLANTADO)
+            ->where('a.tabulacao_id', Tabulations::IMPLANTADO)
             ->where('a.empresa_id', $empresa_id)
             ->groupBy('b.name')
             ->get();
@@ -764,11 +793,10 @@ class VendasRepository implements VendasRepositoryInterface
     {
         return DB::table('vendas as a')
             ->select('a.nome_contrato', 'a.valor_contrato', 'a.angariacao_status', 'a.angariacao_valor')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->whereYear('a.created_at', $year)
             ->whereMonth('a.created_at', $month)
             ->whereIn(
-                'c.tabulacao_id',
+                'a.tabulacao_id',
                 [
                     Tabulations::VENDA,
                     Tabulations::IMPLANTADO,
@@ -790,10 +818,9 @@ class VendasRepository implements VendasRepositoryInterface
     {
         return DB::table('vendas as a')
             ->select('a.nome_contrato', 'a.valor_contrato', 'a.angariacao_status', 'a.angariacao_valor')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->whereYear('a.created_at', $year)
             ->whereMonth('a.created_at', $month)
-            ->where('c.tabulacao_id', Tabulations::IMPLANTADO)
+            ->where('a.tabulacao_id', Tabulations::IMPLANTADO)
             ->where('a.empresa_id', $empresa_id)
             ->get();
     }

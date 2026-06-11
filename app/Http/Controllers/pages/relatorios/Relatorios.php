@@ -2,29 +2,31 @@
 
 namespace App\Http\Controllers\pages\relatorios;
 
-use App\Models\LogPreditiva;
-use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
+use App\Enums\Tabulations;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
-use App\Repositories\Eloquent\LigacoesRepository;
-use App\Repositories\Eloquent\UsuariosRepository;
+use App\Models\LogPreditiva;
+use App\Models\User;
+use App\Models\Vendas as VendasModel;
+use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\LigacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
-use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
-use App\Models\Vendas as VendasModel;
-use App\Models\User;
-use App\Enums\UserRole;
-use App\Enums\Tabulations;
+use App\Repositories\Eloquent\LigacoesRepository;
+use App\Repositories\Eloquent\UsuariosRepository;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class Relatorios extends Controller
 {
     protected LigacoesRepository $ligacoesRepository;
+
     protected UsuariosRepository $usuariosRepository;
 
     protected ContatosCorretoresRepository $contatosCorretoresRepository;
+
     public function __construct(
         LigacoesRepositoryInterface $ligacoesRepositoryInterface,
         UsuariosRepositoryInterface $usuariosRepositoryInterface,
@@ -38,11 +40,11 @@ class Relatorios extends Controller
     public function index()
     {
         $user = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);
+
         return view('content.pages.relatorios.ligacoes', [
-            'users' => $user
+            'users' => $user,
         ]);
     }
-
 
     public function getLigacoes($id_user, $data_inicial, $data_final)
     {
@@ -51,16 +53,16 @@ class Relatorios extends Controller
 
         return response()->json([
             'ligacoes' => $ligacoes,
-            'fila' => $filaAtual
+            'fila' => $filaAtual,
         ]);
     }
-
 
     public function predictiveReport()
     {
         $users = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);
+
         return view('content.pages.relatorios.preditiva', [
-            'usuarios' => $users
+            'usuarios' => $users,
         ]);
     }
 
@@ -91,7 +93,7 @@ class Relatorios extends Controller
                 'telefone' => $log->contato->telefone1 ?? 'N/A',
                 'status' => $log->acao,
                 'tabulacao' => $log->tabulacao,
-                'observacao' => '' // Não há campo de observação no log_preditiva, então deixamos vazio
+                'observacao' => '', // Não há campo de observação no log_preditiva, então deixamos vazio
             ];
         });
 
@@ -101,7 +103,7 @@ class Relatorios extends Controller
         $cotacoes = $logs->where('tabulacao', 'COTACAO')->count();
         $ligarDepois = $logs->where('tabulacao', 'LIGAR_DEPOIS')->count();
         $descartados = $logs->where('acao', 'DESCARTE')->count();
-        $taxaConversao = $total > 0 ? round(($convertidos / $total) * 100, 1) . '%' : '0%';
+        $taxaConversao = $total > 0 ? round(($convertidos / $total) * 100, 1).'%' : '0%';
 
         // Preparar dados para gráfico diário
         $periodoCompleto = collect(new \DatePeriod(
@@ -134,7 +136,7 @@ class Relatorios extends Controller
             })->toArray(),
             'descartados' => $periodoCompleto->map(function ($data) use ($logsPorDia) {
                 return $logsPorDia->get($data, collect())->where('acao', 'DESCARTE')->count();
-            })->toArray()
+            })->toArray(),
         ];
 
         // Preparar dados de desempenho por vendedor
@@ -172,20 +174,20 @@ class Relatorios extends Controller
         });
 
         $dadosGraficoVendedores = [
-            'nomes' => array_map(fn($i) => $vendedorNomes[$i], $indices),
-            'convertidos' => array_map(fn($i) => $vendedorConvertidos[$i], $indices),
-            'cotacoes' => array_map(fn($i) => $vendedorCotacoes[$i], $indices),
-            'ligar_depois' => array_map(fn($i) => $vendedorLigarDepois[$i], $indices),
-            'descartados' => array_map(fn($i) => $vendedorDescartados[$i], $indices),
-            'total' => array_map(fn($i) => $vendedorTotal[$i], $indices),
-            'taxa' => array_map(fn($i) => $vendedorTaxa[$i], $indices),
+            'nomes' => array_map(fn ($i) => $vendedorNomes[$i], $indices),
+            'convertidos' => array_map(fn ($i) => $vendedorConvertidos[$i], $indices),
+            'cotacoes' => array_map(fn ($i) => $vendedorCotacoes[$i], $indices),
+            'ligar_depois' => array_map(fn ($i) => $vendedorLigarDepois[$i], $indices),
+            'descartados' => array_map(fn ($i) => $vendedorDescartados[$i], $indices),
+            'total' => array_map(fn ($i) => $vendedorTotal[$i], $indices),
+            'taxa' => array_map(fn ($i) => $vendedorTaxa[$i], $indices),
         ];
 
         // Adicionar dados de tabulação
         $tabulacaoCount = $logs->groupBy('tabulacao')->map->count();
         $dadosGraficoTabulacao = [
             'labels' => $tabulacaoCount->keys()->toArray(),
-            'valores' => $tabulacaoCount->values()->toArray()
+            'valores' => $tabulacaoCount->values()->toArray(),
         ];
 
         return response()->json([
@@ -197,11 +199,11 @@ class Relatorios extends Controller
                 'cotacoes' => $cotacoes,
                 'ligar_depois' => $ligarDepois,
                 'descartados' => $descartados,
-                'taxa_conversao' => $taxaConversao
+                'taxa_conversao' => $taxaConversao,
             ],
             'grafico_diario' => $dadosGraficoDiario,
             'grafico_vendedores' => $dadosGraficoVendedores,
-            'grafico_tabulacao' => $dadosGraficoTabulacao
+            'grafico_tabulacao' => $dadosGraficoTabulacao,
         ]);
     }
 
@@ -227,7 +229,7 @@ class Relatorios extends Controller
             $empresaId = Auth::user()->empresa_id;
             $vendedorId = $request->get('vendedor_id');
 
-            if (!$vendedorId) {
+            if (! $vendedorId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Vendedor não informado.',
@@ -236,7 +238,7 @@ class Relatorios extends Controller
 
             $vendedor = User::where('empresa_id', $empresaId)->find($vendedorId);
 
-            if (!$vendedor) {
+            if (! $vendedor) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Vendedor não encontrado.',
@@ -282,7 +284,7 @@ class Relatorios extends Controller
                     'ano_foco' => $anoFoco,
                     'periodo' => [
                         'parcial' => $parcial,
-                        'label' => $parcial ? 'até ' . date('d/m') : 'ano completo',
+                        'label' => $parcial ? 'até '.date('d/m') : 'ano completo',
                     ],
                     'kpis' => $kpis,
                     'evolucao_anual' => array_values($evolucaoAnual),
@@ -293,7 +295,7 @@ class Relatorios extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao carregar dados: ' . $e->getMessage(),
+                'message' => 'Erro ao carregar dados: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -580,24 +582,24 @@ class Relatorios extends Controller
         if ($atual && $anterior && $anterior['valor_vendido'] > 0) {
             $diff = round((($atual['valor_vendido'] - $anterior['valor_vendido']) / $anterior['valor_vendido']) * 100, 1);
             $verbo = $diff >= 0 ? 'Cresceu' : 'Caiu';
-            $resumo[] = "{$verbo} " . abs($diff) . "% em valor vendido vs {$anterior['ano']}.";
+            $resumo[] = "{$verbo} ".abs($diff)."% em valor vendido vs {$anterior['ano']}.";
         }
 
         if ($melhorAno !== null && $melhorValor > 0) {
-            $resumo[] = "Melhor ano: {$melhorAno} (R$ " . number_format($melhorValor, 2, ',', '.') . ').';
+            $resumo[] = "Melhor ano: {$melhorAno} (R$ ".number_format($melhorValor, 2, ',', '.').').';
         }
 
         if ($atual && $anterior) {
             $deltaConv = round($atual['taxa_conversao'] - $anterior['taxa_conversao'], 1);
             if ($deltaConv != 0) {
                 $verbo = $deltaConv > 0 ? 'subiu' : 'caiu';
-                $resumo[] = "Conversão {$verbo} " . abs($deltaConv) . " p.p. vs {$anterior['ano']}.";
+                $resumo[] = "Conversão {$verbo} ".abs($deltaConv)." p.p. vs {$anterior['ano']}.";
             }
 
             $deltaLeads = $atual['leads_trabalhados'] - $anterior['leads_trabalhados'];
             if ($deltaLeads != 0) {
                 $verbo = $deltaLeads > 0 ? 'mais' : 'menos';
-                $resumo[] = 'Trabalhou ' . abs($deltaLeads) . " leads {$verbo} que em {$anterior['ano']}.";
+                $resumo[] = 'Trabalhou '.abs($deltaLeads)." leads {$verbo} que em {$anterior['ano']}.";
             }
         }
 
@@ -665,8 +667,8 @@ class Relatorios extends Controller
                 'resumo_geral' => $this->getResumoGeralImplantacao($filtros),
                 'vendedores' => $this->getVendedoresPorEmpresa(),
                 'anos_disponiveis' => $this->getAnosDisponiveisImplantacao($filtros),
-                'operadoras' => $this->getOperadoras($filtros)
-            ]
+                'operadoras' => $this->getOperadoras($filtros),
+            ],
         ]);
     }
 
@@ -685,8 +687,8 @@ class Relatorios extends Controller
                 'per_page' => $vendas->perPage(),
                 'total' => $vendas->total(),
                 'from' => $vendas->firstItem(),
-                'to' => $vendas->lastItem()
-            ]
+                'to' => $vendas->lastItem(),
+            ],
         ]);
     }
 
@@ -699,7 +701,7 @@ class Relatorios extends Controller
             'operadora' => $request->get('operadora'),
             'data_inicio' => $request->get('data_inicio'),
             'data_fim' => $request->get('data_fim'),
-            'empresa_id' => Auth::user()->empresa_id
+            'empresa_id' => Auth::user()->empresa_id,
         ];
     }
 
@@ -742,7 +744,7 @@ class Relatorios extends Controller
         $query = VendasModel::with([
             'user' => function ($query) {
                 $query->select('id', 'name', 'empresa_id');
-            }
+            },
         ]);
 
         $query = $this->aplicarFiltroEmpresa($query);
@@ -977,7 +979,7 @@ class Relatorios extends Controller
             'valor_cadastrado' => $queryCadastradas->sum('valor_contrato') ?? 0,
             'total_vidas' => $query->sum('vidas') ?? 0,
             'ticket_medio' => $query->avg('valor_contrato') ?? 0,
-            'vidas_por_contrato' => $query->avg('vidas') ?? 0
+            'vidas_por_contrato' => $query->avg('vidas') ?? 0,
         ];
     }
 
@@ -1025,14 +1027,14 @@ class Relatorios extends Controller
         $vendedores = User::where('empresa_id', $empresaId)
             ->select('id', 'name')
             ->where('user_role_id', 1)
-            ->where('ativo', "Y")
+            ->where('ativo', 'Y')
             ->orderBy('name')
             ->get();
 
         // Buscar anos disponíveis
         $anos = VendasModel::whereHas('user', function ($q) use ($empresaId) {
-                $q->where('empresa_id', $empresaId);
-            })
+            $q->where('empresa_id', $empresaId);
+        })
             ->select(DB::raw('YEAR(created_at) as ano'))
             ->distinct()
             ->orderBy('ano', 'desc')
@@ -1040,7 +1042,7 @@ class Relatorios extends Controller
 
         return view('content.pages.relatorios.desempenho-anual', [
             'vendedores' => $vendedores,
-            'anos' => $anos
+            'anos' => $anos,
         ]);
     }
 
@@ -1075,7 +1077,7 @@ class Relatorios extends Controller
 
             // 7. Ranking de vendedores (se não filtrou por vendedor específico)
             $rankingVendedores = null;
-            if (!$vendedorId) {
+            if (! $vendedorId) {
 
                 $rankingVendedores = $this->getRankingVendedoresAno($empresaId, $ano);
             }
@@ -1096,14 +1098,14 @@ class Relatorios extends Controller
                     'distribuicao_operadora' => $distribuicaoOperadora,
                     'taxa_conversao' => $taxaConversao,
                     'ranking_vendedores' => $rankingVendedores,
-                    'detalhes_vendedor' => $detalhesVendedor
-                ]
+                    'detalhes_vendedor' => $detalhesVendedor,
+                ],
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao carregar dados: ' . $e->getMessage()
+                'message' => 'Erro ao carregar dados: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1124,8 +1126,8 @@ class Relatorios extends Controller
 
         // Vendas realizadas
         $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
-                $q->where('empresa_id', $empresaId);
-            })
+            $q->where('empresa_id', $empresaId);
+        })
             ->whereHas('contatoCorretor', function ($q) {
                 $q->whereIn('tabulacao_id', [
                     Tabulations::VENDA,
@@ -1158,7 +1160,7 @@ class Relatorios extends Controller
             'total_vendas' => $totalVendas,
             'valor_total' => $valorTotal,
             'ticket_medio' => $ticketMedio,
-            'taxa_conversao' => $taxaConversao
+            'taxa_conversao' => $taxaConversao,
         ];
     }
 
@@ -1184,8 +1186,8 @@ class Relatorios extends Controller
 
             // Vendas do trimestre
             $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
-                    $q->where('empresa_id', $empresaId);
-                })
+                $q->where('empresa_id', $empresaId);
+            })
                 ->whereHas('contatoCorretor', function ($q) {
                     $q->whereIn('tabulacao_id', [
                         Tabulations::VENDA,
@@ -1221,7 +1223,7 @@ class Relatorios extends Controller
                 'valor_total' => $valorTotal,
                 'valor_angariacao' => $valorAngariacao,
                 'ticket_medio' => $ticketMedio,
-                'taxa_conversao' => $taxaConversao
+                'taxa_conversao' => $taxaConversao,
             ];
         }
 
@@ -1248,8 +1250,8 @@ class Relatorios extends Controller
 
             // Vendas do mês
             $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
-                    $q->where('empresa_id', $empresaId);
-                })
+                $q->where('empresa_id', $empresaId);
+            })
                 ->whereHas('contatoCorretor', function ($q) {
                     $q->whereIn('tabulacao_id', [
                         Tabulations::VENDA,
@@ -1279,7 +1281,7 @@ class Relatorios extends Controller
                 'nome_mes' => $nomesMeses[$mes - 1],
                 'leads_unicos' => $leadsUnicos,
                 'total_vendas' => $totalVendas,
-                'valor_total' => $valorTotal
+                'valor_total' => $valorTotal,
             ];
         }
 
@@ -1289,11 +1291,11 @@ class Relatorios extends Controller
     private function getTopPlanosVendidos($empresaId, $ano, $vendedorId = null)
     {
         $query = VendasModel::select(
-                'nome_plano',
-                'operadora',
-                DB::raw('COUNT(*) as total_vendas'),
-                DB::raw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as valor_total')
-            )
+            'nome_plano',
+            'operadora',
+            DB::raw('COUNT(*) as total_vendas'),
+            DB::raw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as valor_total')
+        )
             ->whereHas('user', function ($q) use ($empresaId) {
                 $q->where('empresa_id', $empresaId);
             })
@@ -1327,11 +1329,11 @@ class Relatorios extends Controller
     private function getDistribuicaoPorOperadora($empresaId, $ano, $vendedorId = null)
     {
         $query = VendasModel::select(
-                'operadora',
-                DB::raw('COUNT(*) as total_vendas'),
-                DB::raw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as valor_total'),
-                DB::raw('AVG(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as ticket_medio')
-            )
+            'operadora',
+            DB::raw('COUNT(*) as total_vendas'),
+            DB::raw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as valor_total'),
+            DB::raw('AVG(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as ticket_medio')
+        )
             ->whereHas('user', function ($q) use ($empresaId) {
                 $q->where('empresa_id', $empresaId);
             })
@@ -1378,8 +1380,8 @@ class Relatorios extends Controller
             $leadsUnicos = $queryLeads->distinct('la.contato_id')->count('la.contato_id');
 
             $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
-                    $q->where('empresa_id', $empresaId);
-                })
+                $q->where('empresa_id', $empresaId);
+            })
                 ->whereHas('contatoCorretor', function ($q) {
                     $q->whereIn('tabulacao_id', [
                         Tabulations::VENDA,
@@ -1408,7 +1410,7 @@ class Relatorios extends Controller
                 'mes' => $mes,
                 'leads' => $leadsUnicos,
                 'vendas' => $totalVendas,
-                'taxa' => $taxa
+                'taxa' => $taxa,
             ];
         }
 
@@ -1426,7 +1428,6 @@ class Relatorios extends Controller
 
         // Subquery para vendas por vendedor
         $vendasSubquery = DB::table('vendas as v')
-            ->leftJoin('contatos_corretores as cc', 'cc.contato_id', '=', 'v.contato_id')
             ->select(
                 'v.user_id',
                 DB::raw('COUNT(DISTINCT v.id) as total_vendas'),
@@ -1435,7 +1436,7 @@ class Relatorios extends Controller
             )
             ->where('v.empresa_id', $empresaId)
             ->whereYear('v.created_at', $ano)
-            ->whereIn('cc.tabulacao_id', [
+            ->whereIn('v.tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
                 Tabulations::ESTORNO,
@@ -1476,16 +1477,16 @@ class Relatorios extends Controller
     {
         $vendedor = User::find($vendedorId);
 
-        if (!$vendedor) {
+        if (! $vendedor) {
             return null;
         }
 
         // Planos mais vendidos pelo vendedor
         $planosVendedor = VendasModel::select(
-                'nome_plano',
-                'operadora',
-                DB::raw('COUNT(*) as total')
-            )
+            'nome_plano',
+            'operadora',
+            DB::raw('COUNT(*) as total')
+        )
             ->where('user_id', $vendedorId)
             ->whereYear('created_at', $ano)
             ->whereNotNull('nome_plano')
@@ -1496,7 +1497,7 @@ class Relatorios extends Controller
 
         return [
             'nome' => $vendedor->name,
-            'planos_favoritos' => $planosVendedor
+            'planos_favoritos' => $planosVendedor,
         ];
     }
 
@@ -1613,7 +1614,7 @@ class Relatorios extends Controller
             'FOLLOW-UP',
             'SEM CONTATO',
             'NOVOS CLIENTES',
-            'AGENDAMENTO'
+            'AGENDAMENTO',
         ];
 
         $distribuicaoComercial = DB::table('contatos_corretores')
@@ -1644,7 +1645,7 @@ class Relatorios extends Controller
             'REGULARIZADO',
             'BOLETO DISPONIVEL',
             'ANALISE OPERADORA',
-            'AGUARD. ASSINATURA DA DS'
+            'AGUARD. ASSINATURA DA DS',
         ];
 
         $distribuicaoAdministrativa = DB::table('contatos_corretores')
@@ -1669,9 +1670,9 @@ class Relatorios extends Controller
             ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
             ->where('contatos_corretores.empresa_id', $empresaId)
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->where('tabulacoes.sub_tabulacao', 'Y')
-                      ->orWhere('tabulacoes.descricao', 'REMARKETING');
+                    ->orWhere('tabulacoes.descricao', 'REMARKETING');
             });
 
         if ($dataInicial && $dataFinal) {
@@ -1698,9 +1699,9 @@ class Relatorios extends Controller
                 DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total')
             )
             ->where('contatos_corretores.empresa_id', $empresaId)
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->where('tabulacoes.sub_tabulacao', 'Y')
-                      ->orWhere('tabulacoes.descricao', 'REMARKETING');
+                    ->orWhere('tabulacoes.descricao', 'REMARKETING');
             });
 
         if ($dataInicial && $dataFinal) {
@@ -1730,14 +1731,13 @@ class Relatorios extends Controller
                 'leads_administrativo' => $leadsAdministrativo,
                 'leads_preditiva' => $leadsPreditiva,
                 'leads_descartados' => $leadsDescartados,
-                'tentativas_preditiva' => $tentativasPreditiva
+                'tentativas_preditiva' => $tentativasPreditiva,
             ],
             'distribuicao_status' => $distribuicaoPorStatus,
             'distribuicao_comercial' => $distribuicaoComercial,
             'distribuicao_administrativa' => $distribuicaoAdministrativa,
             'distribuicao_descarte' => $distribuicaoDescarte,
-            'motivos_descarte' => $motivosDescarte
+            'motivos_descarte' => $motivosDescarte,
         ]);
     }
-
 }

@@ -153,7 +153,7 @@ class Backoffice extends Controller
         // Vendedor não acessa a tela do backoffice. Se a venda é dele e está em ESTORNO,
         // redireciona para a tela de correção; caso contrário, bloqueia.
         if (Auth::user()->user_role_id === UserRole::VENDEDOR) {
-            $tabulacaoAtual = optional($sale->contatoCorretor)->tabulacao_id;
+            $tabulacaoAtual = (int) $sale->tabulacao_id;
             if ($sale->user_id === Auth::id() && $tabulacaoAtual === Tabulations::ESTORNO) {
                 return redirect()->route('sale.editEstorno', $sale->id);
             }
@@ -272,9 +272,12 @@ class Backoffice extends Controller
 
         try {
 
-            $updateContract = $this->contatosCorretoresRepository->alterStatusContract(
-                $sale->contato_id,
-                $request->tabulacao_id,
+            // Status é da VENDA, não do contato — um contato pode ter várias
+            // vendas em estágios diferentes (ex.: contrato antigo implantado +
+            // nova proposta em andamento).
+            $updateContract = $this->vendasRepository->alterStatusVenda(
+                $sale->id,
+                (int) $request->tabulacao_id,
                 $request->observacao_estorno ?? null,
                 $request->motivo_pendencia ?? null
             );
@@ -430,8 +433,7 @@ class Backoffice extends Controller
                 ], 403);
             }
 
-            // Atualizar status via contatos_corretores
-            $updateContract = $this->contatosCorretoresRepository->alterStatusContract($sale->contato_id, $tabulacaoId);
+            $updateContract = $this->vendasRepository->alterStatusVenda($sale->id, (int) $tabulacaoId);
 
             if ($updateContract) {
                 // Notificar vendedor
@@ -478,7 +480,7 @@ class Backoffice extends Controller
     {
         $sale = $this->vendasRepository->find($id);
 
-        if (! $sale || ! $sale->contatoCorretor || $sale->contatoCorretor->tabulacao_id != Tabulations::IMPLANTADO) {
+        if (! $sale || (int) $sale->tabulacao_id !== Tabulations::IMPLANTADO) {
             abort(404);
         }
 
@@ -1295,11 +1297,9 @@ class Backoffice extends Controller
             $empresaId = Auth::user()->empresa_id;
 
             // Buscar a venda e validar
-            $venda = Vendas::select('vendas.*')
-                ->join('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
-                ->where('vendas.id', $vendaId)
-                ->where('vendas.empresa_id', $empresaId)
-                ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
+            $venda = Vendas::where('id', $vendaId)
+                ->where('empresa_id', $empresaId)
+                ->where('tabulacao_id', Tabulations::IMPLANTADO)
                 ->first();
 
             if (! $venda) {
@@ -1518,13 +1518,12 @@ class Backoffice extends Controller
                     'users.name as vendedor',
                     'backoffice_user.name as backoffice_nome',
                     'tabulacoes.descricao as status_atual',
-                    'contatos_corretores.updated_at as status_updated_at',
+                    'vendas.tabulacao_updated_at as status_updated_at',
                     'vendas.motivo_pendencia',
                 ])
                 ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
                 ->leftJoin('users as backoffice_user', 'backoffice_user.id', '=', 'vendas.backoffice_id')
-                ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
-                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
                 ->where('vendas.empresa_id', $empresaId)
                 ->whereBetween('vendas.created_at', [$startDate.' 00:00:00', $endDate.' 23:59:59'])
                 ->orderBy('vendas.created_at', 'desc');
@@ -1838,8 +1837,8 @@ class Backoffice extends Controller
             $backofficeId = $request->input('backoffice_id');
             $isBackoffice = Auth::user()->user_role_id == UserRole::BACKOFFICE;
 
-            // Buscar vendas com status de backoffice usando contatos_corretores
-            // O status real da venda vem do contato_id vinculado em contatos_corretores
+            // Buscar vendas com status de backoffice — o status do contrato
+            // vive na própria venda (vendas.tabulacao_id)
             $query = DB::table('vendas')
                 ->select([
                     'vendas.id',
@@ -1861,12 +1860,11 @@ class Backoffice extends Controller
                     'tabulacoes.id as tabulacao_id',
                     'tabulacoes.descricao as status_atual',
                     'tabulacoes.ordem_kanban',
-                    'contatos_corretores.updated_at as status_updated_at',
+                    'vendas.tabulacao_updated_at as status_updated_at',
                 ])
                 ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
                 ->leftJoin('users as backoffice_user', 'backoffice_user.id', '=', 'vendas.backoffice_id')
-                ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
-                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
                 ->where('vendas.empresa_id', $empresaId)
                 ->where('tabulacoes.tipo_tabulacao', 'A'); // Apenas tabulações de backoffice
 
@@ -2068,8 +2066,7 @@ class Backoffice extends Controller
             // Reconstruir query base para obter IDs de vendas visíveis (mesmos filtros do kanban)
             $query = DB::table('vendas')
                 ->select('vendas.id')
-                ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
-                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
                 ->where('vendas.empresa_id', $empresaId)
                 ->where('tabulacoes.tipo_tabulacao', 'A');
 
@@ -2116,8 +2113,7 @@ class Backoffice extends Controller
             $vendaInfoMap = DB::table('vendas')
                 ->select('vendas.id', 'vendas.backoffice_id', 'bo.name as backoffice_nome', 'tabulacoes.descricao as status_atual')
                 ->leftJoin('users as bo', 'bo.id', '=', 'vendas.backoffice_id')
-                ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
-                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
                 ->whereIn('vendas.id', $vendaIds)
                 ->get()
                 ->keyBy('id');
@@ -2196,14 +2192,13 @@ class Backoffice extends Controller
                     'vendas.motivo_pendencia',
                     'users.name as vendedor',
                     'tabulacoes.descricao as status_atual',
-                    'contatos_corretores.updated_at as status_updated_at',
+                    'vendas.tabulacao_updated_at as status_updated_at',
                 ])
                 ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
-                ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
-                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
                 ->where('vendas.empresa_id', $empresaId)
-                ->where('contatos_corretores.tabulacao_id', $tabulacaoId)
-                ->orderBy('contatos_corretores.updated_at', 'asc')
+                ->where('vendas.tabulacao_id', $tabulacaoId)
+                ->orderBy('vendas.tabulacao_updated_at', 'asc')
                 ->get();
 
             $contratosFormatados = $contratos->map(function ($c) {
@@ -2569,9 +2564,8 @@ class Backoffice extends Controller
         // Buscar vendedores para filtro (apenas que têm contratos implantados)
         $vendedores = User::select('users.id', 'users.name')
             ->join('vendas', 'vendas.user_id', '=', 'users.id')
-            ->join('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
             ->where('vendas.empresa_id', $empresaId)
-            ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
+            ->where('vendas.tabulacao_id', Tabulations::IMPLANTADO)
             ->whereNotNull('vendas.data_implantacao')
             ->distinct()
             ->orderBy('users.name')
@@ -2612,9 +2606,8 @@ class Backoffice extends Controller
                 ])
                 ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
                 ->leftJoin('users as users_bv', 'users_bv.id', '=', 'vendas.boas_vindas_enviado_por')
-                ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
                 ->where('vendas.empresa_id', $empresaId)
-                ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
+                ->where('vendas.tabulacao_id', Tabulations::IMPLANTADO)
                 ->whereNotNull('vendas.data_implantacao');
 
             // Aplicar filtros
@@ -2688,9 +2681,8 @@ class Backoffice extends Controller
             // KPIs (baseados no total filtrado, não apenas na página atual)
             // Para KPIs precisos, calculamos separadamente
             $kpiQuery = DB::table('vendas')
-                ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
                 ->where('vendas.empresa_id', $empresaId)
-                ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
+                ->where('vendas.tabulacao_id', Tabulations::IMPLANTADO)
                 ->whereNotNull('vendas.data_implantacao');
 
             // Aplicar mesmos filtros para KPIs
@@ -2721,9 +2713,8 @@ class Backoffice extends Controller
 
             // Calcular próximos aniversários (30 dias) - precisa de query separada
             $proximosAniversarios = DB::table('vendas')
-                ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
                 ->where('vendas.empresa_id', $empresaId)
-                ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO)
+                ->where('vendas.tabulacao_id', Tabulations::IMPLANTADO)
                 ->whereNotNull('vendas.data_implantacao')
                 ->whereRaw("
           DATEDIFF(
@@ -3242,7 +3233,6 @@ class Backoffice extends Controller
             $perPage = min(100, max(10, (int) $request->input('per_page', 15)));
 
             $query = DB::table('vendas as v')
-                ->leftJoin('contatos_corretores as cc', 'cc.contato_id', '=', 'v.contato_id')
                 ->where('v.empresa_id', $empresaId)
                 ->whereNotNull('v.cpf_cnpj')
                 ->where('v.cpf_cnpj', '!=', '')
@@ -3251,10 +3241,10 @@ class Backoffice extends Controller
                     'v.cpf_cnpj',
                     DB::raw('MAX(v.nome_contrato) as nome_contrato'),
                     DB::raw('COUNT(v.id) as total_contratos'),
-                    DB::raw('SUM(CASE WHEN cc.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN 1 ELSE 0 END) as contratos_ativos'),
-                    DB::raw('SUM(CASE WHEN cc.tabulacao_id = '.Tabulations::ESTORNO.' THEN 1 ELSE 0 END) as contratos_cancelados'),
-                    DB::raw('SUM(CASE WHEN cc.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN v.valor_contrato ELSE 0 END) as valor_ativo'),
-                    DB::raw('SUM(CASE WHEN cc.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN COALESCE(v.vidas,0) ELSE 0 END) as vidas_ativas'),
+                    DB::raw('SUM(CASE WHEN v.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN 1 ELSE 0 END) as contratos_ativos'),
+                    DB::raw('SUM(CASE WHEN v.tabulacao_id = '.Tabulations::ESTORNO.' THEN 1 ELSE 0 END) as contratos_cancelados'),
+                    DB::raw('SUM(CASE WHEN v.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN v.valor_contrato ELSE 0 END) as valor_ativo'),
+                    DB::raw('SUM(CASE WHEN v.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN COALESCE(v.vidas,0) ELSE 0 END) as vidas_ativas'),
                     DB::raw('MIN(v.data_implantacao) as primeiro_contrato'),
                     DB::raw('MAX(v.data_implantacao) as ultimo_contrato'),
                     DB::raw('GROUP_CONCAT(DISTINCT v.operadora ORDER BY v.operadora SEPARATOR \', \') as operadoras'),
@@ -3328,12 +3318,11 @@ class Backoffice extends Controller
             // KPIs — mesma query base sem paginação
             $kpiBase = DB::table(DB::raw('(
         SELECT
-          SUM(CASE WHEN cc2.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN 1 ELSE 0 END) as ca,
-          SUM(CASE WHEN cc2.tabulacao_id = '.Tabulations::ESTORNO.' THEN 1 ELSE 0 END) as cc2,
-          SUM(CASE WHEN cc2.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN v2.valor_contrato ELSE 0 END) as va,
-          SUM(CASE WHEN cc2.tabulacao_id = '.Tabulations::IMPLANTADO." THEN COALESCE(v2.vidas,0) ELSE 0 END) as vi
+          SUM(CASE WHEN v2.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN 1 ELSE 0 END) as ca,
+          SUM(CASE WHEN v2.tabulacao_id = '.Tabulations::ESTORNO.' THEN 1 ELSE 0 END) as cc2,
+          SUM(CASE WHEN v2.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN v2.valor_contrato ELSE 0 END) as va,
+          SUM(CASE WHEN v2.tabulacao_id = '.Tabulations::IMPLANTADO." THEN COALESCE(v2.vidas,0) ELSE 0 END) as vi
         FROM vendas v2
-        LEFT JOIN contatos_corretores cc2 ON cc2.contato_id = v2.contato_id
         WHERE v2.empresa_id = {$empresaId}
           AND v2.cpf_cnpj IS NOT NULL AND v2.cpf_cnpj != ''
         GROUP BY v2.cpf_cnpj
@@ -3375,8 +3364,7 @@ class Backoffice extends Controller
             $empresaId = Auth::user()->empresa_id;
 
             $contratos = DB::table('vendas as v')
-                ->leftJoin('contatos_corretores as cc', 'cc.contato_id', '=', 'v.contato_id')
-                ->leftJoin('tabulacoes as t', 't.id', '=', 'cc.tabulacao_id')
+                ->leftJoin('tabulacoes as t', 't.id', '=', 'v.tabulacao_id')
                 ->leftJoin('users as u', 'u.id', '=', 'v.user_id')
                 ->where('v.empresa_id', $empresaId)
                 ->where('v.cpf_cnpj', $cnpj)
@@ -3387,7 +3375,7 @@ class Backoffice extends Controller
                     'v.vidas', 'v.data_implantacao', 'v.data_vigencia',
                     'v.boas_vindas_enviado_em',
                     'v.tipo_empresa',
-                    't.descricao as status_descricao', 'cc.tabulacao_id',
+                    't.descricao as status_descricao', 'v.tabulacao_id',
                     'u.name as vendedor',
                 ])
                 ->get()

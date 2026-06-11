@@ -94,6 +94,7 @@ class PosVendaDemandasTest extends TestCase
             'user_id' => $this->backoffice->id,
             'backoffice_id' => $backofficeId,
             'contato_id' => $contatoId,
+            'tabulacao_id' => Tabulations::IMPLANTADO,
             'nome_contrato' => 'Contrato '.uniqid(),
             'cpf_cnpj' => (string) random_int(10000000000000, 99999999999999),
             'operadora' => 'AMIL',

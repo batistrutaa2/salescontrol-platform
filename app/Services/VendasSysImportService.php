@@ -533,6 +533,8 @@ class VendasSysImportService
         $venda->plano_dental = $planoDental;
         $venda->tipo_contrato = $tipoContrato;
         $venda->layout_venda = 'IMPORTACAO_SYS';
+        $venda->tabulacao_id = Tabulations::IMPLANTADO;
+        $venda->tabulacao_updated_at = $dataProducao;
         $venda->created_at = $dataProducao;
         $venda->updated_at = $dataProducao;
         $venda->save();

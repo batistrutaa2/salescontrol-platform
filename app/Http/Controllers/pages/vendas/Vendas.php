@@ -203,7 +203,7 @@ class Vendas extends Controller
             'user' => function ($query) {
                 $query->select('id', 'name', 'empresa_id');
             },
-            'contatoCorretor.tabulacao',
+            'tabulacao',
         ]);
 
         // Aplicar filtro por empresa PRIMEIRO
@@ -228,9 +228,7 @@ class Vendas extends Controller
         }
 
         if (isset($filtros['status']) && $filtros['status']) {
-            $query->whereHas('contatoCorretor', function ($q) use ($filtros) {
-                $q->where('tabulacao_id', $filtros['status']);
-            });
+            $query->where('vendas.tabulacao_id', $filtros['status']);
         }
 
         if ($filtros['data_inicio'] && $filtros['data_fim']) {
@@ -407,20 +405,18 @@ class Vendas extends Controller
             ->where('users.empresa_id', $empresaId);
 
         // Aplicar filtro de status de venda
-        $query->whereHas('contatoCorretor', function ($q) {
-            $q->whereIn('tabulacao_id', [
-                Tabulations::VENDA,
-                Tabulations::IMPLANTADO,
-                Tabulations::ESTORNO,
-                Tabulations::PENDENCIA,
-                Tabulations::ANALISE_OPERADORA,
-                Tabulations::BOLETO_DISPONIVEL,
-                Tabulations::REGULARIZADO,
-                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                Tabulations::ANALISE_DOCUMENTOS,
-                Tabulations::AGUARD_ASSINATURA_DS,
-            ]);
-        });
+        $query->whereIn('vendas.tabulacao_id', [
+            Tabulations::VENDA,
+            Tabulations::IMPLANTADO,
+            Tabulations::ESTORNO,
+            Tabulations::PENDENCIA,
+            Tabulations::ANALISE_OPERADORA,
+            Tabulations::BOLETO_DISPONIVEL,
+            Tabulations::REGULARIZADO,
+            Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+            Tabulations::ANALISE_DOCUMENTOS,
+            Tabulations::AGUARD_ASSINATURA_DS,
+        ]);
 
         if ($filtros['ano']) {
             $query->whereYear('vendas.created_at', $filtros['ano']);
@@ -477,9 +473,7 @@ class Vendas extends Controller
 
         // Query para vendas implantadas
         $queryImplantadas = clone $query;
-        $queryImplantadas->whereHas('contatoCorretor', function ($q) {
-            $q->where('tabulacao_id', Tabulations::IMPLANTADO);
-        });
+        $queryImplantadas->where('vendas.tabulacao_id', Tabulations::IMPLANTADO);
 
         // Calcular angariação total
         $valorAngariacao = (clone $query)->where('angariacao_status', 'SIM')
@@ -571,20 +565,18 @@ class Vendas extends Controller
 
     private function aplicarFiltroStatusVenda($query)
     {
-        return $query->whereHas('contatoCorretor', function ($q) {
-            $q->whereIn('tabulacao_id', [
-                Tabulations::VENDA,
-                Tabulations::IMPLANTADO,
-                Tabulations::ESTORNO,
-                Tabulations::PENDENCIA,
-                Tabulations::ANALISE_OPERADORA,
-                Tabulations::BOLETO_DISPONIVEL,
-                Tabulations::REGULARIZADO,
-                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                Tabulations::ANALISE_DOCUMENTOS,
-                Tabulations::AGUARD_ASSINATURA_DS,
-            ]);
-        });
+        return $query->whereIn('vendas.tabulacao_id', [
+            Tabulations::VENDA,
+            Tabulations::IMPLANTADO,
+            Tabulations::ESTORNO,
+            Tabulations::PENDENCIA,
+            Tabulations::ANALISE_OPERADORA,
+            Tabulations::BOLETO_DISPONIVEL,
+            Tabulations::REGULARIZADO,
+            Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+            Tabulations::ANALISE_DOCUMENTOS,
+            Tabulations::AGUARD_ASSINATURA_DS,
+        ]);
     }
 
     public function getResultsBroker(Request $request)
@@ -599,8 +591,7 @@ class Vendas extends Controller
             ->value('total') ?? 0;
 
         $vendasImplantadasMes = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as b', 'b.contato_id', '=', 'a.contato_id')
-            ->where('b.tabulacao_id', Tabulations::IMPLANTADO)
+            ->where('a.tabulacao_id', Tabulations::IMPLANTADO)
             ->where('a.user_id', Auth::user()->id)
             ->when($dataInicio && $dataFim, fn ($q) => $q->whereBetween('a.created_at', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']))
             ->selectRaw("SUM(a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END) as total")
@@ -621,8 +612,7 @@ class Vendas extends Controller
         $conversao = $this->calculoConversao($quantidadeContatosMes, $quantidadeVendasMes);
 
         $vendas = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as b', 'a.contato_id', '=', 'b.contato_id')
-            ->leftJoin('tabulacoes as c', 'c.id', '=', 'b.tabulacao_id')
+            ->leftJoin('tabulacoes as c', 'c.id', '=', 'a.tabulacao_id')
             ->leftJoin('users as backoffice', 'backoffice.id', '=', 'a.backoffice_id')
             ->where('a.user_id', auth()->user()->id)
             ->when($dataInicio && $dataFim, fn ($q) => $q->whereBetween('a.created_at', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']))
@@ -636,7 +626,7 @@ class Vendas extends Controller
                 'a.created_at',
                 'a.motivo_pendencia',
                 'a.path_boleto_disponivel',
-                'b.tabulacao_id',
+                'a.tabulacao_id',
                 'a.boas_vindas_enviado_em',
                 'backoffice.name as backoffice_nome'
             )
@@ -672,8 +662,7 @@ class Vendas extends Controller
             $venda = DB::table('vendas')
                 ->leftJoin('users', 'vendas.user_id', '=', 'users.id')
                 ->leftJoin('users as backoffice', 'backoffice.id', '=', 'vendas.backoffice_id')
-                ->leftJoin('contatos_corretores', 'vendas.contato_id', '=', 'contatos_corretores.contato_id')
-                ->leftJoin('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+                ->leftJoin('tabulacoes', 'vendas.tabulacao_id', '=', 'tabulacoes.id')
                 ->where('vendas.id', $id)
                 ->where('vendas.empresa_id', Auth::user()->empresa_id)
                 ->select(
@@ -725,11 +714,10 @@ class Vendas extends Controller
                 'users.name as vendedor_nome',
                 'backoffice.name as backoffice_nome',
             ])
-            ->join('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
             ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
             ->leftJoin('users as backoffice', 'backoffice.id', '=', 'vendas.backoffice_id')
             ->where('vendas.empresa_id', $user->empresa_id)
-            ->where('contatos_corretores.tabulacao_id', Tabulations::ESTORNO);
+            ->where('vendas.tabulacao_id', Tabulations::ESTORNO);
 
         if ($user->user_role_id === UserRole::VENDEDOR) {
             $query->where('vendas.user_id', $user->id);
@@ -779,7 +767,7 @@ class Vendas extends Controller
         }
 
         abort_unless(
-            optional($venda->contatoCorretor)->tabulacao_id === Tabulations::ESTORNO,
+            (int) $venda->tabulacao_id === Tabulations::ESTORNO,
             403,
             'Esta venda não está em estorno.'
         );
@@ -844,9 +832,9 @@ class Vendas extends Controller
             // 1) Atualiza a venda + filhos com o payload completo.
             $this->repositoryVendas->updateContractFull($venda->id, $request->all());
 
-            // 2) Move tabulação do contato_corretor: ESTORNO → VENDA + grava histórico.
-            $ok = $this->contatosCorretoresRepository->alterStatusContract(
-                $venda->contato_id,
+            // 2) Move status da VENDA: ESTORNO → VENDA + grava histórico.
+            $ok = $this->repositoryVendas->alterStatusVenda(
+                $venda->id,
                 Tabulations::VENDA,
                 $observacaoReenvio,
                 null

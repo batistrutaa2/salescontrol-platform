@@ -182,6 +182,7 @@ class EstornoVendaTest extends TestCase
             'user_id' => $this->vendedor->id,
             'backoffice_id' => $this->backoffice->id,
             'contato_id' => $this->contatoId,
+            'tabulacao_id' => $this->tabulacaoVendaId,
             'cpf_cnpj' => '12345678900',
             'nome_contrato' => 'Cliente Teste',
             'email' => 'cliente@example.com',
@@ -209,9 +210,14 @@ class EstornoVendaTest extends TestCase
         $response->assertRedirect(route('backoffice.index'));
         $response->assertSessionHas('status', 'success');
 
+        // Status é da VENDA — o registro do contato (lead) não é tocado.
+        $this->assertDatabaseHas('vendas', [
+            'id' => $venda->id,
+            'tabulacao_id' => $this->tabulacaoEstornoId,
+        ]);
         $this->assertDatabaseHas('contatos_corretores', [
             'id' => $this->contatoCorretorId,
-            'tabulacao_id' => $this->tabulacaoEstornoId,
+            'tabulacao_id' => $this->tabulacaoVendaId,
         ]);
 
         $this->assertDatabaseHas('vendas_historico', [
@@ -238,8 +244,8 @@ class EstornoVendaTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('motivo_pendencia');
-        $this->assertDatabaseMissing('contatos_corretores', [
-            'id' => $this->contatoCorretorId,
+        $this->assertDatabaseMissing('vendas', [
+            'id' => $venda->id,
             'tabulacao_id' => $this->tabulacaoEstornoId,
         ]);
     }
@@ -332,7 +338,7 @@ class EstornoVendaTest extends TestCase
         $venda = $this->criarVenda();
 
         // Move para ESTORNO direto na pivot
-        DB::table('contatos_corretores')->where('id', $this->contatoCorretorId)
+        DB::table('vendas')->where('id', $venda->id)
             ->update(['tabulacao_id' => $this->tabulacaoEstornoId]);
 
         $response = $this->actingAs($this->vendedor)->get(route('sale.meusEstornosDados'));
@@ -356,7 +362,7 @@ class EstornoVendaTest extends TestCase
     public function test_vendedor_dono_acessa_tela_de_edicao_quando_em_estorno(): void
     {
         $venda = $this->criarVenda(['operadora_id' => $this->operadoraId, 'plano_id' => $this->planoId]);
-        DB::table('contatos_corretores')->where('id', $this->contatoCorretorId)
+        DB::table('vendas')->where('id', $venda->id)
             ->update(['tabulacao_id' => $this->tabulacaoEstornoId]);
 
         $response = $this->actingAs($this->vendedor)->get(route('sale.editEstorno', $venda->id));
@@ -366,7 +372,7 @@ class EstornoVendaTest extends TestCase
     public function test_vendedor_nao_pode_editar_venda_de_outro_vendedor(): void
     {
         $venda = $this->criarVenda();
-        DB::table('contatos_corretores')->where('id', $this->contatoCorretorId)
+        DB::table('vendas')->where('id', $venda->id)
             ->update(['tabulacao_id' => $this->tabulacaoEstornoId]);
 
         $outroVendedor = User::factory()->create([
@@ -392,7 +398,7 @@ class EstornoVendaTest extends TestCase
     {
         Notification::fake();
         $venda = $this->criarVenda(['motivo_pendencia' => 'Plano errado.', 'operadora_id' => $this->operadoraId]);
-        DB::table('contatos_corretores')->where('id', $this->contatoCorretorId)
+        DB::table('vendas')->where('id', $venda->id)
             ->update(['tabulacao_id' => $this->tabulacaoEstornoId]);
 
         $payload = $this->payloadReenvio([
@@ -413,13 +419,9 @@ class EstornoVendaTest extends TestCase
         $response->assertRedirect(route('sale.meusEstornos'));
         $response->assertSessionHas('status', 'success');
 
-        $this->assertDatabaseHas('contatos_corretores', [
-            'id' => $this->contatoCorretorId,
-            'tabulacao_id' => $this->tabulacaoVendaId,
-        ]);
-
         $this->assertDatabaseHas('vendas', [
             'id' => $venda->id,
+            'tabulacao_id' => $this->tabulacaoVendaId,
             'motivo_pendencia' => null,
             'plano_id' => $this->planoIdAlternativo,
             'backoffice_id' => $this->backoffice->id, // mantido
@@ -444,7 +446,7 @@ class EstornoVendaTest extends TestCase
     {
         // O vendedor pode não preencher observação — alinhamento já feito por outro canal.
         $venda = $this->criarVenda(['operadora_id' => $this->operadoraId]);
-        DB::table('contatos_corretores')->where('id', $this->contatoCorretorId)
+        DB::table('vendas')->where('id', $venda->id)
             ->update(['tabulacao_id' => $this->tabulacaoEstornoId]);
 
         $response = $this->actingAs($this->vendedor)->post(
@@ -455,8 +457,8 @@ class EstornoVendaTest extends TestCase
         $response->assertRedirect(route('sale.meusEstornos'));
         $response->assertSessionHas('status', 'success');
 
-        $this->assertDatabaseHas('contatos_corretores', [
-            'id' => $this->contatoCorretorId,
+        $this->assertDatabaseHas('vendas', [
+            'id' => $venda->id,
             'tabulacao_id' => $this->tabulacaoVendaId,
         ]);
 
@@ -471,7 +473,7 @@ class EstornoVendaTest extends TestCase
     public function test_reenvio_substitui_titulares_e_dependentes(): void
     {
         $venda = $this->criarVenda(['operadora_id' => $this->operadoraId]);
-        DB::table('contatos_corretores')->where('id', $this->contatoCorretorId)
+        DB::table('vendas')->where('id', $venda->id)
             ->update(['tabulacao_id' => $this->tabulacaoEstornoId]);
 
         // Cria titular antigo que deve ser substituído
@@ -539,7 +541,7 @@ class EstornoVendaTest extends TestCase
     public function test_segundo_reenvio_consecutivo_e_bloqueado_pelo_gate(): void
     {
         $venda = $this->criarVenda(['operadora_id' => $this->operadoraId]);
-        DB::table('contatos_corretores')->where('id', $this->contatoCorretorId)
+        DB::table('vendas')->where('id', $venda->id)
             ->update(['tabulacao_id' => $this->tabulacaoEstornoId]);
 
         $primeiro = $this->actingAs($this->vendedor)->post(
@@ -558,7 +560,7 @@ class EstornoVendaTest extends TestCase
     public function test_open_contract_redireciona_vendedor_para_edicao_quando_em_estorno(): void
     {
         $venda = $this->criarVenda();
-        DB::table('contatos_corretores')->where('id', $this->contatoCorretorId)
+        DB::table('vendas')->where('id', $venda->id)
             ->update(['tabulacao_id' => $this->tabulacaoEstornoId]);
 
         $response = $this->actingAs($this->vendedor)->get(route('backoffice.openContract', $venda->id));

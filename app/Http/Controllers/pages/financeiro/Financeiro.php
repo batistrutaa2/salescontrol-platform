@@ -4,7 +4,6 @@ namespace App\Http\Controllers\pages\financeiro;
 
 use App\Enums\Tabulations;
 use App\Http\Controllers\Controller;
-use App\Models\ContatosCorretores;
 use App\Models\Operadora;
 use App\Models\Plano;
 use App\Models\Recebivel;
@@ -12,6 +11,7 @@ use App\Models\RegrasComissionamento;
 use App\Models\RegrasComissionamentoParcela;
 use App\Models\User;
 use App\Models\Vendas;
+use App\Repositories\Contracts\VendasRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -935,12 +935,13 @@ class Financeiro extends Controller
 
         Recebivel::where('venda_id', $vendaId)->delete();
 
-        // Alterar tabulação para DECLINIO no contatos_corretores
-        if ($venda->contato_id) {
-            ContatosCorretores::where('contato_id', $venda->contato_id)
-                ->where('empresa_id', $venda->empresa_id)
-                ->update(['tabulacao_id' => Tabulations::DECLINIO]);
-        }
+        // Declina apenas ESTA venda — o contato pode ter outras vendas ativas.
+        app(VendasRepositoryInterface::class)->alterStatusVenda(
+            $venda->id,
+            Tabulations::DECLINIO,
+            'Lançamento financeiro excluído',
+            null
+        );
 
         Log::info("Lançamento completo ({$totalExcluido} parcelas fixas + vitalícios) da venda {$vendaId} excluído e marcado como declinado pelo usuário ".auth()->user()->id);
 

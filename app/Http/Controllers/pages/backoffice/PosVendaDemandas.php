@@ -70,9 +70,8 @@ class PosVendaDemandas extends Controller
             // 1) IDs de contratos implantados visíveis (aplicando filtros + papel).
             $query = DB::table('vendas')
                 ->select('vendas.id')
-                ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
                 ->where('vendas.empresa_id', $empresaId)
-                ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO);
+                ->where('vendas.tabulacao_id', Tabulations::IMPLANTADO);
 
             if ($busca) {
                 $query->where(function ($q) use ($busca) {
@@ -278,10 +277,9 @@ class PosVendaDemandas extends Controller
                     'vendas.data_implantacao',
                     'bo.name as backoffice_nome'
                 )
-                ->leftJoin('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
                 ->leftJoin('users as bo', 'bo.id', '=', 'vendas.backoffice_id')
                 ->where('vendas.empresa_id', $empresaId)
-                ->where('contatos_corretores.tabulacao_id', Tabulations::IMPLANTADO);
+                ->where('vendas.tabulacao_id', Tabulations::IMPLANTADO);
 
             if ($termo !== '') {
                 $query->where(function ($q) use ($termo) {

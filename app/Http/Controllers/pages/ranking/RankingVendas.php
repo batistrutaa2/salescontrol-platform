@@ -2,24 +2,26 @@
 
 namespace App\Http\Controllers\pages\ranking;
 
+use App\Enums\Tabulations;
 use App\Http\Controllers\Controller;
 use App\Models\MetaConfiguracoes;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use App\Enums\Tabulations;
 
 class RankingVendas extends Controller
 {
     public function index()
     {
         $metas = MetaConfiguracoes::where('empresa_id', auth()->user()->empresa_id)->get();
+
         return view('content.pages.ranking.index', ['metas' => $metas]);
     }
 
     public function edit($id)
     {
         $meta = MetaConfiguracoes::findOrFail($id);
+
         return view('content.pages.ranking.edit', ['meta' => $meta]);
     }
 
@@ -28,12 +30,10 @@ class RankingVendas extends Controller
         return view('content.pages.ranking.config');
     }
 
-
     public function rankingVendas()
     {
         return view('content.pages.ranking.rankingVendas');
     }
-
 
     public function rankingVendasData()
     {
@@ -41,15 +41,14 @@ class RankingVendas extends Controller
         $meta = MetaConfiguracoes::where('ativa', true)
             ->first();
 
-        if (!$meta) {
+        if (! $meta) {
             return response()->json(['message' => 'Nenhuma meta ativa encontrada.'], 404);
         }
 
         $query = DB::table('vendas')
             ->join('users', 'users.id', '=', 'vendas.user_id')
-            ->join('contatos_corretores', 'contatos_corretores.contato_id', '=', 'vendas.contato_id')
             ->where('vendas.empresa_id', $empresaId)
-            ->whereIn('contatos_corretores.tabulacao_id', [
+            ->whereIn('vendas.tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
                 Tabulations::ESTORNO,
@@ -59,9 +58,8 @@ class RankingVendas extends Controller
                 Tabulations::REGULARIZADO,
                 Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
                 Tabulations::ANALISE_DOCUMENTOS,
-                Tabulations::AGUARD_ASSINATURA_DS
+                Tabulations::AGUARD_ASSINATURA_DS,
             ]);
-
 
         if ($meta->periodo === 'MENSAL') {
             $query->whereMonth('vendas.created_at', now()->month)
@@ -93,11 +91,10 @@ class RankingVendas extends Controller
                 'valor' => $meta->valor_meta,
                 'tipo_calculo' => $meta->tipo_calculo,
                 'valor_meta' => $meta->valor_meta,
-                'quantidade_meta' => $meta->quantidade_meta
+                'quantidade_meta' => $meta->quantidade_meta,
             ],
-            'vendedores' => $vendedores
+            'vendedores' => $vendedores,
         ]);
-
 
     }
 
@@ -113,12 +110,11 @@ class RankingVendas extends Controller
 
         $rows = DB::table('vendas as v')
             ->join('users as u', 'u.id', '=', 'v.user_id')
-            ->join('contatos_corretores', 'contatos_corretores.contato_id', '=', 'v.contato_id')
             ->selectRaw("v.user_id, u.name as vendedor, COALESCE(SUM(CASE WHEN YEAR(v.created_at) >= 2026 THEN v.valor_contrato + CASE WHEN v.angariacao_status = 'SIM' THEN COALESCE(v.angariacao_valor, 0) ELSE 0 END ELSE v.valor_contrato END),0) as total")
             ->where('v.empresa_id', auth()->user()->empresa_id)
-            ->when($request->integer('empresa_id'), fn($q, $v) => $q->where('v.empresa_id', $v))
+            ->when($request->integer('empresa_id'), fn ($q, $v) => $q->where('v.empresa_id', $v))
             ->whereBetween('v.created_at', [$start, $end])
-            ->whereIn('contatos_corretores.tabulacao_id', [
+            ->whereIn('v.tabulacao_id', [
                 Tabulations::VENDA,
                 Tabulations::IMPLANTADO,
                 Tabulations::ESTORNO,
@@ -128,7 +124,7 @@ class RankingVendas extends Controller
                 Tabulations::REGULARIZADO,
                 Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
                 Tabulations::ANALISE_DOCUMENTOS,
-                Tabulations::AGUARD_ASSINATURA_DS
+                Tabulations::AGUARD_ASSINATURA_DS,
             ])
             ->groupBy('v.user_id', 'u.name')
             ->orderByDesc('total')

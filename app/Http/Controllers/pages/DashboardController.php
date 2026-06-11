@@ -49,21 +49,19 @@ class DashboardController extends Controller
 
         // Vendas Cadastradas (valor)
         $salesRegistered = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->whereYear('a.created_at', $year)
             ->whereMonth('a.created_at', $month)
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
-            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->whereIn('a.tabulacao_id', $validTabulations)
             ->selectRaw("$sumValorSql as total")
             ->value('total') ?? 0;
 
         // Vendas Implantadas (valor)
         $salesImplanted = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->whereYear('a.created_at', $year)
             ->whereMonth('a.created_at', $month)
-            ->where('c.tabulacao_id', Tabulations::IMPLANTADO)
+            ->where('a.tabulacao_id', Tabulations::IMPLANTADO)
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
             ->selectRaw("$sumValorSql as total")
@@ -71,12 +69,11 @@ class DashboardController extends Controller
 
         // Quantidade de vendas cadastradas (usado para ticket médio)
         $qtyRegistered = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->whereYear('a.created_at', $year)
             ->whereMonth('a.created_at', $month)
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
-            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->whereIn('a.tabulacao_id', $validTabulations)
             ->count();
 
         // Ticket médio
@@ -84,12 +81,11 @@ class DashboardController extends Controller
 
         // Operadora mais vendida (ano inteiro)
         $operadoraMaisVendida = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->select('a.operadora', DB::raw('COUNT(*) as total'))
             ->whereYear('a.created_at', $year)
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
-            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->whereIn('a.tabulacao_id', $validTabulations)
             ->whereNotNull('a.operadora')
             ->where('a.operadora', '!=', '')
             ->groupBy('a.operadora')
@@ -104,11 +100,10 @@ class DashboardController extends Controller
             ->count('contato_id');
 
         $vendasCount = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->whereYear('a.created_at', $year)
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
-            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->whereIn('a.tabulacao_id', $validTabulations)
             ->count();
 
         $taxaConversao = $leadsTrabalhados > 0 ? round(($vendasCount / $leadsTrabalhados) * 100, 1) : 0;
@@ -119,11 +114,10 @@ class DashboardController extends Controller
                 DB::raw('MONTH(a.created_at) as month'),
                 DB::raw("$sumValorSql as total")
             )
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->where('a.user_id', $user->id)
             ->where('a.empresa_id', $empresaId)
             ->whereYear('a.created_at', $year)
-            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->whereIn('a.tabulacao_id', $validTabulations)
             ->groupBy(DB::raw('MONTH(a.created_at)'))
             ->orderBy('month')
             ->get();
@@ -146,12 +140,11 @@ class DashboardController extends Controller
 
         // Ranking mensal - todos vendedores da empresa
         $rankingMensal = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->select('a.user_id', DB::raw("$sumValorSql as total_vendas"))
             ->where('a.empresa_id', $empresaId)
             ->whereYear('a.created_at', $currentYear)
             ->whereMonth('a.created_at', $currentMonth)
-            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->whereIn('a.tabulacao_id', $validTabulations)
             ->when(! empty($usersExcluidosRanking), fn ($q) => $q->whereNotIn('a.user_id', $usersExcluidosRanking))
             ->groupBy('a.user_id')
             ->orderByDesc('total_vendas')
@@ -168,12 +161,11 @@ class DashboardController extends Controller
 
         // Ranking trimestral - todos vendedores da empresa
         $rankingTrimestral = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->select('a.user_id', DB::raw("$sumValorSql as total_vendas"))
             ->where('a.empresa_id', $empresaId)
             ->whereYear('a.created_at', $currentYear)
             ->whereRaw('MONTH(a.created_at) BETWEEN ? AND ?', [$quarterStartMonth, $quarterEndMonth])
-            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->whereIn('a.tabulacao_id', $validTabulations)
             ->when(! empty($usersExcluidosRanking), fn ($q) => $q->whereNotIn('a.user_id', $usersExcluidosRanking))
             ->groupBy('a.user_id')
             ->orderByDesc('total_vendas')
@@ -190,16 +182,14 @@ class DashboardController extends Controller
 
         // Estornos pendentes — independentes do mês selecionado, pois precisam de tratativa
         $estornosPendentes = DB::table('vendas as a')
-            ->join('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
-            ->where('c.tabulacao_id', Tabulations::ESTORNO)
+            ->where('a.tabulacao_id', Tabulations::ESTORNO)
             ->count();
 
         // Vendas recentes (últimas 10)
         $vendasRecentes = DB::table('vendas as a')
-            ->leftJoin('contatos_corretores as c', 'c.contato_id', '=', 'a.contato_id')
-            ->leftJoin('tabulacoes as t', 't.id', '=', 'c.tabulacao_id')
+            ->leftJoin('tabulacoes as t', 't.id', '=', 'a.tabulacao_id')
             ->select(
                 'a.nome_contrato',
                 'a.operadora',
@@ -212,7 +202,7 @@ class DashboardController extends Controller
             )
             ->where('a.empresa_id', $empresaId)
             ->where('a.user_id', $user->id)
-            ->whereIn('c.tabulacao_id', $validTabulations)
+            ->whereIn('a.tabulacao_id', $validTabulations)
             ->orderByDesc('a.created_at')
             ->limit(10)
             ->get()

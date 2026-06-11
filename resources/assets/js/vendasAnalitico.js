@@ -918,7 +918,7 @@
         }
 
         tbody.innerHTML = vendas.map(venda => {
-            const status = venda.contato_corretor?.tabulacao?.descricao || 'N/A';
+            const status = venda.tabulacao?.descricao || 'N/A';
             const statusClass = getStatusClass(status);
             const angariacao = venda.angariacao_status === 'SIM' && parseFloat(venda.angariacao_valor || 0) > 0
                 ? `<span class="contract-value angariacao">${formatCurrency(venda.angariacao_valor)}</span>`
