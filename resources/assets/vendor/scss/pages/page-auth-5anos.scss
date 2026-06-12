@@ -1,0 +1,453 @@
+// ════════════════════════════════════════════════════════════════════
+//  LOGIN — EDIÇÃO COMEMORATIVA 5 ANOS LK BROKERS
+//  Página de celebração: takeover dark-luxe (independe do tema do app),
+//  vídeo Remotion no painel esquerdo, formulário sobre vidro escuro.
+// ════════════════════════════════════════════════════════════════════
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import 'animate.css/animate.css';
+
+.lk5-login-page {
+  // Paleta jubileu (espelha o tema do vídeo Remotion)
+  --lk5-fundo: #0b0817;
+  --lk5-fundo-profundo: #060410;
+  --lk5-violeta: #7c3aed;
+  --lk5-violeta-claro: #a78bfa;
+  --lk5-ouro: #d4af37;
+  --lk5-ouro-claro: #f6e27a;
+  --lk5-marfim: #faf6ec;
+  --lk5-texto-suave: rgba(250, 246, 236, 0.6);
+  --lk5-vidro: rgba(20, 14, 40, 0.55);
+  --lk5-borda-ouro: rgba(212, 175, 55, 0.28);
+  --lk5-ouro-gradiente: linear-gradient(135deg, #f6e27a 0%, #d4af37 38%, #9a7b1e 52%, #f6e27a 68%, #d4af37 100%);
+
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle 700px at 18% 25%, rgba(124, 58, 237, 0.2), transparent 70%),
+    radial-gradient(circle 600px at 85% 80%, rgba(212, 175, 55, 0.1), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 110%, var(--lk5-fundo) 0%, var(--lk5-fundo-profundo) 70%);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--lk5-marfim);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+
+  // ───────────────────────────── Painel do filme ─────────────────────
+  .lk5-cinema {
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    background: var(--lk5-fundo-profundo);
+
+    .lk5-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    // véu que funde o vídeo com o painel do formulário
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, transparent 78%, rgba(6, 4, 16, 0.85) 100%),
+        radial-gradient(ellipse 95% 85% at 50% 50%, transparent 60%, rgba(4, 2, 12, 0.55) 100%);
+    }
+
+    .lk5-emblema-canto {
+      position: absolute;
+      top: 2.2rem;
+      left: 2.4rem;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+
+      .lk5-selo {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 1.5px solid var(--lk5-borda-ouro);
+        background: rgba(6, 4, 16, 0.55);
+        backdrop-filter: blur(8px);
+        font-family: 'Fraunces', serif;
+        font-weight: 700;
+        font-size: 1.6rem;
+        background-image: var(--lk5-ouro-gradiente);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        box-shadow: 0 0 28px rgba(212, 175, 55, 0.25);
+      }
+
+      .lk5-emblema-texto {
+        line-height: 1.25;
+
+        strong {
+          display: block;
+          font-weight: 700;
+          font-size: 0.95rem;
+          letter-spacing: 0.06em;
+          color: var(--lk5-marfim);
+        }
+
+        span {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.72rem;
+          letter-spacing: 0.28em;
+          text-transform: uppercase;
+          color: var(--lk5-ouro);
+        }
+      }
+    }
+  }
+
+  // Fallback animado caso o vídeo ainda não tenha sido renderizado
+  .lk5-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.2rem;
+    text-align: center;
+
+    .lk5-fallback-cinco {
+      font-family: 'Fraunces', serif;
+      font-weight: 700;
+      font-size: clamp(12rem, 28vw, 24rem);
+      line-height: 1;
+      background-image: var(--lk5-ouro-gradiente);
+      background-size: 220% 220%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: lk5-brilho 6s ease-in-out infinite;
+      filter: drop-shadow(0 0 60px rgba(212, 175, 55, 0.35));
+    }
+
+    .lk5-fallback-anos {
+      font-weight: 700;
+      font-size: 1.6rem;
+      letter-spacing: 0.75em;
+      padding-left: 0.75em;
+      text-transform: uppercase;
+    }
+
+    .lk5-fallback-periodo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      letter-spacing: 0.3em;
+      color: var(--lk5-ouro);
+    }
+  }
+
+  // ─────────────────────────── Painel do formulário ──────────────────
+  .lk5-form-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2.5rem;
+    position: relative;
+
+    // constelação sutil atrás do cartão
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(1.5px 1.5px at 12% 18%, rgba(246, 226, 122, 0.5), transparent),
+        radial-gradient(1px 1px at 78% 12%, rgba(167, 139, 250, 0.55), transparent),
+        radial-gradient(1.5px 1.5px at 88% 46%, rgba(246, 226, 122, 0.4), transparent),
+        radial-gradient(1px 1px at 22% 72%, rgba(167, 139, 250, 0.45), transparent),
+        radial-gradient(1.5px 1.5px at 64% 88%, rgba(246, 226, 122, 0.45), transparent),
+        radial-gradient(1px 1px at 42% 34%, rgba(250, 246, 236, 0.35), transparent);
+      pointer-events: none;
+    }
+  }
+
+  .lk5-card {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    padding: 3.4rem 3.2rem 2.8rem;
+    border-radius: 26px;
+    // fundo quase opaco: vidro borrado deixava o conteúdo com aparência embaçada
+    background: linear-gradient(165deg, rgba(30, 21, 56, 0.97) 0%, rgba(13, 9, 28, 0.97) 100%);
+    border: 1px solid rgba(250, 246, 236, 0.1);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(250, 246, 236, 0.07);
+
+    // filete dourado superior
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 24px;
+      right: 24px;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, var(--lk5-ouro), transparent);
+    }
+  }
+
+  .lk5-faixa-aniversario {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 1.6rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 999px;
+    border: 1px solid var(--lk5-borda-ouro);
+    background: rgba(212, 175, 55, 0.08);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--lk5-ouro-claro);
+
+    .lk5-faisca {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--lk5-ouro-claro);
+      box-shadow: 0 0 12px var(--lk5-ouro);
+      animation: lk5-pulsar 2.4s ease-in-out infinite;
+    }
+  }
+
+  .lk5-marca {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.4rem;
+
+    .app-brand-text {
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      font-size: 2.35rem;
+      background-image: var(--lk5-ouro-gradiente);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    svg {
+      filter: drop-shadow(0 0 14px rgba(124, 58, 237, 0.5));
+    }
+  }
+
+  .lk5-titulo {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 2.1rem;
+    color: var(--lk5-marfim);
+    margin-bottom: 0.5rem;
+  }
+
+  .lk5-subtitulo {
+    font-size: 1.05rem;
+    color: var(--lk5-texto-suave);
+    margin-bottom: 2.4rem;
+    line-height: 1.6;
+  }
+
+  // ── Campos sobre fundo escuro (overrides do Materio) ──
+  .form-floating.form-floating-outline {
+    .form-control {
+      height: 3.8rem;
+      font-size: 1.08rem;
+      border-radius: 14px;
+      background: rgba(6, 4, 16, 0.5);
+      border: 1.5px solid rgba(250, 246, 236, 0.2);
+      color: var(--lk5-marfim);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+
+      &:focus {
+        border-color: var(--lk5-ouro);
+        box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.16);
+      }
+    }
+
+    label {
+      font-size: 1.02rem;
+      color: var(--lk5-texto-suave) !important;
+    }
+
+    .form-control:focus ~ label,
+    .form-control:not(:placeholder-shown) ~ label,
+    .form-control:-webkit-autofill ~ label {
+      color: var(--lk5-ouro-claro) !important;
+      background: transparent;
+
+      // o tema claro pinta um "comprimido" branco atrás da label flutuada
+      // (background: $card-bg) — aqui ele vira a cor do cartão escuro
+      &::after {
+        background-color: #17102e !important;
+      }
+    }
+  }
+
+  // ── Autofill do navegador (Chrome/Edge) sobre o tema escuro ──
+  // O navegador força fundo claro e texto escuro; o inset gigante pinta o
+  // fundo por dentro e o text-fill devolve o marfim.
+  input.form-control:-webkit-autofill,
+  input.form-control:-webkit-autofill:hover {
+    -webkit-text-fill-color: var(--lk5-marfim) !important;
+    caret-color: var(--lk5-marfim);
+    -webkit-box-shadow: 0 0 0 1000px #110c24 inset !important;
+    box-shadow: 0 0 0 1000px #110c24 inset !important;
+    border-color: rgba(250, 246, 236, 0.2);
+    transition: background-color 99999s ease-in-out 0s;
+  }
+
+  input.form-control:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--lk5-marfim) !important;
+    caret-color: var(--lk5-marfim);
+    -webkit-box-shadow: 0 0 0 1000px #110c24 inset, 0 0 0 4px rgba(212, 175, 55, 0.16) !important;
+    box-shadow: 0 0 0 1000px #110c24 inset, 0 0 0 4px rgba(212, 175, 55, 0.16) !important;
+    border-color: var(--lk5-ouro);
+    transition: background-color 99999s ease-in-out 0s;
+  }
+
+  .input-group-text {
+    background: rgba(6, 4, 16, 0.5);
+    border: 1.5px solid rgba(250, 246, 236, 0.2);
+    border-radius: 14px;
+    color: var(--lk5-texto-suave);
+    font-size: 1.2rem;
+    padding-inline: 1rem;
+  }
+
+  .form-check-input {
+    background-color: rgba(6, 4, 16, 0.6);
+    border-color: rgba(250, 246, 236, 0.3);
+
+    &:checked {
+      background-color: var(--lk5-ouro);
+      border-color: var(--lk5-ouro);
+    }
+  }
+
+  .form-check-input {
+    width: 1.15em;
+    height: 1.15em;
+  }
+
+  .form-check-label {
+    color: var(--lk5-texto-suave);
+    font-size: 0.98rem;
+  }
+
+  .alert-danger {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+  }
+
+  // ── Botão de entrada: ouro líquido ──
+  .lk5-btn-entrar {
+    position: relative;
+    width: 100%;
+    padding: 1.15rem 1rem;
+    border: none;
+    border-radius: 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1.12rem;
+    letter-spacing: 0.04em;
+    color: #241a04;
+    background-image: var(--lk5-ouro-gradiente);
+    background-size: 200% 200%;
+    background-position: 0% 50%;
+    box-shadow: 0 12px 36px rgba(212, 175, 55, 0.28);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+
+    &:hover {
+      background-position: 100% 50%;
+      transform: translateY(-2px);
+      box-shadow: 0 18px 48px rgba(212, 175, 55, 0.4);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  .lk5-rodape {
+    margin-top: 2rem;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(250, 246, 236, 0.32);
+
+    strong {
+      color: var(--lk5-ouro);
+      font-weight: 500;
+    }
+  }
+
+  // ── Crista compacta para telas sem o painel de vídeo ──
+  .lk5-crista-mobile {
+    display: none;
+    text-align: center;
+    margin-bottom: 1.4rem;
+
+    .lk5-cinco {
+      font-family: 'Fraunces', serif;
+      font-weight: 700;
+      font-size: 4.4rem;
+      line-height: 1;
+      background-image: var(--lk5-ouro-gradiente);
+      background-size: 220% 220%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: lk5-brilho 6s ease-in-out infinite;
+    }
+
+    .lk5-anos {
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.6em;
+      padding-left: 0.6em;
+      text-transform: uppercase;
+      color: var(--lk5-marfim);
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .lk5-crista-mobile {
+      display: block;
+    }
+
+    .lk5-form-panel {
+      padding: 2rem 1.25rem;
+    }
+  }
+}
+
+@keyframes lk5-brilho {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes lk5-pulsar {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.75);
+  }
+}

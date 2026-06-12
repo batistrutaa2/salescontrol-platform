@@ -1,0 +1,285 @@
+// ════════════════════════════════════════════════════════════════════
+//  AGRADECIMENTO INDIVIDUAL — 5 ANOS LK BROKERS
+//  Overlay em tela cheia exibido uma única vez após o login.
+//  Estética jubileu: midnight + dourado (espelha o vídeo do login).
+// ════════════════════════════════════════════════════════════════════
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+.lk5-tributo {
+  --lk5t-fundo: #0b0817;
+  --lk5t-fundo-profundo: #060410;
+  --lk5t-ouro: #d4af37;
+  --lk5t-ouro-claro: #f6e27a;
+  --lk5t-marfim: #faf6ec;
+  --lk5t-texto-suave: rgba(250, 246, 236, 0.62);
+  --lk5t-ouro-gradiente: linear-gradient(135deg, #f6e27a 0%, #d4af37 38%, #9a7b1e 52%, #f6e27a 68%, #d4af37 100%);
+
+  position: fixed;
+  inset: 0;
+  z-index: 99999; // acima de navbar, menus, modais e toasts
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse 120% 90% at 50% 110%, var(--lk5t-fundo) 0%, var(--lk5t-fundo-profundo) 70%);
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  color: var(--lk5t-marfim);
+  -webkit-font-smoothing: antialiased;
+  opacity: 1;
+  transition: opacity 0.9s ease;
+
+  &.lk5-saindo {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  // ── Atmosfera ──
+  .lk5-tributo-aurora {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle 640px at 20% 28%, rgba(124, 58, 237, 0.22), transparent 70%),
+      radial-gradient(circle 560px at 82% 75%, rgba(212, 175, 55, 0.13), transparent 70%);
+    animation: lk5t-respira 9s ease-in-out infinite;
+  }
+
+  .lk5-tributo-particulas {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 11% 22%, rgba(246, 226, 122, 0.6), transparent),
+      radial-gradient(1px 1px at 31% 68%, rgba(167, 139, 250, 0.5), transparent),
+      radial-gradient(1.5px 1.5px at 52% 14%, rgba(246, 226, 122, 0.42), transparent),
+      radial-gradient(1px 1px at 67% 82%, rgba(250, 246, 236, 0.4), transparent),
+      radial-gradient(1.5px 1.5px at 84% 35%, rgba(246, 226, 122, 0.5), transparent),
+      radial-gradient(1px 1px at 23% 88%, rgba(167, 139, 250, 0.45), transparent),
+      radial-gradient(1.5px 1.5px at 92% 64%, rgba(250, 246, 236, 0.35), transparent),
+      radial-gradient(1px 1px at 44% 44%, rgba(246, 226, 122, 0.38), transparent);
+    animation: lk5t-flutua 14s ease-in-out infinite alternate;
+  }
+
+  // ── Palco e cenas ──
+  .lk5-tributo-palco {
+    position: relative;
+    width: min(960px, 92vw);
+    text-align: center;
+    perspective: 1100px;
+  }
+
+  .lk5-cena {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateZ(-220px) translateY(26px);
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.8s;
+    pointer-events: none;
+
+    &.lk5-ativa {
+      position: relative;
+      opacity: 1;
+      visibility: visible;
+      transform: translateZ(0) translateY(0);
+      transition: opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.15s, transform 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.15s, visibility 0s;
+      pointer-events: auto;
+    }
+  }
+
+  // ── Tipografia das cenas ──
+  .lk5-cinco-ouro {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: clamp(11rem, 30vh, 19rem);
+    line-height: 1;
+    background-image: var(--lk5t-ouro-gradiente);
+    background-size: 220% 220%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 60px rgba(212, 175, 55, 0.35));
+    animation: lk5t-brilho 5s ease-in-out infinite;
+  }
+
+  .lk5-cena-overline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(0.8rem, 1.6vw, 1.05rem);
+    letter-spacing: 0.42em;
+    text-transform: lowercase;
+    color: var(--lk5t-ouro);
+  }
+
+  .lk5-cena-titulo {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(2.4rem, 6vw, 4.6rem);
+    line-height: 1.18;
+  }
+
+  .lk5-cena-titulo-menor {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    line-height: 1.2;
+  }
+
+  .lk5-cena-texto {
+    max-width: 640px;
+    font-size: clamp(1.05rem, 2vw, 1.35rem);
+    line-height: 1.65;
+    color: var(--lk5t-texto-suave);
+  }
+
+  .lk5-cena-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+    letter-spacing: 0.3em;
+    color: var(--lk5t-texto-suave);
+  }
+
+  .lk5-ouro-texto {
+    background-image: var(--lk5t-ouro-gradiente);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .lk5-data-destaque {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: clamp(2.6rem, 7vw, 5rem);
+    background-image: var(--lk5t-ouro-gradiente);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 6px 30px rgba(212, 175, 55, 0.3));
+  }
+
+  // ── Contadores ──
+  .lk5-contadores {
+    display: flex;
+    align-items: center;
+    gap: clamp(2rem, 6vw, 4.5rem);
+    margin-top: 0.8rem;
+  }
+
+  .lk5-contador {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .lk5-contador-valor {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: clamp(4rem, 11vw, 7.5rem);
+    line-height: 1;
+    background-image: var(--lk5t-ouro-gradiente);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 6px 30px rgba(212, 175, 55, 0.3));
+  }
+
+  .lk5-contador-label {
+    font-size: clamp(0.9rem, 1.8vw, 1.15rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--lk5t-texto-suave);
+  }
+
+  .lk5-contador-divisor {
+    width: 1.5px;
+    height: clamp(4rem, 10vw, 7rem);
+    background: linear-gradient(180deg, transparent, var(--lk5t-ouro), transparent);
+  }
+
+  // ── Botão final (só aparece na última cena) ──
+  .lk5-btn-concluir {
+    margin-top: 1.6rem;
+    padding: 1.05rem 2.6rem;
+    border: none;
+    border-radius: 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1.08rem;
+    letter-spacing: 0.04em;
+    color: #241a04;
+    background-image: var(--lk5t-ouro-gradiente);
+    background-size: 200% 200%;
+    background-position: 0% 50%;
+    box-shadow: 0 14px 40px rgba(212, 175, 55, 0.3);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+
+    &.lk5-visivel {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    &:hover {
+      background-position: 100% 50%;
+      transform: translateY(-2px);
+      box-shadow: 0 20px 52px rgba(212, 175, 55, 0.42);
+    }
+  }
+
+  // ── Confete da cena final ──
+  .lk5-confete {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    span {
+      position: absolute;
+      top: -4%;
+      width: 9px;
+      height: 5px;
+      border-radius: 2px;
+      opacity: 0;
+      animation: lk5t-confete-cai var(--dur, 3.2s) ease-in var(--atraso, 0s) infinite;
+    }
+  }
+}
+
+// Trava o scroll da página enquanto o tributo está ativo
+body.lk5-tributo-ativo {
+  overflow: hidden !important;
+}
+
+@keyframes lk5t-respira {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.06) translateY(-12px); }
+}
+
+@keyframes lk5t-flutua {
+  from { transform: translateY(0); }
+  to { transform: translateY(-26px); }
+}
+
+@keyframes lk5t-brilho {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes lk5t-confete-cai {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg);
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.85;
+    transform: translateY(108vh) rotate(var(--giro, 540deg));
+  }
+}

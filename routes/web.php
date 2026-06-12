@@ -44,6 +44,10 @@ Route::get('/tv-comercial/ranking', [\App\Http\Controllers\TvComercialController
 
 Route::middleware(['auth'])->group(function () {
 
+  /** AGRADECIMENTO 5 ANOS */
+  Route::post('/agradecimento-5anos/concluir', [\App\Http\Controllers\pages\Agradecimento5AnosController::class, 'concluir'])->name('agradecimento-5anos.concluir');
+  Route::get('/agradecimento-5anos/rever', [\App\Http\Controllers\pages\Agradecimento5AnosController::class, 'rever'])->name('agradecimento-5anos.rever');
+
   /** MANAGER */
   Route::get('manager/changeCompany/{companyId}', [Manager::class, 'changeCompany'])->name('manager.changeCompany');
   Route::post('manager/switch-module', [Manager::class, 'switchModule'])->name('manager.switchModule');

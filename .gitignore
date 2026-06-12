@@ -1,6 +1,7 @@
 /.phpunit.cache
 /docs
 /node_modules
+/remotion/node_modules
 
 /public/build
 /public/hot

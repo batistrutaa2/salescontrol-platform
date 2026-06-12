@@ -501,8 +501,10 @@
             });
     }
 
-    document.addEventListener("DOMContentLoaded", buscarNotificacoes);
-    setInterval(buscarNotificacoes, 60000);
+    @auth
+        document.addEventListener("DOMContentLoaded", buscarNotificacoes);
+        setInterval(buscarNotificacoes, 60000);
+    @endauth
 
     // ================= Notificações em Tempo Real via Reverb =================
     // Verifica se o Echo está disponível e se as variáveis do usuário foram definidas

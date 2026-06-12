@@ -28,6 +28,7 @@
                 <span class="dv-greeting-label">Meu Dashboard</span>
                 <h1 class="dv-main-title">Meus Resultados</h1>
                 <p class="dv-subtitle">Acompanhe seus resultados e metas</p>
+                @include('_partials.btn-trajetoria-5anos')
             </div>
             <div class="dv-header-filters">
                 <div class="dv-filter-group">

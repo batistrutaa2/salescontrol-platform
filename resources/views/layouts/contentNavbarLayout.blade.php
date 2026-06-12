@@ -89,4 +89,6 @@
     <!-- Drag Target Area To SlideIn Menu On Small Screens -->
     <div class="drag-target"></div>
     </div>
+
+    @include('_partials.agradecimento-5anos')
 @endsection
