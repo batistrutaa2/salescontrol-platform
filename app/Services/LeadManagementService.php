@@ -12,9 +12,11 @@ use App\Models\LeadAtividade;
 use App\Models\Ligacoes;
 use App\Models\LogPreditiva;
 use App\Models\Preditiva;
+use App\Models\PreditivaEnvio;
 use App\Models\TransferenciaContato;
 use App\Repositories\Eloquent\VendasRepository;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class LeadManagementService
 {
@@ -132,12 +134,14 @@ class LeadManagementService
             ContatosCorretores::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             LogPreditiva::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             Preditiva::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
+            PreditivaEnvio::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             TransferenciaContato::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             Contatos::where('id', $contatoId)->where('empresa_id', $empresaId)->delete();
             DB::commit();
             return ['success' => true, 'message' => 'Lead excluido com sucesso.'];
         } catch (\Throwable $th) {
             DB::rollBack();
+            Log::error("Erro ao excluir lead {$contatoId}: " . $th->getMessage());
             return ['success' => false, 'message' => 'Erro ao excluir lead.'];
         }
     }

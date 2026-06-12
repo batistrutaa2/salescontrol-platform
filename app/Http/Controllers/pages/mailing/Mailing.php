@@ -12,6 +12,7 @@ use App\Models\LeadAtividade;
 use App\Models\Ligacoes;
 use App\Models\LogPreditiva;
 use App\Models\Preditiva;
+use App\Models\PreditivaEnvio;
 use App\Models\TransferenciaContato;
 use Illuminate\Http\Request;
 use App\UseCases\MailingUseCase;
@@ -164,6 +165,7 @@ class Mailing extends Controller
       ContatosCorretores::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       LogPreditiva::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Preditiva::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      PreditivaEnvio::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       TransferenciaContato::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Contatos::where("id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       DB::commit();
@@ -193,6 +195,7 @@ class Mailing extends Controller
       ContatosCorretores::where("contato_id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       LogPreditiva::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Preditiva::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
+      PreditivaEnvio::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       TransferenciaContato::where('contato_id', $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       Contatos::where("id", $id)->where("empresa_id", Auth::user()->empresa_id)->delete();
       DB::commit();
