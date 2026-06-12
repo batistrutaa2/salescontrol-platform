@@ -2,36 +2,39 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class Comentarios extends Model
 {
-  use HasFactory;
+    use HasFactory;
 
-  protected $table = "comentarios";
+    protected $table = 'comentarios';
 
-  protected $fillable = [
-    'id',
-    'empresa_id',
-    'user_id',
-    'contato_id',
-    'anotacao',
-    'legado',
-    'visivel',
-    'supervisao',
-    'created_at',
-    'updated_at',
-  ];
+    protected $fillable = [
+        'id',
+        'empresa_id',
+        'user_id',
+        'contato_id',
+        'anotacao',
+        'legado',
+        'visivel',
+        'supervisao',
+        'fixado',
+        'fixado_em',
+        'editado_em',
+        'created_at',
+        'updated_at',
+    ];
 
-  public function getCreatedAtAttribute($value)
-  {
-    return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
-  }
+    public function getCreatedAtAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
+    }
 
-  public function getUpdatedAtAttribute($value)
-  {
-    return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
-  }
+    public function getUpdatedAtAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;
+    }
 }

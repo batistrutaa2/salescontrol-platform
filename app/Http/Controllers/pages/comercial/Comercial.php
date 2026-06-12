@@ -466,6 +466,51 @@ class Comercial extends Controller
   }
 
 
+  public function togglePinComment($id)
+  {
+    $comentario = $this->comentariosRepository->togglePinComment($id);
+
+    if (!$comentario) {
+      return response()->json([
+        'error' => true,
+        'message' => 'Voce so pode fixar comentarios feitos por voce.'
+      ], 403);
+    }
+
+    return response()->json([
+      'error' => false,
+      'fixado' => $comentario->fixado === 'Y',
+      'message' => $comentario->fixado === 'Y' ? 'Comentario fixado.' : 'Comentario desafixado.'
+    ], 200);
+  }
+
+
+  public function updateComment(Request $request, $id)
+  {
+    $validator = Validator::make($request->all(), [
+      'anotacao' => 'required|string'
+    ]);
+
+    if ($validator->fails()) {
+      return response()->json(['error' => true, 'message' => 'Preencha o comentario antes de salvar.'], 422);
+    }
+
+    $comentario = $this->comentariosRepository->updateOwnComment($id, $request->anotacao);
+
+    if (!$comentario) {
+      return response()->json([
+        'error' => true,
+        'message' => 'Voce so pode editar comentarios feitos por voce.'
+      ], 403);
+    }
+
+    return response()->json([
+      'error' => false,
+      'message' => 'Comentario atualizado com sucesso.'
+    ], 200);
+  }
+
+
   public function remarketing()
   {
     $users = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);

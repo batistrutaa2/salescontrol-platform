@@ -396,6 +396,115 @@
     });
   }
 
+  // Fixar / Editar comentários da timeline (protegido)
+  const activityTimeline = document.querySelector('.activity-timeline');
+  if (activityTimeline) {
+    const csrfToken =
+      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+      document.querySelector('input[name="_token"]')?.value || '';
+
+    function exitEditMode(item) {
+      const textEl = item.querySelector('.timeline-text');
+      const controls = item.querySelector('.timeline-edit-controls');
+      if (textEl) {
+        textEl.contentEditable = 'false';
+        textEl.classList.remove('is-editing');
+        if (item.dataset.originalHtml !== undefined) {
+          textEl.innerHTML = item.dataset.originalHtml;
+          delete item.dataset.originalHtml;
+        }
+      }
+      if (controls) controls.remove();
+    }
+
+    function enterEditMode(item) {
+      // garante uma única edição por vez
+      activityTimeline.querySelectorAll('.timeline-item').forEach(other => {
+        if (other !== item) exitEditMode(other);
+      });
+
+      const textEl = item.querySelector('.timeline-text');
+      if (!textEl || textEl.classList.contains('is-editing')) return;
+
+      item.dataset.originalHtml = textEl.innerHTML;
+      textEl.contentEditable = 'true';
+      textEl.classList.add('is-editing');
+      textEl.focus();
+
+      const controls = document.createElement('div');
+      controls.className = 'timeline-edit-controls';
+      controls.innerHTML = `
+        <button type="button" class="oc-btn oc-btn-primary btn-save-edit">Salvar</button>
+        <button type="button" class="oc-btn oc-btn-outline btn-cancel-edit">Cancelar</button>`;
+      textEl.insertAdjacentElement('afterend', controls);
+    }
+
+    function saveEdit(item) {
+      const commentId = item.dataset.commentId;
+      const textEl = item.querySelector('.timeline-text');
+      if (!commentId || !textEl) return;
+
+      const htmlContent = textEl.innerHTML.trim();
+      if (isEditorContentEmpty(htmlContent)) {
+        if (typeof toastr !== 'undefined') toastr.warning('O comentário não pode ficar vazio.');
+        return;
+      }
+
+      fetch(`/comercial/comentarios/${commentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken
+        },
+        body: JSON.stringify({ anotacao: htmlContent })
+      })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok && !data.error) {
+            window.location.reload();
+          } else if (typeof toastr !== 'undefined') {
+            toastr.error(data.message || 'Erro ao editar comentário.');
+          }
+        })
+        .catch(err => {
+          if (typeof toastr !== 'undefined') toastr.error('Erro ao editar comentário.');
+          console.error(err);
+        });
+    }
+
+    function togglePin(item) {
+      const commentId = item.dataset.commentId;
+      if (!commentId) return;
+
+      fetch(`/comercial/comentarios/${commentId}/fixar`, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': csrfToken }
+      })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok && !data.error) {
+            window.location.reload();
+          } else if (typeof toastr !== 'undefined') {
+            toastr.error(data.message || 'Erro ao fixar comentário.');
+          }
+        })
+        .catch(err => {
+          if (typeof toastr !== 'undefined') toastr.error('Erro ao fixar comentário.');
+          console.error(err);
+        });
+    }
+
+    activityTimeline.addEventListener('click', function (e) {
+      const item = e.target.closest('.timeline-item');
+      if (!item) return;
+
+      if (e.target.closest('.btn-pin-comment')) togglePin(item);
+      else if (e.target.closest('.btn-edit-comment')) enterEditMode(item);
+      else if (e.target.closest('.btn-save-edit')) saveEdit(item);
+      else if (e.target.closest('.btn-cancel-edit')) exitEditMode(item);
+    });
+  }
+
   // ClickToCall (protegido)
   document.addEventListener('DOMContentLoaded', function () {
     const callButton = document.getElementById('callButton');

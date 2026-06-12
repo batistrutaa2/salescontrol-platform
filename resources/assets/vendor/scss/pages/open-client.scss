@@ -623,6 +623,14 @@
         border-bottom: 1px solid var(--oc-card-border);
         position: relative;
 
+        &.is-pinned {
+            background: rgba(var(--oc-warning-rgb), 0.06);
+            border-left: 3px solid var(--oc-warning);
+            border-radius: var(--oc-border-radius-xs);
+            padding-left: 0.75rem;
+            padding-right: 0.5rem;
+        }
+
         &:last-child {
             border-bottom: none;
         }
@@ -702,6 +710,55 @@
                         background: rgba(var(--oc-primary-rgb), 0.1);
                         color: var(--oc-primary);
                     }
+
+                    &.badge-pinned {
+                        background: rgba(var(--oc-warning-rgb), 0.12);
+                        color: var(--oc-warning);
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.25rem;
+
+                        svg {
+                            width: 10px;
+                            height: 10px;
+                        }
+                    }
+                }
+
+                .timeline-actions {
+                    display: flex;
+                    gap: 0.25rem;
+                    margin-left: auto;
+
+                    .timeline-action-btn {
+                        width: 26px;
+                        height: 26px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border: none;
+                        border-radius: var(--oc-border-radius-xs);
+                        background: transparent;
+                        color: var(--oc-text-muted);
+                        cursor: pointer;
+                        transition: var(--oc-transition-fast);
+
+                        svg {
+                            width: 14px;
+                            height: 14px;
+                        }
+
+                        &:hover {
+                            background: rgba(var(--oc-primary-rgb), 0.1);
+                            color: var(--oc-primary);
+                        }
+
+                        &.btn-pin-comment.active,
+                        &.btn-pin-comment:hover {
+                            background: rgba(var(--oc-warning-rgb), 0.12);
+                            color: var(--oc-warning);
+                        }
+                    }
                 }
             }
 
@@ -713,6 +770,30 @@
 
                 p {
                     margin: 0;
+                }
+
+                &.is-editing {
+                    background: var(--oc-input-bg);
+                    border: 1px solid rgba(var(--oc-primary-rgb), 0.4);
+                    border-radius: var(--oc-border-radius-xs);
+                    padding: 0.5rem 0.75rem;
+                    outline: none;
+
+                    &:focus {
+                        border-color: var(--oc-primary);
+                        box-shadow: 0 0 0 3px rgba(var(--oc-primary-rgb), 0.12);
+                    }
+                }
+            }
+
+            .timeline-edit-controls {
+                display: flex;
+                gap: 0.5rem;
+                margin-bottom: 0.5rem;
+
+                .oc-btn {
+                    padding: 0.3rem 0.85rem;
+                    font-size: 0.75rem;
                 }
             }
 
@@ -726,6 +807,11 @@
                 svg {
                     width: 12px;
                     height: 12px;
+                }
+
+                .timeline-edited {
+                    font-style: italic;
+                    color: var(--oc-text-muted);
                 }
             }
         }

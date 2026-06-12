@@ -514,7 +514,8 @@
                 <div class="oc-card-body">
                     <div class="activity-timeline">
                         @forelse ($comments as $comment)
-                        <div class="timeline-item">
+                        @php $isOwner = $comment->user_id === auth()->id(); @endphp
+                        <div class="timeline-item {{ $comment->fixado_proprio ? 'is-pinned' : '' }}" data-comment-id="{{ $comment->id }}">
                             <div class="timeline-dot {{ ($comment->tipo_usuario === 'DEVELOPER' || $comment->tipo_usuario === 'ADMIN') ? 'dot-admin' : 'dot-user' }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                             </div>
@@ -524,11 +525,30 @@
                                     <span class="timeline-badge {{ ($comment->tipo_usuario === 'DEVELOPER' || $comment->tipo_usuario === 'ADMIN') ? 'badge-admin' : 'badge-user' }}">
                                         {{ $comment->tipo_usuario }}
                                     </span>
+                                    @if ($comment->fixado_proprio)
+                                    <span class="timeline-badge badge-pinned">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+                                        Fixado
+                                    </span>
+                                    @endif
+                                    @if ($isOwner)
+                                    <div class="timeline-actions">
+                                        <button type="button" class="timeline-action-btn btn-pin-comment {{ $comment->fixado_proprio ? 'active' : '' }}" title="{{ $comment->fixado_proprio ? 'Desafixar comentario' : 'Fixar comentario' }}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+                                        </button>
+                                        <button type="button" class="timeline-action-btn btn-edit-comment" title="Editar comentario">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path><path d="m15 5 4 4"></path></svg>
+                                        </button>
+                                    </div>
+                                    @endif
                                 </div>
                                 <div class="timeline-text">{!! $comment->anotacao !!}</div>
                                 <div class="timeline-date">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                                     {!! $comment->created_at !!}
+                                    @if ($comment->editado_em)
+                                    <span class="timeline-edited" title="Editado em {{ \Carbon\Carbon::parse($comment->editado_em)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }}">(editado)</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
