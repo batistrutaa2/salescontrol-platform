@@ -13,6 +13,7 @@ class Tabulations
   const NEGOCIO_NAO_FECHADO = 6;
   const REMARKETING = 10;
   const SEM_CONTATO = 19;
+  const NOVOS_CLIENTES = 50;
   const AGENDAMENTO = 29;
   const FOLLOWUP = 13;
 

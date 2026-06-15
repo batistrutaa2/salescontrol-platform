@@ -1,0 +1,636 @@
+/* ============================================================
+   Mascote Assistente — atendente com headset que sugere
+   contatos parados ao vendedor. Paleta roxa da marca.
+   ============================================================ */
+
+.mascote-assistente {
+    --masc-primary: #7c3aed;
+    --masc-primary-light: #a78bfa;
+    --masc-primary-dark: #5b21b6;
+    --masc-success: #10b981;
+    --masc-warning: #f59e0b;
+    --masc-bubble-bg: rgba(255, 255, 255, 0.96);
+    --masc-bubble-text: #1e293b;
+    --masc-bubble-muted: #64748b;
+    --masc-bubble-shadow: 0 18px 50px rgba(91, 33, 182, 0.28), 0 4px 14px rgba(0, 0, 0, 0.1);
+    --masc-radius: 20px;
+
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1035; /* acima do conteúdo/navbar, abaixo de modais (1050+) e offcanvas (1045) */
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    pointer-events: none;
+}
+
+.mascote-assistente > * {
+    pointer-events: auto;
+}
+
+.dark-style .mascote-assistente {
+    --masc-bubble-bg: rgba(38, 40, 58, 0.97);
+    --masc-bubble-text: #f1f5f9;
+    --masc-bubble-muted: #94a3b8;
+    --masc-bubble-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(167, 139, 250, 0.12);
+}
+
+/* ---------------- Corpo / personagem ---------------- */
+.mascote-corpo {
+    position: relative;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    width: 64px;
+    height: 64px;
+    flex: 0 0 auto;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 8px 18px rgba(91, 33, 182, 0.4));
+    animation: mascFlutua 3.6s ease-in-out infinite;
+}
+
+.mascote-corpo:hover {
+    transform: scale(1.08) rotate(-3deg);
+}
+
+.mascote-corpo:focus-visible {
+    outline: 2px solid var(--masc-primary-light);
+    outline-offset: 4px;
+    border-radius: 50%;
+}
+
+.mascote-svg {
+    display: block;
+    overflow: visible;
+}
+
+/* glow atrás do rosto */
+.mascote-glow {
+    fill: var(--masc-primary-light);
+    opacity: 0.0;
+    transform-origin: 70px 74px;
+    transition: opacity 0.4s ease;
+}
+
+.mascote-assistente.is-acordado .mascote-glow {
+    opacity: 0.35;
+    animation: mascGlow 2.4s ease-in-out infinite;
+}
+
+.masc-bochecha {
+    fill: #f472b6;
+    opacity: 0.45;
+}
+
+/* olhos — piscam de tempos em tempos */
+.masc-olho {
+    transform-origin: center;
+    animation: mascPisca 5s infinite;
+}
+
+.masc-olhos .masc-olho:nth-child(2) {
+    animation-delay: 0.04s;
+}
+
+/* dormindo: olhos viram tracinhos e zzz aparece */
+.mascote-assistente.is-dormindo .masc-olho {
+    animation: none;
+    transform: scaleY(0.12);
+}
+
+.mascote-assistente.is-dormindo .masc-boca {
+    d: path("M60 92 Q70 96 80 92");
+}
+
+/* mãozinha acenando ao acordar */
+.masc-mao {
+    transform-origin: 112px 96px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mascote-assistente.is-acordado .masc-mao {
+    opacity: 1;
+    animation: mascAcena 0.6s ease-in-out 3;
+}
+
+/* mic pisca quando "falando" */
+.mascote-assistente.is-acordado .masc-mic {
+    animation: mascMic 1.1s ease-in-out infinite;
+}
+
+/* anel de atenção (pulso) ao chegar sugestão nova */
+.mascote-anel {
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    border: 2px solid var(--masc-primary-light);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.mascote-assistente.is-chamando .mascote-anel {
+    animation: mascAnel 1.4s ease-out 2;
+}
+
+/* zzz do sono */
+.mascote-zzz {
+    position: absolute;
+    top: -6px;
+    right: -2px;
+    font-weight: 800;
+    color: var(--masc-primary-light);
+    font-size: 11px;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.mascote-zzz i {
+    font-size: 13px;
+    font-style: normal;
+    margin-left: 1px;
+}
+
+.mascote-zzz b {
+    font-size: 16px;
+    margin-left: 1px;
+}
+
+.mascote-assistente.is-dormindo .mascote-zzz {
+    animation: mascZzz 3.4s ease-in-out infinite;
+}
+
+/* badge contador de sugestões pendentes */
+.mascote-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: var(--masc-warning);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 20px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------------- Balão de fala ---------------- */
+.mascote-balao {
+    position: relative;
+    width: 320px;
+    max-width: calc(100vw - 120px);
+    background: var(--masc-bubble-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: var(--masc-radius);
+    box-shadow: var(--masc-bubble-shadow);
+    padding: 16px 18px 16px;
+    color: var(--masc-bubble-text);
+    transform-origin: bottom right;
+    opacity: 0;
+    transform: translateY(14px) scale(0.86);
+    visibility: hidden;
+    transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0.28s;
+}
+
+.mascote-assistente.is-falando .mascote-balao {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+}
+
+/* rabicho apontando para o mascote */
+.mascote-balao::after {
+    content: '';
+    position: absolute;
+    right: -8px;
+    bottom: 22px;
+    width: 18px;
+    height: 18px;
+    background: var(--masc-bubble-bg);
+    border-radius: 3px;
+    transform: rotate(45deg);
+    box-shadow: 3px -3px 6px rgba(0, 0, 0, 0.04);
+}
+
+.mascote-balao-fechar {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--masc-bubble-muted);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.mascote-balao-fechar:hover {
+    background: rgba(124, 58, 237, 0.1);
+    color: var(--masc-primary);
+}
+
+.mascote-balao-titulo {
+    font-size: 0.9375rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+    padding-right: 22px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mascote-balao-texto {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--masc-bubble-muted);
+    margin-bottom: 14px;
+}
+
+.mascote-balao-texto strong {
+    color: var(--masc-bubble-text);
+    font-weight: 700;
+}
+
+.mascote-balao-texto .masc-dias {
+    color: var(--masc-warning);
+    font-weight: 800;
+}
+
+.mascote-balao-acoes {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mascote-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    padding: 9px 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    white-space: nowrap;
+}
+
+.mascote-btn-primario {
+    flex: 1;
+    color: #fff;
+    background: linear-gradient(135deg, var(--masc-primary) 0%, var(--masc-primary-light) 100%);
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+}
+
+.mascote-btn-primario:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(124, 58, 237, 0.5);
+    color: #fff;
+}
+
+.mascote-btn-fantasma {
+    color: var(--masc-bubble-muted);
+    background: transparent;
+}
+
+.mascote-btn-fantasma:hover {
+    background: rgba(124, 58, 237, 0.08);
+    color: var(--masc-bubble-text);
+}
+
+/* variações de tipo (futuro: meta / parabéns) */
+.mascote-assistente[data-tipo='parabens'] .mascote-btn-primario,
+.mascote-assistente[data-tipo='parabens'] {
+    --masc-primary: #10b981;
+    --masc-primary-light: #34d399;
+}
+
+.mascote-assistente[data-tipo='meta'] {
+    --masc-primary: #06b6d4;
+    --masc-primary-light: #22d3ee;
+}
+
+/* ---------------- Animações ---------------- */
+@keyframes mascFlutua {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+}
+
+@keyframes mascGlow {
+    0%, 100% { opacity: 0.25; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.08); }
+}
+
+@keyframes mascPisca {
+    0%, 92%, 100% { transform: scaleY(1); }
+    95% { transform: scaleY(0.1); }
+}
+
+@keyframes mascAcena {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(18deg); }
+    75% { transform: rotate(-12deg); }
+}
+
+@keyframes mascMic {
+    0%, 100% { opacity: 1; r: 5.5; }
+    50% { opacity: 0.5; r: 7; }
+}
+
+@keyframes mascAnel {
+    0% { opacity: 0.8; transform: scale(0.8); }
+    100% { opacity: 0; transform: scale(1.7); }
+}
+
+@keyframes mascZzz {
+    0%, 100% { opacity: 0; transform: translateY(2px); }
+    40%, 60% { opacity: 0.9; transform: translateY(-4px); }
+}
+
+/* ---------------- Confete (comemoração de venda) ---------------- */
+.masc-confete {
+    position: absolute;
+    right: 40px;
+    bottom: 68px;
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 2;
+    animation: mascConfete 1.5s cubic-bezier(0.2, 0.7, 0.3, 1) var(--delay, 0s) forwards;
+}
+
+@keyframes mascConfete {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--dx, 0), -130px) rotate(var(--rot, 200deg)) scale(0.3);
+    }
+}
+
+/* respeita usuários que preferem menos movimento */
+@media (prefers-reduced-motion: reduce) {
+    .mascote-corpo,
+    .mascote-assistente.is-acordado .mascote-glow,
+    .masc-olho,
+    .mascote-assistente.is-acordado .masc-mao,
+    .mascote-assistente.is-acordado .masc-mic,
+    .mascote-assistente.is-dormindo .mascote-zzz,
+    .mascote-assistente.is-chamando .mascote-anel {
+        animation: none !important;
+    }
+
+    .masc-confete {
+        display: none !important;
+    }
+}
+
+/* mobile: encolhe e cola no canto */
+@media (max-width: 600px) {
+    .mascote-assistente {
+        right: 14px;
+        bottom: 14px;
+        gap: 8px;
+    }
+
+    .mascote-balao {
+        width: 250px;
+    }
+
+    .mascote-corpo {
+        width: 54px;
+        height: 54px;
+    }
+
+    .mascote-corpo .mascote-svg {
+        width: 54px;
+        height: 54px;
+    }
+}
+
+/* ============================================================
+   Tour de boas-vindas (spotlight) — explica o mascote ao vendedor
+   ============================================================ */
+.mascote-assistente.is-tour {
+    z-index: 1300; /* sobe acima de navbar/menu durante o tour */
+}
+
+.mascote-tour {
+    position: fixed;
+    inset: 0;
+    pointer-events: auto;
+}
+
+/* Overlay escuro com um "furo" de luz sobre o mascote (canto inf. direito) */
+.mascote-tour-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    background: radial-gradient(circle 80px at calc(100% - 56px) calc(100% - 56px),
+            rgba(15, 12, 41, 0) 0,
+            rgba(15, 12, 41, 0) 62px,
+            rgba(15, 12, 41, 0.82) 122px,
+            rgba(15, 12, 41, 0.9) 100%);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    animation: mascTourFade 0.35s ease;
+}
+
+/* Mascote em destaque, acima do overlay, com anel pulsante */
+.mascote-assistente.is-tour .mascote-corpo {
+    position: relative;
+    z-index: 2;
+}
+
+.mascote-assistente.is-tour .mascote-anel {
+    opacity: 1;
+    inset: -6px;
+    border-width: 3px;
+    animation: mascRingPulse 1.8s ease-out infinite;
+}
+
+/* Card de explicação */
+.mascote-tour-card {
+    position: fixed;
+    right: 24px;
+    bottom: 104px;
+    z-index: 3;
+    width: 330px;
+    max-width: calc(100vw - 48px);
+    background: var(--masc-bubble-bg);
+    color: var(--masc-bubble-text);
+    border-radius: var(--masc-radius);
+    box-shadow: var(--masc-bubble-shadow);
+    padding: 20px;
+    animation: mascTourCard 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mascote-tour-card::after {
+    content: '';
+    position: absolute;
+    right: 30px;
+    bottom: -8px;
+    width: 18px;
+    height: 18px;
+    background: var(--masc-bubble-bg);
+    transform: rotate(45deg);
+    border-radius: 3px;
+}
+
+.mascote-tour-prog {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.mascote-tour-prog i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(124, 58, 237, 0.22);
+    font-style: normal;
+    transition: all 0.25s ease;
+}
+
+.mascote-tour-prog i.ativo {
+    background: var(--masc-primary);
+    width: 22px;
+    border-radius: 4px;
+}
+
+.mascote-tour-titulo {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mascote-tour-texto {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--masc-bubble-muted);
+    margin: 0 0 18px;
+}
+
+.mascote-tour-texto strong {
+    color: var(--masc-bubble-text);
+    font-weight: 700;
+}
+
+.mascote-tour-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.mascote-tour-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mascote-tour-pular {
+    border: none;
+    background: transparent;
+    color: var(--masc-bubble-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 4px;
+}
+
+.mascote-tour-pular:hover {
+    color: var(--masc-bubble-text);
+}
+
+.mascote-tour-prev {
+    border: none;
+    background: transparent;
+    color: var(--masc-primary);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 9px 12px;
+    border-radius: 10px;
+}
+
+.mascote-tour-prev:hover {
+    background: rgba(124, 58, 237, 0.08);
+}
+
+.mascote-tour-prev[hidden] {
+    display: none;
+}
+
+.mascote-tour-next {
+    padding: 9px 18px;
+}
+
+@keyframes mascTourFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes mascTourCard {
+    from { opacity: 0; transform: translateY(16px) scale(0.92); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes mascRingPulse {
+    0% { transform: scale(1); opacity: 0.9; }
+    70%, 100% { transform: scale(1.6); opacity: 0; }
+}
+
+@media (max-width: 600px) {
+    .mascote-tour-overlay {
+        background: radial-gradient(circle 68px at calc(100% - 41px) calc(100% - 41px),
+                rgba(15, 12, 41, 0) 0,
+                rgba(15, 12, 41, 0) 50px,
+                rgba(15, 12, 41, 0.85) 105px,
+                rgba(15, 12, 41, 0.92) 100%);
+    }
+
+    .mascote-tour-card {
+        left: 14px;
+        right: 14px;
+        bottom: 84px;
+        width: auto;
+        max-width: none;
+    }
+
+    .mascote-tour-card::after {
+        right: 22px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mascote-tour-overlay,
+    .mascote-tour-card,
+    .mascote-assistente.is-tour .mascote-anel {
+        animation: none !important;
+    }
+}

@@ -17,6 +17,8 @@ use App\Repositories\Eloquent\TransferenciaContatoRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Support\ServiceProvider;
 use App\Repositories\Eloquent\VendasRepository;
 use App\Repositories\Eloquent\EmpresaRepository;
@@ -99,6 +101,12 @@ class AppServiceProvider extends ServiceProvider
             exit;
         }
         */
+
+        // Marca o login para o mascote saudar (bom dia/tarde/noite) na 1ª página.
+        // Consumido via session()->pull('mascote_saudar') no partial do mascote.
+        Event::listen(Login::class, function () {
+            session()->put('mascote_saudar', true);
+        });
 
         View::composer('*', function ($view) {
             if (Auth::check()) {

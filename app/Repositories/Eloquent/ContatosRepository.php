@@ -443,6 +443,47 @@ class ContatosRepository implements ContatosRepositoryInterface
       ->first();
   }
 
+  /**
+   * Sugestoes de contato para o mascote assistente: leads ATRIBUIDOS ao vendedor
+   * que estao na FILA DE NOVOS — Novos Clientes, Prospeccao e Sem Contato — ativos
+   * e sem venda, parados ha >= N dias. Follow-up e demais etapas (reuniao,
+   * negociacao...) ficam de fora de proposito: follow-up tem retorno naturalmente
+   * longo. Reusa o motor de "ultima atividade" da reciclagem (comentarios +
+   * ligacoes + agendamentos + lead_atividades + preditiva + cc.updated_at).
+   * Ordena do mais parado ao menos.
+   */
+  public function getSugestoesContato(int $userId, int $empresaId, int $dias = 5, int $limite = 10): \Illuminate\Support\Collection
+  {
+    $filaNovos = [Tabulations::NOVOS_CLIENTES, Tabulations::PROSPECCAO, Tabulations::SEM_CONTATO];
+    $uaSql = self::ultimaAtividadeSql($empresaId);
+
+    return DB::table('contatos as a')
+      ->join('contatos_corretores as cc', function ($join) use ($empresaId, $userId) {
+        $join->on('cc.contato_id', '=', 'a.id')
+          ->where('cc.empresa_id', '=', $empresaId)
+          ->where('cc.user_id', '=', $userId);
+      })
+      ->leftJoin('tabulacoes as t', 't.id', '=', 'cc.tabulacao_id')
+      ->where('a.empresa_id', $empresaId)
+      ->where('a.status', 'Y')
+      ->whereIn('cc.tabulacao_id', $filaNovos)
+      ->whereNotExists(function ($q) {
+        $q->select(DB::raw(1))->from('vendas as v')->whereColumn('v.contato_id', 'a.id');
+      })
+      ->whereRaw("{$uaSql} <= (NOW() - INTERVAL {$dias} DAY)")
+      ->orderByRaw("{$uaSql} asc")
+      ->limit($limite)
+      ->select(
+        'a.id as contato_id',
+        'a.nome_cliente',
+        'a.telefone1',
+        't.descricao as tabulacao',
+        DB::raw("DATEDIFF(NOW(), {$uaSql}) as dias_parado"),
+        DB::raw("DATE_FORMAT({$uaSql}, '%d/%m/%Y') as ultima_atividade")
+      )
+      ->get();
+  }
+
   public function getAllLeadsServerSide(int $empresaId, Request $request): array
   {
     $remarketingId = Tabulations::REMARKETING;

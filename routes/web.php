@@ -214,6 +214,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/agendamentos', [Comercial::class, 'schedules'])->name('comercial.schedules');
   Route::get('/comercial/getSchedules', [Comercial::class, 'getSchedules'])->name('comercial.getSchedules');
   Route::get('/comercial/searchPendingAppointments', [Comercial::class, 'searchPendingAppointments'])->name('comercial.searchPendingAppointments');
+  Route::get('/comercial/sugestao-contato', [Comercial::class, 'sugestaoContato'])->name('comercial.sugestaoContato');
 
   /** BACKOFFICE */
   Route::get(uri: '/back-office/fila-contratos', action: [Backoffice::class, 'index'])->name(name: 'backoffice.index');

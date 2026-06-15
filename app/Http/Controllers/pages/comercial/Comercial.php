@@ -252,7 +252,8 @@ class Comercial extends Controller
       return response()->json(
         [
           'error' => false,
-          'message' => 'Status atualizado com sucesso.'
+          'message' => 'Status atualizado com sucesso.',
+          'marco' => $this->marcoNegociacao((int) $request->tabulacao_id, (int) $request->contato_id),
         ],
         200
       );
@@ -265,6 +266,38 @@ class Comercial extends Controller
         501
       );
     }
+  }
+
+  /**
+   * Monta o "marco" de negociação para o mascote parabenizar quando o lead avança
+   * para Reunião, Negociação ou Documento. Retorna null para qualquer outra etapa.
+   */
+  private function marcoNegociacao(int $tabulacaoId, int $contatoId): ?array
+  {
+    $etapas = [
+      Tabulations::REUNIÃO => 'Reunião',
+      Tabulations::NEGOCIAÇÃO => 'Negociação',
+      Tabulations::DOCUMENTO => 'Documentos',
+    ];
+
+    if (!isset($etapas[$tabulacaoId])) {
+      return null;
+    }
+
+    $contato = DB::table('contatos')
+      ->where('id', $contatoId)
+      ->where('empresa_id', Auth::user()->empresa_id)
+      ->first(['nome_cliente', 'created_at']);
+
+    if (!$contato) {
+      return null;
+    }
+
+    return [
+      'cliente' => $contato->nome_cliente,
+      'etapa' => $etapas[$tabulacaoId],
+      'desde' => $contato->created_at ? Carbon::parse($contato->created_at)->format('d/m/Y') : null,
+    ];
   }
 
 
@@ -669,6 +702,13 @@ class Comercial extends Controller
           ->with('message', 'Falha ao salvar a venda. Verifique os dados e tente novamente.');
       }
 
+      // Venda salva: marca o parabéns do mascote para a próxima página (vendedor).
+      // Consumido via session()->pull('mascote_parabens') no partial do mascote.
+      session()->put('mascote_parabens', [
+        'contrato' => (string) $request->nome_contrato,
+        'vidas' => is_array($request->titulares) ? count($request->titulares) : null,
+      ]);
+
       $arrayData = [
         'contato_id' => $request->contato_id,
         'tabulacao_id' => Tabulations::VENDA
@@ -806,6 +846,36 @@ class Comercial extends Controller
 
     $agendamentos = $this->agendamentoRepository->appointmentsDelaystonotify();
     return response()->json($agendamentos);
+  }
+
+  /**
+   * Sugestao de contato para o mascote assistente (vendedor): leads do proprio
+   * vendedor sem atividade ha N dias, do mais parado ao menos. Reusa o motor de
+   * "ultima atividade" da reciclagem de leads frios.
+   */
+  public function sugestaoContato()
+  {
+    if (!request()->ajax()) {
+      return redirect()->intended('comercial/kanban');
+    }
+
+    if (Auth::user()->user_role_id != UserRole::VENDEDOR) {
+      return response()->json(['data' => []]);
+    }
+
+    $dias = (int) request()->integer('dias', 5);
+    if ($dias < 1) {
+      $dias = 5;
+    }
+
+    $sugestoes = $this->contatosRepository->getSugestoesContato(
+      Auth::user()->id,
+      Auth::user()->empresa_id,
+      $dias,
+      10
+    );
+
+    return response()->json(['data' => $sugestoes]);
   }
 
 

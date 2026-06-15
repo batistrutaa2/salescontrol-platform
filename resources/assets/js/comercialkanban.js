@@ -348,6 +348,23 @@
     document.getElementById('leadIdInputSchedule').value = leadId;
   };
 
+  // Mascote parabeniza quando o lead avança para Reunião/Negociação/Documento.
+  function celebrarMarcoNegociacao(marco) {
+    if (!marco || !window.mascote || typeof window.mascote.parabenizar !== 'function') return;
+
+    const esc = s =>
+      String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    const desde = marco.desde
+      ? ` Esse cliente está na nossa base desde <strong>${esc(marco.desde)}</strong> — e você fez ele avançar! 👏`
+      : ' Bom trabalho conduzindo essa negociação! 👏';
+
+    window.mascote.parabenizar(
+      `Você levou <strong>${esc(marco.cliente)}</strong> para <strong>${esc(marco.etapa)}</strong>.${desde}`,
+      { titulo: '🚀 Boa, avançou!', acaoLabel: 'Valeu!', onAcao: window.mascote.dormir }
+    );
+  }
+
   function sendRequestApichangeStatusLead(contato_id, tabulacao_id) {
     fetch('/changeStatusLead/kanban/changeStatusLead', {
       method: 'POST',
@@ -364,6 +381,7 @@
       .then(data => {
         if (!data.error) {
           toastr.success(data.message, 'Concluido');
+          celebrarMarcoNegociacao(data.marco);
         } else {
           toastr.error(data.message, 'Erro');
         }

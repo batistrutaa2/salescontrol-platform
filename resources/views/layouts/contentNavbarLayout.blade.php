@@ -91,4 +91,5 @@
     </div>
 
     @include('_partials.agradecimento-5anos')
+    @include('_partials.mascote-assistente')
 @endsection
