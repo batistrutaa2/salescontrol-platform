@@ -352,14 +352,9 @@ class Backoffice extends Controller
                     tabulacaoId: (int) $request->tabulacao_id
                 ));
 
-                if (in_array((int) $request->tabulacao_id, EnviarNotificacaoStatusContratoWhatsappJob::WHITELIST_STATUS, true)) {
-                    EnviarNotificacaoStatusContratoWhatsappJob::dispatch(
-                        $sale->id,
-                        (int) $request->tabulacao_id,
-                        Auth::user()->name ?? null,
-                        $request->motivo_pendencia ?? null,
-                    );
-                }
+                // WhatsApp ao vendedor desativado: o aviso de mudança de status agora
+                // é entregue pelo mascote assistente, que consome a notificação
+                // StatusPropostaAlterada acima (GET /comercial/avisos-mascote).
 
                 // Alerta financeiro: estorno em venda com comissão paga não é estornado automaticamente.
                 if ((int) $request->tabulacao_id === Tabulations::ESTORNO && $sale->comissao_paga) {
@@ -447,14 +442,9 @@ class Backoffice extends Controller
                     tabulacaoId: (int) $tabulacaoId
                 ));
 
-                if (in_array((int) $tabulacaoId, EnviarNotificacaoStatusContratoWhatsappJob::WHITELIST_STATUS, true)) {
-                    EnviarNotificacaoStatusContratoWhatsappJob::dispatch(
-                        $sale->id,
-                        (int) $tabulacaoId,
-                        Auth::user()->name ?? null,
-                        $request->motivo_pendencia ?? null,
-                    );
-                }
+                // WhatsApp ao vendedor desativado: o aviso de mudança de status agora
+                // é entregue pelo mascote assistente, que consome a notificação
+                // StatusPropostaAlterada acima (GET /comercial/avisos-mascote).
 
                 return response()->json([
                     'success' => true,

@@ -6,6 +6,8 @@
 
         <div id="mascote-assistente" class="mascote-assistente is-dormindo"
             data-endpoint="{{ route('comercial.sugestaoContato') }}"
+            data-avisos="{{ route('comercial.avisosMascote') }}"
+            data-aviso-lido-base="{{ url('/comercial/avisos-mascote') }}"
             data-abrir-base="{{ url('/comercial/abrir-cliente') }}"
             data-nome="{{ \Illuminate\Support\Str::of(auth()->user()->name)->trim()->explode(' ')->first() }}"
             data-dias="5"

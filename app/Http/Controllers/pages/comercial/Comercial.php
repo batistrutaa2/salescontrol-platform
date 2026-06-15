@@ -878,6 +878,54 @@ class Comercial extends Controller
     return response()->json(['data' => $sugestoes]);
   }
 
+  /**
+   * Avisos do mascote: mudanças de status da proposta feitas pelo backoffice
+   * (notificacao StatusPropostaAlterada, nao lidas). Substitui o antigo aviso
+   * por WhatsApp. So para vendedor.
+   */
+  public function avisosMascote()
+  {
+    if (!request()->ajax()) {
+      return redirect()->intended('comercial/kanban');
+    }
+
+    if (Auth::user()->user_role_id != UserRole::VENDEDOR) {
+      return response()->json(['data' => []]);
+    }
+
+    $avisos = Auth::user()->unreadNotifications
+      ->filter(fn($n) => in_array($n->data['tipo'] ?? null, ['status_venda', 'venda_estornada'], true))
+      ->take(5)
+      ->map(fn($n) => [
+        'id' => $n->id,
+        'tipo' => $n->data['tipo'] ?? 'status_venda',
+        'titulo' => $n->data['titulo'] ?? 'Atualização da sua proposta',
+        'mensagem' => $n->data['mensagem'] ?? '',
+        'status' => $n->data['status'] ?? null,
+        'url' => $n->data['url'] ?? null,
+      ])
+      ->values();
+
+    return response()->json(['data' => $avisos]);
+  }
+
+  /**
+   * Marca um aviso (notificacao) do mascote como lido.
+   */
+  public function marcarAvisoLido(string $id)
+  {
+    if (!request()->ajax()) {
+      return response()->json(['ok' => false], 400);
+    }
+
+    $notificacao = Auth::user()->notifications()->where('id', $id)->first();
+    if ($notificacao) {
+      $notificacao->markAsRead();
+    }
+
+    return response()->json(['ok' => true]);
+  }
+
 
   public function backQueue(Request $request)
   {

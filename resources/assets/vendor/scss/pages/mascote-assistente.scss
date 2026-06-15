@@ -322,9 +322,15 @@
     --masc-primary-light: #34d399;
 }
 
-.mascote-assistente[data-tipo='meta'] {
+.mascote-assistente[data-tipo='meta'],
+.mascote-assistente[data-tipo='aviso'] {
     --masc-primary: #06b6d4;
     --masc-primary-light: #22d3ee;
+}
+
+.mascote-assistente[data-tipo='aviso-estorno'] {
+    --masc-primary: #ef4444;
+    --masc-primary-light: #f87171;
 }
 
 /* ---------------- Animações ---------------- */

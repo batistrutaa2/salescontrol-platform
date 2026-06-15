@@ -483,6 +483,11 @@
                 lista.forEach(n => {
                     if (!n?.id || notificacoesExibidas.includes(n.id)) return;
 
+                    // Mudança de status de proposta é entregue pelo mascote assistente,
+                    // não como toast genérico (evita duplicar o aviso ao vendedor).
+                    const tipoN = n?.data?.tipo;
+                    if (tipoN === 'status_venda' || tipoN === 'venda_estornada') return;
+
                     const {
                         nivel,
                         tituloToast,

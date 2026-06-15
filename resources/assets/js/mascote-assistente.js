@@ -23,6 +23,9 @@
     const abrirBase = (root.dataset.abrirBase || '').replace(/\/$/, '');
     const nome = root.dataset.nome || 'vendedor';
     const dias = parseInt(root.dataset.dias || '5', 10);
+    const avisosEndpoint = root.dataset.avisos;
+    const avisoLidoBase = (root.dataset.avisoLidoBase || '').replace(/\/$/, '');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const balao = root.querySelector('.mascote-balao');
     const elTitulo = root.querySelector('.mascote-balao-titulo');
@@ -286,6 +289,7 @@
      */
     function verificar(auto) {
       if (root.classList.contains('is-tour')) return;
+      if (root.classList.contains('is-falando')) return;
       if (auto && emSnooze()) return;
 
       buscar().then((lista) => {
@@ -294,6 +298,56 @@
         const item = escolherSugestao(lista);
         if (item) montarSugestao(item);
       });
+    }
+
+    // ---------- avisos do backoffice (proposta movida) ----------
+    function marcarAvisoLido(id) {
+      if (!avisoLidoBase || !id) return;
+      fetch(`${avisoLidoBase}/${id}/lido`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        keepalive: true,
+      }).catch(() => {
+        /* ignora */
+      });
+    }
+
+    function mostrarAviso(aviso) {
+      const estorno = aviso.tipo === 'venda_estornada';
+      const statusTxt = aviso.status ? escapeHtml(aviso.status) : '';
+      const html = estorno
+        ? 'Sua proposta foi <strong>estornada</strong>. Abra para corrigir e reenviar ao backoffice.'
+        : `O backoffice atualizou sua proposta para <strong>${statusTxt || 'um novo status'}</strong>. Dá uma olhada!`;
+
+      falar({
+        tipo: estorno ? 'aviso-estorno' : 'aviso',
+        titulo: estorno ? '⚠️ Proposta estornada' : '📋 Atualização da proposta',
+        html,
+        acaoLabel: estorno ? 'Corrigir agora' : 'Ver contrato',
+        acaoHref: aviso.url || '#',
+        adiar: false,
+        som: true,
+      });
+    }
+
+    function verificarAvisos() {
+      if (!avisosEndpoint) return;
+      if (root.classList.contains('is-tour') || root.classList.contains('is-falando')) return;
+
+      fetch(avisosEndpoint, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+        .then((r) => (r.ok ? r.json() : { data: [] }))
+        .then((res) => {
+          const lista = (res && res.data) || [];
+          if (!lista.length) return;
+          const aviso = lista[0];
+          mostrarAviso(aviso);
+          marcarAvisoLido(aviso.id);
+        })
+        .catch((err) => console.warn('Mascote: erro ao buscar avisos', err));
     }
 
     // ---------- eventos ----------
@@ -416,6 +470,7 @@
       saudar,
       tour: () => iniciarTour(true),
       verificar: () => verificar(false),
+      verificarAvisos: () => verificarAvisos(),
       /** Atalho para futuras celebrações de venda. */
       parabenizar(html, opts) {
         falar(
@@ -452,6 +507,11 @@
     }
     window.setTimeout(() => verificar(true), PRIMEIRA_ESPERA_MS);
     window.setInterval(() => verificar(true), INTERVALO_MS);
+
+    // Avisos de proposta movida pelo backoffice (substitui o WhatsApp): checa
+    // logo após carregar e a cada 90s. Tem prioridade visual sobre a sugestão.
+    window.setTimeout(verificarAvisos, 8000);
+    window.setInterval(verificarAvisos, 90000);
   }
 
   if (document.readyState === 'loading') {

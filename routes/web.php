@@ -215,6 +215,8 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/getSchedules', [Comercial::class, 'getSchedules'])->name('comercial.getSchedules');
   Route::get('/comercial/searchPendingAppointments', [Comercial::class, 'searchPendingAppointments'])->name('comercial.searchPendingAppointments');
   Route::get('/comercial/sugestao-contato', [Comercial::class, 'sugestaoContato'])->name('comercial.sugestaoContato');
+  Route::get('/comercial/avisos-mascote', [Comercial::class, 'avisosMascote'])->name('comercial.avisosMascote');
+  Route::post('/comercial/avisos-mascote/{id}/lido', [Comercial::class, 'marcarAvisoLido'])->name('comercial.marcarAvisoLido');
 
   /** BACKOFFICE */
   Route::get(uri: '/back-office/fila-contratos', action: [Backoffice::class, 'index'])->name(name: 'backoffice.index');
