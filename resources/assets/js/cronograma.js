@@ -105,6 +105,9 @@ $(function () {
     const $timeline = $('#cronograma-timeline');
     $timeline.empty();
 
+    // Hero "Próxima ligação" (sempre baseado no conjunto completo, não no filtro)
+    renderizarProximaLigacao();
+
     // Filtrar agendamentos
     const agendamentosFiltrados = filtrarAgendamentos(agendamentosData, filtroAtivo);
 
@@ -123,16 +126,127 @@ $(function () {
     // Agrupar por dia
     const agendamentosPorDia = agruparPorDia(agendamentosFiltrados);
 
-    // Renderizar cada dia
+    // Separar dias acionáveis (atrasado/hoje/amanhã) dos recolhíveis (semana/futuro)
+    const diasAbertos = [];
+    const diasSemana = [];
+    const diasFuturo = [];
+
     agendamentosPorDia.forEach(dia => {
-      const daySection = criarSecaoDia(dia);
-      $timeline.append(daySection);
+      const statusDia = calcularStatusDia(dia.data);
+      if (statusDia.label === 'Esta Semana') {
+        diasSemana.push(dia);
+      } else if (statusDia.label === 'Futuro') {
+        diasFuturo.push(dia);
+      } else {
+        diasAbertos.push(dia);
+      }
     });
+
+    // Dias acionáveis sempre visíveis
+    diasAbertos.forEach(dia => {
+      $timeline.append(criarSecaoDia(dia));
+    });
+
+    // Seções recolhíveis (recolhidas por padrão)
+    $timeline.append(criarSecaoRecolhivel('semana', 'Esta Semana', 'ri-calendar-check-line', 'success', diasSemana));
+    $timeline.append(criarSecaoRecolhivel('futuro', 'Futuro', 'ri-calendar-line', 'secondary', diasFuturo));
 
     // Mostrar timeline
     $('#cronograma-loading').addClass('d-none');
     $('#cronograma-empty').addClass('d-none');
     $timeline.removeClass('d-none');
+  }
+
+  /**
+   * Criar seção recolhível agrupando vários dias (Esta Semana / Futuro)
+   */
+  function criarSecaoRecolhivel(key, label, icon, color, dias) {
+    if (!dias || dias.length === 0) return '';
+
+    // Quando o filtro foca exatamente nessa faixa, abre expandido
+    const expandido = filtroAtivo === key;
+    const totalItens = dias.reduce((acc, d) => acc + d.agendamentos.length, 0);
+
+    let inner = '';
+    dias.forEach(dia => {
+      inner += criarSecaoDia(dia);
+    });
+
+    return `
+      <div class="cr-collapse ${expandido ? 'is-open' : ''}" data-collapse="${key}">
+        <button type="button" class="cr-collapse-toggle status-${color}">
+          <i class="cr-collapse-caret ri-arrow-right-s-line"></i>
+          <i class="${icon} cr-collapse-icon"></i>
+          <span class="cr-collapse-label">${label}</span>
+          <span class="cr-collapse-count">${totalItens}</span>
+        </button>
+        <div class="cr-collapse-body">
+          ${inner}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Renderizar hero "Próxima ligação" — item mais urgente pendente
+   */
+  function renderizarProximaLigacao() {
+    const $hero = $('#cronograma-proxima');
+    if (!$hero.length) return;
+
+    // Considera apenas pendentes (atrasados primeiro, depois o mais próximo)
+    const pendentes = agendamentosData
+      .slice()
+      .sort((a, b) => new Date(a.horario_agendamento) - new Date(b.horario_agendamento));
+
+    if (pendentes.length === 0) {
+      $hero.addClass('d-none').empty();
+      return;
+    }
+
+    // Escolhe o mais urgente: o último atrasado (mais recente vencido) se houver,
+    // senão o primeiro do futuro. Simplificado: atrasado mais antigo > próximo.
+    const agora = new Date();
+    const atrasados = pendentes.filter(a => new Date(a.horario_agendamento) < agora);
+    const proximo = atrasados.length > 0 ? atrasados[0] : pendentes.find(a => new Date(a.horario_agendamento) >= agora);
+
+    if (!proximo) {
+      $hero.addClass('d-none').empty();
+      return;
+    }
+
+    const statusInfo = calcularStatusAgendamento(proximo.horario_agendamento);
+    const dataFormatada = formatarDataHora(proximo.horario_agendamento);
+    const observacao = proximo.observacao || '';
+
+    $hero.removeClass('d-none').html(`
+      <div class="cr-proxima status-${statusInfo.color}">
+        <div class="cr-proxima-pulse"><span></span></div>
+        <div class="cr-proxima-info">
+          <span class="cr-proxima-eyebrow">
+            <i class="ri-phone-fill"></i> Próxima ligação
+          </span>
+          <div class="cr-proxima-name">${proximo.nome_cliente}</div>
+          <div class="cr-proxima-meta">
+            <span class="cr-proxima-time">${dataFormatada.hora}</span>
+            <span class="cr-proxima-date">${dataFormatada.data}</span>
+            <span class="cr-proxima-status bg-${statusInfo.color}">
+              <i class="${statusInfo.icon}"></i>
+              ${statusInfo.tempoRelativo || statusInfo.label}
+            </span>
+          </div>
+          ${observacao ? `<div class="cr-proxima-obs"><i class="ri-chat-quote-line"></i> ${observacao}</div>` : ''}
+        </div>
+        <div class="cr-proxima-actions">
+          <a href="/comercial/abrir-cliente/${proximo.id}" class="btn btn-primary">
+            <i class="ri-phone-line"></i> Abrir cliente
+          </a>
+          <button type="button" class="btn btn-outline-secondary btn-reagendar" data-id="${proximo.id}">
+            <i class="ri-calendar-schedule-line"></i> Reagendar
+          </button>
+        </div>
+      </div>
+    `);
   }
 
   /**
@@ -161,50 +275,27 @@ $(function () {
   }
 
   /**
-   * Criar seção de dia - Modern Timeline Design
+   * Criar seção de dia - Divisor fino + linhas compactas
    */
   function criarSecaoDia(dia) {
     const statusDia = calcularStatusDia(dia.data);
     const dataFormatada = formatarDataCompleta(dia.data);
     const totalTarefas = dia.agendamentos.length;
 
-    // Determine special classes
-    const isToday = statusDia.label === 'Hoje';
-    const isOverdue = statusDia.label === 'Atrasado';
-    let headerClasses = `timeline-day-header status-${statusDia.color}`;
-    if (isToday) headerClasses += ' is-today';
-    if (isOverdue) headerClasses += ' is-overdue';
-
     let html = `
-      <div class="timeline-day-section" data-date="${dia.dataKey}">
-        <!-- Timeline marker -->
-        <div class="timeline-day-marker status-${statusDia.color}">
-          <i class="${statusDia.icon}"></i>
-        </div>
-
-        <!-- Day header -->
-        <div class="${headerClasses}">
-          <div class="timeline-day-info">
-            <div class="timeline-day-date">
-              ${dataFormatada.diaMes}
-              <span class="timeline-day-badge bg-${statusDia.color}">
-                <i class="${statusDia.icon}"></i>
-                ${statusDia.label}
-              </span>
-            </div>
-            <div class="timeline-day-label">${dataFormatada.diaSemana}</div>
-          </div>
-          <div class="timeline-day-count bg-label-${statusDia.color}">
+      <div class="cr-section" data-date="${dia.dataKey}">
+        <div class="cr-day status-${statusDia.color}">
+          <span class="cr-day-dot"></span>
+          <span class="cr-day-label">${statusDia.label}</span>
+          <span class="cr-day-date">${dataFormatada.diaSemanaCurto}, ${dataFormatada.diaMesCurto}</span>
+          <span class="cr-day-count">
             <i class="ri-phone-line"></i>
             ${totalTarefas} ${totalTarefas === 1 ? 'ligação' : 'ligações'}
-          </div>
+          </span>
         </div>
-
-        <!-- Tasks -->
-        <div class="timeline-day-tasks">
+        <div class="cr-items">
     `;
 
-    // Adicionar cards de agendamentos
     dia.agendamentos.forEach((agendamento, index) => {
       html += criarCardAgendamento(agendamento, index);
     });
@@ -275,8 +366,11 @@ $(function () {
    */
   function formatarDataCompleta(data) {
     const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const diasSemanaCurto = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
     const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const mesesCurto = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+                        'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
     const dia = data.getDate();
     const mes = meses[data.getMonth()];
@@ -285,74 +379,45 @@ $(function () {
 
     return {
       diaMes: `${dia} de ${mes} de ${ano}`,
-      diaSemana: diaSemana
+      diaSemana: diaSemana,
+      diaSemanaCurto: diasSemanaCurto[data.getDay()],
+      diaMesCurto: `${dia} ${mesesCurto[data.getMonth()]}`
     };
   }
 
   /**
-   * Criar card moderno de agendamento - New Schedule Card Design
+   * Criar linha compacta de agendamento
    */
   function criarCardAgendamento(agendamento, index) {
     const statusInfo = calcularStatusAgendamento(agendamento.horario_agendamento);
     const dataFormatada = formatarDataHora(agendamento.horario_agendamento);
-    const observacao = agendamento.observacao || '';
+    const observacao = (agendamento.observacao || '').trim();
+    const obsAttr = observacao ? `title="${observacao.replace(/"/g, '&quot;')}"` : '';
 
     return `
-      <div class="schedule-card status-${statusInfo.color}" data-agendamento-id="${agendamento.id}">
-        <div class="schedule-card-inner">
-          <!-- Time Block -->
-          <div class="schedule-time-block">
-            <div class="schedule-time text-${statusInfo.color}">${dataFormatada.hora}</div>
-            <div class="schedule-time-label">Horário</div>
-          </div>
-
-          <!-- Client Info -->
-          <div class="schedule-client-info">
-            <div class="schedule-client-name">
-              <i class="ri-user-3-line"></i>
-              ${agendamento.nome_cliente}
-            </div>
-            <div class="schedule-broker">
-              <i class="ri-user-star-line"></i>
-              ${agendamento.nome_corretor}
-            </div>
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <span class="schedule-status bg-${statusInfo.color}">
-                <i class="${statusInfo.icon}"></i>
-                ${statusInfo.label}
-              </span>
-              ${statusInfo.tempoRelativo ? `
-                <span class="schedule-relative bg-label-${statusInfo.color} text-${statusInfo.color}">
-                  <i class="ri-time-line"></i>
-                  ${statusInfo.tempoRelativo}
-                </span>
-              ` : ''}
-            </div>
-            ${observacao ? `
-              <div class="schedule-observation">
-                <i class="ri-chat-quote-line"></i>
-                <span>${observacao}</span>
-              </div>
-            ` : ''}
-          </div>
-
-          <!-- Actions -->
-          <div class="schedule-actions">
-            <a href="/comercial/abrir-cliente/${agendamento.id}" class="btn btn-outline-primary">
-              <i class="ri-eye-line"></i>
-              Abrir
-            </a>
-            <button class="btn btn-outline-secondary btn-reagendar" data-id="${agendamento.id}">
-              <i class="ri-calendar-schedule-line"></i>
-              Reagendar
-            </button>
-            <button class="btn btn-success btn-completar"
-                    data-id="${agendamento.id}"
-                    data-cliente="${agendamento.nome_cliente}">
-              <i class="ri-check-line"></i>
-              Concluir
-            </button>
-          </div>
+      <div class="cr-item status-${statusInfo.color}" data-agendamento-id="${agendamento.id}">
+        <span class="cr-item-dot bg-${statusInfo.color}"></span>
+        <span class="cr-item-time">${dataFormatada.hora}</span>
+        <div class="cr-item-main">
+          <span class="cr-item-name">${agendamento.nome_cliente}</span>
+          <span class="cr-item-broker"><i class="ri-user-star-line"></i> ${agendamento.nome_corretor}</span>
+        </div>
+        ${observacao ? `<span class="cr-item-obs" ${obsAttr}><i class="ri-chat-quote-line"></i></span>` : ''}
+        <span class="cr-item-rel text-${statusInfo.color}">
+          ${statusInfo.tempoRelativo || statusInfo.label}
+        </span>
+        <div class="cr-item-actions">
+          <a href="/comercial/abrir-cliente/${agendamento.id}" class="cr-btn-icon cr-btn-open" title="Abrir cliente">
+            <i class="ri-eye-line"></i>
+          </a>
+          <button type="button" class="cr-btn-icon cr-btn-resched btn-reagendar" data-id="${agendamento.id}" title="Reagendar">
+            <i class="ri-calendar-schedule-line"></i>
+          </button>
+          <button type="button" class="cr-btn-icon cr-btn-done btn-completar"
+                  data-id="${agendamento.id}"
+                  data-cliente="${agendamento.nome_cliente}" title="Concluir">
+            <i class="ri-check-line"></i>
+          </button>
         </div>
       </div>
     `;
@@ -577,6 +642,13 @@ $(function () {
 
     // Renderizar timeline com novo filtro
     renderizarTimeline();
+  });
+
+  /**
+   * Toggle das seções recolhíveis (Esta Semana / Futuro)
+   */
+  $(document).on('click', '.cr-collapse-toggle', function () {
+    $(this).closest('.cr-collapse').toggleClass('is-open');
   });
 
   /**

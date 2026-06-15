@@ -9,523 +9,590 @@
 @section('page-style')
     @vite(['resources/assets/vendor/scss/pages/app-kanban.scss', 'resources/assets/vendor/scss/pages/pos-venda.scss', 'resources/assets/vendor/scss/pages/kanban-modal.scss'])
     <style>
-        /* ========================================
-           CRONOGRAMA - MODERN TIMELINE DESIGN
-        ======================================== */
+        /* ============================================================
+           CRONOGRAMA — Agenda compacta (refit UI/UX)
+        ============================================================ */
 
-        /* Cronograma Header */
-        .cronograma-header {
-            padding: 1.5rem;
-            border-radius: 16px;
-            margin-bottom: 1.5rem;
+        #tab-cronograma {
+            --cr-danger: #ff3e1d;
+            --cr-info: #03c3ec;
+            --cr-warning: #ffab00;
+            --cr-success: #71dd37;
+            --cr-secondary: #8592a3;
+            --cr-primary: #696cff;
+            --cr-radius: 12px;
+            --cr-transition: all 0.2s ease;
         }
 
-        .light-style .cronograma-header {
+        /* ---------- Toolbar ---------- */
+        .cr-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: var(--cr-radius);
+            margin-bottom: 1rem;
+        }
+
+        .light-style .cr-toolbar {
             background: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
-        .dark-style .cronograma-header {
+        .dark-style .cr-toolbar {
             background: #2b2c40;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
         }
 
-        .cronograma-title {
-            font-size: 1.5rem;
-            font-weight: 700;
+        .cr-toolbar-title {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .cronograma-subtitle {
-            font-size: 0.9375rem;
-            opacity: 0.7;
-        }
-
-        /* Filter pills container */
-        .cronograma-filters {
-            display: flex;
             gap: 0.5rem;
-            flex-wrap: wrap;
-            padding: 0.75rem;
-            border-radius: 12px;
-        }
-
-        .light-style .cronograma-filters {
-            background: rgba(105, 108, 255, 0.04);
-        }
-
-        .dark-style .cronograma-filters {
-            background: rgba(105, 108, 255, 0.08);
-        }
-
-        /* Filter pills modernos */
-        .filtro-cronograma {
-            border-radius: 25px;
-            font-weight: 600;
-            padding: 10px 20px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid transparent;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .filtro-cronograma i {
-            font-size: 1.125rem;
-        }
-
-        .filtro-cronograma.active {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(105, 108, 255, 0.35);
-        }
-
-        .filtro-cronograma .badge {
-            font-size: 0.7rem;
-            padding: 4px 8px;
+            font-size: 1.0625rem;
             font-weight: 700;
-            border-radius: 12px;
-            min-width: 24px;
         }
 
-        /* Timeline container */
-        .daily-timeline {
-            padding: 1.5rem 0;
-            position: relative;
-        }
-
-        /* Vertical line connecting days */
-        .daily-timeline::before {
-            content: '';
-            position: absolute;
-            left: 32px;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            border-radius: 3px;
-        }
-
-        .light-style .daily-timeline::before {
-            background: linear-gradient(180deg, rgba(105, 108, 255, 0.15) 0%, rgba(105, 108, 255, 0.05) 100%);
-        }
-
-        .dark-style .daily-timeline::before {
-            background: linear-gradient(180deg, rgba(105, 108, 255, 0.25) 0%, rgba(105, 108, 255, 0.08) 100%);
-        }
-
-        /* Day section */
-        .timeline-day-section {
-            margin-bottom: 2.5rem;
-            position: relative;
-            padding-left: 80px;
-        }
-
-        /* Day marker (circle on timeline) */
-        .timeline-day-marker {
-            position: absolute;
-            left: 12px;
-            top: 0;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .cr-toolbar-title > i {
             font-size: 1.25rem;
+            color: var(--cr-primary);
+        }
+
+        .cr-toolbar-total {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            opacity: 0.6;
+            margin-left: 0.25rem;
+        }
+
+        /* ---------- Filtros (chips) ---------- */
+        .cr-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+        }
+
+        .cr-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--cr-transition);
+        }
+
+        .cr-chip i {
+            font-size: 1rem;
+        }
+
+        .light-style .cr-chip {
+            color: #566a7f;
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .dark-style .cr-chip {
+            color: #b4b7bd;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .cr-chip:hover {
+            transform: translateY(-1px);
+        }
+
+        .cr-chip-count {
+            font-size: 0.6875rem;
+            font-weight: 700;
+            min-width: 18px;
+            padding: 0 5px;
+            line-height: 18px;
+            text-align: center;
+            border-radius: 9px;
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .dark-style .cr-chip-count {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .cr-chip.active {
             color: #fff;
-            z-index: 2;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
-        .timeline-day-marker.status-danger {
-            background: linear-gradient(135deg, #ff3e1d 0%, #ff6348 100%);
+        .cr-chip.active .cr-chip-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: #fff;
         }
 
-        .timeline-day-marker.status-info {
-            background: linear-gradient(135deg, #03c3ec 0%, #0abde3 100%);
+        .cr-chip.filtro-cronograma.active {
+            background: var(--cr-primary);
         }
 
-        .timeline-day-marker.status-warning {
-            background: linear-gradient(135deg, #ffab00 0%, #ff9f43 100%);
+        .cr-chip.chip-danger.active {
+            background: var(--cr-danger);
         }
 
-        .timeline-day-marker.status-success {
-            background: linear-gradient(135deg, #71dd37 0%, #5ec425 100%);
+        .cr-chip.chip-info.active {
+            background: var(--cr-info);
         }
 
-        .timeline-day-marker.status-secondary {
-            background: linear-gradient(135deg, #8592a3 0%, #a1acb8 100%);
+        .cr-chip.chip-success.active {
+            background: var(--cr-success);
         }
 
-        /* Day header - PROMINENT */
-        .timeline-day-header {
-            padding: 1.25rem 1.5rem;
-            border-radius: 16px;
-            margin-bottom: 1.25rem;
+        .cr-chip.chip-secondary.active {
+            background: var(--cr-secondary);
+        }
+
+        /* ---------- Hero: próxima ligação ---------- */
+        .cr-proxima {
+            position: relative;
             display: flex;
             align-items: center;
-            justify-content: space-between;
             gap: 1rem;
-            position: relative;
+            padding: 1rem 1.25rem;
+            border-radius: var(--cr-radius);
+            margin-bottom: 1.25rem;
             overflow: hidden;
+            border-left: 4px solid var(--cr-primary);
+            animation: crSlideIn 0.3s ease-out;
         }
 
-        /* Gradient accent bar */
-        .timeline-day-header::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 5px;
-        }
-
-        .timeline-day-header.status-danger::before {
-            background: linear-gradient(180deg, #ff3e1d, #ff6348);
-        }
-
-        .timeline-day-header.status-info::before {
-            background: linear-gradient(180deg, #03c3ec, #0abde3);
-        }
-
-        .timeline-day-header.status-warning::before {
-            background: linear-gradient(180deg, #ffab00, #ff9f43);
-        }
-
-        .timeline-day-header.status-success::before {
-            background: linear-gradient(180deg, #71dd37, #5ec425);
-        }
-
-        .timeline-day-header.status-secondary::before {
-            background: linear-gradient(180deg, #8592a3, #a1acb8);
-        }
-
-        .light-style .timeline-day-header {
+        .light-style .cr-proxima {
             background: #fff;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         }
 
-        .dark-style .timeline-day-header {
+        .dark-style .cr-proxima {
             background: #2b2c40;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
-        /* TODAY special highlight */
-        .timeline-day-header.is-today {
-            border: 2px solid;
-        }
+        .cr-proxima.status-danger { border-left-color: var(--cr-danger); }
+        .cr-proxima.status-info { border-left-color: var(--cr-info); }
+        .cr-proxima.status-warning { border-left-color: var(--cr-warning); }
+        .cr-proxima.status-success { border-left-color: var(--cr-success); }
+        .cr-proxima.status-secondary { border-left-color: var(--cr-secondary); }
 
-        .light-style .timeline-day-header.is-today {
-            border-color: #03c3ec;
-            background: linear-gradient(135deg, rgba(3, 195, 236, 0.08) 0%, rgba(3, 195, 236, 0.02) 100%);
-        }
-
-        .dark-style .timeline-day-header.is-today {
-            border-color: #03c3ec;
-            background: linear-gradient(135deg, rgba(3, 195, 236, 0.15) 0%, rgba(3, 195, 236, 0.05) 100%);
-        }
-
-        /* OVERDUE special highlight */
-        .timeline-day-header.is-overdue {
-            border: 2px solid;
-        }
-
-        .light-style .timeline-day-header.is-overdue {
-            border-color: #ff3e1d;
-            background: linear-gradient(135deg, rgba(255, 62, 29, 0.08) 0%, rgba(255, 62, 29, 0.02) 100%);
-        }
-
-        .dark-style .timeline-day-header.is-overdue {
-            border-color: #ff3e1d;
-            background: linear-gradient(135deg, rgba(255, 62, 29, 0.15) 0%, rgba(255, 62, 29, 0.05) 100%);
-        }
-
-        .timeline-day-info {
-            flex: 1;
-        }
-
-        .timeline-day-date {
-            font-size: 1.375rem;
-            font-weight: 800;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .timeline-day-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .timeline-day-label {
-            font-size: 0.9375rem;
-            opacity: 0.75;
-            font-weight: 500;
-        }
-
-        .timeline-day-count {
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-weight: 700;
-            font-size: 0.9375rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .timeline-day-count i {
-            font-size: 1.125rem;
-        }
-
-        /* Task cards container */
-        .timeline-day-tasks {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        /* Schedule card moderna */
-        .schedule-card {
-            border-radius: 16px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-            border: none;
+        .cr-proxima-pulse {
+            flex: 0 0 auto;
+            width: 14px;
+            height: 14px;
             position: relative;
         }
 
-        .light-style .schedule-card {
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        .cr-proxima-pulse span {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: var(--cr-primary);
         }
 
-        .dark-style .schedule-card {
-            background: #2b2c40;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-        }
+        .cr-proxima.status-danger .cr-proxima-pulse span { background: var(--cr-danger); }
+        .cr-proxima.status-info .cr-proxima-pulse span { background: var(--cr-info); }
+        .cr-proxima.status-warning .cr-proxima-pulse span { background: var(--cr-warning); }
+        .cr-proxima.status-success .cr-proxima-pulse span { background: var(--cr-success); }
+        .cr-proxima.status-secondary .cr-proxima-pulse span { background: var(--cr-secondary); }
 
-        .schedule-card:hover {
-            transform: translateX(8px);
-        }
-
-        .light-style .schedule-card:hover {
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-        }
-
-        .dark-style .schedule-card:hover {
-            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
-        }
-
-        /* Status indicator left border */
-        .schedule-card::before {
+        .cr-proxima-pulse span::after {
             content: '';
             position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 5px;
+            inset: 0;
+            border-radius: 50%;
+            background: inherit;
+            animation: crPulse 1.8s ease-out infinite;
         }
 
-        .schedule-card.status-danger::before {
-            background: linear-gradient(180deg, #ff3e1d, #ff6348);
+        @keyframes crPulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(3); opacity: 0; }
         }
 
-        .schedule-card.status-info::before {
-            background: linear-gradient(180deg, #03c3ec, #0abde3);
-        }
-
-        .schedule-card.status-warning::before {
-            background: linear-gradient(180deg, #ffab00, #ff9f43);
-        }
-
-        .schedule-card.status-success::before {
-            background: linear-gradient(180deg, #71dd37, #5ec425);
-        }
-
-        .schedule-card.status-secondary::before {
-            background: linear-gradient(180deg, #8592a3, #a1acb8);
-        }
-
-        .schedule-card-inner {
-            padding: 1.25rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-        }
-
-        /* Time block */
-        .schedule-time-block {
-            min-width: 80px;
-            text-align: center;
-            padding: 0.75rem;
-            border-radius: 12px;
-        }
-
-        .light-style .schedule-time-block {
-            background: rgba(105, 108, 255, 0.06);
-        }
-
-        .dark-style .schedule-time-block {
-            background: rgba(105, 108, 255, 0.12);
-        }
-
-        .schedule-time {
-            font-size: 1.5rem;
-            font-weight: 800;
-            line-height: 1;
-            margin-bottom: 4px;
-        }
-
-        .schedule-time-label {
-            font-size: 0.6875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            opacity: 0.7;
-            font-weight: 600;
-        }
-
-        /* Client info */
-        .schedule-client-info {
+        .cr-proxima-info {
             flex: 1;
             min-width: 0;
         }
 
-        .schedule-client-name {
-            font-size: 1.0625rem;
-            font-weight: 700;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .schedule-client-name i {
-            font-size: 1.125rem;
-            opacity: 0.7;
-        }
-
-        .schedule-broker {
-            font-size: 0.8125rem;
-            opacity: 0.7;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 8px;
-        }
-
-        .schedule-observation {
-            font-size: 0.8125rem;
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin-top: 8px;
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-        }
-
-        .light-style .schedule-observation {
-            background: rgba(0, 0, 0, 0.03);
-        }
-
-        .dark-style .schedule-observation {
-            background: rgba(255, 255, 255, 0.04);
-        }
-
-        .schedule-observation i {
-            margin-top: 2px;
-            opacity: 0.6;
-        }
-
-        /* Status badge */
-        .schedule-status {
+        .cr-proxima-eyebrow {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 20px;
+            gap: 0.375rem;
             font-size: 0.6875rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.06em;
+            opacity: 0.6;
         }
 
-        /* Relative time */
-        .schedule-relative {
-            font-size: 0.75rem;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            margin-top: 6px;
+        .cr-proxima-name {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin: 2px 0 4px;
+        }
+
+        .cr-proxima-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .cr-proxima-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .cr-proxima-date {
+            font-size: 0.8125rem;
+            opacity: 0.6;
+        }
+
+        .cr-proxima-status {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 0.25rem;
+            color: #fff;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
         }
 
-        /* Actions */
-        .schedule-actions {
+        .cr-proxima-obs {
+            font-size: 0.8125rem;
+            opacity: 0.7;
+            margin-top: 0.375rem;
+        }
+
+        .cr-proxima-actions {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            min-width: 120px;
+            gap: 0.375rem;
+            flex: 0 0 auto;
         }
 
-        .schedule-actions .btn {
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.8125rem;
-            padding: 8px 14px;
+        .cr-proxima-actions .btn {
+            white-space: nowrap;
+        }
+
+        /* ---------- Timeline compacta ---------- */
+        .cr-timeline {
+            padding: 0.25rem 0;
+        }
+
+        .cr-section {
+            margin-bottom: 0.75rem;
+        }
+
+        /* Divisor de dia (fino + sticky) */
+        .cr-day {
+            position: sticky;
+            top: 0;
+            z-index: 3;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 6px;
+            gap: 0.5rem;
+            padding: 0.4rem 0.25rem;
+            margin-bottom: 0.25rem;
+            backdrop-filter: blur(6px);
         }
 
-        .schedule-actions .btn i {
+        .light-style .cr-day { background: rgba(245, 245, 249, 0.9); }
+        .dark-style .cr-day { background: rgba(35, 37, 55, 0.9); }
+
+        .cr-day-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex: 0 0 auto;
+        }
+
+        .cr-day.status-danger .cr-day-dot { background: var(--cr-danger); }
+        .cr-day.status-info .cr-day-dot { background: var(--cr-info); }
+        .cr-day.status-warning .cr-day-dot { background: var(--cr-warning); }
+        .cr-day.status-success .cr-day-dot { background: var(--cr-success); }
+        .cr-day.status-secondary .cr-day-dot { background: var(--cr-secondary); }
+
+        .cr-day-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .cr-day.status-danger .cr-day-label { color: var(--cr-danger); }
+        .cr-day.status-info .cr-day-label { color: var(--cr-info); }
+        .cr-day.status-warning .cr-day-label { color: var(--cr-warning); }
+        .cr-day.status-success .cr-day-label { color: var(--cr-success); }
+        .cr-day.status-secondary .cr-day-label { color: var(--cr-secondary); }
+
+        .cr-day-date {
+            font-size: 0.75rem;
+            opacity: 0.55;
+            font-weight: 500;
+        }
+
+        .cr-day-count {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            opacity: 0.55;
+        }
+
+        .cr-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem;
+        }
+
+        /* ---------- Seção recolhível (Semana / Futuro) ---------- */
+        .cr-collapse {
+            margin-bottom: 0.5rem;
+        }
+
+        .cr-collapse-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.8125rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            transition: var(--cr-transition);
+        }
+
+        .light-style .cr-collapse-toggle {
+            background: rgba(0, 0, 0, 0.03);
+            color: #566a7f;
+        }
+
+        .dark-style .cr-collapse-toggle {
+            background: rgba(255, 255, 255, 0.05);
+            color: #b4b7bd;
+        }
+
+        .cr-collapse-toggle:hover {
+            filter: brightness(0.97);
+        }
+
+        .cr-collapse-caret {
+            transition: transform 0.2s ease;
+            font-size: 1.125rem;
+        }
+
+        .cr-collapse.is-open .cr-collapse-caret {
+            transform: rotate(90deg);
+        }
+
+        .cr-collapse-icon {
             font-size: 1rem;
         }
 
-        /* Empty state moderno */
+        .cr-collapse-toggle.status-success .cr-collapse-icon { color: var(--cr-success); }
+        .cr-collapse-toggle.status-secondary .cr-collapse-icon { color: var(--cr-secondary); }
+
+        .cr-collapse-count {
+            margin-left: auto;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            min-width: 20px;
+            padding: 1px 6px;
+            text-align: center;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .dark-style .cr-collapse-count {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .cr-collapse-body {
+            display: none;
+            padding-top: 0.5rem;
+        }
+
+        .cr-collapse.is-open .cr-collapse-body {
+            display: block;
+        }
+
+        /* ---------- Linha de agendamento (compacta) ---------- */
+        .cr-item {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 10px;
+            transition: var(--cr-transition);
+            animation: crSlideIn 0.2s ease-out;
+        }
+
+        .light-style .cr-item {
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .dark-style .cr-item {
+            background: #2b2c40;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .cr-item:hover {
+            transform: translateX(3px);
+        }
+
+        .light-style .cr-item:hover {
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-style .cr-item:hover {
+            box-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
+        }
+
+        .cr-item-dot {
+            flex: 0 0 auto;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .cr-item-time {
+            flex: 0 0 auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9375rem;
+            font-weight: 700;
+            min-width: 46px;
+            text-align: center;
+        }
+
+        .cr-item-main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25;
+        }
+
+        .cr-item-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cr-item-broker {
+            font-size: 0.75rem;
+            opacity: 0.55;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cr-item-obs {
+            flex: 0 0 auto;
+            font-size: 0.95rem;
+            opacity: 0.45;
+            cursor: help;
+        }
+
+        .cr-item-rel {
+            flex: 0 0 auto;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        @media (min-width: 769px) {
+            .cr-item-rel {
+                min-width: 96px;
+                text-align: right;
+            }
+        }
+
+        /* Ações em ícone */
+        .cr-item-actions {
+            flex: 0 0 auto;
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .cr-btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            font-size: 1.05rem;
+            transition: var(--cr-transition);
+            text-decoration: none;
+        }
+
+        .light-style .cr-btn-icon {
+            background: rgba(0, 0, 0, 0.04);
+            color: #697a8d;
+        }
+
+        .dark-style .cr-btn-icon {
+            background: rgba(255, 255, 255, 0.06);
+            color: #b4b7bd;
+        }
+
+        .cr-btn-open:hover { background: var(--cr-primary); color: #fff; }
+        .cr-btn-resched:hover { background: var(--cr-warning); color: #fff; }
+        .cr-btn-done:hover { background: var(--cr-success); color: #fff; }
+
+        /* ---------- Empty state (menor) ---------- */
         .cronograma-empty-state {
             text-align: center;
-            padding: 80px 20px;
-            border-radius: 20px;
+            padding: 2.5rem 1.25rem;
+            border-radius: var(--cr-radius);
         }
 
         .light-style .cronograma-empty-state {
-            background: linear-gradient(135deg, rgba(105, 108, 255, 0.04) 0%, rgba(105, 108, 255, 0.01) 100%);
+            background: rgba(105, 108, 255, 0.03);
         }
 
         .dark-style .cronograma-empty-state {
-            background: linear-gradient(135deg, rgba(105, 108, 255, 0.08) 0%, rgba(105, 108, 255, 0.02) 100%);
+            background: rgba(105, 108, 255, 0.06);
         }
 
         .cronograma-empty-icon {
-            font-size: 5rem;
-            margin-bottom: 24px;
-            opacity: 0.2;
+            font-size: 3rem;
+            opacity: 0.25;
+            margin-bottom: 0.5rem;
         }
 
         .cronograma-empty-title {
-            font-size: 1.5rem;
+            font-size: 1.125rem;
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: 0.25rem;
         }
 
         .cronograma-empty-text {
             opacity: 0.6;
-            font-size: 1rem;
+            font-size: 0.875rem;
         }
 
-        /* Badge contador cronograma */
+        /* Badge contador na aba */
         #badge-cronograma-hoje {
             font-size: 0.6875rem;
             font-weight: 700;
@@ -540,81 +607,54 @@
             font-size: 12px;
         }
 
-        /* Responsive */
-        @media (max-width: 992px) {
-            .schedule-card-inner {
-                flex-wrap: wrap;
-            }
-
-            .schedule-actions {
-                width: 100%;
-                flex-direction: row;
-                margin-top: 1rem;
-                padding-top: 1rem;
-                border-top: 1px solid rgba(0, 0, 0, 0.06);
-            }
-
-            .schedule-actions .btn {
-                flex: 1;
-            }
-        }
-
+        /* ---------- Responsivo ---------- */
         @media (max-width: 768px) {
-            .timeline-day-section {
-                padding-left: 0;
+            .cr-toolbar {
+                flex-direction: column;
+                align-items: stretch;
             }
 
-            .daily-timeline::before {
+            .cr-filters {
+                justify-content: space-between;
+            }
+
+            .cr-chip span:not(.cr-chip-count) {
                 display: none;
             }
 
-            .timeline-day-marker {
-                display: none;
+            .cr-chip.filtro-cronograma[data-filter="todos"] span {
+                display: inline;
             }
 
-            .timeline-day-header {
+            .cr-proxima {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 1rem;
             }
 
-            .timeline-day-count {
+            .cr-proxima-actions {
+                flex-direction: row;
                 width: 100%;
-                justify-content: center;
             }
 
-            .cronograma-filters {
-                justify-content: center;
+            .cr-proxima-actions .btn {
+                flex: 1;
             }
 
-            .filtro-cronograma {
-                padding: 8px 14px;
-                font-size: 0.8125rem;
-            }
-
-            .filtro-cronograma span:not(.badge) {
+            .cr-item-broker {
                 display: none;
             }
         }
 
-        /* Animation */
-        @keyframes slideInRight {
+        /* ---------- Animação ---------- */
+        @keyframes crSlideIn {
             from {
                 opacity: 0;
-                transform: translateX(-20px);
+                transform: translateY(6px);
             }
             to {
                 opacity: 1;
-                transform: translateX(0);
+                transform: translateY(0);
             }
-        }
-
-        .timeline-day-section {
-            animation: slideInRight 0.4s ease-out;
-        }
-
-        .schedule-card {
-            animation: slideInRight 0.3s ease-out;
         }
     </style>
 @endsection
@@ -955,55 +995,50 @@
 
         <!-- Tab Cronograma -->
         <div class="tab-pane fade" id="tab-cronograma" role="tabpanel" aria-labelledby="cronograma-tab">
-            <!-- Modern Header -->
-            <div class="cronograma-header">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-4">
-                    <div>
-                        <h4 class="cronograma-title">
-                            <i class="ri-calendar-schedule-line text-primary"></i>
-                            Cronograma de Ligações
-                        </h4>
-                        <p class="cronograma-subtitle mb-0">
-                            <span id="total-agendamentos">0</span> agendamentos programados
-                        </p>
-                    </div>
-
-                    <!-- Filters -->
-                    <div class="cronograma-filters">
-                        <button type="button" class="btn btn-primary filtro-cronograma active" data-filter="todos">
-                            <i class="ri-list-check-2"></i>
-                            <span>Todos</span>
-                        </button>
-                        <button type="button" class="btn btn-outline-danger filtro-cronograma" data-filter="atrasados">
-                            <i class="ri-alarm-warning-line"></i>
-                            <span>Atrasados</span>
-                            <span class="badge bg-danger" id="count-atrasados">0</span>
-                        </button>
-                        <button type="button" class="btn btn-outline-info filtro-cronograma" data-filter="hoje">
-                            <i class="ri-focus-3-line"></i>
-                            <span>Hoje</span>
-                            <span class="badge bg-info" id="count-hoje">0</span>
-                        </button>
-                        <button type="button" class="btn btn-outline-success filtro-cronograma" data-filter="semana">
-                            <i class="ri-calendar-check-line"></i>
-                            <span>Esta Semana</span>
-                            <span class="badge bg-success" id="count-semana">0</span>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary filtro-cronograma" data-filter="futuro">
-                            <i class="ri-calendar-2-line"></i>
-                            <span>Futuro</span>
-                            <span class="badge bg-secondary" id="count-futuro">0</span>
-                        </button>
-                    </div>
+            <!-- Toolbar compacta -->
+            <div class="cr-toolbar">
+                <div class="cr-toolbar-title">
+                    <i class="ri-calendar-schedule-line"></i>
+                    <span>Cronograma</span>
+                    <span class="cr-toolbar-total"><span id="total-agendamentos">0</span> agendamentos</span>
+                </div>
+                <div class="cr-filters">
+                    <button type="button" class="cr-chip filtro-cronograma active" data-filter="todos">
+                        <i class="ri-list-check-2"></i>
+                        <span>Todos</span>
+                    </button>
+                    <button type="button" class="cr-chip chip-danger filtro-cronograma" data-filter="atrasados">
+                        <i class="ri-alarm-warning-line"></i>
+                        <span>Atrasados</span>
+                        <span class="cr-chip-count" id="count-atrasados">0</span>
+                    </button>
+                    <button type="button" class="cr-chip chip-info filtro-cronograma" data-filter="hoje">
+                        <i class="ri-focus-3-line"></i>
+                        <span>Hoje</span>
+                        <span class="cr-chip-count" id="count-hoje">0</span>
+                    </button>
+                    <button type="button" class="cr-chip chip-success filtro-cronograma" data-filter="semana">
+                        <i class="ri-calendar-check-line"></i>
+                        <span>Semana</span>
+                        <span class="cr-chip-count" id="count-semana">0</span>
+                    </button>
+                    <button type="button" class="cr-chip chip-secondary filtro-cronograma" data-filter="futuro">
+                        <i class="ri-calendar-2-line"></i>
+                        <span>Futuro</span>
+                        <span class="cr-chip-count" id="count-futuro">0</span>
+                    </button>
                 </div>
             </div>
 
+            <!-- Hero: Próxima ligação -->
+            <div id="cronograma-proxima" class="d-none"></div>
+
             <!-- Loading -->
             <div id="cronograma-loading" class="text-center py-5">
-                <div class="spinner-border text-primary spinner-border-lg" role="status" style="width: 3rem; height: 3rem;">
+                <div class="spinner-border text-primary" role="status" style="width: 2.25rem; height: 2.25rem;">
                     <span class="visually-hidden">Carregando...</span>
                 </div>
-                <p class="mt-4 mb-0 fw-medium">Carregando seus agendamentos...</p>
+                <p class="mt-3 mb-0 fw-medium text-muted">Carregando seus agendamentos...</p>
             </div>
 
             <!-- Mensagem vazia -->
@@ -1012,11 +1047,11 @@
                     <i class="ri-calendar-check-line"></i>
                 </div>
                 <h5 class="cronograma-empty-title">Nenhum agendamento encontrado</h5>
-                <p class="cronograma-empty-text">Não há ligações agendadas para o filtro selecionado.</p>
+                <p class="cronograma-empty-text mb-0">Não há ligações agendadas para o filtro selecionado.</p>
             </div>
 
-            <!-- Daily Timeline Container -->
-            <div id="cronograma-timeline" class="daily-timeline d-none">
+            <!-- Timeline compacta -->
+            <div id="cronograma-timeline" class="cr-timeline d-none">
                 <!-- As seções de dias serão inseridas aqui dinamicamente -->
             </div>
         </div>
