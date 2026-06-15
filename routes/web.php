@@ -26,6 +26,8 @@ use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\financeiro\Financeiro;
 use App\Http\Controllers\pages\comercial\ConsultaController;
 use App\Http\Controllers\pages\estudo\Estudo;
+use App\Http\Controllers\pages\escola\EscolaController;
+use App\Http\Controllers\pages\escola\EscolaAdminController;
 
 //ROUTE
 Route::get('/', [LoginBasic::class, 'index'])->name('login');
@@ -506,6 +508,44 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/relatorio-financeiro/fetch', [Financeiro::class, 'relatorioFinanceiroFetch'])
         ->name('financeiro.relatorio.fetch');
+  });
+
+  /** ESCOLA LK BROKERS */
+  Route::prefix('escola')->name('escola.')->group(function () {
+    // Área do aluno (todos os roles autenticados)
+    Route::get('/', [EscolaController::class, 'index'])->name('index');
+    Route::get('/modulos/{modulo}', [EscolaController::class, 'show'])->whereNumber('modulo')->name('modulos.show');
+    Route::get('/aulas/{aula}', [EscolaController::class, 'assistir'])->whereNumber('aula')->name('aulas.assistir');
+    Route::post('/aulas/{aula}/progresso', [EscolaController::class, 'salvarProgresso'])->whereNumber('aula')->name('aulas.progresso');
+    Route::get('/materiais/{material}/download', [EscolaController::class, 'downloadMaterial'])->whereNumber('material')->name('materiais.download');
+
+    // Área administrativa (ADMINISTRATIVO, DEVELOPER, SUPERVISOR — checado no controller)
+    Route::prefix('gestao')->name('gestao.')->group(function () {
+      Route::get('/', [EscolaAdminController::class, 'index'])->name('index');
+
+      Route::post('/modulos', [EscolaAdminController::class, 'storeModulo'])->name('modulos.store');
+      Route::post('/modulos/reordenar', [EscolaAdminController::class, 'reordenarModulos'])->name('modulos.reordenar');
+      Route::put('/modulos/{modulo}', [EscolaAdminController::class, 'updateModulo'])->whereNumber('modulo')->name('modulos.update');
+      Route::delete('/modulos/{modulo}', [EscolaAdminController::class, 'destroyModulo'])->whereNumber('modulo')->name('modulos.destroy');
+
+      Route::get('/modulos/{modulo}/aulas', [EscolaAdminController::class, 'aulas'])->whereNumber('modulo')->name('aulas.index');
+      Route::post('/modulos/{modulo}/aulas', [EscolaAdminController::class, 'storeAula'])->whereNumber('modulo')->name('aulas.store');
+      Route::post('/aulas/reordenar', [EscolaAdminController::class, 'reordenarAulas'])->name('aulas.reordenar');
+      Route::put('/aulas/{aula}', [EscolaAdminController::class, 'updateAula'])->whereNumber('aula')->name('aulas.update');
+      Route::delete('/aulas/{aula}', [EscolaAdminController::class, 'destroyAula'])->whereNumber('aula')->name('aulas.destroy');
+
+      Route::post('/upload/presign', [EscolaAdminController::class, 'presignUpload'])->name('upload.presign');
+      Route::post('/aulas/{aula}/video/confirmar', [EscolaAdminController::class, 'confirmarVideo'])->whereNumber('aula')->name('aulas.video.confirmar');
+
+      Route::post('/aulas/{aula}/materiais', [EscolaAdminController::class, 'storeMaterial'])->whereNumber('aula')->name('materiais.store');
+      Route::delete('/materiais/{material}', [EscolaAdminController::class, 'destroyMaterial'])->whereNumber('material')->name('materiais.destroy');
+
+      Route::get('/relatorio', [EscolaAdminController::class, 'relatorio'])->name('relatorio');
+      Route::get('/relatorio/data', [EscolaAdminController::class, 'relatorioData'])->name('relatorio.data');
+
+      Route::get('/acessos', [EscolaAdminController::class, 'acessos'])->name('acessos');
+      Route::post('/acessos/{usuario}/toggle', [EscolaAdminController::class, 'toggleAcesso'])->whereNumber('usuario')->name('acessos.toggle');
+    });
   });
 });
 

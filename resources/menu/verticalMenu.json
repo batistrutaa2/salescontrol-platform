@@ -13,6 +13,59 @@
       ]
     },
     {
+      "menuHeader": "Treinamento",
+      "gate": "escola",
+      "rules": [
+        "VENDEDOR",
+        "ADMINISTRATIVO",
+        "BACKOFFICE",
+        "DEVELOPER",
+        "SUPERVISOR",
+        "BENEFICIOS"
+      ]
+    },
+    {
+      "url": "/escola",
+      "name": "Escola LK Brokers",
+      "icon": "menu-icon tf-icons ri-graduation-cap-line",
+      "slug": "escola.index",
+      "gate": "escola",
+      "rules": [
+        "VENDEDOR",
+        "ADMINISTRATIVO",
+        "BACKOFFICE",
+        "DEVELOPER",
+        "SUPERVISOR",
+        "BENEFICIOS"
+      ]
+    },
+    {
+      "name": "Gestão da Escola",
+      "icon": "menu-icon tf-icons ri-settings-4-line",
+      "slug": "escola.gestao",
+      "rules": [
+        "ADMINISTRATIVO",
+        "DEVELOPER"
+      ],
+      "submenu": [
+        {
+          "url": "/escola/gestao",
+          "name": "Módulos e Aulas",
+          "slug": "escola.gestao.index"
+        },
+        {
+          "url": "/escola/gestao/relatorio",
+          "name": "Relatório de Progresso",
+          "slug": "escola.gestao.relatorio"
+        },
+        {
+          "url": "/escola/gestao/acessos",
+          "name": "Liberar Acesso",
+          "slug": "escola.gestao.acessos"
+        }
+      ]
+    },
+    {
       "menuHeader": "Financeiro",
       "rules": [
         "ADMINISTRATIVO",

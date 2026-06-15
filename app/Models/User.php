@@ -28,6 +28,7 @@ class User extends Authenticatable
         'empresa_id',
         'user_role_id',
         'excluir_ranking',
+        'escola_habilitada',
     ];
 
     /**
@@ -52,6 +53,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'last_birthday_notified_at' => 'date',
             'excluir_ranking' => 'boolean',
+            'escola_habilitada' => 'boolean',
         ];
     }
 

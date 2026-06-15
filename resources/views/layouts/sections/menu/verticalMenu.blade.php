@@ -30,8 +30,18 @@
         @foreach ($menuData[0]->menu as $menu)
             {{-- adding active and open class if child is active --}}
 
+            {{-- Gate por usuário (além do papel): usado por features liberadas individualmente --}}
+            @php
+                $passaGate = true;
+                if (isset($menu->gate) && $menu->gate === 'escola') {
+                    $u = Auth::user();
+                    $passaGate = in_array($u->user_role_id, [\App\Enums\UserRole::ADMINISTRATIVO, \App\Enums\UserRole::DEVELOPER])
+                        || (bool) $u->escola_habilitada;
+                }
+            @endphp
+
             {{-- Check if the current user's role is in the menu rules --}}
-            @if (!isset($menu->rules) || in_array($rules, $menu->rules))
+            @if ((!isset($menu->rules) || in_array($rules, $menu->rules)) && $passaGate)
                 {{-- menu headers --}}
                 @if (isset($menu->menuHeader))
                     <li class="menu-header mt-7">
