@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class MetricasService
 {
-    public function __construct(private ContratoRepositoryInterface $contratos)
-    {
-    }
+    public function __construct(private ContratoRepositoryInterface $contratos) {}
 
     public function kpis(int $empresaId): array
     {

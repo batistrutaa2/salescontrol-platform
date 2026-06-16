@@ -13,8 +13,7 @@ class ConversaoLeadService
     public function __construct(
         private LeadRepositoryInterface $leads,
         private ContratoRepositoryInterface $contratos,
-    ) {
-    }
+    ) {}
 
     public function converterEmContrato(int $leadId, array $dadosContrato, int $empresaId, int $userId): Contrato
     {

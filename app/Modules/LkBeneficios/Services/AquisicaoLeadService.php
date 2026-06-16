@@ -12,8 +12,7 @@ class AquisicaoLeadService
     public function __construct(
         private LeadRepositoryInterface $leads,
         private BaseSaudeRepositoryInterface $baseSaude,
-    ) {
-    }
+    ) {}
 
     public function pegarDaBaseSaude(string $cpfCnpj, int $produtoId, int $empresaId, int $userId): Lead
     {
@@ -38,8 +37,8 @@ class AquisicaoLeadService
             'email' => $dados['email'],
             'telefone' => $dados['telefone'],
             'origem' => 'BASE_SAUDE',
-            'observacoes' => 'Origem: base do saúde · ' . $dados['qtd_contratos'] . ' contratos · 1ª implantação em '
-                . ($dados['primeira_implantacao'] ? date('d/m/Y', strtotime($dados['primeira_implantacao'])) : '—'),
+            'observacoes' => 'Origem: base do saúde · '.$dados['qtd_contratos'].' contratos · 1ª implantação em '
+                .($dados['primeira_implantacao'] ? date('d/m/Y', strtotime($dados['primeira_implantacao'])) : '—'),
         ], $userId);
     }
 

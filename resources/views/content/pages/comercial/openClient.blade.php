@@ -670,6 +670,7 @@
                             <h5 class="pv-modal-title" id="consultaModalLabel">Consultar Dados</h5>
                             <span class="pv-modal-subtitle" id="oc-consulta-subtitle">CPF ou CNPJ</span>
                         </div>
+                        <span class="oc-fonte-badge d-none" id="oc-fonte-badge"></span>
                     </div>
                     <button type="button" class="pv-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -695,6 +696,16 @@
 
                         {{-- Campo de busca --}}
                         <div class="oc-search-area">
+                            <div class="oc-fonte-seg" id="oc-fonte-seg">
+                                <button type="button" class="oc-fonte-btn active" data-fonte="lemit">Lemit</button>
+                                <button type="button" class="oc-fonte-btn" data-fonte="assertiva">Assertiva</button>
+                            </div>
+                            <div class="oc-tipo-seg" id="oc-tipo-seg">
+                                <button type="button" class="oc-tipo-btn active" data-tipo="documento">Documento</button>
+                                <button type="button" class="oc-tipo-btn" data-tipo="telefone">Telefone</button>
+                                <button type="button" class="oc-tipo-btn" data-tipo="email">E-mail</button>
+                                <button type="button" class="oc-tipo-btn" data-tipo="nome">Nome</button>
+                            </div>
                             <div class="oc-search-wrap">
                                 <input type="text" id="oc-doc-input" class="oc-search-input"
                                        placeholder="CPF ou CNPJ..." maxlength="18" autocomplete="off">
@@ -723,6 +734,9 @@
                     {{-- Painel direito: resultados --}}
                     <div class="oc-results-panel">
 
+                        {{-- Card fixo do lead — sempre visível, nunca some ao pesquisar --}}
+                        <div id="oc-lead-card" class="oc-lead-card d-none"></div>
+
                         {{-- Estado inicial --}}
                         <div class="kp-empty-state" id="oc-consulta-initial">
                             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.25">
@@ -731,6 +745,9 @@
                             <p>Digite um CPF ou CNPJ para consultar</p>
                             <small>Os dados são buscados em tempo real</small>
                         </div>
+
+                        {{-- Estado dinâmico: buscando / nada encontrado --}}
+                        <div id="consulta-estado" class="d-none"></div>
 
                         {{-- Erro de consulta --}}
                         <div id="erro-consulta-cliente" class="d-none"
@@ -790,10 +807,16 @@
                                     </button>
                                     <button class="kp-info-tab-btn" data-kp-tab="tab-societario">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                                         </svg>
                                         Societário
+                                    </button>
+                                    <button class="kp-info-tab-btn" data-kp-tab="tab-vinculos">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                        </svg>
+                                        Vínculos
+                                        <span class="kp-tab-count" id="kp-count-vinculos">0</span>
                                     </button>
                                 </nav>
 
@@ -859,8 +882,15 @@
                                         <div id="participacaoSocietaria"></div>
                                     </div>
 
+                                    <div class="kp-info-tab-pane" id="tab-vinculos">
+                                        <div id="vinculos-preditiva"></div>
+                                    </div>
+
                                 </div>{{-- /kp-info-tab-panes --}}
                             </div>{{-- /dados-pessoa-preditiva --}}
+
+                            {{-- Render completo Assertiva (preenchido pelo consulta.js) --}}
+                            <div id="dados-assertiva-preditiva" class="assv-wrap d-none"></div>
                         </div>{{-- /dados-consulta-cliente --}}
 
                     </div>{{-- /oc-results-panel --}}

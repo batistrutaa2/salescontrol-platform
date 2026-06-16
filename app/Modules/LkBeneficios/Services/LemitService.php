@@ -11,7 +11,9 @@ use RuntimeException;
 class LemitService
 {
     private string $apiToken;
+
     private string $baseUrl;
+
     private int $cacheMonths;
 
     public function __construct()
@@ -42,13 +44,13 @@ class LemitService
         }
 
         $response = Http::asForm()->withHeaders([
-            'Authorization' => 'Bearer ' . $this->apiToken,
-        ])->post($this->baseUrl . '/pessoa', [
+            'Authorization' => 'Bearer '.$this->apiToken,
+        ])->post($this->baseUrl.'/pessoa', [
             'documento' => $cpf,
         ]);
 
         if (! $response->successful()) {
-            throw new RuntimeException('Lemit: falha ao consultar CPF (HTTP ' . $response->status() . ').');
+            throw new RuntimeException('Lemit: falha ao consultar CPF (HTTP '.$response->status().').');
         }
 
         $data = $response->json();
@@ -67,6 +69,7 @@ class LemitService
         $empresa = Empresa::where('cnpj', $cnpj)->first();
         if ($empresa && $this->aindaNoCache($empresa->created_at)) {
             $empresa->load(['enderecos', 'celulares', 'fixos', 'emails', 'socios', 'carros']);
+
             return [
                 'fonte' => 'local_db',
                 'data_consulta' => $empresa->created_at,
@@ -75,13 +78,13 @@ class LemitService
         }
 
         $response = Http::asForm()->withHeaders([
-            'Authorization' => 'Bearer ' . $this->apiToken,
-        ])->post($this->baseUrl . '/empresa', [
+            'Authorization' => 'Bearer '.$this->apiToken,
+        ])->post($this->baseUrl.'/empresa', [
             'documento' => $cnpj,
         ]);
 
         if (! $response->successful()) {
-            throw new RuntimeException('Lemit: falha ao consultar CNPJ (HTTP ' . $response->status() . ').');
+            throw new RuntimeException('Lemit: falha ao consultar CNPJ (HTTP '.$response->status().').');
         }
 
         $json = $response->json();
@@ -95,6 +98,7 @@ class LemitService
         if (! $dataConsulta) {
             return false;
         }
+
         return Carbon::parse($dataConsulta)->gt(now()->subMonths($this->cacheMonths));
     }
 

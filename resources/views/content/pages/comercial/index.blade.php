@@ -1327,12 +1327,22 @@
                             </span>
                             <span class="kp-history-count" id="kp-history-count">0</span>
                         </div>
-                        {{-- Campo de busca manual de CPF --}}
+                        {{-- Campo de busca manual: fonte + tipo + valor --}}
                         <div class="kp-search-area">
+                            <div class="oc-fonte-seg" id="kp-fonte-seg">
+                                <button type="button" class="oc-fonte-btn active" data-fonte="lemit">Lemit</button>
+                                <button type="button" class="oc-fonte-btn" data-fonte="assertiva">Assertiva</button>
+                            </div>
+                            <div class="oc-tipo-seg" id="kp-tipo-seg">
+                                <button type="button" class="oc-tipo-btn active" data-tipo="documento">Documento</button>
+                                <button type="button" class="oc-tipo-btn" data-tipo="telefone">Telefone</button>
+                                <button type="button" class="oc-tipo-btn" data-tipo="email">E-mail</button>
+                                <button type="button" class="oc-tipo-btn" data-tipo="nome">Nome</button>
+                            </div>
                             <div class="kp-search-wrap">
                                 <input type="text" id="kp-manual-cpf" class="kp-search-input"
                                        placeholder="CPF ou CNPJ..." maxlength="18" autocomplete="off">
-                                <button type="button" id="btn-kp-manual-search" class="kp-search-btn" title="Buscar CPF">
+                                <button type="button" id="btn-kp-manual-search" class="kp-search-btn" title="Buscar">
                                     <span class="spinner-border spinner-border-sm d-none" id="kp-search-loading"
                                           style="width:.875rem;height:.875rem" role="status"></span>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="kp-search-icon">
@@ -1413,6 +1423,12 @@
                                     Consultar Dados Completos
                                 </button>
                             </div>
+
+                            {{-- Selo de fonte do resultado exibido --}}
+                            <div class="vit-result-meta"><span class="oc-fonte-badge d-none" id="vit-fonte-badge"></span></div>
+
+                            {{-- Estado dinâmico: buscando / nada encontrado --}}
+                            <div id="consulta-estado" class="d-none"></div>
 
                             {{-- Grid chips — 4 em linha --}}
                             <div class="kp-data-chips">
@@ -1576,6 +1592,13 @@
                                                 </svg>
                                                 Societário
                                             </button>
+                                            <button class="kp-info-tab-btn" data-kp-tab="tab-vinculos">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                                </svg>
+                                                Vínculos
+                                                <span class="kp-tab-count" id="kp-count-vinculos">0</span>
+                                            </button>
                                         </nav>
 
                                         {{-- Panes --}}
@@ -1673,8 +1696,16 @@
                                                 <div id="participacaoSocietaria"></div>
                                             </div>
 
+                                            {{-- Tab: Vínculos (familiares/relacionados — Lemit) --}}
+                                            <div class="kp-info-tab-pane" id="tab-vinculos">
+                                                <div id="vinculos-preditiva"></div>
+                                            </div>
+
                                         </div>{{-- /kp-info-tab-panes --}}
                                     </div>{{-- /kp-info-tabs-wrapper --}}
+
+                                    {{-- Render completo Assertiva (preenchido pelo consulta.js) --}}
+                                    <div id="dados-assertiva-preditiva" class="assv-wrap d-none"></div>
 
                                 </div>
                             </div>

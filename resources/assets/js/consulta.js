@@ -43,6 +43,11 @@
     const input = document.getElementById('oc-doc-input');
     if (!input) return;
 
+    // Os atalhos "Consultar" sempre buscam por documento.
+    ocTipoBusca = 'documento';
+    const seg = document.getElementById('oc-tipo-seg');
+    if (seg) seg.querySelectorAll('.oc-tipo-btn').forEach(x => x.classList.toggle('active', x.dataset.tipo === 'documento'));
+
     const digits = valor.replace(/\D/g, '');
     if (!digits) return;
 
@@ -56,8 +61,14 @@
   }
 
   // ── Estado da sessão de consultas (openClient) ────────────────
-  let ocSessionHistory    = []; // { doc, docType, nome, consultaData }
+  let ocSessionHistory    = []; // { doc, docType, nome, consultaData, fonte }
   let ocIndiceAtivo       = -1;
+  let ocTipoBusca         = 'documento'; // documento | telefone | email | nome
+  let ocFonte             = 'lemit';     // lemit | assertiva
+  let ocInitialHtml       = '';          // HTML original do estado inicial (restaurado ao fechar)
+
+  // Tipos de busca permitidos por fonte (Lemit só documento; Assertiva todos)
+  const TIPOS_POR_FONTE = { lemit: ['documento'], assertiva: ['documento', 'telefone', 'email', 'nome'] };
 
   // ── Setup da nova modal unificada (openClient) ─────────────────
   function setupOcConsultaModal() {
@@ -67,25 +78,94 @@
 
     if (!input || !btn) return;
 
-    // Máscara dinâmica CPF/CNPJ com Cleave.js
-    if (typeof Cleave !== 'undefined') {
-      function ocMask(val) {
-        const d = (val || '').replace(/\D/g, '');
-        return d.length > 11
-          ? { delimiters: ['.', '.', '/', '-'], blocks: [2, 3, 3, 4, 2], numericOnly: true }
-          : { delimiters: ['.', '.', '-'],      blocks: [3, 3, 3, 2],    numericOnly: true };
+    // Guarda o HTML do estado inicial para restaurar ao fechar a modal.
+    const initialEl = document.getElementById('oc-consulta-initial');
+    if (initialEl && !ocInitialHtml) ocInitialHtml = initialEl.innerHTML;
+
+    // Máscara adaptável. IMPORTANTE: só recria o Cleave quando o tipo de máscara
+    // muda (CPF↔CNPJ↔telefone); recriar a cada tecla trava o backspace nos pontos.
+    let ocCleave = null;
+    let ocMaskSig = null;
+    function ocMaskConfig() {
+      if (ocTipoBusca === 'documento') {
+        const cnpj = (input.value || '').replace(/\D/g, '').length > 11;
+        return cnpj
+          ? { sig: 'doc-cnpj', cfg: { delimiters: ['.', '.', '/', '-'], blocks: [2, 3, 3, 4, 2], numericOnly: true } }
+          : { sig: 'doc-cpf',  cfg: { delimiters: ['.', '.', '-'],      blocks: [3, 3, 3, 2],    numericOnly: true } };
       }
-      let ocCleave = new Cleave(input, ocMask(''));
-      input.addEventListener('input', function () {
-        const mask = ocMask(this.value);
-        ocCleave.destroy();
-        ocCleave = new Cleave(input, mask);
+      if (ocTipoBusca === 'telefone') {
+        return { sig: 'tel', cfg: { delimiters: ['(', ') ', '-'], blocks: [0, 2, 5, 4], numericOnly: true } };
+      }
+      return { sig: 'none', cfg: null };
+    }
+    function ocAplicarMascara() {
+      const { sig, cfg } = ocMaskConfig();
+      if (sig === ocMaskSig) return; // máscara não mudou → não recria (preserva deleção)
+      ocMaskSig = sig;
+      if (ocCleave) { ocCleave.destroy(); ocCleave = null; }
+      if (typeof Cleave === 'undefined' || !cfg) return;
+      ocCleave = new Cleave(input, cfg);
+    }
+
+    const ocPlaceholders = { documento: 'CPF ou CNPJ...', telefone: '(00) 00000-0000', email: 'email@exemplo.com', nome: 'Nome ou razão social' };
+    const ocSubtitles    = { documento: 'CPF ou CNPJ', telefone: 'Telefone com DDD', email: 'Endereço de e-mail', nome: 'Nome ou razão social' };
+
+    function ocTrocarTipo(tipo) {
+      ocTipoBusca = tipo;
+      input.value = '';
+      input.placeholder = ocPlaceholders[tipo] || '';
+      input.maxLength = (tipo === 'documento' || tipo === 'telefone') ? 18 : 120;
+      const subtitle = document.getElementById('oc-consulta-subtitle');
+      if (subtitle) subtitle.textContent = ocSubtitles[tipo] || '';
+      ocAplicarMascara();
+      input.focus();
+    }
+
+    ocAplicarMascara();
+    input.addEventListener('input', function () { if (ocTipoBusca === 'documento') ocAplicarMascara(); });
+
+    const seg = document.getElementById('oc-tipo-seg');
+
+    // Mostra apenas os tipos permitidos pela fonte e ativa "documento".
+    function ocAplicarFonte(fonte) {
+      ocFonte = fonte;
+      const permitidos = TIPOS_POR_FONTE[fonte] || ['documento'];
+      if (seg) {
+        seg.querySelectorAll('.oc-tipo-btn').forEach(b => {
+          const ok = permitidos.includes(b.dataset.tipo);
+          b.classList.toggle('d-none', !ok);
+          b.classList.toggle('active', b.dataset.tipo === 'documento');
+        });
+      }
+      ocTrocarTipo('documento');
+    }
+
+    // Seletor de fonte (Lemit / Assertiva).
+    const fonteSeg = document.getElementById('oc-fonte-seg');
+    if (fonteSeg) {
+      fonteSeg.addEventListener('click', function (e) {
+        const b = e.target.closest('.oc-fonte-btn');
+        if (!b || b.classList.contains('active')) return;
+        fonteSeg.querySelectorAll('.oc-fonte-btn').forEach(x => x.classList.toggle('active', x === b));
+        ocAplicarFonte(b.dataset.fonte);
       });
     }
 
-    btn.addEventListener('click', function () { ocBuscarDocumento(input.value); });
+    // Seletor de tipo de busca (Documento / Telefone / E-mail / Nome).
+    if (seg) {
+      seg.addEventListener('click', function (e) {
+        const b = e.target.closest('.oc-tipo-btn');
+        if (!b || b.classList.contains('active')) return;
+        seg.querySelectorAll('.oc-tipo-btn').forEach(x => x.classList.toggle('active', x === b));
+        ocTrocarTipo(b.dataset.tipo);
+      });
+    }
+
+    ocAplicarFonte('lemit');
+
+    btn.addEventListener('click', function () { ocBuscar(input.value); });
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') ocBuscarDocumento(this.value);
+      if (e.key === 'Enter') ocBuscar(this.value);
     });
 
     // Tabs
@@ -105,19 +185,34 @@
     // Reset histórico ao fechar a modal
     const modalEl = document.getElementById('consultaModal');
     if (modalEl) {
+      // Card fixo do lead — preenchido sempre que o modal abre (nunca some).
+      modalEl.addEventListener('shown.bs.modal', ocPreencherLeadCard);
+
       modalEl.addEventListener('hidden.bs.modal', function () {
         ocSessionHistory = [];
         ocIndiceAtivo    = -1;
+        ocTipoBusca      = 'documento';
+        ocFonte          = 'lemit';
         ocRenderHistorico();
+        const fSeg = document.getElementById('oc-fonte-seg');
+        if (fSeg) fSeg.querySelectorAll('.oc-fonte-btn').forEach(x => x.classList.toggle('active', x.dataset.fonte === 'lemit'));
         // Volta ao estado inicial
         const initial = document.getElementById('oc-consulta-initial');
         const results = document.getElementById('dados-consulta-cliente');
         const errEl   = document.getElementById('erro-consulta-cliente');
-        if (initial) initial.style.display = '';
+        if (initial) { initial.style.display = ''; if (ocInitialHtml) initial.innerHTML = ocInitialHtml; }
         if (results) results.classList.add('d-none');
         if (errEl)   errEl.classList.add('d-none');
         const subtitle = document.getElementById('oc-consulta-subtitle');
         if (subtitle) subtitle.textContent = 'CPF ou CNPJ';
+        const fonteB = document.getElementById('oc-fonte-badge');
+        if (fonteB) fonteB.classList.add('d-none');
+        const inp = document.getElementById('oc-doc-input');
+        if (inp) { inp.value = ''; inp.placeholder = 'CPF ou CNPJ...'; }
+        const ass = document.getElementById('dados-assertiva-preditiva');
+        if (ass) ass.classList.add('d-none');
+        esconderEstado();
+        ocAplicarFonte('lemit');
       });
     }
 
@@ -129,10 +224,12 @@
         const mai = document.getElementById('emails-preditiva');
         const end = document.getElementById('enderecos-preditiva');
         const el  = id => document.getElementById(id);
+        const vin = document.getElementById('vinculos-preditiva');
         const totalTel = (cel ? cel.children.length : 0) + (fix ? fix.children.length : 0);
         if (el('kp-count-telefones')) el('kp-count-telefones').textContent = totalTel;
         if (el('kp-count-emails'))    el('kp-count-emails').textContent    = mai ? mai.children.length : 0;
         if (el('kp-count-enderecos')) el('kp-count-enderecos').textContent = end ? end.children.length : 0;
+        if (el('kp-count-vinculos'))  el('kp-count-vinculos').textContent  = vin ? vin.querySelectorAll(':scope > div').length : 0;
       };
     }
   }
@@ -193,7 +290,9 @@
 
     if (initial) initial.style.display = 'none';
     if (errEl)   errEl.classList.add('d-none');
+    esconderEstado();
     if (subtitle) subtitle.textContent = item.nome || item.doc;
+    ocAtualizarFonteBadge(item.fonte);
 
     // Reseta tabs para a primeira
     const tabNav = document.getElementById('kp-tabs-nav');
@@ -202,14 +301,30 @@
       document.querySelectorAll('.kp-info-tab-pane').forEach((p, i) => p.classList.toggle('active', i === 0));
     }
 
-    if (item.docType === 'cnpj' && window.kpExibirDadosEmpresa) {
-      window.kpExibirDadosEmpresa(item.consultaData);
-    } else if (window.kpExibirDadosConsulta) {
-      window.kpExibirDadosConsulta(item.consultaData);
-    }
+    renderResultadoConsulta(item.consultaData);
 
     if (typeof window.kpAtualizarContagensTabs === 'function') {
       setTimeout(window.kpAtualizarContagensTabs, 50);
+    }
+  }
+
+  // ── Roteia a busca conforme o tipo selecionado ────────────────
+  function ocBuscar(raw) {
+    if (ocTipoBusca === 'documento') return ocBuscarDocumento(raw);
+
+    const valor = (raw || '').trim();
+    if (ocTipoBusca === 'telefone') {
+      const d = valor.replace(/\D/g, '');
+      if (d.length < 10) return ocMostrarErro('Digite um telefone com DDD (10 ou 11 dígitos).');
+      return ocExecutarConsulta('/consulta/telefone', { telefone: d });
+    }
+    if (ocTipoBusca === 'email') {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(valor)) return ocMostrarErro('Digite um e-mail válido.');
+      return ocExecutarConsulta('/consulta/email', { email: valor });
+    }
+    if (ocTipoBusca === 'nome') {
+      if (valor.length < 3) return ocMostrarErro('Digite ao menos 3 caracteres do nome.');
+      return ocExecutarConsulta('/consulta/nome-endereco', { buscarPor: 'ambas', nomeOuRazaoSocial: valor });
     }
   }
 
@@ -224,31 +339,80 @@
       return;
     }
 
-    const docFormatado = isCnpj
-      ? doc.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
-      : doc.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    const body = isCnpj ? { cnpj: doc, fonte: ocFonte } : { cpf: doc, fonte: ocFonte };
+    ocExecutarConsulta(isCnpj ? '/consulta/empresa' : '/consulta/pessoa', body);
+  }
 
-    const btnEl    = document.getElementById('btn-oc-consultar');
-    const spinner  = document.getElementById('oc-consulta-loading');
-    const icon     = document.getElementById('oc-consulta-icon');
-    const subtitle = document.getElementById('oc-consulta-subtitle');
+  // ── Estados visuais compartilhados (buscando / nada encontrado) ──
+  function consultaEstadoEl() { return document.getElementById('consulta-estado'); }
+
+  function esconderEstado() {
+    const e = consultaEstadoEl();
+    if (e) { e.classList.add('d-none'); e.innerHTML = ''; }
+  }
+
+  function fonteLabel(fonte) {
+    return (fonte === 'assertiva' || (fonte && fonte.indexOf('assertiva') !== -1)) ? 'Assertiva' : 'Lemit';
+  }
+
+  function mostrarBuscando(fonte, termo) {
+    const e = consultaEstadoEl();
+    if (!e) return;
+    e.innerHTML = `
+      <div class="cstate cstate-loading">
+        <div class="cstate-radar">
+          <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+          <span class="sweep"></span><span class="dot"></span>
+        </div>
+        <div class="cstate-title">Consultando <b>${assvEsc(fonteLabel(fonte))}</b></div>
+        <div class="cstate-sub">${termo ? 'Buscando por <b>' + assvEsc(termo) + '</b>' : 'Buscando informações…'}</div>
+        <div class="cstate-bar"><span></span></div>
+      </div>`;
+    e.classList.remove('d-none');
+  }
+
+  function mostrarSemResultado(fonte, termo) {
+    const e = consultaEstadoEl();
+    if (!e) return;
+    const nome = fonteLabel(fonte);
+    e.innerHTML = `
+      <div class="cstate cstate-empty">
+        <div class="cstate-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+        </div>
+        <div class="cstate-title">Nada encontrado</div>
+        <div class="cstate-sub">A ${assvEsc(nome)} não retornou dados${termo ? ' para <b>' + assvEsc(termo) + '</b>' : ''}.</div>
+        <div class="cstate-hint">Confira o valor digitado${nome === 'Lemit' ? ' ou tente pela Assertiva' : ''}.</div>
+      </div>`;
+    e.classList.remove('d-none');
+  }
+
+  // ── Executa a consulta, normaliza, mostra a fonte e renderiza ─
+  function ocExecutarConsulta(url, body) {
+    const btnEl   = document.getElementById('btn-oc-consultar');
+    const spinner = document.getElementById('oc-consulta-loading');
+    const icon    = document.getElementById('oc-consulta-icon');
+    const initial = document.getElementById('oc-consulta-initial');
+    const errEl   = document.getElementById('erro-consulta-cliente');
+    const input   = document.getElementById('oc-doc-input');
+
+    const fonte = body.fonte || 'assertiva';
+    const termo = input ? input.value.trim() : '';
 
     if (spinner) spinner.classList.remove('d-none');
     if (icon)    icon.style.display = 'none';
     if (btnEl)   btnEl.disabled = true;
-
-    const initial = document.getElementById('oc-consulta-initial');
-    const errEl   = document.getElementById('erro-consulta-cliente');
     if (initial) initial.style.display = 'none';
     if (errEl)   errEl.classList.add('d-none');
+    mostrarBuscando(fonte, termo);
 
-    const url  = isCnpj ? '/consulta/empresa' : '/consulta/pessoa';
-    const body = isCnpj ? { cnpj: doc } : { cpf: doc };
     const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
     fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
       body: JSON.stringify(body)
     })
       .then(r => r.json())
@@ -256,44 +420,145 @@
         if (spinner) spinner.classList.add('d-none');
         if (icon)    icon.style.display = '';
         if (btnEl)   btnEl.disabled = false;
+        if (input)   input.value = '';
 
-        // Limpa o campo de busca
-        const input = document.getElementById('oc-doc-input');
-        if (input) input.value = '';
+        if (data.error) { esconderEstado(); ocMostrarErro(data.error); return; }
 
-        if (data.error) {
-          ocMostrarErro(data.error);
+        // Busca por nome: lista de candidatos → escolher um para consultar
+        if (data.tipo === 'lista') {
+          esconderEstado();
+          const ok = renderListaCandidatos(data, (doc, ehPj) =>
+            ocExecutarConsulta(ehPj ? '/consulta/empresa' : '/consulta/pessoa',
+              ehPj ? { cnpj: doc, fonte: 'assertiva' } : { cpf: doc, fonte: 'assertiva' }));
+          if (ok) ocAtualizarFonteBadge(data.fonte);
+          else mostrarSemResultado(fonte, termo);
           return;
         }
 
-        const nome = isCnpj
-          ? (data.empresa?.razao_social || data.empresa?.nome_fantasia || null)
-          : (data.pessoa?.nome || null);
+        ocNormalizarResultado(data);
 
-        if (subtitle) subtitle.textContent = nome || docFormatado;
+        const temPessoa  = !!(data.pessoa  && (data.pessoa.cpf   || data.pessoa.nome));
+        const temEmpresa = !!(data.empresa && (data.empresa.cnpj || data.empresa.razao_social));
 
-        // Salva no histórico
-        const item = { doc: docFormatado, docType: isCnpj ? 'cnpj' : 'cpf', nome, consultaData: data };
+        if (!temPessoa && !temEmpresa) { mostrarSemResultado(fonte, termo); ocAtualizarFonteBadge(data.fonte); return; }
+
+        esconderEstado();
+        const isEmpresa = temEmpresa && !temPessoa;
+        const nome = isEmpresa
+          ? (data.empresa.razao_social || data.empresa.nome_fantasia || null)
+          : (data.pessoa.nome || null);
+        const docNum = isEmpresa ? (data.empresa.cnpj || '') : (data.pessoa.cpf || '');
+        const docFmt = isEmpresa ? formatarCNPJ(docNum) : formatarCPF(docNum);
+
+        const item = { doc: docFmt, docType: isEmpresa ? 'cnpj' : 'cpf', nome, consultaData: data, fonte: data.fonte };
         ocSessionHistory.push(item);
         ocIndiceAtivo = ocSessionHistory.length - 1;
         ocRenderHistorico();
-
-        // Exibe resultado
         ocExibirItemHistorico(item);
       })
       .catch(err => {
         if (spinner) spinner.classList.add('d-none');
         if (icon)    icon.style.display = '';
         if (btnEl)   btnEl.disabled = false;
+        esconderEstado();
         ocMostrarErro('Erro na consulta: ' + err.message);
       });
+  }
+
+  // ── Card fixo do LEAD: sempre visível no topo do modal (abrir-cliente), para
+  //    que os dados do cliente nunca sumam, independente do que for pesquisado. ──
+  function ocPreencherLeadCard() {
+    const card = document.getElementById('oc-lead-card');
+    const cpfEl = document.getElementById('cpf'); // só existe na tela abrir-cliente
+    if (!card || !cpfEl) { if (card) card.classList.add('d-none'); return; }
+
+    const val = (sel) => { const e = document.querySelector(sel); return e ? (e.value || '').trim() : ''; };
+    const nome = val('input[name="nome_cliente"]') || 'Cliente';
+    const docDigits = (cpfEl.value || '').replace(/\D/g, '');
+    const docFmt = docDigits.length === 14 ? formatarCNPJ(docDigits) : (docDigits.length === 11 ? formatarCPF(docDigits) : (cpfEl.value || '—'));
+    const tel = val('#client_telefone1');
+    const email = val('input[name="email"]');
+
+    const meta = [docFmt, tel, email].filter(v => v && v !== '—').map(v => `<span>${v}</span>`).join('');
+    const inicial = nome.trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+
+    card.innerHTML = `
+      <span class="oc-lead-ava">${inicial}</span>
+      <span class="oc-lead-info">
+        <span class="oc-lead-nome">${nome}</span>
+        <span class="oc-lead-meta">${meta}</span>
+      </span>
+      <span class="oc-lead-tag">Lead</span>`;
+    card.classList.remove('d-none');
+  }
+
+  // ── Selo de fonte/custo do resultado ──────────────────────────
+  function ocAtualizarFonteBadge(fonte, elId) {
+    const el = document.getElementById(elId || 'oc-fonte-badge');
+    if (!el) return;
+    const icoDb   = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>';
+    const icoBolt = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+    const icoBan  = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>';
+
+    let cls, txt, ico;
+    if (fonte && fonte.indexOf('local_db') === 0) { cls = 'banco'; txt = 'Do banco · sem custo'; ico = icoDb; }
+    else if (fonte === 'cache_negativo')          { cls = 'vazio'; txt = 'Sem vínculo (já consultado)'; ico = icoBan; }
+    else                                          { cls = 'api';   txt = 'Consulta nova'; ico = icoBolt; }
+
+    el.className = 'oc-fonte-badge oc-fonte-' + cls;
+    el.innerHTML = ico + '<span>' + txt + '</span>';
+    el.classList.remove('d-none');
+  }
+
+  // ── Normaliza resposta (Assertiva → formato Lemit do render) ──
+  function ocSplitDdd(numero) {
+    const d = (numero || '').replace(/\D/g, '');
+    return { ddd: d.slice(0, 2), numero: d.slice(2) };
+  }
+  function ocTelefonesParaLemit(arr) {
+    const cel = [], fix = [];
+    (arr || []).forEach(t => {
+      const s = ocSplitDdd(t.numero);
+      if (!s.numero) return;
+      if ((t.tipo || '').toUpperCase() === 'FIXO') fix.push({ ddd: s.ddd, numero: s.numero });
+      else cel.push({ ddd: s.ddd, numero: s.numero, ranking: t.ranking || '', whatsapp: !!t.whatsapp });
+    });
+    return { cel, fix };
+  }
+  function ocNormalizarEnderecos(arr) {
+    return (arr || []).map(e => (e.endereco ? e : Object.assign({}, e, { endereco: [e.logradouro, e.numero].filter(Boolean).join(', ') })));
+  }
+  function ocNormalizarPessoaObj(p) {
+    if (!p) return;
+    if (!p.celulares && !p.fixos && Array.isArray(p.telefones)) {
+      const t = ocTelefonesParaLemit(p.telefones);
+      p.celulares = t.cel; p.fixos = t.fix;
+    }
+    if (!p.nome_mae && p.mae_nome) p.nome_mae = p.mae_nome;
+    if (!p.situacao_cpf && p.situacao_cadastral) p.situacao_cpf = p.situacao_cadastral;
+    if (Array.isArray(p.enderecos)) p.enderecos = ocNormalizarEnderecos(p.enderecos);
+  }
+  function ocNormalizarEmpresaObj(e) {
+    if (!e) return;
+    if (!e.celulares && !e.fixos && Array.isArray(e.telefones)) {
+      const t = ocTelefonesParaLemit(e.telefones);
+      e.celulares = t.cel; e.fixos = t.fix;
+    }
+    if (!e.situacao && e.situacao_cadastral) e.situacao = e.situacao_cadastral;
+    if (!e.data_fundacao && e.data_abertura) e.data_fundacao = e.data_abertura;
+    if (Array.isArray(e.enderecos)) e.enderecos = ocNormalizarEnderecos(e.enderecos);
+  }
+  function ocNormalizarResultado(data) {
+    if (!data) return;
+    ocNormalizarPessoaObj(data.pessoa);
+    ocNormalizarEmpresaObj(data.empresa);
   }
 
   function ocMostrarErro(msg) {
     const el  = document.getElementById('erro-consulta-cliente');
     const txt = document.getElementById('mensagem-erro-cliente');
-    const consulta = document.getElementById('dados-consulta-cliente');
-    if (consulta) consulta.classList.add('d-none');
+    // Não esconde #dados-consulta-cliente: a busca pode falhar, mas mantemos
+    // os dados já exibidos (do lead/última consulta) e só mostramos o erro acima.
     if (el && txt) { txt.textContent = msg; el.classList.remove('d-none'); }
   }
 
@@ -1149,37 +1414,45 @@
     }
   }
 
+  // Consulta o cliente carregado via Lemit, com CPF (11) OU CNPJ (14) atual.
   function consultarDadosCliente() {
     const cpfElement = document.getElementById('cliente-cpf');
     if (!cpfElement) {
-      mostrarErroCliente('CPF do cliente não encontrado');
+      mostrarErroCliente('Documento do cliente não encontrado');
       return;
     }
 
-    const cpfTexto = cpfElement.textContent.trim();
-    if (!cpfTexto || cpfTexto === '-') {
-      mostrarErroCliente('CPF do cliente não disponível');
+    const docTexto = cpfElement.textContent.trim();
+    if (!docTexto || docTexto === '-' || docTexto === '—') {
+      mostrarErroCliente('Documento do cliente não disponível');
       return;
     }
 
-    const cpf = cpfTexto.replace(/\D/g, '');
-    if (cpf.length !== 11) {
-      mostrarErroCliente('CPF inválido');
+    const doc = docTexto.replace(/\D/g, '');
+    const ehCnpj = doc.length === 14;
+    const ehCpf = doc.length === 11;
+    if (!ehCpf && !ehCnpj) {
+      mostrarErroCliente('Documento inválido (CPF ou CNPJ).');
       return;
     }
+
+    const docFmt = ehCnpj ? formatarCNPJ(doc) : formatarCPF(doc);
+    const url = ehCnpj ? '/consulta/empresa' : '/consulta/pessoa';
+    const body = ehCnpj ? { cnpj: doc, fonte: 'lemit' } : { cpf: doc, fonte: 'lemit' };
 
     // Mostrar loading
     mostrarLoadingConsultaCliente(true);
     limparResultadosCliente();
+    mostrarBuscando('lemit', docFmt);
 
     // Fazer requisição
-    fetch('/consulta/pessoa', {
+    fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
       },
-      body: JSON.stringify({ cpf: cpf })
+      body: JSON.stringify(body)
     })
       .then(response => {
         if (!response.ok) {
@@ -1191,9 +1464,15 @@
         mostrarLoadingConsultaCliente(false);
 
         if (data.error) {
+          esconderEstado();
           mostrarErroCliente(data.error);
+        } else if (!data.pessoa && !data.empresa) {
+          mostrarSemResultado('lemit', docFmt);
+          ocAtualizarFonteBadge(data.fonte, 'vit-fonte-badge');
         } else {
-          exibirDadosClientePreditiva(data);
+          esconderEstado();
+          renderResultadoConsulta(data);
+          ocAtualizarFonteBadge(data.fonte, 'vit-fonte-badge');
           // Atualiza contagens nos badges das tabs após preenchimento
           if (typeof window.kpAtualizarContagensTabs === 'function') {
             setTimeout(window.kpAtualizarContagensTabs, 50);
@@ -1204,8 +1483,233 @@
       })
       .catch(error => {
         mostrarLoadingConsultaCliente(false);
+        esconderEstado();
         mostrarErroCliente('Erro na consulta: ' + error.message);
       });
+  }
+
+  // ── Dispatcher fonte-aware: Lemit (abas) x Assertiva (render completo) ──
+  function renderResultadoConsulta(data) {
+    const ass = document.getElementById('dados-assertiva-preditiva');
+    const lem = document.getElementById('dados-pessoa-preditiva');
+    const obj = (data && (data.pessoa || data.empresa)) || null;
+    const payload = obj && obj.payload ? obj.payload : null;
+    const fonte = (data && data.fonte) || '';
+    const isAssertiva = fonte.indexOf('assertiva') !== -1 || !!payload;
+
+    if (isAssertiva && ass) {
+      const tipo = (data.empresa && !data.pessoa) ? 'PJ' : 'PF';
+      const sec = document.getElementById('dados-consulta-cliente');
+      if (sec) sec.classList.remove('d-none');
+      if (lem) lem.classList.add('d-none');
+      ass.classList.remove('d-none');
+      renderAssertivaCompleto(payload || obj || {}, tipo, ass);
+      return;
+    }
+
+    if (ass) ass.classList.add('d-none');
+    if (lem) lem.classList.remove('d-none');
+    if (data && data.empresa && !data.pessoa) exibirDadosEmpresaPreditiva(data);
+    else exibirDadosClientePreditiva(data);
+  }
+
+  // ── Render COMPLETO da Assertiva (mostra todos os campos do payload) ──
+  function assvEsc(s) {
+    return (s == null ? '' : String(s)).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function assvVal(v) {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
+    return String(v);
+  }
+  function assvGrid(pares) {
+    const cells = pares.filter(p => assvVal(p[1]) !== null)
+      .map(p => `<div class="assv-f"><label>${assvEsc(p[0])}</label><span>${assvEsc(assvVal(p[1]))}</span></div>`);
+    return cells.length ? `<div class="assv-grid">${cells.join('')}</div>` : '';
+  }
+  function assvLista(items, fn) {
+    if (!items || !items.length) return '';
+    return items.map(fn).join('');
+  }
+  function assvTelLinha(t, tipo) {
+    const flags = [];
+    const ap = t.aplicativos || {};
+    if (ap.whatsApp || ap.whatsAppBusiness) flags.push('<span class="assv-tag wpp">WhatsApp</span>');
+    if (t.hotphone) flags.push('<span class="assv-tag hot">Hotphone</span>');
+    if (t.plus) flags.push('<span class="assv-tag plus">Plus</span>');
+    if (t.naoPerturbe) flags.push('<span class="assv-tag np">Não perturbe</span>');
+    const subs = [];
+    if (t.relacao) subs.push('Relação: ' + assvEsc(t.relacao));
+    if (t.ultimoContato) subs.push(assvEsc(t.ultimoContato));
+    return `<div class="assv-item">
+      <div class="assv-item-top"><strong>${assvEsc(t.numero || '')}</strong>
+        <span class="assv-tag tipo">${tipo}</span>${flags.join('')}</div>
+      ${subs.length ? `<div class="assv-sub">${subs.join(' · ')}</div>` : ''}
+    </div>`;
+  }
+  function assvTelefones(tel) {
+    if (!tel) return '';
+    let html = '';
+    html += assvLista(tel.moveis, t => assvTelLinha(t, 'Móvel'));
+    html += assvLista(tel.fixos, t => assvTelLinha(t, 'Fixo'));
+    return html;
+  }
+  function assvEnderecos(ends) {
+    return assvLista(ends, e => {
+      const linha = [[e.tipoLogradouro, e.logradouro].filter(Boolean).join(' '), e.numero].filter(Boolean).join(', ');
+      const det = [e.complemento, e.bairro, [e.cidade, e.uf].filter(Boolean).join('/'), e.cep].filter(Boolean).join(' · ');
+      const geo = (e.latitude && e.longitude) ? `<div class="assv-sub">Geo: ${assvEsc(e.latitude)}, ${assvEsc(e.longitude)}${e.precisaoCep ? ' · CEP ' + assvEsc(e.precisaoCep) : ''}</div>` : '';
+      return `<div class="assv-item"><div class="assv-item-top"><strong>${assvEsc(linha || 'Endereço')}</strong></div>${det ? `<div class="assv-sub">${assvEsc(det)}</div>` : ''}${geo}</div>`;
+    });
+  }
+
+  // Ícones das abas (mesmo estilo das abas do Lemit)
+  const ASSV_ICONS = {
+    user: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    phone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72"/></svg>',
+    mail: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>',
+    pin: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+    work: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+    badge: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+    share: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
+    chart: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+    users: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    tag: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 13.42 20.59a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+  };
+
+  // Renderiza os dados completos da Assertiva em ABAS (mesmo padrão do Lemit)
+  function renderAssertivaCompleto(payload, tipo, container) {
+    const dc = payload.dadosCadastrais || payload || {};
+    const emailsHtml = (arr) => assvLista(arr, e => `<div class="assv-item"><strong>${assvEsc(e.email)}</strong></div>`);
+    const telCount = (t) => t ? ((t.moveis || []).length + (t.fixos || []).length) : 0;
+
+    const secoes = [];
+    const add = (label, icon, html, count) => { if (html) secoes.push({ label, icon, html, count }); };
+
+    if (tipo === 'PJ') {
+      add('Dados Cadastrais', ASSV_ICONS.user, assvGrid([
+        ['CNPJ', dc.cnpj], ['Razão Social', dc.razaoSocial], ['Nome Fantasia', dc.nomeFantasia],
+        ['Abertura', dc.dataAbertura], ['Idade', dc.idadeEmpresa], ['Funcionários', dc.quantidadeFuncionarios],
+        ['Porte', dc.porteEmpresa], ['Situação', dc.situacaoCadastral], ['Data Situação', dc.dataSituacaoCadastral],
+        ['CNAE', dc.cnae ? `${dc.cnae} - ${dc.cnaeDescricao || ''}` : null], ['Grupo CNAE', dc.cnaeGrupo],
+        ['Subgrupo CNAE', dc.cnaeSubgrupo], ['Natureza Jurídica', dc.naturezaJuridica], ['Site', dc.site],
+        ['Google Meu Negócio', dc.temGoogleMeuNegocio],
+      ]));
+      add('CNAEs Secundárias', ASSV_ICONS.tag, assvLista(payload.cnaesSecundarias, c =>
+        `<div class="assv-item"><div class="assv-item-top"><strong>${assvEsc(c.cnae)}</strong> ${assvEsc(c.descricao || '')}</div>${c.grupo ? `<div class="assv-sub">${assvEsc(c.grupo)}</div>` : ''}</div>`), (payload.cnaesSecundarias || []).length);
+      add('Telefones', ASSV_ICONS.phone, assvTelefones(payload.telefones), telCount(payload.telefones));
+      add('E-mails', ASSV_ICONS.mail, emailsHtml(payload.emails), (payload.emails || []).length);
+      add('Endereços', ASSV_ICONS.pin, assvEnderecos(payload.enderecos), (payload.enderecos || []).length);
+      add('Sócios', ASSV_ICONS.users, assvLista(payload.socios, s =>
+        `<div class="assv-item"><div class="assv-item-top"><strong>${assvEsc(s.nomeOuRazaoSocial || '')}</strong></div><div class="assv-sub">${[s.documento ? 'Doc: ' + assvEsc(s.documento) : '', s.dataEntrada ? 'Entrada: ' + assvEsc(s.dataEntrada) : ''].filter(Boolean).join(' · ')}</div></div>`), (payload.socios || []).length);
+    } else {
+      add('Dados Cadastrais', ASSV_ICONS.user, assvGrid([
+        ['CPF', dc.cpf], ['Nome', dc.nome], ['Sexo', dc.sexo], ['Nascimento', dc.dataNascimento],
+        ['Idade', dc.idade], ['Signo', dc.signo], ['RG', dc.rg ? `${dc.rg}${dc.ufRg ? '/' + dc.ufRg : ''}` : null],
+        ['Óbito Provável', dc.obitoProvavel], ['Situação', dc.situacaoCadastral], ['Data Situação', dc.dataSituacaoCadastral],
+        ['Mãe', dc.maeNome || dc.nomeMae], ['CPF da Mãe', dc.maeCpf], ['Nasc. Mãe', dc.maeDataNascimento],
+        ['Cidade', dc.cidade], ['UF', dc.uf],
+      ]));
+      add('Telefones', ASSV_ICONS.phone, assvTelefones(payload.telefones), telCount(payload.telefones));
+      add('E-mails', ASSV_ICONS.mail, emailsHtml(payload.emails), (payload.emails || []).length);
+      add('Endereços', ASSV_ICONS.pin, assvEnderecos(payload.enderecos), (payload.enderecos || []).length);
+      add('Participações', ASSV_ICONS.work, assvLista(payload.participacoesEmpresas, p =>
+        `<div class="assv-item"><div class="assv-item-top"><strong>${assvEsc(p.razaoSocial || '')}</strong></div><div class="assv-sub">${[p.cnpj ? 'CNPJ: ' + assvEsc(p.cnpj) : '', p.cargo ? 'Cargo: ' + assvEsc(p.cargo) : '', p.dataEntrada ? 'Entrada: ' + assvEsc(p.dataEntrada) : ''].filter(Boolean).join(' · ')}</div></div>`), (payload.participacoesEmpresas || []).length);
+      add('Profissional', ASSV_ICONS.badge, assvLista(payload.possivelHistoricoProfissional, h =>
+        `<div class="assv-item"><div class="assv-item-top"><strong>${assvEsc(h.razaoSocial || '')}</strong></div><div class="assv-sub">${[h.cnpj ? 'CNPJ: ' + assvEsc(h.cnpj) : '', h.setor, h.cboDescricao, h.dataRegistro ? 'Registro: ' + assvEsc(h.dataRegistro) : '', h.faixaSalarial ? 'Faixa: ' + assvEsc(h.faixaSalarial) : '', (h.rendaEstimada != null) ? 'Renda est.: ' + assvEsc(h.rendaEstimada) : ''].filter(Boolean).join(' · ')}</div></div>`), (payload.possivelHistoricoProfissional || []).length);
+      add('Registros', ASSV_ICONS.badge, assvLista(payload.registrosProfissionais, r =>
+        `<div class="assv-item"><div class="assv-item-top"><strong>${assvEsc([r.sigla, r.numeroInscricao].filter(Boolean).join(' '))}</strong> ${assvEsc(r.profissao || '')}</div><div class="assv-sub">${[r.situacao, r.uf, r.dataInscricao ? 'Inscrição: ' + assvEsc(r.dataInscricao) : '', r.faixaSalarial].filter(Boolean).join(' · ')}</div></div>`), (payload.registrosProfissionais || []).length);
+      add('Redes Sociais', ASSV_ICONS.share, assvLista(payload.redesSociais, r =>
+        `<div class="assv-item"><strong>${assvEsc(r.nome || '')}</strong>${r.url ? ` — <a href="${assvEsc(r.url)}" target="_blank" rel="noopener">${assvEsc(r.url)}</a>` : ''}</div>`), (payload.redesSociais || []).length);
+      if (payload.historicoConsultasPorSegmento && (payload.historicoConsultasPorSegmento.segmentos || []).length) {
+        const h = payload.historicoConsultasPorSegmento;
+        add('Segmentos', ASSV_ICONS.chart, assvLista(h.segmentos, s =>
+          `<div class="assv-item"><strong>${assvEsc(s.segmento || '')}</strong> <span class="assv-tag tipo">${assvEsc(s.quantidade)}</span></div>`));
+      }
+    }
+
+    if (!secoes.length) {
+      container.innerHTML = '<div class="assv-empty">Sem dados detalhados retornados.</div>';
+      return;
+    }
+
+    const nav = secoes.map((s, i) =>
+      `<button type="button" class="kp-info-tab-btn${i === 0 ? ' active' : ''}" data-assv-tab="${i}">${s.icon}${assvEsc(s.label)}${s.count != null ? `<span class="kp-tab-count">${s.count}</span>` : ''}</button>`).join('');
+    const panes = secoes.map((s, i) =>
+      `<div class="kp-info-tab-pane${i === 0 ? ' active' : ''}" data-assv-pane="${i}">${s.html}</div>`).join('');
+
+    container.innerHTML = `<div class="kp-info-tabs-wrapper assv-tabs"><nav class="kp-info-tabs-nav">${nav}</nav><div class="kp-info-tab-panes">${panes}</div></div>`;
+
+    // wiring escopado (não interfere nas abas do Lemit)
+    const navEl = container.querySelector('.kp-info-tabs-nav');
+    if (navEl) {
+      navEl.addEventListener('click', (e) => {
+        const b = e.target.closest('.kp-info-tab-btn');
+        if (!b) return;
+        const idx = b.dataset.assvTab;
+        container.querySelectorAll('.kp-info-tab-btn').forEach(x => x.classList.toggle('active', x === b));
+        container.querySelectorAll('.kp-info-tab-pane').forEach(p => p.classList.toggle('active', p.dataset.assvPane === idx));
+      });
+    }
+  }
+
+  // ── Lista de candidatos (busca por nome → escolher um para consultar) ──
+  function candRow(tipo, doc, docFmt, nome, sub) {
+    const inicial = (nome || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+    return `
+      <button type="button" class="cand-row" data-cand="1" data-tipo="${tipo}" data-doc="${assvEsc((doc || '').replace(/\D/g, ''))}">
+        <span class="cand-ava ${tipo === 'PJ' ? 'pj' : ''}">${assvEsc(inicial || '?')}</span>
+        <span class="cand-info">
+          <span class="cand-nome">${assvEsc(nome)}</span>
+          <span class="cand-doc">${assvEsc(docFmt)}${tipo === 'PJ' ? ' · Empresa' : ''}</span>
+          ${sub ? `<span class="cand-sub">${assvEsc(sub)}</span>` : ''}
+        </span>
+        <svg class="cand-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>`;
+  }
+
+  function renderListaCandidatos(data, onSelect) {
+    const ass = document.getElementById('dados-assertiva-preditiva');
+    const lem = document.getElementById('dados-pessoa-preditiva');
+    const pf = data.pessoasFisicas || [];
+    const pj = data.pessoasJuridicas || [];
+    if (!ass || (!pf.length && !pj.length)) return false;
+
+    const sec = document.getElementById('dados-consulta-cliente');
+    if (sec) sec.classList.remove('d-none');
+    if (lem) lem.classList.add('d-none');
+    ass.classList.remove('d-none');
+
+    const rows = [];
+    pf.forEach(p => {
+      const sub = [
+        p.dataNascimento && 'Nasc.: ' + p.dataNascimento,
+        [p.cidade, p.uf].filter(Boolean).join('/'),
+        p.nomeMae && 'Mãe: ' + p.nomeMae,
+      ].filter(Boolean).join(' · ');
+      rows.push(candRow('PF', p.cpf, formatarCPF(p.cpf), p.nome || 'Pessoa física', sub));
+    });
+    pj.forEach(e => {
+      const sub = [
+        e.dataAbertura && 'Abertura: ' + e.dataAbertura,
+        [e.cidade, e.uf].filter(Boolean).join('/'),
+        e.socio && 'Sócio: ' + e.socio,
+      ].filter(Boolean).join(' · ');
+      rows.push(candRow('PJ', e.cnpj, formatarCNPJ(e.cnpj), e.razaoSocial || 'Empresa', sub));
+    });
+
+    ass.innerHTML = `
+      <div class="cand-wrap">
+        <div class="cand-head">
+          <strong>${pf.length + pj.length} resultado(s)</strong> — selecione um para consultar os dados completos
+        </div>
+        ${rows.join('')}
+      </div>`;
+
+    ass.querySelectorAll('[data-cand]').forEach(el => {
+      el.addEventListener('click', () => onSelect(el.dataset.doc, el.dataset.tipo === 'PJ'));
+    });
+    return true;
   }
 
   function exibirDadosClientePreditiva(data) {
@@ -1214,6 +1718,7 @@
       mostrarErroCliente('Dados da pessoa não encontrados');
       return;
     }
+    ocNormalizarPessoaObj(pessoa);
 
     // Mostrar seção de resultados
     document.getElementById('dados-consulta-cliente').classList.remove('d-none');
@@ -1237,6 +1742,33 @@
     preencherEnderecosPreditiva(pessoa.enderecos);
     preencherRiscoCreditoPreditiva(pessoa.risco_credito);
     preencherParticipacaoSocietaria(pessoa.participacao_societaria);
+    preencherVinculosPreditiva(pessoa.vinculos);
+  }
+
+  // Vínculos (familiares/relacionados) — campo "vinculos" do Lemit
+  function preencherVinculosPreditiva(vinculos) {
+    const container = document.getElementById('vinculos-preditiva');
+    if (!container) return;
+    if (!vinculos || vinculos.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0 small">Nenhum vínculo encontrado</p>';
+      return;
+    }
+
+    let html = '';
+    vinculos.forEach(v => {
+      const cpf = v.cpf_vinculo ? formatarCPF(v.cpf_vinculo) : '—';
+      html += `
+        <div class="mb-2 p-2 border rounded">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong class="small">${v.nome_vinculo || 'N/A'}</strong>
+              <div class="text-muted small">CPF: ${cpf}</div>
+            </div>
+            ${v.tipo_vinculo ? `<span class="badge bg-info" style="font-size:.7em">${v.tipo_vinculo}</span>` : ''}
+          </div>
+        </div>`;
+    });
+    container.innerHTML = html;
   }
 
   // FUNÇÕES ESPECÍFICAS PARA PREDITIVA
@@ -1461,6 +1993,7 @@
       mostrarErroCliente('Dados da empresa não encontrados');
       return;
     }
+    ocNormalizarEmpresaObj(empresa);
 
     document.getElementById('dados-consulta-cliente').classList.remove('d-none');
     document.getElementById('dados-pessoa-preditiva').classList.remove('d-none');
@@ -1512,4 +2045,10 @@
   window.kpExibirDadosConsulta  = exibirDadosClientePreditiva;
   window.kpExibirDadosEmpresa   = exibirDadosEmpresaPreditiva;
   window.kpLimparResultados     = limparResultadosCliente;
+  window.renderResultadoConsulta = renderResultadoConsulta;
+  window.consultaMostrarBuscando = mostrarBuscando;
+  window.consultaMostrarSemResultado = mostrarSemResultado;
+  window.consultaEsconderEstado  = esconderEstado;
+  window.consultaAtualizarFonteBadge = ocAtualizarFonteBadge;
+  window.renderListaCandidatos   = renderListaCandidatos;
 })();

@@ -1536,29 +1536,42 @@ document.addEventListener('DOMContentLoaded', function () {
       ['cliente-plano','cliente-categoria','cliente-entidade','cliente-valor']
         .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
 
+      // Hero strip resiliente: cobre formato Lemit (celulares/fixos) e Assertiva (payload)
+      const primeiroTelefone = (o) => {
+        if (o.celulares && o.celulares[0]) return `(${o.celulares[0].ddd}) ${o.celulares[0].numero}`;
+        if (o.telefones && o.telefones[0]) return o.telefones[0].numero;
+        const t = o.payload && o.payload.telefones;
+        if (t && t.moveis && t.moveis[0]) return t.moveis[0].numero;
+        if (t && t.fixos && t.fixos[0]) return t.fixos[0].numero;
+        return '—';
+      };
+      const primeiroEmail = (o) => {
+        if (o.emails && o.emails[0]) return o.emails[0].email;
+        if (o.payload && o.payload.emails && o.payload.emails[0]) return o.payload.emails[0].email;
+        return '—';
+      };
       if (item.docType === 'cnpj') {
-        // Hero strip para CNPJ
         const e = item.consultaData.empresa || {};
-        document.getElementById('cliente-nome-header').textContent = e.razao_social || e.nome_fantasia || item.cpf || '—';
-        document.getElementById('cliente-email').textContent      = (e.emails && e.emails[0]) ? e.emails[0].email : '—';
-        document.getElementById('cliente-telefone').textContent   = (e.celulares && e.celulares[0]) ? `(${e.celulares[0].ddd}) ${e.celulares[0].numero}` : '—';
-        document.getElementById('cliente-nascimento').textContent = e.data_fundacao || '—';
+        const ed = (e.payload && e.payload.dadosCadastrais) ? e.payload.dadosCadastrais : e;
+        document.getElementById('cliente-nome-header').textContent = e.razao_social || ed.razaoSocial || e.nome_fantasia || ed.nomeFantasia || item.cpf || '—';
+        document.getElementById('cliente-email').textContent      = primeiroEmail(e);
+        document.getElementById('cliente-telefone').textContent   = primeiroTelefone(e);
+        document.getElementById('cliente-nascimento').textContent = e.data_fundacao || ed.dataAbertura || '—';
       } else {
-        // Hero strip para CPF
         const p = item.consultaData.pessoa || {};
-        document.getElementById('cliente-nome-header').textContent = p.nome || item.cpf || '—';
-        document.getElementById('cliente-email').textContent      = (p.emails && p.emails[0]) ? p.emails[0].email : '—';
-        document.getElementById('cliente-telefone').textContent   = (p.celulares && p.celulares[0]) ? `(${p.celulares[0].ddd}) ${p.celulares[0].numero}` : '—';
-        document.getElementById('cliente-nascimento').textContent = formatarData(p.data_nascimento) || '—';
+        const pd = (p.payload && p.payload.dadosCadastrais) ? p.payload.dadosCadastrais : p;
+        document.getElementById('cliente-nome-header').textContent = p.nome || pd.nome || item.cpf || '—';
+        document.getElementById('cliente-email').textContent      = primeiroEmail(p);
+        document.getElementById('cliente-telefone').textContent   = primeiroTelefone(p);
+        document.getElementById('cliente-nascimento').textContent = formatarData(p.data_nascimento || pd.dataNascimento) || '—';
       }
     }
 
-    // Exibe ou limpa os dados de consulta completa
+    // Exibe ou limpa os dados de consulta completa (render fonte-aware: Lemit ou Assertiva)
     if (item.consultaData) {
-      const isCnpjItem = item.docType === 'cnpj';
-      const exibir = isCnpjItem ? window.kpExibirDadosEmpresa : window.kpExibirDadosConsulta;
-      if (exibir) {
-        exibir(item.consultaData);
+      if (typeof window.consultaEsconderEstado === 'function') window.consultaEsconderEstado();
+      if (typeof window.renderResultadoConsulta === 'function') {
+        window.renderResultadoConsulta(item.consultaData);
         if (typeof window.kpAtualizarContagensTabs === 'function') {
           setTimeout(window.kpAtualizarContagensTabs, 50);
         }
@@ -1616,43 +1629,57 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ──────────────────────────────────────────────────────────────
-  // buscarCpfManualPreditiva — busca manual de CPF no painel esq.
+  // buscarManualPreditiva — busca manual (fonte + tipo) no painel esquerdo
   // ──────────────────────────────────────────────────────────────
-  function buscarCpfManualPreditiva(cpfRaw) {
-    // Remove todos os caracteres não numéricos antes de validar e enviar
-    const documento = cpfRaw.replace(/\D/g, '');
+  // Roteia a busca manual conforme fonte (Lemit/Assertiva) e tipo (documento/telefone/email/nome)
+  function buscarManualPreditiva(valorRaw) {
+    const valor = (valorRaw || '').trim();
+    const fonte = window.kpManualFonte || 'lemit';
+    const tipo  = window.kpManualTipo || 'documento';
 
-    if (documento.length !== 11 && documento.length !== 14) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Documento inválido',
-        text: 'Digite um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.',
-        confirmButtonText: 'OK',
-        customClass: { confirmButton: 'btn btn-warning waves-effect' }
-      });
+    let url, body, erro = null;
+    if (tipo === 'documento') {
+      const d = valor.replace(/\D/g, '');
+      if (d.length === 11)      { url = '/consulta/pessoa';  body = { cpf: d, fonte }; }
+      else if (d.length === 14) { url = '/consulta/empresa'; body = { cnpj: d, fonte }; }
+      else erro = 'Digite um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.';
+    } else if (tipo === 'telefone') {
+      const d = valor.replace(/\D/g, '');
+      if (d.length >= 10) { url = '/consulta/telefone'; body = { telefone: d }; }
+      else erro = 'Digite um telefone com DDD (10 ou 11 dígitos).';
+    } else if (tipo === 'email') {
+      if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(valor)) { url = '/consulta/email'; body = { email: valor }; }
+      else erro = 'Digite um e-mail válido.';
+    } else if (tipo === 'nome') {
+      if (valor.length >= 3) { url = '/consulta/nome-endereco'; body = { buscarPor: 'ambas', nomeOuRazaoSocial: valor }; }
+      else erro = 'Digite ao menos 3 caracteres do nome.';
+    }
+
+    if (erro) {
+      Swal.fire({ icon: 'warning', title: 'Busca inválida', text: erro,
+        confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-warning waves-effect' } });
       return;
     }
 
-    const isCnpj = documento.length === 14;
-    const documentoFormatado = isCnpj
-      ? documento.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
-      : documento.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-
-    const btnSearch  = document.getElementById('btn-kp-manual-search');
-    const spinner    = document.getElementById('kp-search-loading');
-    const icon       = document.getElementById('kp-search-icon');
-
+    const btnSearch = document.getElementById('btn-kp-manual-search');
+    const spinner   = document.getElementById('kp-search-loading');
+    const icon      = document.getElementById('kp-search-icon');
     if (spinner) spinner.classList.remove('d-none');
     if (icon)    icon.style.display = 'none';
     if (btnSearch) btnSearch.disabled = true;
 
-    // Endpoint e body diferem por tipo de documento
-    const url  = isCnpj ? '/consulta/empresa' : '/consulta/pessoa';
-    const body = isCnpj ? { cnpj: documento } : { cpf: documento };
+    // Garante o painel de resultado visível para exibir o estado de busca
+    const contBusca = document.getElementById('cliente-preditiva-container');
+    if (contBusca) { contBusca.classList.remove('d-none'); contBusca.style.display = 'flex'; }
+    const ldBusca = document.getElementById('loading-fila-preditiva');
+    if (ldBusca) ldBusca.classList.add('d-none');
+    const nrBusca = document.getElementById('no-results-fila-preditiva');
+    if (nrBusca) nrBusca.classList.add('d-none');
+    if (typeof window.consultaMostrarBuscando === 'function') window.consultaMostrarBuscando(fonte, valor);
 
     fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token, Accept: 'application/json' },
       body: JSON.stringify(body)
     })
       .then(r => r.json())
@@ -1662,32 +1689,55 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btnSearch) btnSearch.disabled = false;
 
         if (data.error) {
+          if (window.consultaEsconderEstado) window.consultaEsconderEstado();
           Swal.fire({ icon: 'error', title: 'Erro', text: data.error,
-            confirmButtonText: 'OK',
-            customClass: { confirmButton: 'btn btn-danger waves-effect' } });
+            confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-danger waves-effect' } });
           return;
         }
 
-        const nome = isCnpj
-          ? (data.empresa?.razao_social || data.empresa?.nome_fantasia || null)
-          : (data.pessoa?.nome || null);
+        // Busca por nome: lista de candidatos → escolher um para consultar de fato
+        if (data.tipo === 'lista') {
+          if (window.consultaEsconderEstado) window.consultaEsconderEstado();
+          const ok = window.renderListaCandidatos && window.renderListaCandidatos(data, function (doc, ehPj) {
+            window.kpManualFonte = 'assertiva';
+            window.kpManualTipo  = 'documento';
+            buscarManualPreditiva(doc);
+          });
+          if (!ok && window.consultaMostrarSemResultado) window.consultaMostrarSemResultado('assertiva', valor);
+          if (window.consultaAtualizarFonteBadge) window.consultaAtualizarFonteBadge(data.fonte, 'vit-fonte-badge');
+          return;
+        }
 
-        // Limpa o campo de busca
+        const temPessoa  = !!(data.pessoa  && (data.pessoa.cpf   || data.pessoa.nome));
+        const temEmpresa = !!(data.empresa && (data.empresa.cnpj || data.empresa.razao_social));
+        if (!temPessoa && !temEmpresa) {
+          if (window.consultaMostrarSemResultado) window.consultaMostrarSemResultado(fonte, valor);
+          return;
+        }
+        if (window.consultaEsconderEstado) window.consultaEsconderEstado();
+        if (window.consultaAtualizarFonteBadge) window.consultaAtualizarFonteBadge(data.fonte, 'vit-fonte-badge');
+
+        const isEmpresa = temEmpresa && !temPessoa;
+        const nome = isEmpresa
+          ? (data.empresa.razao_social || data.empresa.nome_fantasia || null)
+          : (data.pessoa.nome || null);
+        const rotulo = isEmpresa
+          ? (data.empresa.cnpj ? formatarDoc(data.empresa.cnpj) : valor)
+          : (data.pessoa.cpf ? formatarDoc(data.pessoa.cpf) : valor);
+
         const inputCpf = document.getElementById('kp-manual-cpf');
         if (inputCpf) inputCpf.value = '';
 
-        // Salva o tipo de documento no item para restaurarItemNoPanel saber qual função usar
         const item = {
           type:         'search',
-          docType:      isCnpj ? 'cnpj' : 'cpf',
-          cpf:          documentoFormatado,
+          docType:      isEmpresa ? 'cnpj' : 'cpf',
+          cpf:          rotulo,
+          termo:        valor,
           nome:         nome,
           consultaData: data,
         };
 
         sessionHistory.push(item);
-
-        // Exibe no painel direito
         indiceVisualizando = sessionHistory.length - 1;
         renderizarHistorico();
         restaurarItemNoPanel(item);
@@ -1696,10 +1746,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (spinner) spinner.classList.add('d-none');
         if (icon)    icon.style.display = '';
         if (btnSearch) btnSearch.disabled = false;
+        if (window.consultaEsconderEstado) window.consultaEsconderEstado();
         Swal.fire({ icon: 'error', title: 'Erro na busca', text: err.message,
-          confirmButtonText: 'OK',
-          customClass: { confirmButton: 'btn btn-danger waves-effect' } });
+          confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-danger waves-effect' } });
       });
+  }
+
+  // Formata CPF/CNPJ (só dígitos) para exibição
+  function formatarDoc(v) {
+    const d = (v || '').replace(/\D/g, '');
+    if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    return v;
   }
 
   // ──────────────────────────────────────────────────────────────
@@ -1797,29 +1855,85 @@ document.addEventListener('DOMContentLoaded', function () {
   // ──────────────────────────────────────────────────────────────
   const btnManualSearch = document.getElementById('btn-kp-manual-search');
   const inputManualCpf  = document.getElementById('kp-manual-cpf');
+  const kpFonteSeg      = document.getElementById('kp-fonte-seg');
+  const kpTipoSeg       = document.getElementById('kp-tipo-seg');
+
+  // Estado da busca manual (expostos no window para buscarManualPreditiva)
+  window.kpManualFonte = 'lemit';
+  window.kpManualTipo  = 'documento';
+  const KP_TIPOS_POR_FONTE = { lemit: ['documento'], assertiva: ['documento', 'telefone', 'email', 'nome'] };
+  const KP_PLACEHOLDERS = { documento: 'CPF ou CNPJ...', telefone: '(00) 00000-0000', email: 'email@exemplo.com', nome: 'Nome ou razão social' };
 
   if (btnManualSearch && inputManualCpf) {
-    // Máscara dinâmica CPF / CNPJ com Cleave.js
-    function kpMaskCpfCnpj(valor) {
-      const digits = (valor || '').replace(/\D/g, '');
-      return digits.length > 11
-        ? { delimiters: ['.', '.', '/', '-'], blocks: [2, 3, 3, 4, 2], numericOnly: true }
-        : { delimiters: ['.', '.', '-'],      blocks: [3, 3, 3, 2],    numericOnly: true };
+    // Só recria o Cleave quando o tipo de máscara muda (CPF↔CNPJ↔telefone);
+    // recriar a cada tecla trava o backspace nos pontos do documento.
+    let kpCleave = null;
+    let kpMaskSig = null;
+    function kpMaskConfig() {
+      if (window.kpManualTipo === 'documento') {
+        const cnpj = (inputManualCpf.value || '').replace(/\D/g, '').length > 11;
+        return cnpj
+          ? { sig: 'doc-cnpj', cfg: { delimiters: ['.', '.', '/', '-'], blocks: [2, 3, 3, 4, 2], numericOnly: true } }
+          : { sig: 'doc-cpf',  cfg: { delimiters: ['.', '.', '-'],      blocks: [3, 3, 3, 2],    numericOnly: true } };
+      }
+      if (window.kpManualTipo === 'telefone') {
+        return { sig: 'tel', cfg: { delimiters: ['(', ') ', '-'], blocks: [0, 2, 5, 4], numericOnly: true } };
+      }
+      return { sig: 'none', cfg: null };
+    }
+    function kpMascara() {
+      const m = kpMaskConfig();
+      if (m.sig === kpMaskSig) return; // máscara não mudou → não recria (preserva deleção)
+      kpMaskSig = m.sig;
+      if (kpCleave) { kpCleave.destroy(); kpCleave = null; }
+      if (typeof Cleave === 'undefined' || !m.cfg) return;
+      kpCleave = new Cleave(inputManualCpf, m.cfg);
+    }
+    function kpTrocarTipo(tipo) {
+      window.kpManualTipo = tipo;
+      inputManualCpf.value = '';
+      inputManualCpf.placeholder = KP_PLACEHOLDERS[tipo] || '';
+      inputManualCpf.maxLength = (tipo === 'documento' || tipo === 'telefone') ? 18 : 120;
+      kpMascara();
+    }
+    function kpAplicarFonte(fonte) {
+      window.kpManualFonte = fonte;
+      const permitidos = KP_TIPOS_POR_FONTE[fonte] || ['documento'];
+      if (kpTipoSeg) {
+        kpTipoSeg.querySelectorAll('.oc-tipo-btn').forEach(b => {
+          b.classList.toggle('d-none', !permitidos.includes(b.dataset.tipo));
+          b.classList.toggle('active', b.dataset.tipo === 'documento');
+        });
+      }
+      kpTrocarTipo('documento');
     }
 
-    let kpCleave = new Cleave(inputManualCpf, kpMaskCpfCnpj(''));
+    kpMascara();
+    inputManualCpf.addEventListener('input', function () { if (window.kpManualTipo === 'documento') kpMascara(); });
 
-    inputManualCpf.addEventListener('input', function () {
-      const mask = kpMaskCpfCnpj(this.value);
-      kpCleave.destroy();
-      kpCleave = new Cleave(inputManualCpf, mask);
-    });
+    if (kpFonteSeg) {
+      kpFonteSeg.addEventListener('click', function (e) {
+        const b = e.target.closest('.oc-fonte-btn');
+        if (!b || b.classList.contains('active')) return;
+        kpFonteSeg.querySelectorAll('.oc-fonte-btn').forEach(x => x.classList.toggle('active', x === b));
+        kpAplicarFonte(b.dataset.fonte);
+      });
+    }
+    if (kpTipoSeg) {
+      kpTipoSeg.addEventListener('click', function (e) {
+        const b = e.target.closest('.oc-tipo-btn');
+        if (!b || b.classList.contains('active')) return;
+        kpTipoSeg.querySelectorAll('.oc-tipo-btn').forEach(x => x.classList.toggle('active', x === b));
+        kpTrocarTipo(b.dataset.tipo);
+        inputManualCpf.focus();
+      });
+    }
 
-    btnManualSearch.addEventListener('click', function() {
-      buscarCpfManualPreditiva(inputManualCpf.value);
-    });
+    kpAplicarFonte('lemit');
+
+    btnManualSearch.addEventListener('click', function() { buscarManualPreditiva(inputManualCpf.value); });
     inputManualCpf.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') buscarCpfManualPreditiva(this.value);
+      if (e.key === 'Enter') buscarManualPreditiva(this.value);
     });
   }
 

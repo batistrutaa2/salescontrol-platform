@@ -555,6 +555,9 @@ Route::middleware(['auth'])->group(function () {
 
 Route::post('/consulta/pessoa', [ConsultaController::class, 'consultarPessoa'])->name('consulta.pessoa');
 Route::post('/consulta/empresa', [ConsultaController::class, 'consultarEmpresa'])->name('consulta.empresa');
+Route::post('/consulta/telefone', [ConsultaController::class, 'consultarTelefone'])->name('consulta.telefone');
+Route::post('/consulta/email', [ConsultaController::class, 'consultarEmail'])->name('consulta.email');
+Route::post('/consulta/nome-endereco', [ConsultaController::class, 'consultarNomeEndereco'])->name('consulta.nome-endereco');
 
 /** ============================================================
  *  MÓDULO LK BENEFÍCIOS

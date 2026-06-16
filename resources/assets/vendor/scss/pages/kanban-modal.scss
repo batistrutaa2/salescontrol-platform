@@ -1818,3 +1818,380 @@
         }
     }
 }
+
+/* ==========================================================================
+   Componentes da consulta (Lemit/Assertiva) — alinhados ao design system --km-*
+   Escala de espaçamento: 0.5 / 0.625 / 0.75 / 1 / 1.25 rem
+   Raios: --km-border-radius (20) · -sm (12) · -xs (8) · pílulas 999px
+   ========================================================================== */
+
+/* ── Seletor de fonte (Lemit | Assertiva) e de tipo (pílulas) ───────────── */
+.oc-fonte-seg,
+.oc-tipo-seg {
+    display: flex;
+    flex-wrap: wrap;          /* evita que opções (ex.: "Nome") estourem a tela em painéis estreitos */
+    gap: 3px;
+    padding: 3px;
+    width: 100%;
+    margin-bottom: 0.625rem;
+    border-radius: var(--km-border-radius);
+    background: rgba(var(--km-primary-rgb), 0.06);
+    border: 1px solid rgba(var(--km-primary-rgb), 0.12);
+}
+
+.oc-fonte-seg {
+    background: rgba(var(--km-info-rgb), 0.07);
+    border-color: rgba(var(--km-info-rgb), 0.16);
+}
+
+.oc-fonte-btn,
+.oc-tipo-btn {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    padding: 0.5rem 0.625rem;
+    border-radius: 999px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    color: var(--km-text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--km-transition);
+
+    &:hover { color: var(--km-text-primary); }
+}
+
+.oc-tipo-btn { font-size: 0.75rem; font-weight: 600; }
+.oc-fonte-btn { font-size: 0.8rem; letter-spacing: 0.01em; }
+
+.oc-tipo-btn.active {
+    color: #fff;
+    background: linear-gradient(135deg, var(--km-primary), var(--km-primary-light));
+    box-shadow: 0 3px 10px rgba(var(--km-primary-rgb), 0.32);
+}
+
+.oc-fonte-btn.active {
+    color: #fff;
+    background: linear-gradient(135deg, var(--km-info), var(--km-info-light));
+    box-shadow: 0 3px 12px rgba(var(--km-info-rgb), 0.38);
+
+    &[data-fonte="assertiva"] {
+        background: linear-gradient(135deg, var(--km-primary), var(--km-primary-light));
+        box-shadow: 0 3px 12px rgba(var(--km-primary-rgb), 0.38);
+    }
+}
+
+/* ── Selo de fonte/custo do resultado ───────────────────────────────────── */
+.oc-fonte-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.3125rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+
+    svg { flex-shrink: 0; }
+
+    &.oc-fonte-banco { color: var(--km-success); background: rgba(var(--km-success-rgb), 0.15); }
+    &.oc-fonte-api   { color: var(--km-primary); background: rgba(var(--km-primary-rgb), 0.14); }
+    &.oc-fonte-vazio { color: var(--km-text-secondary); background: rgba(156, 163, 175, 0.15); }
+
+    &.oc-fonte-banco svg { animation: ocFontePulse 2.4s ease-in-out infinite; }
+}
+
+@keyframes ocFontePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+.vit-result-meta { display: flex; justify-content: flex-end; min-height: 1.25rem; margin-bottom: 0.5rem; }
+
+/* ── Render completo Assertiva (abas + cartões) ─────────────────────────── */
+.assv-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.25rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    animation: assvFade 0.35s ease both;
+}
+
+@keyframes assvFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.assv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem 1rem;
+}
+
+.assv-f {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+
+    label { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--km-text-muted); }
+    span { font-size: 0.9rem; font-weight: 600; color: var(--km-text-primary); word-break: break-word; }
+}
+
+.assv-item {
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--km-card-border);
+    border-radius: var(--km-border-radius-sm);
+    background: rgba(var(--km-primary-rgb), 0.04);
+}
+
+.assv-item-top { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; font-size: 0.9rem; color: var(--km-text-primary); }
+.assv-item-top strong { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+.assv-sub { margin-top: 0.25rem; font-size: 0.78rem; color: var(--km-text-secondary); }
+.assv-sub a { color: var(--km-primary); word-break: break-all; }
+
+.assv-tag {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.125rem 0.45rem;
+    border-radius: var(--km-border-radius-xs);
+    color: var(--km-text-secondary);
+    background: rgba(156, 163, 175, 0.16);
+
+    &.tipo { color: var(--km-primary);  background: rgba(var(--km-primary-rgb), 0.14); }
+    &.wpp  { color: var(--km-success);  background: rgba(var(--km-success-rgb), 0.16); }
+    &.hot  { color: var(--km-danger);   background: rgba(var(--km-danger-rgb), 0.14); }
+    &.plus { color: var(--km-warning);  background: rgba(var(--km-warning-rgb), 0.16); }
+    &.np   { color: var(--km-text-secondary); background: rgba(156, 163, 175, 0.16); }
+}
+
+.assv-empty { padding: 1.25rem; text-align: center; font-size: 0.86rem; color: var(--km-text-muted); }
+
+/* abas Assertiva (reaproveita o chrome .kp-info-tabs-* do Lemit) */
+.assv-wrap .assv-tabs { height: auto; }
+.assv-wrap .assv-tabs .kp-info-tab-panes { max-height: 56vh; }
+.assv-wrap .assv-tabs .kp-info-tab-pane.active {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+/* ── Estados de consulta: buscando (radar) / nada encontrado ─────────────── */
+.cstate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem 1.25rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    animation: cstateIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes cstateIn { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
+
+.cstate-title {
+    margin-top: 1rem;
+    font-size: 1.02rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--km-text-primary);
+}
+
+.cstate-sub { margin-top: 0.3125rem; font-size: 0.85rem; color: var(--km-text-secondary); }
+.cstate-sub b { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--km-text-primary); }
+.cstate-hint { margin-top: 0.5rem; font-size: 0.76rem; color: var(--km-text-muted); }
+
+.cstate-radar {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    display: grid;
+    place-items: center;
+}
+
+.cstate-radar .ring {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(var(--km-primary-rgb), 0.55);
+    animation: cstatePing 1.8s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+.cstate-radar .ring:nth-child(2) { animation-delay: 0.6s; }
+.cstate-radar .ring:nth-child(3) { animation-delay: 1.2s; }
+
+@keyframes cstatePing {
+    0%   { transform: scale(0.4); opacity: 0.9; }
+    80%  { transform: scale(3.6); opacity: 0; }
+    100% { opacity: 0; }
+}
+
+.cstate-radar .sweep {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba(var(--km-primary-rgb), 0.35), transparent 38%);
+    mask: radial-gradient(circle, transparent 12px, #000 13px);
+    -webkit-mask: radial-gradient(circle, transparent 12px, #000 13px);
+    animation: cstateSpin 1.4s linear infinite;
+}
+
+@keyframes cstateSpin { to { transform: rotate(360deg); } }
+
+.cstate-radar .dot {
+    position: relative;
+    z-index: 2;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--km-primary), var(--km-primary-light));
+    box-shadow: 0 0 0 5px rgba(var(--km-primary-rgb), 0.14), var(--km-shadow-sm);
+}
+
+.cstate-bar {
+    margin-top: 1rem;
+    width: 180px;
+    max-width: 70%;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(var(--km-primary-rgb), 0.12);
+    overflow: hidden;
+}
+.cstate-bar span {
+    display: block;
+    width: 40%;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--km-primary), var(--km-primary-light));
+    animation: cstateSlide 1.1s ease-in-out infinite;
+}
+@keyframes cstateSlide {
+    0%   { transform: translateX(-110%); }
+    100% { transform: translateX(360%); }
+}
+
+.cstate-ico {
+    width: 76px;
+    height: 76px;
+    border-radius: var(--km-border-radius);
+    display: grid;
+    place-items: center;
+    color: var(--km-text-muted);
+    background: rgba(156, 163, 175, 0.1);
+    border: 1px solid var(--km-card-border);
+
+    svg { width: 36px; height: 36px; }
+}
+
+/* ── Lista de candidatos (busca por nome) ───────────────────────────────── */
+.cand-wrap { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.25rem; animation: assvFade 0.35s ease both; }
+
+.cand-head {
+    font-size: 0.82rem;
+    color: var(--km-text-secondary);
+    padding: 0.25rem 0.125rem 0.375rem;
+    strong { color: var(--km-text-primary); }
+}
+
+.cand-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem;
+    border: 1px solid var(--km-card-border);
+    border-radius: var(--km-border-radius-sm);
+    background: var(--km-card-bg);
+    cursor: pointer;
+    transition: var(--km-transition-fast);
+
+    &:hover {
+        border-color: rgba(var(--km-primary-rgb), 0.45);
+        background: rgba(var(--km-primary-rgb), 0.05);
+        transform: translateX(2px);
+        box-shadow: var(--km-shadow-sm);
+    }
+}
+
+.cand-ava {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--km-border-radius-sm);
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--km-primary), var(--km-primary-light));
+
+    &.pj { background: linear-gradient(135deg, var(--km-info), var(--km-info-light)); }
+}
+
+.cand-info { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; flex: 1; }
+.cand-nome { font-weight: 700; font-size: 0.92rem; color: var(--km-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cand-doc  { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--km-text-secondary); }
+.cand-sub  { font-size: 0.74rem; color: var(--km-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.cand-go { width: 18px; height: 18px; flex: 0 0 auto; color: var(--km-text-muted); transition: var(--km-transition-fast); }
+.cand-row:hover .cand-go { color: var(--km-primary); transform: translateX(2px); }
+
+/* ── Ajustes de dark mode (o restante herda dos tokens --km-*) ──────────── */
+.dark-style {
+    .assv-item { background: rgba(var(--km-primary-rgb), 0.12); }
+    .cand-row:hover { background: rgba(var(--km-primary-rgb), 0.12); }
+    .oc-fonte-badge.oc-fonte-vazio { color: var(--km-text-secondary); }
+}
+
+/* ── Card fixo do lead no modal Consultar (sempre visível) ──────────────── */
+.oc-lead-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    margin-bottom: 0.875rem;
+    border-radius: var(--km-border-radius-sm);
+    background: linear-gradient(135deg, rgba(var(--km-primary-rgb), 0.1), rgba(var(--km-primary-rgb), 0.04));
+    border: 1px solid rgba(var(--km-primary-rgb), 0.2);
+}
+
+.oc-lead-ava {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--km-border-radius-sm);
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--km-primary), var(--km-primary-light));
+    box-shadow: 0 4px 12px rgba(var(--km-primary-rgb), 0.3);
+}
+
+.oc-lead-info { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; flex: 1; }
+.oc-lead-nome { font-weight: 700; font-size: 0.95rem; color: var(--km-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.oc-lead-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    font-size: 0.76rem;
+    color: var(--km-text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+
+    span { white-space: nowrap; }
+}
+
+.oc-lead-tag {
+    flex: 0 0 auto;
+    align-self: flex-start;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--km-primary);
+    background: rgba(var(--km-primary-rgb), 0.16);
+}
