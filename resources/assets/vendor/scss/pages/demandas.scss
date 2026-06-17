@@ -776,3 +776,75 @@
     &:nth-child(3) { animation-delay: 100ms; }
     &:nth-child(4) { animation-delay: 150ms; }
 }
+
+// ============================================
+// Abas: Internas x Demanda vendedores
+// ============================================
+.dm-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.dm-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--dm-text-secondary);
+    background: var(--dm-glass-bg);
+    border: 1px solid var(--dm-card-border);
+    border-radius: var(--dm-border-radius-sm);
+    cursor: pointer;
+    transition: var(--dm-transition);
+
+    svg { width: 18px; height: 18px; }
+
+    &:hover { color: var(--dm-primary); border-color: rgba(var(--dm-primary-rgb), 0.3); }
+
+    &.is-active {
+        color: #fff;
+        background: linear-gradient(135deg, var(--dm-primary), var(--dm-primary-light));
+        border-color: transparent;
+        box-shadow: 0 4px 14px rgba(var(--dm-primary-rgb), 0.3);
+    }
+}
+
+// ============================================
+// Bloco extra dos cards de solicitação de vendedor
+// ============================================
+.dm-kanban-card.dm-card-vendedor {
+    border-left: 4px solid var(--dm-info);
+}
+
+.dm-vendor-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 2px;
+}
+
+.dm-vendor-cliente {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--dm-text-primary);
+
+    svg { width: 15px; height: 15px; color: var(--dm-info); }
+}
+
+.dm-vendor-tipo {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--dm-primary);
+    background: rgba(var(--dm-primary-rgb), 0.1);
+    padding: 3px 9px;
+    border-radius: 6px;
+}

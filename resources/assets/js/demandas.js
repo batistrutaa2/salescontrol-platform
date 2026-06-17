@@ -97,15 +97,40 @@
     $('#assigned_to').select2({ width: '100%', dropdownParent: $('#modal-demanda') });
     $('#filtro-responsavel').select2({ width: 'resolve', dropdownParent: $('body') });
 
+    // ====== helpers de escape ======
+    function esc(s) {
+        return String(s ?? '').replace(/[&<>"']/g, m => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[m]));
+    }
+
     // ====== renderização ======
     function createCard(d) {
         const due = d.data_limite ? moment(d.data_limite).format('DD/MM/YYYY') : '-';
-        const resp = d.responsavel || '-';
+        const isVendedor = d.origem === 'VENDEDOR';
+        // Em solicitações de vendedor a pessoa relevante é quem abriu (o vendedor).
+        const resp = isVendedor ? (d.criador || '-') : (d.responsavel || '-');
         const prio = priorityConfig[d.prioridade] || priorityConfig['MEDIA'];
 
-        const $card = $(`
-            <div class="dm-kanban-card" draggable="true" data-id="${d.id}">
-                <div class="dm-card-actions">
+        // Bloco extra das solicitações de vendedor: cliente + tipo.
+        const vendorBlock = isVendedor ? `
+                <div class="dm-vendor-info">
+                    <span class="dm-vendor-cliente">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16"/><path d="M3 21h18"/>
+                        </svg>
+                        ${esc(d.cliente || 'Contrato')}${d.numero_proposta ? ` · #${esc(d.numero_proposta)}` : ''}
+                    </span>
+                    ${d.tipo_label ? `<span class="dm-vendor-tipo">${esc(d.tipo_label)}</span>` : ''}
+                </div>` : '';
+
+        // Vendedor: admin não edita/exclui a solicitação, só dá baixa.
+        const actions = isVendedor ? `
+                    <button class="dm-action-btn action-complete js-concluir" title="Concluir">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </button>` : `
                     <button class="dm-action-btn action-edit js-editar" title="Editar">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -122,20 +147,24 @@
                             <polyline points="3 6 5 6 21 6"/>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                         </svg>
-                    </button>
-                </div>
+                    </button>`;
+
+        const $card = $(`
+            <div class="dm-kanban-card ${isVendedor ? 'dm-card-vendedor' : ''}" draggable="true" data-id="${d.id}">
+                <div class="dm-card-actions">${actions}</div>
                 <div class="dm-card-header">
-                    <h4 class="dm-card-title">${d.titulo}</h4>
+                    <h4 class="dm-card-title">${esc(d.titulo)}</h4>
                     <span class="dm-priority-badge ${prio.class}">${prio.label}</span>
                 </div>
-                ${d.descricao ? `<p class="dm-card-description">${d.descricao}</p>` : ''}
+                ${vendorBlock}
+                ${d.descricao ? `<p class="dm-card-description">${esc(d.descricao)}</p>` : ''}
                 <div class="dm-card-meta">
                     <span class="dm-meta-item">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                             <circle cx="12" cy="7" r="4"/>
                         </svg>
-                        ${resp}
+                        ${esc(resp)}
                     </span>
                     <span class="dm-meta-item">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -313,9 +342,13 @@
         });
     }
 
+    // ====== aba ativa (origem) ======
+    let currentOrigem = 'INTERNA';
+
     // ====== carregar lista ======
     function loadBoard() {
         const params = {
+            origem: currentOrigem,
             prioridade: $fPrio.val(),
             assigned_to: $fResp.val()
         };
@@ -341,6 +374,18 @@
 
     // ====== init ======
     bindDnD();
+
+    // Abas: Internas x Demanda vendedores
+    $('.dm-tab').on('click', function () {
+        const origem = $(this).data('origem');
+        if (origem === currentOrigem) return;
+        currentOrigem = origem;
+        $('.dm-tab').removeClass('is-active');
+        $(this).addClass('is-active');
+        // Admin não cria/edita solicitação de vendedor — só dá baixa.
+        $('#btn-nova').toggle(origem === 'INTERNA');
+        loadBoard();
+    });
 
     // Filtros
     const debouncedLoad = debounce(loadBoard, 250);

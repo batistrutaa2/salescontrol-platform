@@ -1,17 +1,28 @@
 @auth
-    @if (auth()->user()->user_role_id == \App\Enums\UserRole::VENDEDOR && session('crm_mode', 'saude') === 'saude')
+    @php
+        $mascoteRole = auth()->user()->user_role_id;
+        $mascoteIsVendedor = $mascoteRole == \App\Enums\UserRole::VENDEDOR;
+        $mascoteIsAdmin = in_array($mascoteRole, [
+            \App\Enums\UserRole::ADMINISTRATIVO,
+            \App\Enums\UserRole::DEVELOPER,
+            \App\Enums\UserRole::BACKOFFICE,
+        ]);
+        $mascotePerfil = $mascoteIsVendedor ? 'vendedor' : 'admin';
+    @endphp
+    @if (($mascoteIsVendedor || $mascoteIsAdmin) && session('crm_mode', 'saude') === 'saude')
         @vite(['resources/assets/vendor/scss/pages/mascote-assistente.scss', 'resources/assets/js/mascote-assistente.js'])
 
-        @php($mascoteParabens = session()->pull('mascote_parabens'))
+        @php($mascoteParabens = $mascoteIsVendedor ? session()->pull('mascote_parabens') : null)
 
         <div id="mascote-assistente" class="mascote-assistente is-dormindo"
+            data-perfil="{{ $mascotePerfil }}"
             data-endpoint="{{ route('comercial.sugestaoContato') }}"
             data-avisos="{{ route('comercial.avisosMascote') }}"
             data-aviso-lido-base="{{ url('/comercial/avisos-mascote') }}"
             data-abrir-base="{{ url('/comercial/abrir-cliente') }}"
             data-nome="{{ \Illuminate\Support\Str::of(auth()->user()->name)->trim()->explode(' ')->first() }}"
             data-dias="5"
-            data-saudar="{{ session()->pull('mascote_saudar', false) ? '1' : '0' }}"
+            data-saudar="{{ $mascoteIsVendedor && session()->pull('mascote_saudar', false) ? '1' : '0' }}"
             @if ($mascoteParabens) data-parabens="{{ json_encode($mascoteParabens) }}" @endif
             aria-live="polite">
 

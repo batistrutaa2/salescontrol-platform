@@ -1,0 +1,418 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* =========================================================
+   Solicitar Pós-venda (tela do vendedor)
+   Segue o Design System SalesControl (glass + gradient violet).
+   ========================================================= */
+
+.mdv-page {
+    --mdv-primary: #7C3AED;
+    --mdv-primary-light: #A78BFA;
+    --mdv-success: #10B981;
+    --mdv-info: #06B6D4;
+    --mdv-warning: #F59E0B;
+    --mdv-danger: #EF4444;
+
+    --mdv-card-bg: rgba(255, 255, 255, 0.95);
+    --mdv-glass-bg: rgba(255, 255, 255, 0.7);
+    --mdv-border: rgba(124, 58, 237, 0.12);
+    --mdv-text-primary: #1e293b;
+    --mdv-text-secondary: #64748b;
+    --mdv-text-muted: #94a3b8;
+
+    --mdv-radius: 16px;
+    --mdv-radius-sm: 12px;
+    --mdv-radius-xs: 8px;
+    --mdv-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --mdv-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --mdv-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.15);
+    --mdv-transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    /* ---- header ---- */
+    .mdv-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 20px 24px;
+        margin-bottom: 20px;
+        background: var(--mdv-card-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--mdv-border);
+        border-radius: var(--mdv-radius);
+        box-shadow: var(--mdv-shadow-sm);
+    }
+
+    .mdv-title-group {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .mdv-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--mdv-primary), var(--mdv-primary-light));
+        box-shadow: var(--mdv-shadow-glow);
+    }
+
+    .mdv-title {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--mdv-primary), var(--mdv-primary-light));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .mdv-subtitle {
+        margin: 2px 0 0;
+        font-size: 0.85rem;
+        color: var(--mdv-text-secondary);
+    }
+
+    .mdv-header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    /* ---- lista ---- */
+    .mdv-list-card {
+        background: var(--mdv-card-bg);
+        border: 1px solid var(--mdv-border);
+        border-radius: var(--mdv-radius);
+        box-shadow: var(--mdv-shadow-sm);
+        overflow: hidden;
+    }
+
+    .mdv-list-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--mdv-border);
+    }
+
+    .mdv-list-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--mdv-text-primary);
+    }
+
+    .mdv-list-badge {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--mdv-primary);
+        background: rgba(124, 58, 237, 0.1);
+        padding: 4px 12px;
+        border-radius: 999px;
+    }
+
+    .mdv-list-body {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 14px;
+        padding: 18px 20px;
+    }
+
+    /* ---- card de solicitação ---- */
+    .mdv-card {
+        position: relative;
+        padding: 16px;
+        border: 1px solid var(--mdv-border);
+        border-left: 4px solid var(--mdv-warning);
+        border-radius: var(--mdv-radius-sm);
+        background: var(--mdv-glass-bg);
+        transition: var(--mdv-transition);
+
+        &.is-andamento { border-left-color: var(--mdv-info); }
+        &.is-concluida { border-left-color: var(--mdv-success); }
+        &.is-cancelada { border-left-color: var(--mdv-danger); opacity: 0.75; }
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--mdv-shadow-md);
+        }
+    }
+
+    .mdv-card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .mdv-card-tipo {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--mdv-primary);
+        background: rgba(124, 58, 237, 0.1);
+        padding: 3px 10px;
+        border-radius: 6px;
+    }
+
+    .mdv-status-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+
+        &.is-aberta { color: #b45309; background: rgba(245, 158, 11, 0.15); }
+        &.is-andamento { color: #0e7490; background: rgba(6, 182, 212, 0.15); }
+        &.is-concluida { color: #047857; background: rgba(16, 185, 129, 0.15); }
+        &.is-cancelada { color: #b91c1c; background: rgba(239, 68, 68, 0.15); }
+    }
+
+    .mdv-card-cliente {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--mdv-text-primary);
+    }
+
+    .mdv-card-prop {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--mdv-text-muted);
+    }
+
+    .mdv-card-titulo {
+        margin-top: 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--mdv-text-secondary);
+    }
+
+    .mdv-card-desc {
+        margin: 6px 0 0;
+        font-size: 0.82rem;
+        color: var(--mdv-text-muted);
+    }
+
+    .mdv-card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed var(--mdv-border);
+    }
+
+    .mdv-card-meta-item {
+        font-size: 0.74rem;
+        color: var(--mdv-text-muted);
+    }
+
+    /* ---- vazio ---- */
+    .mdv-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 48px 20px;
+        text-align: center;
+        color: var(--mdv-text-muted);
+
+        p { margin: 0; max-width: 420px; font-size: 0.9rem; }
+    }
+}
+
+/* ---- botões (compartilhados pela página e pelo tour) ---- */
+.mdv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mdv-btn-primary {
+    color: #fff;
+    background: linear-gradient(135deg, #7C3AED, #A78BFA);
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+
+    &:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4); }
+}
+
+.mdv-btn-ghost {
+    color: #7C3AED;
+    background: rgba(124, 58, 237, 0.08);
+
+    &:hover { background: rgba(124, 58, 237, 0.15); }
+}
+
+.mdv-btn-outline {
+    color: #64748b;
+    background: transparent;
+    border-color: rgba(100, 116, 139, 0.3);
+
+    &:hover { background: rgba(100, 116, 139, 0.08); }
+}
+
+/* ---- modal ---- */
+.mdv-modal {
+    .mdv-form-group { margin-bottom: 16px; }
+
+    .mdv-label {
+        display: block;
+        margin-bottom: 6px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .mdv-hint {
+        display: block;
+        margin-top: 5px;
+        font-size: 0.74rem;
+        color: #94a3b8;
+    }
+
+    .mdv-input,
+    .mdv-textarea {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 0.88rem;
+        border: 1px solid rgba(124, 58, 237, 0.18);
+        border-radius: 10px;
+        background: #fff;
+        color: #1e293b;
+        transition: border-color 0.2s, box-shadow 0.2s;
+
+        &:focus {
+            outline: none;
+            border-color: #7C3AED;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+        }
+    }
+
+    .modal-content { border: none; border-radius: 18px; }
+}
+
+/* ---- onboarding tour (appended ao body) ---- */
+.mdv-tour {
+    position: fixed;
+    inset: 0;
+    z-index: 1320;
+
+    &[hidden] { display: none; }
+
+    .mdv-tour-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(2px);
+    }
+
+    .mdv-tour-spot {
+        position: absolute;
+        border-radius: 14px;
+        box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.55), 0 0 0 3px #A78BFA;
+        transition: all 0.25s ease;
+        pointer-events: none;
+    }
+
+    .mdv-tour-card {
+        position: absolute;
+        width: 340px;
+        max-width: calc(100vw - 32px);
+        padding: 20px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 12px 50px rgba(0, 0, 0, 0.35);
+        z-index: 1;
+    }
+
+    .mdv-tour-prog {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #7C3AED;
+    }
+
+    .mdv-tour-titulo {
+        margin: 6px 0 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #1e293b;
+    }
+
+    .mdv-tour-texto {
+        margin: 0 0 16px;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        color: #475569;
+    }
+
+    .mdv-tour-acoes {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .mdv-tour-pular {
+        border: none;
+        background: none;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #94a3b8;
+        cursor: pointer;
+
+        &:hover { color: #64748b; }
+    }
+}
+
+/* =========================================================
+   Dark mode
+   ========================================================= */
+.dark-style {
+    .mdv-page {
+        --mdv-card-bg: rgba(30, 32, 47, 0.95);
+        --mdv-glass-bg: rgba(30, 32, 47, 0.7);
+        --mdv-border: rgba(255, 255, 255, 0.08);
+        --mdv-text-primary: #F9FAFB;
+        --mdv-text-secondary: #D1D5DB;
+        --mdv-text-muted: #9CA3AF;
+        --mdv-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+        --mdv-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .mdv-modal {
+        .mdv-label { color: #D1D5DB; }
+        .mdv-input,
+        .mdv-textarea {
+            background: #2b2c40;
+            border-color: rgba(255, 255, 255, 0.1);
+            color: #F9FAFB;
+        }
+        .modal-content { background: #2b2c40; }
+    }
+
+    .mdv-btn-outline { color: #D1D5DB; border-color: rgba(255, 255, 255, 0.2); }
+
+    .mdv-tour .mdv-tour-card { background: #2b2c40; }
+    .mdv-tour .mdv-tour-titulo { color: #F9FAFB; }
+    .mdv-tour .mdv-tour-texto { color: #D1D5DB; }
+}

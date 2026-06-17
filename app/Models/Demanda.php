@@ -11,6 +11,9 @@ class Demanda extends Model
 
     protected $fillable = [
         'empresa_id',
+        'origem',
+        'venda_id',
+        'tipo',
         'created_by',
         'assigned_to',
         'titulo',
@@ -33,5 +36,10 @@ class Demanda extends Model
     public function responsavel()
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function venda()
+    {
+        return $this->belongsTo(Vendas::class, 'venda_id');
     }
 }
