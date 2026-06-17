@@ -10,6 +10,11 @@ use App\Models\Faq;
 use App\Models\Operadora;
 use App\Models\Plano;
 use App\Models\User;
+use App\Models\Vendas;
+use App\Enums\TipoDemandaContrato;
+use App\Notifications\DemandaVendedorCriada;
+use App\Notifications\DemandaVendedorConcluida;
+use Illuminate\Support\Facades\Notification;
 use DateTime;
 use Carbon\Carbon;
 use App\Enums\UserRole;
@@ -889,12 +894,17 @@ class Comercial extends Controller
       return redirect()->intended('comercial/kanban');
     }
 
-    if (Auth::user()->user_role_id != UserRole::VENDEDOR) {
-      return response()->json(['data' => []]);
-    }
+    // Tipos exibidos pelo mascote: vendedor (status da proposta + conclusão de
+    // demanda dele) e admin/back-office (nova demanda aberta por vendedor).
+    $tiposMascote = [
+      'status_venda',
+      'venda_estornada',
+      'demanda_vendedor_nova',
+      'demanda_vendedor_concluida',
+    ];
 
     $avisos = Auth::user()->unreadNotifications
-      ->filter(fn($n) => in_array($n->data['tipo'] ?? null, ['status_venda', 'venda_estornada'], true))
+      ->filter(fn($n) => in_array($n->data['tipo'] ?? null, $tiposMascote, true))
       ->take(5)
       ->map(fn($n) => [
         'id' => $n->id,
@@ -1454,7 +1464,12 @@ class Comercial extends Controller
 
   public function list(Request $request)
   {
-    $q = Demanda::with(['criador:id,name', 'responsavel:id,name'])
+    // Origem: TODOS (default), INTERNA (tarefas do setor) ou VENDEDOR (solicitações de pós-venda).
+    $origem = $request->input('origem', 'TODOS');
+
+    $q = Demanda::with(['criador:id,name', 'responsavel:id,name', 'venda:id,nome_contrato,numero_proposta'])
+        ->where('empresa_id', Auth::user()->empresa_id)
+        ->when($origem === 'INTERNA' || $origem === 'VENDEDOR', fn($s) => $s->where('origem', $origem))
         ->when($request->has('status') && $request->status !== 'TODOS', fn($s) => $s->where('status', $request->status))
         ->when($request->has('prioridade') && $request->prioridade !== 'TODAS', fn($s) => $s->where('prioridade', $request->prioridade))
         ->when($request->has('assigned_to') && $request->assigned_to, fn($s) => $s->where('assigned_to', $request->assigned_to))
@@ -1473,12 +1488,18 @@ class Comercial extends Controller
       'data' => $q->get()->map(function ($d) {
         return [
           'id' => $d->id,
+          'origem' => $d->origem,
           'titulo' => $d->titulo,
           'descricao' => $d->descricao,
           'prioridade' => $d->prioridade,
           'status' => $d->status,
           'responsavel' => $d->responsavel?->name,
           'criador' => $d->criador?->name,
+          // Campos extras das solicitações de vendedor (null nas internas).
+          'tipo' => $d->tipo,
+          'tipo_label' => $d->tipo ? (TipoDemandaContrato::tryFrom($d->tipo)?->label() ?? $d->tipo) : null,
+          'cliente' => $d->venda?->nome_contrato,
+          'numero_proposta' => $d->venda?->numero_proposta,
           'data_limite' => optional($d->data_limite)->format('Y-m-d'),
           'created_at' => $d->created_at->toDateTimeString(),
         ];
@@ -1505,7 +1526,7 @@ class Comercial extends Controller
 
   public function update($id, Request $r)
   {
-    $d = Demanda::findOrFail($id);
+    $d = Demanda::where('empresa_id', Auth::user()->empresa_id)->findOrFail($id);
     $data = $r->validate([
       'titulo' => 'required|string|max:255',
       'descricao' => 'nullable|string',
@@ -1519,20 +1540,196 @@ class Comercial extends Controller
 
   public function updateStatus($id, Request $r)
   {
-    $d = Demanda::findOrFail($id);
+    $d = Demanda::where('empresa_id', Auth::user()->empresa_id)->findOrFail($id);
     $r->validate(['status' => 'required|in:ABERTA,EM_ANDAMENTO,CONCLUIDA,CANCELADA']);
+
+    $eraConcluida = $d->status === 'CONCLUIDA';
 
     $d->status = $r->status;
     $d->concluida_em = $r->status === 'CONCLUIDA' ? now() : null;
     $d->save();
+
+    // Solicitação do vendedor recém-concluída -> avisa o vendedor pelo mascote.
+    if ($d->origem === 'VENDEDOR' && $r->status === 'CONCLUIDA' && !$eraConcluida) {
+      $this->notificarVendedorDemandaConcluida($d);
+    }
 
     return response()->json(['ok' => true]);
   }
 
   public function destroy($id)
   {
-    Demanda::whereKey($id)->delete();
+    Demanda::where('empresa_id', Auth::user()->empresa_id)->whereKey($id)->delete();
     return response()->json(['ok' => true]);
+  }
+
+  /**
+   * Notifica o vendedor que abriu a demanda de que ela foi concluída pelo pós-venda.
+   */
+  private function notificarVendedorDemandaConcluida(Demanda $d): void
+  {
+    $vendedor = User::find($d->created_by);
+    if (!$vendedor) {
+      return;
+    }
+
+    $cliente = $d->venda?->nome_contrato ?? 'cliente';
+    $tipoLabel = $d->tipo ? (TipoDemandaContrato::tryFrom($d->tipo)?->label() ?? $d->titulo) : $d->titulo;
+
+    $vendedor->notify(new DemandaVendedorConcluida(
+      demandaId: $d->id,
+      cliente: $cliente,
+      tipoLabel: $tipoLabel,
+      url: route('comercial.demandasVendedor'),
+      concluidaPorNome: Auth::user()->name,
+    ));
+  }
+
+  // ==================== Demandas de Pós-venda (vendedor) ====================
+
+  /**
+   * Tela do vendedor para abrir e acompanhar solicitações de pós-venda
+   * (boleto, portabilidade, cancelamento, etc.) sobre os contratos que implantou.
+   */
+  public function demandasVendedor()
+  {
+    return view('content.pages.comercial.minhas-demandas', [
+      'tipoLabels' => TipoDemandaContrato::labels(),
+    ]);
+  }
+
+  /**
+   * Lista as solicitações de pós-venda abertas pelo próprio vendedor.
+   */
+  public function listMinhasDemandas()
+  {
+    $demandas = Demanda::with(['venda:id,nome_contrato,numero_proposta'])
+      ->where('empresa_id', Auth::user()->empresa_id)
+      ->where('origem', 'VENDEDOR')
+      ->where('created_by', Auth::id())
+      ->orderByRaw("FIELD(status, 'ABERTA', 'EM_ANDAMENTO', 'CONCLUIDA', 'CANCELADA')")
+      ->orderByDesc('created_at')
+      ->get()
+      ->map(fn($d) => [
+        'id' => $d->id,
+        'titulo' => $d->titulo,
+        'descricao' => $d->descricao,
+        'status' => $d->status,
+        'tipo' => $d->tipo,
+        'tipo_label' => $d->tipo ? (TipoDemandaContrato::tryFrom($d->tipo)?->label() ?? $d->tipo) : null,
+        'cliente' => $d->venda?->nome_contrato,
+        'numero_proposta' => $d->venda?->numero_proposta,
+        'created_at' => $d->created_at->toDateTimeString(),
+        'concluida_em' => optional($d->concluida_em)->toDateTimeString(),
+      ]);
+
+    return response()->json(['data' => $demandas]);
+  }
+
+  /**
+   * Autocomplete dos contratos IMPLANTADOS do próprio vendedor, para abrir a demanda.
+   */
+  public function buscarContratosImplantados(Request $request)
+  {
+    $termo = trim((string) $request->input('termo', ''));
+
+    $contratos = Vendas::query()
+      ->where('empresa_id', Auth::user()->empresa_id)
+      ->where('user_id', Auth::id())
+      ->where('tabulacao_id', Tabulations::IMPLANTADO)
+      ->when($termo !== '', function ($q) use ($termo) {
+        $q->where(function ($sub) use ($termo) {
+          $sub->where('nome_contrato', 'like', "%{$termo}%")
+            ->orWhere('numero_proposta', 'like', "%{$termo}%")
+            ->orWhere('cpf_cnpj', 'like', "%{$termo}%");
+        });
+      })
+      ->orderByDesc('data_implantacao')
+      ->limit(25)
+      ->get(['id', 'nome_contrato', 'numero_proposta', 'cpf_cnpj', 'operadora'])
+      ->map(fn($v) => [
+        'venda_id' => $v->id,
+        'nome_contrato' => $v->nome_contrato,
+        'numero_proposta' => $v->numero_proposta,
+        'cpf_cnpj' => $v->cpf_cnpj,
+        'operadora' => $v->operadora,
+      ]);
+
+    return response()->json(['data' => $contratos]);
+  }
+
+  /**
+   * Cria a solicitação de pós-venda do vendedor sobre um contrato implantado seu
+   * e avisa o administrativo/back-office pelo mascote.
+   */
+  public function storeDemandaVendedor(Request $request)
+  {
+    $tipos = array_map(fn($t) => $t->value, TipoDemandaContrato::cases());
+
+    $data = $request->validate([
+      'venda_id' => 'required|integer|exists:vendas,id',
+      'tipo' => ['required', 'string', \Illuminate\Validation\Rule::in($tipos)],
+      'titulo' => 'required|string|max:255',
+      'descricao' => 'nullable|string|max:1000',
+    ]);
+
+    $empresaId = Auth::user()->empresa_id;
+
+    // Garante que o contrato é do próprio vendedor, da empresa e está IMPLANTADO.
+    $venda = Vendas::where('id', $data['venda_id'])
+      ->where('empresa_id', $empresaId)
+      ->where('user_id', Auth::id())
+      ->where('tabulacao_id', Tabulations::IMPLANTADO)
+      ->first();
+
+    if (!$venda) {
+      return response()->json([
+        'ok' => false,
+        'message' => 'Contrato inválido: só é possível abrir demanda para um contrato seu já implantado.',
+      ], 422);
+    }
+
+    $demanda = Demanda::create([
+      'empresa_id' => $empresaId,
+      'origem' => 'VENDEDOR',
+      'venda_id' => $venda->id,
+      'tipo' => $data['tipo'],
+      'created_by' => Auth::id(),
+      'titulo' => $data['titulo'],
+      'descricao' => $data['descricao'] ?? null,
+      'prioridade' => 'MEDIA',
+      'status' => 'ABERTA',
+    ]);
+
+    $this->notificarAdminsDemandaVendedor($demanda, $venda);
+
+    return response()->json(['ok' => true, 'id' => $demanda->id]);
+  }
+
+  /**
+   * Notifica os usuários administrativos/back-office da empresa sobre a nova
+   * solicitação de pós-venda aberta por um vendedor.
+   */
+  private function notificarAdminsDemandaVendedor(Demanda $demanda, Vendas $venda): void
+  {
+    $admins = User::where('empresa_id', $demanda->empresa_id)
+      ->whereIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER, UserRole::BACKOFFICE])
+      ->where('ativo', 'Y')
+      ->get();
+
+    if ($admins->isEmpty()) {
+      return;
+    }
+
+    $tipoLabel = TipoDemandaContrato::tryFrom($demanda->tipo)?->label() ?? $demanda->titulo;
+
+    Notification::send($admins, new DemandaVendedorCriada(
+      demandaId: $demanda->id,
+      vendedorNome: Auth::user()->name,
+      cliente: $venda->nome_contrato ?? 'cliente',
+      tipoLabel: $tipoLabel,
+      url: route('comercial.demands'),
+    ));
   }
 
   /**

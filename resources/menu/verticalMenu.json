@@ -543,6 +543,16 @@
       ]
     },
     {
+      "url": "/comercial/minhas-demandas",
+      "name": "Solicitar Pós-venda",
+      "icon": "menu-icon tf-icons ri-customer-service-2-line",
+      "slug": "comercial.demandasVendedor",
+      "rules": [
+        "VENDEDOR",
+        "DEVELOPER"
+      ]
+    },
+    {
       "url": "/comercial/agendamentos",
       "name": "Agendamentos",
       "icon": "menu-icon tf-icons ri-time-line",

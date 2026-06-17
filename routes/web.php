@@ -195,6 +195,12 @@ Route::middleware(['auth'])->group(function () {
   Route::patch('/comercial/demandas/{id}/status', [Comercial::class, 'updateStatus'])->name('demandas.status');
   Route::delete('/comercial/demandas/{id}', [Comercial::class, 'destroy'])->name('demandas.destroy');
 
+  /** COMERCIAL - Demandas de Pós-venda (vendedor) */
+  Route::get('/comercial/minhas-demandas', [Comercial::class, 'demandasVendedor'])->name('comercial.demandasVendedor');
+  Route::get('/comercial/minhas-demandas/list', [Comercial::class, 'listMinhasDemandas'])->name('comercial.minhasDemandas.list');
+  Route::get('/comercial/minhas-demandas/contratos', [Comercial::class, 'buscarContratosImplantados'])->name('comercial.minhasDemandas.contratos');
+  Route::post('/comercial/minhas-demandas', [Comercial::class, 'storeDemandaVendedor'])->name('comercial.minhasDemandas.store');
+
   Route::get('/comercial/calendario-reunioes', [ReunioesComercial::class, 'index'])->name('comercialReunioes.index');
   Route::get('/reunioes/data', [ReunioesComercial::class, 'getReunioes']);
   Route::get('/reunioes/stats', [ReunioesComercial::class, 'getStats']);

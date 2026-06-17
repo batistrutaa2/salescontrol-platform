@@ -26,6 +26,9 @@
     const avisosEndpoint = root.dataset.avisos;
     const avisoLidoBase = (root.dataset.avisoLidoBase || '').replace(/\/$/, '');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    // Perfil: 'vendedor' (sugestões + parabéns + avisos) ou 'admin' (só avisos de demanda).
+    const perfil = root.dataset.perfil || 'vendedor';
+    const isAdmin = perfil === 'admin';
 
     const balao = root.querySelector('.mascote-balao');
     const elTitulo = root.querySelector('.mascote-balao-titulo');
@@ -317,6 +320,34 @@
     }
 
     function mostrarAviso(aviso) {
+      // Nova demanda aberta por vendedor (mascote do administrativo/back-office).
+      if (aviso.tipo === 'demanda_vendedor_nova') {
+        falar({
+          tipo: 'aviso',
+          titulo: aviso.titulo || '🛎️ Nova demanda de pós-venda',
+          html: escapeHtml(aviso.mensagem || 'Um vendedor abriu uma nova solicitação de pós-venda.'),
+          acaoLabel: 'Ver demandas',
+          acaoHref: aviso.url || '#',
+          adiar: false,
+          som: true,
+        });
+        return;
+      }
+
+      // Demanda do vendedor concluída pelo pós-venda (mascote do vendedor).
+      if (aviso.tipo === 'demanda_vendedor_concluida') {
+        falar({
+          tipo: 'parabens',
+          titulo: aviso.titulo || 'Demanda concluída ✅',
+          html: escapeHtml(aviso.mensagem || 'Sua solicitação de pós-venda foi concluída.'),
+          acaoLabel: 'Ver solicitação',
+          acaoHref: aviso.url || '#',
+          adiar: false,
+          som: true,
+        });
+        return;
+      }
+
       const estorno = aviso.tipo === 'venda_estornada';
       const statusTxt = aviso.status ? escapeHtml(aviso.status) : '';
       const html = estorno
@@ -490,26 +521,31 @@
     };
 
     // ---------- agenda ----------
-    // Prioridade: parabéns por venda > tour (1ª vez) > saudação pós-login.
-    // Cada um só dispara na 1ª página após o respectivo gatilho.
-    if (root.dataset.parabens) {
-      let payload = null;
-      try {
-        payload = JSON.parse(root.dataset.parabens);
-      } catch (e) {
-        payload = null;
+    // Comportamento do vendedor: parabéns/tour/saudação + sugestões de contato.
+    // O perfil admin/back-office só recebe avisos (nova demanda de vendedor).
+    if (!isAdmin) {
+      // Prioridade: parabéns por venda > tour (1ª vez) > saudação pós-login.
+      // Cada um só dispara na 1ª página após o respectivo gatilho.
+      if (root.dataset.parabens) {
+        let payload = null;
+        try {
+          payload = JSON.parse(root.dataset.parabens);
+        } catch (e) {
+          payload = null;
+        }
+        window.setTimeout(() => parabenizarVenda(payload), 900);
+      } else if (!tourVisto()) {
+        window.setTimeout(() => iniciarTour(false), 1500);
+      } else if (root.dataset.saudar === '1') {
+        window.setTimeout(saudar, 1200);
       }
-      window.setTimeout(() => parabenizarVenda(payload), 900);
-    } else if (!tourVisto()) {
-      window.setTimeout(() => iniciarTour(false), 1500);
-    } else if (root.dataset.saudar === '1') {
-      window.setTimeout(saudar, 1200);
+      window.setTimeout(() => verificar(true), PRIMEIRA_ESPERA_MS);
+      window.setInterval(() => verificar(true), INTERVALO_MS);
     }
-    window.setTimeout(() => verificar(true), PRIMEIRA_ESPERA_MS);
-    window.setInterval(() => verificar(true), INTERVALO_MS);
 
-    // Avisos de proposta movida pelo backoffice (substitui o WhatsApp): checa
-    // logo após carregar e a cada 90s. Tem prioridade visual sobre a sugestão.
+    // Avisos via notificações (substitui o WhatsApp): proposta movida e demandas
+    // de pós-venda (vendedor <-> administrativo). Checa logo após carregar e a
+    // cada 90s, para os dois perfis.
     window.setTimeout(verificarAvisos, 8000);
     window.setInterval(verificarAvisos, 90000);
   }
