@@ -82,29 +82,69 @@
     const initialEl = document.getElementById('oc-consulta-initial');
     if (initialEl && !ocInitialHtml) ocInitialHtml = initialEl.innerHTML;
 
-    // Máscara adaptável. IMPORTANTE: só recria o Cleave quando o tipo de máscara
-    // muda (CPF↔CNPJ↔telefone); recriar a cada tecla trava o backspace nos pontos.
+    // Máscara do documento é MANUAL (não Cleave). Motivo: o Cleave do CPF usa
+    // blocks [3,3,3,2] + numericOnly, que trava o campo em 11 dígitos — o 12º
+    // dígito de um CNPJ é recusado, então a troca para a máscara de CNPJ nunca
+    // dispara e a busca por empresa fica impossível. Formatando à mão o campo
+    // cresce até 14 dígitos e alterna CPF↔CNPJ sozinho. Telefone segue no Cleave.
     let ocCleave = null;
     let ocMaskSig = null;
-    function ocMaskConfig() {
+
+    // Formata um valor em CPF (≤11 díg.) ou CNPJ (12–14 díg.) progressivamente.
+    function ocFormatarDoc(valor) {
+      const d = (valor || '').replace(/\D/g, '').slice(0, 14);
+      if (d.length > 11) {
+        let out = d.slice(0, 2);
+        if (d.length > 2)  out += '.' + d.slice(2, 5);
+        if (d.length > 5)  out += '.' + d.slice(5, 8);
+        if (d.length > 8)  out += '/' + d.slice(8, 12);
+        if (d.length > 12) out += '-' + d.slice(12, 14);
+        return out;
+      }
+      let out = d.slice(0, 3);
+      if (d.length > 3) out += '.' + d.slice(3, 6);
+      if (d.length > 6) out += '.' + d.slice(6, 9);
+      if (d.length > 9) out += '-' + d.slice(9, 11);
+      return out;
+    }
+
+    // Reaplica a máscara do documento preservando o cursor: conta os dígitos
+    // antes do caret e o reposiciona após a mesma quantidade na string formatada.
+    function ocMascararDocumento() {
+      const caret = input.selectionStart || 0;
+      const digitosAntes = (input.value.slice(0, caret).match(/\d/g) || []).length;
+      input.value = ocFormatarDoc(input.value);
+      let pos = 0;
+      let vistos = 0;
+      while (pos < input.value.length && vistos < digitosAntes) {
+        if (/\d/.test(input.value[pos])) vistos++;
+        pos++;
+      }
+      try { input.setSelectionRange(pos, pos); } catch (e) { /* campo pode não estar focado */ }
+    }
+
+    function ocAplicarMascara() {
       if (ocTipoBusca === 'documento') {
-        const cnpj = (input.value || '').replace(/\D/g, '').length > 11;
-        return cnpj
-          ? { sig: 'doc-cnpj', cfg: { delimiters: ['.', '.', '/', '-'], blocks: [2, 3, 3, 4, 2], numericOnly: true } }
-          : { sig: 'doc-cpf',  cfg: { delimiters: ['.', '.', '-'],      blocks: [3, 3, 3, 2],    numericOnly: true } };
+        if (ocMaskSig !== 'documento') {
+          ocMaskSig = 'documento';
+          if (ocCleave) { ocCleave.destroy(); ocCleave = null; }
+        }
+        input.value = ocFormatarDoc(input.value);
+        return;
       }
       if (ocTipoBusca === 'telefone') {
-        return { sig: 'tel', cfg: { delimiters: ['(', ') ', '-'], blocks: [0, 2, 5, 4], numericOnly: true } };
+        if (ocMaskSig === 'tel') return;
+        ocMaskSig = 'tel';
+        if (ocCleave) { ocCleave.destroy(); ocCleave = null; }
+        if (typeof Cleave !== 'undefined') {
+          ocCleave = new Cleave(input, { delimiters: ['(', ') ', '-'], blocks: [0, 2, 5, 4], numericOnly: true });
+        }
+        return;
       }
-      return { sig: 'none', cfg: null };
-    }
-    function ocAplicarMascara() {
-      const { sig, cfg } = ocMaskConfig();
-      if (sig === ocMaskSig) return; // máscara não mudou → não recria (preserva deleção)
-      ocMaskSig = sig;
+      // nome / e-mail: sem máscara
+      if (ocMaskSig === 'none') return;
+      ocMaskSig = 'none';
       if (ocCleave) { ocCleave.destroy(); ocCleave = null; }
-      if (typeof Cleave === 'undefined' || !cfg) return;
-      ocCleave = new Cleave(input, cfg);
     }
 
     const ocPlaceholders = { documento: 'CPF ou CNPJ...', telefone: '(00) 00000-0000', email: 'email@exemplo.com', nome: 'Nome ou razão social' };
@@ -122,7 +162,7 @@
     }
 
     ocAplicarMascara();
-    input.addEventListener('input', function () { if (ocTipoBusca === 'documento') ocAplicarMascara(); });
+    input.addEventListener('input', function () { if (ocTipoBusca === 'documento') ocMascararDocumento(); });
 
     const seg = document.getElementById('oc-tipo-seg');
 

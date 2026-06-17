@@ -1865,29 +1865,69 @@ document.addEventListener('DOMContentLoaded', function () {
   const KP_PLACEHOLDERS = { documento: 'CPF ou CNPJ...', telefone: '(00) 00000-0000', email: 'email@exemplo.com', nome: 'Nome ou razão social' };
 
   if (btnManualSearch && inputManualCpf) {
-    // Só recria o Cleave quando o tipo de máscara muda (CPF↔CNPJ↔telefone);
-    // recriar a cada tecla trava o backspace nos pontos do documento.
+    // Máscara do documento é MANUAL (não Cleave). Motivo: o Cleave do CPF usa
+    // blocks [3,3,3,2] + numericOnly, que trava o campo em 11 dígitos — o 12º
+    // dígito de um CNPJ é recusado, então a troca para a máscara de CNPJ nunca
+    // dispara e a busca por empresa fica impossível. Formatando à mão o campo
+    // cresce até 14 dígitos e alterna CPF↔CNPJ sozinho. Telefone segue no Cleave.
     let kpCleave = null;
     let kpMaskSig = null;
-    function kpMaskConfig() {
+
+    // Formata um valor em CPF (≤11 díg.) ou CNPJ (12–14 díg.) progressivamente.
+    function kpFormatarDoc(valor) {
+      const d = (valor || '').replace(/\D/g, '').slice(0, 14);
+      if (d.length > 11) {
+        let out = d.slice(0, 2);
+        if (d.length > 2)  out += '.' + d.slice(2, 5);
+        if (d.length > 5)  out += '.' + d.slice(5, 8);
+        if (d.length > 8)  out += '/' + d.slice(8, 12);
+        if (d.length > 12) out += '-' + d.slice(12, 14);
+        return out;
+      }
+      let out = d.slice(0, 3);
+      if (d.length > 3) out += '.' + d.slice(3, 6);
+      if (d.length > 6) out += '.' + d.slice(6, 9);
+      if (d.length > 9) out += '-' + d.slice(9, 11);
+      return out;
+    }
+
+    // Reaplica a máscara do documento preservando o cursor: conta os dígitos
+    // antes do caret e o reposiciona após a mesma quantidade na string formatada.
+    function kpMascararDocumento() {
+      const caret = inputManualCpf.selectionStart || 0;
+      const digitosAntes = (inputManualCpf.value.slice(0, caret).match(/\d/g) || []).length;
+      inputManualCpf.value = kpFormatarDoc(inputManualCpf.value);
+      let pos = 0;
+      let vistos = 0;
+      while (pos < inputManualCpf.value.length && vistos < digitosAntes) {
+        if (/\d/.test(inputManualCpf.value[pos])) vistos++;
+        pos++;
+      }
+      try { inputManualCpf.setSelectionRange(pos, pos); } catch (e) { /* campo pode não estar focado */ }
+    }
+
+    function kpMascara() {
       if (window.kpManualTipo === 'documento') {
-        const cnpj = (inputManualCpf.value || '').replace(/\D/g, '').length > 11;
-        return cnpj
-          ? { sig: 'doc-cnpj', cfg: { delimiters: ['.', '.', '/', '-'], blocks: [2, 3, 3, 4, 2], numericOnly: true } }
-          : { sig: 'doc-cpf',  cfg: { delimiters: ['.', '.', '-'],      blocks: [3, 3, 3, 2],    numericOnly: true } };
+        if (kpMaskSig !== 'documento') {
+          kpMaskSig = 'documento';
+          if (kpCleave) { kpCleave.destroy(); kpCleave = null; }
+        }
+        inputManualCpf.value = kpFormatarDoc(inputManualCpf.value);
+        return;
       }
       if (window.kpManualTipo === 'telefone') {
-        return { sig: 'tel', cfg: { delimiters: ['(', ') ', '-'], blocks: [0, 2, 5, 4], numericOnly: true } };
+        if (kpMaskSig === 'tel') return;
+        kpMaskSig = 'tel';
+        if (kpCleave) { kpCleave.destroy(); kpCleave = null; }
+        if (typeof Cleave !== 'undefined') {
+          kpCleave = new Cleave(inputManualCpf, { delimiters: ['(', ') ', '-'], blocks: [0, 2, 5, 4], numericOnly: true });
+        }
+        return;
       }
-      return { sig: 'none', cfg: null };
-    }
-    function kpMascara() {
-      const m = kpMaskConfig();
-      if (m.sig === kpMaskSig) return; // máscara não mudou → não recria (preserva deleção)
-      kpMaskSig = m.sig;
+      // nome / e-mail: sem máscara
+      if (kpMaskSig === 'none') return;
+      kpMaskSig = 'none';
       if (kpCleave) { kpCleave.destroy(); kpCleave = null; }
-      if (typeof Cleave === 'undefined' || !m.cfg) return;
-      kpCleave = new Cleave(inputManualCpf, m.cfg);
     }
     function kpTrocarTipo(tipo) {
       window.kpManualTipo = tipo;
@@ -1909,7 +1949,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     kpMascara();
-    inputManualCpf.addEventListener('input', function () { if (window.kpManualTipo === 'documento') kpMascara(); });
+    inputManualCpf.addEventListener('input', function () { if (window.kpManualTipo === 'documento') kpMascararDocumento(); });
 
     if (kpFonteSeg) {
       kpFonteSeg.addEventListener('click', function (e) {
