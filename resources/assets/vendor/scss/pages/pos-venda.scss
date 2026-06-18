@@ -2266,6 +2266,108 @@
     }
 }
 
+.bv-mode-selector-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+// -------------------------------------------------- canais de envio
+.bv-canais-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 6px 0 18px;
+}
+
+.bv-canal-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 2px solid var(--pv-card-border);
+    border-radius: var(--pv-border-radius-sm);
+    background: var(--pv-glass-bg);
+    cursor: pointer;
+    transition: var(--pv-transition);
+    margin: 0;
+
+    .bv-canal-check {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &:hover {
+        border-color: var(--pv-primary);
+        transform: translateY(-1px);
+        box-shadow: var(--pv-shadow-sm);
+    }
+
+    .bv-canal-icon {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: #fff;
+
+        &.bv-canal-icon-wpp { background: linear-gradient(135deg, #25D366, #128C7E); }
+        &.bv-canal-icon-email { background: linear-gradient(135deg, var(--pv-primary), #A78BFA); }
+    }
+
+    .bv-canal-text {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+    }
+
+    .bv-canal-nome {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--pv-text-primary);
+    }
+
+    .bv-canal-desc {
+        font-size: 0.7rem;
+        color: var(--pv-text-muted);
+        line-height: 1.2;
+    }
+
+    .bv-canal-mark {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid var(--pv-card-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        background: transparent;
+        transition: var(--pv-transition-fast);
+
+        svg { opacity: 0; }
+    }
+
+    &.active {
+        border-color: var(--pv-primary);
+        background: rgba(var(--pv-primary-rgb), 0.08);
+        box-shadow: 0 0 0 3px rgba(var(--pv-primary-rgb), 0.12);
+
+        .bv-canal-mark {
+            border-color: var(--pv-primary);
+            background: var(--pv-primary);
+
+            svg { opacity: 1; }
+        }
+    }
+}
+
 .bv-form-section {
     animation: fadeIn 0.2s ease;
 }

@@ -15,6 +15,7 @@ use App\Repositories\Eloquent\PreditivaRepository;
 use App\Repositories\Eloquent\RamaisRepository;
 use App\Repositories\Eloquent\TransferenciaContatoRepository;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\Facades\Event;
@@ -101,6 +102,13 @@ class AppServiceProvider extends ServiceProvider
             exit;
         }
         */
+
+        // Em ambiente não-produção, redireciona todos os e-mails para um único
+        // endereço de testes (config mail.dev_redirect / MAIL_DEV_REDIRECT).
+        $devRedirect = config('mail.dev_redirect');
+        if ($devRedirect && ! app()->environment('production')) {
+            Mail::alwaysTo($devRedirect);
+        }
 
         // Marca o login para o mascote saudar (bom dia/tarde/noite) na 1ª página.
         // Consumido via session()->pull('mascote_saudar') no partial do mascote.

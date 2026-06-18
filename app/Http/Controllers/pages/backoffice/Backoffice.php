@@ -7,8 +7,8 @@ use App\Enums\UserRole;
 use App\Events\ContratoImplantado;
 use App\Helpers\Helpers;
 use App\Http\Controllers\Controller;
-use App\Jobs\EnviarNotificacaoStatusContratoWhatsappJob;
 use App\Jobs\GerarRecebiveisJob;
+use App\Mail\BoasVindasMail;
 use App\Models\AcessoEmpresa;
 use App\Models\Empresa;
 use App\Models\Faq;
@@ -40,6 +40,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -2909,7 +2910,7 @@ class Backoffice extends Controller
 
             $venda = Vendas::where('id', $vendaId)
                 ->where('empresa_id', $empresaId)
-                ->select('id', 'nome_contrato', 'operadora', 'nome_plano', 'telefone1', 'telefone2', 'data_implantacao')
+                ->select('id', 'nome_contrato', 'operadora', 'nome_plano', 'telefone1', 'telefone2', 'email', 'data_implantacao')
                 ->first();
 
             if (! $venda) {
@@ -2917,7 +2918,7 @@ class Backoffice extends Controller
             }
 
             $titulares = VendaTitular::where('venda_id', $vendaId)
-                ->select('id', 'nome', 'telefone', 'telefone2')
+                ->select('id', 'nome', 'telefone', 'telefone2', 'email')
                 ->get();
 
             $dependentes = VendaDependente::where('venda_id', $vendaId)
@@ -2935,6 +2936,7 @@ class Backoffice extends Controller
                     'plano' => $venda->nome_plano,
                     'telefone1' => $venda->telefone1,
                     'telefone2' => $venda->telefone2,
+                    'email' => $venda->email,
                     'data_implantacao' => $venda->data_implantacao
                       ? Carbon::parse($venda->data_implantacao)->format('d/m/Y')
                       : null,
@@ -2957,15 +2959,25 @@ class Backoffice extends Controller
         try {
             $request->validate([
                 'venda_id' => 'required|integer|exists:vendas,id',
+                // 'sem_whatsapp' mantido por compatibilidade com a tela antiga de
+                // gerenciamento de pós-venda (pos-venda.js), que não envia 'canais'.
                 'tipo_envio' => 'required|in:padrao,personalizado,sem_whatsapp',
-                'destinatarios' => 'exclude_if:tipo_envio,sem_whatsapp|required|array|min:1',
-                'destinatarios.*.nome' => 'exclude_if:tipo_envio,sem_whatsapp|required|string|max:150',
-                'destinatarios.*.telefone' => 'exclude_if:tipo_envio,sem_whatsapp|required|string|max:30',
-                'beneficiarios' => 'required_if:tipo_envio,padrao|nullable|array',
-                'beneficiarios.*.nome' => 'required_if:tipo_envio,padrao|string',
-                'beneficiarios.*.codigo' => 'required_if:tipo_envio,padrao|string',
-                'login_app' => 'required_if:tipo_envio,padrao|nullable|string|max:100',
-                'senha_app' => 'required_if:tipo_envio,padrao|nullable|string|max:100',
+                'canais' => 'nullable|array',
+                'canais.*' => 'in:whatsapp,email',
+                'destinatarios' => 'array',
+                'destinatarios.*.nome' => 'nullable|string|max:150',
+                'destinatarios.*.telefone' => 'required|string|max:30',
+                'destinatarios_email' => 'array',
+                'destinatarios_email.*.nome' => 'nullable|string|max:150',
+                'destinatarios_email.*.email' => 'required|email|max:150',
+                // No modo padrão exigimos apenas a lista de beneficiários; os demais
+                // campos (código, login/senha do app, portal) são opcionais — o
+                // template e a mensagem do WhatsApp renderizam só o que vier preenchido.
+                'beneficiarios' => 'required_if:tipo_envio,padrao|array|min:1',
+                'beneficiarios.*.nome' => 'nullable|string',
+                'beneficiarios.*.codigo' => 'nullable|string',
+                'login_app' => 'nullable|string|max:100',
+                'senha_app' => 'nullable|string|max:100',
                 'portal_user' => 'nullable|string|max:100',
                 'portal_senha' => 'nullable|string|max:100',
                 'mensagem_personalizada' => 'required_if:tipo_envio,personalizado|nullable|string',
@@ -2982,11 +2994,36 @@ class Backoffice extends Controller
                 return response()->json(['success' => false, 'message' => 'Contrato não encontrado.'], 404);
             }
 
-            $whatsappEnviado = false;
             $tipoEnvio = $request->tipo_envio;
 
-            if ($tipoEnvio !== 'sem_whatsapp') {
-                $empresa = Empresa::find($empresaId);
+            // Compatibilidade: a tela antiga (pos-venda) não envia 'canais' e usa
+            // tipo_envio 'sem_whatsapp' para apenas registrar. Derivamos os canais.
+            $canais = $request->input('canais');
+            if ($canais === null) {
+                $canais = $tipoEnvio === 'sem_whatsapp' ? [] : ['whatsapp'];
+            }
+            $canais = is_array($canais) ? $canais : [];
+
+            // Conteúdo efetivo (sem_whatsapp legado equivale ao template padrão).
+            $tipoEnvio = $tipoEnvio === 'personalizado' ? 'personalizado' : 'padrao';
+
+            $enviarWhatsapp = in_array('whatsapp', $canais, true);
+            $enviarEmail = in_array('email', $canais, true);
+
+            $empresa = Empresa::find($empresaId);
+            $nomeEmpresa = $empresa?->nome_fantasia ?: 'LK Brokers';
+            $canaisEnviados = [];
+
+            // -------------------------------------------------- WhatsApp
+            if ($enviarWhatsapp) {
+                $destinatarios = $request->input('destinatarios', []);
+
+                if (empty($destinatarios)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Selecione ao menos um destinatário com telefone para o envio via WhatsApp.',
+                    ], 422);
+                }
 
                 if (empty($empresa?->whatsapp_token)) {
                     return response()->json([
@@ -2996,11 +3033,10 @@ class Backoffice extends Controller
                 }
 
                 $mensagem = $tipoEnvio === 'padrao'
-                  ? $this->buildMensagemPadraoWhatsapp($request, $empresa->nome_fantasia, $venda->operadora)
+                  ? $this->buildMensagemPadraoWhatsapp($request, $nomeEmpresa, $venda->operadora)
                   : $request->mensagem_personalizada;
 
                 $whatsappService = new WhatsappService();
-                $destinatarios = $request->input('destinatarios', []);
                 $erros = [];
 
                 foreach ($destinatarios as $i => $dest) {
@@ -3026,7 +3062,39 @@ class Backoffice extends Controller
                     ], 422);
                 }
 
-                $whatsappEnviado = true;
+                $canaisEnviados[] = 'WhatsApp';
+            }
+
+            // -------------------------------------------------- E-mail (Resend)
+            if ($enviarEmail) {
+                $destinatariosEmail = $request->input('destinatarios_email', []);
+
+                if (empty($destinatariosEmail)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Informe ao menos um destinatário com e-mail válido para o envio por e-mail.',
+                    ], 422);
+                }
+
+                $dadosEmail = $this->buildDadosEmailPadrao($request, $nomeEmpresa, (string) $venda->operadora, $tipoEnvio);
+                $erros = [];
+
+                foreach ($destinatariosEmail as $dest) {
+                    try {
+                        Mail::to($dest['email'])->send(new BoasVindasMail($dadosEmail));
+                    } catch (\Throwable $e) {
+                        $erros[] = ($dest['nome'] ?? $dest['email']).': '.$e->getMessage();
+                    }
+                }
+
+                if (! empty($erros) && count($erros) === count($destinatariosEmail)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Erro ao enviar e-mail: '.implode('; ', $erros),
+                    ], 422);
+                }
+
+                $canaisEnviados[] = 'E-mail';
             }
 
             $venda->update([
@@ -3034,19 +3102,29 @@ class Backoffice extends Controller
                 'boas_vindas_enviado_por' => Auth::id(),
             ]);
 
-            $modoLabel = match ($tipoEnvio) {
-                'padrao' => 'padrão',
-                'personalizado' => 'personalizado',
-                default => 'sem WhatsApp',
-            };
+            $modoLabel = $tipoEnvio === 'padrao' ? 'padrão' : 'personalizado';
 
-            if ($whatsappEnviado) {
-                $listaDestinatarios = collect($request->input('destinatarios', []))
-                    ->map(fn ($d) => ($d['nome'] ?? '').' ('.($d['telefone'] ?? '').')')
-                    ->implode(', ');
-                $descricaoAnotacao = "Boas Vindas enviado via WhatsApp (modo {$modoLabel}) para: {$listaDestinatarios}.";
+            if (! empty($canaisEnviados)) {
+                $partes = [];
+
+                if ($enviarWhatsapp) {
+                    $listaWpp = collect($request->input('destinatarios', []))
+                        ->map(fn ($d) => ($d['nome'] ?? '').' ('.($d['telefone'] ?? '').')')
+                        ->implode(', ');
+                    $partes[] = "WhatsApp → {$listaWpp}";
+                }
+
+                if ($enviarEmail) {
+                    $listaEmail = collect($request->input('destinatarios_email', []))
+                        ->map(fn ($d) => ($d['nome'] ?? '').' <'.($d['email'] ?? '').'>')
+                        ->implode(', ');
+                    $partes[] = "E-mail → {$listaEmail}";
+                }
+
+                $canaisStr = implode(' e ', $canaisEnviados);
+                $descricaoAnotacao = "Boas Vindas enviado via {$canaisStr} (modo {$modoLabel}). ".implode('; ', $partes).'.';
             } else {
-                $descricaoAnotacao = 'Boas Vindas registrado (sem envio de WhatsApp).';
+                $descricaoAnotacao = 'Boas Vindas registrado (sem envio).';
             }
 
             if ($request->observacao) {
@@ -3062,10 +3140,10 @@ class Backoffice extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $whatsappEnviado
-                  ? 'Boas Vindas enviado via WhatsApp com sucesso!'
+                'message' => ! empty($canaisEnviados)
+                  ? 'Boas Vindas enviado via '.implode(' e ', $canaisEnviados).' com sucesso!'
                   : 'Boas Vindas registrado com sucesso!',
-                'whatsapp_enviado' => $whatsappEnviado,
+                'canais_enviados' => $canaisEnviados,
                 'boas_vindas_enviado_em' => now()->format('d/m/Y H:i'),
                 'boas_vindas_enviado_por' => Auth::user()->name,
             ]);
@@ -3081,6 +3159,29 @@ class Backoffice extends Controller
                 'message' => 'Erro ao registrar Boas Vindas: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Monta o array de dados consumido pelo BoasVindasMail (template HTML).
+     * Reaproveita exatamente os mesmos inputs do envio por WhatsApp.
+     */
+    private function buildDadosEmailPadrao(Request $request, string $nomeEmpresa, string $operadora, string $tipoEnvio): array
+    {
+        return [
+            'modo' => $tipoEnvio,
+            'nomeContrato' => $request->input('nome_contrato', ''),
+            'nomeEmpresa' => $nomeEmpresa ?: 'LK Brokers',
+            'operadora' => $operadora,
+            'beneficiarios' => $request->input('beneficiarios', []),
+            'loginApp' => $request->input('login_app', ''),
+            'senhaApp' => $request->input('senha_app', ''),
+            'linkIos' => $request->input('link_ios', ''),
+            'linkAndroid' => $request->input('link_android', ''),
+            'portalUser' => $request->input('portal_user', ''),
+            'portalSenha' => $request->input('portal_senha', ''),
+            'corpoPersonalizado' => $request->input('mensagem_personalizada', ''),
+            'assunto' => 'Boas-vindas à '.($nomeEmpresa ?: 'LK Brokers'),
+        ];
     }
 
     /**

@@ -5,6 +5,10 @@ return [
         'token' => env('POSTMARK_TOKEN'),
     ],
 
+    'resend' => [
+        'key' => env('RESEND_API_KEY'),
+    ],
+
     'voip' => [
         'maisvoip' => [
             'url' => 'http://painelpabx.maisvoip.com.br:5000/api/v1/clicktocall',

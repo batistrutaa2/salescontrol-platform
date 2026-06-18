@@ -60,6 +60,10 @@ return [
       // ],
     ],
 
+    'resend' => [
+      'transport' => 'resend',
+    ],
+
     'sendmail' => [
       'transport' => 'sendmail',
       'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
@@ -99,5 +103,18 @@ return [
     'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
     'name' => env('MAIL_FROM_NAME', 'Example'),
   ],
+
+  /*
+  |--------------------------------------------------------------------------
+  | Dev Redirect
+  |--------------------------------------------------------------------------
+  |
+  | Em ambientes não-produção, todos os e-mails são redirecionados para este
+  | endereço (via Mail::alwaysTo em AppServiceProvider::boot), evitando enviar
+  | para clientes reais durante testes. Em produção, deixe vazio.
+  |
+  */
+
+  'dev_redirect' => env('MAIL_DEV_REDIRECT'),
 
 ];

@@ -63,8 +63,9 @@
                     Token do WhatsApp não configurado. Clique no ícone de engrenagem para configurar.
                 </div>
 
-                <!-- Seleção de Modo -->
-                <div class="bv-mode-selector" id="bv-mode-selector">
+                <!-- Conteúdo da mensagem -->
+                <label class="pv-form-label">Conteúdo da mensagem</label>
+                <div class="bv-mode-selector bv-mode-selector-2" id="bv-mode-selector">
                     <div class="bv-mode-card active" data-mode="padrao" onclick="selecionarModoBoasVindas('padrao')">
                         <div class="bv-mode-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -88,25 +89,55 @@
                         <div class="bv-mode-label">Personalizado</div>
                         <div class="bv-mode-desc">Escreva a mensagem livremente</div>
                     </div>
-                    <div class="bv-mode-card" data-mode="sem_whatsapp" onclick="selecionarModoBoasVindas('sem_whatsapp')">
-                        <div class="bv-mode-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                            </svg>
-                        </div>
-                        <div class="bv-mode-label">Não Enviar</div>
-                        <div class="bv-mode-desc">Apenas registrar sem WhatsApp</div>
-                    </div>
                 </div>
 
-                <!-- Destinatários (compartilhado entre modos padrao e personalizado) -->
+                <!-- Canais de envio -->
+                <label class="pv-form-label">Canais de envio</label>
+                <div class="bv-canais-options" id="bv-canais-options">
+                    <label class="bv-canal-option" data-canal="whatsapp">
+                        <input type="checkbox" class="bv-canal-check" id="bv-canal-whatsapp" checked>
+                        <span class="bv-canal-icon bv-canal-icon-wpp">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
+                        </span>
+                        <span class="bv-canal-text">
+                            <span class="bv-canal-nome">WhatsApp</span>
+                            <span class="bv-canal-desc">Mensagem instantânea</span>
+                        </span>
+                        <span class="bv-canal-mark">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                        </span>
+                    </label>
+                    <label class="bv-canal-option" data-canal="email">
+                        <input type="checkbox" class="bv-canal-check" id="bv-canal-email">
+                        <span class="bv-canal-icon bv-canal-icon-email">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                        </span>
+                        <span class="bv-canal-text">
+                            <span class="bv-canal-nome">E-mail</span>
+                            <span class="bv-canal-desc">E-mail de boas-vindas LK</span>
+                        </span>
+                        <span class="bv-canal-mark">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Destinatários WhatsApp (telefone) -->
                 <div id="bv-destinatarios-section" class="mb-3 d-none">
                     <label class="pv-form-label">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        Destinatários
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.59a16 16 0 0 0 7.5 7.5l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        Destinatários (WhatsApp)
                     </label>
                     <div id="bv-destinatarios-list" class="bv-destinatarios-list"></div>
+                </div>
+
+                <!-- Destinatários E-mail -->
+                <div id="bv-destinatarios-email-section" class="mb-3 d-none">
+                    <label class="pv-form-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                        Destinatários (E-mail)
+                    </label>
+                    <div id="bv-destinatarios-email-list" class="bv-destinatarios-list"></div>
                 </div>
 
                 <!-- Formulário Modo Padrão -->
@@ -188,16 +219,6 @@
                             </svg>
                             Visualizar Prévia
                         </button>
-                    </div>
-                </div>
-
-                <!-- Modo Não Enviar -->
-                <div id="bv-form-sem-whatsapp" class="bv-form-section d-none">
-                    <div class="bv-sem-whatsapp-info">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                        </svg>
-                        <span>Nenhuma mensagem será enviada. O Boas Vindas será apenas registrado no histórico.</span>
                     </div>
                 </div>
 

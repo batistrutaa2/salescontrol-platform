@@ -1,12 +1,16 @@
 'use strict';
 
 /**
- * Boas-Vindas via WhatsApp — módulo compartilhado.
+ * Boas-Vindas ao cliente — módulo compartilhado (WhatsApp + E-mail).
  *
  * Reaproveita os endpoints existentes do backoffice:
  *   GET  /back-office/pos-venda/beneficiarios/{vendaId}
  *   POST /back-office/pos-venda/boas-vindas
  *   GET/POST /back-office/configuracoes/whatsapp-token
+ *
+ * O envio combina dois eixos ortogonais:
+ *   - Conteúdo (tipo_envio): 'padrao' (template) ou 'personalizado' (texto livre)
+ *   - Canais (canais[]): 'whatsapp' e/ou 'email' — nenhum marcado = só registrar.
  *
  * Uso: window.abrirBoasVindas(vendaId)  (ex.: botão "Boas-vindas" do card).
  * Ao concluir um envio com sucesso, dispara o evento `boasVindasEnviada` no
@@ -19,7 +23,7 @@
     const modalBoasVindasEl = document.getElementById('modalBoasVindas');
     if (!modalBoasVindasEl) return; // partial não incluído nesta página
 
-    let bvModoSelecionado = 'padrao';
+    let bvModoConteudo = 'padrao'; // 'padrao' | 'personalizado'
     let bvTitulares = [];
     let bvVendaInfo = {};
 
@@ -41,6 +45,10 @@
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
+    }
+
+    function emailValido(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
     }
 
     // Toast padrão do projeto (componente .custom-toast — estilos em pos-venda.scss)
@@ -89,7 +97,12 @@
         document.getElementById('boas-vindas-venda-id').value = vendaId;
         document.getElementById('bv-no-token-alert').classList.add('d-none');
 
+        // canais padrão: WhatsApp marcado, E-mail desmarcado
+        document.getElementById('bv-canal-whatsapp').checked = true;
+        document.getElementById('bv-canal-email').checked = false;
+
         selecionarModoBoasVindas('padrao');
+        atualizarCanaisUI();
 
         const modal = new bootstrap.Modal(modalBoasVindasEl);
         modal.show();
@@ -113,6 +126,7 @@
 
             renderBeneficiarios(bvTitulares);
             renderDestinatarios(data.titulares || [], data.dependentes || [], data.venda.telefone1 || '');
+            renderDestinatariosEmail(data.titulares || [], data.venda.email || '');
 
             if (!data.has_token) {
                 document.getElementById('bv-no-token-alert').classList.remove('d-none');
@@ -122,7 +136,7 @@
         }
     };
 
-    // -------------------------------------------------- destinatários
+    // -------------------------------------------------- destinatários (WhatsApp)
     function renderDestinatarios(titulares, dependentes, telVenda) {
         const container = document.getElementById('bv-destinatarios-list');
         container.innerHTML = '';
@@ -154,6 +168,40 @@
                     <span class="bv-dest-tipo">${escapeHtml(tipo)}</span>
                 </div>
                 <input type="text" class="pv-form-input bv-dest-tel" placeholder="(85) 99999-8888" value="${escapeHtml(telefone)}">
+            </div>`;
+    }
+
+    // -------------------------------------------------- destinatários (E-mail)
+    function renderDestinatariosEmail(titulares, emailVenda) {
+        const container = document.getElementById('bv-destinatarios-email-list');
+        container.innerHTML = '';
+
+        let algumEmail = false;
+
+        if (titulares.length > 0) {
+            titulares.forEach((t, i) => {
+                let email = t.email || '';
+                if (!email && i === 0) email = emailVenda || '';
+                if (email) algumEmail = true;
+                container.innerHTML += buildDestinatarioEmailRow(t.nome, email, 'Titular', !!email);
+            });
+        } else {
+            algumEmail = !!emailVenda;
+            container.innerHTML += buildDestinatarioEmailRow('', emailVenda || '', 'Titular', !!emailVenda);
+        }
+
+        return algumEmail;
+    }
+
+    function buildDestinatarioEmailRow(nome, email, tipo, checked) {
+        return `
+            <div class="bv-destinatario-row bv-destinatario-email-row">
+                <input type="checkbox" class="bv-dest-check bv-dest-email-check" ${checked ? 'checked' : ''}>
+                <div class="bv-dest-info">
+                    <span class="bv-dest-nome">${escapeHtml(nome || 'Sem nome')}</span>
+                    <span class="bv-dest-tipo">${escapeHtml(tipo)}</span>
+                </div>
+                <input type="email" class="pv-form-input bv-dest-email" placeholder="cliente@email.com" value="${escapeHtml(email)}">
             </div>`;
     }
 
@@ -190,27 +238,49 @@
         container.insertBefore(row.firstElementChild, btn);
     };
 
-    // -------------------------------------------------- modos
+    // -------------------------------------------------- modo de conteúdo
     window.selecionarModoBoasVindas = function (modo) {
-        bvModoSelecionado = modo;
+        bvModoConteudo = modo;
 
         document.querySelectorAll('.bv-mode-card').forEach(c => c.classList.remove('active'));
         document.querySelector(`.bv-mode-card[data-mode="${modo}"]`)?.classList.add('active');
 
-        document.getElementById('bv-destinatarios-section').classList.toggle('d-none', modo === 'sem_whatsapp');
         document.getElementById('bv-form-padrao').classList.toggle('d-none', modo !== 'padrao');
         document.getElementById('bv-form-personalizado').classList.toggle('d-none', modo !== 'personalizado');
-        document.getElementById('bv-form-sem-whatsapp').classList.toggle('d-none', modo !== 'sem_whatsapp');
-
-        const btn = document.getElementById('btn-confirmar-boas-vindas');
-        if (modo === 'sem_whatsapp') {
-            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Registrar sem WhatsApp`;
-        } else {
-            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.59a16 16 0 0 0 7.5 7.5l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg> Enviar via WhatsApp`;
-        }
 
         if (modo === 'padrao') atualizarPreviewPadrao();
     };
+
+    // -------------------------------------------------- canais de envio
+    function lerCanais() {
+        const canais = [];
+        if (document.getElementById('bv-canal-whatsapp')?.checked) canais.push('whatsapp');
+        if (document.getElementById('bv-canal-email')?.checked) canais.push('email');
+        return canais;
+    }
+
+    function atualizarCanaisUI() {
+        const wpp = document.getElementById('bv-canal-whatsapp')?.checked;
+        const email = document.getElementById('bv-canal-email')?.checked;
+
+        document.querySelector('.bv-canal-option[data-canal="whatsapp"]')?.classList.toggle('active', !!wpp);
+        document.querySelector('.bv-canal-option[data-canal="email"]')?.classList.toggle('active', !!email);
+
+        document.getElementById('bv-destinatarios-section').classList.toggle('d-none', !wpp);
+        document.getElementById('bv-destinatarios-email-section').classList.toggle('d-none', !email);
+
+        const btn = document.getElementById('btn-confirmar-boas-vindas');
+        const iconSend = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+        const iconCheck = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+        let label;
+        if (wpp && email) label = `${iconSend} Enviar (WhatsApp + E-mail)`;
+        else if (wpp) label = `${iconSend} Enviar via WhatsApp`;
+        else if (email) label = `${iconSend} Enviar por E-mail`;
+        else label = `${iconCheck} Registrar sem envio`;
+
+        btn.innerHTML = label;
+    }
 
     window.togglePortal = function () {
         const fields = document.getElementById('bv-portal-fields');
@@ -276,8 +346,13 @@
             return;
         }
 
+        const canais = lerCanais();
+        const enviarWpp = canais.includes('whatsapp');
+        const enviarEmail = canais.includes('email');
+
+        // Destinatários WhatsApp (telefone)
         const destinatarios = [];
-        if (bvModoSelecionado !== 'sem_whatsapp') {
+        if (enviarWpp) {
             document.querySelectorAll('#bv-destinatarios-list .bv-destinatario-row').forEach(row => {
                 const checked = row.querySelector('.bv-dest-check')?.checked;
                 if (!checked) return;
@@ -287,14 +362,44 @@
             });
 
             if (destinatarios.length === 0) {
-                Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Selecione ao menos um destinatário com telefone preenchido.', confirmButtonColor: '#7C3AED' });
+                Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Selecione ao menos um destinatário com telefone para o WhatsApp.', confirmButtonColor: '#7C3AED' });
                 return;
             }
         }
 
-        const payload = { venda_id: vendaId, tipo_envio: bvModoSelecionado, destinatarios };
+        // Destinatários E-mail
+        const destinatariosEmail = [];
+        if (enviarEmail) {
+            let emailInvalido = false;
+            document.querySelectorAll('#bv-destinatarios-email-list .bv-destinatario-email-row').forEach(row => {
+                const checked = row.querySelector('.bv-dest-email-check')?.checked;
+                if (!checked) return;
+                const nome = row.querySelector('.bv-dest-nome')?.textContent?.trim() || '';
+                const email = row.querySelector('.bv-dest-email')?.value?.trim() || '';
+                if (!email) return;
+                if (!emailValido(email)) { emailInvalido = true; return; }
+                destinatariosEmail.push({ nome, email });
+            });
 
-        if (bvModoSelecionado === 'padrao') {
+            if (emailInvalido) {
+                Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Há um e-mail em formato inválido. Verifique os destinatários.', confirmButtonColor: '#7C3AED' });
+                return;
+            }
+            if (destinatariosEmail.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Selecione ao menos um destinatário com e-mail válido.', confirmButtonColor: '#7C3AED' });
+                return;
+            }
+        }
+
+        const payload = {
+            venda_id: vendaId,
+            tipo_envio: bvModoConteudo,
+            canais,
+            destinatarios,
+            destinatarios_email: destinatariosEmail,
+        };
+
+        if (bvModoConteudo === 'padrao') {
             const nomes = document.querySelectorAll('#bv-beneficiarios-list .bv-nome-input');
             const codigos = document.querySelectorAll('#bv-beneficiarios-list .bv-codigo-input');
             const beneficiarios = [];
@@ -317,7 +422,7 @@
             payload.link_android = document.getElementById('bv-link-android').value.trim();
             payload.portal_user = document.getElementById('bv-portal-user').value.trim();
             payload.portal_senha = document.getElementById('bv-portal-senha').value.trim();
-        } else if (bvModoSelecionado === 'personalizado') {
+        } else if (bvModoConteudo === 'personalizado') {
             const mensagem = document.getElementById('bv-mensagem-personalizada').value.trim();
             if (!mensagem) {
                 Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Escreva a mensagem personalizada.', confirmButtonColor: '#7C3AED' });
@@ -351,6 +456,7 @@
         } finally {
             btnConfirmar.disabled = false;
             btnConfirmar.innerHTML = originalContent;
+            atualizarCanaisUI();
         }
     }
 
@@ -443,6 +549,8 @@
     // -------------------------------------------------- wiring
     document.getElementById('btn-confirmar-boas-vindas')?.addEventListener('click', confirmarBoasVindas);
     document.getElementById('btn-config-token')?.addEventListener('click', abrirConfigToken);
+    document.getElementById('bv-canal-whatsapp')?.addEventListener('change', atualizarCanaisUI);
+    document.getElementById('bv-canal-email')?.addEventListener('change', atualizarCanaisUI);
     ['bv-login-app', 'bv-senha-app', 'bv-portal-user', 'bv-portal-senha'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', () => atualizarPreviewPadrao());
     });
