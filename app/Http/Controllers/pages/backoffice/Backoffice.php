@@ -3266,7 +3266,7 @@ class Backoffice extends Controller
                 ->mergeBindings($query)
                 ->count();
             $offset = ($page - 1) * $perPage;
-            $results = $query->orderByRaw('contratos_ativos DESC, primeiro_contrato ASC')
+            $results = $query->orderByRaw('contratos_ativos DESC, primeiro_contrato DESC')
                 ->skip($offset)->take($perPage)->get();
 
             $clientes = $results->map(function ($c) {
