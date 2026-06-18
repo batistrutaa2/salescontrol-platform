@@ -606,6 +606,16 @@
       ]
     },
     {
+      "url": "/comercial/enviar-cotacao",
+      "name": "Enviar Cotação",
+      "icon": "menu-icon tf-icons ri-mail-send-line",
+      "slug": "comercial.envioCotacao",
+      "rules": [
+        "VENDEDOR",
+        "DEVELOPER"
+      ]
+    },
+    {
       "url": "/comercial/faqs",
       "name": "FAQs",
       "icon": "menu-icon tf-icons ri-question-answer-line",

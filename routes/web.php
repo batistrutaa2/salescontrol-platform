@@ -25,6 +25,7 @@ use App\Http\Controllers\pages\relatorios\RelatorioAproveitamento;
 use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\financeiro\Financeiro;
 use App\Http\Controllers\pages\comercial\ConsultaController;
+use App\Http\Controllers\pages\comercial\EnvioCotacaoController;
 use App\Http\Controllers\pages\estudo\Estudo;
 use App\Http\Controllers\pages\escola\EscolaController;
 use App\Http\Controllers\pages\escola\EscolaAdminController;
@@ -200,6 +201,10 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/minhas-demandas/list', [Comercial::class, 'listMinhasDemandas'])->name('comercial.minhasDemandas.list');
   Route::get('/comercial/minhas-demandas/contratos', [Comercial::class, 'buscarContratosImplantados'])->name('comercial.minhasDemandas.contratos');
   Route::post('/comercial/minhas-demandas', [Comercial::class, 'storeDemandaVendedor'])->name('comercial.minhasDemandas.store');
+
+  // Envio de cotação por e-mail (remetente = e-mail do próprio vendedor)
+  Route::get('/comercial/enviar-cotacao', [EnvioCotacaoController::class, 'index'])->name('comercial.envioCotacao');
+  Route::post('/comercial/enviar-cotacao', [EnvioCotacaoController::class, 'enviar'])->name('comercial.envioCotacao.enviar');
 
   Route::get('/comercial/calendario-reunioes', [ReunioesComercial::class, 'index'])->name('comercialReunioes.index');
   Route::get('/reunioes/data', [ReunioesComercial::class, 'getReunioes']);
