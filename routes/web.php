@@ -17,6 +17,7 @@ use App\Http\Controllers\pages\comercial\Comercial;
 use App\Http\Controllers\pages\comercial\ReciclagemLeads;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
+use App\Http\Controllers\pages\backoffice\CredenciaisAcessoController;
 use App\Http\Controllers\pages\backoffice\LiminarController;
 use App\Http\Controllers\pages\backoffice\PosVendaDemandas;
 
@@ -312,6 +313,17 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/liminar/{id}/documentos/{docId}/download', [LiminarController::class, 'downloadDocumento'])->name('backoffice.liminar.downloadDocumento');
   Route::get('/back-office/pos-venda/liminar/beneficiarios/{vendaId}', [LiminarController::class, 'getBeneficiarios'])->name('backoffice.liminar.getBeneficiarios');
 
+  // Credenciais de Acesso (cofre de logins das empresas nas operadoras)
+  Route::get('/back-office/credenciais', [CredenciaisAcessoController::class, 'index'])->name('backoffice.credenciais.index');
+  Route::get('/back-office/credenciais/data', [CredenciaisAcessoController::class, 'getData'])->name('backoffice.credenciais.data');
+  Route::post('/back-office/credenciais/importar/preview', [CredenciaisAcessoController::class, 'importPreview'])->name('backoffice.credenciais.import.preview');
+  Route::post('/back-office/credenciais/importar', [CredenciaisAcessoController::class, 'import'])->name('backoffice.credenciais.import');
+  Route::post('/back-office/credenciais', [CredenciaisAcessoController::class, 'store'])->name('backoffice.credenciais.store');
+  Route::get('/back-office/credenciais/{id}', [CredenciaisAcessoController::class, 'show'])->whereNumber('id')->name('backoffice.credenciais.show');
+  Route::put('/back-office/credenciais/{id}', [CredenciaisAcessoController::class, 'update'])->whereNumber('id')->name('backoffice.credenciais.update');
+  Route::delete('/back-office/credenciais/{id}', [CredenciaisAcessoController::class, 'destroy'])->whereNumber('id')->name('backoffice.credenciais.destroy');
+  Route::get('/back-office/credenciais/{id}/historico', [CredenciaisAcessoController::class, 'historico'])->whereNumber('id')->name('backoffice.credenciais.historico');
+
   // Carteira de Clientes
   Route::get('/back-office/carteira-clientes', [Backoffice::class, 'carteiraClientes'])->name('backoffice.carteiraClientes');
   Route::get('/back-office/carteira-clientes/data', [Backoffice::class, 'getCarteiraClientesData'])->name('backoffice.getCarteiraClientesData');
@@ -346,11 +358,6 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/vendas/meus-estornos/dados', [Vendas::class, 'meusEstornosDados'])->name('sale.meusEstornosDados');
   Route::get('/vendas/estorno/{id}/editar', [Vendas::class, 'editEstorno'])->name('sale.editEstorno');
   Route::post('/vendas/estorno/{id}/reenviar', [Vendas::class, 'reenviarEstorno'])->name('sale.reenviarEstorno');
-
-  // Importacao de Vendas do Sistema Legado (SYS)
-  Route::get('/vendas/import-sys', [\App\Http\Controllers\pages\vendas\ImportVendasSysController::class, 'index'])->name('vendas.import-sys');
-  Route::post('/vendas/import-sys', [\App\Http\Controllers\pages\vendas\ImportVendasSysController::class, 'import'])->name('vendas.import-sys.import');
-  Route::get('/vendas/import-sys/template', [\App\Http\Controllers\pages\vendas\ImportVendasSysController::class, 'downloadTemplate'])->name('vendas.import-sys.template');
 
   /** PABX */
   Route::get('/pabx/cadastro-ramais', [Pabx::class, 'index'])->name('index.createRamal');

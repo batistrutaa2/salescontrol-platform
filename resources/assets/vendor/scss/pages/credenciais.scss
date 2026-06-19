@@ -1,0 +1,653 @@
+/**
+ * Cofre de Acessos — Credenciais de Acesso (Back-office)
+ *
+ * Segue o Design System SalesControl (glass morphism + gradient).
+ * Reutiliza tokens --dash-* e as classes .kpi-card / .table-card de
+ * dashboard-analytics.scss (carregado junto na view).
+ *
+ * Conceito: cofre de credenciais. Os dados são códigos (CPF/CNPJ, logins de
+ * portal, senhas) → renderizados em JetBrains Mono. A célula de senha mascarada
+ * (revelar/copiar) é o elemento-assinatura da tela.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
+.cred-wrapper {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+
+    // ============================================
+    // Header
+    // ============================================
+    .cred-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        margin-bottom: 1.75rem;
+        padding: 1.25rem 0 0;
+    }
+
+    .cred-eyebrow {
+        display: inline-block;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--dash-primary);
+        background: linear-gradient(135deg, rgba(var(--dash-primary-rgb), 0.12), rgba(var(--dash-info-rgb), 0.1));
+        padding: 0.375rem 0.875rem;
+        border-radius: 20px;
+        margin-bottom: 0.75rem;
+    }
+
+    .cred-title {
+        font-size: 2rem;
+        font-weight: 800;
+        margin: 0 0 0.375rem;
+        letter-spacing: -0.025em;
+        line-height: 1.1;
+        background: linear-gradient(120deg, var(--dash-text-primary) 0%, var(--dash-primary) 70%, var(--dash-info) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .cred-subtitle {
+        font-size: 0.9375rem;
+        color: var(--dash-text-secondary);
+        margin: 0;
+        font-weight: 500;
+        max-width: 46ch;
+    }
+
+    .cred-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+    }
+}
+
+// ============================================
+// Botões (usados também dentro dos modais)
+// ============================================
+.cred-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: var(--dash-border-radius-sm);
+    padding: 0.6875rem 1.25rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: var(--dash-transition);
+    white-space: nowrap;
+
+    svg { width: 17px; height: 17px; }
+
+    &:focus-visible {
+        outline: 2px solid var(--dash-primary);
+        outline-offset: 2px;
+    }
+}
+
+.cred-btn-primary {
+    background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-light));
+    color: #fff;
+    box-shadow: var(--dash-shadow-md);
+
+    &:hover {
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: var(--dash-shadow-lg), var(--dash-shadow-glow);
+    }
+}
+
+.cred-btn-ghost {
+    background: var(--dash-glass-bg);
+    color: var(--dash-text-secondary);
+    border-color: var(--dash-card-border);
+    backdrop-filter: blur(var(--dash-glass-blur));
+
+    &:hover {
+        color: var(--dash-primary);
+        border-color: rgba(var(--dash-primary-rgb), 0.4);
+        transform: translateY(-2px);
+        box-shadow: var(--dash-shadow-sm);
+    }
+}
+
+// ============================================
+// KPIs
+// ============================================
+.cred-kpi-grid {
+    margin-bottom: 1.5rem;
+}
+
+// ============================================
+// Toolbar / filtros (dentro do .table-header)
+// ============================================
+.cred-toolbar {
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.cred-filters {
+    display: flex;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+}
+
+.cred-select {
+    appearance: none;
+    background: var(--dash-glass-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 0.75rem center;
+    border: 1px solid var(--dash-card-border);
+    border-radius: 10px;
+    padding: 0.5rem 2.25rem 0.5rem 0.875rem;
+    height: 40px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--dash-text-primary);
+    cursor: pointer;
+    transition: var(--dash-transition-fast);
+
+    &:focus {
+        outline: none;
+        border-color: var(--dash-primary);
+        box-shadow: 0 0 0 3px rgba(var(--dash-primary-rgb), 0.15);
+    }
+
+    option { background: var(--dash-card-bg); color: var(--dash-text-primary); }
+}
+
+// ============================================
+// Tabela
+// ============================================
+.cred-table.table {
+    --bs-table-bg: transparent;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: var(--dash-text-primary);
+
+    > :not(caption) > * > * {
+        background: transparent;
+        box-shadow: none;
+    }
+
+    thead th {
+        font-size: 0.6875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--dash-text-muted);
+        padding: 0.75rem 1rem;
+        border: none;
+        border-bottom: 1px solid var(--dash-card-border);
+        white-space: nowrap;
+    }
+
+    tbody td {
+        padding: 0.8125rem 1rem;
+        font-size: 0.8125rem;
+        color: var(--dash-text-primary);
+        border: none;
+        border-bottom: 1px solid rgba(var(--dash-primary-rgb), 0.06);
+        vertical-align: middle;
+    }
+
+    tbody tr {
+        transition: var(--dash-transition-fast);
+        &:hover td { background: rgba(var(--dash-primary-rgb), 0.035); }
+        &:last-child td { border-bottom: none; }
+    }
+}
+
+.cred-muted { color: var(--dash-text-muted); }
+.cred-nome { font-weight: 600; color: var(--dash-text-primary); }
+.cred-tipo {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--dash-text-secondary);
+}
+
+// Códigos (login, cpf/cnpj, senha) em monospace — leitura de "cofre"
+.cred-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--dash-text-primary);
+}
+
+// Chip de operadora
+.cred-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.3125rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+@each $name in (primary, info, success, warning, danger) {
+    .cred-chip-#{$name} {
+        background: rgba(var(--dash-#{$name}-rgb), 0.12);
+        color: var(--dash-#{$name});
+        border-color: rgba(var(--dash-#{$name}-rgb), 0.22);
+    }
+}
+
+// Célula de senha — o elemento-assinatura
+.cred-secret {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+
+    .senha-mask {
+        min-width: 70px;
+        letter-spacing: 0.12em;
+    }
+}
+
+// Botão de ícone (ações da linha + revelar/copiar senha)
+.cred-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--dash-text-muted);
+    cursor: pointer;
+    transition: var(--dash-transition-fast);
+    flex-shrink: 0;
+
+    svg { width: 15px; height: 15px; }
+
+    &:hover {
+        color: var(--dash-primary);
+        background: rgba(var(--dash-primary-rgb), 0.1);
+    }
+
+    &.is-on {
+        color: var(--dash-primary);
+        background: rgba(var(--dash-primary-rgb), 0.12);
+    }
+
+    &.cred-icon-danger:hover {
+        color: var(--dash-danger);
+        background: rgba(var(--dash-danger-rgb), 0.1);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--dash-primary);
+        outline-offset: 1px;
+    }
+}
+
+.cred-obs {
+    display: inline-block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--dash-text-secondary);
+    vertical-align: middle;
+}
+
+.cred-edit {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+
+    .cred-edit-when { font-size: 0.75rem; color: var(--dash-text-secondary); font-weight: 500; }
+    .cred-edit-who { font-size: 0.6875rem; color: var(--dash-text-muted); }
+}
+
+// Status pill
+.cred-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.625rem;
+    border-radius: 20px;
+
+    .cred-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+    &.cred-status-on {
+        background: rgba(var(--dash-success-rgb), 0.12);
+        color: var(--dash-success);
+        .cred-dot { background: var(--dash-success); box-shadow: 0 0 0 3px rgba(var(--dash-success-rgb), 0.18); }
+    }
+    &.cred-status-off {
+        background: rgba(148, 163, 184, 0.16);
+        color: var(--dash-text-muted);
+        .cred-dot { background: var(--dash-text-muted); }
+    }
+}
+
+.cred-actions {
+    display: inline-flex;
+    gap: 0.25rem;
+    justify-content: flex-end;
+}
+
+// ============================================
+// DataTables — controles (busca, info, paginação)
+// ============================================
+.cred-table-card {
+    .dataTables_wrapper {
+        padding: 0.25rem 0.25rem 0.75rem;
+
+        .dataTables_filter {
+            padding: 0.5rem 1rem 0.875rem;
+            text-align: right;
+
+            label { color: var(--dash-text-muted); font-size: 0.8125rem; font-weight: 500; }
+
+            input {
+                margin-left: 0.5rem;
+                background: var(--dash-glass-bg);
+                border: 1px solid var(--dash-card-border);
+                border-radius: 10px;
+                padding: 0.4375rem 0.875rem;
+                height: 38px;
+                font-size: 0.8125rem;
+                color: var(--dash-text-primary);
+                transition: var(--dash-transition-fast);
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--dash-primary);
+                    box-shadow: 0 0 0 3px rgba(var(--dash-primary-rgb), 0.15);
+                }
+            }
+        }
+
+        .dataTables_info {
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+            color: var(--dash-text-muted);
+        }
+
+        .dataTables_paginate {
+            padding: 0.5rem 1rem;
+
+            .paginate_button {
+                border-radius: 8px !important;
+                border: none !important;
+                margin: 0 1px;
+                font-size: 0.8125rem;
+                color: var(--dash-text-secondary) !important;
+
+                &:hover {
+                    background: rgba(var(--dash-primary-rgb), 0.1) !important;
+                    color: var(--dash-primary) !important;
+                }
+
+                &.current,
+                &.current:hover {
+                    background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-light)) !important;
+                    color: #fff !important;
+                    box-shadow: var(--dash-shadow-sm);
+                }
+            }
+        }
+
+        .dataTables_processing {
+            background: var(--dash-card-bg);
+            border: 1px solid var(--dash-card-border);
+            border-radius: var(--dash-border-radius-sm);
+            box-shadow: var(--dash-shadow-md);
+            color: var(--dash-text-primary);
+        }
+    }
+}
+
+// ============================================
+// Modais (glass) — .cred-modal aplicada no .modal
+// ============================================
+.cred-modal {
+    .modal-content {
+        background: var(--dash-card-bg);
+        border: 1px solid var(--dash-card-border);
+        border-radius: var(--dash-border-radius);
+        box-shadow: var(--dash-shadow-lg);
+        backdrop-filter: blur(var(--dash-glass-blur));
+        overflow: hidden;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid var(--dash-card-border);
+        background: linear-gradient(135deg, rgba(var(--dash-primary-rgb), 0.06), rgba(var(--dash-info-rgb), 0.03));
+        padding: 1.125rem 1.5rem;
+    }
+
+    .modal-title {
+        font-weight: 700;
+        font-size: 1.0625rem;
+        color: var(--dash-text-primary);
+    }
+
+    .modal-body { padding: 1.5rem; }
+    .modal-footer { border-top: 1px solid var(--dash-card-border); padding: 1rem 1.5rem; }
+
+    .form-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--dash-text-muted);
+        margin-bottom: 0.375rem;
+    }
+
+    .cred-mono-input { font-family: 'JetBrains Mono', monospace; letter-spacing: -0.01em; }
+}
+
+// ============================================
+// Modal de importação
+// ============================================
+.cred-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.25rem;
+
+    li {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--dash-text-secondary);
+        background: var(--dash-glass-bg);
+        border: 1px solid var(--dash-card-border);
+        border-radius: 20px;
+        padding: 0.375rem 0.875rem 0.375rem 0.375rem;
+
+        span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-light));
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+    }
+}
+
+.cred-divider { border-color: var(--dash-card-border); opacity: 1; margin: 1.5rem 0; }
+
+.cred-help {
+    font-size: 0.8125rem;
+    color: var(--dash-text-secondary);
+    margin-bottom: 1rem;
+    strong { color: var(--dash-text-primary); }
+}
+
+.cred-pill-info {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--dash-info);
+    background: rgba(var(--dash-info-rgb), 0.12);
+    padding: 0.1875rem 0.625rem;
+    border-radius: 12px;
+    margin-left: 0.25rem;
+}
+
+.cred-section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--dash-text-muted);
+    margin: 1.5rem 0 0.625rem;
+}
+
+.cred-sample {
+    border: 1px solid var(--dash-card-border);
+    border-radius: var(--dash-border-radius-sm);
+    overflow: auto;
+    max-height: 220px;
+
+    table { margin: 0; color: var(--dash-text-primary); }
+
+    thead th {
+        position: sticky;
+        top: 0;
+        background: var(--dash-card-bg);
+        font-size: 0.6875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--dash-text-muted);
+        border-bottom: 1px solid var(--dash-card-border);
+        white-space: nowrap;
+    }
+
+    tbody td {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        color: var(--dash-text-secondary);
+        border-bottom: 1px solid rgba(var(--dash-primary-rgb), 0.05);
+        white-space: nowrap;
+    }
+}
+
+// ============================================
+// Timeline do histórico
+// ============================================
+.cred-timeline {
+    position: relative;
+    padding-left: 0.5rem;
+}
+
+.cred-tl-item {
+    position: relative;
+    padding: 0 0 1.25rem 1.75rem;
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 1.25rem;
+        bottom: -0.25rem;
+        width: 2px;
+        background: var(--dash-card-border);
+    }
+    &:last-child { padding-bottom: 0; }
+    &:last-child::before { display: none; }
+
+    .cred-tl-marker {
+        position: absolute;
+        left: 0;
+        top: 0.25rem;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--dash-primary);
+        box-shadow: 0 0 0 4px rgba(var(--dash-primary-rgb), 0.15);
+    }
+
+    &.cred-tl-create .cred-tl-marker { background: var(--dash-success); box-shadow: 0 0 0 4px rgba(var(--dash-success-rgb), 0.15); }
+    &.cred-tl-edit .cred-tl-marker { background: var(--dash-info); box-shadow: 0 0 0 4px rgba(var(--dash-info-rgb), 0.15); }
+    &.cred-tl-delete .cred-tl-marker { background: var(--dash-danger); box-shadow: 0 0 0 4px rgba(var(--dash-danger-rgb), 0.15); }
+
+    .cred-tl-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .cred-tl-acao { font-weight: 700; font-size: 0.875rem; color: var(--dash-text-primary); }
+    .cred-tl-when { font-size: 0.75rem; color: var(--dash-text-muted); font-family: 'JetBrains Mono', monospace; }
+    .cred-tl-who { font-size: 0.75rem; color: var(--dash-text-secondary); margin-bottom: 0.5rem; }
+
+    .cred-tl-change {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        background: var(--dash-glass-bg);
+        border: 1px solid var(--dash-card-border);
+        border-radius: 10px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+
+        svg { width: 15px; height: 15px; color: var(--dash-text-muted); }
+
+        .cred-tl-field {
+            font-weight: 700;
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--dash-primary);
+            margin-right: 0.25rem;
+        }
+        .cred-tl-from { color: var(--dash-text-muted); text-decoration: line-through; font-family: 'JetBrains Mono', monospace; }
+        .cred-tl-to { color: var(--dash-text-primary); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+    }
+}
+
+// ============================================
+// Responsivo
+// ============================================
+@media (max-width: 768px) {
+    .cred-wrapper {
+        .cred-header { align-items: flex-start; }
+        .cred-title { font-size: 1.625rem; }
+        .cred-header-actions { width: 100%; }
+        .cred-btn { flex: 1; justify-content: center; }
+    }
+    .cred-toolbar { align-items: flex-start; }
+    .cred-filters { width: 100%; .cred-select { flex: 1; } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cred-btn,
+    .cred-icon-btn,
+    .cred-table tbody tr { transition: none; }
+    .cred-btn-primary:hover,
+    .cred-btn-ghost:hover { transform: none; }
+}

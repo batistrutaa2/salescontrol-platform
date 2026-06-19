@@ -30,3 +30,7 @@ yarn-error.log
 !/public/assets/*
 /public/css
 /public/js
+
+# Planilhas de acesso (contêm credenciais reais — nunca versionar)
+*.xlsx
+*:Zone.Identifier

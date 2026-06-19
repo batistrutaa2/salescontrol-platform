@@ -293,9 +293,9 @@
           ]
         },
         {
-          "url": "/vendas/import-sys",
-          "name": "Importar Vendas (SYS)",
-          "slug": "pages-import-vendas-sys"
+          "url": "/back-office/credenciais",
+          "name": "Acesso Empresas",
+          "slug": "backoffice.credenciais"
         },
         {
           "url": "/back-office/faqs",
