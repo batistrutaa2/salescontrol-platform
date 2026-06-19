@@ -70,20 +70,13 @@ jobs:
             rm -f ~/.git-credentials
 
             # Executar migrações
-            # Produção roda PHP direto (Sail é dev-only, não existe aqui).
-            echo "Status das migrações (antes):"
-            sudo php artisan migrate:status || true
-
             echo "Executando migrações..."
-            if ! sudo php artisan migrate --force --no-interaction; then
-              echo "::error::Falha ao executar as migrações — deploy abortado."
-              exit 1
-            fi
+            sudo ./vendor/bin/sail artisan migrate --force --no-interaction
             echo "Migrações concluídas."
 
             # Limpar caches
             echo "Limpando caches..."
-            sudo php artisan optimize:clear
+            sudo ./vendor/bin/sail artisan optimize:clear
             echo "Caches limpos."
 
             echo "Deploy finalizado com sucesso!"
