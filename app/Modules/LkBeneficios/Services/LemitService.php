@@ -37,7 +37,7 @@ class LemitService
         $pessoa = Pessoa::where('cpf', $cpf)->first();
         if ($pessoa && $this->aindaNoCache($pessoa->data_consulta ?? $pessoa->created_at)) {
             return [
-                'fonte' => 'local_db',
+                'fonte' => 'local_db_lemit',
                 'data_consulta' => $pessoa->data_consulta,
                 'pessoa' => $this->formatarPessoa($pessoa),
             ];
@@ -56,7 +56,7 @@ class LemitService
         $data = $response->json();
         $this->persistirPessoa($data);
 
-        return array_merge(['fonte' => 'api'], $data);
+        return array_merge(['fonte' => 'api_lemit'], $data);
     }
 
     public function consultarCnpj(string $cnpj): array
@@ -71,7 +71,7 @@ class LemitService
             $empresa->load(['enderecos', 'celulares', 'fixos', 'emails', 'socios', 'carros']);
 
             return [
-                'fonte' => 'local_db',
+                'fonte' => 'local_db_lemit',
                 'data_consulta' => $empresa->created_at,
                 'empresa' => $empresa,
             ];
@@ -90,7 +90,7 @@ class LemitService
         $json = $response->json();
         $this->persistirEmpresa($json['empresa'] ?? null);
 
-        return array_merge(['fonte' => 'api'], $json);
+        return array_merge(['fonte' => 'api_lemit'], $json);
     }
 
     private function aindaNoCache($dataConsulta): bool

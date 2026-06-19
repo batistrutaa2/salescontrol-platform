@@ -4,6 +4,7 @@ namespace Tests\Feature\LkBeneficios;
 
 use App\Models\People\Assertiva\AssertivaPessoa;
 use App\Models\People\Celular;
+use App\Models\People\Email;
 use App\Models\People\Pessoa;
 use App\Modules\LkBeneficios\Services\Assertiva\AssertivaService;
 use App\Modules\LkBeneficios\Services\Assertiva\AssertivaTokenManager;
@@ -50,18 +51,47 @@ class ConsultaServiceTest extends AssertivaTestCase
         Http::assertNothingSent();
     }
 
-    public function test_telefone_servido_do_cache_lemit(): void
+    public function test_telefone_ignora_cache_lemit_e_chama_assertiva(): void
     {
-        Http::fake();
+        // Busca Assertiva (telefone) NÃO pode ser servida pelo cache do Lemit:
+        // mesmo com o número na base Lemit, deve ir à API Assertiva.
+        Http::fake([
+            '*/oauth2/v3/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600]),
+            '*/localize/v3/telefone*' => Http::response([
+                'cabecalho' => ['protocolo' => 'p'],
+                'resposta' => ['pessoaFisica' => ['cpf' => '12345678901', 'nome' => 'DA ASSERTIVA']],
+            ]),
+        ]);
 
         $pessoa = Pessoa::create(['cpf' => '99999999999', 'nome' => 'MARIA', 'data_consulta' => now()]);
         Celular::create(['pessoa_id' => $pessoa->id, 'ddd' => '11', 'numero' => '988887777']);
 
         $res = $this->consultaService()->consultarTelefone('11988887777');
 
-        $this->assertSame('local_db_lemit', $res['fonte']);
-        $this->assertSame('MARIA', $res['pessoa']->nome);
-        Http::assertNothingSent();
+        $this->assertSame('api_assertiva', $res['fonte']);
+        $this->assertNotSame('MARIA', $res['pessoa']?->nome);
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/localize/v3/telefone'));
+    }
+
+    public function test_email_ignora_cache_lemit_e_chama_assertiva(): void
+    {
+        // Idem para e-mail: o cache do Lemit é ignorado em busca Assertiva.
+        Http::fake([
+            '*/oauth2/v3/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600]),
+            '*/localize/v3/email*' => Http::response([
+                'cabecalho' => ['protocolo' => 'p'],
+                'resposta' => ['pessoaFisica' => ['cpf' => '12345678901', 'nome' => 'DA ASSERTIVA']],
+            ]),
+        ]);
+
+        $pessoa = Pessoa::create(['cpf' => '99999999999', 'nome' => 'MARIA', 'data_consulta' => now()]);
+        Email::create(['pessoa_id' => $pessoa->id, 'email' => 'maria@example.com']);
+
+        $res = $this->consultaService()->consultarEmail('maria@example.com');
+
+        $this->assertSame('api_assertiva', $res['fonte']);
+        $this->assertNotSame('MARIA', $res['pessoa']?->nome);
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/localize/v3/email'));
     }
 
     public function test_telefone_chama_assertiva_quando_sem_cache(): void

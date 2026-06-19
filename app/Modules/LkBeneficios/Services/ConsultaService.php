@@ -6,9 +6,6 @@ use App\Models\People\Assertiva\AssertivaEmail;
 use App\Models\People\Assertiva\AssertivaEmpresa;
 use App\Models\People\Assertiva\AssertivaPessoa;
 use App\Models\People\Assertiva\AssertivaTelefone;
-use App\Models\People\Celular;
-use App\Models\People\Email;
-use App\Models\People\Fixo;
 use App\Modules\LkBeneficios\Services\Assertiva\AssertivaService;
 use Carbon\Carbon;
 use InvalidArgumentException;
@@ -17,26 +14,24 @@ use InvalidArgumentException;
  * Orquestrador de consultas de enriquecimento (cérebro do roteamento multi-fonte).
  *
  * Regras de negócio definidas pelo cliente:
- *  - CPF / CNPJ            -> fonte de API = Lemit
+ *  - CPF / CNPJ            -> fonte escolhida pelo vendedor (Lemit ou Assertiva).
  *  - telefone / e-mail /
- *    nome-endereço         -> fonte de API = Assertiva
- *  - Cache-first cruzado: antes de chamar QUALQUER API, procura o dado nas DUAS
- *    bases locais (Lemit em `pessoas`/`empresas`/... e Assertiva em `assertiva_*`).
- *    Só consulta a API se não houver dado fresco (TTL padrão 3 meses por fonte).
+ *    nome-endereço         -> fonte = Assertiva (a UI só expõe esses tipos sob Assertiva).
+ *  - Cache ISOLADO por fonte: cada fonte consulta SOMENTE a sua própria base
+ *    local antes de ir à API. Lemit lê `pessoas`/`empresas`/...; Assertiva lê
+ *    `assertiva_*`. Uma busca Assertiva NUNCA é servida pelo cache do Lemit (e
+ *    vice-versa). TTL padrão 3 meses por fonte.
  *
  * Toda resposta carrega `fonte`: local_db_lemit | local_db_assertiva | api_lemit | api_assertiva.
  */
 class ConsultaService
 {
-    private int $lemitMonths;
-
     private int $assertivaMonths;
 
     public function __construct(
         private LemitService $lemit,
         private AssertivaService $assertiva,
     ) {
-        $this->lemitMonths = (int) config('services.lemit.cache_months', 3);
         $this->assertivaMonths = (int) config('services.assertiva.cache_months', 3);
     }
 
@@ -86,7 +81,7 @@ class ConsultaService
     }
 
     // ----------------------------------------------------------------------
-    // Telefone -> Assertiva (cache-first cruzado por número normalizado)
+    // Telefone -> Assertiva (cache Assertiva por número normalizado, depois API)
     // ----------------------------------------------------------------------
 
     public function consultarTelefone(string $telefone): array
@@ -96,7 +91,7 @@ class ConsultaService
             throw new InvalidArgumentException('Telefone inválido.');
         }
 
-        // 1) Base Assertiva
+        // 1) Base Assertiva (cache da própria fonte)
         $tel = AssertivaTelefone::where('numero_normalizado', $numero)->latest('updated_at')->first();
         if ($tel) {
             $owner = $tel->assertiva_pessoa_id ? $tel->pessoa : $tel->empresa;
@@ -111,21 +106,12 @@ class ConsultaService
             }
         }
 
-        // 2) Base Lemit (Celular/Fixo -> Pessoa)
-        if ($pessoaLemit = $this->acharPessoaLemitPorTelefone($numero)) {
-            return [
-                'fonte' => 'local_db_lemit',
-                'data_consulta' => $pessoaLemit->data_consulta ?? $pessoaLemit->created_at,
-                'pessoa' => $pessoaLemit,
-            ];
-        }
-
-        // 3) API Assertiva
+        // 2) API Assertiva (o cache do Lemit NÃO é usado em busca Assertiva)
         return $this->assertiva->consultarTelefone($numero);
     }
 
     // ----------------------------------------------------------------------
-    // E-mail -> Assertiva (cache-first cruzado)
+    // E-mail -> Assertiva (cache Assertiva, depois API)
     // ----------------------------------------------------------------------
 
     public function consultarEmail(string $email): array
@@ -136,7 +122,7 @@ class ConsultaService
         }
         $normalizado = mb_strtolower($email);
 
-        // 1) Base Assertiva
+        // 1) Base Assertiva (cache da própria fonte)
         $row = AssertivaEmail::where('email_normalizado', $normalizado)->latest('updated_at')->first();
         if ($row) {
             $owner = $row->assertiva_pessoa_id ? $row->pessoa : $row->empresa;
@@ -151,20 +137,7 @@ class ConsultaService
             }
         }
 
-        // 2) Base Lemit
-        $emailLemit = Email::where('email', $normalizado)->orWhere('email', $email)->first();
-        if ($emailLemit && $emailLemit->pessoa) {
-            $pessoa = $emailLemit->pessoa;
-            if ($this->fresco($pessoa->data_consulta ?? $pessoa->created_at, $this->lemitMonths)) {
-                return [
-                    'fonte' => 'local_db_lemit',
-                    'data_consulta' => $pessoa->data_consulta ?? $pessoa->created_at,
-                    'pessoa' => $pessoa,
-                ];
-            }
-        }
-
-        // 3) API Assertiva
+        // 2) API Assertiva (o cache do Lemit NÃO é usado em busca Assertiva)
         return $this->assertiva->consultarEmail($email);
     }
 
@@ -188,27 +161,5 @@ class ConsultaService
         }
 
         return Carbon::parse($dataConsulta)->gt(now()->subMonths($months));
-    }
-
-    private function acharPessoaLemitPorTelefone(string $numero)
-    {
-        $match = function ($query) use ($numero) {
-            return $query->whereRaw("CONCAT(COALESCE(ddd,''), COALESCE(numero,'')) = ?", [$numero])
-                ->orWhere('numero', $numero);
-        };
-
-        $registro = Celular::where($match)->first() ?? Fixo::where($match)->first();
-        if (! $registro || ! $registro->pessoa) {
-            return null;
-        }
-
-        $pessoa = $registro->pessoa;
-        if (! $this->fresco($pessoa->data_consulta ?? $pessoa->created_at, $this->lemitMonths)) {
-            return null;
-        }
-
-        $pessoa->load(['celulares', 'fixos', 'emails', 'enderecos']);
-
-        return $pessoa;
     }
 }
