@@ -70,8 +70,14 @@ jobs:
             rm -f ~/.git-credentials
 
             # Executar migrações
+            echo "Status das migrações (antes):"
+            sudo ./vendor/bin/sail artisan migrate:status || true
+
             echo "Executando migrações..."
-            sudo ./vendor/bin/sail artisan migrate --force --no-interaction
+            if ! sudo ./vendor/bin/sail artisan migrate --force --no-interaction; then
+              echo "::error::Falha ao executar as migrações — deploy abortado."
+              exit 1
+            fi
             echo "Migrações concluídas."
 
             # Limpar caches
