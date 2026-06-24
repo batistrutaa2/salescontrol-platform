@@ -552,6 +552,35 @@ class LiminarController extends Controller
         return $doc;
     }
 
+    /**
+     * Exclui um processo de liminar — restrito a backoffice/admin (não advogada).
+     * Documentos e histórico saem por cascade no banco; os arquivos no S3 são
+     * removidos manualmente antes.
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $this->checkBackoffice();
+
+        $liminar = CancelamentoLiminar::with('documentos')
+            ->where('empresa_id', $this->empresaId())
+            ->findOrFail($id);
+
+        DB::beginTransaction();
+        try {
+            foreach ($liminar->documentos as $doc) {
+                Storage::disk('s3')->delete($doc->path_s3);
+            }
+            $liminar->delete();
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Liminar destroy falhou', ['erro' => $e->getMessage(), 'exception' => $e]);
+            return response()->json(['success' => false, 'message' => 'Erro ao excluir o processo.'], 500);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     public function uploadDocumento(Request $request, int $id): JsonResponse
     {
         $this->checkBackoffice();

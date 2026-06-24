@@ -304,6 +304,7 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/back-office/liminar', [LiminarController::class, 'store'])->name('backoffice.liminar.store');
   Route::get('/back-office/liminar/{id}', [LiminarController::class, 'show'])->name('backoffice.liminar.show');
   Route::put('/back-office/liminar/{id}', [LiminarController::class, 'update'])->name('backoffice.liminar.update');
+  Route::delete('/back-office/liminar/{id}', [LiminarController::class, 'destroy'])->name('backoffice.liminar.destroy');
   Route::post('/back-office/liminar/{id}/mover', [LiminarController::class, 'mover'])->name('backoffice.liminar.mover');
   Route::get('/back-office/liminar-buscar-contratos', [LiminarController::class, 'buscarContratos'])->name('backoffice.liminar.buscarContratos');
   Route::post('/back-office/liminar/{id}/documentos', [LiminarController::class, 'uploadDocumento'])->name('backoffice.liminar.uploadDocumento');

@@ -503,6 +503,33 @@
             }
         });
 
+        // Excluir processo (backoffice/admin) — confirmação antes.
+        document.getElementById('btnExcluirProcesso')?.addEventListener('click', async () => {
+            const r = await Swal.fire({
+                title: 'Excluir este processo?',
+                text: 'O processo, seus documentos e o histórico serão removidos. Esta ação não pode ser desfeita.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Excluir',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#EF4444',
+            });
+            if (!r.isConfirmed) return;
+            try {
+                const resp = await fetch(`/back-office/liminar/${liminarAtualId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetalhes')).hide();
+                showModernToast('success', 'Excluído', 'Processo removido.');
+                carregarDados();
+            } catch (err) {
+                console.error(err);
+                showModernToast('error', 'Erro', 'Não foi possível excluir o processo.');
+            }
+        });
+
         const dropZone = document.getElementById('fileDropZone');
         const inputArquivo = document.getElementById('inputArquivo');
         const enviarDocumento = async (file) => {

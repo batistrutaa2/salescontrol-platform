@@ -353,6 +353,79 @@ class LiminarTest extends TestCase
             ->assertJsonPath('contratos', []);
     }
 
+    public function test_backoffice_exclui_processo_com_documentos_e_historico(): void
+    {
+        Storage::fake('s3');
+        $liminar = $this->criarLiminar();
+        $this->salvarDocFake($liminar);
+
+        $this->actingAs($this->admin)
+            ->deleteJson(route('backoffice.liminar.destroy', $liminar->id))
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseMissing('cancelamentos_liminares', ['id' => $liminar->id]);
+        // Cascade limpa as filhas.
+        $this->assertDatabaseMissing('cancelamentos_liminares_documentos', ['cancelamento_liminar_id' => $liminar->id]);
+        $this->assertDatabaseMissing('cancelamentos_liminares_historico', ['cancelamento_liminar_id' => $liminar->id]);
+    }
+
+    public function test_advogada_nao_exclui_processo(): void
+    {
+        $liminar = $this->criarLiminar();
+
+        $this->actingAs($this->advogada)
+            ->deleteJson(route('backoffice.liminar.destroy', $liminar->id))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('cancelamentos_liminares', ['id' => $liminar->id]);
+    }
+
+    public function test_vendedor_nao_exclui_processo(): void
+    {
+        $liminar = $this->criarLiminar();
+
+        $this->actingAs($this->vendedor)
+            ->deleteJson(route('backoffice.liminar.destroy', $liminar->id))
+            ->assertForbidden();
+    }
+
+    public function test_multitenant_nao_exclui_processo_de_outra_empresa(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $adminOutra = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'ativo' => 'Y',
+        ]);
+        $liminar = $this->criarLiminar();
+
+        $this->actingAs($adminOutra)
+            ->deleteJson(route('backoffice.liminar.destroy', $liminar->id))
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('cancelamentos_liminares', ['id' => $liminar->id]);
+    }
+
+    private function salvarDocFake(CancelamentoLiminar $liminar): void
+    {
+        \App\Models\CancelamentoLiminarDocumento::create([
+            'cancelamento_liminar_id' => $liminar->id,
+            'empresa_id'              => $liminar->empresa_id,
+            'tipo_documento'          => 'CONTRATO_SOCIAL',
+            'nome_original'           => 'doc.pdf',
+            'path_s3'                 => "liminares/{$liminar->empresa_id}/{$liminar->id}/contrato_social.pdf",
+            'uploaded_by'             => $this->admin->id,
+        ]);
+        \App\Models\CancelamentoLiminarHistorico::create([
+            'cancelamento_liminar_id' => $liminar->id,
+            'user_id'                 => $this->admin->id,
+            'campo_alterado'          => 'fase',
+            'valor_anterior'          => null,
+            'valor_novo'              => 'Cancelamento Aberto',
+        ]);
+    }
+
     private function criarLiminar(): CancelamentoLiminar
     {
         return CancelamentoLiminar::create([

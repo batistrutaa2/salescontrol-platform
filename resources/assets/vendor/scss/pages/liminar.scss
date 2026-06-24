@@ -353,6 +353,20 @@
     background: var(--pv-card-bg);
 }
 
+// Botão de excluir processo — danger, ancorado à esquerda do rodapé.
+.lim-btn-excluir {
+    margin-right: auto;
+    color: var(--dash-danger, #EF4444);
+    background: color-mix(in srgb, var(--dash-danger, #EF4444) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--dash-danger, #EF4444) 28%, transparent);
+
+    &:hover {
+        background: var(--dash-danger, #EF4444);
+        border-color: var(--dash-danger, #EF4444);
+        color: #fff;
+    }
+}
+
 // ============================================
 // Upload de Documentos
 // ============================================
