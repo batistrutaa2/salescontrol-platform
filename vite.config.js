@@ -74,5 +74,13 @@ export default defineConfig({
     }),
     html(),
     libsWindowAssignment()
-  ]
+  ],
+  server: {
+    // WSL2 + Docker: o inotify do host não chega ao container, então o watcher
+    // do Vite não vê as alterações. Polling resolve (custa um pouco de CPU).
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
+  },
 });
