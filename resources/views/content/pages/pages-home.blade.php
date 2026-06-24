@@ -37,7 +37,6 @@
                 <span class="greeting-label">Dashboard</span>
                 <h1 class="main-title">Visao Geral de Vendas</h1>
                 <p class="subtitle">Acompanhe o desempenho da sua equipe em tempo real</p>
-                @include('_partials.btn-trajetoria-5anos')
             </div>
             <div class="header-filters">
                 <div class="filter-group">

@@ -14,18 +14,85 @@ use App\Notifications\LiminarStatusAlterado;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Yajra\DataTables\Facades\DataTables;
 
 class LiminarController extends Controller
 {
-    private const ALLOWED_ROLES = [UserRole::BACKOFFICE, UserRole::ADMINISTRATIVO, UserRole::DEVELOPER];
+    // Quem pode ver o kanban, mover cards e baixar documentos.
+    private const ALLOWED_ROLES = [
+        UserRole::BACKOFFICE,
+        UserRole::ADMINISTRATIVO,
+        UserRole::DEVELOPER,
+        UserRole::ADVOGADA,
+    ];
+
+    // Quem pode abrir processo e gerenciar documentos (a advogada não abre/exclui).
+    private const BACKOFFICE_ROLES = [
+        UserRole::BACKOFFICE,
+        UserRole::ADMINISTRATIVO,
+        UserRole::DEVELOPER,
+    ];
+
+    // Colunas do kanban (campo `fase`), na ordem do fluxo.
+    private const FASES = [
+        'CANCELAMENTO_ABERTO',
+        'AGUARDANDO_ASSINATURA',
+        'AGUARDANDO_RETORNO_OPERADORA',
+        'LIMINAR_CONCEDIDA',
+    ];
+
+    // Documentos obrigatórios na abertura: campo do form => tipo_documento.
+    private const DOCUMENTOS_ABERTURA = [
+        'doc_contrato_social'        => 'CONTRATO_SOCIAL',
+        'doc_cartao_cnpj'            => 'CARTAO_CNPJ',
+        'doc_rg_cliente'             => 'RG_CLIENTE',
+        'doc_comprovante_pagamento'  => 'COMPROVANTE_PAGAMENTO',
+    ];
+
+    // Documentos opcionais na abertura: campo do form => tipo_documento.
+    private const DOCUMENTOS_OPCIONAIS = [
+        'doc_print_protocolo' => 'PRINT_PROTOCOLO',
+        'doc_audio_hapvida'   => 'AUDIO_HAPVIDA',
+    ];
+
+    // Todos os tipos aceitos no upload avulso (modal de detalhe).
+    private const TIPOS_DOCUMENTO = [
+        'CARTEIRINHA', 'CARTAO_CNPJ', 'COMPROVANTE_PAGAMENTO', 'CONTRATO_SOCIAL',
+        'RETORNO_CANCELAMENTO', 'RG_CLIENTE', 'PRINT_PROTOCOLO', 'AUDIO_HAPVIDA',
+    ];
+
+    // Regras de mime/tamanho por natureza do arquivo.
+    // Áudio via mimetypes (o mime real do upload) — `mimes:mp3` falharia porque o
+    // Symfony adivinha 'mpga' para audio/mpeg. Cobre os formatos comuns (WhatsApp/Hapvida).
+    private const MIME_IMAGEM_PDF = 'mimes:pdf,jpg,jpeg,png|max:10240';
+    private const MIME_AUDIO      = 'mimetypes:audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/ogg,audio/opus,audio/mp4,audio/x-m4a,audio/aac,audio/webm,audio/3gpp|max:25600';
+
+    // Campos de data preenchidos na abertura (chegam em d/m/Y, salvam em Y-m-d).
+    private const DATAS_PROCURACAO = [
+        'data_fim_plano',
+        'data_contratacao',
+        'data_solicitacao_cancelamento',
+        'data_ultimo_pagamento_boleto',
+        'cobertura_comprovante_inicio',
+        'cobertura_comprovante_fim',
+        'data_vencimento_boleto_1',
+        'data_vencimento_boleto_2',
+    ];
 
     private function checkAccess(): void
     {
         if (!in_array(Auth::user()->user_role_id, self::ALLOWED_ROLES)) {
+            abort(403, 'Acesso não autorizado.');
+        }
+    }
+
+    private function checkBackoffice(): void
+    {
+        if (!in_array(Auth::user()->user_role_id, self::BACKOFFICE_ROLES)) {
             abort(403, 'Acesso não autorizado.');
         }
     }
@@ -35,27 +102,44 @@ class LiminarController extends Controller
         return Auth::user()->empresa_id;
     }
 
-    // Labels legíveis para enum values
-    private static function statusLabel(string $value): string
+    private function isAdvogada(): bool
     {
-        return match ($value) {
-            'NAO_INICIADA' => 'Não Iniciada',
-            'EM_EXECUCAO'  => 'Em Execução',
-            'BLOQUEADA'    => 'Bloqueada',
-            'CONCLUIDA'    => 'Concluída',
-            default        => $value,
-        };
+        return (int) Auth::user()->user_role_id === UserRole::ADVOGADA;
     }
 
+    // ---------------------------------------------------------------
+    // Labels e cores das colunas
+    // ---------------------------------------------------------------
     private static function faseLabel(?string $value): string
     {
         return match ($value) {
-            'ASSINATURA_PROCURACAO'        => 'Assinatura da Procuração',
-            'ENVIO_DOCUMENTOS'             => 'Envio de Documentos',
-            'AGUARDANDO_LIMINAR'           => 'Aguardando Liminar',
+            'CANCELAMENTO_ABERTO'          => 'Cancelamento Aberto',
+            'AGUARDANDO_ASSINATURA'        => 'Procuração / Aguardando Assinatura',
             'AGUARDANDO_RETORNO_OPERADORA' => 'Aguardando Retorno da Operadora',
             'LIMINAR_CONCEDIDA'            => 'Liminar Concedida',
             default                        => $value ?? '—',
+        };
+    }
+
+    private static function faseCurto(string $value): string
+    {
+        return match ($value) {
+            'CANCELAMENTO_ABERTO'          => 'Aberto',
+            'AGUARDANDO_ASSINATURA'        => 'Assinatura',
+            'AGUARDANDO_RETORNO_OPERADORA' => 'Retorno operadora',
+            'LIMINAR_CONCEDIDA'            => 'Concedida',
+            default                        => $value,
+        };
+    }
+
+    private static function faseGradiente(string $value): array
+    {
+        return match ($value) {
+            'CANCELAMENTO_ABERTO'          => ['start' => '#06B6D4', 'end' => '#22D3EE'],
+            'AGUARDANDO_ASSINATURA'        => ['start' => '#F59E0B', 'end' => '#FBBF24'],
+            'AGUARDANDO_RETORNO_OPERADORA' => ['start' => '#7C3AED', 'end' => '#A78BFA'],
+            'LIMINAR_CONCEDIDA'            => ['start' => '#10B981', 'end' => '#34D399'],
+            default                        => ['start' => '#94A3B8', 'end' => '#CBD5E1'],
         };
     }
 
@@ -79,71 +163,96 @@ class LiminarController extends Controller
         };
     }
 
+    private function colunas(): array
+    {
+        return array_map(fn($fase) => [
+            'id'        => $fase,
+            'label'     => self::faseLabel($fase),
+            'curto'     => self::faseCurto($fase),
+            'gradiente' => self::faseGradiente($fase),
+        ], self::FASES);
+    }
+
+    // ---------------------------------------------------------------
+    // Views / dados
+    // ---------------------------------------------------------------
     public function index()
     {
         $this->checkAccess();
-        return view('content.pages.backoffice.liminar.index');
+
+        return view('content.pages.backoffice.liminar.index', [
+            'colunas'    => $this->colunas(),
+            'isAdvogada' => $this->isAdvogada(),
+        ]);
     }
 
-    public function getData(Request $request): JsonResponse
+    public function dados(Request $request): JsonResponse
     {
         $this->checkAccess();
 
-        $query = CancelamentoLiminar::with(['venda.user', 'responsavel'])
-            ->where('cancelamentos_liminares.empresa_id', $this->empresaId());
+        $registros = CancelamentoLiminar::with(['venda.user', 'responsavel'])
+            ->where('cancelamentos_liminares.empresa_id', $this->empresaId())
+            ->orderBy('updated_at', 'desc')
+            ->get();
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-        if ($request->filled('fase')) {
-            $query->where('fase', $request->fase);
-        }
-        if ($request->filled('data_inicio') && $request->filled('data_fim')) {
-            $dataInicio = Carbon::createFromFormat('d/m/Y', $request->data_inicio)->startOfDay();
-            $dataFim    = Carbon::createFromFormat('d/m/Y', $request->data_fim)->endOfDay();
-            $query->whereBetween('cancelamentos_liminares.created_at', [$dataInicio, $dataFim]);
-        }
-        if ($request->filled('responsavel_id')) {
-            $query->where('responsavel_id', $request->responsavel_id);
-        }
-        if ($request->filled('venda_id')) {
-            $query->where('cancelamentos_liminares.venda_id', $request->venda_id);
+        $colunas = [];
+        foreach (self::FASES as $fase) {
+            $colunas[$fase] = [];
         }
 
-        return DataTables::of($query)
-            ->addColumn('beneficiario_nome', function (CancelamentoLiminar $row) {
-                $ben = $row->getBeneficiario();
-                return $ben ? $ben->nome : '—';
-            })
-            ->addColumn('beneficiario_tipo_label', fn($row) => $row->beneficiario_tipo === 'TITULAR' ? 'Titular' : 'Dependente')
-            ->addColumn('status_label', fn($row) => self::statusLabel($row->status))
-            ->addColumn('fase_label', fn($row) => self::faseLabel($row->fase))
-            ->addColumn('honorarios_label', fn($row) => self::honorariosLabel($row->status_honorarios))
-            ->addColumn('recebimento_label', fn($row) => self::recebimentoLabel($row->status_recebimento))
-            ->addColumn('corretor_nome', fn($row) => $row->venda?->user?->name ?? '—')
-            ->addColumn('responsavel_nome', fn($row) => $row->responsavel?->name ?? '—')
-            ->addColumn('data_criacao', fn($row) => $row->getOriginal('created_at')
-                ? Carbon::parse($row->getOriginal('created_at'))->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')
-                : '—')
-            ->make(true);
+        foreach ($registros as $row) {
+            $fase = in_array($row->fase, self::FASES, true) ? $row->fase : 'CANCELAMENTO_ABERTO';
+            $ben = $row->getBeneficiario();
+
+            $colunas[$fase][] = [
+                'id'                => $row->id,
+                'nome_contrato'     => $row->nome_contrato,
+                'nome_empresa'      => $row->nome_empresa,
+                'protocolo'         => $row->protocolo_cancelamento,
+                'beneficiario_nome' => $ben?->nome ?? '—',
+                'beneficiario_tipo' => $row->beneficiario_tipo === 'TITULAR' ? 'Titular' : 'Dependente',
+                'corretor_nome'     => $row->venda?->user?->name ?? '—',
+                'responsavel_nome'  => $row->responsavel?->name ?? '—',
+                'fase'              => $fase,
+                'data_criacao'      => $row->getOriginal('created_at')
+                    ? Carbon::parse($row->getOriginal('created_at'))->setTimezone('America/Sao_Paulo')->format('d/m/Y')
+                    : '—',
+            ];
+        }
+
+        return response()->json(['colunas' => $colunas]);
     }
 
     public function store(Request $request): JsonResponse
     {
-        $this->checkAccess();
+        $this->checkBackoffice();
 
-        $validated = $request->validate([
-            'venda_id'          => 'required|integer|exists:vendas,id',
-            'beneficiario_tipo' => 'required|in:TITULAR,DEPENDENTE',
-            'beneficiario_id'   => 'required|integer',
-            'responsavel_id'    => 'nullable|integer|exists:users,id',
-        ]);
+        $rules = [
+            'venda_id'                       => 'required|integer|exists:vendas,id',
+            'beneficiario_tipo'              => 'required|in:TITULAR,DEPENDENTE',
+            'beneficiario_id'                => 'required|integer',
+            'responsavel_id'                 => 'nullable|integer|exists:users,id',
+            'nome_empresa'                   => 'required|string|max:255',
+            'cnpj'                           => 'required|string|max:20',
+            'protocolo_cancelamento'         => 'required|string|max:255',
+            'email_procuracao'               => 'required|email|max:255',
+        ];
+        foreach (self::DATAS_PROCURACAO as $campo) {
+            $rules[$campo] = 'required|date_format:d/m/Y';
+        }
+        foreach (array_keys(self::DOCUMENTOS_ABERTURA) as $campo) {
+            $rules[$campo] = 'required|file|' . self::MIME_IMAGEM_PDF;
+        }
+        // Opcionais: print do protocolo (imagem/pdf) e áudio Hapvida (áudio).
+        $rules['doc_print_protocolo'] = 'nullable|file|' . self::MIME_IMAGEM_PDF;
+        $rules['doc_audio_hapvida']   = 'nullable|file|' . self::MIME_AUDIO;
+
+        $validated = $request->validate($rules);
 
         $venda = Vendas::where('id', $validated['venda_id'])
             ->where('empresa_id', $this->empresaId())
             ->firstOrFail();
 
-        // Verifica se beneficiário existe
         if ($validated['beneficiario_tipo'] === 'TITULAR') {
             VendaTitular::where('id', $validated['beneficiario_id'])
                 ->where('venda_id', $venda->id)
@@ -154,24 +263,52 @@ class LiminarController extends Controller
                 ->firstOrFail();
         }
 
-        $liminar = CancelamentoLiminar::create([
-            'empresa_id'        => $this->empresaId(),
-            'venda_id'          => $venda->id,
-            'beneficiario_tipo' => $validated['beneficiario_tipo'],
-            'beneficiario_id'   => $validated['beneficiario_id'],
-            'nome_contrato'     => $venda->nome_contrato,
-            'responsavel_id'    => $validated['responsavel_id'] ?? Auth::id(),
-            'status'            => 'NAO_INICIADA',
-        ]);
+        DB::beginTransaction();
+        try {
+            $payload = [
+                'empresa_id'             => $this->empresaId(),
+                'venda_id'               => $venda->id,
+                'beneficiario_tipo'      => $validated['beneficiario_tipo'],
+                'beneficiario_id'        => $validated['beneficiario_id'],
+                'nome_contrato'          => $venda->nome_contrato,
+                'nome_empresa'           => $validated['nome_empresa'],
+                'cnpj'                   => $validated['cnpj'],
+                'protocolo_cancelamento' => $validated['protocolo_cancelamento'],
+                'email_procuracao'       => $validated['email_procuracao'],
+                'responsavel_id'         => $validated['responsavel_id'] ?? Auth::id(),
+                'status'                 => 'EM_EXECUCAO',
+                'fase'                   => 'CANCELAMENTO_ABERTO',
+            ];
+            foreach (self::DATAS_PROCURACAO as $campo) {
+                $payload[$campo] = Carbon::createFromFormat('d/m/Y', $validated[$campo])->format('Y-m-d');
+            }
 
-        CancelamentoLiminarHistorico::create([
-            'cancelamento_liminar_id' => $liminar->id,
-            'user_id'                 => Auth::id(),
-            'campo_alterado'          => 'status',
-            'valor_anterior'          => null,
-            'valor_novo'              => 'Não Iniciada',
-            'observacao'              => 'Processo criado.',
-        ]);
+            $liminar = CancelamentoLiminar::create($payload);
+
+            foreach (self::DOCUMENTOS_ABERTURA as $campo => $tipo) {
+                $this->salvarDocumento($liminar, $request->file($campo), $tipo, false);
+            }
+            foreach (self::DOCUMENTOS_OPCIONAIS as $campo => $tipo) {
+                if ($request->hasFile($campo)) {
+                    $this->salvarDocumento($liminar, $request->file($campo), $tipo, false);
+                }
+            }
+
+            CancelamentoLiminarHistorico::create([
+                'cancelamento_liminar_id' => $liminar->id,
+                'user_id'                 => Auth::id(),
+                'campo_alterado'          => 'fase',
+                'valor_anterior'          => null,
+                'valor_novo'              => self::faseLabel('CANCELAMENTO_ABERTO'),
+                'observacao'              => 'Processo aberto com documentação completa.',
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Liminar store falhou', ['erro' => $e->getMessage(), 'exception' => $e]);
+            return response()->json(['success' => false, 'message' => 'Erro ao abrir o processo.'], 500);
+        }
 
         return response()->json(['success' => true, 'id' => $liminar->id]);
     }
@@ -191,8 +328,17 @@ class LiminarController extends Controller
 
         $beneficiario = $liminar->getBeneficiario();
 
+        // toArray() não aplica os accessors das colunas terminadas em _1/_2:
+        // Str::snake('DataVencimentoBoleto1') vira 'data_vencimento_boleto1' (sem o _ antes
+        // do dígito) e não casa com a coluna 'data_vencimento_boleto_1'. O acesso direto
+        // funciona, então reinjetamos o valor formatado (d/m/Y) no payload.
+        $liminarData = $liminar->toArray();
+        $liminarData['data_vencimento_boleto_1'] = $liminar->data_vencimento_boleto_1;
+        $liminarData['data_vencimento_boleto_2'] = $liminar->data_vencimento_boleto_2;
+
         return response()->json([
-            'liminar'      => $liminar,
+            'liminar'      => $liminarData,
+            'fase_label'   => self::faseLabel($liminar->fase),
             'beneficiario' => $beneficiario ? ['id' => $beneficiario->id, 'nome' => $beneficiario->nome] : null,
             'documentos'   => $liminar->documentos->map(fn($d) => [
                 'id'                   => $d->id,
@@ -200,7 +346,7 @@ class LiminarController extends Controller
                 'tipo_documento_label' => $d->tipo_documento_label,
                 'nome_original'        => $d->nome_original,
                 'uploaded_by_nome'     => $d->uploadedBy?->name,
-                'created_at'           => $d->created_at,
+                'created_at'           => optional($d->created_at)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i'),
             ]),
             'historico' => $liminar->historico->map(fn($h) => [
                 'campo_alterado' => $h->campo_alterado,
@@ -208,20 +354,68 @@ class LiminarController extends Controller
                 'valor_novo'     => $h->valor_novo,
                 'observacao'     => $h->observacao,
                 'usuario_nome'   => $h->usuario?->name,
-                'created_at'     => $h->created_at,
+                'created_at'     => optional($h->created_at)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i'),
             ]),
         ]);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    /**
+     * Move um card de coluna (altera a fase) — endpoint do kanban.
+     * Notifica responsável e corretor a cada mudança (sino + e-mail).
+     */
+    public function mover(Request $request, int $id): JsonResponse
     {
         $this->checkAccess();
+
+        $validated = $request->validate([
+            'fase' => 'required|in:' . implode(',', self::FASES),
+        ]);
+
+        $liminar = CancelamentoLiminar::where('empresa_id', $this->empresaId())->findOrFail($id);
+
+        if ($validated['fase'] === $liminar->fase) {
+            return response()->json(['success' => true]);
+        }
+
+        $anterior = self::faseLabel($liminar->fase);
+        $novo     = self::faseLabel($validated['fase']);
+
+        DB::beginTransaction();
+        try {
+            CancelamentoLiminarHistorico::create([
+                'cancelamento_liminar_id' => $liminar->id,
+                'user_id'                 => Auth::id(),
+                'campo_alterado'          => 'fase',
+                'valor_anterior'          => $anterior,
+                'valor_novo'              => $novo,
+            ]);
+
+            $liminar->fase = $validated['fase'];
+            if ($validated['fase'] === 'LIMINAR_CONCEDIDA') {
+                $liminar->status = 'CONCLUIDA';
+            }
+            $liminar->save();
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Liminar mover falhou', ['erro' => $e->getMessage(), 'exception' => $e]);
+            return response()->json(['success' => false, 'message' => 'Erro ao mover o processo.'], 500);
+        }
+
+        $this->notificarAlteracao($liminar, 'fase', $anterior, $novo);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $this->checkBackoffice();
 
         $liminar = CancelamentoLiminar::where('empresa_id', $this->empresaId())->findOrFail($id);
 
         $validated = $request->validate([
             'status'              => 'nullable|in:NAO_INICIADA,EM_EXECUCAO,BLOQUEADA,CONCLUIDA',
-            'fase'                => 'nullable|in:ASSINATURA_PROCURACAO,ENVIO_DOCUMENTOS,AGUARDANDO_LIMINAR,AGUARDANDO_RETORNO_OPERADORA,LIMINAR_CONCEDIDA',
             'data_envio'          => 'nullable|date_format:d/m/Y',
             'status_honorarios'   => 'nullable|in:PENDENTE,PAGO,NAO_SE_APLICA',
             'status_recebimento'  => 'nullable|in:BOLETO_GERADO,PAGO,PENDENTE',
@@ -230,28 +424,15 @@ class LiminarController extends Controller
             'observacoes'         => 'nullable|string|max:2000',
         ]);
 
-        $tracked = ['status', 'fase', 'status_honorarios', 'status_recebimento'];
-        $notifyCorretor = false;
-        $notifyFields = [];
+        $tracked = ['status', 'status_honorarios', 'status_recebimento'];
+        $alteracoes = [];
 
         DB::beginTransaction();
         try {
             foreach ($tracked as $field) {
                 if (isset($validated[$field]) && $validated[$field] !== $liminar->$field) {
-                    $labelAnterior = match ($field) {
-                        'status'             => self::statusLabel($liminar->$field ?? ''),
-                        'fase'               => self::faseLabel($liminar->$field),
-                        'status_honorarios'  => self::honorariosLabel($liminar->$field ?? ''),
-                        'status_recebimento' => self::recebimentoLabel($liminar->$field ?? ''),
-                        default              => $liminar->$field,
-                    };
-                    $labelNovo = match ($field) {
-                        'status'             => self::statusLabel($validated[$field]),
-                        'fase'               => self::faseLabel($validated[$field]),
-                        'status_honorarios'  => self::honorariosLabel($validated[$field]),
-                        'status_recebimento' => self::recebimentoLabel($validated[$field]),
-                        default              => $validated[$field],
-                    };
+                    $labelAnterior = $this->labelDe($field, $liminar->$field);
+                    $labelNovo     = $this->labelDe($field, $validated[$field]);
 
                     CancelamentoLiminarHistorico::create([
                         'cancelamento_liminar_id' => $liminar->id,
@@ -261,11 +442,7 @@ class LiminarController extends Controller
                         'valor_novo'              => $labelNovo,
                     ]);
 
-                    $notifyFields[] = ['campo' => $field, 'anterior' => $labelAnterior, 'novo' => $labelNovo];
-
-                    if ($field === 'fase' && $validated[$field] === 'LIMINAR_CONCEDIDA') {
-                        $notifyCorretor = true;
-                    }
+                    $alteracoes[] = ['campo' => $field, 'anterior' => $labelAnterior, 'novo' => $labelNovo];
                 }
             }
 
@@ -281,68 +458,71 @@ class LiminarController extends Controller
             return response()->json(['success' => false, 'message' => 'Erro ao atualizar.'], 500);
         }
 
-        // Notificações após commit
-        $beneficiario = $liminar->getBeneficiario();
-        $nomeBeneficiario = $beneficiario?->nome ?? '—';
-
-        foreach ($notifyFields as $nf) {
-            $enviarEmail = $notifyCorretor && $nf['campo'] === 'fase';
-
-            // Notifica o responsável pelo processo
-            if ($liminar->responsavel_id && $liminar->responsavel_id !== Auth::id()) {
-                $liminar->responsavel?->notify(new LiminarStatusAlterado(
-                    liminarId: $liminar->id,
-                    nomeContrato: $liminar->nome_contrato,
-                    nomeBeneficiario: $nomeBeneficiario,
-                    campoAlterado: $nf['campo'],
-                    valorAnterior: $nf['anterior'],
-                    valorNovo: $nf['novo'],
-                    alteradoPorNome: Auth::user()->name,
-                    enviarEmail: false,
-                ));
-            }
-
-            // Notifica o corretor (com e-mail se liminar concedida)
-            $corretor = $liminar->venda?->user;
-            if ($corretor && $corretor->id !== Auth::id()) {
-                $corretor->notify(new LiminarStatusAlterado(
-                    liminarId: $liminar->id,
-                    nomeContrato: $liminar->nome_contrato,
-                    nomeBeneficiario: $nomeBeneficiario,
-                    campoAlterado: $nf['campo'],
-                    valorAnterior: $nf['anterior'],
-                    valorNovo: $nf['novo'],
-                    alteradoPorNome: Auth::user()->name,
-                    enviarEmail: $enviarEmail,
-                ));
-            }
+        foreach ($alteracoes as $a) {
+            $this->notificarAlteracao($liminar, $a['campo'], $a['anterior'], $a['novo']);
         }
 
         return response()->json(['success' => true]);
     }
 
-    public function uploadDocumento(Request $request, int $id): JsonResponse
+    private function labelDe(string $field, ?string $value): string
     {
-        $this->checkAccess();
+        return match ($field) {
+            'status'             => match ($value) {
+                'NAO_INICIADA' => 'Não Iniciada',
+                'EM_EXECUCAO'  => 'Em Execução',
+                'BLOQUEADA'    => 'Bloqueada',
+                'CONCLUIDA'    => 'Concluída',
+                default        => $value ?? '—',
+            },
+            'status_honorarios'  => self::honorariosLabel($value ?? ''),
+            'status_recebimento' => self::recebimentoLabel($value ?? ''),
+            'fase'               => self::faseLabel($value),
+            default              => $value ?? '—',
+        };
+    }
 
-        $request->validate([
-            'tipo_documento' => 'required|in:CARTEIRINHA,CARTAO_CNPJ,COMPROVANTE_PAGAMENTO,CONTRATO_SOCIAL,RETORNO_CANCELAMENTO,RG_CLIENTE',
-            'arquivo'        => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ]);
+    /**
+     * Notifica responsável e corretor (sino + e-mail), excluindo quem fez a alteração.
+     */
+    private function notificarAlteracao(CancelamentoLiminar $liminar, string $campo, ?string $anterior, string $novo): void
+    {
+        $nomeBeneficiario = $liminar->getBeneficiario()?->nome ?? '—';
 
-        $liminar = CancelamentoLiminar::where('empresa_id', $this->empresaId())->findOrFail($id);
-        $arquivo = $request->file('arquivo');
+        $alvos = collect([$liminar->responsavel, $liminar->venda?->user])
+            ->filter()
+            ->unique('id')
+            ->reject(fn($u) => $u->id === Auth::id());
+
+        foreach ($alvos as $usuario) {
+            $usuario->notify(new LiminarStatusAlterado(
+                liminarId: $liminar->id,
+                nomeContrato: $liminar->nome_contrato,
+                nomeBeneficiario: $nomeBeneficiario,
+                campoAlterado: $campo,
+                valorAnterior: $anterior,
+                valorNovo: $novo,
+                alteradoPorNome: Auth::user()->name,
+            ));
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Documentos
+    // ---------------------------------------------------------------
+    private function salvarDocumento(CancelamentoLiminar $liminar, UploadedFile $arquivo, string $tipoDocumento, bool $log = true): CancelamentoLiminarDocumento
+    {
         $ext = $arquivo->getClientOriginalExtension();
-        $tipoDoc = strtolower($request->tipo_documento);
+        $tipoDoc = strtolower($tipoDocumento);
         $directory = "liminares/{$liminar->empresa_id}/{$liminar->id}";
         $fileName = "{$tipoDoc}.{$ext}";
 
         Storage::disk('s3')->putFileAs($directory, $arquivo, $fileName);
         $path = "{$directory}/{$fileName}";
 
-        // Remove documento anterior do mesmo tipo se existir
+        // Remove documento anterior do mesmo tipo se existir.
         $existing = CancelamentoLiminarDocumento::where('cancelamento_liminar_id', $liminar->id)
-            ->where('tipo_documento', $request->tipo_documento)
+            ->where('tipo_documento', $tipoDocumento)
             ->first();
         if ($existing) {
             Storage::disk('s3')->delete($existing->path_s3);
@@ -352,20 +532,43 @@ class LiminarController extends Controller
         $doc = CancelamentoLiminarDocumento::create([
             'cancelamento_liminar_id' => $liminar->id,
             'empresa_id'              => $liminar->empresa_id,
-            'tipo_documento'          => $request->tipo_documento,
+            'tipo_documento'          => $tipoDocumento,
             'nome_original'           => $arquivo->getClientOriginalName(),
             'path_s3'                 => $path,
             'uploaded_by'             => Auth::id(),
         ]);
 
-        CancelamentoLiminarHistorico::create([
-            'cancelamento_liminar_id' => $liminar->id,
-            'user_id'                 => Auth::id(),
-            'campo_alterado'          => 'documento',
-            'valor_anterior'          => null,
-            'valor_novo'              => $doc->tipo_documento_label,
-            'observacao'              => "Documento enviado: {$arquivo->getClientOriginalName()}",
+        if ($log) {
+            CancelamentoLiminarHistorico::create([
+                'cancelamento_liminar_id' => $liminar->id,
+                'user_id'                 => Auth::id(),
+                'campo_alterado'          => 'documento',
+                'valor_anterior'          => null,
+                'valor_novo'              => $doc->tipo_documento_label,
+                'observacao'              => "Documento enviado: {$arquivo->getClientOriginalName()}",
+            ]);
+        }
+
+        return $doc;
+    }
+
+    public function uploadDocumento(Request $request, int $id): JsonResponse
+    {
+        $this->checkBackoffice();
+
+        // Áudio (Hapvida) aceita formatos de áudio; os demais tipos seguem imagem/pdf.
+        $regraArquivo = $request->input('tipo_documento') === 'AUDIO_HAPVIDA'
+            ? self::MIME_AUDIO
+            : self::MIME_IMAGEM_PDF;
+
+        $request->validate([
+            'tipo_documento' => 'required|in:' . implode(',', self::TIPOS_DOCUMENTO),
+            'arquivo'        => 'required|file|' . $regraArquivo,
         ]);
+
+        $liminar = CancelamentoLiminar::where('empresa_id', $this->empresaId())->findOrFail($id);
+
+        $doc = $this->salvarDocumento($liminar, $request->file('arquivo'), $request->tipo_documento);
 
         return response()->json([
             'success'              => true,
@@ -378,7 +581,7 @@ class LiminarController extends Controller
 
     public function destroyDocumento(int $id, int $docId): JsonResponse
     {
-        $this->checkAccess();
+        $this->checkBackoffice();
 
         $liminar = CancelamentoLiminar::where('empresa_id', $this->empresaId())->findOrFail($id);
         $doc = CancelamentoLiminarDocumento::where('cancelamento_liminar_id', $liminar->id)->findOrFail($docId);
@@ -399,9 +602,45 @@ class LiminarController extends Controller
         return Storage::disk('s3')->download($doc->path_s3, $doc->nome_original);
     }
 
+    /**
+     * Busca contratos da empresa por nome ou CPF/CNPJ (autocomplete do "Novo Processo").
+     */
+    public function buscarContratos(Request $request): JsonResponse
+    {
+        $this->checkBackoffice();
+
+        $termo = trim((string) $request->query('q', ''));
+        if (mb_strlen($termo) < 2) {
+            return response()->json(['contratos' => []]);
+        }
+
+        $termoDigitos = preg_replace('/\D+/', '', $termo);
+
+        $contratos = Vendas::where('empresa_id', $this->empresaId())
+            ->where(function ($q) use ($termo, $termoDigitos) {
+                $q->where('nome_contrato', 'like', "%{$termo}%")
+                    ->orWhere('numero_proposta', 'like', "%{$termo}%")
+                    ->orWhere('cpf_cnpj', 'like', "%{$termo}%");
+                if ($termoDigitos !== '') {
+                    $q->orWhere('cpf_cnpj', 'like', "%{$termoDigitos}%");
+                }
+            })
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get(['id', 'nome_contrato', 'cpf_cnpj', 'numero_proposta'])
+            ->map(fn($v) => [
+                'id'             => $v->id,
+                'nome_contrato'  => $v->nome_contrato,
+                'cpf_cnpj'       => $v->cpf_cnpj,
+                'numero_proposta'=> $v->numero_proposta,
+            ]);
+
+        return response()->json(['contratos' => $contratos]);
+    }
+
     public function getBeneficiarios(int $vendaId): JsonResponse
     {
-        $this->checkAccess();
+        $this->checkBackoffice();
 
         $venda = Vendas::where('id', $vendaId)
             ->where('empresa_id', $this->empresaId())

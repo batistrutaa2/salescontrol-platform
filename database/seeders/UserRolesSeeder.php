@@ -22,6 +22,9 @@ class UserRolesSeeder extends Seeder
       ['id' => 2, 'tipo_usuario' => 'ADMINISTRATIVO', 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime],
       ['id' => 3, 'tipo_usuario' => 'BACKOFFICE', 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime],
       ['id' => 4, 'tipo_usuario' => 'DEVELOPER', 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime],
+      ['id' => 5, 'tipo_usuario' => 'SUPERVISOR', 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime],
+      ['id' => 6, 'tipo_usuario' => 'BENEFICIOS', 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime],
+      ['id' => 7, 'tipo_usuario' => 'ADVOGADA', 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime],
     ]);
   }
 }

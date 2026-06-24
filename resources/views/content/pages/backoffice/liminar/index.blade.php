@@ -4,8 +4,6 @@
 
 @section('vendor-style')
     @vite([
-        'resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss',
-        'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss',
         'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss',
         'resources/assets/vendor/libs/animate-css/animate.scss',
         'resources/assets/vendor/libs/flatpickr/flatpickr.scss',
@@ -17,9 +15,9 @@
 
 @section('vendor-script')
     @vite([
-        'resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js',
         'resources/assets/vendor/libs/sweetalert2/sweetalert2.js',
         'resources/assets/vendor/libs/flatpickr/flatpickr.js',
+        'resources/assets/vendor/libs/sortablejs/sortable.js',
     ])
 @endsection
 
@@ -28,338 +26,209 @@
 @endsection
 
 @section('content')
-<div class="liminar-wrapper">
+<script>
+    window.limConfig = {
+        colunas: @json($colunas),
+        isAdvogada: @json($isAdvogada),
+    };
+</script>
+
+<div class="liminar-wrapper" data-advogada="{{ $isAdvogada ? '1' : '0' }}">
 
     {{-- Header --}}
     <div class="lim-header">
         <div class="lim-header-content">
             <div class="lim-header-text">
-                <span class="lim-greeting-label">Backoffice</span>
+                <span class="lim-greeting-label">{{ $isAdvogada ? 'Jurídico' : 'Backoffice' }}</span>
                 <h1 class="lim-main-title">Cancelamento via Liminar</h1>
-                <p class="lim-subtitle">Gerencie os processos de cancelamento judicial de planos de saúde</p>
+                <p class="lim-subtitle">Acompanhe os processos de cancelamento judicial de planos de saúde</p>
             </div>
-            <div class="lim-header-actions">
-                <button class="lim-btn-novo" id="btnNovoProcesso">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Novo Processo
-                </button>
+            @unless ($isAdvogada)
+                <div class="lim-header-actions">
+                    <button class="lim-btn-novo" id="btnNovoProcesso">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Novo Processo
+                    </button>
+                </div>
+            @endunless
+        </div>
+    </div>
+
+    {{-- Termômetro da esteira: em aberto + distribuição por pipeline --}}
+    <div class="lim-dash">
+        <div class="lim-dash-hero">
+            <span class="lim-dash-hero-label">Em aberto</span>
+            <span class="lim-dash-hero-value" id="dashEmAberto">0</span>
+            <span class="lim-dash-hero-sub">de <span id="dashTotal">0</span> processos</span>
+        </div>
+        <div class="lim-dash-pipeline">
+            <div class="lim-dash-bar" id="dashBar">
+                @foreach ($colunas as $coluna)
+                    <span class="lim-dash-seg" data-seg="{{ $coluna['id'] }}"
+                          style="background: linear-gradient(90deg, {{ $coluna['gradiente']['start'] }}, {{ $coluna['gradiente']['end'] }});"></span>
+                @endforeach
+            </div>
+            <div class="lim-dash-legend">
+                @foreach ($colunas as $coluna)
+                    <span class="lim-dash-leg">
+                        <span class="lim-dash-dot" style="background: linear-gradient(135deg, {{ $coluna['gradiente']['start'] }}, {{ $coluna['gradiente']['end'] }});"></span>
+                        <span class="lim-dash-leg-label">{{ $coluna['curto'] }}</span>
+                        <strong class="lim-dash-leg-count" data-legcount="{{ $coluna['id'] }}">0</strong>
+                    </span>
+                @endforeach
             </div>
         </div>
     </div>
 
-    {{-- KPI Cards --}}
-    <div class="lim-kpi-grid">
-        <div class="kpi-card kpi-info">
-            <div class="kpi-icon-wrapper">
-                <div class="kpi-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-                    </svg>
+    {{-- Kanban Board --}}
+    <div class="lim-kanban-board" id="kanbanBoard">
+        @foreach ($colunas as $coluna)
+            <div class="lim-kanban-column" data-status="{{ $coluna['id'] }}"
+                 style="--col-start: {{ $coluna['gradiente']['start'] }}; --col-end: {{ $coluna['gradiente']['end'] }};">
+                <div class="lim-kanban-column-header">
+                    <span class="lim-kanban-column-dot"></span>
+                    <span class="lim-kanban-column-title">{{ $coluna['label'] }}</span>
+                    <span class="lim-kanban-column-count" data-count="{{ $coluna['id'] }}">0</span>
                 </div>
-                <div class="kpi-pulse"></div>
-            </div>
-            <div class="kpi-content">
-                <span class="kpi-label">Total de Processos</span>
-                <h2 class="kpi-value" id="kpi-total">—</h2>
-                <span class="kpi-subtitle">registrados</span>
-            </div>
-            <div class="kpi-glow"></div>
-        </div>
-
-        <div class="kpi-card kpi-warning">
-            <div class="kpi-icon-wrapper">
-                <div class="kpi-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                </div>
-                <div class="kpi-pulse"></div>
-            </div>
-            <div class="kpi-content">
-                <span class="kpi-label">Em Execução</span>
-                <h2 class="kpi-value" id="kpi-execucao">—</h2>
-                <span class="kpi-subtitle">em andamento</span>
-            </div>
-            <div class="kpi-glow"></div>
-        </div>
-
-        <div class="kpi-card kpi-success">
-            <div class="kpi-icon-wrapper">
-                <div class="kpi-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
-                </div>
-                <div class="kpi-pulse"></div>
-            </div>
-            <div class="kpi-content">
-                <span class="kpi-label">Liminares Concedidas</span>
-                <h2 class="kpi-value" id="kpi-concedidas">—</h2>
-                <span class="kpi-subtitle">fase atual</span>
-            </div>
-            <div class="kpi-glow"></div>
-        </div>
-
-        <div class="kpi-card kpi-primary">
-            <div class="kpi-icon-wrapper">
-                <div class="kpi-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                </div>
-                <div class="kpi-pulse"></div>
-            </div>
-            <div class="kpi-content">
-                <span class="kpi-label">Concluídos</span>
-                <h2 class="kpi-value" id="kpi-concluidos">—</h2>
-                <span class="kpi-subtitle">finalizados</span>
-            </div>
-            <div class="kpi-glow"></div>
-        </div>
-    </div>
-
-    {{-- Filtros --}}
-    <div class="lim-filter-card">
-        <div class="lim-filter-row">
-            <div class="lim-filter-group">
-                <label>Status</label>
-                <select id="filtroStatus" class="lim-select">
-                    <option value="">Todos</option>
-                    <option value="NAO_INICIADA">Não Iniciada</option>
-                    <option value="EM_EXECUCAO">Em Execução</option>
-                    <option value="BLOQUEADA">Bloqueada</option>
-                    <option value="CONCLUIDA">Concluída</option>
-                </select>
-            </div>
-            <div class="lim-filter-group">
-                <label>Fase</label>
-                <select id="filtroFase" class="lim-select">
-                    <option value="">Todas</option>
-                    <option value="ASSINATURA_PROCURACAO">Assinatura da Procuração</option>
-                    <option value="ENVIO_DOCUMENTOS">Envio de Documentos</option>
-                    <option value="AGUARDANDO_LIMINAR">Aguardando Liminar</option>
-                    <option value="AGUARDANDO_RETORNO_OPERADORA">Aguardando Retorno da Operadora</option>
-                    <option value="LIMINAR_CONCEDIDA">Liminar Concedida</option>
-                </select>
-            </div>
-            <div class="lim-filter-group">
-                <label>Período (criação)</label>
-                <input type="text" id="filtroDataInicio" class="lim-input flatpickr-date" placeholder="Data Início">
-            </div>
-            <div class="lim-filter-group">
-                <label>&nbsp;</label>
-                <input type="text" id="filtroDataFim" class="lim-input flatpickr-date" placeholder="Data Fim">
-            </div>
-            <div class="lim-filter-group lim-filter-btn-group">
-                <label>&nbsp;</label>
-                <button id="btnFiltrar" class="lim-btn-filtrar">Filtrar</button>
-            </div>
-        </div>
-    </div>
-
-    {{-- Tabela --}}
-    <div class="table-card">
-        <div class="table-header">
-            <div class="table-title-group">
-                <div class="table-icon" style="background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-light))">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="table-title">Processos de Liminar</h3>
-                    <span class="table-subtitle">Cancelamentos via processo judicial</span>
+                <div class="lim-kanban-column-body" data-column="{{ $coluna['id'] }}">
+                    {{-- cards renderizados via JS --}}
                 </div>
             </div>
-        </div>
-        <div class="table-body">
-            <table id="tabelaLiminares" class="table table-hover w-100">
-                <thead>
-                    <tr>
-                        <th>Contrato</th>
-                        <th>Beneficiário</th>
-                        <th>Tipo</th>
-                        <th>Fase</th>
-                        <th>Status</th>
-                        <th>Honorários</th>
-                        <th>Recebimento</th>
-                        <th>Corretor</th>
-                        <th>Responsável</th>
-                        <th>Criado em</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
+        @endforeach
     </div>
 
 </div>
 
 {{-- ============================================================ --}}
-{{-- Modal: Detalhes / Edição do Processo                        --}}
+{{-- Modal: Detalhes do Processo                                 --}}
 {{-- ============================================================ --}}
 <div class="modal fade" id="modalDetalhes" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content pv-modal-modern">
 
-            {{-- Header --}}
-            <div class="pv-modal-header pv-modal-header-primary">
-                <div class="pv-modal-header-content">
-                    <div class="pv-modal-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
+            {{-- Header status-aware: accent e stepper espelham as colunas do kanban --}}
+            <div class="lim-detail-header" id="detalheHeader">
+                <div class="lim-detail-head-row">
+                    <div class="lim-detail-titlewrap">
+                        <span class="lim-detail-eyebrow" id="detalheFasePill">—</span>
+                        <h5 class="lim-detail-title" id="detalheModalTitulo">Processo de Liminar</h5>
+                        <span class="lim-detail-sub" id="detalheModalSubtitulo">Carregando…</span>
+                    </div>
+                    <button type="button" class="lim-detail-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
-                    </div>
-                    <div class="pv-modal-title-group">
-                        <h5 class="pv-modal-title" id="detalheModalTitulo">Processo de Liminar</h5>
-                        <span class="pv-modal-subtitle" id="detalheModalSubtitulo">Carregando...</span>
-                    </div>
+                    </button>
                 </div>
-                <button type="button" class="pv-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
+                <ol class="lim-stepper" id="detalheStepper" aria-label="Andamento do processo"></ol>
+
+                {{-- Mover processo pelo fluxo do kanban (backoffice e advogada) --}}
+                <div class="lim-move-bar">
+                    <span class="lim-move-label">Mover para</span>
+                    <select id="detalheFaseSelect" class="lim-move-select">
+                        @foreach ($colunas as $col)
+                            <option value="{{ $col['id'] }}">{{ $col['label'] }}</option>
+                        @endforeach
+                    </select>
+                    <button type="button" class="lim-move-btn" id="btnMoverFase">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                        Mover
+                    </button>
+                </div>
+            </div>
+
+            {{-- Abas --}}
+            <div class="lim-tabs" role="tablist">
+                <button type="button" class="lim-tab is-active" data-tab="tabGeral" role="tab">Visão geral</button>
+                <button type="button" class="lim-tab" data-tab="tabDatas" role="tab">Datas</button>
+                <button type="button" class="lim-tab" data-tab="tabDocs" role="tab">Documentos<span class="lim-tab-badge" id="tabDocsCount">0</span></button>
+                <button type="button" class="lim-tab" data-tab="tabHist" role="tab">Histórico</button>
+                @unless ($isAdvogada)
+                    <button type="button" class="lim-tab" data-tab="tabFin" role="tab">Andamento</button>
+                @endunless
             </div>
 
             {{-- Body --}}
-            <div class="pv-modal-body pv-modal-body-flush">
+            <div class="pv-modal-body lim-detail-body">
                 <input type="hidden" id="detalheId">
 
-                {{-- Seção: Processo --}}
-                <div class="lim-modal-section">
-                    <div class="lim-modal-section-header lim-section-primary" id="detalheSecaoHeader">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="detalheSecaoIcone">
-                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                        <span id="detalheSecaoTexto">Andamento do Processo</span>
-                    </div>
-                    <div class="lim-modal-section-body">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="pv-form-label">Status</label>
-                                <select id="detalheStatus" class="lim-modal-select">
-                                    <option value="NAO_INICIADA">Não Iniciada</option>
-                                    <option value="EM_EXECUCAO">Em Execução</option>
-                                    <option value="BLOQUEADA">Bloqueada</option>
-                                    <option value="CONCLUIDA">Concluída</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="pv-form-label">Fase Atual</label>
-                                <select id="detalheFase" class="lim-modal-select">
-                                    <option value="">— Selecione —</option>
-                                    <option value="ASSINATURA_PROCURACAO">Assinatura da Procuração</option>
-                                    <option value="ENVIO_DOCUMENTOS">Envio de Documentos</option>
-                                    <option value="AGUARDANDO_LIMINAR">Aguardando Liminar</option>
-                                    <option value="AGUARDANDO_RETORNO_OPERADORA">Aguardando Retorno da Operadora</option>
-                                    <option value="LIMINAR_CONCEDIDA">Liminar Concedida</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="pv-form-label">Data de Envio</label>
-                                <input type="text" id="detalheDataEnvio" class="pv-form-input flatpickr-date" placeholder="DD/MM/AAAA">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="pv-form-label">Responsável</label>
-                                <input type="text" id="detalheResponsavelNome" class="pv-form-input" readonly>
-                                <input type="hidden" id="detalheResponsavelId">
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {{-- Visão geral (titular, contrato, empresa, procuração) --}}
+                <div class="lim-tabpane is-active" id="tabGeral" role="tabpanel"></div>
 
-                {{-- Seção: Financeiro --}}
-                <div class="lim-modal-section">
-                    <div class="lim-modal-section-header lim-section-success">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                        </svg>
-                        Financeiro
-                    </div>
-                    <div class="lim-modal-section-body">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="pv-form-label">Honorários</label>
-                                <select id="detalheHonorarios" class="lim-modal-select">
-                                    <option value="PENDENTE">Pendente</option>
-                                    <option value="PAGO">Pago</option>
-                                    <option value="NAO_SE_APLICA">N/A</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="pv-form-label">Recebimento (Operadora)</label>
-                                <select id="detalheRecebimento" class="lim-modal-select">
-                                    <option value="PENDENTE">Pendente</option>
-                                    <option value="BOLETO_GERADO">Boleto Gerado</option>
-                                    <option value="PAGO">Pago</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="pv-form-label">Valor Recebido (R$)</label>
-                                <input type="number" id="detalheValorRecebimento" class="pv-form-input" step="0.01" min="0" placeholder="0,00">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="pv-form-label">Observações</label>
-                                <textarea id="detalheObservacoes" class="pv-form-textarea" rows="2" maxlength="2000" style="height:44px;resize:none"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {{-- Datas (agrupadas por etapa) --}}
+                <div class="lim-tabpane" id="tabDatas" role="tabpanel"></div>
 
-                {{-- Seção: Documentos + Histórico --}}
-                <div class="lim-modal-section lim-modal-section-last">
-                    <div class="row g-0">
-                        {{-- Documentos --}}
-                        <div class="col-md-6 lim-modal-col-left">
-                            <div class="lim-modal-section-header lim-section-warning">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/>
+                {{-- Documentos --}}
+                <div class="lim-tabpane" id="tabDocs" role="tabpanel">
+                    @unless ($isAdvogada)
+                        <div class="lim-doc-upload">
+                            <select id="uploadTipoDoc" class="lim-modal-select w-100 mb-2">
+                                <option value="">— Selecione o tipo —</option>
+                                <option value="CARTEIRINHA">Carteirinha</option>
+                                <option value="CARTAO_CNPJ">Cartão do CNPJ</option>
+                                <option value="COMPROVANTE_PAGAMENTO">Comprovante de Pagamento</option>
+                                <option value="CONTRATO_SOCIAL">Contrato Social</option>
+                                <option value="RETORNO_CANCELAMENTO">Retorno do Cancelamento</option>
+                                <option value="RG_CLIENTE">RG/CPF do Responsável</option>
+                                <option value="PRINT_PROTOCOLO">Print do Protocolo</option>
+                                <option value="AUDIO_HAPVIDA">Áudio (Hapvida)</option>
+                            </select>
+                            <div class="lim-file-drop" id="fileDropZone">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+                                    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
                                 </svg>
-                                Documentos
-                            </div>
-                            <div class="lim-modal-section-body">
-                                <select id="uploadTipoDoc" class="lim-modal-select w-100 mb-2">
-                                    <option value="">— Selecione o tipo —</option>
-                                    <option value="CARTEIRINHA">Carteirinha</option>
-                                    <option value="CARTAO_CNPJ">Cartão do CNPJ</option>
-                                    <option value="COMPROVANTE_PAGAMENTO">Comprovante de Pagamento</option>
-                                    <option value="CONTRATO_SOCIAL">Contrato Social</option>
-                                    <option value="RETORNO_CANCELAMENTO">Retorno do Cancelamento</option>
-                                    <option value="RG_CLIENTE">RG da Cliente</option>
-                                </select>
-                                <div class="lim-file-drop" id="fileDropZone">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                        <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
-                                        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-                                    </svg>
-                                    <p>Arraste ou <label for="inputArquivo" class="lim-file-link">selecione</label></p>
-                                    <small>PDF, JPG, PNG — máx. 10MB</small>
-                                    <input type="file" id="inputArquivo" accept=".pdf,.jpg,.jpeg,.png" hidden>
-                                </div>
-                                <div id="listaDocumentos" class="lim-doc-list mt-2"></div>
+                                <p>Arraste ou <label for="inputArquivo" class="lim-file-link">selecione</label></p>
+                                <small>PDF, JPG, PNG — máx. 10MB</small>
+                                <input type="file" id="inputArquivo" accept=".pdf,.jpg,.jpeg,.png,audio/*" hidden>
                             </div>
                         </div>
+                    @endunless
+                    <div id="listaDocumentos" class="lim-doc-list"></div>
+                </div>
 
-                        {{-- Histórico --}}
-                        <div class="col-md-6 lim-modal-col-right">
-                            <div class="lim-modal-section-header lim-section-info">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                                </svg>
-                                Histórico de Alterações
-                            </div>
-                            <div class="lim-modal-section-body lim-timeline-container">
-                                <div id="timelineHistorico" class="lim-timeline"></div>
-                            </div>
+                {{-- Histórico --}}
+                <div class="lim-tabpane" id="tabHist" role="tabpanel">
+                    <div class="lim-timeline-container">
+                        <div id="timelineHistorico" class="lim-timeline"></div>
+                    </div>
+                </div>
+
+                @unless ($isAdvogada)
+                {{-- Andamento / financeiro --}}
+                <div class="lim-tabpane" id="tabFin" role="tabpanel">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="pv-form-label">Honorários</label>
+                            <select id="detalheHonorarios" class="lim-modal-select w-100">
+                                <option value="PENDENTE">Pendente</option>
+                                <option value="PAGO">Pago</option>
+                                <option value="NAO_SE_APLICA">N/A</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="pv-form-label">Pagamento cliente</label>
+                            <select id="detalheRecebimento" class="lim-modal-select w-100">
+                                <option value="PENDENTE">Pendente</option>
+                                <option value="BOLETO_GERADO">Boleto Gerado</option>
+                                <option value="PAGO">Pago</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="pv-form-label">Valor (R$)</label>
+                            <input type="number" id="detalheValorRecebimento" class="pv-form-input" step="0.01" min="0" placeholder="0,00">
+                        </div>
+                        <div class="col-12">
+                            <label class="pv-form-label">Observações</label>
+                            <textarea id="detalheObservacoes" class="pv-form-textarea" rows="3" maxlength="2000"></textarea>
                         </div>
                     </div>
                 </div>
+                @endunless
             </div>
 
             {{-- Footer --}}
@@ -370,23 +239,26 @@
                     </svg>
                     Fechar
                 </button>
-                <button type="button" class="pv-btn pv-btn-primary" id="btnSalvarDetalhes">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    Salvar Alterações
-                </button>
+                @unless ($isAdvogada)
+                    <button type="button" class="pv-btn pv-btn-primary" id="btnSalvarDetalhes">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Salvar Alterações
+                    </button>
+                @endunless
             </div>
 
         </div>
     </div>
 </div>
 
+@unless ($isAdvogada)
 {{-- ============================================================ --}}
-{{-- Modal: Novo Processo — Seleção de Contrato + Beneficiário   --}}
+{{-- Modal: Novo Processo — Contrato → Beneficiário → Procuração --}}
 {{-- ============================================================ --}}
 <div class="modal fade" id="modalNovoProcesso" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content pv-modal-modern">
 
             {{-- Header --}}
@@ -394,14 +266,12 @@
                 <div class="pv-modal-header-content">
                     <div class="pv-modal-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="16"/>
-                            <line x1="8" y1="12" x2="16" y2="12"/>
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
                         </svg>
                     </div>
                     <div class="pv-modal-title-group">
-                        <h5 class="pv-modal-title">Iniciar Processo de Liminar</h5>
-                        <span class="pv-modal-subtitle">Selecione o contrato e o beneficiário</span>
+                        <h5 class="pv-modal-title">Abrir Processo de Liminar</h5>
+                        <span class="pv-modal-subtitle" id="novoSubtitulo">Selecione o contrato</span>
                     </div>
                 </div>
                 <button type="button" class="pv-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
@@ -427,12 +297,7 @@
                             <label class="pv-form-label">Nome do contrato, CPF/CNPJ ou número da proposta</label>
                             <div class="lim-search-row mb-3">
                                 <input type="text" id="buscaContrato" class="pv-form-input flex-grow-1" placeholder="Digite para buscar...">
-                                <button id="btnBuscarContrato" class="pv-btn pv-btn-primary" style="white-space:nowrap">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                    </svg>
-                                    Buscar
-                                </button>
+                                <button id="btnBuscarContrato" class="pv-btn pv-btn-primary" style="white-space:nowrap">Buscar</button>
                             </div>
                             <div id="resultadosContratos" class="lim-resultados"></div>
                         </div>
@@ -444,8 +309,7 @@
                     <div class="lim-modal-section lim-modal-section-last">
                         <div class="lim-modal-section-header lim-section-success">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                             </svg>
                             Selecionar Beneficiário
                         </div>
@@ -456,11 +320,144 @@
                     </div>
                 </div>
 
+                {{-- Passo 3: dados da procuração (todos obrigatórios) --}}
+                <div id="passo3" style="display:none">
+                    <form id="formProcuracao">
+                        {{-- Dados da empresa --}}
+                        <div class="lim-modal-section">
+                            <div class="lim-modal-section-header lim-section-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
+                                </svg>
+                                Dados da Empresa
+                            </div>
+                            <div class="lim-modal-section-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="pv-form-label">Nome da Empresa *</label>
+                                        <input type="text" name="nome_empresa" class="pv-form-input" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="pv-form-label">CNPJ *</label>
+                                        <input type="text" name="cnpj" class="pv-form-input" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="pv-form-label">Protocolo de Cancelamento *</label>
+                                        <input type="text" name="protocolo_cancelamento" class="pv-form-input" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="pv-form-label">E-mail para envio da procuração *</label>
+                                        <input type="email" name="email_procuracao" class="pv-form-input" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Datas --}}
+                        <div class="lim-modal-section">
+                            <div class="lim-modal-section-header lim-section-info">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                Datas
+                            </div>
+                            <div class="lim-modal-section-body">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="pv-form-label">Fim do plano *</label>
+                                        <input type="text" name="data_fim_plano" class="pv-form-input flatpickr-date" placeholder="DD/MM/AAAA" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="pv-form-label">Contratação *</label>
+                                        <input type="text" name="data_contratacao" class="pv-form-input flatpickr-date" placeholder="DD/MM/AAAA" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="pv-form-label">Solicitação do cancelamento *</label>
+                                        <input type="text" name="data_solicitacao_cancelamento" class="pv-form-input flatpickr-date" placeholder="DD/MM/AAAA" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="pv-form-label">Último pagamento do boleto *</label>
+                                        <input type="text" name="data_ultimo_pagamento_boleto" class="pv-form-input flatpickr-date" placeholder="DD/MM/AAAA" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="pv-form-label">Cobertura comprovante — início *</label>
+                                        <input type="text" name="cobertura_comprovante_inicio" class="pv-form-input flatpickr-date" placeholder="DD/MM/AAAA" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="pv-form-label">Cobertura comprovante — fim *</label>
+                                        <input type="text" name="cobertura_comprovante_fim" class="pv-form-input flatpickr-date" placeholder="DD/MM/AAAA" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="pv-form-label">Venc. 1º boleto inelegível *</label>
+                                        <input type="text" name="data_vencimento_boleto_1" class="pv-form-input flatpickr-date" placeholder="DD/MM/AAAA" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="pv-form-label">Venc. 2º boleto inelegível *</label>
+                                        <input type="text" name="data_vencimento_boleto_2" class="pv-form-input flatpickr-date" placeholder="DD/MM/AAAA" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Documentos --}}
+                        <div class="lim-modal-section lim-modal-section-last">
+                            <div class="lim-modal-section-header lim-section-warning">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/>
+                                </svg>
+                                Documentos do processo
+                            </div>
+                            <div class="lim-modal-section-body">
+                                @php
+                                    $slots = [
+                                        ['name' => 'doc_contrato_social',       'label' => 'Contrato Social',                 'req' => true,  'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'PDF, JPG ou PNG · até 10MB'],
+                                        ['name' => 'doc_cartao_cnpj',            'label' => 'Cartão do CNPJ',                  'req' => true,  'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'PDF, JPG ou PNG · até 10MB'],
+                                        ['name' => 'doc_rg_cliente',             'label' => 'RG/CPF do Responsável',           'req' => true,  'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'PDF, JPG ou PNG · até 10MB'],
+                                        ['name' => 'doc_comprovante_pagamento',  'label' => 'Último Comprovante de Pagamento',  'req' => true,  'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'PDF, JPG ou PNG · até 10MB'],
+                                        ['name' => 'doc_print_protocolo',        'label' => 'Print do Protocolo',              'req' => false, 'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'Foto ou print do protocolo'],
+                                        ['name' => 'doc_audio_hapvida',          'label' => 'Áudio — Hapvida',                 'req' => false, 'accept' => 'audio/*',              'icon' => 'audio', 'hint' => 'MP3, WAV ou M4A · até 25MB'],
+                                    ];
+                                @endphp
+                                <div class="lim-upload-grid">
+                                    @foreach ($slots as $s)
+                                        <div class="lim-upload-slot" data-slot>
+                                            <input type="file" id="slot_{{ $s['name'] }}" name="{{ $s['name'] }}" accept="{{ $s['accept'] }}" @if($s['req']) required @endif hidden>
+                                            <label for="slot_{{ $s['name'] }}" class="lim-slot-click">
+                                                <span class="lim-slot-icon">
+                                                    @if ($s['icon'] === 'audio')
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 10v4M7 6v12M11 3v18M15 7v10M19 10v4"/></svg>
+                                                    @else
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                    @endif
+                                                </span>
+                                                <span class="lim-slot-body">
+                                                    <span class="lim-slot-head">
+                                                        <span class="lim-slot-title">{{ $s['label'] }}</span>
+                                                        <span class="lim-slot-badge {{ $s['req'] ? 'is-req' : 'is-opt' }}">{{ $s['req'] ? 'Obrigatório' : 'Opcional' }}</span>
+                                                    </span>
+                                                    <span class="lim-slot-hint">Arraste ou <u>selecione</u> · {{ $s['hint'] }}</span>
+                                                    <span class="lim-slot-file"><span class="lim-slot-filename"></span><span class="lim-slot-size"></span></span>
+                                                </span>
+                                                <span class="lim-slot-check" aria-hidden="true">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                </span>
+                                            </label>
+                                            <button type="button" class="lim-slot-remove" aria-label="Remover documento">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                            </button>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
             </div>
 
             {{-- Footer --}}
             <div class="lim-modal-footer-bar">
-                <button type="button" id="btnVoltarPasso1" class="pv-btn pv-btn-ghost" style="display:none">
+                <button type="button" id="btnVoltarPasso" class="pv-btn pv-btn-ghost" style="display:none">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="15 18 9 12 15 6"/>
                     </svg>
@@ -471,12 +468,13 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    Iniciar Processo
+                    Abrir Processo
                 </button>
             </div>
 
         </div>
     </div>
 </div>
+@endunless
 
 @endsection

@@ -43,6 +43,8 @@ class CancelamentoLiminarDocumento extends Model
             'CONTRATO_SOCIAL'       => 'Contrato Social',
             'RETORNO_CANCELAMENTO'  => 'Retorno do Cancelamento',
             'RG_CLIENTE'            => 'RG da Cliente',
+            'PRINT_PROTOCOLO'       => 'Print do Protocolo',
+            'AUDIO_HAPVIDA'         => 'Áudio (Hapvida)',
             default                 => $this->tipo_documento,
         };
     }

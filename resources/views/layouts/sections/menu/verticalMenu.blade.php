@@ -27,6 +27,16 @@
     <div class="menu-inner-shadow"></div>
 
     <ul class="menu-inner py-1">
+        {{-- ADVOGADA: acesso restrito — vê somente o kanban de liminar --}}
+        @if (Auth::user()->user_role_id === \App\Enums\UserRole::ADVOGADA)
+            @php $currentRouteName = Route::currentRouteName(); @endphp
+            <li class="menu-item {{ str_starts_with($currentRouteName ?? '', 'backoffice.liminar') ? 'active' : '' }}">
+                <a href="{{ url('/back-office/liminar') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-scales-3-line"></i>
+                    <div>{{ __('Cancelamento via Liminar') }}</div>
+                </a>
+            </li>
+        @else
         @foreach ($menuData[0]->menu as $menu)
             {{-- adding active and open class if child is active --}}
 
@@ -95,6 +105,7 @@
                 @endif
             @endif
         @endforeach
+        @endif
     </ul>
 
 </aside>

@@ -19,31 +19,30 @@ class LiminarStatusAlterado extends Notification
         public readonly ?string $valorAnterior,
         public readonly string $valorNovo,
         public readonly ?string $alteradoPorNome = null,
-        public readonly bool $enviarEmail = false,
     ) {
     }
 
     public function via($notifiable): array
     {
-        $channels = ['database', 'broadcast'];
-        if ($this->enviarEmail) {
-            $channels[] = 'mail';
-        }
-        return $channels;
+        // Sino (database + broadcast) e e-mail a cada movimentação.
+        return ['database', 'broadcast', 'mail'];
+    }
+
+    private function campoLabel(): string
+    {
+        return match ($this->campoAlterado) {
+            'status' => 'Status',
+            'fase'   => 'Fase',
+            default  => ucfirst(str_replace('_', ' ', $this->campoAlterado)),
+        };
     }
 
     public function toDatabase($notifiable): array
     {
-        $campo = match ($this->campoAlterado) {
-            'status' => 'Status',
-            'fase'   => 'Fase',
-            default  => $this->campoAlterado,
-        };
-
         return [
             'tipo'             => 'liminar_status',
             'titulo'           => "Liminar de {$this->nomeContrato} atualizada",
-            'mensagem'         => "{$campo} alterado para: {$this->valorNovo}.",
+            'mensagem'         => "{$this->campoLabel()} alterado para: {$this->valorNovo}.",
             'liminar_id'       => $this->liminarId,
             'nome_contrato'    => $this->nomeContrato,
             'beneficiario'     => $this->nomeBeneficiario,
@@ -62,11 +61,16 @@ class LiminarStatusAlterado extends Notification
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("Liminar Concedida — {$this->nomeContrato}")
-            ->greeting("Olá, {$notifiable->name}!")
-            ->line("A liminar do contrato **{$this->nomeContrato}** foi concedida.")
-            ->line("Beneficiário: {$this->nomeBeneficiario}")
-            ->action('Ver no Sistema', route('backoffice.liminar.index'))
-            ->line('Entre no sistema para acompanhar os próximos passos.');
+            ->subject("Liminar — {$this->nomeContrato}: {$this->valorNovo}")
+            ->view('emails.liminar-status-alterado', [
+                'usuario'          => $notifiable->name,
+                'nomeContrato'     => $this->nomeContrato,
+                'nomeBeneficiario' => $this->nomeBeneficiario,
+                'campoLabel'       => $this->campoLabel(),
+                'valorAnterior'    => $this->valorAnterior,
+                'valorNovo'        => $this->valorNovo,
+                'alteradoPorNome'  => $this->alteradoPorNome,
+                'linkSistema'      => route('backoffice.liminar.index'),
+            ]);
     }
 }

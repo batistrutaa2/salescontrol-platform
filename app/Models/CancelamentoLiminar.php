@@ -16,10 +16,22 @@ class CancelamentoLiminar extends Model
         'beneficiario_tipo',
         'beneficiario_id',
         'nome_contrato',
+        'nome_empresa',
+        'cnpj',
+        'protocolo_cancelamento',
+        'email_procuracao',
         'responsavel_id',
         'status',
         'fase',
         'data_envio',
+        'data_fim_plano',
+        'data_contratacao',
+        'data_solicitacao_cancelamento',
+        'data_ultimo_pagamento_boleto',
+        'cobertura_comprovante_inicio',
+        'cobertura_comprovante_fim',
+        'data_vencimento_boleto_1',
+        'data_vencimento_boleto_2',
         'status_honorarios',
         'status_recebimento',
         'valor_recebimento',
@@ -41,10 +53,10 @@ class CancelamentoLiminar extends Model
     }
 
     // ---------------------------------------------------------------
-    // data_envio: sem cast 'date' (removido para evitar conflito com
-    // serializeDate). O banco armazena Y-m-d; o accessor converte para d/m/Y.
+    // Datas em DATAS_BR: sem cast 'date' (evita conflito com serializeDate).
+    // O banco armazena Y-m-d; os accessors convertem para d/m/Y na saída.
     // ---------------------------------------------------------------
-    public function getDataEnvioAttribute($value): ?string
+    private static function formatarDataBr($value): ?string
     {
         if (!$value) {
             return null;
@@ -54,6 +66,51 @@ class CancelamentoLiminar extends Model
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    public function getDataEnvioAttribute($value): ?string
+    {
+        return self::formatarDataBr($value);
+    }
+
+    public function getDataFimPlanoAttribute($value): ?string
+    {
+        return self::formatarDataBr($value);
+    }
+
+    public function getDataContratacaoAttribute($value): ?string
+    {
+        return self::formatarDataBr($value);
+    }
+
+    public function getDataSolicitacaoCancelamentoAttribute($value): ?string
+    {
+        return self::formatarDataBr($value);
+    }
+
+    public function getDataUltimoPagamentoBoletoAttribute($value): ?string
+    {
+        return self::formatarDataBr($value);
+    }
+
+    public function getCoberturaComprovanteInicioAttribute($value): ?string
+    {
+        return self::formatarDataBr($value);
+    }
+
+    public function getCoberturaComprovanteFimAttribute($value): ?string
+    {
+        return self::formatarDataBr($value);
+    }
+
+    public function getDataVencimentoBoleto1Attribute($value): ?string
+    {
+        return self::formatarDataBr($value);
+    }
+
+    public function getDataVencimentoBoleto2Attribute($value): ?string
+    {
+        return self::formatarDataBr($value);
     }
 
     // ---------------------------------------------------------------

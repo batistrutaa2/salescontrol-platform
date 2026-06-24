@@ -184,6 +184,9 @@
                                 // <<< ADICIONADO: tipo 'aniversario'
                                 $icon = 'ri-cake-2-line';
                                 $chip = 'bg-success-subtle text-success';
+                            } elseif ($tipo === 'liminar_status') {
+                                $icon = 'ri-scales-3-line';
+                                $chip = 'bg-primary-subtle text-primary';
                             }
                         @endphp
 

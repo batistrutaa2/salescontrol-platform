@@ -1,647 +1,731 @@
 'use strict';
 
 (function () {
+    const cfg = window.limConfig || {};
+    const isAdvogada = !!cfg.isAdvogada;
+    const colunas = cfg.colunas || [];
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    // ----------------------------------------------------------------
-    // State
-    // ----------------------------------------------------------------
-    let tabelaLiminares = null;
-    let vendaSelecionada = null;
-    let beneficiarioSelecionado = null;
-    let liminarAtualId = null;
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+    const escapar = (txt) => {
+        const div = document.createElement('div');
+        div.textContent = txt == null ? '' : String(txt);
+        return div.innerHTML;
+    };
 
-    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+    const formatarBytes = (bytes) => {
+        if (!bytes) return '';
+        const u = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return `${(bytes / Math.pow(1024, i)).toFixed(i ? 1 : 0)} ${u[i]}`;
+    };
 
-    // ----------------------------------------------------------------
-    // Flatpickr
-    // ----------------------------------------------------------------
-    const fpConfig = { dateFormat: 'd/m/Y', locale: 'pt', allowInput: true };
-    document.querySelectorAll('.flatpickr-date').forEach(el => flatpickr(el, fpConfig));
+    const gradienteDaFase = (fase) => {
+        const col = colunas.find((c) => c.id === fase);
+        return col ? col.gradiente : { start: '#94A3B8', end: '#CBD5E1' };
+    };
 
-    // ----------------------------------------------------------------
-    // DataTable
-    // ----------------------------------------------------------------
-    function initTabela() {
-        // O bundle datatables-bootstrap5.js inclui jquery-datatables-checkboxes,
-        // que injeta referências circulares no estado interno do DataTables.
-        // Quando DataTables tenta JSON.stringify esse estado em flushLogs (error
-        // reporting), o processo falha. Substituímos o errMode por uma função
-        // que só loga no console, sem tentar serializar o estado.
-        if ($.fn.dataTable && $.fn.dataTable.ext) {
-            $.fn.dataTable.ext.errMode = function (settings, techNote, message) {
-                console.warn('[DataTables]', message);
-            };
+    const labelDaFase = (fase) => {
+        const col = colunas.find((c) => c.id === fase);
+        return col ? col.label : fase;
+    };
+
+    const SVG = {
+        toastSuccess: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+        toastError: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+        toastWarning: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+        toastInfo: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+        toastClose: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+        download: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+        remove: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+    };
+
+    const showModernToast = (type, title, message) => {
+        if (typeof Swal === 'undefined') {
+            // eslint-disable-next-line no-alert
+            alert(`${title}\n${message}`);
+            return;
         }
-
-        tabelaLiminares = $('#tabelaLiminares').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: function (data, callback, settings) {
-                $.ajax({
-                    url: '/back-office/liminar/data',
-                    method: 'GET',
-                    data: {
-                        draw:     data.draw,
-                        columns:  data.columns,
-                        order:    data.order,
-                        start:    data.start,
-                        length:   data.length,
-                        search:   data.search,
-                        status:      document.getElementById('filtroStatus').value,
-                        fase:        document.getElementById('filtroFase').value,
-                        data_inicio: document.getElementById('filtroDataInicio').value,
-                        data_fim:    document.getElementById('filtroDataFim').value,
-                    },
-                    success: callback,
-                    error: () => Swal.fire('Erro', 'Não foi possível carregar os dados.', 'error'),
-                });
-            },
-            columns: [
-                { data: 'nome_contrato',      title: 'Contrato' },
-                { data: 'beneficiario_nome',  title: 'Beneficiário', orderable: false },
-                { data: 'beneficiario_tipo_label', title: 'Tipo', orderable: false,
-                    render: v => `<span class="badge-fase">${v}</span>` },
-                { data: 'fase_label',         title: 'Fase', orderable: false,
-                    render: v => v !== '—' ? `<span class="badge-fase">${v}</span>` : '<span class="text-muted">—</span>' },
-                { data: 'status_label',       title: 'Status', orderable: false,
-                    render: (v, _, row) => {
-                        const cls = { 'Não Iniciada': 'nao-iniciada', 'Em Execução': 'em-execucao', 'Bloqueada': 'bloqueada', 'Concluída': 'concluida' };
-                        return `<span class="badge-status ${cls[v] ?? ''}">${v}</span>`;
-                    }
-                },
-                { data: 'honorarios_label',   title: 'Honorários', orderable: false },
-                { data: 'recebimento_label',  title: 'Recebimento', orderable: false },
-                { data: 'corretor_nome',      title: 'Corretor', orderable: false },
-                { data: 'responsavel_nome',   title: 'Responsável', orderable: false },
-                { data: 'data_criacao',       title: 'Criado em', orderable: false },
-                {
-                    data: null, title: 'Ações', orderable: false,
-                    render: (_, __, row) =>
-                        `<button class="lim-btn-acao btn-abrir" data-id="${row.id}" title="Ver detalhes">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                            </svg>
-                        </button>`,
-                },
-            ],
-            order: [[9, 'desc']],
-            language: {
-                processing:     '<div class="dt-loading">Carregando...</div>',
-                search:         'Buscar:',
-                lengthMenu:     'Exibir _MENU_ registros',
-                info:           'Exibindo _START_ a _END_ de _TOTAL_ registros',
-                infoEmpty:      'Exibindo 0 a 0 de 0 registros',
-                infoFiltered:   '(filtrado de _MAX_ registros)',
-                loadingRecords: 'Carregando...',
-                zeroRecords:    'Nenhum processo encontrado',
-                emptyTable:     'Nenhum processo cadastrado',
-                paginate: {
-                    first:    '«',
-                    previous: '‹',
-                    next:     '›',
-                    last:     '»',
-                },
-            },
-            drawCallback: function () {
-                atualizarKpis();
-            },
-        });
-    }
-
-    // ----------------------------------------------------------------
-    // KPIs — busca separada após cada draw
-    // ----------------------------------------------------------------
-    function atualizarKpis() {
-        fetch('/back-office/liminar/data?length=10000', {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        })
-            .then(r => r.json())
-            .then(json => {
-                const data = json.data ?? [];
-                document.getElementById('kpi-total').textContent = data.length;
-                document.getElementById('kpi-execucao').textContent = data.filter(r => r.status === 'EM_EXECUCAO').length;
-                document.getElementById('kpi-concedidas').textContent = data.filter(r => r.fase === 'LIMINAR_CONCEDIDA').length;
-                document.getElementById('kpi-concluidos').textContent = data.filter(r => r.status === 'CONCLUIDA').length;
-            })
-            .catch(() => {});
-    }
-
-    // Atualiza visual da seção ao mudar o status no select (antes de salvar)
-    document.getElementById('detalheStatus').addEventListener('change', function () {
-        const nomeContrato = document.getElementById('detalheModalSubtitulo').textContent.split(' · ')[0];
-        atualizarModalPorStatus(this.value, nomeContrato);
-        // Reabilita o botão caso o usuário mude de volta de CONCLUIDA
-        document.getElementById('detalheStatus').disabled = false;
-    });
-
-    // ----------------------------------------------------------------
-    // Filtros
-    // ----------------------------------------------------------------
-    document.getElementById('btnFiltrar').addEventListener('click', () => {
-        tabelaLiminares.ajax.reload();
-    });
-
-    // ----------------------------------------------------------------
-    // Abrir modal de detalhes
-    // ----------------------------------------------------------------
-    function abrirDetalhes(id) {
-        liminarAtualId = id;
-        fetch(`/back-office/liminar/${id}`, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        })
-            .then(r => r.json())
-            .then(json => {
-                const l = json.liminar;
-
-                document.getElementById('detalheId').value = l.id;
-                document.getElementById('detalheStatus').value           = l.status;
-                document.getElementById('detalheFase').value             = l.fase ?? '';
-                document.getElementById('detalheDataEnvio').value        = l.data_envio ?? '';
-                document.getElementById('detalheHonorarios').value       = l.status_honorarios;
-                document.getElementById('detalheRecebimento').value      = l.status_recebimento;
-                document.getElementById('detalheValorRecebimento').value  = l.valor_recebimento ?? '';
-                document.getElementById('detalheObservacoes').value      = l.observacoes ?? '';
-                document.getElementById('detalheResponsavelNome').value  = l.responsavel?.name ?? '';
-                document.getElementById('detalheResponsavelId').value    = l.responsavel_id ?? '';
-
-                // Atualiza header da modal e seção conforme status
-                atualizarModalPorStatus(l.status, l.nome_contrato);
-
-                renderDocumentos(json.documentos);
-                renderHistorico(json.historico);
-
-                // Reinit flatpickr no campo de data
-                flatpickr('#detalheDataEnvio', fpConfig);
-
-                // getOrCreateInstance reutiliza a instância existente em vez de empilhar
-                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetalhes')).show();
-            })
-            .catch(() => Swal.fire('Erro', 'Não foi possível carregar os detalhes.', 'error'));
-    }
-
-    // ----------------------------------------------------------------
-    // Render Documentos
-    // ----------------------------------------------------------------
-    function renderDocumentos(docs) {
-        const container = document.getElementById('listaDocumentos');
-        container.innerHTML = '';
-        docs.forEach(d => {
-            const item = document.createElement('div');
-            item.className = 'lim-doc-item';
-            item.dataset.id = d.id;
-            item.innerHTML = `
-                <div class="doc-info">
-                    <span class="doc-tipo">${d.tipo_documento_label}</span>
-                    <span class="doc-nome">${d.nome_original}</span>
+        const iconKey = { success: SVG.toastSuccess, error: SVG.toastError, warning: SVG.toastWarning, info: SVG.toastInfo };
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            background: 'transparent',
+            showClass: { popup: 'animate__animated animate__slideInRight animate__faster' },
+            hideClass: { popup: 'animate__animated animate__slideOutRight animate__faster' },
+            html: `
+                <div class="custom-toast custom-toast-${type}">
+                    <div class="toast-icon">${iconKey[type] || SVG.toastInfo}</div>
+                    <div class="toast-content">
+                        <div class="toast-title">${escapar(title)}</div>
+                        <div class="toast-message">${escapar(message)}</div>
+                    </div>
+                    <div class="toast-close" onclick="Swal.close()">${SVG.toastClose}</div>
                 </div>
-                <div class="doc-actions">
-                    <button class="doc-btn btn-download" data-id="${d.id}" title="Download">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                    </button>
-                    <button class="doc-btn btn-remove" data-id="${d.id}" title="Remover">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                        </svg>
-                    </button>
-                </div>`;
-            container.appendChild(item);
+            `,
+            customClass: { popup: 'custom-toast-popup' },
         });
+    };
 
-        container.querySelectorAll('.btn-download').forEach(btn => {
+    // =========================================================================
+    // Kanban — render
+    // =========================================================================
+    const cardTemplate = (item) => {
+        const grad = gradienteDaFase(item.fase);
+        const el = document.createElement('div');
+        el.className = 'lim-card';
+        el.dataset.id = item.id;
+        el.style.setProperty('--lim-card-status-color', grad.start);
+        el.innerHTML = `
+            <div class="lim-card-header">
+                <span class="lim-card-contrato">${escapar(item.nome_contrato || '—')}</span>
+                <span class="lim-card-tipo">${escapar(item.beneficiario_tipo)}</span>
+            </div>
+            <div class="lim-card-beneficiario">${escapar(item.beneficiario_nome)}</div>
+            ${item.nome_empresa ? `<div class="lim-card-empresa">${escapar(item.nome_empresa)}</div>` : ''}
+            <div class="lim-card-meta">
+                ${item.protocolo ? `<span class="lim-card-protocolo">Protocolo: ${escapar(item.protocolo)}</span>` : ''}
+            </div>
+            <div class="lim-card-footer">
+                <span title="Corretor">${escapar(item.corretor_nome)}</span>
+                <span class="lim-card-data">${escapar(item.data_criacao)}</span>
+            </div>
+        `;
+        el.addEventListener('click', () => abrirDetalhes(item.id));
+        return el;
+    };
+
+    const renderizar = (dados) => {
+        document.querySelectorAll('.lim-kanban-column-body').forEach((body) => {
+            const fase = body.dataset.column;
+            body.innerHTML = '';
+            (dados[fase] || []).forEach((item) => body.appendChild(cardTemplate(item)));
+        });
+        atualizarContadores();
+    };
+
+    const atualizarContadores = () => {
+        document.querySelectorAll('.lim-kanban-column-body').forEach((body) => {
+            const fase = body.dataset.column;
+            const el = document.querySelector(`[data-count="${fase}"]`);
+            if (el) el.textContent = body.children.length;
+        });
+        atualizarDashboard();
+    };
+
+    // Termômetro: nº por fase, total e "em aberto" (tudo menos a fase concluída).
+    const FASE_CONCLUIDA = 'LIMINAR_CONCEDIDA';
+    const atualizarDashboard = () => {
+        let total = 0;
+        let concluidos = 0;
+        const porFase = {};
+        document.querySelectorAll('.lim-kanban-column-body').forEach((body) => {
+            const fase = body.dataset.column;
+            const n = body.children.length;
+            porFase[fase] = n;
+            total += n;
+            if (fase === FASE_CONCLUIDA) concluidos += n;
+        });
+        const emAberto = total - concluidos;
+
+        const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        setText('dashEmAberto', emAberto);
+        setText('dashTotal', total);
+
+        // Largura proporcional de cada segmento + contagem na legenda.
+        document.querySelectorAll('.lim-dash-seg').forEach((seg) => {
+            const fase = seg.dataset.seg;
+            const n = porFase[fase] || 0;
+            seg.style.flexGrow = n;
+            seg.style.opacity = n ? '1' : '0';
+        });
+        document.querySelectorAll('[data-legcount]').forEach((el) => {
+            el.textContent = porFase[el.dataset.legcount] || 0;
+        });
+        const bar = document.getElementById('dashBar');
+        if (bar) bar.classList.toggle('is-empty', total === 0);
+    };
+
+    const carregarDados = async () => {
+        try {
+            const resp = await fetch('/back-office/liminar/dados', { headers: { Accept: 'application/json' } });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const body = await resp.json();
+            renderizar(body.colunas || {});
+        } catch (err) {
+            console.error(err);
+            showModernToast('error', 'Erro', 'Não foi possível carregar os processos.');
+        }
+    };
+
+    // =========================================================================
+    // Kanban — mover
+    // =========================================================================
+    const mover = async (id, novaFase) => {
+        try {
+            const resp = await fetch(`/back-office/liminar/${id}/mover`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+                body: JSON.stringify({ fase: novaFase }),
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.message || `Falha ao mover (HTTP ${resp.status})`);
+            }
+            atualizarContadores();
+            showModernToast('success', 'Processo movido', `Fase: ${labelDaFase(novaFase)}.`);
+        } catch (err) {
+            console.error(err);
+            showModernToast('error', 'Erro ao mover', err.message || 'Tente novamente.');
+            carregarDados();
+        }
+    };
+
+    const initDragDrop = () => {
+        if (typeof Sortable === 'undefined') {
+            console.error('SortableJS não carregado');
+            return;
+        }
+        document.querySelectorAll('.lim-kanban-column-body').forEach((el) => {
+            new Sortable(el, {
+                group: 'lim-liminares',
+                animation: 160,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                dragClass: 'sortable-drag',
+                onEnd: (evt) => {
+                    document.querySelectorAll('.lim-kanban-column-body').forEach((b) => b.classList.remove('drag-over'));
+                    if (evt.from === evt.to) return;
+                    const id = parseInt(evt.item.dataset.id, 10);
+                    const novaFase = evt.to.dataset.column;
+                    evt.item.style.setProperty('--lim-card-status-color', gradienteDaFase(novaFase).start);
+                    mover(id, novaFase);
+                },
+                onMove: (evt) => {
+                    document.querySelectorAll('.lim-kanban-column-body').forEach((b) => b.classList.remove('drag-over'));
+                    if (evt.to) evt.to.classList.add('drag-over');
+                },
+            });
+        });
+    };
+
+    // =========================================================================
+    // Modal de detalhes
+    // =========================================================================
+    let liminarAtualId = null;
+    let faseModalAtual = null;
+
+    const FASE_SHORT = {
+        CANCELAMENTO_ABERTO: 'Aberto',
+        AGUARDANDO_ASSINATURA: 'Assinatura',
+        AGUARDANDO_RETORNO_OPERADORA: 'Retorno operadora',
+        LIMINAR_CONCEDIDA: 'Concedida',
+    };
+
+    const stepCheck = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    };
+
+    const formatarCnpj = (valor) => {
+        const v = String(valor || '').replace(/\D/g, '');
+        if (v.length === 14) return v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+        if (v.length === 11) return v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        return valor || '—';
+    };
+
+    // --- montagem das abas ---
+    const infoItem = (label, value) =>
+        `<div class="lim-info-item"><span class="lim-info-label">${escapar(label)}</span><span class="lim-info-value">${escapar(value ?? '—')}</span></div>`;
+    const infoGroup = (titulo, itens) =>
+        `<div class="lim-info-group"><div class="lim-group-title">${escapar(titulo)}</div><div class="lim-info-grid">${itens}</div></div>`;
+    const dateCard = (label, value) =>
+        `<div class="lim-date-card"><span class="lim-date-label">${escapar(label)}</span><span class="lim-date-value">${escapar(value ?? '—')}</span></div>`;
+    const dateGroup = (titulo, cards) =>
+        `<div class="lim-date-group"><div class="lim-group-title">${escapar(titulo)}</div><div class="lim-date-cards">${cards}</div></div>`;
+
+    const renderStepper = (faseAtual) => {
+        const cont = document.getElementById('detalheStepper');
+        if (!cont) return;
+        const idx = colunas.findIndex((c) => c.id === faseAtual);
+        cont.innerHTML = colunas.map((c, i) => {
+            const estado = i < idx ? 'done' : (i === idx ? 'active' : 'todo');
+            const vars = `--s:${c.gradiente.start};--e:${c.gradiente.end}`;
+            const marker = estado === 'done' ? stepCheck : (i + 1);
+            return `<li class="lim-step is-${estado}" style="${vars}">
+                <span class="lim-step-marker">${marker}</span>
+                <span class="lim-step-label">${escapar(FASE_SHORT[c.id] || c.label)}</span>
+            </li>`;
+        }).join('');
+    };
+
+    const montarVisaoGeral = (l, beneficiario) => {
+        const tipo = l.beneficiario_tipo === 'TITULAR' ? 'Titular' : 'Dependente';
+        document.getElementById('tabGeral').innerHTML =
+            infoGroup('Beneficiário',
+                infoItem('Nome', beneficiario?.nome) + infoItem('Tipo', tipo)) +
+            infoGroup('Contrato',
+                infoItem('Contrato', l.nome_contrato)
+                + infoItem('Vendedor', l.venda?.user?.name)
+                + infoItem('Responsável', l.responsavel?.name)) +
+            infoGroup('Empresa contratante',
+                infoItem('Razão social', l.nome_empresa)
+                + infoItem('CNPJ', formatarCnpj(l.cnpj))
+                + infoItem('Protocolo de cancelamento', l.protocolo_cancelamento)) +
+            infoGroup('Procuração',
+                infoItem('E-mail de envio', l.email_procuracao));
+    };
+
+    const montarDatas = (l) => {
+        document.getElementById('tabDatas').innerHTML =
+            dateGroup('Plano anterior',
+                dateCard('Contratação', l.data_contratacao) + dateCard('Fim do plano', l.data_fim_plano)) +
+            dateGroup('Cancelamento',
+                dateCard('Solicitação', l.data_solicitacao_cancelamento) + dateCard('Último pgto. do boleto', l.data_ultimo_pagamento_boleto)) +
+            dateGroup('Cobertura do comprovante',
+                dateCard('Início', l.cobertura_comprovante_inicio) + dateCard('Fim', l.cobertura_comprovante_fim)) +
+            dateGroup('Boletos inelegíveis',
+                dateCard('1º vencimento', l.data_vencimento_boleto_1) + dateCard('2º vencimento', l.data_vencimento_boleto_2));
+    };
+
+    const ativarAba = (alvo) => {
+        document.querySelectorAll('#modalDetalhes .lim-tab').forEach((t) => t.classList.toggle('is-active', t.dataset.tab === alvo));
+        document.querySelectorAll('#modalDetalhes .lim-tabpane').forEach((p) => p.classList.toggle('is-active', p.id === alvo));
+    };
+    document.querySelectorAll('#modalDetalhes .lim-tab').forEach((t) => {
+        t.addEventListener('click', () => ativarAba(t.dataset.tab));
+    });
+
+    const renderDocumentos = (docs) => {
+        const lista = document.getElementById('listaDocumentos');
+        const badge = document.getElementById('tabDocsCount');
+        if (badge) badge.textContent = docs.length;
+        if (!docs.length) {
+            lista.innerHTML = '<p class="lim-empty">Nenhum documento anexado.</p>';
+            return;
+        }
+        lista.innerHTML = docs.map((d) => `
+            <div class="lim-doc-item">
+                <div class="lim-doc-info">
+                    <span class="lim-doc-tipo">${escapar(d.tipo_documento_label)}</span>
+                    <span class="lim-doc-nome">${escapar(d.nome_original)}</span>
+                </div>
+                <div class="lim-doc-actions">
+                    <button class="doc-btn btn-download" data-id="${d.id}" title="Baixar">${SVG.download}</button>
+                    ${isAdvogada ? '' : `<button class="doc-btn btn-remove" data-id="${d.id}" title="Remover">${SVG.remove}</button>`}
+                </div>
+            </div>
+        `).join('');
+
+        lista.querySelectorAll('.btn-download').forEach((btn) => {
             btn.addEventListener('click', () => {
                 window.location.href = `/back-office/liminar/${liminarAtualId}/documentos/${btn.dataset.id}/download`;
             });
         });
-        container.querySelectorAll('.btn-remove').forEach(btn => {
-            btn.addEventListener('click', () => removerDocumento(btn.dataset.id));
-        });
-    }
+        if (!isAdvogada) {
+            lista.querySelectorAll('.btn-remove').forEach((btn) => {
+                btn.addEventListener('click', () => removerDocumento(btn.dataset.id));
+            });
+        }
+    };
 
-    // ----------------------------------------------------------------
-    // Render Timeline Histórico
-    // ----------------------------------------------------------------
-    function renderHistorico(historico) {
-        const container = document.getElementById('timelineHistorico');
-        container.innerHTML = '';
-        if (!historico.length) {
-            container.innerHTML = '<p class="text-muted text-center" style="font-size:0.8125rem">Sem registros.</p>';
+    const renderHistorico = (hist) => {
+        const tl = document.getElementById('timelineHistorico');
+        if (!hist.length) {
+            tl.innerHTML = '<p class="lim-empty">Sem alterações registradas.</p>';
             return;
         }
-        historico.forEach(h => {
-            const item = document.createElement('div');
-            item.className = 'lim-timeline-item';
-            const campoLabel = { status: 'Status', fase: 'Fase', status_honorarios: 'Honorários', status_recebimento: 'Recebimento', documento: 'Documento' };
-            item.innerHTML = `
-                <div class="timeline-dot">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
+        tl.innerHTML = hist.map((h) => `
+            <div class="lim-timeline-item">
+                <span class="timeline-dot"></span>
+                <div class="lim-timeline-content">
+                    <div class="lim-timeline-text">
+                        ${escapar(h.valor_anterior ? `${h.valor_anterior} → ${h.valor_novo}` : h.valor_novo)}
+                    </div>
+                    ${h.observacao ? `<div class="lim-timeline-obs">${escapar(h.observacao)}</div>` : ''}
+                    <div class="lim-timeline-meta">${escapar(h.usuario_nome ?? 'Sistema')} · ${escapar(h.created_at)}</div>
                 </div>
-                <div class="timeline-content">
-                    <div class="timeline-title">${campoLabel[h.campo_alterado] ?? h.campo_alterado}: <strong>${h.valor_novo}</strong></div>
-                    ${h.valor_anterior ? `<div class="timeline-detail">Anterior: ${h.valor_anterior}</div>` : ''}
-                    ${h.observacao ? `<div class="timeline-detail">${h.observacao}</div>` : ''}
-                    <div class="timeline-meta">${h.usuario_nome ?? '—'} · ${h.created_at}</div>
-                </div>`;
-            container.appendChild(item);
-        });
-    }
+            </div>
+        `).join('');
+    };
 
-    // ----------------------------------------------------------------
-    // Atualiza header da modal e label da seção conforme status
-    // ----------------------------------------------------------------
-    function atualizarModalPorStatus(status, nomeContrato) {
-        const header    = document.getElementById('modalDetalhes').querySelector('.pv-modal-header');
-        const subtitulo = document.getElementById('detalheModalSubtitulo');
-        const secHeader = document.getElementById('detalheSecaoHeader');
-        const secTexto  = document.getElementById('detalheSecaoTexto');
-
-        const cfg = {
-            NAO_INICIADA: {
-                headerClass: 'pv-modal-header-primary',
-                secClass:    'lim-section-primary',
-                subtitulo:   `${nomeContrato} · Não Iniciada`,
-                secLabel:    'Andamento do Processo',
-            },
-            EM_EXECUCAO: {
-                headerClass: 'pv-modal-header-warning',
-                secClass:    'lim-section-warning',
-                subtitulo:   `${nomeContrato} · Em Execução`,
-                secLabel:    'Andamento do Processo',
-            },
-            BLOQUEADA: {
-                headerClass: 'pv-modal-header-warning',
-                secClass:    'lim-section-warning',
-                subtitulo:   `${nomeContrato} · Bloqueada`,
-                secLabel:    'Processo Bloqueado',
-            },
-            CONCLUIDA: {
-                headerClass: 'pv-modal-header-success',
-                secClass:    'lim-section-success',
-                subtitulo:   `${nomeContrato} · Processo Concluído`,
-                secLabel:    'Processo Concluído',
-            },
-        };
-
-        const c = cfg[status] ?? cfg.NAO_INICIADA;
-
-        // Troca a classe de cor do header da modal
-        header.className = `pv-modal-header ${c.headerClass}`;
-
-        // Atualiza subtitle com nome do contrato + status
-        subtitulo.textContent = c.subtitulo;
-
-        // Atualiza label e cor da seção de andamento
-        secHeader.className = `lim-modal-section-header ${c.secClass}`;
-        secTexto.textContent = c.secLabel;
-
-        // Todos os campos sempre editáveis — inclusive processos concluídos
-        ['detalheStatus','detalheFase','detalheDataEnvio','detalheHonorarios',
-         'detalheRecebimento','detalheValorRecebimento','detalheObservacoes'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.disabled = false;
-        });
-        const btnSalvar = document.getElementById('btnSalvarDetalhes');
-        if (btnSalvar) {
-            btnSalvar.disabled = false;
-            btnSalvar.style.display = '';
-        }
-    }
-
-    // ----------------------------------------------------------------
-    // Recarregar apenas documentos e histórico (modal já aberta)
-    // ----------------------------------------------------------------
-    function recarregarConteudoModal(id) {
-        fetch(`/back-office/liminar/${id}`, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        })
-            .then(r => r.json())
-            .then(json => {
-                renderDocumentos(json.documentos);
-                renderHistorico(json.historico);
-            })
-            .catch(() => {});
-    }
-
-    // ----------------------------------------------------------------
-    // Salvar alterações
-    // ----------------------------------------------------------------
-    document.getElementById('btnSalvarDetalhes').addEventListener('click', async () => {
-        const id = document.getElementById('detalheId').value;
-        const btn = document.getElementById('btnSalvarDetalhes');
-        btn.disabled = true;
-
-        const payload = {
-            status:              document.getElementById('detalheStatus').value,
-            fase:                document.getElementById('detalheFase').value || null,
-            data_envio:          document.getElementById('detalheDataEnvio').value || null,
-            status_honorarios:   document.getElementById('detalheHonorarios').value,
-            status_recebimento:  document.getElementById('detalheRecebimento').value,
-            valor_recebimento:   document.getElementById('detalheValorRecebimento').value || null,
-            observacoes:         document.getElementById('detalheObservacoes').value || null,
-        };
+    const abrirDetalhes = async (id) => {
+        liminarAtualId = id;
+        const hidden = document.getElementById('detalheId');
+        if (hidden) hidden.value = id;
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetalhes'));
+        modal.show();
 
         try {
-            const res = await fetch(`/back-office/liminar/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify(payload),
-            });
-            const json = await res.json();
-            if (json.success) {
-                Swal.fire({ icon: 'success', title: 'Salvo!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
-                tabelaLiminares.ajax.reload(null, false);
-                // Só recarrega docs/histórico — não reabre a modal
-                recarregarConteudoModal(parseInt(id));
-            } else {
-                Swal.fire('Erro', json.message ?? 'Erro ao salvar.', 'error');
+            const resp = await fetch(`/back-office/liminar/${id}`, { headers: { Accept: 'application/json' } });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            const l = data.liminar;
+
+            // Cabeçalho status-aware: gradiente e fase espelham a coluna do kanban.
+            const header = document.getElementById('detalheHeader');
+            const grad = gradienteDaFase(l.fase);
+            header.style.setProperty('--lim-fase-start', grad.start);
+            header.style.setProperty('--lim-fase-end', grad.end);
+            document.getElementById('detalheFasePill').textContent = data.fase_label;
+            document.getElementById('detalheModalTitulo').textContent = l.nome_contrato || 'Processo de Liminar';
+            document.getElementById('detalheModalSubtitulo').textContent = data.beneficiario?.nome ?? '—';
+            renderStepper(l.fase);
+
+            faseModalAtual = l.fase;
+            const faseSelect = document.getElementById('detalheFaseSelect');
+            if (faseSelect) faseSelect.value = l.fase;
+
+            ativarAba('tabGeral');
+            montarVisaoGeral(l, data.beneficiario);
+            montarDatas(l);
+
+            if (!isAdvogada) {
+                setVal('detalheHonorarios', l.status_honorarios || 'PENDENTE');
+                setVal('detalheRecebimento', l.status_recebimento || 'PENDENTE');
+                setVal('detalheValorRecebimento', l.valor_recebimento ?? '');
+                setVal('detalheObservacoes', l.observacoes ?? '');
             }
-        } catch (e) {
-            Swal.fire('Erro', 'Falha na requisição.', 'error');
+
+            renderDocumentos(data.documentos || []);
+            renderHistorico(data.historico || []);
+        } catch (err) {
+            console.error(err);
+            showModernToast('error', 'Erro', 'Não foi possível carregar o processo.');
+        }
+    };
+
+    // Atualiza o cabeçalho/stepper da modal após mover sem refazer o fetch.
+    const aplicarFaseNaModal = (novaFase) => {
+        faseModalAtual = novaFase;
+        const grad = gradienteDaFase(novaFase);
+        const header = document.getElementById('detalheHeader');
+        header.style.setProperty('--lim-fase-start', grad.start);
+        header.style.setProperty('--lim-fase-end', grad.end);
+        document.getElementById('detalheFasePill').textContent = labelDaFase(novaFase);
+        renderStepper(novaFase);
+        const faseSelect = document.getElementById('detalheFaseSelect');
+        if (faseSelect) faseSelect.value = novaFase;
+    };
+
+    // Move o processo pela própria modal (disponível para backoffice e advogada).
+    const btnMoverFase = document.getElementById('btnMoverFase');
+    btnMoverFase?.addEventListener('click', async () => {
+        const novaFase = document.getElementById('detalheFaseSelect').value;
+        if (!liminarAtualId || novaFase === faseModalAtual) {
+            showModernToast('info', 'Sem alteração', 'O processo já está nesta fase.');
+            return;
+        }
+        btnMoverFase.disabled = true;
+        try {
+            const resp = await fetch(`/back-office/liminar/${liminarAtualId}/mover`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+                body: JSON.stringify({ fase: novaFase }),
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.message || `HTTP ${resp.status}`);
+            }
+            aplicarFaseNaModal(novaFase);
+            renderHistorico(await recarregarHistorico());
+            carregarDados(); // atualiza o board atrás da modal
+            showModernToast('success', 'Processo movido', `Fase: ${labelDaFase(novaFase)}.`);
+        } catch (err) {
+            console.error(err);
+            showModernToast('error', 'Erro ao mover', err.message || 'Tente novamente.');
         } finally {
-            btn.disabled = false;
+            btnMoverFase.disabled = false;
         }
     });
 
-    // ----------------------------------------------------------------
-    // Upload de Documento
-    // ----------------------------------------------------------------
-    const fileDropZone = document.getElementById('fileDropZone');
-    const inputArquivo = document.getElementById('inputArquivo');
+    // Recarrega só o histórico do processo aberto (para refletir a movimentação).
+    const recarregarHistorico = async () => {
+        try {
+            const resp = await fetch(`/back-office/liminar/${liminarAtualId}`, { headers: { Accept: 'application/json' } });
+            if (!resp.ok) return [];
+            const data = await resp.json();
+            return data.historico || [];
+        } catch {
+            return [];
+        }
+    };
 
-    inputArquivo.addEventListener('change', () => {
-        if (inputArquivo.files[0]) uploadDocumento(inputArquivo.files[0]);
-    });
-
-    fileDropZone.addEventListener('dragover', e => { e.preventDefault(); fileDropZone.classList.add('dragover'); });
-    fileDropZone.addEventListener('dragleave', () => fileDropZone.classList.remove('dragover'));
-    fileDropZone.addEventListener('drop', e => {
-        e.preventDefault();
-        fileDropZone.classList.remove('dragover');
-        if (e.dataTransfer.files[0]) uploadDocumento(e.dataTransfer.files[0]);
-    });
-
-    function uploadDocumento(arquivo) {
-        const tipo = document.getElementById('uploadTipoDoc').value;
-        if (!tipo) { Swal.fire('Atenção', 'Selecione o tipo de documento antes de enviar.', 'warning'); return; }
-        if (!liminarAtualId) return;
-
-        const form = new FormData();
-        form.append('tipo_documento', tipo);
-        form.append('arquivo', arquivo);
-        form.append('_token', CSRF);
-
-        Swal.fire({ title: 'Enviando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-        fetch(`/back-office/liminar/${liminarAtualId}/documentos`, { method: 'POST', body: form })
-            .then(r => r.json())
-            .then(json => {
-                Swal.close();
-                if (json.success) {
-                    Swal.fire({ icon: 'success', title: 'Documento enviado!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
-                    recarregarConteudoModal(liminarAtualId);
-                } else {
-                    Swal.fire('Erro', json.message ?? 'Falha no upload.', 'error');
-                }
-            })
-            .catch(() => { Swal.close(); Swal.fire('Erro', 'Falha no envio.', 'error'); });
-    }
-
-    function removerDocumento(docId) {
-        Swal.fire({
-            title: 'Remover documento?',
-            text: 'Esta ação não pode ser desfeita.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Sim, remover',
-            cancelButtonText: 'Cancelar',
-        }).then(result => {
-            if (!result.isConfirmed) return;
-            fetch(`/back-office/liminar/${liminarAtualId}/documentos/${docId}`, {
-                method: 'DELETE',
-                headers: { 'X-CSRF-TOKEN': CSRF, 'X-Requested-With': 'XMLHttpRequest' },
-            })
-                .then(r => r.json())
-                .then(json => {
-                    if (json.success) {
-                        Swal.fire({ icon: 'success', title: 'Removido!', toast: true, position: 'top-end', showConfirmButton: false, timer: 1800 });
-                        recarregarConteudoModal(liminarAtualId);
-                    }
-                })
-                .catch(() => Swal.fire('Erro', 'Falha ao remover.', 'error'));
+    // =========================================================================
+    // Backoffice — salvar detalhes / documentos
+    // =========================================================================
+    const removerDocumento = async (docId) => {
+        const r = await Swal.fire({
+            title: 'Remover documento?', text: 'Essa ação não pode ser desfeita.', icon: 'warning',
+            showCancelButton: true, confirmButtonText: 'Remover', cancelButtonText: 'Cancelar',
         });
+        if (!r.isConfirmed) return;
+        try {
+            const resp = await fetch(`/back-office/liminar/${liminarAtualId}/documentos/${docId}`, {
+                method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+            });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            showModernToast('success', 'Removido', 'Documento excluído.');
+            abrirDetalhes(liminarAtualId);
+        } catch (err) {
+            console.error(err);
+            showModernToast('error', 'Erro', 'Falha ao remover o documento.');
+        }
+    };
+
+    if (!isAdvogada) {
+        document.getElementById('btnSalvarDetalhes')?.addEventListener('click', async () => {
+            const payload = {
+                status_honorarios: document.getElementById('detalheHonorarios').value,
+                status_recebimento: document.getElementById('detalheRecebimento').value,
+                valor_recebimento: document.getElementById('detalheValorRecebimento').value || null,
+                observacoes: document.getElementById('detalheObservacoes').value || null,
+            };
+            try {
+                const resp = await fetch(`/back-office/liminar/${liminarAtualId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                showModernToast('success', 'Salvo', 'Alterações registradas.');
+                carregarDados();
+            } catch (err) {
+                console.error(err);
+                showModernToast('error', 'Erro', 'Não foi possível salvar.');
+            }
+        });
+
+        const dropZone = document.getElementById('fileDropZone');
+        const inputArquivo = document.getElementById('inputArquivo');
+        const enviarDocumento = async (file) => {
+            const tipo = document.getElementById('uploadTipoDoc').value;
+            if (!tipo) {
+                showModernToast('warning', 'Atenção', 'Selecione o tipo do documento.');
+                return;
+            }
+            const form = new FormData();
+            form.append('tipo_documento', tipo);
+            form.append('arquivo', file);
+            form.append('_token', csrf);
+            try {
+                const resp = await fetch(`/back-office/liminar/${liminarAtualId}/documentos`, { method: 'POST', body: form });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                showModernToast('success', 'Documento enviado', 'Anexo registrado com sucesso.');
+                abrirDetalhes(liminarAtualId);
+            } catch (err) {
+                console.error(err);
+                showModernToast('error', 'Erro', 'Falha ao enviar o documento.');
+            }
+        };
+        inputArquivo?.addEventListener('change', (e) => { if (e.target.files[0]) enviarDocumento(e.target.files[0]); });
+        if (dropZone) {
+            ['dragover', 'dragenter'].forEach((ev) => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('dragover'); }));
+            ['dragleave', 'drop'].forEach((ev) => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); }));
+            dropZone.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) enviarDocumento(e.dataTransfer.files[0]); });
+        }
     }
 
-    // ----------------------------------------------------------------
-    // Modal Novo Processo
-    // ----------------------------------------------------------------
-    document.getElementById('btnNovoProcesso').addEventListener('click', () => {
-        resetModalNovo();
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalNovoProcesso')).show();
-    });
+    // =========================================================================
+    // Novo Processo (somente backoffice)
+    // =========================================================================
+    if (!isAdvogada) {
+        let vendaSelecionada = null;
+        let beneficiarioSelecionado = null;
 
-    function resetModalNovo() {
-        vendaSelecionada = null;
-        beneficiarioSelecionado = null;
-        document.getElementById('passo1').style.display = '';
-        document.getElementById('passo2').style.display = 'none';
-        document.getElementById('buscaContrato').value = '';
-        document.getElementById('resultadosContratos').innerHTML = '';
-        document.getElementById('btnVoltarPasso1').style.display = 'none';
-        document.getElementById('btnConfirmarNovo').style.display = 'none';
-        document.getElementById('btnCancelarNovo').style.display = '';
-    }
+        const modalNovoEl = document.getElementById('modalNovoProcesso');
+        const subtitulo = document.getElementById('novoSubtitulo');
+        const btnVoltar = document.getElementById('btnVoltarPasso');
+        const btnConfirmar = document.getElementById('btnConfirmarNovo');
 
-    document.getElementById('btnBuscarContrato').addEventListener('click', buscarContratos);
-    document.getElementById('buscaContrato').addEventListener('keydown', e => { if (e.key === 'Enter') buscarContratos(); });
+        // --- Slots de upload (estado anexado/pendente) ---
+        const slots = modalNovoEl.querySelectorAll('[data-slot]');
 
-    function buscarContratos() {
-        const q = document.getElementById('buscaContrato').value.trim();
-        if (q.length < 2) { Swal.fire('Atenção', 'Digite ao menos 2 caracteres.', 'warning'); return; }
+        const preencherSlot = (slot) => {
+            const input = slot.querySelector('input[type=file]');
+            const file = input.files[0];
+            if (!file) { limparSlot(slot); return; }
+            slot.classList.add('is-filled');
+            slot.querySelector('.lim-slot-filename').textContent = file.name;
+            slot.querySelector('.lim-slot-size').textContent = formatarBytes(file.size);
+        };
 
-        fetch(`/back-office/pos-venda/data?search[value]=${encodeURIComponent(q)}&length=20`, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        })
-            .then(r => r.json())
-            .then(json => {
-                const container = document.getElementById('resultadosContratos');
-                container.innerHTML = '';
-                const data = json.data ?? [];
-                if (!data.length) {
-                    container.innerHTML = '<p class="text-muted text-center mt-2" style="font-size:0.8125rem">Nenhum contrato encontrado.</p>';
+        const limparSlot = (slot) => {
+            const input = slot.querySelector('input[type=file]');
+            input.value = '';
+            slot.classList.remove('is-filled', 'is-drag');
+            slot.querySelector('.lim-slot-filename').textContent = '';
+            slot.querySelector('.lim-slot-size').textContent = '';
+        };
+
+        slots.forEach((slot) => {
+            const input = slot.querySelector('input[type=file]');
+            input.addEventListener('change', () => preencherSlot(slot));
+            slot.querySelector('.lim-slot-remove').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                limparSlot(slot);
+            });
+            ['dragover', 'dragenter'].forEach((ev) => slot.addEventListener(ev, (e) => { e.preventDefault(); slot.classList.add('is-drag'); }));
+            ['dragleave', 'dragend'].forEach((ev) => slot.addEventListener(ev, () => slot.classList.remove('is-drag')));
+            slot.addEventListener('drop', (e) => {
+                e.preventDefault();
+                slot.classList.remove('is-drag');
+                if (e.dataTransfer.files.length) {
+                    const dt = new DataTransfer();
+                    dt.items.add(e.dataTransfer.files[0]);
+                    input.files = dt.files;
+                    preencherSlot(slot);
+                }
+            });
+        });
+
+        const mostrarPasso = (n) => {
+            ['passo1', 'passo2', 'passo3'].forEach((p, i) => {
+                document.getElementById(p).style.display = (i + 1 === n) ? '' : 'none';
+            });
+            btnVoltar.style.display = n > 1 ? '' : 'none';
+            btnConfirmar.style.display = n === 3 ? '' : 'none';
+            subtitulo.textContent = ['Selecione o contrato', 'Selecione o beneficiário', 'Preencha os dados da procuração'][n - 1];
+            btnVoltar.dataset.passo = n;
+        };
+
+        const resetNovo = () => {
+            vendaSelecionada = null;
+            beneficiarioSelecionado = null;
+            document.getElementById('buscaContrato').value = '';
+            document.getElementById('resultadosContratos').innerHTML = '';
+            document.getElementById('listaBeneficiarios').innerHTML = '';
+            document.getElementById('formProcuracao').reset();
+            slots.forEach(limparSlot);
+            mostrarPasso(1);
+        };
+
+        // Passo 2: beneficiários
+        const selecionarContrato = (contrato) => {
+            vendaSelecionada = contrato;
+            document.getElementById('infoContratoSelecionado').innerHTML = `<strong>${escapar(contrato.nome_contrato)}</strong>`;
+            fetch(`/back-office/pos-venda/liminar/beneficiarios/${contrato.id}`, { headers: { Accept: 'application/json' } })
+                .then((r) => r.json())
+                .then((res) => {
+                    const lista = document.getElementById('listaBeneficiarios');
+                    lista.innerHTML = (res.beneficiarios || []).map((b) => `
+                        <label class="lim-beneficiario-item ${b.tem_liminar_ativa ? 'is-disabled' : ''}">
+                            <input type="radio" name="beneficiario" value="${b.id}" data-tipo="${b.tipo}" ${b.tem_liminar_ativa ? 'disabled' : ''}>
+                            <span class="lim-ben-nome">${escapar(b.nome)}</span>
+                            <span class="lim-ben-tipo">${escapar(b.tipo_label)}</span>
+                            ${b.tem_liminar_ativa ? '<span class="lim-ben-badge">Liminar Ativa</span>' : ''}
+                        </label>
+                    `).join('');
+                    lista.querySelectorAll('input[name="beneficiario"]').forEach((inp) => {
+                        inp.addEventListener('change', () => {
+                            beneficiarioSelecionado = { id: parseInt(inp.value, 10), tipo: inp.dataset.tipo };
+                            mostrarPasso(3);
+                        });
+                    });
+                    mostrarPasso(2);
+                })
+                .catch(() => showModernToast('error', 'Erro', 'Falha ao carregar beneficiários.'));
+        };
+
+        // Passo 1: buscar contratos (autocomplete por nome ou CPF/CNPJ)
+        const boxResultados = document.getElementById('resultadosContratos');
+
+        const renderResultados = (contratos) => {
+            if (!contratos.length) {
+                boxResultados.innerHTML = '<p class="text-muted small mb-0">Nenhum contrato encontrado.</p>';
+                return;
+            }
+            boxResultados.innerHTML = contratos.map((c) => `
+                <div class="lim-contrato-item" data-id="${c.id}" data-nome="${escapar(c.nome_contrato || '')}">
+                    <strong>${escapar(c.nome_contrato || `Contrato #${c.id}`)}</strong>
+                    <small>${escapar(c.cpf_cnpj || '')}${c.numero_proposta ? ` · Proposta ${escapar(c.numero_proposta)}` : ''}</small>
+                </div>
+            `).join('');
+            boxResultados.querySelectorAll('.lim-contrato-item').forEach((el) => {
+                el.addEventListener('click', () => selecionarContrato({ id: parseInt(el.dataset.id, 10), nome_contrato: el.dataset.nome }));
+            });
+        };
+
+        let buscaSeq = 0;
+        const buscarContratos = () => {
+            const q = document.getElementById('buscaContrato').value.trim();
+            if (q.length < 2) {
+                boxResultados.innerHTML = '<p class="text-muted small mb-0">Digite ao menos 2 caracteres…</p>';
+                return;
+            }
+            const seq = ++buscaSeq;
+            fetch(`/back-office/liminar-buscar-contratos?q=${encodeURIComponent(q)}`, { headers: { Accept: 'application/json' } })
+                .then((r) => r.json())
+                .then((res) => {
+                    if (seq !== buscaSeq) return; // ignora respostas fora de ordem
+                    renderResultados(res.contratos || []);
+                })
+                .catch(() => showModernToast('error', 'Erro', 'Falha ao buscar contratos.'));
+        };
+
+        const debounce = (fn, ms) => {
+            let t;
+            return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+        };
+        const buscarDebounced = debounce(buscarContratos, 300);
+
+        document.getElementById('btnNovoProcesso')?.addEventListener('click', () => {
+            resetNovo();
+            bootstrap.Modal.getOrCreateInstance(modalNovoEl).show();
+        });
+        btnVoltar.addEventListener('click', () => mostrarPasso(parseInt(btnVoltar.dataset.passo, 10) - 1));
+        document.getElementById('btnBuscarContrato').addEventListener('click', buscarContratos);
+        document.getElementById('buscaContrato').addEventListener('input', buscarDebounced);
+        document.getElementById('buscaContrato').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); buscarContratos(); } });
+
+        // Passo 3: enviar
+        btnConfirmar.addEventListener('click', async () => {
+            if (!vendaSelecionada || !beneficiarioSelecionado) return;
+            const formEl = document.getElementById('formProcuracao');
+            if (!formEl.reportValidity()) return;
+
+            // Datas vão em d/m/Y (formato do Flatpickr) — o backend valida e converte.
+            const form = new FormData(formEl);
+            form.append('venda_id', vendaSelecionada.id);
+            form.append('beneficiario_tipo', beneficiarioSelecionado.tipo);
+            form.append('beneficiario_id', beneficiarioSelecionado.id);
+            form.append('_token', csrf);
+
+            btnConfirmar.disabled = true;
+            try {
+                const resp = await fetch('/back-office/liminar', { method: 'POST', headers: { Accept: 'application/json' }, body: form });
+                if (resp.status === 422) {
+                    showModernToast('warning', 'Dados incompletos', 'Verifique os campos obrigatórios.');
                     return;
                 }
-                data.forEach(c => {
-                    const item = document.createElement('div');
-                    item.className = 'lim-contrato-item';
-                    item.innerHTML = `
-                        <div>
-                            <div class="contrato-nome">${c.nome_contrato ?? '—'}</div>
-                            <div class="contrato-info">Proposta: ${c.numero_proposta ?? '—'} · CPF/CNPJ: ${c.cpf_cnpj ?? '—'}</div>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="9 18 15 12 9 6"/>
-                        </svg>`;
-                    item.addEventListener('click', () => selecionarContrato(c));
-                    container.appendChild(item);
-                });
-            })
-            .catch(() => Swal.fire('Erro', 'Falha ao buscar contratos.', 'error'));
-    }
-
-    function selecionarContrato(contrato) {
-        vendaSelecionada = contrato;
-
-        document.getElementById('infoContratoSelecionado').innerHTML =
-            `<strong>${contrato.nome_contrato}</strong> — Proposta: ${contrato.numero_proposta ?? '—'}`;
-
-        document.getElementById('passo1').style.display = 'none';
-        document.getElementById('passo2').style.display = '';
-        document.getElementById('btnVoltarPasso1').style.display = '';
-
-        fetch(`/back-office/pos-venda/liminar/beneficiarios/${contrato.id}`, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        })
-            .then(r => r.json())
-            .then(json => renderBeneficiarios(json.beneficiarios ?? []))
-            .catch(() => Swal.fire('Erro', 'Falha ao carregar beneficiários.', 'error'));
-    }
-
-    function renderBeneficiarios(bens) {
-        const container = document.getElementById('listaBeneficiarios');
-        container.innerHTML = '';
-        if (!bens.length) {
-            container.innerHTML = '<p class="text-muted text-center" style="font-size:0.8125rem">Nenhum beneficiário encontrado.</p>';
-            return;
-        }
-        bens.forEach(b => {
-            const item = document.createElement('div');
-            item.className = `lim-beneficiario-item${b.tem_liminar_ativa ? ' disabled' : ''}`;
-            item.dataset.id   = b.id;
-            item.dataset.tipo = b.tipo;
-            item.dataset.nome = b.nome;
-            item.innerHTML = `
-                <input type="radio" name="beneficiarioSelecionado" value="${b.id}" ${b.tem_liminar_ativa ? 'disabled' : ''}>
-                <div>
-                    <div class="ben-nome">${b.nome}</div>
-                    <div class="ben-tipo">${b.tipo_label}</div>
-                </div>
-                ${b.tem_liminar_ativa ? '<span class="ben-badge">Liminar Ativa</span>' : ''}`;
-
-            if (!b.tem_liminar_ativa) {
-                item.addEventListener('click', () => {
-                    container.querySelectorAll('.lim-beneficiario-item').forEach(el => el.classList.remove('selected'));
-                    item.classList.add('selected');
-                    item.querySelector('input').checked = true;
-                    beneficiarioSelecionado = { id: b.id, tipo: b.tipo, nome: b.nome };
-                    document.getElementById('btnConfirmarNovo').style.display = '';
-                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                showModernToast('success', 'Processo aberto', 'Cancelamento via liminar registrado.');
+                bootstrap.Modal.getOrCreateInstance(modalNovoEl).hide();
+                carregarDados();
+            } catch (err) {
+                console.error(err);
+                showModernToast('error', 'Erro', 'Não foi possível abrir o processo.');
+            } finally {
+                btnConfirmar.disabled = false;
             }
-            container.appendChild(item);
         });
     }
 
-    document.getElementById('btnVoltarPasso1').addEventListener('click', () => {
-        document.getElementById('passo1').style.display = '';
-        document.getElementById('passo2').style.display = 'none';
-        document.getElementById('btnVoltarPasso1').style.display = 'none';
-        document.getElementById('btnConfirmarNovo').style.display = 'none';
-        beneficiarioSelecionado = null;
-    });
-
-    document.getElementById('btnConfirmarNovo').addEventListener('click', async () => {
-        if (!vendaSelecionada || !beneficiarioSelecionado) return;
-
-        const btn = document.getElementById('btnConfirmarNovo');
-        btn.disabled = true;
-
-        try {
-            const res = await fetch('/back-office/liminar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify({
-                    venda_id:          vendaSelecionada.id,
-                    beneficiario_tipo: beneficiarioSelecionado.tipo,
-                    beneficiario_id:   beneficiarioSelecionado.id,
-                }),
-            });
-            const json = await res.json();
-            if (json.success) {
-                bootstrap.Modal.getInstance(document.getElementById('modalNovoProcesso')).hide();
-                Swal.fire({ icon: 'success', title: 'Processo iniciado!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
-                tabelaLiminares.ajax.reload();
-                setTimeout(() => abrirDetalhes(json.id), 800);
-            } else {
-                Swal.fire('Erro', json.message ?? 'Falha ao criar processo.', 'error');
-            }
-        } catch (e) {
-            Swal.fire('Erro', 'Falha na requisição.', 'error');
-        } finally {
-            btn.disabled = false;
-        }
-    });
-
-    // ----------------------------------------------------------------
-    // Auto-abrir modal Novo Processo se vier com ?venda_id=X na URL
-    // ----------------------------------------------------------------
-    function verificarParamsURL() {
-        const params = new URLSearchParams(window.location.search);
-        const vendaId = params.get('venda_id');
-        if (!vendaId) return;
-
-        // Remove o param da URL sem recarregar
-        const url = new URL(window.location.href);
-        url.searchParams.delete('venda_id');
-        window.history.replaceState({}, '', url.toString());
-
-        // Abre o modal e busca o contrato diretamente pelo ID
-        resetModalNovo();
-        new bootstrap.Modal(document.getElementById('modalNovoProcesso')).show();
-
-        fetch(`/back-office/pos-venda/liminar/beneficiarios/${vendaId}`, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        })
-            .then(r => r.json())
-            .then(json => {
-                // Busca info do contrato para exibir no passo 2
-                fetch(`/back-office/liminar/data?venda_id=${vendaId}&length=1`, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                })
-                    .then(r2 => r2.json())
-                    .then(j2 => {
-                        const c = j2.data?.[0];
-                        vendaSelecionada = { id: parseInt(vendaId), nome_contrato: c?.nome_contrato ?? `Contrato #${vendaId}` };
-                        document.getElementById('infoContratoSelecionado').innerHTML =
-                            `<strong>${vendaSelecionada.nome_contrato}</strong>`;
-                    })
-                    .catch(() => {
-                        vendaSelecionada = { id: parseInt(vendaId), nome_contrato: `Contrato #${vendaId}` };
-                        document.getElementById('infoContratoSelecionado').innerHTML =
-                            `<strong>Contrato #${vendaId}</strong>`;
-                    })
-                    .finally(() => {
-                        document.getElementById('passo1').style.display = 'none';
-                        document.getElementById('passo2').style.display = '';
-                        document.getElementById('btnVoltarPasso1').style.display = '';
-                        renderBeneficiarios(json.beneficiarios ?? []);
-                    });
-            })
-            .catch(() => {});
+    // =========================================================================
+    // Init
+    // =========================================================================
+    if (typeof flatpickr !== 'undefined') {
+        flatpickr('.flatpickr-date', { dateFormat: 'd/m/Y', locale: 'pt', allowInput: true });
     }
 
-    // ----------------------------------------------------------------
-    // Init
-    // ----------------------------------------------------------------
-    initTabela();
-
-    // Event delegation para botões da tabela — configurado UMA vez,
-    // funciona mesmo após redraws do DataTables
-    $('#tabelaLiminares tbody').on('click', '.btn-abrir', function () {
-        abrirDetalhes(parseInt(this.dataset.id));
-    });
-
-    verificarParamsURL();
-
+    initDragDrop();
+    carregarDados();
 })();

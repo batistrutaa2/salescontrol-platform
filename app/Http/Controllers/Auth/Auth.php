@@ -34,6 +34,8 @@ class Auth extends Controller
 
         if (AuthFacades::user()->user_role_id == UserRole::VENDEDOR) {
           return redirect()->route('dashboard.vendedor');
+        } elseif (AuthFacades::user()->user_role_id == UserRole::ADVOGADA) {
+          return redirect()->route('backoffice.liminar.index');
         } else {
           return redirect()->to('/dashboard');
         }

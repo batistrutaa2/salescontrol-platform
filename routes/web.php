@@ -48,10 +48,6 @@ Route::get('/tv-comercial/ranking', [\App\Http\Controllers\TvComercialController
 
 Route::middleware(['auth'])->group(function () {
 
-  /** AGRADECIMENTO 5 ANOS */
-  Route::post('/agradecimento-5anos/concluir', [\App\Http\Controllers\pages\Agradecimento5AnosController::class, 'concluir'])->name('agradecimento-5anos.concluir');
-  Route::get('/agradecimento-5anos/rever', [\App\Http\Controllers\pages\Agradecimento5AnosController::class, 'rever'])->name('agradecimento-5anos.rever');
-
   /** MANAGER */
   Route::get('manager/changeCompany/{companyId}', [Manager::class, 'changeCompany'])->name('manager.changeCompany');
   Route::post('manager/switch-module', [Manager::class, 'switchModule'])->name('manager.switchModule');
@@ -304,10 +300,12 @@ Route::middleware(['auth'])->group(function () {
 
   // Cancelamento via Liminar
   Route::get('/back-office/liminar', [LiminarController::class, 'index'])->name('backoffice.liminar.index');
-  Route::get('/back-office/liminar/data', [LiminarController::class, 'getData'])->name('backoffice.liminar.data');
+  Route::get('/back-office/liminar/dados', [LiminarController::class, 'dados'])->name('backoffice.liminar.dados');
   Route::post('/back-office/liminar', [LiminarController::class, 'store'])->name('backoffice.liminar.store');
   Route::get('/back-office/liminar/{id}', [LiminarController::class, 'show'])->name('backoffice.liminar.show');
   Route::put('/back-office/liminar/{id}', [LiminarController::class, 'update'])->name('backoffice.liminar.update');
+  Route::post('/back-office/liminar/{id}/mover', [LiminarController::class, 'mover'])->name('backoffice.liminar.mover');
+  Route::get('/back-office/liminar-buscar-contratos', [LiminarController::class, 'buscarContratos'])->name('backoffice.liminar.buscarContratos');
   Route::post('/back-office/liminar/{id}/documentos', [LiminarController::class, 'uploadDocumento'])->name('backoffice.liminar.uploadDocumento');
   Route::delete('/back-office/liminar/{id}/documentos/{docId}', [LiminarController::class, 'destroyDocumento'])->name('backoffice.liminar.destroyDocumento');
   Route::get('/back-office/liminar/{id}/documentos/{docId}/download', [LiminarController::class, 'downloadDocumento'])->name('backoffice.liminar.downloadDocumento');
