@@ -268,6 +268,7 @@
                                 <option value="4">DEVELOPER</option>
                             @endif
                             <option value="5">SUPERVISOR</option>
+                            <option value="7">ADVOGADA</option>
                         </select>
                         <label for="tipo_user">Tipo de Acesso</label>
                     </div>
