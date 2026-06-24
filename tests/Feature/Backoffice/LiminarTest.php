@@ -269,6 +269,21 @@ class LiminarTest extends TestCase
         Notification::assertSentTo($this->vendedor, LiminarStatusAlterado::class);
     }
 
+    public function test_alteracao_de_dados_notifica_responsavel_mas_nao_vendedor(): void
+    {
+        Notification::fake();
+        $liminar = $this->criarLiminar(); // responsavel = backoffice, corretor = vendedor
+
+        // Admin altera dado financeiro (não é mudança de fase do kanban).
+        $this->actingAs($this->admin)
+            ->putJson(route('backoffice.liminar.update', $liminar->id), ['status_honorarios' => 'PAGO'])
+            ->assertOk();
+
+        // Responsável é avisado; o vendedor NÃO (regra: vendedor só em mudança de status).
+        Notification::assertSentTo($this->backoffice, LiminarStatusAlterado::class);
+        Notification::assertNotSentTo($this->vendedor, LiminarStatusAlterado::class);
+    }
+
     public function test_advogada_pode_mover(): void
     {
         Notification::fake();

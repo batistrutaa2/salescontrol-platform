@@ -458,8 +458,9 @@ class LiminarController extends Controller
             return response()->json(['success' => false, 'message' => 'Erro ao atualizar.'], 500);
         }
 
+        // Alterações de dados/financeiro avisam só o responsável — nunca o vendedor.
         foreach ($alteracoes as $a) {
-            $this->notificarAlteracao($liminar, $a['campo'], $a['anterior'], $a['novo']);
+            $this->notificarAlteracao($liminar, $a['campo'], $a['anterior'], $a['novo'], incluirVendedor: false);
         }
 
         return response()->json(['success' => true]);
@@ -485,11 +486,23 @@ class LiminarController extends Controller
     /**
      * Notifica responsável e corretor (sino + e-mail), excluindo quem fez a alteração.
      */
-    private function notificarAlteracao(CancelamentoLiminar $liminar, string $campo, ?string $anterior, string $novo): void
+    /**
+     * Notifica sobre uma alteração no processo.
+     *
+     * Regra de negócio: o VENDEDOR só é avisado quando o status do kanban (fase)
+     * muda — nunca em alterações de dados/financeiro. Por isso o $incluirVendedor:
+     * `mover()` chama com true; `update()` chama com false (só o responsável).
+     */
+    private function notificarAlteracao(CancelamentoLiminar $liminar, string $campo, ?string $anterior, string $novo, bool $incluirVendedor = true): void
     {
         $nomeBeneficiario = $liminar->getBeneficiario()?->nome ?? '—';
 
-        $alvos = collect([$liminar->responsavel, $liminar->venda?->user])
+        $destinatarios = [$liminar->responsavel];
+        if ($incluirVendedor) {
+            $destinatarios[] = $liminar->venda?->user;
+        }
+
+        $alvos = collect($destinatarios)
             ->filter()
             ->unique('id')
             ->reject(fn($u) => $u->id === Auth::id());
