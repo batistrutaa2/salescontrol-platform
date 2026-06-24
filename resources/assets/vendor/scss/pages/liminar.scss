@@ -343,6 +343,54 @@
 }
 
 // Footer bar das modais
+// ============================================
+// Campos dos modais — mais contraste
+// (sem isso o input fica branco-no-branco e parece "flutuar")
+// ============================================
+#modalNovoProcesso,
+#modalDetalhes {
+    .pv-form-input,
+    .pv-form-textarea,
+    .lim-modal-select {
+        background: #f8fafc;                 // off-white suave, lê sem pesar
+        border: 1px solid #e2e8f0;           // hairline slate-200
+        color: #1e293b;
+
+        &::placeholder { color: #94a3b8; }
+
+        &:focus {
+            background: #ffffff;             // "sobe" ao focar
+            border-color: var(--pv-primary, #7C3AED);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+        }
+    }
+
+    .lim-tabs { border-bottom-color: #e9eef5; }  // hairline visível no claro
+}
+
+.dark-style {
+    #modalNovoProcesso,
+    #modalDetalhes {
+        .pv-form-input,
+        .pv-form-textarea,
+        .lim-modal-select {
+            background: rgba(0, 0, 0, 0.22);      // recuado sobre o card escuro
+            border-color: rgba(255, 255, 255, 0.1);
+            color: var(--pv-text-primary, #F9FAFB);
+
+            &::placeholder { color: #6b7280; }
+
+            &:focus {
+                background: rgba(0, 0, 0, 0.32);
+                border-color: var(--pv-primary, #7C3AED);
+                box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.22);
+            }
+        }
+
+        .lim-tabs { border-bottom-color: rgba(255, 255, 255, 0.08); }
+    }
+}
+
 .lim-modal-footer-bar {
     display: flex;
     align-items: center;
@@ -855,14 +903,15 @@
 // ============================================
 .lim-info-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.85rem 1.75rem;
 }
 
 .lim-info-item {
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: 0.1rem;
+    min-width: 0;
 }
 
 .lim-info-label {
@@ -1158,36 +1207,41 @@
 }
 
 // Grupos da Visão geral
-.lim-info-group { margin-bottom: 1.4rem; &:last-child { margin-bottom: 0; } }
+// Painel calmo por seção (em vez de uma caixa por dado)
+.lim-info-group,
+.lim-date-group {
+    background: #f8fafc;
+    border: 1px solid #e9eef5;
+    border-radius: 14px;
+    padding: 0.95rem 1.1rem 1.05rem;
+    margin-bottom: 0.9rem;
+
+    &:last-child { margin-bottom: 0; }
+}
 
 .lim-group-title {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     color: var(--dash-primary, #7C3AED);
-    margin-bottom: 0.7rem;
-    padding-bottom: 0.4rem;
-    border-bottom: 1px dashed var(--dash-card-border);
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid #e9eef5;
 }
 
 // Datas
-.lim-date-group { margin-bottom: 1.4rem; &:last-child { margin-bottom: 0; } }
-
 .lim-date-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.85rem 1.75rem;
 }
 
 .lim-date-card {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
-    padding: 0.7rem 0.85rem;
-    background: var(--dash-glass-bg, rgba(255,255,255,0.7));
-    border: 1px solid var(--dash-card-border);
-    border-radius: var(--dash-border-radius-sm, 12px);
+    gap: 0.1rem;
+    min-width: 0;
 }
 
 .lim-date-label {
@@ -1396,7 +1450,11 @@
     .lim-move-select { background: var(--dash-card-bg); border-color: var(--dash-card-border); color: var(--dash-text-primary); }
     .lim-step-marker { background: var(--dash-card-bg); }
     .lim-step.is-active .lim-step-label { color: var(--dash-text-primary); }
-    .lim-date-card { background: var(--dash-glass-bg); border-color: var(--dash-card-border); }
+    // Cartões de dados recuados e contrastados no escuro (info + datas)
+    // Painéis de dados no escuro (Visão geral + Datas)
+    .lim-info-group,
+    .lim-date-group { background: rgba(255, 255, 255, 0.035); border-color: rgba(255, 255, 255, 0.08); }
+    .lim-group-title { border-bottom-color: rgba(255, 255, 255, 0.08); }
     .lim-date-value { color: var(--dash-text-primary); }
     .lim-detail-close { background: color-mix(in srgb, #fff 8%, transparent); color: var(--dash-text-secondary); }
 
