@@ -7,8 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\CancelamentoLiminar;
 use App\Models\CancelamentoLiminarDocumento;
 use App\Models\CancelamentoLiminarHistorico;
-use App\Models\VendaTitular;
-use App\Models\VendaDependente;
 use App\Models\Vendas;
 use App\Notifications\LiminarStatusAlterado;
 use Carbon\Carbon;
@@ -40,8 +38,8 @@ class LiminarController extends Controller
     // Colunas do kanban (campo `fase`), na ordem do fluxo.
     private const FASES = [
         'CANCELAMENTO_ABERTO',
-        'AGUARDANDO_ASSINATURA',
-        'AGUARDANDO_RETORNO_OPERADORA',
+        'PROCURACAO_ENVIADA',
+        'PROCURACAO_ASSINADA',
         'LIMINAR_CONCEDIDA',
     ];
 
@@ -113,33 +111,33 @@ class LiminarController extends Controller
     private static function faseLabel(?string $value): string
     {
         return match ($value) {
-            'CANCELAMENTO_ABERTO'          => 'Cancelamento Aberto',
-            'AGUARDANDO_ASSINATURA'        => 'Procuração / Aguardando Assinatura',
-            'AGUARDANDO_RETORNO_OPERADORA' => 'Aguardando Retorno da Operadora',
-            'LIMINAR_CONCEDIDA'            => 'Liminar Concedida',
-            default                        => $value ?? '—',
+            'CANCELAMENTO_ABERTO' => 'Cancelamento Aberto',
+            'PROCURACAO_ENVIADA'  => 'Procuração enviada',
+            'PROCURACAO_ASSINADA' => 'Procuração assinada',
+            'LIMINAR_CONCEDIDA'   => 'Liminar concedida',
+            default               => $value ?? '—',
         };
     }
 
     private static function faseCurto(string $value): string
     {
         return match ($value) {
-            'CANCELAMENTO_ABERTO'          => 'Aberto',
-            'AGUARDANDO_ASSINATURA'        => 'Assinatura',
-            'AGUARDANDO_RETORNO_OPERADORA' => 'Retorno operadora',
-            'LIMINAR_CONCEDIDA'            => 'Concedida',
-            default                        => $value,
+            'CANCELAMENTO_ABERTO' => 'Aberto',
+            'PROCURACAO_ENVIADA'  => 'Enviada',
+            'PROCURACAO_ASSINADA' => 'Assinada',
+            'LIMINAR_CONCEDIDA'   => 'Concedida',
+            default               => $value,
         };
     }
 
     private static function faseGradiente(string $value): array
     {
         return match ($value) {
-            'CANCELAMENTO_ABERTO'          => ['start' => '#06B6D4', 'end' => '#22D3EE'],
-            'AGUARDANDO_ASSINATURA'        => ['start' => '#F59E0B', 'end' => '#FBBF24'],
-            'AGUARDANDO_RETORNO_OPERADORA' => ['start' => '#7C3AED', 'end' => '#A78BFA'],
-            'LIMINAR_CONCEDIDA'            => ['start' => '#10B981', 'end' => '#34D399'],
-            default                        => ['start' => '#94A3B8', 'end' => '#CBD5E1'],
+            'CANCELAMENTO_ABERTO' => ['start' => '#06B6D4', 'end' => '#22D3EE'],
+            'PROCURACAO_ENVIADA'  => ['start' => '#F59E0B', 'end' => '#FBBF24'],
+            'PROCURACAO_ASSINADA' => ['start' => '#7C3AED', 'end' => '#A78BFA'],
+            'LIMINAR_CONCEDIDA'   => ['start' => '#10B981', 'end' => '#34D399'],
+            default               => ['start' => '#94A3B8', 'end' => '#CBD5E1'],
         };
     }
 
@@ -228,9 +226,6 @@ class LiminarController extends Controller
         $this->checkBackoffice();
 
         $rules = [
-            'venda_id'                       => 'required|integer|exists:vendas,id',
-            'beneficiario_tipo'              => 'required|in:TITULAR,DEPENDENTE',
-            'beneficiario_id'                => 'required|integer',
             'responsavel_id'                 => 'nullable|integer|exists:users,id',
             'nome_empresa'                   => 'required|string|max:255',
             'cnpj'                           => 'required|string|max:20',
@@ -249,28 +244,15 @@ class LiminarController extends Controller
 
         $validated = $request->validate($rules);
 
-        $venda = Vendas::where('id', $validated['venda_id'])
-            ->where('empresa_id', $this->empresaId())
-            ->firstOrFail();
-
-        if ($validated['beneficiario_tipo'] === 'TITULAR') {
-            VendaTitular::where('id', $validated['beneficiario_id'])
-                ->where('venda_id', $venda->id)
-                ->firstOrFail();
-        } else {
-            VendaDependente::where('id', $validated['beneficiario_id'])
-                ->where('venda_id', $venda->id)
-                ->firstOrFail();
-        }
-
         DB::beginTransaction();
         try {
             $payload = [
                 'empresa_id'             => $this->empresaId(),
-                'venda_id'               => $venda->id,
-                'beneficiario_tipo'      => $validated['beneficiario_tipo'],
-                'beneficiario_id'        => $validated['beneficiario_id'],
-                'nome_contrato'          => $venda->nome_contrato,
+                'venda_id'               => null,
+                'beneficiario_tipo'      => null,
+                'beneficiario_id'        => null,
+                // Sem venda atrelada: o nome da empresa contratante é o título do processo.
+                'nome_contrato'          => $validated['nome_empresa'],
                 'nome_empresa'           => $validated['nome_empresa'],
                 'cnpj'                   => $validated['cnpj'],
                 'protocolo_cancelamento' => $validated['protocolo_cancelamento'],

@@ -81,18 +81,22 @@
         el.className = 'lim-card';
         el.dataset.id = item.id;
         el.style.setProperty('--lim-card-status-color', grad.start);
+        // Sem venda atrelada, a empresa contratante é o título do card. Beneficiário e
+        // corretor só aparecem em processos antigos que ainda tenham esses dados.
+        const titulo = item.nome_empresa || item.nome_contrato || '—';
+        const temBeneficiario = item.beneficiario_nome && item.beneficiario_nome !== '—';
+        const temCorretor = item.corretor_nome && item.corretor_nome !== '—';
         el.innerHTML = `
             <div class="lim-card-header">
-                <span class="lim-card-contrato">${escapar(item.nome_contrato || '—')}</span>
-                <span class="lim-card-tipo">${escapar(item.beneficiario_tipo)}</span>
+                <span class="lim-card-contrato">${escapar(titulo)}</span>
+                ${temBeneficiario ? `<span class="lim-card-tipo">${escapar(item.beneficiario_tipo)}</span>` : ''}
             </div>
-            <div class="lim-card-beneficiario">${escapar(item.beneficiario_nome)}</div>
-            ${item.nome_empresa ? `<div class="lim-card-empresa">${escapar(item.nome_empresa)}</div>` : ''}
+            ${temBeneficiario ? `<div class="lim-card-beneficiario">${escapar(item.beneficiario_nome)}</div>` : ''}
             <div class="lim-card-meta">
                 ${item.protocolo ? `<span class="lim-card-protocolo">Protocolo: ${escapar(item.protocolo)}</span>` : ''}
             </div>
             <div class="lim-card-footer">
-                <span title="Corretor">${escapar(item.corretor_nome)}</span>
+                <span title="Responsável">${escapar(temCorretor ? item.corretor_nome : (item.responsavel_nome || '—'))}</span>
                 <span class="lim-card-data">${escapar(item.data_criacao)}</span>
             </div>
         `;
@@ -222,8 +226,8 @@
 
     const FASE_SHORT = {
         CANCELAMENTO_ABERTO: 'Aberto',
-        AGUARDANDO_ASSINATURA: 'Assinatura',
-        AGUARDANDO_RETORNO_OPERADORA: 'Retorno operadora',
+        PROCURACAO_ENVIADA: 'Enviada',
+        PROCURACAO_ASSINADA: 'Assinada',
         LIMINAR_CONCEDIDA: 'Concedida',
     };
 
@@ -267,20 +271,22 @@
     };
 
     const montarVisaoGeral = (l, beneficiario) => {
+        // Sem venda atrelada: o processo gira em torno da empresa contratante e da procuração.
+        // Beneficiário/venda só aparecem em processos antigos que ainda os tenham.
         const tipo = l.beneficiario_tipo === 'TITULAR' ? 'Titular' : 'Dependente';
+        const grupoBeneficiario = beneficiario?.nome
+            ? infoGroup('Beneficiário', infoItem('Nome', beneficiario.nome) + infoItem('Tipo', tipo))
+            : '';
+
         document.getElementById('tabGeral').innerHTML =
-            infoGroup('Beneficiário',
-                infoItem('Nome', beneficiario?.nome) + infoItem('Tipo', tipo)) +
-            infoGroup('Contrato',
-                infoItem('Contrato', l.nome_contrato)
-                + infoItem('Vendedor', l.venda?.user?.name)
-                + infoItem('Responsável', l.responsavel?.name)) +
+            grupoBeneficiario +
             infoGroup('Empresa contratante',
                 infoItem('Razão social', l.nome_empresa)
                 + infoItem('CNPJ', formatarCnpj(l.cnpj))
                 + infoItem('Protocolo de cancelamento', l.protocolo_cancelamento)) +
             infoGroup('Procuração',
-                infoItem('E-mail de envio', l.email_procuracao));
+                infoItem('E-mail de envio', l.email_procuracao)
+                + infoItem('Responsável', l.responsavel?.name));
     };
 
     const montarDatas = (l) => {
@@ -375,8 +381,9 @@
             header.style.setProperty('--lim-fase-start', grad.start);
             header.style.setProperty('--lim-fase-end', grad.end);
             document.getElementById('detalheFasePill').textContent = data.fase_label;
-            document.getElementById('detalheModalTitulo').textContent = l.nome_contrato || 'Processo de Liminar';
-            document.getElementById('detalheModalSubtitulo').textContent = data.beneficiario?.nome ?? '—';
+            document.getElementById('detalheModalTitulo').textContent = l.nome_empresa || l.nome_contrato || 'Processo de Liminar';
+            document.getElementById('detalheModalSubtitulo').textContent =
+                l.protocolo_cancelamento ? `Protocolo: ${l.protocolo_cancelamento}` : (data.beneficiario?.nome ?? '—');
             renderStepper(l.fase);
 
             faseModalAtual = l.fase;
@@ -564,12 +571,7 @@
     // Novo Processo (somente backoffice)
     // =========================================================================
     if (!isAdvogada) {
-        let vendaSelecionada = null;
-        let beneficiarioSelecionado = null;
-
         const modalNovoEl = document.getElementById('modalNovoProcesso');
-        const subtitulo = document.getElementById('novoSubtitulo');
-        const btnVoltar = document.getElementById('btnVoltarPasso');
         const btnConfirmar = document.getElementById('btnConfirmarNovo');
 
         // --- Slots de upload (estado anexado/pendente) ---
@@ -614,116 +616,23 @@
             });
         });
 
-        const mostrarPasso = (n) => {
-            ['passo1', 'passo2', 'passo3'].forEach((p, i) => {
-                document.getElementById(p).style.display = (i + 1 === n) ? '' : 'none';
-            });
-            btnVoltar.style.display = n > 1 ? '' : 'none';
-            btnConfirmar.style.display = n === 3 ? '' : 'none';
-            subtitulo.textContent = ['Selecione o contrato', 'Selecione o beneficiário', 'Preencha os dados da procuração'][n - 1];
-            btnVoltar.dataset.passo = n;
-        };
-
         const resetNovo = () => {
-            vendaSelecionada = null;
-            beneficiarioSelecionado = null;
-            document.getElementById('buscaContrato').value = '';
-            document.getElementById('resultadosContratos').innerHTML = '';
-            document.getElementById('listaBeneficiarios').innerHTML = '';
             document.getElementById('formProcuracao').reset();
             slots.forEach(limparSlot);
-            mostrarPasso(1);
         };
-
-        // Passo 2: beneficiários
-        const selecionarContrato = (contrato) => {
-            vendaSelecionada = contrato;
-            document.getElementById('infoContratoSelecionado').innerHTML = `<strong>${escapar(contrato.nome_contrato)}</strong>`;
-            fetch(`/back-office/pos-venda/liminar/beneficiarios/${contrato.id}`, { headers: { Accept: 'application/json' } })
-                .then((r) => r.json())
-                .then((res) => {
-                    const lista = document.getElementById('listaBeneficiarios');
-                    lista.innerHTML = (res.beneficiarios || []).map((b) => `
-                        <label class="lim-beneficiario-item ${b.tem_liminar_ativa ? 'is-disabled' : ''}">
-                            <input type="radio" name="beneficiario" value="${b.id}" data-tipo="${b.tipo}" ${b.tem_liminar_ativa ? 'disabled' : ''}>
-                            <span class="lim-ben-nome">${escapar(b.nome)}</span>
-                            <span class="lim-ben-tipo">${escapar(b.tipo_label)}</span>
-                            ${b.tem_liminar_ativa ? '<span class="lim-ben-badge">Liminar Ativa</span>' : ''}
-                        </label>
-                    `).join('');
-                    lista.querySelectorAll('input[name="beneficiario"]').forEach((inp) => {
-                        inp.addEventListener('change', () => {
-                            beneficiarioSelecionado = { id: parseInt(inp.value, 10), tipo: inp.dataset.tipo };
-                            mostrarPasso(3);
-                        });
-                    });
-                    mostrarPasso(2);
-                })
-                .catch(() => showModernToast('error', 'Erro', 'Falha ao carregar beneficiários.'));
-        };
-
-        // Passo 1: buscar contratos (autocomplete por nome ou CPF/CNPJ)
-        const boxResultados = document.getElementById('resultadosContratos');
-
-        const renderResultados = (contratos) => {
-            if (!contratos.length) {
-                boxResultados.innerHTML = '<p class="text-muted small mb-0">Nenhum contrato encontrado.</p>';
-                return;
-            }
-            boxResultados.innerHTML = contratos.map((c) => `
-                <div class="lim-contrato-item" data-id="${c.id}" data-nome="${escapar(c.nome_contrato || '')}">
-                    <strong>${escapar(c.nome_contrato || `Contrato #${c.id}`)}</strong>
-                    <small>${escapar(c.cpf_cnpj || '')}${c.numero_proposta ? ` · Proposta ${escapar(c.numero_proposta)}` : ''}</small>
-                </div>
-            `).join('');
-            boxResultados.querySelectorAll('.lim-contrato-item').forEach((el) => {
-                el.addEventListener('click', () => selecionarContrato({ id: parseInt(el.dataset.id, 10), nome_contrato: el.dataset.nome }));
-            });
-        };
-
-        let buscaSeq = 0;
-        const buscarContratos = () => {
-            const q = document.getElementById('buscaContrato').value.trim();
-            if (q.length < 2) {
-                boxResultados.innerHTML = '<p class="text-muted small mb-0">Digite ao menos 2 caracteres…</p>';
-                return;
-            }
-            const seq = ++buscaSeq;
-            fetch(`/back-office/liminar-buscar-contratos?q=${encodeURIComponent(q)}`, { headers: { Accept: 'application/json' } })
-                .then((r) => r.json())
-                .then((res) => {
-                    if (seq !== buscaSeq) return; // ignora respostas fora de ordem
-                    renderResultados(res.contratos || []);
-                })
-                .catch(() => showModernToast('error', 'Erro', 'Falha ao buscar contratos.'));
-        };
-
-        const debounce = (fn, ms) => {
-            let t;
-            return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-        };
-        const buscarDebounced = debounce(buscarContratos, 300);
 
         document.getElementById('btnNovoProcesso')?.addEventListener('click', () => {
             resetNovo();
             bootstrap.Modal.getOrCreateInstance(modalNovoEl).show();
         });
-        btnVoltar.addEventListener('click', () => mostrarPasso(parseInt(btnVoltar.dataset.passo, 10) - 1));
-        document.getElementById('btnBuscarContrato').addEventListener('click', buscarContratos);
-        document.getElementById('buscaContrato').addEventListener('input', buscarDebounced);
-        document.getElementById('buscaContrato').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); buscarContratos(); } });
 
-        // Passo 3: enviar
+        // Abertura direta dos dados da procuração — sem venda/titular atrelados.
         btnConfirmar.addEventListener('click', async () => {
-            if (!vendaSelecionada || !beneficiarioSelecionado) return;
             const formEl = document.getElementById('formProcuracao');
             if (!formEl.reportValidity()) return;
 
             // Datas vão em d/m/Y (formato do Flatpickr) — o backend valida e converte.
             const form = new FormData(formEl);
-            form.append('venda_id', vendaSelecionada.id);
-            form.append('beneficiario_tipo', beneficiarioSelecionado.tipo);
-            form.append('beneficiario_id', beneficiarioSelecionado.id);
             form.append('_token', csrf);
 
             btnConfirmar.disabled = true;

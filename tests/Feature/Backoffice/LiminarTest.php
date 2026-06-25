@@ -77,10 +77,9 @@ class LiminarTest extends TestCase
 
     private function payload(array $overrides = []): array
     {
+        // A venda nunca é atrelada ao cancelamento — o processo nasce só com os
+        // dados da procuração + documentos.
         return array_merge([
-            'venda_id'                       => $this->venda->id,
-            'beneficiario_tipo'              => 'TITULAR',
-            'beneficiario_id'                => $this->titular->id,
             'responsavel_id'                 => $this->backoffice->id,
             'nome_empresa'                   => 'MD4 Consultoria LTDA',
             'cnpj'                           => '43.685.447/0001-54',
@@ -114,9 +113,13 @@ class LiminarTest extends TestCase
         $this->assertDatabaseHas('cancelamentos_liminares', [
             'id'                     => $liminar->id,
             'empresa_id'             => $this->empresa->id,
-            'venda_id'               => $this->venda->id,
+            'venda_id'               => null,
+            'beneficiario_tipo'      => null,
+            'beneficiario_id'        => null,
             'fase'                   => 'CANCELAMENTO_ABERTO',
             'nome_empresa'           => 'MD4 Consultoria LTDA',
+            // Sem venda: o nome da empresa contratante vira o título do processo.
+            'nome_contrato'          => 'MD4 Consultoria LTDA',
             'protocolo_cancelamento' => '998877',
             'data_fim_plano'         => '2024-12-31',
         ]);
@@ -251,18 +254,18 @@ class LiminarTest extends TestCase
 
         // Admin (nem responsável nem corretor) move → notifica os dois.
         $this->actingAs($this->admin)
-            ->postJson(route('backoffice.liminar.mover', $liminar->id), ['fase' => 'AGUARDANDO_ASSINATURA'])
+            ->postJson(route('backoffice.liminar.mover', $liminar->id), ['fase' => 'PROCURACAO_ENVIADA'])
             ->assertOk()
             ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('cancelamentos_liminares', [
             'id'   => $liminar->id,
-            'fase' => 'AGUARDANDO_ASSINATURA',
+            'fase' => 'PROCURACAO_ENVIADA',
         ]);
         $this->assertDatabaseHas('cancelamentos_liminares_historico', [
             'cancelamento_liminar_id' => $liminar->id,
             'campo_alterado'          => 'fase',
-            'valor_novo'              => 'Procuração / Aguardando Assinatura',
+            'valor_novo'              => 'Procuração enviada',
         ]);
 
         Notification::assertSentTo($this->backoffice, LiminarStatusAlterado::class);
@@ -322,7 +325,7 @@ class LiminarTest extends TestCase
         $liminar = $this->criarLiminar();
 
         $this->actingAs($adminOutra)
-            ->postJson(route('backoffice.liminar.mover', $liminar->id), ['fase' => 'AGUARDANDO_ASSINATURA'])
+            ->postJson(route('backoffice.liminar.mover', $liminar->id), ['fase' => 'PROCURACAO_ENVIADA'])
             ->assertNotFound();
 
         $this->actingAs($adminOutra)

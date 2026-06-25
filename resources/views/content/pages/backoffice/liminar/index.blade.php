@@ -279,7 +279,7 @@
                     </div>
                     <div class="pv-modal-title-group">
                         <h5 class="pv-modal-title">Abrir Processo de Liminar</h5>
-                        <span class="pv-modal-subtitle" id="novoSubtitulo">Selecione o contrato</span>
+                        <span class="pv-modal-subtitle" id="novoSubtitulo">Preencha os dados da procuração</span>
                     </div>
                 </div>
                 <button type="button" class="pv-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
@@ -292,44 +292,8 @@
             {{-- Body --}}
             <div class="pv-modal-body pv-modal-body-flush">
 
-                {{-- Passo 1: busca de contrato --}}
-                <div id="passo1">
-                    <div class="lim-modal-section lim-modal-section-last">
-                        <div class="lim-modal-section-header lim-section-info">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                            </svg>
-                            Buscar Contrato
-                        </div>
-                        <div class="lim-modal-section-body">
-                            <label class="pv-form-label">Nome do contrato, CPF/CNPJ ou número da proposta</label>
-                            <div class="lim-search-row mb-3">
-                                <input type="text" id="buscaContrato" class="pv-form-input flex-grow-1" placeholder="Digite para buscar...">
-                                <button id="btnBuscarContrato" class="pv-btn pv-btn-primary" style="white-space:nowrap">Buscar</button>
-                            </div>
-                            <div id="resultadosContratos" class="lim-resultados"></div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Passo 2: seleção de beneficiário --}}
-                <div id="passo2" style="display:none">
-                    <div class="lim-modal-section lim-modal-section-last">
-                        <div class="lim-modal-section-header lim-section-success">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                            </svg>
-                            Selecionar Beneficiário
-                        </div>
-                        <div class="lim-modal-section-body">
-                            <div class="lim-contrato-selecionado mb-3" id="infoContratoSelecionado"></div>
-                            <div id="listaBeneficiarios" class="lim-beneficiarios-list"></div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Passo 3: dados da procuração (todos obrigatórios) --}}
-                <div id="passo3" style="display:none">
+                {{-- Dados da procuração (todos obrigatórios). Sem venda/titular atrelados. --}}
+                <div id="passo3">
                     <form id="formProcuracao">
                         {{-- Dados da empresa --}}
                         <div class="lim-modal-section">
@@ -465,14 +429,8 @@
 
             {{-- Footer --}}
             <div class="lim-modal-footer-bar">
-                <button type="button" id="btnVoltarPasso" class="pv-btn pv-btn-ghost" style="display:none">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="15 18 9 12 15 6"/>
-                    </svg>
-                    Voltar
-                </button>
                 <button type="button" class="pv-btn pv-btn-ghost" data-bs-dismiss="modal" id="btnCancelarNovo">Cancelar</button>
-                <button type="button" class="pv-btn pv-btn-success" id="btnConfirmarNovo" style="display:none">
+                <button type="button" class="pv-btn pv-btn-success" id="btnConfirmarNovo">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
