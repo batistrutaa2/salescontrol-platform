@@ -192,13 +192,14 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="bv-preview-actions mb-3">
                         <button type="button" class="bv-preview-btn" id="btn-visualizar-previa" onclick="abrirPreviewWhatsapp()">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
-                            </svg>
-                            Visualizar Prévia
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
+                            Prévia WhatsApp
+                        </button>
+                        <button type="button" class="bv-preview-btn bv-preview-btn-email" onclick="abrirPreviewEmail()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                            Prévia E-mail
                         </button>
                     </div>
                     {{-- campo oculto para manter compatibilidade com o JS --}}
@@ -211,13 +212,14 @@
                         <label class="pv-form-label">Mensagem</label>
                         <textarea class="pv-form-textarea" id="bv-mensagem-personalizada" rows="7" placeholder="Digite a mensagem completa aqui..."></textarea>
                     </div>
-                    <div class="mb-3">
+                    <div class="bv-preview-actions mb-3">
                         <button type="button" class="bv-preview-btn" onclick="abrirPreviewWhatsappPersonalizado()">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
-                            </svg>
-                            Visualizar Prévia
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
+                            Prévia WhatsApp
+                        </button>
+                        <button type="button" class="bv-preview-btn bv-preview-btn-email" onclick="abrirPreviewEmailPersonalizado()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                            Prévia E-mail
                         </button>
                     </div>
                 </div>
@@ -323,6 +325,44 @@
                 <button class="wpp-mic-btn">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Prévia E-mail -->
+<div class="modal fade" id="modalPreviewEmail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog mailcli-dialog">
+        <div class="modal-content mailcli-window">
+            <!-- Window chrome -->
+            <div class="mailcli-chrome">
+                <span class="mailcli-dot mailcli-dot-red"></span>
+                <span class="mailcli-dot mailcli-dot-amber"></span>
+                <span class="mailcli-dot mailcli-dot-green"></span>
+                <span class="mailcli-chrome-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    Prévia do e-mail
+                </span>
+                <button type="button" class="mailcli-close" data-bs-dismiss="modal" aria-label="Fechar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <!-- Meta (de / para / assunto) -->
+            <div class="mailcli-meta">
+                <div class="mailcli-avatar">LK</div>
+                <div class="mailcli-meta-text">
+                    <span class="mailcli-subject" id="mailcli-subject">Boas-vindas</span>
+                    <span class="mailcli-row"><strong>De</strong> <span id="mailcli-from">Equipe LK Brokers</span></span>
+                    <span class="mailcli-row"><strong>Para</strong> <span id="mailcli-to">cliente@email.com</span></span>
+                </div>
+            </div>
+            <!-- Corpo renderizado (iframe isola o CSS do e-mail) -->
+            <div class="mailcli-body">
+                <div class="mailcli-loading" id="mailcli-loading">
+                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                    Gerando prévia…
+                </div>
+                <iframe id="email-preview-frame" class="mailcli-frame" title="Prévia do e-mail de boas-vindas"></iframe>
             </div>
         </div>
     </div>

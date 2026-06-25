@@ -2596,6 +2596,203 @@
     &:active { transform: translateY(0); }
 }
 
+.bv-preview-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+// Variante E-mail (roxo do design system) — convive com a base WhatsApp (verde)
+.bv-preview-btn-email {
+    background: linear-gradient(135deg, #7C3AED, #A78BFA);
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+
+    &:hover {
+        box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
+    }
+}
+
+// ============================================
+// Modal Prévia E-mail (visor estilo cliente de e-mail)
+// ============================================
+.mailcli-dialog {
+    max-width: 900px;
+    width: calc(100% - 1rem);
+    height: calc(100vh - 1rem);
+    margin: 0.5rem auto;
+}
+
+.mailcli-window {
+    border-radius: 16px !important;
+    overflow: hidden;
+    border: none !important;
+    background: #ffffff;
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.35) !important;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
+}
+
+.mailcli-chrome {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 16px;
+    background: linear-gradient(135deg, #7C3AED, #A78BFA);
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.mailcli-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+
+    &.mailcli-dot-red { background: #ff5f57; }
+    &.mailcli-dot-amber { background: #febc2e; }
+    &.mailcli-dot-green { background: #28c840; }
+}
+
+.mailcli-chrome-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+
+    svg { opacity: 0.9; }
+}
+
+.mailcli-close {
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.18);
+    border: none;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--pv-transition-fast);
+
+    &:hover { background: rgba(255, 255, 255, 0.3); }
+}
+
+.mailcli-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: #f8f7fc;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.mailcli-avatar {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7C3AED, #A78BFA);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mailcli-meta-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.mailcli-subject {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mailcli-row {
+    font-size: 0.78rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    strong {
+        display: inline-block;
+        width: 34px;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+}
+
+.mailcli-body {
+    position: relative;
+    background: #eef0f5;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.mailcli-frame {
+    border: none;
+    display: block;
+    transform-origin: top left;
+    background: #eef0f5;
+}
+
+.mailcli-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    background: #eef0f5;
+    z-index: 2;
+}
+
+.dark-style {
+    .mailcli-window {
+        background: #1e202f;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55) !important;
+    }
+
+    .mailcli-meta {
+        background: #232539;
+        border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .mailcli-subject { color: #f9fafb; }
+    .mailcli-row { color: #9ca3af; }
+    .mailcli-row strong { color: #6b7280; }
+
+    .mailcli-body,
+    .mailcli-loading {
+        background: #15161f;
+    }
+
+    .mailcli-loading { color: #9ca3af; }
+}
+
 // ============================================
 // Modal Prévia WhatsApp
 // ============================================

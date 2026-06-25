@@ -26,6 +26,7 @@
     let bvModoConteudo = 'padrao'; // 'padrao' | 'personalizado'
     let bvTitulares = [];
     let bvVendaInfo = {};
+    let bvNomeEmpresa = 'LK Brokers';
 
     const LINKS_APP_OPERADORAS = {
         amil: {
@@ -114,6 +115,7 @@
 
             bvVendaInfo = data.venda;
             bvTitulares = data.titulares || [];
+            bvNomeEmpresa = data.nome_empresa || 'LK Brokers';
 
             document.getElementById('bv-contrato-nome').textContent = data.venda.nome_contrato || '-';
             document.getElementById('bv-operadora').textContent = data.venda.operadora || '-';
@@ -336,6 +338,36 @@
         document.getElementById('bv-preview-padrao').value = msg;
     };
 
+    // Coleta os campos de conteúdo (sem validar) conforme o modo atual.
+    // Reaproveitado pelo envio e pela prévia de e-mail.
+    function coletarConteudo() {
+        const out = { tipo_envio: bvModoConteudo };
+
+        if (bvModoConteudo === 'padrao') {
+            const nomes = document.querySelectorAll('#bv-beneficiarios-list .bv-nome-input');
+            const codigos = document.querySelectorAll('#bv-beneficiarios-list .bv-codigo-input');
+            const beneficiarios = [];
+            nomes.forEach((n, i) => {
+                const nome = n.value.trim();
+                const codigo = codigos[i]?.value.trim() || '';
+                if (nome || codigo) beneficiarios.push({ nome, codigo });
+            });
+
+            out.beneficiarios = beneficiarios;
+            out.nome_contrato = document.getElementById('bv-contrato-nome').textContent;
+            out.login_app = document.getElementById('bv-login-app').value.trim();
+            out.senha_app = document.getElementById('bv-senha-app').value.trim();
+            out.link_ios = document.getElementById('bv-link-ios').value.trim();
+            out.link_android = document.getElementById('bv-link-android').value.trim();
+            out.portal_user = document.getElementById('bv-portal-user').value.trim();
+            out.portal_senha = document.getElementById('bv-portal-senha').value.trim();
+        } else {
+            out.mensagem_personalizada = document.getElementById('bv-mensagem-personalizada').value.trim();
+        }
+
+        return out;
+    }
+
     // -------------------------------------------------- confirmar envio
     async function confirmarBoasVindas() {
         const vendaId = document.getElementById('boas-vindas-venda-id').value;
@@ -399,37 +431,18 @@
             destinatarios_email: destinatariosEmail,
         };
 
-        if (bvModoConteudo === 'padrao') {
-            const nomes = document.querySelectorAll('#bv-beneficiarios-list .bv-nome-input');
-            const codigos = document.querySelectorAll('#bv-beneficiarios-list .bv-codigo-input');
-            const beneficiarios = [];
-            nomes.forEach((n, i) => {
-                const nome = n.value.trim();
-                const codigo = codigos[i]?.value.trim() || '';
-                if (nome || codigo) beneficiarios.push({ nome, codigo });
-            });
+        const conteudo = coletarConteudo();
 
-            if (beneficiarios.length === 0) {
-                Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Informe ao menos um beneficiário.', confirmButtonColor: '#7C3AED' });
-                return;
-            }
-
-            payload.beneficiarios = beneficiarios;
-            payload.nome_contrato = document.getElementById('bv-contrato-nome').textContent;
-            payload.login_app = document.getElementById('bv-login-app').value.trim();
-            payload.senha_app = document.getElementById('bv-senha-app').value.trim();
-            payload.link_ios = document.getElementById('bv-link-ios').value.trim();
-            payload.link_android = document.getElementById('bv-link-android').value.trim();
-            payload.portal_user = document.getElementById('bv-portal-user').value.trim();
-            payload.portal_senha = document.getElementById('bv-portal-senha').value.trim();
-        } else if (bvModoConteudo === 'personalizado') {
-            const mensagem = document.getElementById('bv-mensagem-personalizada').value.trim();
-            if (!mensagem) {
-                Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Escreva a mensagem personalizada.', confirmButtonColor: '#7C3AED' });
-                return;
-            }
-            payload.mensagem_personalizada = mensagem;
+        if (bvModoConteudo === 'padrao' && conteudo.beneficiarios.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Informe ao menos um beneficiário.', confirmButtonColor: '#7C3AED' });
+            return;
         }
+        if (bvModoConteudo === 'personalizado' && !conteudo.mensagem_personalizada) {
+            Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Escreva a mensagem personalizada.', confirmButtonColor: '#7C3AED' });
+            return;
+        }
+
+        Object.assign(payload, conteudo);
 
         const originalContent = btnConfirmar.innerHTML;
         btnConfirmar.disabled = true;
@@ -545,6 +558,103 @@
 
         new bootstrap.Modal(document.getElementById('modalPreviewWhatsapp')).show();
     }
+
+    // -------------------------------------------------- prévia E-mail
+    window.abrirPreviewEmail = function () {
+        gerarPreviewEmail();
+    };
+
+    window.abrirPreviewEmailPersonalizado = function () {
+        const texto = document.getElementById('bv-mensagem-personalizada').value.trim();
+        if (!texto) {
+            Swal.fire({ icon: 'info', title: 'Escreva a mensagem', text: 'Digite o conteúdo da mensagem para visualizar a prévia.', confirmButtonColor: '#7C3AED' });
+            return;
+        }
+        gerarPreviewEmail();
+    };
+
+    async function gerarPreviewEmail() {
+        const payload = coletarConteudo();
+        payload.venda_id = document.getElementById('boas-vindas-venda-id').value;
+        payload.operadora = bvVendaInfo.operadora || '';
+
+        // Faixa de meta (de / para / assunto)
+        const primeiroEmail = (document.querySelector('#bv-destinatarios-email-list .bv-dest-email')?.value || '').trim() || 'cliente@email.com';
+        document.getElementById('mailcli-from').textContent = `Equipe ${bvNomeEmpresa}`;
+        document.getElementById('mailcli-to').textContent = primeiroEmail;
+        document.getElementById('mailcli-subject').textContent = `Boas-vindas à ${bvNomeEmpresa}`;
+
+        const modalEl = document.getElementById('modalPreviewEmail');
+        const frame = document.getElementById('email-preview-frame');
+        const loading = document.getElementById('mailcli-loading');
+        frame.style.visibility = 'hidden';
+        loading.style.display = 'flex';
+        loading.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Gerando prévia…';
+
+        // Só escala quando o modal terminou de abrir E o iframe carregou — caso
+        // contrário as dimensões da área ainda estão erradas (animação em curso).
+        let modalPronto = false;
+        let framePronto = false;
+        const revelar = () => {
+            if (!modalPronto || !framePronto) return;
+            loading.style.display = 'none';
+            frame.style.visibility = 'visible';
+            requestAnimationFrame(ajustarEscalaPreview);
+        };
+
+        modalEl.addEventListener('shown.bs.modal', () => { modalPronto = true; revelar(); }, { once: true });
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+        try {
+            const res = await fetch('/back-office/pos-venda/boas-vindas/preview-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf() },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error('preview-failed');
+            const html = await res.text();
+            frame.onload = () => { framePronto = true; revelar(); };
+            frame.srcdoc = html;
+        } catch (e) {
+            console.error('Erro ao gerar prévia do e-mail:', e);
+            loading.innerHTML = 'Não foi possível gerar a prévia.';
+        }
+    }
+
+    // Escala o e-mail (largura fixa de 600px) para caber INTEIRO na área visível,
+    // sem rolagem — limitado pela largura ou pela altura disponível.
+    function ajustarEscalaPreview() {
+        const frame = document.getElementById('email-preview-frame');
+        const body = frame?.parentElement;
+        if (!frame || !body || !body.clientWidth) return;
+
+        const doc = frame.contentDocument || frame.contentWindow?.document;
+        if (!doc) return;
+
+        const EMAIL_W = 600;
+        const contentH = Math.max(
+            doc.documentElement?.scrollHeight || 0,
+            doc.body?.scrollHeight || 0,
+        ) || 1200;
+
+        const availW = body.clientWidth;
+        const availH = body.clientHeight;
+        const scale = Math.min(availW / EMAIL_W, availH / contentH);
+
+        body.style.overflow = 'hidden';
+        frame.style.width = EMAIL_W + 'px';
+        frame.style.height = contentH + 'px';
+        frame.style.transformOrigin = 'top left';
+        frame.style.transform = `scale(${scale})`;
+        frame.style.marginLeft = Math.max((availW - EMAIL_W * scale) / 2, 0) + 'px';
+        frame.style.marginTop = Math.max((availH - contentH * scale) / 2, 0) + 'px';
+    }
+
+    window.addEventListener('resize', () => {
+        if (document.getElementById('modalPreviewEmail')?.classList.contains('show')) {
+            ajustarEscalaPreview();
+        }
+    });
 
     // -------------------------------------------------- wiring
     document.getElementById('btn-confirmar-boas-vindas')?.addEventListener('click', confirmarBoasVindas);

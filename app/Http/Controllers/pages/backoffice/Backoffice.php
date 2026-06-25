@@ -3162,6 +3162,47 @@ class Backoffice extends Controller
     }
 
     /**
+     * Renderiza a prévia do e-mail de Boas Vindas (mesmo Blade do envio real),
+     * sem disparar nada. Consumido pela modal para visualização antes do envio.
+     */
+    public function previewEmailBoasVindas(Request $request)
+    {
+        try {
+            $request->validate([
+                'venda_id' => 'nullable|integer',
+                'tipo_envio' => 'nullable|in:padrao,personalizado',
+                'beneficiarios' => 'nullable|array',
+                'beneficiarios.*.nome' => 'nullable|string',
+                'beneficiarios.*.codigo' => 'nullable|string',
+                'login_app' => 'nullable|string|max:100',
+                'senha_app' => 'nullable|string|max:100',
+                'portal_user' => 'nullable|string|max:100',
+                'portal_senha' => 'nullable|string|max:100',
+                'mensagem_personalizada' => 'nullable|string',
+            ]);
+
+            $empresaId = Auth::user()->empresa_id;
+            $empresa = Empresa::find($empresaId);
+            $nomeEmpresa = $empresa?->nome_fantasia ?: 'LK Brokers';
+
+            $operadora = (string) $request->input('operadora', '');
+            if ($operadora === '' && $request->filled('venda_id')) {
+                $operadora = (string) (Vendas::where('id', $request->venda_id)
+                    ->where('empresa_id', $empresaId)
+                    ->value('operadora') ?? '');
+            }
+
+            $tipoEnvio = $request->input('tipo_envio') === 'personalizado' ? 'personalizado' : 'padrao';
+
+            $dadosEmail = $this->buildDadosEmailPadrao($request, $nomeEmpresa, $operadora, $tipoEnvio);
+
+            return view('emails.boas-vindas', ['dados' => $dadosEmail]);
+        } catch (\Throwable $e) {
+            return response('Não foi possível gerar a prévia: '.e($e->getMessage()), 500);
+        }
+    }
+
+    /**
      * Monta o array de dados consumido pelo BoasVindasMail (template HTML).
      * Reaproveita exatamente os mesmos inputs do envio por WhatsApp.
      */

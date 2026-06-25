@@ -17,6 +17,7 @@
     $portalUser      = $dados['portalUser'] ?? '';
     $portalSenha     = $dados['portalSenha'] ?? '';
     $corpoLivre      = $dados['corpoPersonalizado'] ?? '';
+    $logoUrl         = rtrim(config('app.url'), '/') . '/assets/img/branding/logo-brokers-email.jpeg';
 
     $roxo      = '#7C3AED';
     $roxoClaro = '#A78BFA';
@@ -46,24 +47,23 @@
             <td align="center">
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 40px rgba(15,23,42,0.10);">
 
-                    {{-- ====================== HEADER ====================== --}}
+                    {{-- ====================== HEADER (logo em fundo branco) ====================== --}}
                     <tr>
-                        <td style="background:linear-gradient(135deg,{{ $roxo }} 0%,{{ $roxoClaro }} 100%);background-color:{{ $roxo }};padding:40px 40px 36px;" align="center">
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                <tr>
-                                    <td align="center">
-                                        <div style="display:inline-block;width:64px;height:64px;line-height:64px;border-radius:18px;background:rgba(255,255,255,0.18);font-family:{{ $fontUI }};font-size:30px;font-weight:800;color:#ffffff;letter-spacing:1px;">LK</div>
-                                        <h1 style="margin:18px 0 6px;font-family:{{ $fontUI }};font-size:24px;line-height:1.25;font-weight:800;color:#ffffff;">Seja muito bem-vindo(a)!</h1>
-                                        <p style="margin:0;font-family:{{ $fontUI }};font-size:15px;color:rgba(255,255,255,0.92);">{{ $nomeEmpresa }}@if($operadora) &nbsp;•&nbsp; {{ $operadora }}@endif</p>
-                                    </td>
-                                </tr>
-                            </table>
+                        <td style="background:#ffffff;padding:26px 40px 20px;" align="center">
+                            <img src="{{ $logoUrl }}" alt="LK Broker's — Consultoria de Seguros" height="58" style="height:58px;width:auto;display:block;margin:0 auto;">
                         </td>
+                    </tr>
+                    {{-- Faixa de acento da marca --}}
+                    <tr>
+                        <td style="height:4px;line-height:4px;font-size:0;background:linear-gradient(90deg,{{ $roxo }},{{ $roxoClaro }});">&nbsp;</td>
                     </tr>
 
                     {{-- ====================== CORPO ====================== --}}
                     <tr>
-                        <td style="padding:36px 40px 12px;">
+                        <td style="padding:32px 40px 12px;">
+                            <span style="display:inline-block;margin-bottom:16px;font-family:{{ $fontUI }};font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ $roxo }};background:{{ $fundoSec }};border:1px solid {{ $borda }};border-radius:999px;padding:5px 12px;">Boas-vindas</span>
+                            <h1 style="margin:0 0 4px;font-family:{{ $fontUI }};font-size:24px;line-height:1.25;font-weight:800;color:{{ $texto }};">Seja muito bem-vindo(a)!</h1>
+                            <p style="margin:0 0 22px;font-family:{{ $fontUI }};font-size:14px;color:{{ $textoSec }};">{{ $nomeEmpresa }}@if($operadora) &nbsp;•&nbsp; {{ $operadora }}@endif</p>
                             <p style="margin:0 0 16px;font-family:{{ $fontUI }};font-size:17px;font-weight:700;color:{{ $texto }};">Prezado(a) {{ $primeiroNome }},</p>
 
                             @if($modo === 'personalizado')
