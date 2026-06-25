@@ -308,6 +308,7 @@ Route::middleware(['auth'])->group(function () {
   Route::delete('/back-office/liminar/{id}', [LiminarController::class, 'destroy'])->name('backoffice.liminar.destroy');
   Route::post('/back-office/liminar/{id}/mover', [LiminarController::class, 'mover'])->name('backoffice.liminar.mover');
   Route::get('/back-office/liminar-buscar-contratos', [LiminarController::class, 'buscarContratos'])->name('backoffice.liminar.buscarContratos');
+  Route::get('/back-office/liminar-buscar-concluidas', [LiminarController::class, 'buscarConcluidas'])->name('backoffice.liminar.buscarConcluidas');
   Route::post('/back-office/liminar/{id}/documentos', [LiminarController::class, 'uploadDocumento'])->name('backoffice.liminar.uploadDocumento');
   Route::delete('/back-office/liminar/{id}/documentos/{docId}', [LiminarController::class, 'destroyDocumento'])->name('backoffice.liminar.destroyDocumento');
   Route::get('/back-office/liminar/{id}/documentos/{docId}/download', [LiminarController::class, 'downloadDocumento'])->name('backoffice.liminar.downloadDocumento');

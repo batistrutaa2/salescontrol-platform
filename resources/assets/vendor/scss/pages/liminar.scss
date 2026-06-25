@@ -568,6 +568,67 @@
     .contrato-info { font-size: 0.75rem; color: var(--pv-text-muted); }
 }
 
+// ============================================
+// Busca de liminares concluídas (header)
+// ============================================
+.lim-search-concluidas {
+    position: relative;
+    width: min(380px, 60vw);
+}
+
+.lim-search-icon {
+    position: absolute;
+    left: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    color: var(--dash-text-muted);
+    pointer-events: none;
+}
+
+.lim-search-input {
+    width: 100%;
+    padding: 0.7rem 0.9rem 0.7rem 2.4rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: var(--dash-card-bg);
+    color: var(--dash-text-primary);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: var(--dash-transition);
+
+    &::placeholder { color: var(--dash-text-muted); }
+
+    &:focus {
+        outline: none;
+        border-color: var(--dash-primary);
+        box-shadow: 0 0 0 3px rgba(var(--dash-primary-rgb), 0.12);
+    }
+}
+
+.lim-resultados-float {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    background: var(--dash-card-bg);
+    border: 1px solid var(--dash-card-border);
+    border-radius: 12px;
+    box-shadow: var(--dash-shadow-lg);
+    padding: 0.5rem;
+
+    .lim-contrato-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+
+        strong { font-size: 0.875rem; font-weight: 700; color: var(--dash-text-primary); }
+        small { font-size: 0.75rem; color: var(--dash-text-muted); }
+    }
+}
+
 .lim-contrato-selecionado {
     background: linear-gradient(135deg, rgba(var(--dash-primary-rgb), 0.07), rgba(var(--dash-info-rgb), 0.05));
     border: 1px solid rgba(var(--dash-primary-rgb), 0.18);
@@ -1431,9 +1492,113 @@
 }
 
 // ============================================
+// Diálogo de conclusão (SweetAlert2 no design system)
+// ============================================
+.lim-conclusao-popup {
+    width: 480px;
+    max-width: calc(100vw - 2rem);
+    padding: 1.75rem !important;
+    border-radius: 20px !important;
+    background: var(--dash-card-bg, #fff) !important;
+    box-shadow: var(--dash-shadow-lg), var(--dash-shadow-glow) !important;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.lim-conclusao-htmlcontainer {
+    margin: 0 !important;
+    text-align: left !important;
+    color: var(--dash-text-secondary, #64748b);
+}
+
+.lim-conclusao-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 1.1rem;
+}
+
+.lim-conclusao-badge {
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(135deg, var(--dash-success, #10B981), var(--dash-success-light, #34D399));
+    box-shadow: 0 8px 20px rgba(var(--dash-success-rgb, 16, 185, 129), 0.35);
+}
+
+.lim-conclusao-headtext { min-width: 0; padding-top: 0.1rem; }
+
+.lim-conclusao-title {
+    margin: 0 0 0.2rem;
+    font-size: 1.0625rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--dash-text-primary, #1e293b);
+}
+
+.lim-conclusao-sub {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--dash-text-muted, #94a3b8);
+}
+
+// Reusa o componente .lim-upload-slot; só ajustes de contexto (largura cheia, espaço).
+.lim-conclusao-slot {
+    .lim-slot-click { padding: 0.95rem 2.4rem 0.95rem 0.95rem; }
+
+    // Quando importado, a dica some e dá lugar à confirmação verde.
+    &.is-filled .lim-slot-hint { display: none; }
+
+    // A linha "Documento importado" já confirma o anexo — dispensa o segundo check.
+    .lim-slot-check { display: none !important; }
+}
+
+.lim-conclusao-status {
+    display: none;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--dash-success, #10B981);
+
+    svg { flex: 0 0 auto; }
+
+    .is-filled & { display: inline-flex; }
+}
+
+.lim-conclusao-actions {
+    width: 100%;
+    justify-content: flex-end !important;
+    gap: 0.6rem !important;
+    margin-top: 1.4rem !important;
+
+    .pv-btn { margin: 0; }
+    .pv-btn svg { margin-right: 0.4rem; }
+}
+
+.lim-conclusao-validation {
+    margin-top: 1rem !important;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--dash-danger, #EF4444) 10%, transparent) !important;
+    color: var(--dash-danger, #EF4444) !important;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+// ============================================
 // Dark mode
 // ============================================
 .dark-style {
+    .lim-conclusao-popup { background: var(--dash-card-bg) !important; }
+    .lim-conclusao-title { color: var(--dash-text-primary); }
+
     .lim-select, .lim-input {
         background: var(--dash-glass-bg);
         border-color: var(--dash-card-border);
@@ -1478,4 +1643,7 @@
     .lim-modal-section { border-color: var(--pv-card-border); }
     .lim-modal-col-left { border-color: var(--pv-card-border); }
     .lim-modal-footer-bar { border-color: var(--pv-card-border); }
+
+    .lim-search-input { background: var(--dash-glass-bg); border-color: var(--dash-card-border); }
+    .lim-resultados-float { background: var(--dash-card-bg); border-color: var(--dash-card-border); }
 }

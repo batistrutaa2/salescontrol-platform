@@ -21,12 +21,19 @@ class LiminarTest extends TestCase
     use RefreshDatabase;
 
     private Empresa $empresa;
+
     private User $admin;
+
     private User $backoffice;
+
     private User $vendedor;
+
     private User $advogada;
+
     private int $contatoId;
+
     private Vendas $venda;
+
     private VendaTitular $titular;
 
     protected function setUp(): void
@@ -80,23 +87,24 @@ class LiminarTest extends TestCase
         // A venda nunca é atrelada ao cancelamento — o processo nasce só com os
         // dados da procuração + documentos.
         return array_merge([
-            'responsavel_id'                 => $this->backoffice->id,
-            'nome_empresa'                   => 'MD4 Consultoria LTDA',
-            'cnpj'                           => '43.685.447/0001-54',
-            'protocolo_cancelamento'         => '998877',
-            'email_procuracao'               => 'cliente@example.com',
-            'data_fim_plano'                 => '31/12/2024',
-            'data_contratacao'               => '01/01/2023',
-            'data_solicitacao_cancelamento'  => '15/11/2024',
-            'data_ultimo_pagamento_boleto'   => '10/11/2024',
-            'cobertura_comprovante_inicio'   => '01/11/2024',
-            'cobertura_comprovante_fim'      => '30/11/2024',
-            'data_vencimento_boleto_1'       => '10/12/2024',
-            'data_vencimento_boleto_2'       => '10/01/2025',
-            'doc_contrato_social'            => UploadedFile::fake()->create('contrato_social.pdf', 100, 'application/pdf'),
-            'doc_cartao_cnpj'                => UploadedFile::fake()->create('cartao_cnpj.pdf', 100, 'application/pdf'),
-            'doc_rg_cliente'                 => UploadedFile::fake()->create('rg.pdf', 100, 'application/pdf'),
-            'doc_comprovante_pagamento'      => UploadedFile::fake()->create('comprovante.pdf', 100, 'application/pdf'),
+            'responsavel_id' => $this->backoffice->id,
+            'nome_empresa' => 'MD4 Consultoria LTDA',
+            'cnpj' => '43.685.447/0001-54',
+            'protocolo_cancelamento' => '998877',
+            'email_procuracao' => 'cliente@example.com',
+            'data_fim_plano' => '31/12/2024',
+            'data_contratacao' => '01/01/2023',
+            'data_solicitacao_cancelamento' => '15/11/2024',
+            'data_ultimo_pagamento_boleto' => '10/11/2024',
+            'cobertura_comprovante_inicio' => '01/11/2024',
+            'cobertura_comprovante_fim' => '30/11/2024',
+            'data_vencimento_boleto_1' => '10/12/2024',
+            'data_vencimento_boleto_2' => '10/01/2025',
+            'doc_carteirinha' => UploadedFile::fake()->create('carteirinha.pdf', 100, 'application/pdf'),
+            'doc_contrato_social' => UploadedFile::fake()->create('contrato_social.pdf', 100, 'application/pdf'),
+            'doc_cartao_cnpj' => UploadedFile::fake()->create('cartao_cnpj.pdf', 100, 'application/pdf'),
+            'doc_rg_cliente' => UploadedFile::fake()->create('rg.pdf', 100, 'application/pdf'),
+            'doc_comprovante_pagamento' => UploadedFile::fake()->create('comprovante.pdf', 100, 'application/pdf'),
         ], $overrides);
     }
 
@@ -111,28 +119,33 @@ class LiminarTest extends TestCase
 
         $liminar = CancelamentoLiminar::first();
         $this->assertDatabaseHas('cancelamentos_liminares', [
-            'id'                     => $liminar->id,
-            'empresa_id'             => $this->empresa->id,
-            'venda_id'               => null,
-            'beneficiario_tipo'      => null,
-            'beneficiario_id'        => null,
-            'fase'                   => 'CANCELAMENTO_ABERTO',
-            'nome_empresa'           => 'MD4 Consultoria LTDA',
+            'id' => $liminar->id,
+            'empresa_id' => $this->empresa->id,
+            'venda_id' => null,
+            'beneficiario_tipo' => null,
+            'beneficiario_id' => null,
+            'fase' => 'CANCELAMENTO_ABERTO',
+            'nome_empresa' => 'MD4 Consultoria LTDA',
             // Sem venda: o nome da empresa contratante vira o título do processo.
-            'nome_contrato'          => 'MD4 Consultoria LTDA',
+            'nome_contrato' => 'MD4 Consultoria LTDA',
             'protocolo_cancelamento' => '998877',
-            'data_fim_plano'         => '2024-12-31',
+            'data_fim_plano' => '2024-12-31',
         ]);
 
-        // Os 4 documentos obrigatórios foram persistidos no S3 e no banco.
-        $this->assertSame(4, $liminar->documentos()->count());
+        // Os 5 documentos obrigatórios foram persistidos no S3 e no banco.
+        $this->assertSame(5, $liminar->documentos()->count());
         Storage::disk('s3')->assertExists("liminares/{$this->empresa->id}/{$liminar->id}/contrato_social.pdf");
+        Storage::disk('s3')->assertExists("liminares/{$this->empresa->id}/{$liminar->id}/carteirinha.pdf");
+        $this->assertDatabaseHas('cancelamentos_liminares_documentos', [
+            'cancelamento_liminar_id' => $liminar->id,
+            'tipo_documento' => 'CARTEIRINHA',
+        ]);
 
         // Histórico de abertura.
         $this->assertDatabaseHas('cancelamentos_liminares_historico', [
             'cancelamento_liminar_id' => $liminar->id,
-            'campo_alterado'          => 'fase',
-            'valor_novo'              => 'Cancelamento Aberto',
+            'campo_alterado' => 'fase',
+            'valor_novo' => 'Cancelamento Aberto',
         ]);
     }
 
@@ -143,19 +156,19 @@ class LiminarTest extends TestCase
         $resp = $this->actingAs($this->admin)
             ->post(route('backoffice.liminar.store'), $this->payload([
                 'doc_print_protocolo' => UploadedFile::fake()->create('print.png', 80, 'image/png'),
-                'doc_audio_hapvida'   => UploadedFile::fake()->create('ligacao.mp3', 300, 'audio/mpeg'),
+                'doc_audio_hapvida' => UploadedFile::fake()->create('ligacao.mp3', 300, 'audio/mpeg'),
             ]));
 
         $resp->assertOk()->assertJson(['success' => true]);
 
         $liminar = CancelamentoLiminar::first();
-        // 4 obrigatórios + 2 opcionais.
-        $this->assertSame(6, $liminar->documentos()->count());
+        // 5 obrigatórios + 2 opcionais.
+        $this->assertSame(7, $liminar->documentos()->count());
         Storage::disk('s3')->assertExists("liminares/{$this->empresa->id}/{$liminar->id}/print_protocolo.png");
         Storage::disk('s3')->assertExists("liminares/{$this->empresa->id}/{$liminar->id}/audio_hapvida.mp3");
         $this->assertDatabaseHas('cancelamentos_liminares_documentos', [
             'cancelamento_liminar_id' => $liminar->id,
-            'tipo_documento'          => 'AUDIO_HAPVIDA',
+            'tipo_documento' => 'AUDIO_HAPVIDA',
         ]);
     }
 
@@ -167,7 +180,7 @@ class LiminarTest extends TestCase
         $this->actingAs($this->admin)
             ->post(route('backoffice.liminar.uploadDocumento', $liminar->id), [
                 'tipo_documento' => 'AUDIO_HAPVIDA',
-                'arquivo'        => UploadedFile::fake()->create('audio.mp3', 200, 'audio/mpeg'),
+                'arquivo' => UploadedFile::fake()->create('audio.mp3', 200, 'audio/mpeg'),
             ])
             ->assertOk();
 
@@ -182,7 +195,7 @@ class LiminarTest extends TestCase
         $this->actingAs($this->admin)
             ->postJson(route('backoffice.liminar.uploadDocumento', $liminar->id), [
                 'tipo_documento' => 'CONTRATO_SOCIAL',
-                'arquivo'        => UploadedFile::fake()->create('audio.mp3', 200, 'audio/mpeg'),
+                'arquivo' => UploadedFile::fake()->create('audio.mp3', 200, 'audio/mpeg'),
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['arquivo']);
@@ -194,9 +207,9 @@ class LiminarTest extends TestCase
 
         $this->actingAs($this->admin)
             ->postJson(route('backoffice.liminar.store'), $this->payload([
-                'nome_empresa'             => '',
-                'protocolo_cancelamento'   => '',
-                'data_fim_plano'           => '',
+                'nome_empresa' => '',
+                'protocolo_cancelamento' => '',
+                'data_fim_plano' => '',
             ]))
             ->assertStatus(422)
             ->assertJsonValidationErrors(['nome_empresa', 'protocolo_cancelamento', 'data_fim_plano']);
@@ -213,6 +226,40 @@ class LiminarTest extends TestCase
             ->postJson(route('backoffice.liminar.store'), $payload)
             ->assertStatus(422)
             ->assertJsonValidationErrors(['doc_contrato_social']);
+    }
+
+    public function test_store_exige_carteirinha(): void
+    {
+        Storage::fake('s3');
+
+        $payload = $this->payload();
+        unset($payload['doc_carteirinha']);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('backoffice.liminar.store'), $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['doc_carteirinha']);
+    }
+
+    public function test_advogada_baixa_documento(): void
+    {
+        Storage::fake('s3');
+        $liminar = $this->criarLiminar();
+
+        // Anexa uma carteirinha ao processo (upload avulso, como no fluxo de abertura).
+        $this->actingAs($this->admin)
+            ->post(route('backoffice.liminar.uploadDocumento', $liminar->id), [
+                'tipo_documento' => 'CARTEIRINHA',
+                'arquivo' => UploadedFile::fake()->create('carteirinha.pdf', 100, 'application/pdf'),
+            ])
+            ->assertOk();
+
+        $doc = $liminar->documentos()->where('tipo_documento', 'CARTEIRINHA')->firstOrFail();
+
+        // A advogada consegue baixar o documento.
+        $this->actingAs($this->advogada)
+            ->get(route('backoffice.liminar.downloadDocumento', [$liminar->id, $doc->id]))
+            ->assertOk();
     }
 
     public function test_advogada_nao_pode_abrir_processo(): void
@@ -259,13 +306,13 @@ class LiminarTest extends TestCase
             ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('cancelamentos_liminares', [
-            'id'   => $liminar->id,
+            'id' => $liminar->id,
             'fase' => 'PROCURACAO_ENVIADA',
         ]);
         $this->assertDatabaseHas('cancelamentos_liminares_historico', [
             'cancelamento_liminar_id' => $liminar->id,
-            'campo_alterado'          => 'fase',
-            'valor_novo'              => 'Procuração enviada',
+            'campo_alterado' => 'fase',
+            'valor_novo' => 'Procuração enviada',
         ]);
 
         Notification::assertSentTo($this->backoffice, LiminarStatusAlterado::class);
@@ -287,20 +334,117 @@ class LiminarTest extends TestCase
         Notification::assertNotSentTo($this->vendedor, LiminarStatusAlterado::class);
     }
 
-    public function test_advogada_pode_mover(): void
+    public function test_advogada_conclui_anexando_pdf_da_decisao(): void
     {
         Notification::fake();
+        Storage::fake('s3');
+        $liminar = $this->criarLiminar();
+
+        $this->actingAs($this->advogada)
+            ->post(route('backoffice.liminar.mover', $liminar->id), [
+                'fase' => 'LIMINAR_CONCEDIDA',
+                'documento_conclusao' => UploadedFile::fake()->create('decisao.pdf', 120, 'application/pdf'),
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('cancelamentos_liminares', [
+            'id' => $liminar->id,
+            'fase' => 'LIMINAR_CONCEDIDA',
+            'status' => 'CONCLUIDA',
+        ]);
+
+        // O PDF da decisão foi salvo como documento de conclusão.
+        $this->assertDatabaseHas('cancelamentos_liminares_documentos', [
+            'cancelamento_liminar_id' => $liminar->id,
+            'tipo_documento' => 'CONCLUSAO_LIMINAR',
+        ]);
+        Storage::disk('s3')->assertExists("liminares/{$this->empresa->id}/{$liminar->id}/conclusao_liminar.pdf");
+    }
+
+    public function test_concluir_exige_pdf_da_decisao(): void
+    {
         $liminar = $this->criarLiminar();
 
         $this->actingAs($this->advogada)
             ->postJson(route('backoffice.liminar.mover', $liminar->id), ['fase' => 'LIMINAR_CONCEDIDA'])
-            ->assertOk();
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['documento_conclusao']);
 
+        // Sem o PDF, a fase não muda.
         $this->assertDatabaseHas('cancelamentos_liminares', [
-            'id'     => $liminar->id,
-            'fase'   => 'LIMINAR_CONCEDIDA',
-            'status' => 'CONCLUIDA',
+            'id' => $liminar->id,
+            'fase' => 'CANCELAMENTO_ABERTO',
         ]);
+    }
+
+    public function test_concluir_rejeita_arquivo_que_nao_e_pdf(): void
+    {
+        Storage::fake('s3');
+        $liminar = $this->criarLiminar();
+
+        $this->actingAs($this->advogada)
+            ->postJson(route('backoffice.liminar.mover', $liminar->id), [
+                'fase' => 'LIMINAR_CONCEDIDA',
+                'documento_conclusao' => UploadedFile::fake()->create('decisao.png', 80, 'image/png'),
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['documento_conclusao']);
+    }
+
+    public function test_busca_concluidas_por_empresa_e_cnpj(): void
+    {
+        $concluida = CancelamentoLiminar::create([
+            'empresa_id' => $this->empresa->id,
+            'nome_empresa' => 'MD4 Consultoria LTDA',
+            'nome_contrato' => 'MD4 Consultoria LTDA',
+            'cnpj' => '43.685.447/0001-54',
+            'protocolo_cancelamento' => '998877',
+            'responsavel_id' => $this->backoffice->id,
+            'status' => 'CONCLUIDA',
+            'fase' => 'LIMINAR_CONCEDIDA',
+        ]);
+
+        // Processo ainda em aberto NÃO deve aparecer na busca de concluídas.
+        $emAberto = $this->criarLiminar();
+        $emAberto->update(['nome_empresa' => 'MD4 Filial']);
+
+        // Por nome da empresa.
+        $this->actingAs($this->advogada)
+            ->getJson(route('backoffice.liminar.buscarConcluidas', ['q' => 'MD4']))
+            ->assertOk()
+            ->assertJsonFragment(['id' => $concluida->id, 'nome_empresa' => 'MD4 Consultoria LTDA'])
+            ->assertJsonMissing(['id' => $emAberto->id]);
+
+        // Por CNPJ (com máscara — o backend normaliza dígitos).
+        $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.liminar.buscarConcluidas', ['q' => '43685447000154']))
+            ->assertOk()
+            ->assertJsonFragment(['id' => $concluida->id]);
+    }
+
+    public function test_busca_concluidas_respeita_multitenancy(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $adminOutra = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'ativo' => 'Y',
+        ]);
+
+        CancelamentoLiminar::create([
+            'empresa_id' => $this->empresa->id,
+            'nome_empresa' => 'MD4 Consultoria LTDA',
+            'nome_contrato' => 'MD4 Consultoria LTDA',
+            'cnpj' => '43.685.447/0001-54',
+            'status' => 'CONCLUIDA',
+            'fase' => 'LIMINAR_CONCEDIDA',
+        ]);
+
+        $this->actingAs($adminOutra)
+            ->getJson(route('backoffice.liminar.buscarConcluidas', ['q' => 'MD4']))
+            ->assertOk()
+            ->assertJsonPath('liminares', []);
     }
 
     public function test_mover_valida_fase_invalida(): void
@@ -429,32 +573,32 @@ class LiminarTest extends TestCase
     {
         \App\Models\CancelamentoLiminarDocumento::create([
             'cancelamento_liminar_id' => $liminar->id,
-            'empresa_id'              => $liminar->empresa_id,
-            'tipo_documento'          => 'CONTRATO_SOCIAL',
-            'nome_original'           => 'doc.pdf',
-            'path_s3'                 => "liminares/{$liminar->empresa_id}/{$liminar->id}/contrato_social.pdf",
-            'uploaded_by'             => $this->admin->id,
+            'empresa_id' => $liminar->empresa_id,
+            'tipo_documento' => 'CONTRATO_SOCIAL',
+            'nome_original' => 'doc.pdf',
+            'path_s3' => "liminares/{$liminar->empresa_id}/{$liminar->id}/contrato_social.pdf",
+            'uploaded_by' => $this->admin->id,
         ]);
         \App\Models\CancelamentoLiminarHistorico::create([
             'cancelamento_liminar_id' => $liminar->id,
-            'user_id'                 => $this->admin->id,
-            'campo_alterado'          => 'fase',
-            'valor_anterior'          => null,
-            'valor_novo'              => 'Cancelamento Aberto',
+            'user_id' => $this->admin->id,
+            'campo_alterado' => 'fase',
+            'valor_anterior' => null,
+            'valor_novo' => 'Cancelamento Aberto',
         ]);
     }
 
     private function criarLiminar(): CancelamentoLiminar
     {
         return CancelamentoLiminar::create([
-            'empresa_id'        => $this->empresa->id,
-            'venda_id'          => $this->venda->id,
+            'empresa_id' => $this->empresa->id,
+            'venda_id' => $this->venda->id,
             'beneficiario_tipo' => 'TITULAR',
-            'beneficiario_id'   => $this->titular->id,
-            'nome_contrato'     => $this->venda->nome_contrato,
-            'responsavel_id'    => $this->backoffice->id,
-            'status'            => 'EM_EXECUCAO',
-            'fase'              => 'CANCELAMENTO_ABERTO',
+            'beneficiario_id' => $this->titular->id,
+            'nome_contrato' => $this->venda->nome_contrato,
+            'responsavel_id' => $this->backoffice->id,
+            'status' => 'EM_EXECUCAO',
+            'fase' => 'CANCELAMENTO_ABERTO',
         ]);
     }
 }

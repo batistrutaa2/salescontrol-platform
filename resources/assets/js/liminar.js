@@ -170,23 +170,147 @@
     // =========================================================================
     // Kanban — mover
     // =========================================================================
+    // Ícones do diálogo de conclusão (mesma linguagem visual do design system).
+    const CONCLUSAO_SVG = {
+        scale: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M7 7l-3 6a3 3 0 0 0 6 0L7 7zM17 7l-3 6a3 3 0 0 0 6 0l-3-6zM7 21h10"/></svg>`,
+        doc: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+        check: `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    };
+
+    // Concluir exige o PDF da decisão. Diálogo no design system do sistema (SweetAlert2
+    // estilizado + componente .lim-upload-slot), que flutua acima de modais bootstrap.
+    // O campo indica claramente quando o documento foi importado e será salvo.
+    // Resolve com o File; rejeita com 'cancelado' se desistir.
+    const pedirPdfConclusao = async () => {
+        let arquivo = null;
+
+        const html = `
+            <div class="lim-conclusao">
+                <div class="lim-conclusao-head">
+                    <span class="lim-conclusao-badge">${CONCLUSAO_SVG.scale}</span>
+                    <div class="lim-conclusao-headtext">
+                        <h3 class="lim-conclusao-title">Concluir processo</h3>
+                        <p class="lim-conclusao-sub">Anexe o PDF da decisão para registrar a liminar concedida.</p>
+                    </div>
+                </div>
+                <div class="lim-upload-slot lim-conclusao-slot" data-slot>
+                    <input type="file" id="conclusaoInput" accept="application/pdf" hidden>
+                    <label for="conclusaoInput" class="lim-slot-click">
+                        <span class="lim-slot-icon">${CONCLUSAO_SVG.doc}</span>
+                        <span class="lim-slot-body">
+                            <span class="lim-slot-head">
+                                <span class="lim-slot-title">Decisão da liminar</span>
+                                <span class="lim-slot-badge is-req">Obrigatório</span>
+                            </span>
+                            <span class="lim-slot-hint">Arraste o PDF ou <u>selecione</u> · PDF até 10MB</span>
+                            <span class="lim-slot-file"><span class="lim-slot-filename"></span><span class="lim-slot-size"></span></span>
+                            <span class="lim-conclusao-status">${CONCLUSAO_SVG.check}<span>Documento importado — será salvo ao concluir</span></span>
+                        </span>
+                        <span class="lim-slot-check">${CONCLUSAO_SVG.check}</span>
+                    </label>
+                    <button type="button" class="lim-slot-remove" aria-label="Remover documento">${SVG.toastClose}</button>
+                </div>
+            </div>`;
+
+        const result = await Swal.fire({
+            html,
+            width: 480,
+            showCancelButton: true,
+            reverseButtons: true,
+            buttonsStyling: false,
+            focusConfirm: false,
+            confirmButtonText: `${CONCLUSAO_SVG.check}<span>Concluir processo</span>`,
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                popup: 'lim-conclusao-popup',
+                htmlContainer: 'lim-conclusao-htmlcontainer',
+                actions: 'lim-conclusao-actions',
+                confirmButton: 'pv-btn pv-btn-success',
+                cancelButton: 'pv-btn pv-btn-ghost',
+                validationMessage: 'lim-conclusao-validation',
+            },
+            showClass: { popup: 'animate__animated animate__fadeInUp animate__faster' },
+            hideClass: { popup: 'animate__animated animate__fadeOutDown animate__faster' },
+            didOpen: () => {
+                const slot = document.querySelector('.lim-conclusao-slot');
+                const input = slot.querySelector('#conclusaoInput');
+
+                const aplicar = (f) => {
+                    arquivo = f || null;
+                    if (!f) { slot.classList.remove('is-filled'); return; }
+                    slot.querySelector('.lim-slot-filename').textContent = f.name;
+                    slot.querySelector('.lim-slot-size').textContent = formatarBytes(f.size);
+                    slot.classList.add('is-filled');
+                    Swal.resetValidationMessage();
+                };
+
+                input.addEventListener('change', () => aplicar(input.files[0]));
+                slot.querySelector('.lim-slot-remove').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    input.value = '';
+                    aplicar(null);
+                });
+                ['dragover', 'dragenter'].forEach((ev) => slot.addEventListener(ev, (e) => { e.preventDefault(); slot.classList.add('is-drag'); }));
+                ['dragleave', 'dragend'].forEach((ev) => slot.addEventListener(ev, () => slot.classList.remove('is-drag')));
+                slot.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    slot.classList.remove('is-drag');
+                    if (e.dataTransfer.files.length) {
+                        const dt = new DataTransfer();
+                        dt.items.add(e.dataTransfer.files[0]);
+                        input.files = dt.files;
+                        aplicar(e.dataTransfer.files[0]);
+                    }
+                });
+            },
+            preConfirm: () => {
+                if (!arquivo) { Swal.showValidationMessage('Anexe o PDF da decisão.'); return false; }
+                const ehPdf = arquivo.type === 'application/pdf' || /\.pdf$/i.test(arquivo.name);
+                if (!ehPdf) { Swal.showValidationMessage('O arquivo deve ser PDF.'); return false; }
+                if (arquivo.size > 10 * 1024 * 1024) { Swal.showValidationMessage('O arquivo excede 10MB.'); return false; }
+                return true;
+            },
+        });
+
+        if (!result.isConfirmed || !arquivo) throw new Error('cancelado');
+        return arquivo;
+    };
+
+    // Envia a mudança de fase (multipart — carrega o PDF quando concluindo).
+    const enviarMover = async (id, novaFase, file = null) => {
+        const form = new FormData();
+        form.append('fase', novaFase);
+        if (file) form.append('documento_conclusao', file);
+        form.append('_token', csrf);
+        const resp = await fetch(`/back-office/liminar/${id}/mover`, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+            body: form,
+        });
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.message || `Falha ao mover (HTTP ${resp.status})`);
+        }
+        return resp;
+    };
+
+    // Resolve o PDF quando a fase destino for a conclusão; null caso contrário.
+    const arquivoConclusaoSeNecessario = async (novaFase) =>
+        novaFase === FASE_CONCLUIDA ? await pedirPdfConclusao() : null;
+
     const mover = async (id, novaFase) => {
         try {
-            const resp = await fetch(`/back-office/liminar/${id}/mover`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
-                body: JSON.stringify({ fase: novaFase }),
-            });
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({}));
-                throw new Error(err.message || `Falha ao mover (HTTP ${resp.status})`);
-            }
+            const file = await arquivoConclusaoSeNecessario(novaFase);
+            await enviarMover(id, novaFase, file);
             atualizarContadores();
             showModernToast('success', 'Processo movido', `Fase: ${labelDaFase(novaFase)}.`);
         } catch (err) {
-            console.error(err);
-            showModernToast('error', 'Erro ao mover', err.message || 'Tente novamente.');
-            carregarDados();
+            if (err.message !== 'cancelado') {
+                console.error(err);
+                showModernToast('error', 'Erro ao mover', err.message || 'Tente novamente.');
+            }
+            carregarDados(); // reverte a posição do card no board
         }
     };
 
@@ -432,36 +556,33 @@
         }
         btnMoverFase.disabled = true;
         try {
-            const resp = await fetch(`/back-office/liminar/${liminarAtualId}/mover`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
-                body: JSON.stringify({ fase: novaFase }),
-            });
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({}));
-                throw new Error(err.message || `HTTP ${resp.status}`);
-            }
+            // Concluir exige o PDF da decisão (pode cancelar no prompt).
+            const file = await arquivoConclusaoSeNecessario(novaFase);
+            await enviarMover(liminarAtualId, novaFase, file);
             aplicarFaseNaModal(novaFase);
-            renderHistorico(await recarregarHistorico());
-            carregarDados(); // atualiza o board atrás da modal
+            const detalhe = await recarregarDetalhe();
+            renderHistorico(detalhe.historico || []);
+            renderDocumentos(detalhe.documentos || []); // mostra o PDF de conclusão anexado
+            carregarDados();        // atualiza o board atrás da modal
             showModernToast('success', 'Processo movido', `Fase: ${labelDaFase(novaFase)}.`);
         } catch (err) {
-            console.error(err);
-            showModernToast('error', 'Erro ao mover', err.message || 'Tente novamente.');
+            if (err.message !== 'cancelado') {
+                console.error(err);
+                showModernToast('error', 'Erro ao mover', err.message || 'Tente novamente.');
+            }
         } finally {
             btnMoverFase.disabled = false;
         }
     });
 
-    // Recarrega só o histórico do processo aberto (para refletir a movimentação).
-    const recarregarHistorico = async () => {
+    // Recarrega o detalhe do processo aberto (para refletir a movimentação).
+    const recarregarDetalhe = async () => {
         try {
             const resp = await fetch(`/back-office/liminar/${liminarAtualId}`, { headers: { Accept: 'application/json' } });
-            if (!resp.ok) return [];
-            const data = await resp.json();
-            return data.historico || [];
+            if (!resp.ok) return {};
+            return await resp.json();
         } catch {
-            return [];
+            return {};
         }
     };
 
@@ -654,6 +775,63 @@
             }
         });
     }
+
+    // =========================================================================
+    // Busca de liminares concluídas (todos os papéis) — empresa ou CNPJ/CPF.
+    // Resultado abre o processo completo (com o documento de conclusão anexado).
+    // =========================================================================
+    (function initBuscaConcluidas() {
+        const input = document.getElementById('buscaConcluida');
+        const box = document.getElementById('resultadosConcluidas');
+        if (!input || !box) return;
+
+        const fecharResultados = () => { box.hidden = true; box.innerHTML = ''; };
+
+        const renderConcluidas = (liminares) => {
+            if (!liminares.length) {
+                box.innerHTML = '<p class="lim-empty" style="margin:0;padding:.5rem .75rem">Nenhuma liminar concluída encontrada.</p>';
+                box.hidden = false;
+                return;
+            }
+            box.innerHTML = liminares.map((l) => `
+                <div class="lim-contrato-item" data-id="${l.id}">
+                    <strong>${escapar(l.nome_empresa || `Processo #${l.id}`)}</strong>
+                    <small>${escapar(formatarCnpj(l.cnpj))}${l.protocolo ? ` · Protocolo ${escapar(l.protocolo)}` : ''}</small>
+                </div>
+            `).join('');
+            box.hidden = false;
+            box.querySelectorAll('.lim-contrato-item').forEach((el) => {
+                el.addEventListener('click', () => {
+                    fecharResultados();
+                    input.value = '';
+                    abrirDetalhes(parseInt(el.dataset.id, 10));
+                });
+            });
+        };
+
+        let seq = 0;
+        const buscar = () => {
+            const q = input.value.trim();
+            if (q.length < 2) { fecharResultados(); return; }
+            const atual = ++seq;
+            fetch(`/back-office/liminar-buscar-concluidas?q=${encodeURIComponent(q)}`, { headers: { Accept: 'application/json' } })
+                .then((r) => r.json())
+                .then((res) => { if (atual === seq) renderConcluidas(res.liminares || []); })
+                .catch(() => showModernToast('error', 'Erro', 'Falha ao buscar liminares concluídas.'));
+        };
+
+        const debounceBusca = (() => {
+            let t;
+            return () => { clearTimeout(t); t = setTimeout(buscar, 300); };
+        })();
+
+        input.addEventListener('input', debounceBusca);
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); buscar(); } });
+        // Fecha o popover ao clicar fora.
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.lim-search-concluidas')) fecharResultados();
+        });
+    })();
 
     // =========================================================================
     // Init

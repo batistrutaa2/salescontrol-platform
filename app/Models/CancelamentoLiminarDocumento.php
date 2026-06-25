@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class CancelamentoLiminarDocumento extends Model
 {
@@ -37,15 +37,16 @@ class CancelamentoLiminarDocumento extends Model
     public function getTipoDocumentoLabelAttribute(): string
     {
         return match ($this->tipo_documento) {
-            'CARTEIRINHA'           => 'Carteirinha',
-            'CARTAO_CNPJ'           => 'Cartão do CNPJ',
+            'CARTEIRINHA' => 'Carteirinha',
+            'CARTAO_CNPJ' => 'Cartão do CNPJ',
             'COMPROVANTE_PAGAMENTO' => 'Comprovante de Pagamento',
-            'CONTRATO_SOCIAL'       => 'Contrato Social',
-            'RETORNO_CANCELAMENTO'  => 'Retorno do Cancelamento',
-            'RG_CLIENTE'            => 'RG da Cliente',
-            'PRINT_PROTOCOLO'       => 'Print do Protocolo',
-            'AUDIO_HAPVIDA'         => 'Áudio (Hapvida)',
-            default                 => $this->tipo_documento,
+            'CONTRATO_SOCIAL' => 'Contrato Social',
+            'RETORNO_CANCELAMENTO' => 'Retorno do Cancelamento',
+            'RG_CLIENTE' => 'RG da Cliente',
+            'PRINT_PROTOCOLO' => 'Print do Protocolo',
+            'AUDIO_HAPVIDA' => 'Áudio (Hapvida)',
+            'CONCLUSAO_LIMINAR' => 'Decisão da Liminar',
+            default => $this->tipo_documento,
         };
     }
 }

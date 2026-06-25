@@ -43,16 +43,27 @@
                 <h1 class="lim-main-title">Cancelamento via Liminar</h1>
                 <p class="lim-subtitle">Acompanhe os processos de cancelamento judicial de planos de saúde</p>
             </div>
-            @unless ($isAdvogada)
-                <div class="lim-header-actions">
+            <div class="lim-header-actions">
+                {{-- Busca de liminares concluídas (todos os papéis): empresa ou CNPJ/CPF --}}
+                <div class="lim-search-concluidas">
+                    <span class="lim-search-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </span>
+                    <input type="text" id="buscaConcluida" class="lim-search-input"
+                           placeholder="Buscar liminar concluída — empresa ou CNPJ/CPF" autocomplete="off">
+                    <div id="resultadosConcluidas" class="lim-resultados lim-resultados-float" hidden></div>
+                </div>
+                @unless ($isAdvogada)
                     <button class="lim-btn-novo" id="btnNovoProcesso">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
                         Novo Processo
                     </button>
-                </div>
-            @endunless
+                @endunless
+            </div>
         </div>
     </div>
 
@@ -176,6 +187,7 @@
                                 <option value="RG_CLIENTE">RG/CPF do Responsável</option>
                                 <option value="PRINT_PROTOCOLO">Print do Protocolo</option>
                                 <option value="AUDIO_HAPVIDA">Áudio (Hapvida)</option>
+                                <option value="CONCLUSAO_LIMINAR">Decisão da Liminar</option>
                             </select>
                             <div class="lim-file-drop" id="fileDropZone">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -382,6 +394,7 @@
                             <div class="lim-modal-section-body">
                                 @php
                                     $slots = [
+                                        ['name' => 'doc_carteirinha',           'label' => 'Carteirinha do Plano',            'req' => true,  'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'PDF, JPG ou PNG · até 10MB'],
                                         ['name' => 'doc_contrato_social',       'label' => 'Contrato Social',                 'req' => true,  'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'PDF, JPG ou PNG · até 10MB'],
                                         ['name' => 'doc_cartao_cnpj',            'label' => 'Cartão do CNPJ',                  'req' => true,  'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'PDF, JPG ou PNG · até 10MB'],
                                         ['name' => 'doc_rg_cliente',             'label' => 'RG/CPF do Responsável',           'req' => true,  'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'PDF, JPG ou PNG · até 10MB'],

@@ -45,29 +45,32 @@ class LiminarController extends Controller
 
     // Documentos obrigatórios na abertura: campo do form => tipo_documento.
     private const DOCUMENTOS_ABERTURA = [
-        'doc_contrato_social'        => 'CONTRATO_SOCIAL',
-        'doc_cartao_cnpj'            => 'CARTAO_CNPJ',
-        'doc_rg_cliente'             => 'RG_CLIENTE',
-        'doc_comprovante_pagamento'  => 'COMPROVANTE_PAGAMENTO',
+        'doc_carteirinha' => 'CARTEIRINHA',
+        'doc_contrato_social' => 'CONTRATO_SOCIAL',
+        'doc_cartao_cnpj' => 'CARTAO_CNPJ',
+        'doc_rg_cliente' => 'RG_CLIENTE',
+        'doc_comprovante_pagamento' => 'COMPROVANTE_PAGAMENTO',
     ];
 
     // Documentos opcionais na abertura: campo do form => tipo_documento.
     private const DOCUMENTOS_OPCIONAIS = [
         'doc_print_protocolo' => 'PRINT_PROTOCOLO',
-        'doc_audio_hapvida'   => 'AUDIO_HAPVIDA',
+        'doc_audio_hapvida' => 'AUDIO_HAPVIDA',
     ];
 
     // Todos os tipos aceitos no upload avulso (modal de detalhe).
     private const TIPOS_DOCUMENTO = [
         'CARTEIRINHA', 'CARTAO_CNPJ', 'COMPROVANTE_PAGAMENTO', 'CONTRATO_SOCIAL',
         'RETORNO_CANCELAMENTO', 'RG_CLIENTE', 'PRINT_PROTOCOLO', 'AUDIO_HAPVIDA',
+        'CONCLUSAO_LIMINAR',
     ];
 
     // Regras de mime/tamanho por natureza do arquivo.
     // Áudio via mimetypes (o mime real do upload) — `mimes:mp3` falharia porque o
     // Symfony adivinha 'mpga' para audio/mpeg. Cobre os formatos comuns (WhatsApp/Hapvida).
     private const MIME_IMAGEM_PDF = 'mimes:pdf,jpg,jpeg,png|max:10240';
-    private const MIME_AUDIO      = 'mimetypes:audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/ogg,audio/opus,audio/mp4,audio/x-m4a,audio/aac,audio/webm,audio/3gpp|max:25600';
+
+    private const MIME_AUDIO = 'mimetypes:audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/ogg,audio/opus,audio/mp4,audio/x-m4a,audio/aac,audio/webm,audio/3gpp|max:25600';
 
     // Campos de data preenchidos na abertura (chegam em d/m/Y, salvam em Y-m-d).
     private const DATAS_PROCURACAO = [
@@ -83,14 +86,14 @@ class LiminarController extends Controller
 
     private function checkAccess(): void
     {
-        if (!in_array(Auth::user()->user_role_id, self::ALLOWED_ROLES)) {
+        if (! in_array(Auth::user()->user_role_id, self::ALLOWED_ROLES)) {
             abort(403, 'Acesso não autorizado.');
         }
     }
 
     private function checkBackoffice(): void
     {
-        if (!in_array(Auth::user()->user_role_id, self::BACKOFFICE_ROLES)) {
+        if (! in_array(Auth::user()->user_role_id, self::BACKOFFICE_ROLES)) {
             abort(403, 'Acesso não autorizado.');
         }
     }
@@ -112,10 +115,10 @@ class LiminarController extends Controller
     {
         return match ($value) {
             'CANCELAMENTO_ABERTO' => 'Cancelamento Aberto',
-            'PROCURACAO_ENVIADA'  => 'Procuração enviada',
+            'PROCURACAO_ENVIADA' => 'Procuração enviada',
             'PROCURACAO_ASSINADA' => 'Procuração assinada',
-            'LIMINAR_CONCEDIDA'   => 'Liminar concedida',
-            default               => $value ?? '—',
+            'LIMINAR_CONCEDIDA' => 'Liminar concedida',
+            default => $value ?? '—',
         };
     }
 
@@ -123,10 +126,10 @@ class LiminarController extends Controller
     {
         return match ($value) {
             'CANCELAMENTO_ABERTO' => 'Aberto',
-            'PROCURACAO_ENVIADA'  => 'Enviada',
+            'PROCURACAO_ENVIADA' => 'Enviada',
             'PROCURACAO_ASSINADA' => 'Assinada',
-            'LIMINAR_CONCEDIDA'   => 'Concedida',
-            default               => $value,
+            'LIMINAR_CONCEDIDA' => 'Concedida',
+            default => $value,
         };
     }
 
@@ -134,20 +137,20 @@ class LiminarController extends Controller
     {
         return match ($value) {
             'CANCELAMENTO_ABERTO' => ['start' => '#06B6D4', 'end' => '#22D3EE'],
-            'PROCURACAO_ENVIADA'  => ['start' => '#F59E0B', 'end' => '#FBBF24'],
+            'PROCURACAO_ENVIADA' => ['start' => '#F59E0B', 'end' => '#FBBF24'],
             'PROCURACAO_ASSINADA' => ['start' => '#7C3AED', 'end' => '#A78BFA'],
-            'LIMINAR_CONCEDIDA'   => ['start' => '#10B981', 'end' => '#34D399'],
-            default               => ['start' => '#94A3B8', 'end' => '#CBD5E1'],
+            'LIMINAR_CONCEDIDA' => ['start' => '#10B981', 'end' => '#34D399'],
+            default => ['start' => '#94A3B8', 'end' => '#CBD5E1'],
         };
     }
 
     private static function honorariosLabel(string $value): string
     {
         return match ($value) {
-            'PENDENTE'       => 'Pendente',
-            'PAGO'           => 'Pago',
-            'NAO_SE_APLICA'  => 'N/A',
-            default          => $value,
+            'PENDENTE' => 'Pendente',
+            'PAGO' => 'Pago',
+            'NAO_SE_APLICA' => 'N/A',
+            default => $value,
         };
     }
 
@@ -155,18 +158,18 @@ class LiminarController extends Controller
     {
         return match ($value) {
             'BOLETO_GERADO' => 'Boleto Gerado',
-            'PAGO'          => 'Pago',
-            'PENDENTE'      => 'Pendente',
-            default         => $value,
+            'PAGO' => 'Pago',
+            'PENDENTE' => 'Pendente',
+            default => $value,
         };
     }
 
     private function colunas(): array
     {
-        return array_map(fn($fase) => [
-            'id'        => $fase,
-            'label'     => self::faseLabel($fase),
-            'curto'     => self::faseCurto($fase),
+        return array_map(fn ($fase) => [
+            'id' => $fase,
+            'label' => self::faseLabel($fase),
+            'curto' => self::faseCurto($fase),
             'gradiente' => self::faseGradiente($fase),
         ], self::FASES);
     }
@@ -179,7 +182,7 @@ class LiminarController extends Controller
         $this->checkAccess();
 
         return view('content.pages.backoffice.liminar.index', [
-            'colunas'    => $this->colunas(),
+            'colunas' => $this->colunas(),
             'isAdvogada' => $this->isAdvogada(),
         ]);
     }
@@ -203,16 +206,16 @@ class LiminarController extends Controller
             $ben = $row->getBeneficiario();
 
             $colunas[$fase][] = [
-                'id'                => $row->id,
-                'nome_contrato'     => $row->nome_contrato,
-                'nome_empresa'      => $row->nome_empresa,
-                'protocolo'         => $row->protocolo_cancelamento,
+                'id' => $row->id,
+                'nome_contrato' => $row->nome_contrato,
+                'nome_empresa' => $row->nome_empresa,
+                'protocolo' => $row->protocolo_cancelamento,
                 'beneficiario_nome' => $ben?->nome ?? '—',
                 'beneficiario_tipo' => $row->beneficiario_tipo === 'TITULAR' ? 'Titular' : 'Dependente',
-                'corretor_nome'     => $row->venda?->user?->name ?? '—',
-                'responsavel_nome'  => $row->responsavel?->name ?? '—',
-                'fase'              => $fase,
-                'data_criacao'      => $row->getOriginal('created_at')
+                'corretor_nome' => $row->venda?->user?->name ?? '—',
+                'responsavel_nome' => $row->responsavel?->name ?? '—',
+                'fase' => $fase,
+                'data_criacao' => $row->getOriginal('created_at')
                     ? Carbon::parse($row->getOriginal('created_at'))->setTimezone('America/Sao_Paulo')->format('d/m/Y')
                     : '—',
             ];
@@ -226,40 +229,40 @@ class LiminarController extends Controller
         $this->checkBackoffice();
 
         $rules = [
-            'responsavel_id'                 => 'nullable|integer|exists:users,id',
-            'nome_empresa'                   => 'required|string|max:255',
-            'cnpj'                           => 'required|string|max:20',
-            'protocolo_cancelamento'         => 'required|string|max:255',
-            'email_procuracao'               => 'required|email|max:255',
+            'responsavel_id' => 'nullable|integer|exists:users,id',
+            'nome_empresa' => 'required|string|max:255',
+            'cnpj' => 'required|string|max:20',
+            'protocolo_cancelamento' => 'required|string|max:255',
+            'email_procuracao' => 'required|email|max:255',
         ];
         foreach (self::DATAS_PROCURACAO as $campo) {
             $rules[$campo] = 'required|date_format:d/m/Y';
         }
         foreach (array_keys(self::DOCUMENTOS_ABERTURA) as $campo) {
-            $rules[$campo] = 'required|file|' . self::MIME_IMAGEM_PDF;
+            $rules[$campo] = 'required|file|'.self::MIME_IMAGEM_PDF;
         }
         // Opcionais: print do protocolo (imagem/pdf) e áudio Hapvida (áudio).
-        $rules['doc_print_protocolo'] = 'nullable|file|' . self::MIME_IMAGEM_PDF;
-        $rules['doc_audio_hapvida']   = 'nullable|file|' . self::MIME_AUDIO;
+        $rules['doc_print_protocolo'] = 'nullable|file|'.self::MIME_IMAGEM_PDF;
+        $rules['doc_audio_hapvida'] = 'nullable|file|'.self::MIME_AUDIO;
 
         $validated = $request->validate($rules);
 
         DB::beginTransaction();
         try {
             $payload = [
-                'empresa_id'             => $this->empresaId(),
-                'venda_id'               => null,
-                'beneficiario_tipo'      => null,
-                'beneficiario_id'        => null,
+                'empresa_id' => $this->empresaId(),
+                'venda_id' => null,
+                'beneficiario_tipo' => null,
+                'beneficiario_id' => null,
                 // Sem venda atrelada: o nome da empresa contratante é o título do processo.
-                'nome_contrato'          => $validated['nome_empresa'],
-                'nome_empresa'           => $validated['nome_empresa'],
-                'cnpj'                   => $validated['cnpj'],
+                'nome_contrato' => $validated['nome_empresa'],
+                'nome_empresa' => $validated['nome_empresa'],
+                'cnpj' => $validated['cnpj'],
                 'protocolo_cancelamento' => $validated['protocolo_cancelamento'],
-                'email_procuracao'       => $validated['email_procuracao'],
-                'responsavel_id'         => $validated['responsavel_id'] ?? Auth::id(),
-                'status'                 => 'EM_EXECUCAO',
-                'fase'                   => 'CANCELAMENTO_ABERTO',
+                'email_procuracao' => $validated['email_procuracao'],
+                'responsavel_id' => $validated['responsavel_id'] ?? Auth::id(),
+                'status' => 'EM_EXECUCAO',
+                'fase' => 'CANCELAMENTO_ABERTO',
             ];
             foreach (self::DATAS_PROCURACAO as $campo) {
                 $payload[$campo] = Carbon::createFromFormat('d/m/Y', $validated[$campo])->format('Y-m-d');
@@ -278,17 +281,18 @@ class LiminarController extends Controller
 
             CancelamentoLiminarHistorico::create([
                 'cancelamento_liminar_id' => $liminar->id,
-                'user_id'                 => Auth::id(),
-                'campo_alterado'          => 'fase',
-                'valor_anterior'          => null,
-                'valor_novo'              => self::faseLabel('CANCELAMENTO_ABERTO'),
-                'observacao'              => 'Processo aberto com documentação completa.',
+                'user_id' => Auth::id(),
+                'campo_alterado' => 'fase',
+                'valor_anterior' => null,
+                'valor_novo' => self::faseLabel('CANCELAMENTO_ABERTO'),
+                'observacao' => 'Processo aberto com documentação completa.',
             ]);
 
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Liminar store falhou', ['erro' => $e->getMessage(), 'exception' => $e]);
+
             return response()->json(['success' => false, 'message' => 'Erro ao abrir o processo.'], 500);
         }
 
@@ -319,24 +323,24 @@ class LiminarController extends Controller
         $liminarData['data_vencimento_boleto_2'] = $liminar->data_vencimento_boleto_2;
 
         return response()->json([
-            'liminar'      => $liminarData,
-            'fase_label'   => self::faseLabel($liminar->fase),
+            'liminar' => $liminarData,
+            'fase_label' => self::faseLabel($liminar->fase),
             'beneficiario' => $beneficiario ? ['id' => $beneficiario->id, 'nome' => $beneficiario->nome] : null,
-            'documentos'   => $liminar->documentos->map(fn($d) => [
-                'id'                   => $d->id,
-                'tipo_documento'       => $d->tipo_documento,
+            'documentos' => $liminar->documentos->map(fn ($d) => [
+                'id' => $d->id,
+                'tipo_documento' => $d->tipo_documento,
                 'tipo_documento_label' => $d->tipo_documento_label,
-                'nome_original'        => $d->nome_original,
-                'uploaded_by_nome'     => $d->uploadedBy?->name,
-                'created_at'           => optional($d->created_at)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i'),
+                'nome_original' => $d->nome_original,
+                'uploaded_by_nome' => $d->uploadedBy?->name,
+                'created_at' => optional($d->created_at)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i'),
             ]),
-            'historico' => $liminar->historico->map(fn($h) => [
+            'historico' => $liminar->historico->map(fn ($h) => [
                 'campo_alterado' => $h->campo_alterado,
                 'valor_anterior' => $h->valor_anterior,
-                'valor_novo'     => $h->valor_novo,
-                'observacao'     => $h->observacao,
-                'usuario_nome'   => $h->usuario?->name,
-                'created_at'     => optional($h->created_at)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i'),
+                'valor_novo' => $h->valor_novo,
+                'observacao' => $h->observacao,
+                'usuario_nome' => $h->usuario?->name,
+                'created_at' => optional($h->created_at)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i'),
             ]),
         ]);
     }
@@ -344,32 +348,44 @@ class LiminarController extends Controller
     /**
      * Move um card de coluna (altera a fase) — endpoint do kanban.
      * Notifica responsável e corretor a cada mudança (sino + e-mail).
+     *
+     * Concluir (fase = LIMINAR_CONCEDIDA) exige anexar o PDF da decisão/conclusão,
+     * salvo como documento CONCLUSAO_LIMINAR. Sem o PDF, a fase não muda.
      */
     public function mover(Request $request, int $id): JsonResponse
     {
         $this->checkAccess();
 
-        $validated = $request->validate([
-            'fase' => 'required|in:' . implode(',', self::FASES),
-        ]);
-
         $liminar = CancelamentoLiminar::where('empresa_id', $this->empresaId())->findOrFail($id);
+
+        $concluindo = $request->input('fase') === 'LIMINAR_CONCEDIDA'
+            && $liminar->fase !== 'LIMINAR_CONCEDIDA';
+
+        $rules = ['fase' => 'required|in:'.implode(',', self::FASES)];
+        if ($concluindo) {
+            $rules['documento_conclusao'] = 'required|file|mimes:pdf|max:10240';
+        }
+        $validated = $request->validate($rules);
 
         if ($validated['fase'] === $liminar->fase) {
             return response()->json(['success' => true]);
         }
 
         $anterior = self::faseLabel($liminar->fase);
-        $novo     = self::faseLabel($validated['fase']);
+        $novo = self::faseLabel($validated['fase']);
 
         DB::beginTransaction();
         try {
+            if ($concluindo) {
+                $this->salvarDocumento($liminar, $request->file('documento_conclusao'), 'CONCLUSAO_LIMINAR');
+            }
+
             CancelamentoLiminarHistorico::create([
                 'cancelamento_liminar_id' => $liminar->id,
-                'user_id'                 => Auth::id(),
-                'campo_alterado'          => 'fase',
-                'valor_anterior'          => $anterior,
-                'valor_novo'              => $novo,
+                'user_id' => Auth::id(),
+                'campo_alterado' => 'fase',
+                'valor_anterior' => $anterior,
+                'valor_novo' => $novo,
             ]);
 
             $liminar->fase = $validated['fase'];
@@ -382,6 +398,7 @@ class LiminarController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Liminar mover falhou', ['erro' => $e->getMessage(), 'exception' => $e]);
+
             return response()->json(['success' => false, 'message' => 'Erro ao mover o processo.'], 500);
         }
 
@@ -397,13 +414,13 @@ class LiminarController extends Controller
         $liminar = CancelamentoLiminar::where('empresa_id', $this->empresaId())->findOrFail($id);
 
         $validated = $request->validate([
-            'status'              => 'nullable|in:NAO_INICIADA,EM_EXECUCAO,BLOQUEADA,CONCLUIDA',
-            'data_envio'          => 'nullable|date_format:d/m/Y',
-            'status_honorarios'   => 'nullable|in:PENDENTE,PAGO,NAO_SE_APLICA',
-            'status_recebimento'  => 'nullable|in:BOLETO_GERADO,PAGO,PENDENTE',
-            'valor_recebimento'   => 'nullable|numeric|min:0',
-            'responsavel_id'      => 'nullable|integer|exists:users,id',
-            'observacoes'         => 'nullable|string|max:2000',
+            'status' => 'nullable|in:NAO_INICIADA,EM_EXECUCAO,BLOQUEADA,CONCLUIDA',
+            'data_envio' => 'nullable|date_format:d/m/Y',
+            'status_honorarios' => 'nullable|in:PENDENTE,PAGO,NAO_SE_APLICA',
+            'status_recebimento' => 'nullable|in:BOLETO_GERADO,PAGO,PENDENTE',
+            'valor_recebimento' => 'nullable|numeric|min:0',
+            'responsavel_id' => 'nullable|integer|exists:users,id',
+            'observacoes' => 'nullable|string|max:2000',
         ]);
 
         $tracked = ['status', 'status_honorarios', 'status_recebimento'];
@@ -414,14 +431,14 @@ class LiminarController extends Controller
             foreach ($tracked as $field) {
                 if (isset($validated[$field]) && $validated[$field] !== $liminar->$field) {
                     $labelAnterior = $this->labelDe($field, $liminar->$field);
-                    $labelNovo     = $this->labelDe($field, $validated[$field]);
+                    $labelNovo = $this->labelDe($field, $validated[$field]);
 
                     CancelamentoLiminarHistorico::create([
                         'cancelamento_liminar_id' => $liminar->id,
-                        'user_id'                 => Auth::id(),
-                        'campo_alterado'          => $field,
-                        'valor_anterior'          => $labelAnterior,
-                        'valor_novo'              => $labelNovo,
+                        'user_id' => Auth::id(),
+                        'campo_alterado' => $field,
+                        'valor_anterior' => $labelAnterior,
+                        'valor_novo' => $labelNovo,
                     ]);
 
                     $alteracoes[] = ['campo' => $field, 'anterior' => $labelAnterior, 'novo' => $labelNovo];
@@ -437,6 +454,7 @@ class LiminarController extends Controller
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return response()->json(['success' => false, 'message' => 'Erro ao atualizar.'], 500);
         }
 
@@ -451,17 +469,17 @@ class LiminarController extends Controller
     private function labelDe(string $field, ?string $value): string
     {
         return match ($field) {
-            'status'             => match ($value) {
+            'status' => match ($value) {
                 'NAO_INICIADA' => 'Não Iniciada',
-                'EM_EXECUCAO'  => 'Em Execução',
-                'BLOQUEADA'    => 'Bloqueada',
-                'CONCLUIDA'    => 'Concluída',
-                default        => $value ?? '—',
+                'EM_EXECUCAO' => 'Em Execução',
+                'BLOQUEADA' => 'Bloqueada',
+                'CONCLUIDA' => 'Concluída',
+                default => $value ?? '—',
             },
-            'status_honorarios'  => self::honorariosLabel($value ?? ''),
+            'status_honorarios' => self::honorariosLabel($value ?? ''),
             'status_recebimento' => self::recebimentoLabel($value ?? ''),
-            'fase'               => self::faseLabel($value),
-            default              => $value ?? '—',
+            'fase' => self::faseLabel($value),
+            default => $value ?? '—',
         };
     }
 
@@ -487,7 +505,7 @@ class LiminarController extends Controller
         $alvos = collect($destinatarios)
             ->filter()
             ->unique('id')
-            ->reject(fn($u) => $u->id === Auth::id());
+            ->reject(fn ($u) => $u->id === Auth::id());
 
         foreach ($alvos as $usuario) {
             $usuario->notify(new LiminarStatusAlterado(
@@ -526,21 +544,21 @@ class LiminarController extends Controller
 
         $doc = CancelamentoLiminarDocumento::create([
             'cancelamento_liminar_id' => $liminar->id,
-            'empresa_id'              => $liminar->empresa_id,
-            'tipo_documento'          => $tipoDocumento,
-            'nome_original'           => $arquivo->getClientOriginalName(),
-            'path_s3'                 => $path,
-            'uploaded_by'             => Auth::id(),
+            'empresa_id' => $liminar->empresa_id,
+            'tipo_documento' => $tipoDocumento,
+            'nome_original' => $arquivo->getClientOriginalName(),
+            'path_s3' => $path,
+            'uploaded_by' => Auth::id(),
         ]);
 
         if ($log) {
             CancelamentoLiminarHistorico::create([
                 'cancelamento_liminar_id' => $liminar->id,
-                'user_id'                 => Auth::id(),
-                'campo_alterado'          => 'documento',
-                'valor_anterior'          => null,
-                'valor_novo'              => $doc->tipo_documento_label,
-                'observacao'              => "Documento enviado: {$arquivo->getClientOriginalName()}",
+                'user_id' => Auth::id(),
+                'campo_alterado' => 'documento',
+                'valor_anterior' => null,
+                'valor_novo' => $doc->tipo_documento_label,
+                'observacao' => "Documento enviado: {$arquivo->getClientOriginalName()}",
             ]);
         }
 
@@ -570,6 +588,7 @@ class LiminarController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Liminar destroy falhou', ['erro' => $e->getMessage(), 'exception' => $e]);
+
             return response()->json(['success' => false, 'message' => 'Erro ao excluir o processo.'], 500);
         }
 
@@ -586,8 +605,8 @@ class LiminarController extends Controller
             : self::MIME_IMAGEM_PDF;
 
         $request->validate([
-            'tipo_documento' => 'required|in:' . implode(',', self::TIPOS_DOCUMENTO),
-            'arquivo'        => 'required|file|' . $regraArquivo,
+            'tipo_documento' => 'required|in:'.implode(',', self::TIPOS_DOCUMENTO),
+            'arquivo' => 'required|file|'.$regraArquivo,
         ]);
 
         $liminar = CancelamentoLiminar::where('empresa_id', $this->empresaId())->findOrFail($id);
@@ -595,11 +614,11 @@ class LiminarController extends Controller
         $doc = $this->salvarDocumento($liminar, $request->file('arquivo'), $request->tipo_documento);
 
         return response()->json([
-            'success'              => true,
-            'id'                   => $doc->id,
-            'tipo_documento'       => $doc->tipo_documento,
+            'success' => true,
+            'id' => $doc->id,
+            'tipo_documento' => $doc->tipo_documento,
             'tipo_documento_label' => $doc->tipo_documento_label,
-            'nome_original'        => $doc->nome_original,
+            'nome_original' => $doc->nome_original,
         ]);
     }
 
@@ -624,6 +643,47 @@ class LiminarController extends Controller
         $doc = CancelamentoLiminarDocumento::where('cancelamento_liminar_id', $liminar->id)->findOrFail($docId);
 
         return Storage::disk('s3')->download($doc->path_s3, $doc->nome_original);
+    }
+
+    /**
+     * Busca processos concluídos (fase LIMINAR_CONCEDIDA) por nome da empresa ou
+     * CNPJ/CPF — usado pela pesquisa no topo do kanban para reabrir o processo e
+     * acessar o documento de conclusão anexado.
+     */
+    public function buscarConcluidas(Request $request): JsonResponse
+    {
+        $this->checkAccess();
+
+        $termo = trim((string) $request->query('q', ''));
+        if (mb_strlen($termo) < 2) {
+            return response()->json(['liminares' => []]);
+        }
+
+        $termoDigitos = preg_replace('/\D+/', '', $termo);
+
+        $liminares = CancelamentoLiminar::where('empresa_id', $this->empresaId())
+            ->where('fase', 'LIMINAR_CONCEDIDA')
+            ->where(function ($q) use ($termo, $termoDigitos) {
+                $q->where('nome_empresa', 'like', "%{$termo}%")
+                    ->orWhere('cnpj', 'like', "%{$termo}%");
+                if ($termoDigitos !== '') {
+                    // O CNPJ/CPF é gravado com máscara; normaliza os dígitos da coluna
+                    // para casar com a busca só por números.
+                    $cnpjDigitos = "REPLACE(REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', ''), ' ', '')";
+                    $q->orWhereRaw("{$cnpjDigitos} LIKE ?", ["%{$termoDigitos}%"]);
+                }
+            })
+            ->orderByDesc('updated_at')
+            ->limit(20)
+            ->get(['id', 'nome_empresa', 'cnpj', 'protocolo_cancelamento'])
+            ->map(fn ($l) => [
+                'id' => $l->id,
+                'nome_empresa' => $l->nome_empresa,
+                'cnpj' => $l->cnpj,
+                'protocolo' => $l->protocolo_cancelamento,
+            ]);
+
+        return response()->json(['liminares' => $liminares]);
     }
 
     /**
@@ -652,11 +712,11 @@ class LiminarController extends Controller
             ->orderByDesc('id')
             ->limit(20)
             ->get(['id', 'nome_contrato', 'cpf_cnpj', 'numero_proposta'])
-            ->map(fn($v) => [
-                'id'             => $v->id,
-                'nome_contrato'  => $v->nome_contrato,
-                'cpf_cnpj'       => $v->cpf_cnpj,
-                'numero_proposta'=> $v->numero_proposta,
+            ->map(fn ($v) => [
+                'id' => $v->id,
+                'nome_contrato' => $v->nome_contrato,
+                'cpf_cnpj' => $v->cpf_cnpj,
+                'numero_proposta' => $v->numero_proposta,
             ]);
 
         return response()->json(['contratos' => $contratos]);
@@ -681,9 +741,9 @@ class LiminarController extends Controller
                 ->exists();
 
             $beneficiarios[] = [
-                'id'         => $titular->id,
-                'nome'       => $titular->nome,
-                'tipo'       => 'TITULAR',
+                'id' => $titular->id,
+                'nome' => $titular->nome,
+                'tipo' => 'TITULAR',
                 'tipo_label' => 'Titular',
                 'tem_liminar_ativa' => $temLiminar,
             ];
@@ -696,9 +756,9 @@ class LiminarController extends Controller
                     ->exists();
 
                 $beneficiarios[] = [
-                    'id'         => $dep->id,
-                    'nome'       => $dep->nome,
-                    'tipo'       => 'DEPENDENTE',
+                    'id' => $dep->id,
+                    'nome' => $dep->nome,
+                    'tipo' => 'DEPENDENTE',
                     'tipo_label' => 'Dependente',
                     'tem_liminar_ativa' => $temLiminarDep,
                 ];
