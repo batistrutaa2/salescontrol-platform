@@ -188,7 +188,7 @@ class Backoffice extends Controller
         $backofficeUser = $hasBackoffice ? User::find($sale->backoffice_id) : null;
         $backofficeUsers = $canReassign
           ? User::where('empresa_id', Auth::user()->empresa_id)
-              ->where('user_role_id', UserRole::BACKOFFICE)
+              ->whereIn('user_role_id', [UserRole::BACKOFFICE, UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])
               ->where('ativo', 'Y')
               ->orderBy('name')
               ->get()
@@ -1799,7 +1799,7 @@ class Backoffice extends Controller
         if ($request->backoffice_id) {
             $novoBackoffice = User::where('id', $request->backoffice_id)
                 ->where('empresa_id', Auth::user()->empresa_id)
-                ->where('user_role_id', UserRole::BACKOFFICE)
+                ->whereIn('user_role_id', [UserRole::BACKOFFICE, UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])
                 ->first();
 
             if (! $novoBackoffice) {
