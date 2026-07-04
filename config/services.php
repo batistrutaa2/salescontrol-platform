@@ -52,4 +52,12 @@ return [
         'cache_months' => (int) env('ASSERTIVA_CACHE_MONTHS', 3),
     ],
 
+    'evolution' => [
+        'url' => env('EVOLUTION_API_URL', 'http://evolution:8080'),
+        'api_key' => env('EVOLUTION_API_KEY'),
+        // URL pública que a Evolution usa para entregar webhooks ao Laravel.
+        // Em dev (rede sail) é o container da aplicação; em produção, o domínio HTTPS do CRM.
+        'webhook_base_url' => env('EVOLUTION_WEBHOOK_BASE_URL', env('APP_URL')),
+    ],
+
 ];

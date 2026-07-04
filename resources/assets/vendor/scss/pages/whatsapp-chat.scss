@@ -1,0 +1,1477 @@
+// WhatsApp - Chat estilo WhatsApp Web
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+@import 'whatsapp-ds';
+
+.wa-chat-app {
+  --wa-primary: #7c3aed;
+  --wa-green: #25d366;
+  --wa-green-dark: #128c7e;
+  --wa-bg-app: #f0f2f5;
+  --wa-bg-sidebar: #ffffff;
+  --wa-bg-thread: #efeae2;
+  --wa-bg-composer: #f0f2f5;
+  --wa-bolha-in: #ffffff;
+  --wa-bolha-out: #d9fdd3;
+  --wa-text: #111b21;
+  --wa-text-muted: #667781;
+  --wa-border: rgba(0, 0, 0, 0.08);
+  --wa-ack-lida: #53bdeb;
+  --wa-hover: rgba(0, 0, 0, 0.04);
+  --wa-radius: 16px;
+  --wa-link: #128c7e;
+  --wa-comentario-bg: #ffffff;
+  --wa-comentario-borda: rgba(0, 0, 0, 0.07);
+  --wa-comentario-fixado-bg: #fffbeb;
+
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  display: flex;
+  height: calc(100vh - 190px);
+  min-height: 480px;
+  border-radius: var(--wa-radius);
+  overflow: hidden;
+  background: var(--wa-bg-app);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  // Moldura no design system: sombra suave + glow violeta discreto
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 40px rgba(124, 58, 237, 0.07);
+  color: var(--wa-text);
+}
+
+.dark-style .wa-chat-app {
+  --wa-bg-app: #202c33;
+  --wa-bg-sidebar: #111b21;
+  --wa-bg-thread: #0b141a;
+  --wa-bg-composer: #202c33;
+  --wa-bolha-in: #202c33;
+  --wa-bolha-out: #005c4b;
+  --wa-text: #e9edef;
+  --wa-text-muted: #8696a0;
+  --wa-border: rgba(255, 255, 255, 0.08);
+  --wa-hover: rgba(255, 255, 255, 0.06);
+  --wa-link: #25d366;
+  --wa-comentario-bg: #223138;
+  --wa-comentario-borda: rgba(255, 255, 255, 0.09);
+  --wa-comentario-fixado-bg: rgba(245, 158, 11, 0.14);
+
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 60px rgba(124, 58, 237, 0.12);
+}
+
+// ============ Ícones/botões genéricos ============
+.wa-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--wa-text-muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--wa-hover);
+    color: var(--wa-text);
+  }
+}
+
+// ============ Coluna 1: sidebar ============
+.wa-sidebar {
+  width: 340px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  background: var(--wa-bg-sidebar);
+  border-right: 1px solid var(--wa-border);
+}
+
+.wa-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--wa-border);
+
+  .wa-sidebar-title {
+    margin: 0;
+    font-weight: 800;
+    color: var(--wa-text);
+  }
+
+  .wa-sidebar-acoes {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .wa-btn-nova-conversa {
+    color: var(--wa-green-dark);
+
+    &:hover {
+      color: var(--wa-green);
+    }
+  }
+
+  // Botão "Descartadas" ativo
+  #wa-btn-arquivadas.ativa {
+    background: rgba(124, 58, 237, 0.14);
+    color: var(--wa-primary);
+  }
+}
+
+.wa-sidebar-busca {
+  position: relative;
+  padding: 0.6rem 0.9rem;
+
+  i {
+    position: absolute;
+    left: 1.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--wa-text-muted);
+    font-size: 1rem;
+  }
+
+  input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: var(--wa-bg-app);
+    color: var(--wa-text);
+    border-radius: 10px;
+    padding: 0.55rem 0.9rem 0.55rem 2.4rem;
+    font-size: 0.85rem;
+
+    &::placeholder {
+      color: var(--wa-text-muted);
+    }
+  }
+}
+
+// Tabs da lista: Conversas | Carteira | Descartadas
+.wa-lista-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 0.9rem 0.6rem;
+  border-bottom: 1px solid var(--wa-border);
+}
+
+.wa-lista-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0.45rem 0.4rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--wa-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+
+  i {
+    font-size: 0.95rem;
+  }
+
+  &.ativa {
+    background: rgba(37, 211, 102, 0.14);
+    color: var(--wa-green-dark);
+  }
+
+  &:hover:not(.ativa) {
+    background: var(--wa-hover);
+    color: var(--wa-text);
+  }
+}
+
+.dark-style .wa-lista-tab.ativa {
+  color: var(--wa-green);
+}
+
+.wa-conversas-lista {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.wa-lista-vazia {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--wa-text-muted);
+  font-size: 0.85rem;
+}
+
+.wa-conversa-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--wa-border);
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: var(--wa-hover);
+  }
+
+  &.ativa {
+    background: rgba(124, 58, 237, 0.1);
+  }
+}
+
+.wa-avatar {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.wa-conversa-corpo {
+  flex: 1;
+  min-width: 0;
+}
+
+.wa-conversa-linha1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+
+  .wa-conversa-nome {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .wa-conversa-hora {
+    font-size: 0.72rem;
+    color: var(--wa-text-muted);
+    white-space: nowrap;
+  }
+}
+
+.wa-conversa-linha2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+
+  .wa-conversa-preview {
+    font-size: 0.8rem;
+    color: var(--wa-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.wa-badge-unread {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--wa-green);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  animation: wa-badge-pulso 1.6s ease-in-out infinite;
+}
+
+.wa-tag-lead,
+.wa-tag-etapa,
+.wa-tag-vendedor {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 1px 7px;
+  margin-top: 4px;
+  margin-right: 4px;
+}
+
+.wa-tag-lead {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+}
+
+.wa-tag-vendedor {
+  background: rgba(124, 58, 237, 0.12);
+  color: var(--wa-primary);
+}
+
+// Etapa do funil em que a conversa está
+.wa-tag-etapa {
+  background: rgba(124, 58, 237, 0.12);
+  color: var(--wa-primary);
+}
+
+// Cliente da carteira (já tem venda)
+.wa-tag-carteira {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 1px 7px;
+  margin-top: 4px;
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+}
+
+.dark-style .wa-tag-etapa {
+  color: #a78bfa;
+}
+
+// ============ Coluna 2: thread ============
+.wa-thread {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+  background: var(--wa-bg-thread);
+}
+
+.wa-thread-vazia {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--wa-text-muted);
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+}
+
+.wa-thread-conteudo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.wa-thread-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--wa-bg-composer);
+  border-bottom: 1px solid var(--wa-border);
+  z-index: 2;
+
+  .wa-thread-avatar {
+    @extend .wa-avatar;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    font-size: 0.95rem;
+  }
+
+  .wa-thread-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+
+    .wa-thread-nome {
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .wa-thread-numero {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--wa-text-muted);
+    }
+  }
+}
+
+// Papel de parede com rabiscos — assinatura visual do WhatsApp
+$wa-doodle: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%23000000' stroke-opacity='0.045' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='26' cy='30' r='8'/%3E%3Cpath d='M128 18l8 14M136 18l-8 14'/%3E%3Cpath d='M64 62c9-9 18 9 27 0'/%3E%3Crect x='18' y='104' width='16' height='16' rx='4'/%3E%3Cpath d='M126 102l8 16h-16z'/%3E%3Ccircle cx='86' cy='150' r='6'/%3E%3Cpath d='M44 58h14M51 51v14'/%3E%3Cpath d='M154 66a7 7 0 1 1-7 7'/%3E%3Cpath d='M90 14c4 6 12 6 16 0'/%3E%3Cpath d='M160 132c-6 2-6 10 0 12'/%3E%3Cpath d='M56 132l5 9 5-9'/%3E%3C/g%3E%3C/svg%3E";
+$wa-doodle-dark: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.035' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='26' cy='30' r='8'/%3E%3Cpath d='M128 18l8 14M136 18l-8 14'/%3E%3Cpath d='M64 62c9-9 18 9 27 0'/%3E%3Crect x='18' y='104' width='16' height='16' rx='4'/%3E%3Cpath d='M126 102l8 16h-16z'/%3E%3Ccircle cx='86' cy='150' r='6'/%3E%3Cpath d='M44 58h14M51 51v14'/%3E%3Cpath d='M154 66a7 7 0 1 1-7 7'/%3E%3Cpath d='M90 14c4 6 12 6 16 0'/%3E%3Cpath d='M160 132c-6 2-6 10 0 12'/%3E%3Cpath d='M56 132l5 9 5-9'/%3E%3C/g%3E%3C/svg%3E";
+
+.wa-mensagens {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 6%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background-image: url($wa-doodle);
+  background-size: 180px 180px;
+}
+
+.dark-style .wa-mensagens {
+  background-image: url($wa-doodle-dark);
+}
+
+// Separador de dia — pílula central estilo WhatsApp
+.wa-msg-dia {
+  display: flex;
+  justify-content: center;
+  padding: 0.6rem 0;
+
+  span {
+    background: var(--wa-bg-sidebar);
+    color: var(--wa-text-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.3rem 0.8rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.wa-carregando-historico {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem;
+  color: var(--wa-text-muted);
+}
+
+// Botão flutuante "novas mensagens" (aparece quando o usuário está lendo o histórico)
+.wa-btn-descer {
+  position: absolute;
+  bottom: 86px;
+  right: 26px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--wa-green-dark);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(18, 140, 126, 0.45);
+  animation: wa-badge-pulso 1.6s ease-in-out infinite;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--wa-green);
+  }
+
+  i {
+    font-size: 1rem;
+  }
+}
+
+.wa-msg {
+  display: flex;
+  max-width: 68%;
+
+  &.wa-msg-in {
+    align-self: flex-start;
+
+    .wa-msg-bolha {
+      background: var(--wa-bolha-in);
+      border-top-left-radius: 4px;
+
+      // Rabinho do balão (lado esquerdo)
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -8px;
+        width: 0;
+        height: 0;
+        border-right: 8px solid var(--wa-bolha-in);
+        border-bottom: 10px solid transparent;
+      }
+    }
+  }
+
+  &.wa-msg-out {
+    align-self: flex-end;
+
+    .wa-msg-bolha {
+      background: var(--wa-bolha-out);
+      border-top-right-radius: 4px;
+
+      // Rabinho do balão (lado direito)
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -8px;
+        width: 0;
+        height: 0;
+        border-left: 8px solid var(--wa-bolha-out);
+        border-bottom: 10px solid transparent;
+      }
+    }
+  }
+
+  // Mensagens consecutivas do mesmo lado não repetem o rabinho (agrupamento WhatsApp)
+  &.wa-msg-in + &.wa-msg-in .wa-msg-bolha::before,
+  &.wa-msg-out + &.wa-msg-out .wa-msg-bolha::before {
+    display: none;
+  }
+
+  &.wa-msg-in + &.wa-msg-in .wa-msg-bolha {
+    border-top-left-radius: 10px;
+  }
+
+  &.wa-msg-out + &.wa-msg-out .wa-msg-bolha {
+    border-top-right-radius: 10px;
+  }
+
+  &.wa-msg-sticker .wa-msg-bolha {
+    background: transparent !important;
+    box-shadow: none;
+    padding: 2px;
+
+    &::before {
+      display: none !important;
+    }
+  }
+
+  &.wa-msg-erro .wa-msg-bolha {
+    outline: 1px solid rgba(239, 68, 68, 0.6);
+    cursor: pointer;
+  }
+}
+
+.wa-msg-bolha {
+  position: relative;
+  padding: 6px 9px 7px;
+  border-radius: 10px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+  min-width: 90px;
+  max-width: 100%;
+}
+
+.wa-msg-texto {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+
+  a {
+    color: #027eb5;
+    text-decoration: underline;
+  }
+}
+
+.wa-msg-meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+
+  .wa-msg-hora {
+    font-size: 0.66rem;
+    color: var(--wa-text-muted);
+  }
+
+  .wa-msg-ack {
+    font-size: 0.9rem;
+    line-height: 1;
+    color: var(--wa-text-muted);
+
+    .wa-ack-lida {
+      color: var(--wa-ack-lida);
+    }
+
+    .wa-ack-erro {
+      color: #ef4444;
+    }
+  }
+}
+
+.wa-sticker {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+}
+
+.wa-msg-imagem {
+  max-width: 300px;
+  max-height: 320px;
+  width: 100%;
+  border-radius: 8px;
+  display: block;
+}
+
+.wa-msg-video {
+  max-width: 320px;
+  width: 100%;
+  border-radius: 8px;
+  display: block;
+}
+
+.wa-msg-audio {
+  width: 280px;
+  max-width: 100%;
+}
+
+.wa-msg-documento {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.85rem;
+
+  i {
+    font-size: 1.4rem;
+  }
+
+  span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: inherit;
+  }
+}
+
+.dark-style .wa-msg-documento {
+  background: rgba(255, 255, 255, 0.06);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.wa-msg-midia-indisponivel {
+  font-size: 0.8rem;
+  color: var(--wa-text-muted);
+  font-style: italic;
+  padding: 0.4rem 0;
+}
+
+// ============ Composer ============
+.wa-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--wa-bg-composer);
+  border-top: 1px solid var(--wa-border);
+
+  .wa-btn-anexo {
+    cursor: pointer;
+    margin-bottom: 2px;
+  }
+
+  // Ícones SVG (clipe/mic/enviar) — mesmo peso visual do WhatsApp Web
+  .wa-btn-icon svg,
+  .wa-btn-enviar svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+  }
+}
+
+// Dropdown ⋮ do cabeçalho da thread
+.wa-thread-acoes {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  .dropdown-menu {
+    min-width: 200px;
+  }
+}
+
+.wa-composer-input {
+  flex: 1;
+
+  textarea {
+    width: 100%;
+    resize: none;
+    border: none;
+    outline: none;
+    border-radius: 10px;
+    background: var(--wa-bg-sidebar);
+    color: var(--wa-text);
+    padding: 0.6rem 0.9rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    max-height: 120px;
+
+    &::placeholder {
+      color: var(--wa-text-muted);
+    }
+  }
+}
+
+.wa-btn-enviar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border: none;
+  border-radius: 50%;
+  background: var(--wa-green-dark);
+  color: #fff;
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    background: var(--wa-green);
+    transform: scale(1.05);
+  }
+}
+
+.wa-composer-gravando {
+  justify-content: space-between;
+
+  .wa-gravando-indicador {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--wa-text);
+
+    .wa-gravando-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: wa-blink 1s infinite;
+    }
+  }
+}
+
+@keyframes wa-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.wa-composer-leitura {
+  justify-content: center;
+  align-items: center;
+  color: var(--wa-text-muted);
+  font-size: 0.82rem;
+}
+
+// ============ Coluna 3: painel do lead ============
+.wa-painel-lead {
+  width: 380px;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--wa-bg-sidebar);
+  border-left: 1px solid var(--wa-border);
+}
+
+.wa-painel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--wa-border);
+
+  h6 {
+    margin: 0;
+    font-weight: 800;
+    color: var(--wa-text);
+  }
+}
+
+.wa-painel-sem-lead {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--wa-text-muted);
+
+  .wa-sem-lead-icone {
+    font-size: 2.4rem;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+  }
+}
+
+.wa-painel-com-lead {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.wa-lead-nome {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--wa-text);
+}
+
+.wa-lead-dados {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.wa-lead-campo {
+  display: flex;
+  flex-direction: column;
+
+  .wa-lead-rotulo {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--wa-text-muted);
+    font-weight: 600;
+  }
+
+  .wa-lead-valor {
+    font-size: 0.87rem;
+    color: var(--wa-text);
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+.wa-lead-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+// ============ Barra do lead (topo da thread) ============
+.wa-lead-bar {
+  background: var(--wa-bg-composer);
+  border-bottom: 1px solid var(--wa-border);
+  padding: 0.45rem 1rem;
+  z-index: 1;
+}
+
+.wa-lead-bar-com {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.wa-lead-bar-esq {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.wa-lead-bar-etapa {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.12);
+  color: var(--wa-primary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.dark-style .wa-lead-bar-etapa {
+  color: #a78bfa;
+}
+
+.wa-lead-bar-dir {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wa-lead-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.42rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--wa-border);
+  background: var(--wa-bg-sidebar);
+  color: var(--wa-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: var(--wa-text);
+    border-color: var(--wa-text-muted);
+    transform: translateY(-1px);
+  }
+
+  &.venda {
+    background: var(--wa-green-dark);
+    border-color: var(--wa-green-dark);
+    color: #fff;
+
+    &:hover {
+      background: var(--wa-green);
+      border-color: var(--wa-green);
+      color: #fff;
+    }
+  }
+
+  &.vincular {
+    background: var(--wa-primary);
+    border-color: var(--wa-primary);
+    color: #fff;
+
+    &:hover {
+      color: #fff;
+      opacity: 0.9;
+    }
+  }
+}
+
+.wa-lead-bar-sem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+
+  .wa-lead-bar-aviso {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--wa-text-muted);
+  }
+}
+
+// Chips de temperatura na barra horizontal — compactos, sem esticar
+.wa-lead-bar .wa-temp-chip {
+  flex: 0 0 auto;
+  padding: 0.32rem 0.7rem;
+  font-size: 0.72rem;
+}
+
+// ============ Abas do painel do lead ============
+.wa-painel-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0.5rem 0.75rem 0;
+  border-bottom: 1px solid var(--wa-border);
+}
+
+.wa-painel-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0.55rem 0.5rem;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  background: transparent;
+  color: var(--wa-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &.ativa {
+    color: var(--wa-green-dark);
+    border-bottom-color: var(--wa-green-dark);
+  }
+
+  &:hover:not(.ativa) {
+    color: var(--wa-text);
+  }
+}
+
+.dark-style .wa-painel-tab.ativa {
+  color: var(--wa-green);
+  border-bottom-color: var(--wa-green);
+}
+
+.wa-painel-tab-conteudo {
+  flex: 1;
+  min-height: 0;
+  display: none;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1rem;
+  overflow-y: auto;
+
+  &.ativa {
+    display: flex;
+  }
+
+  // Aba de anotações: lista cresce, composer fica colado embaixo
+  &[data-painel-conteudo='anotacoes'] {
+    overflow: hidden;
+    gap: 0.6rem;
+
+    .wa-comentarios-lista {
+      flex: 1;
+      max-height: none;
+    }
+
+    .wa-comentario-composer {
+      margin-top: 0;
+    }
+  }
+}
+
+// ============ Ações do lead no painel ============
+.wa-lead-secao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .wa-lead-secao-titulo {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    color: var(--wa-text-muted);
+
+    .wa-comentarios-count {
+      font-weight: 600;
+      opacity: 0.8;
+    }
+  }
+}
+
+// Chips de temperatura — mesmas cores da régua do kanban comercial
+.wa-temp-chips {
+  display: flex;
+  gap: 6px;
+}
+
+.wa-temp-chip {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0.45rem 0.4rem;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--wa-hover);
+  color: var(--wa-text-muted);
+  transition: all 0.15s ease;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.75;
+  }
+
+  &.temp-frio.ativa {
+    background: rgba(59, 130, 246, 0.14);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #3b82f6;
+  }
+
+  &.temp-morno.ativa {
+    background: rgba(245, 158, 11, 0.14);
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #f59e0b;
+  }
+
+  &.temp-quente.ativa {
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+  }
+
+  &:not(:disabled):not(.ativa):hover {
+    border-color: var(--wa-border);
+    color: var(--wa-text);
+  }
+}
+
+// Timeline de anotações do lead
+.wa-lead-secao-comentarios {
+  flex: 1;
+  min-height: 0;
+}
+
+.wa-comentarios-lista {
+  flex: 1;
+  min-height: 90px;
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wa-comentario {
+  // Cartão com contraste próprio em cada tema (não depende do fundo do painel)
+  background: var(--wa-comentario-bg, #ffffff);
+  border: 1px solid var(--wa-comentario-borda, rgba(0, 0, 0, 0.07));
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  border-left: 3px solid transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  &.fixado {
+    border-left-color: #f59e0b;
+    background: var(--wa-comentario-fixado-bg, #fffbeb);
+  }
+
+  .wa-comentario-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 3px;
+
+    .wa-comentario-autor {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--wa-text);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+
+      .wa-pin-icone {
+        color: #f59e0b;
+      }
+    }
+
+    .wa-comentario-data {
+      font-size: 0.66rem;
+      color: var(--wa-text-muted);
+      white-space: nowrap;
+    }
+  }
+
+  .wa-comentario-corpo {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--wa-text);
+    word-wrap: break-word;
+
+    // ============================================================
+    // Neutraliza a formatação inline que vem do backend (Quill):
+    // cores hardcoded (#304758, rgb(0,0,0)...), fundos e fontes
+    // quebram a leitura no tema escuro. Aqui tudo herda do tema,
+    // preservando negrito/itálico/listas/links.
+    // ============================================================
+    * {
+      color: inherit !important;
+      background: transparent !important;
+      font-family: inherit !important;
+      font-size: inherit !important;
+    }
+
+    p {
+      margin: 0 0 0.35rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    strong, b {
+      font-weight: 700;
+      color: var(--wa-text) !important;
+    }
+
+    a {
+      color: var(--wa-link) !important;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+
+    ul, ol {
+      margin: 0.25rem 0;
+      padding-left: 1.25rem;
+    }
+
+    li {
+      margin-bottom: 2px;
+    }
+
+    blockquote {
+      margin: 0.35rem 0;
+      padding: 0.3rem 0.6rem;
+      border-left: 3px solid var(--wa-text-muted);
+      background: var(--wa-hover) !important;
+      border-radius: 4px;
+      font-style: italic;
+    }
+
+    // Quill costuma inserir <br> soltos e parágrafos vazios
+    p:empty {
+      display: none;
+    }
+  }
+
+  .wa-comentario-pin {
+    margin-top: 4px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--wa-text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+
+    &:hover {
+      color: #f59e0b;
+    }
+  }
+}
+
+// ============ Carteira: vendas e dependentes no painel ============
+.wa-vendas-lista,
+.wa-dependentes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wa-venda-card {
+  background: var(--wa-comentario-bg, #fff);
+  border: 1px solid var(--wa-comentario-borda, rgba(0, 0, 0, 0.07));
+  border-left: 3px solid #10b981;
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+
+  .wa-venda-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+
+    strong {
+      font-size: 0.82rem;
+      color: var(--wa-text);
+    }
+  }
+
+  .wa-venda-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.8rem;
+    margin-top: 3px;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      color: var(--wa-text-muted);
+    }
+
+    .wa-venda-status {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      font-weight: 700;
+      border-radius: 6px;
+      padding: 0 6px;
+    }
+  }
+}
+
+.wa-venda-valor {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #10b981;
+  white-space: nowrap;
+}
+
+.wa-dependente-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--wa-comentario-bg, #fff);
+  border: 1px solid var(--wa-comentario-borda, rgba(0, 0, 0, 0.07));
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+
+  strong {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--wa-text);
+  }
+
+  small {
+    font-size: 0.7rem;
+    color: var(--wa-text-muted);
+  }
+}
+
+// Botão "Carteira" ativo na sidebar
+#wa-btn-carteira.ativa {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+}
+
+// Composer de anotação
+.wa-comentario-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+
+  textarea {
+    width: 100%;
+    resize: none;
+    border: 1px solid var(--wa-border);
+    border-radius: 10px;
+    background: var(--wa-bg-sidebar);
+    color: var(--wa-text);
+    padding: 0.5rem 0.7rem;
+    font-size: 0.82rem;
+    font-family: inherit;
+    outline: none;
+
+    &:focus {
+      border-color: var(--wa-green-dark);
+    }
+
+    &::placeholder {
+      color: var(--wa-text-muted);
+    }
+  }
+}
+
+// ============ Modal vincular lead ============
+.wa-vincular-resultados {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wa-vincular-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+
+  small {
+    display: block;
+    color: var(--wa-text-muted, #667781);
+  }
+
+  i {
+    color: #7c3aed;
+  }
+
+  &:hover {
+    background: rgba(124, 58, 237, 0.08);
+  }
+}
+
+// ============ Responsivo ============
+@media (max-width: 1199px) {
+  .wa-painel-lead {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 5;
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.wa-btn-voltar {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .wa-btn-voltar {
+    display: inline-flex;
+  }
+
+  .wa-chat-app {
+    height: calc(100vh - 140px);
+  }
+
+  .wa-sidebar {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .wa-thread {
+    display: none;
+  }
+
+  .wa-chat-app.wa-mobile-thread {
+    .wa-sidebar {
+      display: none;
+    }
+
+    .wa-thread {
+      display: flex;
+    }
+  }
+}

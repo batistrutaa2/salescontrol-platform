@@ -666,3 +666,53 @@ Route::middleware(['auth', \App\Http\Middleware\SetBeneficiosMode::class])
     Route::delete('/produtos/{id}', [\App\Http\Controllers\pages\lk_beneficios\ProdutoController::class, 'destroy'])
         ->whereNumber('id')->name('produtos.destroy');
 });
+
+/** WHATSAPP — Webhook público da Evolution API (validado por token de instância) */
+Route::post('/webhook/whatsapp/{instanceName}/{token}', [\App\Http\Controllers\Webhook\EvolutionWebhookController::class, 'handle'])
+  ->middleware('throttle:240,1')
+  ->name('whatsapp.webhook');
+
+/** WHATSAPP — Módulo de conversas */
+Route::middleware(['auth'])->prefix('whatsapp')->group(function () {
+
+  // Conexão da instância — somente vendedores (widget dentro do kanban)
+  Route::middleware(['role:' . \App\Enums\UserRole::VENDEDOR])->group(function () {
+    Route::get('/conexao', fn () => redirect()->route('whatsapp.kanban'))->name('whatsapp.conexao');
+    Route::post('/conexao/conectar', [\App\Http\Controllers\pages\whatsapp\WhatsappConexaoController::class, 'conectar'])->name('whatsapp.conexao.conectar');
+    Route::get('/conexao/status', [\App\Http\Controllers\pages\whatsapp\WhatsappConexaoController::class, 'status'])->name('whatsapp.conexao.status');
+    Route::get('/conexao/qr', [\App\Http\Controllers\pages\whatsapp\WhatsappConexaoController::class, 'qr'])->name('whatsapp.conexao.qr');
+    Route::post('/conexao/desconectar', [\App\Http\Controllers\pages\whatsapp\WhatsappConexaoController::class, 'desconectar'])->name('whatsapp.conexao.desconectar');
+  });
+
+  // Tutorial / central de ajuda do módulo
+  Route::get('/ajuda', function () {
+    return view('content.pages.whatsapp.ajuda', [
+      'podeConectar' => (int) \Illuminate\Support\Facades\Auth::user()->user_role_id === \App\Enums\UserRole::VENDEDOR,
+    ]);
+  })->name('whatsapp.ajuda');
+
+  // Kanban de conversas
+  Route::get('/kanban', [\App\Http\Controllers\pages\whatsapp\WhatsappKanbanController::class, 'index'])->name('whatsapp.kanban');
+  Route::get('/kanban/board', [\App\Http\Controllers\pages\whatsapp\WhatsappKanbanController::class, 'getBoardData'])->name('whatsapp.kanban.board');
+  Route::post('/kanban/change-status', [\App\Http\Controllers\pages\whatsapp\WhatsappKanbanController::class, 'changeStatusConversa'])->name('whatsapp.kanban.changeStatus');
+
+  // Chat
+  Route::get('/chat/{conversaId?}', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'index'])->name('whatsapp.chat');
+  Route::get('/conversas', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'getConversas'])->name('whatsapp.conversas');
+  Route::post('/conversas/nova', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'novaConversa'])->middleware('role:' . \App\Enums\UserRole::VENDEDOR)->name('whatsapp.novaConversa');
+  Route::post('/conversas/{conversaId}/descartar', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'descartarConversa'])->name('whatsapp.descartarConversa');
+  Route::post('/conversas/{conversaId}/restaurar', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'restaurarConversa'])->name('whatsapp.restaurarConversa');
+  Route::post('/conversas/{conversaId}/limpar', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'limparConversa'])->name('whatsapp.limparConversa');
+  Route::delete('/conversas/{conversaId}', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'apagarConversa'])->name('whatsapp.apagarConversa');
+  Route::get('/leads', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'buscarLeads'])->name('whatsapp.leads');
+  Route::get('/conversas/{conversaId}/mensagens', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'getMensagens'])->name('whatsapp.mensagens');
+  Route::post('/conversas/{conversaId}/enviar', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'enviarMensagem'])->name('whatsapp.enviar');
+  Route::post('/conversas/{conversaId}/reenviar/{mensagemId}', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'reenviarMensagem'])->name('whatsapp.reenviar');
+  Route::post('/conversas/{conversaId}/ler', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'marcarLida'])->name('whatsapp.ler');
+  Route::post('/conversas/{conversaId}/vincular-contato', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'vincularContato'])->name('whatsapp.vincularContato');
+
+  // Ações sobre o lead vinculado à conversa
+  Route::get('/conversas/{conversaId}/lead/carteira', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'leadCarteira'])->name('whatsapp.leadCarteira');
+  Route::get('/conversas/{conversaId}/lead/comentarios', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'leadComentarios'])->name('whatsapp.leadComentarios');
+  Route::post('/conversas/{conversaId}/lead/temperatura', [\App\Http\Controllers\pages\whatsapp\WhatsappChatController::class, 'leadTemperatura'])->name('whatsapp.leadTemperatura');
+});

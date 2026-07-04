@@ -25,8 +25,8 @@
     window.userName = "{{ auth()->user()->name ?? 'Usuário' }}";
 </script>
 
-{{-- Echo/Reverb carregado apenas para administrativos (role 2) que usam notificações em tempo real --}}
-@if(auth()->check() && auth()->user()->user_role_id === 2)
+{{-- Echo/Reverb: administrativos (notificações), vendedores/supervisores/developers (WhatsApp em tempo real) --}}
+@if(auth()->check() && in_array((int) auth()->user()->user_role_id, [1, 2, 4, 5]))
     @vite(['resources/js/echo.js'])
 @endif
 
@@ -50,7 +50,7 @@
         defaultStyle: "{{ $configData['styleOpt'] }}",
         defaultShowDropdownOnHover: "{{ $configData['showDropdownOnHover'] }}", // true/false (for horizontal layout only)
         displayCustomizer: "{{ $configData['displayCustomizer'] }}",
-        lang: '{{ app()->getLocale() }}',
+        lang: '{{ array_key_exists(app()->getLocale(), ['pt_BR' => 1, 'en' => 1, 'fr' => 1, 'ar' => 1, 'de' => 1]) ? app()->getLocale() : 'en' }}',
         pathResolver: function(path) {
             var resolvedPaths = {
                 // Core stylesheets

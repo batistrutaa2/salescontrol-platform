@@ -47,6 +47,12 @@ use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
 use App\Repositories\Eloquent\PreditivaRegraRepository;
 use App\Repositories\Contracts\ResumoOperacionalRepositoryInterface;
 use App\Repositories\Eloquent\ResumoOperacionalRepository;
+use App\Repositories\Contracts\WhatsappInstanciaRepositoryInterface;
+use App\Repositories\Contracts\WhatsappConversaRepositoryInterface;
+use App\Repositories\Contracts\WhatsappMensagemRepositoryInterface;
+use App\Repositories\Eloquent\WhatsappInstanciaRepository;
+use App\Repositories\Eloquent\WhatsappConversaRepository;
+use App\Repositories\Eloquent\WhatsappMensagemRepository;
 use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
@@ -75,6 +81,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(LogPreditivaRepositoryInterface::class, LogPreditivaRepository::class);
         $this->app->bind(PreditivaRegraRepositoryInterface::class, PreditivaRegraRepository::class);
         $this->app->bind(ResumoOperacionalRepositoryInterface::class, ResumoOperacionalRepository::class);
+
+        $this->app->bind(WhatsappInstanciaRepositoryInterface::class, WhatsappInstanciaRepository::class);
+        $this->app->bind(WhatsappConversaRepositoryInterface::class, WhatsappConversaRepository::class);
+        $this->app->bind(WhatsappMensagemRepositoryInterface::class, WhatsappMensagemRepository::class);
     }
 
     /**

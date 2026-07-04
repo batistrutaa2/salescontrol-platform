@@ -282,7 +282,7 @@ class TemplateCustomizer {
 
   setLang(lang, updateStorage = true, force = false) {
     if (lang === this.settings.lang && !force) return
-    if (!TemplateCustomizer.LANGUAGES[lang]) throw new Error(`Language "${lang}" not found!`)
+    if (!TemplateCustomizer.LANGUAGES[lang]) lang = 'en'
 
     const t = TemplateCustomizer.LANGUAGES[lang]
 
@@ -1313,6 +1313,19 @@ TemplateCustomizer.DIRECTIONS = [
 
 // Theme setting language
 TemplateCustomizer.LANGUAGES = {
+  pt_BR: {
+    panel_header: 'Personalizador do Template',
+    panel_sub_header: 'Personalize e visualize em tempo real',
+    theming_header: 'Aparência',
+    style_label: 'Estilo (Modo)',
+    theme_label: 'Temas',
+    layout_header: 'Layout',
+    layout_label: 'Menu (Navegação)',
+    layout_header_label: 'Tipos de Cabeçalho',
+    content_label: 'Conteúdo',
+    layout_navbar_label: 'Tipo de Navbar',
+    direction_label: 'Direção'
+  },
   en: {
     panel_header: 'Template Customizer',
     panel_sub_header: 'Customize and preview in real time',

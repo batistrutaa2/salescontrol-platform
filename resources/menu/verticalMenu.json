@@ -488,6 +488,45 @@
       ]
     },
     {
+      "menuHeader": "WhatsApp",
+      "rules": [
+        "VENDEDOR",
+        "SUPERVISOR",
+        "ADMINISTRATIVO",
+        "DEVELOPER"
+      ]
+    },
+    {
+      "name": "WhatsApp",
+      "icon": "menu-icon tf-icons ri-whatsapp-line",
+      "slug": [
+        "whatsapp"
+      ],
+      "rules": [
+        "VENDEDOR",
+        "SUPERVISOR",
+        "ADMINISTRATIVO",
+        "DEVELOPER"
+      ],
+      "submenu": [
+        {
+          "url": "/whatsapp/chat",
+          "name": "Conversas",
+          "slug": "whatsapp.chat"
+        },
+        {
+          "url": "/whatsapp/kanban",
+          "name": "Funil de Conversas",
+          "slug": "whatsapp.kanban"
+        },
+        {
+          "url": "/whatsapp/ajuda",
+          "name": "Ajuda",
+          "slug": "whatsapp.ajuda"
+        }
+      ]
+    },
+    {
       "menuHeader": "Vendedor",
       "rules": [
         "VENDEDOR",

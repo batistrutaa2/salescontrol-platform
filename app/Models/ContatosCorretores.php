@@ -11,6 +11,29 @@ class ContatosCorretores extends Model
   use HasFactory;
   protected $table = "contatos_corretores";
 
+  protected static function booted()
+  {
+    // Lead atribuído a um vendedor: revincula conversas de WhatsApp órfãs desse número
+    static::created(function (self $contatoCorretor) {
+      if ($contatoCorretor->contato_id && $contatoCorretor->user_id) {
+        \App\Jobs\Whatsapp\RevincularConversasContato::dispatch(
+          (int) $contatoCorretor->contato_id,
+          (int) $contatoCorretor->user_id
+        );
+      }
+    });
+
+    // Lead transferido entre vendedores: revincula para o novo dono
+    static::updated(function (self $contatoCorretor) {
+      if ($contatoCorretor->wasChanged('user_id') && $contatoCorretor->contato_id && $contatoCorretor->user_id) {
+        \App\Jobs\Whatsapp\RevincularConversasContato::dispatch(
+          (int) $contatoCorretor->contato_id,
+          (int) $contatoCorretor->user_id
+        );
+      }
+    });
+  }
+
   protected $fillable = [
     'id',
     'empresa_id',

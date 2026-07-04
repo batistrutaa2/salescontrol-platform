@@ -1,0 +1,213 @@
+// ============================================================
+// Design System — toasts (toastr) e modais (SweetAlert2 / Bootstrap)
+// Compartilhado pelas páginas do módulo WhatsApp (importado com @import).
+// Segue o padrão glass morphism do projeto: radius 16/24, blur,
+// Plus Jakarta Sans, acentos por tipo e dark mode via .dark-style.
+// ============================================================
+
+// ---------- Toastr (estilo Sonner, igual às notificações do CRM) ----------
+#toast-container > div {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  border-radius: 12px !important;
+  padding: 14px 18px 14px 48px !important;
+  margin-bottom: 12px !important;
+  border: none !important;
+  min-width: 320px !important;
+  max-width: 420px !important;
+  opacity: 1 !important;
+  position: relative !important;
+  overflow: hidden !important;
+  backdrop-filter: blur(10px) !important;
+  background-color: #ffffff !important;
+  background-image: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+  background-repeat: no-repeat !important;
+  background-position: 16px center !important;
+  background-size: 20px 20px !important;
+  color: #171717 !important;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+
+  // Barra de acento lateral por tipo
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 12px 0 0 12px;
+  }
+
+  &.toast-success::after {
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  }
+
+  &.toast-info::after {
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  }
+
+  &.toast-warning::after {
+    background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+  }
+
+  &.toast-error::after {
+    background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  }
+
+  .toast-title {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    margin-bottom: 3px !important;
+  }
+
+  .toast-message {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    font-weight: 400 !important;
+    color: #525252 !important;
+  }
+
+  .toast-progress {
+    height: 3px !important;
+    opacity: 0.35 !important;
+  }
+
+  &.toast-success .toast-progress {
+    background: #10b981 !important;
+  }
+
+  &.toast-info .toast-progress {
+    background: #3b82f6 !important;
+  }
+
+  &.toast-warning .toast-progress {
+    background: #f59e0b !important;
+  }
+
+  &.toast-error .toast-progress {
+    background: #ef4444 !important;
+  }
+
+  &:hover {
+    transform: translateY(-2px) !important;
+    box-shadow:
+      0 8px 16px rgba(0, 0, 0, 0.2),
+      0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.2s cubic-bezier(0.21, 1.02, 0.73, 1) !important;
+  }
+}
+
+.dark-style #toast-container > div {
+  background-color: #262626 !important;
+  background-image: linear-gradient(135deg, #262626 0%, #1c1c1c 100%) !important;
+  color: #fafafa !important;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+
+  .toast-message {
+    color: #d4d4d4 !important;
+  }
+}
+
+// ---------- SweetAlert2 (glass morphism do design system) ----------
+.swal2-popup {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  border-radius: 24px !important;
+  background: rgba(255, 255, 255, 0.97) !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.12),
+    0 0 40px rgba(124, 58, 237, 0.08) !important;
+  padding-bottom: 1.8rem !important;
+
+  .swal2-title {
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    color: #1f2937 !important;
+  }
+
+  .swal2-html-container {
+    color: #6b7280 !important;
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+  }
+
+  .swal2-icon {
+    border-width: 3px !important;
+  }
+}
+
+.dark-style .swal2-popup {
+  background: rgba(30, 32, 47, 0.97) !important;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.4),
+    0 0 60px rgba(124, 58, 237, 0.15) !important;
+
+  .swal2-title {
+    color: #f9fafb !important;
+  }
+
+  .swal2-html-container {
+    color: #9ca3af !important;
+  }
+}
+
+// ---------- Badge pulsante de não lidas (compartilhado) ----------
+.wa-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #25d366;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+
+  &.pulsando {
+    animation: wa-badge-pulso 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes wa-badge-pulso {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55);
+  }
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 6px rgba(37, 211, 102, 0);
+  }
+}
+
+// ---------- Modais Bootstrap das páginas WhatsApp ----------
+.modal .modal-content {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.12),
+    0 0 40px rgba(124, 58, 237, 0.08);
+
+  h4 {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+}
+
+.dark-style .modal .modal-content {
+  background: rgba(30, 32, 47, 0.97);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.4),
+    0 0 60px rgba(124, 58, 237, 0.15);
+}

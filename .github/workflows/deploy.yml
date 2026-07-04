@@ -36,6 +36,11 @@ jobs:
         run: npm ci
 
       - name: Build assets
+        env:
+          VITE_REVERB_APP_KEY: ${{ secrets.VITE_REVERB_APP_KEY }}
+          VITE_REVERB_HOST: ${{ secrets.VITE_REVERB_HOST }}
+          VITE_REVERB_PORT: ${{ secrets.VITE_REVERB_PORT }}
+          VITE_REVERB_SCHEME: ${{ secrets.VITE_REVERB_SCHEME }}
         run: npm run build
 
       - name: Upload built assets to VPS
@@ -69,15 +74,37 @@ jobs:
             # Limpar credenciais após uso
             rm -f ~/.git-credentials
 
+            # Subir/atualizar serviços do compose (evolution, reverb, queue, scheduler)
+            echo "Atualizando containers..."
+            sudo ./vendor/bin/sail up -d --remove-orphans
+
+            # Dependências PHP (novas libs entram sem passo manual)
+            echo "Atualizando dependências..."
+            # (sem --no-dev: o próprio Sail é dependência dev e é o runtime da VPS)
+            sudo ./vendor/bin/sail composer install --no-interaction --prefer-dist --optimize-autoloader
+
             # Executar migrações
             echo "Executando migrações..."
             sudo ./vendor/bin/sail artisan migrate --force --no-interaction
             echo "Migrações concluídas."
 
+            # Garantir o symlink public/storage (mídias do WhatsApp)
+            sudo ./vendor/bin/sail artisan storage:link || true
+
             # Limpar caches
             echo "Limpando caches..."
             sudo ./vendor/bin/sail artisan optimize:clear
             echo "Caches limpos."
+
+            # Workers de fila recarregam o código novo (o container reinicia sozinho via restart policy)
+            echo "Reiniciando workers..."
+            sudo ./vendor/bin/sail artisan queue:restart
+            sudo docker restart $(sudo docker ps -qf name=reverb) || true
+
+            # Health check — falha o deploy se a aplicação não responder
+            echo "Verificando saúde da aplicação..."
+            sleep 5
+            curl -sf http://localhost/up > /dev/null && echo "Aplicação OK!" || (echo "ERRO: aplicação não respondeu no /up" && exit 1)
 
             echo "Deploy finalizado com sucesso!"
 

@@ -1,10 +1,10 @@
 <?php
 
+use App\Http\Middleware\LocaleMiddleware;
+use App\Http\Middleware\EnsureAdvogadaScope;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\LocaleMiddleware;
-use App\Http\Middleware\EnsureAdvogadaScope;
 
 return Application::configure(basePath: dirname(__DIR__))
   ->withRouting(
@@ -18,6 +18,15 @@ return Application::configure(basePath: dirname(__DIR__))
     $middleware->web(append: [
       LocaleMiddleware::class,
       EnsureAdvogadaScope::class,
+    ]);
+
+    $middleware->alias([
+      'role' => \App\Http\Middleware\EnsureUserRole::class,
+    ]);
+
+    // Webhooks da Evolution API (WhatsApp) chegam sem sessão/CSRF
+    $middleware->validateCsrfTokens(except: [
+      'webhook/whatsapp/*',
     ]);
   })
   ->withExceptions(function (Exceptions $exceptions) {

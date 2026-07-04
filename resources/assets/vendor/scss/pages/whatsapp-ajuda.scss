@@ -1,0 +1,330 @@
+// WhatsApp - Central de ajuda / tutorial
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+@import 'whatsapp-ds';
+
+.wa-ajuda {
+  --dash-card-bg: rgba(255, 255, 255, 0.95);
+  --dash-card-border: rgba(255, 255, 255, 0.2);
+  --dash-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --dash-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.15);
+  --dash-text: #1f2937;
+  --dash-text-muted: #6b7280;
+
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 980px;
+  margin: 0 auto;
+  color: var(--dash-text);
+}
+
+.dark-style .wa-ajuda {
+  --dash-card-bg: rgba(30, 32, 47, 0.95);
+  --dash-card-border: rgba(255, 255, 255, 0.08);
+  --dash-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --dash-shadow-glow: 0 0 60px rgba(124, 58, 237, 0.25);
+  --dash-text: #f9fafb;
+  --dash-text-muted: #9ca3af;
+}
+
+.wa-ajuda-muted {
+  color: var(--dash-text-muted);
+  font-size: 0.86rem;
+}
+
+// ============ Hero ============
+.wa-ajuda-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1.4rem 1.6rem;
+  background: var(--dash-card-bg);
+  border: 1px solid var(--dash-card-border);
+  border-radius: 16px;
+  box-shadow: var(--dash-shadow-md);
+  backdrop-filter: blur(12px);
+  flex-wrap: wrap;
+
+  .wa-ajuda-hero-icone {
+    width: 58px;
+    height: 58px;
+    min-width: 58px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+  }
+
+  h4 {
+    margin: 0 0 2px;
+    font-weight: 800;
+    color: var(--dash-text);
+  }
+
+  p {
+    margin: 0;
+    color: var(--dash-text-muted);
+    font-size: 0.88rem;
+    max-width: 560px;
+  }
+
+  .wa-ajuda-hero-links {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5rem;
+  }
+}
+
+// ============ Cards ============
+.wa-ajuda-card {
+  padding: 1.4rem 1.6rem;
+  background: var(--dash-card-bg);
+  border: 1px solid var(--dash-card-border);
+  border-radius: 16px;
+  box-shadow: var(--dash-shadow-md);
+  backdrop-filter: blur(12px);
+  transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow: var(--dash-shadow-md), var(--dash-shadow-glow);
+  }
+}
+
+.wa-ajuda-card-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+
+  i {
+    font-size: 1.35rem;
+    color: #7c3aed;
+  }
+
+  h5 {
+    margin: 0;
+    font-weight: 800;
+    color: var(--dash-text);
+  }
+}
+
+// ============ Diagnóstico ============
+.wa-diag-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.wa-diag-item {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: rgba(107, 114, 128, 0.07);
+
+  .wa-diag-status {
+    font-size: 1.25rem;
+    line-height: 1;
+    margin-top: 1px;
+  }
+
+  .wa-diag-corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    strong {
+      font-size: 0.85rem;
+      color: var(--dash-text);
+    }
+
+    .wa-diag-detalhe {
+      font-size: 0.78rem;
+      color: var(--dash-text-muted);
+      line-height: 1.45;
+
+      a {
+        color: #7c3aed;
+        font-weight: 600;
+      }
+    }
+  }
+
+  &[data-estado='ok'] {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.25);
+
+    .wa-diag-status {
+      color: #10b981;
+    }
+  }
+
+  &[data-estado='atencao'] {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.25);
+
+    .wa-diag-status {
+      color: #f59e0b;
+    }
+  }
+
+  &[data-estado='erro'] {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.3);
+
+    .wa-diag-status {
+      color: #ef4444;
+    }
+  }
+}
+
+// ============ Passo a passo ============
+.wa-passos {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0.5rem;
+}
+
+.wa-passo {
+  display: flex;
+  gap: 1rem;
+  position: relative;
+  padding-bottom: 1.4rem;
+
+  // Linha vertical conectando os passos
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 17px;
+    top: 38px;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.35), rgba(124, 58, 237, 0.08));
+  }
+
+  .wa-passo-numero {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: #fff;
+    background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+    z-index: 1;
+  }
+
+  .wa-passo-corpo {
+    padding-top: 5px;
+
+    strong {
+      display: block;
+      font-size: 0.95rem;
+      color: var(--dash-text);
+      margin-bottom: 3px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.86rem;
+      line-height: 1.6;
+      color: var(--dash-text-muted);
+
+      a {
+        color: #7c3aed;
+        font-weight: 600;
+      }
+
+      kbd {
+        background: rgba(124, 58, 237, 0.12);
+        color: #7c3aed;
+        border-radius: 5px;
+        padding: 1px 6px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+      }
+    }
+  }
+}
+
+// Chips inline citados no texto
+.wa-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  &.verde {
+    background: rgba(16, 185, 129, 0.14);
+    color: #10b981;
+  }
+
+  &.roxo {
+    background: rgba(124, 58, 237, 0.14);
+    color: #7c3aed;
+  }
+}
+
+// ============ Accordion (troubleshooting) ============
+.wa-ajuda .accordion-item {
+  background: transparent;
+  border: 1px solid var(--dash-card-border);
+  border-radius: 12px !important;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+
+  .accordion-button {
+    background: transparent;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--dash-text);
+    box-shadow: none;
+
+    &:not(.collapsed) {
+      color: #7c3aed;
+      background: rgba(124, 58, 237, 0.06);
+    }
+  }
+
+  .accordion-body {
+    font-size: 0.85rem;
+    line-height: 1.65;
+    color: var(--dash-text-muted);
+  }
+}
+
+// ============ Dicas ============
+.wa-ajuda-dicas {
+  margin: 0.25rem 0 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  li {
+    font-size: 0.87rem;
+    line-height: 1.55;
+    color: var(--dash-text-muted);
+
+    strong {
+      color: var(--dash-text);
+    }
+  }
+}

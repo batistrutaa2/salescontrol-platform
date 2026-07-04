@@ -1,10 +1,16 @@
 @php
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 @endphp
 
 <ul class="menu-sub">
   @if (isset($menu))
     @foreach ($menu as $submenu)
+
+    {{-- Check if the current user's role is in the submenu rules --}}
+    @if (isset($submenu->rules) && !in_array(Auth::user()->role->tipo_usuario, $submenu->rules))
+      @continue
+    @endif
 
     {{-- active menu method --}}
     @php

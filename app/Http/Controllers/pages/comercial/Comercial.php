@@ -1346,6 +1346,8 @@ class Comercial extends Controller
         'created_at' => now(),
         'updated_at' => now()
       ]);
+
+      \App\Jobs\Whatsapp\RevincularConversasContato::dispatch((int) $contatoId, (int) $userId);
     }
 
     Preditiva::where('contato_id', $contatoId)->delete();

@@ -412,6 +412,8 @@
 
     // ---------- tour de boas-vindas (spotlight) ----------
     const TOUR_KEY = 'mascote:tourVisto';
+    const TOUR_WHATSAPP_KEY = 'mascote:tourWhatsappVisto';
+
     const PASSOS = [
       {
         titulo: 'Oi! Eu sou seu assistente 👋',
@@ -432,27 +434,70 @@
         texto: 'Te dou bom dia todo dia e, quando quiser uma sugestão na hora, é só <strong>clicar em mim</strong>. Bora pra cima! 🚀',
       },
     ];
+
+    // Tutorial do módulo WhatsApp — mesmo formato de conversa do chatbot
+    const PASSOS_WHATSAPP = [
+      {
+        titulo: '📱 Agora eu também cuido do WhatsApp!',
+        texto: `${nome}, seus clientes do WhatsApp agora moram aqui no CRM: você atende, organiza no funil e sobe venda sem trocar de tela. Vem que eu te mostro em 1 minuto!`,
+      },
+      {
+        titulo: '🔌 Primeiro, conecte o seu número',
+        texto:
+          'No <strong>Funil de Conversas</strong>, clica em <strong>Conectar</strong> no topo. No celular: <em>WhatsApp → Configurações → Aparelhos conectados → Conectar aparelho</em> e escaneia o QR. Quando o selo ficar <strong>● Conectado</strong> verdinho, tá no ar!',
+      },
+      {
+        titulo: '💬 As conversas chegam sozinhas',
+        texto:
+          'Cliente mandou mensagem? Ela aparece na hora em <strong>Conversas</strong> — com toque de notificação — e vira card no funil. Se o número já for de um lead seu, eu <strong>vinculo sozinho</strong> e você vê os dados dele na conversa. 😉',
+      },
+      {
+        titulo: '🧲 Trabalhe o lead sem sair do chat',
+        texto:
+          'Na conversa vinculada, a barra do topo mostra a <strong>etapa do funil</strong> e a <strong>temperatura</strong> (❄️☀️🔥 — um clique troca). No painel 👤 você registra e fixa anotações. E os botões <strong>Subir venda</strong> e <strong>Abrir Cliente</strong> te levam direto pro fluxo de sempre.',
+      },
+      {
+        titulo: '📊 Arrasta igual ao kanban comercial',
+        texto:
+          'O <strong>Funil de Conversas</strong> tem as mesmas colunas do seu kanban de clientes: arrasta o card pra mudar de etapa. Se a conversa tem lead, eu pergunto se quer <strong>mover o lead junto</strong> no funil comercial.',
+      },
+      {
+        titulo: '🗂️ Conversa pessoal? Descarta!',
+        texto:
+          'Menu <strong>⋮ → Descartar do funil</strong> tira a conversa do kanban sem apagar nada. Pra rever ou restaurar, é só clicar no ícone <strong>📥</strong> no topo da lista de conversas.',
+      },
+      {
+        titulo: '🛟 Se algo não funcionar...',
+        texto:
+          'QR não lê? Mensagem só chega com F5? Áudio mudo? Corre na <strong><a href="/whatsapp/ajuda">Central de Ajuda</a></strong>: lá tem um <strong>diagnóstico ao vivo</strong> que testa sua conexão, tempo real, som e microfone — e já diz como resolver. Bora atender! 🚀',
+      },
+    ];
+
+    let passosAtivos = PASSOS;
+    let tourKeyAtiva = TOUR_KEY;
     let passoAtual = 0;
 
-    function tourVisto() {
+    function tourVisto(chave) {
       try {
-        return localStorage.getItem(TOUR_KEY) === '1';
+        return localStorage.getItem(chave || TOUR_KEY) === '1';
       } catch (e) {
         return false;
       }
     }
 
     function renderPasso() {
-      const p = PASSOS[passoAtual];
+      const p = passosAtivos[passoAtual];
       tourTitulo.textContent = p.titulo;
       tourTexto.innerHTML = p.texto;
-      tourProg.innerHTML = PASSOS.map((_, i) => `<i class="${i === passoAtual ? 'ativo' : ''}"></i>`).join('');
+      tourProg.innerHTML = passosAtivos.map((_, i) => `<i class="${i === passoAtual ? 'ativo' : ''}"></i>`).join('');
       tourPrev.hidden = passoAtual === 0;
-      tourNext.textContent = passoAtual === PASSOS.length - 1 ? 'Entendi!' : 'Próximo';
+      tourNext.textContent = passoAtual === passosAtivos.length - 1 ? 'Entendi!' : 'Próximo';
     }
 
-    function iniciarTour(forcar) {
-      if (!forcar && tourVisto()) return;
+    function iniciarTourCom(passos, chave, forcar) {
+      if (!forcar && tourVisto(chave)) return;
+      passosAtivos = passos;
+      tourKeyAtiva = chave;
       passoAtual = 0;
       root.classList.remove('is-falando', 'is-dormindo');
       root.classList.add('is-acordado', 'is-tour');
@@ -460,19 +505,27 @@
       tour.hidden = false;
     }
 
+    function iniciarTour(forcar) {
+      iniciarTourCom(PASSOS, TOUR_KEY, forcar);
+    }
+
+    function iniciarTourWhatsapp(forcar) {
+      iniciarTourCom(PASSOS_WHATSAPP, TOUR_WHATSAPP_KEY, forcar);
+    }
+
     function fecharTour() {
       tour.hidden = true;
       root.classList.remove('is-tour', 'is-acordado');
       root.classList.add('is-dormindo');
       try {
-        localStorage.setItem(TOUR_KEY, '1');
+        localStorage.setItem(tourKeyAtiva, '1');
       } catch (e) {
         /* ignora */
       }
     }
 
     tourNext.addEventListener('click', function () {
-      if (passoAtual >= PASSOS.length - 1) {
+      if (passoAtual >= passosAtivos.length - 1) {
         fecharTour();
       } else {
         passoAtual++;
@@ -500,6 +553,7 @@
       acordar,
       saudar,
       tour: () => iniciarTour(true),
+      tourWhatsapp: () => iniciarTourWhatsapp(true),
       verificar: () => verificar(false),
       verificarAvisos: () => verificarAvisos(),
       /** Atalho para futuras celebrações de venda. */
@@ -526,6 +580,8 @@
     if (!isAdmin) {
       // Prioridade: parabéns por venda > tour (1ª vez) > saudação pós-login.
       // Cada um só dispara na 1ª página após o respectivo gatilho.
+      const ehPaginaWhatsapp = window.location.pathname.startsWith('/whatsapp');
+
       if (root.dataset.parabens) {
         let payload = null;
         try {
@@ -536,6 +592,9 @@
         window.setTimeout(() => parabenizarVenda(payload), 900);
       } else if (!tourVisto()) {
         window.setTimeout(() => iniciarTour(false), 1500);
+      } else if (ehPaginaWhatsapp && !tourVisto(TOUR_WHATSAPP_KEY)) {
+        // Primeira visita ao módulo WhatsApp: tutorial guiado no padrão do chatbot
+        window.setTimeout(() => iniciarTourWhatsapp(false), 1500);
       } else if (root.dataset.saudar === '1') {
         window.setTimeout(saudar, 1200);
       }
