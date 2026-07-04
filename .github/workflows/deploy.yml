@@ -66,6 +66,15 @@ jobs:
 
             cd /var/www/html/salescontrol-new
 
+            # docker compose v2 (plugin) ou docker-compose v1 (standalone)
+            if sudo docker compose version >/dev/null 2>&1; then
+              COMPOSE="sudo docker compose"
+            else
+              COMPOSE="sudo docker-compose"
+            fi
+            echo "==> Usando: $COMPOSE"
+
+
             # Configurar credenciais Git temporariamente
             git config --local credential.helper store
             echo "https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com" > ~/.git-credentials
@@ -76,6 +85,15 @@ jobs:
 
             # Limpar credenciais após uso
             rm -f ~/.git-credentials
+
+            # Bootstrap do vendor/ — o build do container precisa do runtime do
+            # Sail que mora em vendor/laravel/sail. Se faltar, instala via
+            # container oficial do Composer (não depende de PHP no host).
+            if [ ! -f vendor/bin/sail ]; then
+              echo "==> vendor/ ausente — instalando dependências via container do Composer..."
+              sudo docker run --rm -v "$PWD":/app -w /app composer:2 \
+                composer install --no-interaction --prefer-dist --ignore-platform-reqs
+            fi
 
             # Limpeza única da geração antiga de containers (compose não-versionado):
             # o container avulso "reverb" segura a porta 6001 e impede o novo de subir.
@@ -88,30 +106,30 @@ jobs:
             # Em produção NÃO existe COMPOSE_PROFILES=dev, então mysql/mailpit
             # do compose ficam de fora (o banco é o MySQL externo do host).
             echo "==> Atualizando containers..."
-            sudo ./vendor/bin/sail up -d --remove-orphans
+            $COMPOSE up -d --remove-orphans
 
             echo "==> Containers ativos:"
-            sudo docker compose ps
+            $COMPOSE ps
 
-            # Dependências PHP (novas libs entram sem passo manual)
+            # Dependências PHP atualizadas dentro do container do app
             # (sem --no-dev: o próprio Sail é dependência dev e é o runtime da VPS)
             echo "==> Atualizando dependências..."
-            sudo ./vendor/bin/sail composer install --no-interaction --prefer-dist --optimize-autoloader
+            $COMPOSE exec -T laravel.test composer install --no-interaction --prefer-dist --optimize-autoloader
 
             # Executar migrações
             echo "==> Executando migrações..."
-            sudo ./vendor/bin/sail artisan migrate --force --no-interaction
+            $COMPOSE exec -T laravel.test php artisan migrate --force --no-interaction
 
             # Garantir o symlink public/storage (mídias do WhatsApp)
-            sudo ./vendor/bin/sail artisan storage:link || true
+            $COMPOSE exec -T laravel.test php artisan storage:link || true
 
             # Limpar caches
             echo "==> Limpando caches..."
-            sudo ./vendor/bin/sail artisan optimize:clear
+            $COMPOSE exec -T laravel.test php artisan optimize:clear
 
             # Workers de fila recarregam o código novo (o container reinicia sozinho via restart policy)
             echo "==> Reiniciando workers..."
-            sudo ./vendor/bin/sail artisan queue:restart
+            $COMPOSE exec -T laravel.test php artisan queue:restart
             sudo docker restart $(sudo docker ps -qf name=reverb) || true
 
             # Health check DIRETO no container do Laravel (não passa pelo Apache,
@@ -122,8 +140,8 @@ jobs:
               echo "Aplicação OK!"
             else
               echo "ERRO: aplicação não respondeu em http://127.0.0.1:8080/up"
-              sudo docker compose ps
-              sudo docker compose logs --tail=30 laravel.test
+              $COMPOSE ps
+              $COMPOSE logs --tail=30 laravel.test
               exit 1
             fi
 
