@@ -61,6 +61,9 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           command_timeout: "30m"
           script: |
+            # Qualquer comando que falhar aborta o deploy IMEDIATAMENTE (sem falha silenciosa)
+            set -e
+
             cd /var/www/html/salescontrol-new
 
             # Configurar credenciais Git temporariamente
@@ -68,45 +71,63 @@ jobs:
             echo "https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com" > ~/.git-credentials
 
             # Puxar alterações do repositório
-            echo "Baixando alterações do repositório..."
+            echo "==> Baixando alterações do repositório..."
             sudo git pull origin master
 
             # Limpar credenciais após uso
             rm -f ~/.git-credentials
 
-            # Subir/atualizar serviços do compose (evolution, reverb, queue, scheduler)
-            echo "Atualizando containers..."
+            # Limpeza única da geração antiga de containers (compose não-versionado):
+            # o container avulso "reverb" segura a porta 6001 e impede o novo de subir.
+            if sudo docker ps -a --format '{{.Names}}' | grep -qx 'reverb'; then
+              echo "==> Removendo container legado 'reverb'..."
+              sudo docker rm -f reverb
+            fi
+
+            # Subir/atualizar serviços (evolution, reverb, queue, scheduler, redis).
+            # Em produção NÃO existe COMPOSE_PROFILES=dev, então mysql/mailpit
+            # do compose ficam de fora (o banco é o MySQL externo do host).
+            echo "==> Atualizando containers..."
             sudo ./vendor/bin/sail up -d --remove-orphans
 
+            echo "==> Containers ativos:"
+            sudo docker compose ps
+
             # Dependências PHP (novas libs entram sem passo manual)
-            echo "Atualizando dependências..."
             # (sem --no-dev: o próprio Sail é dependência dev e é o runtime da VPS)
+            echo "==> Atualizando dependências..."
             sudo ./vendor/bin/sail composer install --no-interaction --prefer-dist --optimize-autoloader
 
             # Executar migrações
-            echo "Executando migrações..."
+            echo "==> Executando migrações..."
             sudo ./vendor/bin/sail artisan migrate --force --no-interaction
-            echo "Migrações concluídas."
 
             # Garantir o symlink public/storage (mídias do WhatsApp)
             sudo ./vendor/bin/sail artisan storage:link || true
 
             # Limpar caches
-            echo "Limpando caches..."
+            echo "==> Limpando caches..."
             sudo ./vendor/bin/sail artisan optimize:clear
-            echo "Caches limpos."
 
             # Workers de fila recarregam o código novo (o container reinicia sozinho via restart policy)
-            echo "Reiniciando workers..."
+            echo "==> Reiniciando workers..."
             sudo ./vendor/bin/sail artisan queue:restart
             sudo docker restart $(sudo docker ps -qf name=reverb) || true
 
-            # Health check — falha o deploy se a aplicação não responder
-            echo "Verificando saúde da aplicação..."
+            # Health check DIRETO no container do Laravel (não passa pelo Apache,
+            # que responderia 301 e mascararia uma aplicação fora do ar)
+            echo "==> Verificando saúde da aplicação..."
             sleep 5
-            curl -sf http://localhost/up > /dev/null && echo "Aplicação OK!" || (echo "ERRO: aplicação não respondeu no /up" && exit 1)
+            if curl -sf http://127.0.0.1:8080/up > /dev/null; then
+              echo "Aplicação OK!"
+            else
+              echo "ERRO: aplicação não respondeu em http://127.0.0.1:8080/up"
+              sudo docker compose ps
+              sudo docker compose logs --tail=30 laravel.test
+              exit 1
+            fi
 
-            echo "Deploy finalizado com sucesso!"
+            echo "==> Deploy finalizado com sucesso!"
 
       - name: Send Discord notification - Success
         if: success()

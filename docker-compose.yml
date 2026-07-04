@@ -22,10 +22,12 @@ services:
         networks:
             - sail
         depends_on:
-            - mysql
             - redis
-            - mailpit
     mysql:
+        # Só no ambiente de desenvolvimento (produção usa MySQL externo).
+        # Ative com COMPOSE_PROFILES=dev no .env local.
+        profiles:
+            - dev
         image: 'mysql:8.0'
         ports:
             - '${FORWARD_DB_PORT:-3306}:3306'
@@ -52,7 +54,8 @@ services:
     redis:
         image: 'redis:alpine'
         ports:
-            - '${FORWARD_REDIS_PORT:-6379}:6379'
+            # Preso ao localhost — filas e cache falam pela rede interna
+            - '127.0.0.1:${FORWARD_REDIS_PORT:-6379}:6379'
         volumes:
             - 'sail-redis:/data'
         networks:
@@ -65,6 +68,9 @@ services:
             retries: 3
             timeout: 5s
     mailpit:
+        # Só no ambiente de desenvolvimento (produção usa MAIL_MAILER=log)
+        profiles:
+            - dev
         image: 'axllent/mailpit:latest'
         ports:
             - '${FORWARD_MAILPIT_PORT:-1025}:1025'
@@ -127,7 +133,6 @@ services:
         networks:
             - sail
         depends_on:
-            - mysql
             - redis
         restart: unless-stopped
     queue:
@@ -141,7 +146,6 @@ services:
         networks:
             - sail
         depends_on:
-            - mysql
             - redis
         restart: unless-stopped
     scheduler:
@@ -155,7 +159,6 @@ services:
         networks:
             - sail
         depends_on:
-            - mysql
             - redis
         restart: unless-stopped
 networks:
