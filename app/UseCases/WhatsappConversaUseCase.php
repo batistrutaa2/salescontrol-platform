@@ -25,11 +25,12 @@ class WhatsappConversaUseCase
     ) {}
 
     /**
-     * Vendedor vê só as próprias conversas; demais roles enxergam a empresa toda.
+     * Conversas de WhatsApp são individuais do vendedor: o escopo é sempre o
+     * próprio usuário. Nunca retornar null (null = todas as conversas da empresa).
      */
     public function escopoUsuario(User $user): ?int
     {
-        return (int) $user->user_role_id === UserRole::VENDEDOR ? $user->id : null;
+        return $user->id;
     }
 
     public function podeInteragir(User $user, WhatsappConversa $conversa): bool
@@ -46,13 +47,6 @@ class WhatsappConversaUseCase
     {
         $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial($user->empresa_id);
         $conversas = $this->conversaRepository->getConversasKanban($user->empresa_id, $this->escopoUsuario($user));
-
-        $mostrarVendedor = in_array((int) $user->user_role_id, [
-            UserRole::ADMINISTRATIVO,
-            UserRole::BACKOFFICE,
-            UserRole::SUPERVISOR,
-            UserRole::DEVELOPER,
-        ], true);
 
         $boardData = [];
 
@@ -74,7 +68,7 @@ class WhatsappConversaUseCase
                     'data_create' => $conversa->created_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s'),
                     'unread_count' => $conversa->unread_count,
                     'user-id' => $conversa->user_id,
-                    'user-name' => $mostrarVendedor ? $conversa->vendedor?->name : null,
+                    'user-name' => null,
                 ])
                 ->values()
                 ->toArray();

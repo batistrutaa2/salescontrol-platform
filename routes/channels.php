@@ -12,21 +12,9 @@ Broadcast::channel('contratos.administrativo.{empresaId}', function ($user, $emp
     return (int) $user->empresa_id === (int) $empresaId && (int) $user->user_role_id === 2;
 });
 
-// Conversas/mensagens WhatsApp do vendedor — o dono ou roles de supervisão (leitura)
+// Conversas/mensagens WhatsApp do vendedor — apenas o próprio dono (feature individual)
 Broadcast::channel('whatsapp.vendedor.{userId}', function ($user, $userId) {
-    if ((int) $user->id === (int) $userId) {
-        return true;
-    }
-
-    $dono = \App\Models\User::find($userId);
-
-    return $dono
-        && (int) $dono->empresa_id === (int) $user->empresa_id
-        && in_array((int) $user->user_role_id, [
-            \App\Enums\UserRole::ADMINISTRATIVO,
-            \App\Enums\UserRole::DEVELOPER,
-            \App\Enums\UserRole::SUPERVISOR,
-        ], true);
+    return (int) $user->id === (int) $userId;
 });
 
 // Status/QR da instância WhatsApp — apenas o próprio vendedor

@@ -672,8 +672,8 @@ Route::post('/webhook/whatsapp/{instanceName}/{token}', [\App\Http\Controllers\W
   ->middleware('throttle:240,1')
   ->name('whatsapp.webhook');
 
-/** WHATSAPP — Módulo de conversas */
-Route::middleware(['auth'])->prefix('whatsapp')->group(function () {
+/** WHATSAPP — Módulo de conversas (feature individual do vendedor; nenhum outro perfil acessa) */
+Route::middleware(['auth', 'role:' . \App\Enums\UserRole::VENDEDOR])->prefix('whatsapp')->group(function () {
 
   // Conexão da instância — somente vendedores (widget dentro do kanban)
   Route::middleware(['role:' . \App\Enums\UserRole::VENDEDOR])->group(function () {

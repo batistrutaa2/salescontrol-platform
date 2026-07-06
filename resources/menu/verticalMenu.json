@@ -490,10 +490,7 @@
     {
       "menuHeader": "WhatsApp",
       "rules": [
-        "VENDEDOR",
-        "SUPERVISOR",
-        "ADMINISTRATIVO",
-        "DEVELOPER"
+        "VENDEDOR"
       ]
     },
     {
@@ -503,10 +500,7 @@
         "whatsapp"
       ],
       "rules": [
-        "VENDEDOR",
-        "SUPERVISOR",
-        "ADMINISTRATIVO",
-        "DEVELOPER"
+        "VENDEDOR"
       ],
       "submenu": [
         {
