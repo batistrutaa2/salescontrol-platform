@@ -66,9 +66,22 @@
 
         $parentescos = [
             'CONJUGE' => 'Conjuge',
+            'COMPANHEIRO' => 'Companheiro(a)',
             'FILHO' => 'Filho(a)',
+            'ENTEADO' => 'Enteado(a)',
             'PAI_MAE' => 'Pai/Mae',
+            'SOGRO' => 'Sogro(a)',
+            'IRMAO' => 'Irmao(a)',
+            'NETO' => 'Neto(a)',
+            'AVO' => 'Avo(o)',
+            'BISNETO' => 'Bisneto(a)',
+            'BISAVO' => 'Bisavo(o)',
+            'TIO' => 'Tio(a)',
             'SOBRINHO' => 'Sobrinho(a)',
+            'PRIMO' => 'Primo(a)',
+            'GENRO_NORA' => 'Genro/Nora',
+            'CUNHADO' => 'Cunhado(a)',
+            'TUTELADO' => 'Tutelado(a)/Menor sob guarda',
             'OUTROS' => 'Outros',
         ];
 

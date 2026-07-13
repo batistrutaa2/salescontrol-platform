@@ -791,9 +791,22 @@
                                 <select name="parentesco" id="dep_parentesco" class="form-select">
                                     <option value="">Selecione...</option>
                                     <option value="CONJUGE">Cônjuge</option>
+                                    <option value="COMPANHEIRO">Companheiro(a)</option>
                                     <option value="FILHO">Filho(a)</option>
+                                    <option value="ENTEADO">Enteado(a)</option>
                                     <option value="PAI_MAE">Pai/Mãe</option>
+                                    <option value="SOGRO">Sogro(a)</option>
+                                    <option value="IRMAO">Irmão(ã)</option>
+                                    <option value="NETO">Neto(a)</option>
+                                    <option value="AVO">Avô(ó)</option>
+                                    <option value="BISNETO">Bisneto(a)</option>
+                                    <option value="BISAVO">Bisavô(ó)</option>
+                                    <option value="TIO">Tio(a)</option>
                                     <option value="SOBRINHO">Sobrinho(a)</option>
+                                    <option value="PRIMO">Primo(a)</option>
+                                    <option value="GENRO_NORA">Genro/Nora</option>
+                                    <option value="CUNHADO">Cunhado(a)</option>
+                                    <option value="TUTELADO">Tutelado(a)/Menor sob guarda</option>
                                     <option value="OUTROS">Outros</option>
                                 </select>
                             </div>
