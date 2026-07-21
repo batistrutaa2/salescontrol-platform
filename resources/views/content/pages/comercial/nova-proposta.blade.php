@@ -349,6 +349,10 @@ $isFooter = false;
                         <option value="{{ $op->id }}">{{ strtoupper($op->nome) }}</option>
                     @endforeach
                 </select>
+                <label class="np-check-cancelamento" title="O backoffice vai acompanhar o cancelamento na operadora anterior">
+                    <input type="checkbox" name="titulares[__INDEX__][precisa_cancelamento]" value="1" class="chk-precisa-cancelamento">
+                    <span>Precisa cancelar plano anterior</span>
+                </label>
             </div>
         </div>
         <div class="dependentes-container" data-titular-index="__INDEX__"></div>

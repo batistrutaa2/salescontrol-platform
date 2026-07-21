@@ -1575,3 +1575,20 @@ select.np-input {
         }
     }
 }
+
+// Checkbox de sinalização de cancelamento do plano anterior (por titular)
+.np-check-cancelamento {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #b7791f;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.np-check-cancelamento input { accent-color: #f59e0b; cursor: pointer; }
