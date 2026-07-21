@@ -364,6 +364,34 @@
   .pv-cli-grid { grid-template-columns: 1fr; }
 }
 
+// ---------- Aba E-mails criados ----------
+.pv-email-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.9rem;
+  background: var(--pv-surface);
+  border: 1px dashed var(--pv-border);
+  border-radius: var(--pv-radius-sm);
+}
+.pv-input-grow { flex: 1 1 220px; }
+
+.pv-email-acoes { display: flex; gap: 0.35rem; flex: none; }
+.pv-mini-danger { color: #d02f22; background: rgba(239, 68, 68, 0.08); }
+.pv-mini-danger:hover { background: rgba(239, 68, 68, 0.16); }
+
+.pv-acesso-meta {
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--pv-border);
+  font-size: 0.72rem;
+  color: var(--pv-text-muted);
+}
+
+.dark-style .pv-mini-danger { color: #f6837a; }
+
 .dark-style .pv-cli-card { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); }
 .dark-style .pv-status.st-ok { color: #4fd39d; }
 .dark-style .pv-status.st-perdido { color: #f6837a; }

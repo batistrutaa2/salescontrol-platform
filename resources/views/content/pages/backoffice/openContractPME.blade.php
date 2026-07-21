@@ -203,6 +203,7 @@
         <button type="button" class="pv-tab active" data-pane="contrato">Contrato</button>
         <button type="button" class="pv-tab" data-pane="portabilidade">Portabilidade</button>
         <button type="button" class="pv-tab" data-pane="cancelamento">Cancelamento <span class="pv-tab-count" data-count="cancelamento"></span></button>
+        <button type="button" class="pv-tab" data-pane="emails">E-mails criados <span class="pv-tab-count" data-count="emails"></span></button>
         <button type="button" class="pv-tab" data-pane="cliente">Cliente <span class="pv-tab-count" data-count="cliente"></span></button>
     </div>
 
@@ -788,6 +789,13 @@
     {{-- Aba Cancelamento: processos por titular (modalidade + fase), renderizados pelo JS --}}
     <div class="pv-pane" data-pane="cancelamento">
         <div class="pv-cancel-host">
+            <div class="pv-loading"><div class="spinner-border spinner-border-sm" role="status"></div><span>Carregando…</span></div>
+        </div>
+    </div>
+
+    {{-- Aba E-mails criados: contas de e-mail criadas pelo backoffice PARA o cliente --}}
+    <div class="pv-pane" data-pane="emails">
+        <div class="pv-emails-host">
             <div class="pv-loading"><div class="spinner-border spinner-border-sm" role="status"></div><span>Carregando…</span></div>
         </div>
     </div>

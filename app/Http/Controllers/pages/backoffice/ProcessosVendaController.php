@@ -85,6 +85,7 @@ class ProcessosVendaController extends Controller
                 'portabilidades' => $portabilidades,
                 'contratos_anteriores' => $this->processos->contratosDoCnpj($cnpj, $empresaId, $venda->id),
                 'acessos' => $this->processos->acessosPorCnpj($cnpj, $empresaId, $venda->id),
+                'emails_criados' => $this->processos->emailsCriadosDaVenda($venda->id, $empresaId),
                 'modalidades' => ModalidadeCancelamento::labels(),
                 'fases' => FaseCancelamento::fluxo(),
             ]);
@@ -174,6 +175,110 @@ class ProcessosVendaController extends Controller
             return response()->json(['success' => false, 'message' => 'Erro de validação.', 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => 'Erro ao atualizar: '.$e->getMessage()], 500);
+        }
+    }
+
+    // ---- E-mails criados para o cliente (aba "E-mails criados") ----
+
+    public function storeEmailCriado(Request $request, int $vendaId)
+    {
+        return $this->executarEmailCriado(function () use ($request, $vendaId) {
+            $venda = $this->vendaEditavel($vendaId);
+            if (! $venda instanceof Vendas) {
+                return $venda; // resposta de erro (404/403)
+            }
+
+            $dados = $this->validarEmailCriado($request, $venda);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'E-mail salvo.',
+                'email' => $this->processos->criarEmailCriado($venda->id, $venda->empresa_id, $dados, Auth::id()),
+            ]);
+        });
+    }
+
+    public function updateEmailCriado(Request $request, int $id)
+    {
+        return $this->executarEmailCriado(function () use ($request, $id) {
+            $registro = \App\Models\VendaEmailCriado::with('venda:id,empresa_id,backoffice_id')
+                ->where('id', $id)
+                ->where('empresa_id', Auth::user()->empresa_id)
+                ->first();
+
+            if (! $registro || ! $registro->venda) {
+                return response()->json(['success' => false, 'message' => 'E-mail não encontrado.'], 404);
+            }
+            if (! $this->canEditContract($registro->venda)) {
+                return response()->json(['success' => false, 'message' => 'Sem permissão para editar este contrato.'], 403);
+            }
+
+            $dados = $this->validarEmailCriado($request, $registro->venda);
+            $atualizado = $this->processos->atualizarEmailCriado($id, $registro->empresa_id, $dados);
+
+            return response()->json(['success' => true, 'message' => 'E-mail atualizado.', 'email' => $atualizado]);
+        });
+    }
+
+    public function destroyEmailCriado(int $id)
+    {
+        return $this->executarEmailCriado(function () use ($id) {
+            $registro = \App\Models\VendaEmailCriado::with('venda:id,empresa_id,backoffice_id')
+                ->where('id', $id)
+                ->where('empresa_id', Auth::user()->empresa_id)
+                ->first();
+
+            if (! $registro || ! $registro->venda) {
+                return response()->json(['success' => false, 'message' => 'E-mail não encontrado.'], 404);
+            }
+            if (! $this->canEditContract($registro->venda)) {
+                return response()->json(['success' => false, 'message' => 'Sem permissão para editar este contrato.'], 403);
+            }
+
+            $this->processos->excluirEmailCriado($id, $registro->empresa_id);
+
+            return response()->json(['success' => true, 'message' => 'E-mail removido.']);
+        });
+    }
+
+    /** Carrega a venda escopada por empresa e valida a permissão de edição. */
+    private function vendaEditavel(int $vendaId)
+    {
+        $venda = Vendas::where('id', $vendaId)
+            ->where('empresa_id', Auth::user()->empresa_id)
+            ->first();
+
+        if (! $venda) {
+            return response()->json(['success' => false, 'message' => 'Contrato não encontrado.'], 404);
+        }
+        if (! $this->canEditContract($venda)) {
+            return response()->json(['success' => false, 'message' => 'Sem permissão para editar este contrato.'], 403);
+        }
+
+        return $venda;
+    }
+
+    private function validarEmailCriado(Request $request, Vendas $venda): array
+    {
+        return $request->validate([
+            'email' => 'required|email|max:255',
+            'senha' => 'required|string|max:255',
+            'titular_id' => [
+                'nullable', 'integer',
+                \Illuminate\Validation\Rule::exists('vendas_titulares', 'id')->where('venda_id', $venda->id),
+            ],
+            'observacao' => 'nullable|string|max:500',
+        ]);
+    }
+
+    private function executarEmailCriado(\Closure $acao)
+    {
+        try {
+            return $acao();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => 'Erro de validação.', 'errors' => $e->errors()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Erro: '.$e->getMessage()], 500);
         }
     }
 

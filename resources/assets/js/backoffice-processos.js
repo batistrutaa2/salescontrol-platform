@@ -98,6 +98,121 @@
     renderCancelamentos(host, data.cancelamentos || []);
     atualizarContador(data.cancelamentos || []);
     renderCliente(data);
+    renderEmailsCriados(data);
+  }
+
+  // ---------- Aba E-mails criados (contas criadas para o cliente) ----------
+  function emailCriadoCard(e, i) {
+    const sid = `pv-email-secret-${i}`;
+    const acoes = canEdit
+      ? `<div class="pv-email-acoes">
+          <button type="button" class="pv-mini-btn" data-email-editar="${e.id}">editar</button>
+          <button type="button" class="pv-mini-btn pv-mini-danger" data-email-excluir="${e.id}">excluir</button>
+        </div>`
+      : '';
+
+    return `<div class="pv-cli-card" data-email-card="${e.id}">
+        <div class="pv-cli-head">
+          <div class="pv-cli-id">
+            <span class="pv-cli-op mono">${esc(e.email)}</span>
+            ${e.titular ? `<span class="pv-chip titular">${esc(e.titular)}</span>` : ''}
+          </div>
+          ${acoes}
+        </div>
+        <div class="pv-cred">
+          <div class="pv-cred-field">
+            <span class="pv-cli-label">E-mail</span>
+            <div class="pv-cred-valor">
+              <span class="pv-cli-value mono">${esc(e.email)}</span>
+              <button type="button" class="pv-mini-btn" data-copy="${esc(e.email)}" title="Copiar e-mail">copiar</button>
+            </div>
+          </div>
+          <div class="pv-cred-field">
+            <span class="pv-cli-label">Senha</span>
+            <div class="pv-cred-valor">
+              <span class="pv-cli-value mono pv-secret" id="${sid}" data-secret="${esc(e.senha)}">••••••••</span>
+              <button type="button" class="pv-mini-btn" data-reveal="${sid}">mostrar</button>
+              <button type="button" class="pv-mini-btn" data-copy="${esc(e.senha)}" title="Copiar senha">copiar</button>
+            </div>
+          </div>
+          <div class="pv-cred-field">
+            <span class="pv-cli-label">Observação</span>
+            <span class="pv-cli-value pv-obs-value ${e.observacao ? '' : 'is-empty'}">${esc(e.observacao || '—')}</span>
+          </div>
+        </div>
+        <div class="pv-acesso-meta">Criado por ${esc(e.criado_por || '—')}${e.criado_em ? ` em ${esc(e.criado_em)}` : ''}</div>
+      </div>`;
+  }
+
+  function renderEmailsCriados(data) {
+    const host = root.querySelector('.pv-emails-host');
+    if (!host) return;
+    const emails = data.emails_criados || [];
+    setContador('emails', emails.length, 'all-done');
+
+    const form = canEdit
+      ? `<form class="pv-email-form" id="pv-email-form" data-editando="">
+          <input type="email" class="pv-input pv-input-grow" id="pv-email-endereco" placeholder="endereco@provedor.com" required maxlength="255">
+          <input type="text" class="pv-input" id="pv-email-senha" placeholder="Senha" required maxlength="255">
+          <select class="pv-input" id="pv-email-titular">
+            <option value="">Sem titular específico</option>
+            ${(data.titulares || []).map((t) => `<option value="${t.id}">${esc(t.nome)}</option>`).join('')}
+          </select>
+          <input type="text" class="pv-input pv-input-grow" id="pv-email-obs" placeholder="Observação (opcional)" maxlength="500">
+          <button type="submit" class="pv-btn pv-btn-primary" id="pv-email-salvar">Salvar e-mail</button>
+          <button type="button" class="pv-btn pv-btn-ghost" id="pv-email-cancelar" style="display:none;">Cancelar edição</button>
+        </form>`
+      : '';
+
+    const lista = emails.length
+      ? `<div class="pv-cli-grid-cards">${emails.map(emailCriadoCard).join('')}</div>`
+      : `<div class="pv-empty">Nenhum e-mail criado para este cliente ainda.${canEdit ? '<small>Use o formulário acima para registrar o primeiro.</small>' : ''}</div>`;
+
+    host.innerHTML = `${form}${lista}`;
+    host.dataset.emails = JSON.stringify(emails);
+  }
+
+  function preencherFormEmail(e) {
+    const form = root.querySelector('#pv-email-form');
+    if (!form) return;
+    form.dataset.editando = e ? e.id : '';
+    root.querySelector('#pv-email-endereco').value = e ? e.email : '';
+    root.querySelector('#pv-email-senha').value = e ? e.senha : '';
+    root.querySelector('#pv-email-titular').value = e && e.titular_id ? e.titular_id : '';
+    root.querySelector('#pv-email-obs').value = e ? (e.observacao || '') : '';
+    root.querySelector('#pv-email-cancelar').style.display = e ? 'inline-flex' : 'none';
+    root.querySelector('#pv-email-salvar').textContent = e ? 'Atualizar e-mail' : 'Salvar e-mail';
+    if (e) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  async function salvarEmailCriado(ev) {
+    ev.preventDefault();
+    const form = ev.target;
+    const editando = form.dataset.editando;
+    const body = {
+      email: root.querySelector('#pv-email-endereco').value.trim(),
+      senha: root.querySelector('#pv-email-senha').value,
+      titular_id: root.querySelector('#pv-email-titular').value || null,
+      observacao: root.querySelector('#pv-email-obs').value.trim() || null,
+    };
+    const json = editando
+      ? await api(`/back-office/processos/emails/${editando}`, 'PATCH', body)
+      : await api(`/back-office/processos/${vendaId}/emails`, 'POST', body);
+
+    if (json.success) {
+      toast(json.message || 'E-mail salvo.');
+      await carregarCancelamentos();
+    } else {
+      const detalhe = json.errors ? Object.values(json.errors).flat()[0] : null;
+      toast(detalhe || json.message || 'Erro ao salvar e-mail.', 'err');
+    }
+  }
+
+  async function excluirEmailCriado(id) {
+    if (!confirm('Remover este e-mail do contrato?')) return;
+    const json = await api(`/back-office/processos/emails/${id}`, 'DELETE');
+    toast(json.message || (json.success ? 'Removido.' : 'Erro.'), json.success ? 'ok' : 'err');
+    if (json.success) await carregarCancelamentos();
   }
 
   function setContador(nome, n, cor) {
@@ -371,6 +486,26 @@
       sel.value = anterior;
       toast(json.message || 'Erro ao atualizar fase.', 'err');
     }
+  });
+
+  // ---------- Eventos da aba E-mails criados ----------
+  root.addEventListener('submit', (e) => {
+    if (e.target.id === 'pv-email-form') salvarEmailCriado(e);
+  });
+
+  root.addEventListener('click', (e) => {
+    const editar = e.target.closest('[data-email-editar]');
+    if (editar) {
+      const emails = JSON.parse(root.querySelector('.pv-emails-host').dataset.emails || '[]');
+      preencherFormEmail(emails.find((m) => String(m.id) === editar.dataset.emailEditar) || null);
+      return;
+    }
+    const excluir = e.target.closest('[data-email-excluir]');
+    if (excluir) {
+      excluirEmailCriado(excluir.dataset.emailExcluir);
+      return;
+    }
+    if (e.target.closest('#pv-email-cancelar')) preencherFormEmail(null);
   });
 
   // ---------- Init ----------

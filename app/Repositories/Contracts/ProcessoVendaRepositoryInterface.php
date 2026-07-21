@@ -41,6 +41,18 @@ interface ProcessoVendaRepositoryInterface
     /** Avança a fase da portabilidade (REUNINDO_DOCUMENTOS → ENVIADA_ANALISE → CONCLUIDA|NEGADA); fase final fecha o processo. */
     public function atualizarFasePortabilidade(int $id, int $empresaId, string $fase, int $userId): bool;
 
+    // ---- E-mails criados para o cliente ----
+
+    /** E-mails criados pelo backoffice para o cliente deste contrato. */
+    public function emailsCriadosDaVenda(int $vendaId, int $empresaId): array;
+
+    public function criarEmailCriado(int $vendaId, int $empresaId, array $dados, int $userId): array;
+
+    /** Null se não achar / for de outra empresa. */
+    public function atualizarEmailCriado(int $id, int $empresaId, array $dados): ?array;
+
+    public function excluirEmailCriado(int $id, int $empresaId): bool;
+
     // ---- Contexto do cliente (mesmo CNPJ) ----
 
     /** Outros contratos da empresa com o mesmo CNPJ (histórico do cliente / renovações). */

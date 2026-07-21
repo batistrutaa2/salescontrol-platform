@@ -206,6 +206,70 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
         return (bool) VendaDemanda::where('id', $id)->where('empresa_id', $empresaId)->update($dados);
     }
 
+    public function emailsCriadosDaVenda(int $vendaId, int $empresaId): array
+    {
+        return \App\Models\VendaEmailCriado::with(['titular:id,nome', 'criador:id,name'])
+            ->where('venda_id', $vendaId)
+            ->where('empresa_id', $empresaId)
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($e) => $this->mapEmailCriado($e))
+            ->all();
+    }
+
+    public function criarEmailCriado(int $vendaId, int $empresaId, array $dados, int $userId): array
+    {
+        $email = \App\Models\VendaEmailCriado::create([
+            'venda_id' => $vendaId,
+            'empresa_id' => $empresaId,
+            'titular_id' => $dados['titular_id'] ?? null,
+            'email' => trim($dados['email']),
+            'senha' => $dados['senha'],
+            'observacao' => $dados['observacao'] ?? null,
+            'created_by' => $userId,
+        ]);
+
+        return $this->mapEmailCriado($email->load(['titular:id,nome', 'criador:id,name']));
+    }
+
+    public function atualizarEmailCriado(int $id, int $empresaId, array $dados): ?array
+    {
+        $email = \App\Models\VendaEmailCriado::where('id', $id)->where('empresa_id', $empresaId)->first();
+
+        if (! $email) {
+            return null;
+        }
+
+        $email->update([
+            'titular_id' => $dados['titular_id'] ?? null,
+            'email' => trim($dados['email']),
+            'senha' => $dados['senha'],
+            'observacao' => $dados['observacao'] ?? null,
+        ]);
+
+        return $this->mapEmailCriado($email->fresh(['titular:id,nome', 'criador:id,name']));
+    }
+
+    public function excluirEmailCriado(int $id, int $empresaId): bool
+    {
+        return (bool) \App\Models\VendaEmailCriado::where('id', $id)->where('empresa_id', $empresaId)->delete();
+    }
+
+    private function mapEmailCriado(\App\Models\VendaEmailCriado $e): array
+    {
+        return [
+            'id' => $e->id,
+            'venda_id' => $e->venda_id,
+            'titular_id' => $e->titular_id,
+            'titular' => $e->titular->nome ?? null,
+            'email' => $e->email,
+            'senha' => $e->senha,
+            'observacao' => $e->observacao,
+            'criado_por' => $e->criador->name ?? null,
+            'criado_em' => $e->created_at?->timezone('America/Sao_Paulo')->format('d/m/Y'),
+        ];
+    }
+
     public function contratosDoCnpj(string $cnpj, int $empresaId, int $exceptVendaId): array
     {
         if ($cnpj === '') {

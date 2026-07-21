@@ -283,6 +283,9 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/processos/{vendaId}', [ProcessosVendaController::class, 'dados'])->name('backoffice.processos.dados');
   Route::patch('/back-office/processos/cancelamento/{id}', [ProcessosVendaController::class, 'atualizarCancelamento'])->name('backoffice.processos.cancelamento');
   Route::patch('/back-office/processos/portabilidade/{id}/fase', [ProcessosVendaController::class, 'fasePortabilidade'])->name('backoffice.processos.fasePortabilidade');
+  Route::post('/back-office/processos/{vendaId}/emails', [ProcessosVendaController::class, 'storeEmailCriado'])->name('backoffice.processos.emails.store');
+  Route::patch('/back-office/processos/emails/{id}', [ProcessosVendaController::class, 'updateEmailCriado'])->name('backoffice.processos.emails.update');
+  Route::delete('/back-office/processos/emails/{id}', [ProcessosVendaController::class, 'destroyEmailCriado'])->name('backoffice.processos.emails.destroy');
 
   // Painel operacional de processos (visão do gestor, cross-contrato)
   Route::get('/back-office/painel-processos', [PainelProcessosController::class, 'index'])->name('backoffice.painelProcessos');

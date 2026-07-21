@@ -234,6 +234,76 @@ class ProcessosVendaTest extends TestCase
         $this->assertSame('REUNINDO_DOCUMENTOS', $port->fresh()->fase);
     }
 
+    public function test_emails_criados_crud_completo(): void
+    {
+        $venda = $this->criarContrato($this->backoffice->id);
+        $titularId = $this->criarTitular($venda, 'MARIA');
+
+        // Criar
+        $resp = $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.processos.emails.store', $venda->id), [
+                'email' => 'maria.cliente@gmail.com',
+                'senha' => 'Senha@123',
+                'titular_id' => $titularId,
+                'observacao' => 'Conta criada para implantação AMIL',
+            ]);
+        $resp->assertOk()->assertJson(['success' => true, 'email' => ['email' => 'maria.cliente@gmail.com', 'titular' => 'MARIA']]);
+        $emailId = $resp->json('email.id');
+
+        // Aparece no read agregado da tela.
+        $dados = $this->actingAs($this->backoffice)->getJson(route('backoffice.processos.dados', $venda->id));
+        $this->assertCount(1, $dados->json('emails_criados'));
+
+        // Atualizar
+        $this->actingAs($this->backoffice)
+            ->patchJson(route('backoffice.processos.emails.update', $emailId), [
+                'email' => 'maria.nova@gmail.com', 'senha' => 'Outra@456',
+            ])
+            ->assertOk()->assertJson(['email' => ['email' => 'maria.nova@gmail.com']]);
+
+        // Validação: e-mail inválido -> 422.
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.processos.emails.store', $venda->id), ['email' => 'nao-eh-email', 'senha' => 'x'])
+            ->assertStatus(422);
+
+        // Titular de OUTRA venda -> 422.
+        $outraVenda = $this->criarContrato($this->backoffice->id);
+        $titularOutra = $this->criarTitular($outraVenda, 'ZE');
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.processos.emails.store', $venda->id), [
+                'email' => 'ze@gmail.com', 'senha' => 'x', 'titular_id' => $titularOutra,
+            ])
+            ->assertStatus(422);
+
+        // Excluir
+        $this->actingAs($this->backoffice)
+            ->deleteJson(route('backoffice.processos.emails.destroy', $emailId))
+            ->assertOk();
+        $this->assertDatabaseMissing('venda_emails_criados', ['id' => $emailId]);
+    }
+
+    public function test_emails_criados_permissoes(): void
+    {
+        $venda = $this->criarContrato($this->outroBackoffice->id);
+
+        // Backoffice não-dono: 403.
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.processos.emails.store', $venda->id), ['email' => 'a@b.com', 'senha' => 'x'])
+            ->assertStatus(403);
+
+        // Outra empresa: 404 (nem enxerga).
+        $registro = \App\Models\VendaEmailCriado::create([
+            'venda_id' => $venda->id, 'empresa_id' => $venda->empresa_id,
+            'email' => 'a@b.com', 'senha' => 'x', 'created_by' => $this->outroBackoffice->id,
+        ]);
+        $outraEmpresa = Empresa::factory()->create();
+        $userOutra = User::factory()->create(['empresa_id' => $outraEmpresa->id, 'user_role_id' => UserRole::ADMINISTRATIVO, 'ativo' => 'Y']);
+        $this->actingAs($userOutra)
+            ->deleteJson(route('backoffice.processos.emails.destroy', $registro->id))
+            ->assertStatus(404);
+        $this->assertDatabaseHas('venda_emails_criados', ['id' => $registro->id]);
+    }
+
     public function test_cadastro_do_vendedor_gera_cancelamento_por_titular(): void
     {
         DB::table('tabulacoes')->insert([
