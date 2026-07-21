@@ -141,11 +141,11 @@ class PainelProcessosTest extends TestCase
     {
         $venda = $this->criarContrato();
 
-        // Antes do corte (01/06/2026): fora da fila, mesmo PENDENTE.
+        // Antes do corte (config processos.corte_abertos = 01/05/2026): fora da fila, mesmo PENDENTE.
         $antigo = $this->criarCancelamento($venda, 1);
-        DB::table('venda_demandas')->where('id', $antigo->id)->update(['created_at' => '2026-05-15 10:00:00']);
+        DB::table('venda_demandas')->where('id', $antigo->id)->update(['created_at' => '2026-04-15 10:00:00']);
         $portAntiga = VendaPortabilidade::create(['venda_id' => $venda->id, 'nome' => 'ANTIGA', 'sequencial' => 1]);
-        DB::table('vendas_portabilidades')->where('id', $portAntiga->id)->update(['created_at' => '2026-04-01 10:00:00']);
+        DB::table('vendas_portabilidades')->where('id', $portAntiga->id)->update(['created_at' => '2026-03-01 10:00:00']);
 
         // Depois do corte: aparece.
         $recente = $this->criarCancelamento($venda, 2);

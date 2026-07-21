@@ -13,7 +13,7 @@ return [
      * na fila (já foram tratados fora do sistema; sem o corte seria preciso dar
      * baixa manual em todos). Ajuste ou defina como null para desligar o corte.
      */
-    'corte_abertos' => '2026-06-01',
+    'corte_abertos' => '2026-05-01',
 
     'sla_dias' => [
         'CANCELAMENTO_OPERADORA_ANTERIOR' => 30,
