@@ -19,7 +19,9 @@ use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
 use App\Http\Controllers\pages\backoffice\CredenciaisAcessoController;
 use App\Http\Controllers\pages\backoffice\LiminarController;
+use App\Http\Controllers\pages\backoffice\PainelProcessosController;
 use App\Http\Controllers\pages\backoffice\PosVendaDemandas;
+use App\Http\Controllers\pages\backoffice\ProcessosVendaController;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
 use App\Http\Controllers\pages\relatorios\RelatorioAproveitamento;
@@ -276,6 +278,18 @@ Route::middleware(['auth'])->group(function () {
   Route::put('/back-office/demandas-contrato/{id}', [Backoffice::class, 'updateDemandaContrato'])->name('backoffice.updateDemandaContrato');
   Route::patch('/back-office/demandas-contrato/{id}/toggle', [Backoffice::class, 'toggleStatusDemandaContrato'])->name('backoffice.toggleStatusDemandaContrato');
   Route::delete('/back-office/demandas-contrato/{id}', [Backoffice::class, 'destroyDemandaContrato'])->name('backoffice.destroyDemandaContrato');
+
+  // Acompanhamento de Processos da Venda (tela única com abas no detalhe do contrato)
+  Route::get('/back-office/processos/{vendaId}', [ProcessosVendaController::class, 'dados'])->name('backoffice.processos.dados');
+  Route::patch('/back-office/processos/cancelamento/{id}', [ProcessosVendaController::class, 'atualizarCancelamento'])->name('backoffice.processos.cancelamento');
+  Route::patch('/back-office/processos/portabilidade/{id}/fase', [ProcessosVendaController::class, 'fasePortabilidade'])->name('backoffice.processos.fasePortabilidade');
+
+  // Painel operacional de processos (visão do gestor, cross-contrato)
+  Route::get('/back-office/painel-processos', [PainelProcessosController::class, 'index'])->name('backoffice.painelProcessos');
+  Route::get('/back-office/painel-processos/data', [PainelProcessosController::class, 'data'])->name('backoffice.painelProcessos.data');
+  Route::post('/back-office/painel-processos/atribuir', [PainelProcessosController::class, 'atribuir'])->name('backoffice.painelProcessos.atribuir');
+  Route::post('/back-office/painel-processos/concluir', [PainelProcessosController::class, 'concluir'])->name('backoffice.painelProcessos.concluir');
+  Route::post('/back-office/painel-processos/portabilidade/fase', [PainelProcessosController::class, 'fasePortabilidade'])->name('backoffice.painelProcessos.fasePortabilidade');
 
   // Demandas de Pós-Venda (workspace de check-list por contrato)
   Route::get('/back-office/pos-venda-demandas', [PosVendaDemandas::class, 'index'])->name('backoffice.posVendaDemandas');

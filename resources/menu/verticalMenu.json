@@ -264,6 +264,12 @@
           "slug": "pages-pos-venda-demandas"
         },
         {
+          "url": "/back-office/painel-processos",
+          "name": "Painel de Processos",
+          "slug": "backoffice.painelProcessos",
+          "rules": ["ADMINISTRATIVO", "DEVELOPER", "SUPERVISOR"]
+        },
+        {
           "url": "/back-office/liminar",
           "name": "Cancelamento via Liminar",
           "slug": "backoffice.liminar"
