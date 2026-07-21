@@ -750,33 +750,7 @@
 
         </div>
 
-        {{-- Seção de Acessos --}}
-        <div class="pme-section pme-section-full">
-            <div class="section-header">
-                <span class="section-icon icon-info">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                </span>
-                <span class="section-title">Acessos da Empresa</span>
-                <span class="section-count" id="acessos-count">0</span>
-            </div>
-            <div class="section-body">
-                <div class="acessos-toolbar">
-                    <button type="button" class="pme-btn pme-btn-sm pme-btn-outline" data-bs-toggle="modal" data-bs-target="#modalAddAcesso">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                        Adicionar Acesso
-                    </button>
-                </div>
-                <div class="acessos-grid" id="acessos-grid"></div>
-                <div class="acessos-empty" id="acessos-empty" style="display: none;">
-                    <p>Nenhum acesso cadastrado</p>
-                </div>
-                <div class="acessos-loading" id="acessos-loading">
-                    <div class="loading-spinner"></div>
-                    <span>Carregando acessos...</span>
-                </div>
-            </div>
-        </div>
-
+        {{-- Acessos da empresa: exibidos na aba Cliente (unificados com as credenciais por CNPJ) --}}
 
     </div>{{-- /pme-contract-wrapper --}}
     </div>{{-- /pv-pane contrato --}}
@@ -807,60 +781,6 @@
         </div>
     </div>
     </div>{{-- /pv-screen --}}
-
-    {{-- Modal: Adicionar/Editar Acesso --}}
-    <div class="modal fade" id="modalAddAcesso" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content pme-modal">
-                <div class="modal-header">
-                    <h5 class="modal-title">Novo Acesso</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
-                <form id="form-acesso">
-                    <input type="hidden" name="venda_id" value="{{ $contract->id }}">
-                    <input type="hidden" name="acesso_id" id="acesso_id" value="">
-                    <div class="modal-body">
-                        <div class="pme-field">
-                            <label>E-mail <span class="required">*</span></label>
-                            <input type="email" name="email" id="acesso_email" class="pme-input" required>
-                        </div>
-                        <div class="pme-field">
-                            <label>Senha <span class="required">*</span></label>
-                            <input type="text" name="senha" id="acesso_senha" class="pme-input" required>
-                        </div>
-                        <div class="pme-field">
-                            <label>CPF <span class="optional">(opcional)</span></label>
-                            <input type="text" name="cpf" id="acesso_cpf" class="pme-input mask-cpf">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="pme-btn pme-btn-outline" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="pme-btn pme-btn-primary" id="btn-save-acesso">Salvar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    {{-- Modal: Confirmação de Exclusão --}}
-    <div class="modal fade" id="modalDeleteAcesso" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content pme-modal">
-                <div class="modal-body text-center">
-                    <div class="delete-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </div>
-                    <h5>Remover Acesso?</h5>
-                    <p class="text-muted">Esta acao nao podera ser desfeita.</p>
-                    <input type="hidden" id="delete_acesso_id" value="">
-                    <div class="d-flex gap-2 justify-content-center mt-3">
-                        <button type="button" class="pme-btn pme-btn-outline" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="pme-btn pme-btn-danger" id="btn-confirm-delete">Remover</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     {{-- Modal: Confirmação de Exclusão de Dependente --}}
     <div class="modal fade" id="modalDeleteDependente" tabindex="-1" aria-hidden="true">
