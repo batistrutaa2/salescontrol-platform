@@ -76,6 +76,16 @@ export default defineConfig({
     libsWindowAssignment()
   ],
   server: {
+    // Escuta em todas as interfaces do container e usa porta fixa 5174
+    // (o bloo já usa 5173) para que o browser do host alcance o dev server.
+    // hmr.host = localhost faz o plugin anunciar localhost no hot file/HMR,
+    // em vez de 0.0.0.0 (que o navegador não acessa).
+    host: '0.0.0.0',
+    port: 5174,
+    strictPort: true,
+    hmr: {
+      host: 'localhost',
+    },
     // WSL2 + Docker: o inotify do host não chega ao container, então o watcher
     // do Vite não vê as alterações. Polling resolve (custa um pouco de CPU).
     watch: {

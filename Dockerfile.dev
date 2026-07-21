@@ -1,0 +1,26 @@
+# Imagem de desenvolvimento enxuta do SalesControl (substitui o Laravel Sail).
+# PHP + Node na mesma imagem: o Vite (laravel-vite-plugin) precisa do PHP para
+# resolver as rotas/hot, e alguns comandos artisan tocam assets. Alpine para
+# caber no orçamento de RAM do host (~4 GB).
+FROM php:8.3-cli-alpine
+
+# Extensões exigidas por Laravel 11 + Jetstream + maatwebsite/excel (phpspreadsheet)
+# + dompdf + reverb.
+ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+RUN install-php-extensions pdo_mysql bcmath gd intl zip pcntl exif opcache mbstring
+
+RUN apk add --no-cache nodejs npm git bash mysql-client
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Usuário com UID 1000 (mesmo do host WSL) para os arquivos do volume
+# não ficarem com dono root.
+RUN adduser -D -u 1000 dev
+ENV COMPOSER_HOME=/tmp/composer NPM_CONFIG_CACHE=/tmp/npm
+
+# php-cli vem com memory_limit=128M, insuficiente para composer/testes/imports.
+RUN { echo 'memory_limit=512M'; echo 'error_reporting=E_ALL'; } \
+      > /usr/local/etc/php/conf.d/zz-dev.ini
+
+WORKDIR /var/www/html
+USER dev

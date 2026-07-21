@@ -1,0 +1,57 @@
+# Ambiente de desenvolvimento do SalesControl — sem Sail.
+# Pré-requisito: infra compartilhada de pé (MySQL brsolutions):
+#   docker compose -f ../docker-compose.yml up -d
+#
+# Uso diário (ou use o wrapper ./dev):
+#   docker compose -f compose.dev.yaml up -d              # app + vite
+#   docker compose -f compose.dev.yaml --profile queue up -d    # + fila
+#   docker compose -f compose.dev.yaml --profile reverb up -d   # + websockets
+#
+# Portas deslocadas (8001/5174/8082) para conviver com o bloo (8000/5173/8080)
+# se ambos rodarem ao mesmo tempo.
+name: salescontrol-dev
+
+x-base: &base
+  image: salescontrol-dev
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+  user: "1000:1000"
+  volumes:
+    - .:/var/www/html
+  networks:
+    - default
+    - brsolutions
+
+services:
+  app:
+    <<: *base
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    ports:
+      - "8001:8000"
+    mem_limit: 768m
+
+  vite:
+    <<: *base
+    command: npm run dev
+    ports:
+      - "5174:5174"
+    mem_limit: 1g
+
+  queue:
+    <<: *base
+    command: php artisan queue:work --tries=3 --max-time=3600
+    profiles: [queue]
+    mem_limit: 256m
+
+  reverb:
+    <<: *base
+    command: php artisan reverb:start --host=0.0.0.0 --port=8081
+    profiles: [reverb]
+    ports:
+      - "8082:8081"
+    mem_limit: 256m
+
+networks:
+  brsolutions:
+    external: true
