@@ -137,6 +137,30 @@ class PainelProcessosTest extends TestCase
         $this->assertNotNull($port->fresh()->concluida_em);
     }
 
+    public function test_painel_foca_em_cancelamento_e_portabilidade(): void
+    {
+        $venda = $this->criarContrato();
+        $cancel = $this->criarCancelamento($venda, 2);
+        VendaPortabilidade::create(['venda_id' => $venda->id, 'nome' => 'MARIA', 'sequencial' => 1]);
+
+        // Outros tipos do checklist (boas-vindas, boleto) NÃO entram no painel.
+        foreach ([TipoDemandaContrato::BOAS_VINDAS, TipoDemandaContrato::ENVIO_BOLETO] as $tipo) {
+            VendaDemanda::create([
+                'venda_id' => $venda->id, 'empresa_id' => $venda->empresa_id, 'created_by' => $this->gestor->id,
+                'origem' => 'BACKOFFICE', 'tipo' => $tipo->value, 'titulo' => $tipo->value, 'status' => 'PENDENTE',
+            ]);
+        }
+
+        $json = $this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json();
+
+        $this->assertSame(2, $json['kpis']['total_abertos'], 'Só cancelamento + portabilidade contam.');
+        $tipos = collect($json['fila'])->pluck('tipo');
+        $this->assertTrue($tipos->contains($cancel->tipo));
+        $this->assertTrue($tipos->contains('PORTABILIDADE'));
+        $this->assertFalse($tipos->contains(TipoDemandaContrato::BOAS_VINDAS->value));
+        $this->assertFalse($tipos->contains(TipoDemandaContrato::ENVIO_BOLETO->value));
+    }
+
     public function test_corte_esconde_processos_abertos_antes_da_data(): void
     {
         $venda = $this->criarContrato();

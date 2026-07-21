@@ -86,9 +86,15 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
         // fora da fila para não exigir baixa manual. Ver config/processos.php.
         $corte = config('processos.corte_abertos');
 
+        // O painel foca nos grupos configurados (cancelamentos e portabilidade);
+        // os demais tipos seguem apenas no checklist do contrato.
+        $gruposPainel = config('processos.grupos_painel', ['cancelamentos', 'portabilidade']);
+        $tiposPainel = array_keys(array_filter($grupos, fn ($g) => in_array($g, $gruposPainel, true)));
+
         $demandas = VendaDemanda::with(['venda:id,nome_contrato', 'titular:id,nome', 'responsavel:id,name'])
             ->where('empresa_id', $empresaId)
             ->where('status', 'PENDENTE')
+            ->whereIn('tipo', $tiposPainel)
             ->when($corte, fn ($q) => $q->where('created_at', '>=', $corte))
             ->get()
             ->map(function ($d) use ($grupos) {
@@ -105,20 +111,22 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
                 );
             });
 
-        $portabilidades = VendaPortabilidade::with(['venda:id,nome_contrato,empresa_id', 'responsavel:id,name'])
-            ->where('status', 'PENDENTE')
-            ->whereHas('venda', fn ($q) => $q->where('empresa_id', $empresaId))
-            ->when($corte, fn ($q) => $q->where('vendas_portabilidades.created_at', '>=', $corte))
-            ->get()
-            ->map(fn ($p) => $this->linhaProcesso(
-                'portabilidade', $p->id, $p->venda_id, $p->venda->nome_contrato ?? '—',
-                'PORTABILIDADE', $p->nome, $p->status,
-                $p->responsavel_id, $p->responsavel->name ?? null,
-                $p->getRawOriginal('created_at'),
-                $p->fase,
-                $p->fase ? (FasePortabilidade::tryFrom($p->fase)?->label() ?? $p->fase) : null,
-                'portabilidade',
-            ));
+        $portabilidades = ! in_array('portabilidade', $gruposPainel, true)
+            ? collect()
+            : VendaPortabilidade::with(['venda:id,nome_contrato,empresa_id', 'responsavel:id,name'])
+                ->where('status', 'PENDENTE')
+                ->whereHas('venda', fn ($q) => $q->where('empresa_id', $empresaId))
+                ->when($corte, fn ($q) => $q->where('vendas_portabilidades.created_at', '>=', $corte))
+                ->get()
+                ->map(fn ($p) => $this->linhaProcesso(
+                    'portabilidade', $p->id, $p->venda_id, $p->venda->nome_contrato ?? '—',
+                    'PORTABILIDADE', $p->nome, $p->status,
+                    $p->responsavel_id, $p->responsavel->name ?? null,
+                    $p->getRawOriginal('created_at'),
+                    $p->fase,
+                    $p->fase ? (FasePortabilidade::tryFrom($p->fase)?->label() ?? $p->fase) : null,
+                    'portabilidade',
+                ));
 
         $fila = $demandas->concat($portabilidades);
 
@@ -154,15 +162,21 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
     {
         [$ini, $fim] = [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()];
 
+        $grupos = TipoDemandaContrato::grupos();
+        $gruposPainel = config('processos.grupos_painel', ['cancelamentos', 'portabilidade']);
+        $tiposPainel = array_keys(array_filter($grupos, fn ($g) => in_array($g, $gruposPainel, true)));
+
         $demandas = VendaDemanda::where('empresa_id', $empresaId)
             ->where('status', 'CONCLUIDA')
+            ->whereIn('tipo', $tiposPainel)
             ->whereBetween('concluida_em', [$ini, $fim])
             ->count();
 
-        $portab = VendaPortabilidade::where('status', 'CONCLUIDA')
-            ->whereBetween('concluida_em', [$ini, $fim])
-            ->whereHas('venda', fn ($q) => $q->where('empresa_id', $empresaId))
-            ->count();
+        $portab = ! in_array('portabilidade', $gruposPainel, true) ? 0
+            : VendaPortabilidade::where('status', 'CONCLUIDA')
+                ->whereBetween('concluida_em', [$ini, $fim])
+                ->whereHas('venda', fn ($q) => $q->where('empresa_id', $empresaId))
+                ->count();
 
         return $demandas + $portab;
     }

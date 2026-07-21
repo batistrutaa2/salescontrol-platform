@@ -27,9 +27,16 @@ class PainelProcessosController extends Controller
     {
         abort_unless($this->podeGerir(), 403);
 
+        // Só os tipos que o painel exibe (cancelamentos e portabilidade).
+        $grupos = TipoDemandaContrato::grupos();
+        $gruposPainel = config('processos.grupos_painel', ['cancelamentos', 'portabilidade']);
+        $tipos = collect(TipoDemandaContrato::labels())
+            ->filter(fn ($label, $tipo) => in_array($grupos[$tipo] ?? '', $gruposPainel, true))
+            ->all();
+
         return view('content.pages.backoffice.painel-processos', [
             'responsaveis' => $this->responsaveis(),
-            'tipos' => TipoDemandaContrato::labels(),
+            'tipos' => $tipos,
         ]);
     }
 

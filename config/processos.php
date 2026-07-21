@@ -15,6 +15,14 @@ return [
      */
     'corte_abertos' => '2026-05-01',
 
+    /*
+     * Grupos de processo exibidos no Painel de Processos (visão do gestor).
+     * O foco da operação é cancelamento e portabilidade; os demais tipos
+     * (boas-vindas, boleto, acessos...) seguem no checklist do contrato,
+     * fora do painel. Grupos possíveis: ver TipoDemandaContrato::grupos().
+     */
+    'grupos_painel' => ['cancelamentos', 'portabilidade'],
+
     'sla_dias' => [
         'CANCELAMENTO_OPERADORA_ANTERIOR' => 30,
         'CANCELAMENTO' => 30,
