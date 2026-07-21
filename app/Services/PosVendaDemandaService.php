@@ -31,10 +31,6 @@ class PosVendaDemandaService
      */
     public function gerarParaVenda(Vendas $venda, ?array $templateIds = null, ?int $criadoPor = null): int
     {
-        if (VendaDemanda::where('venda_id', $venda->id)->exists()) {
-            return 0;
-        }
-
         // Garante o check-list padrão para empresas que ainda não configuraram templates.
         PosVendaDemandaTemplate::seedDefaults($venda->empresa_id);
 
@@ -52,6 +48,11 @@ class PosVendaDemandaService
         }
 
         $templates = $query->orderBy('ordem')->get();
+
+        // Idempotência por tipo: não recria tipos que a venda já tem (ex.: o
+        // cancelamento sinalizado no cadastro), mas complementa os que faltam.
+        $tiposExistentes = VendaDemanda::where('venda_id', $venda->id)->pluck('tipo')->all();
+        $templates = $templates->reject(fn ($t) => in_array($t->tipo, $tiposExistentes, true));
 
         if ($templates->isEmpty()) {
             return 0;

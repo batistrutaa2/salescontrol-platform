@@ -85,6 +85,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(WhatsappInstanciaRepositoryInterface::class, WhatsappInstanciaRepository::class);
         $this->app->bind(WhatsappConversaRepositoryInterface::class, WhatsappConversaRepository::class);
         $this->app->bind(WhatsappMensagemRepositoryInterface::class, WhatsappMensagemRepository::class);
+
+        $this->app->bind(
+            \App\Repositories\Contracts\ProcessoVendaRepositoryInterface::class,
+            \App\Repositories\Eloquent\ProcessoVendaRepository::class
+        );
     }
 
     /**

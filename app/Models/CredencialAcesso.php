@@ -15,6 +15,8 @@ class CredencialAcesso extends Model
     protected $fillable = [
         'empresa_id',
         'operadora_id',
+        'venda_id',
+        'cnpj',
         'tipo',
         'nome',
         'login',
@@ -45,6 +47,11 @@ class CredencialAcesso extends Model
     public function operadora()
     {
         return $this->belongsTo(Operadora::class, 'operadora_id');
+    }
+
+    public function venda()
+    {
+        return $this->belongsTo(Vendas::class, 'venda_id');
     }
 
     public function criadoPor()

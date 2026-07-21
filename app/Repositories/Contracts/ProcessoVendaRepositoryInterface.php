@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Repositories\Contracts;
+
+use App\Models\VendaDemanda;
+use Illuminate\Support\Collection;
+
+/**
+ * Ponto único de acesso a venda_demandas para a tela de acompanhamento de
+ * processos operacionais de uma venda (cancelamentos, DS, e-mails, acessos...).
+ * Toda query é escopada por empresa_id (multi-tenancy).
+ */
+interface ProcessoVendaRepositoryInterface
+{
+    /** Processos (venda_demandas) de uma venda, com titular/operadora/autores carregados. */
+    public function daVenda(int $vendaId, int $empresaId): Collection;
+
+    /** Contadores agregados: total, pendentes, concluidas, progresso (%). */
+    public function resumo(int $vendaId, int $empresaId): array;
+
+    /**
+     * Atualiza modalidade/fase/protocolo de um processo de cancelamento (guardados em meta).
+     * Quando a fase é a final (CONCLUIDO), a demanda vira CONCLUIDA. Null se não achar/for de outra empresa.
+     */
+    public function atualizarCancelamento(int $id, int $empresaId, array $dados, ?int $userId): ?VendaDemanda;
+
+    // ---- Painel operacional (visão do gestor, cross-contrato) ----
+
+    /** Fila unificada de processos em aberto (demandas + portabilidades) com prazo/atraso já calculados. */
+    public function filaOperacional(int $empresaId, array $filtros = []): array;
+
+    /** Processos concluídos no mês corrente (demandas + portabilidades). */
+    public function concluidosNoMes(int $empresaId): int;
+
+    /** Atribui/limpa o responsável de um processo. $fonte = 'demanda' | 'portabilidade'. */
+    public function atribuirResponsavel(string $fonte, int $id, int $empresaId, ?int $responsavelId): bool;
+
+    /** Marca um processo como concluído. $fonte = 'demanda' | 'portabilidade'. */
+    public function concluirProcesso(string $fonte, int $id, int $empresaId, int $userId): bool;
+
+    /** Avança a fase da portabilidade (REUNINDO_DOCUMENTOS → ENVIADA_ANALISE → CONCLUIDA|NEGADA); fase final fecha o processo. */
+    public function atualizarFasePortabilidade(int $id, int $empresaId, string $fase, int $userId): bool;
+
+    // ---- Contexto do cliente (mesmo CNPJ) ----
+
+    /** Outros contratos da empresa com o mesmo CNPJ (histórico do cliente / renovações). */
+    public function contratosDoCnpj(string $cnpj, int $empresaId, int $exceptVendaId): array;
+
+    /** Acessos/senhas que casam com o CNPJ do contrato (por venda_id, coluna cnpj ou dígitos do login). */
+    public function acessosPorCnpj(string $cnpj, int $empresaId, int $vendaId): array;
+}

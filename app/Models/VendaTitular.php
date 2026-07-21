@@ -26,12 +26,14 @@ class VendaTitular extends Model
         'coparticipacao', // Y, N, PARCIAL, COMPLETA
         'plano_anterior', // SIM, NAO
         'operadora_anterior_id',
+        'precisa_cancelamento', // sinal do vendedor: cancelar o plano anterior deste titular
     ];
 
     protected $casts = [
         'venda_id' => 'integer',
         'plano_id' => 'integer',
         'operadora_anterior_id' => 'integer',
+        'precisa_cancelamento' => 'boolean',
         'data_nascimento' => 'date',
     ];
 

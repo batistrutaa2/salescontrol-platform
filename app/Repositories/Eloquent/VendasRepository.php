@@ -2,12 +2,15 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\FaseCancelamento;
 use App\Enums\Tabulations;
+use App\Enums\TipoDemandaContrato;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Models\ContatosCorretores;
 use App\Models\Operadora;
 use App\Models\Plano;
+use App\Models\VendaDemanda;
 use App\Models\VendaDependente;
 use App\Models\VendaHistorico;
 use App\Models\VendaPortabilidade;
@@ -133,6 +136,7 @@ class VendasRepository implements VendasRepositoryInterface
                             'operadora_anterior_id' => ! empty($titularData['operadora_anterior_id'])
                               ? (int) $titularData['operadora_anterior_id']
                               : null,
+                            'precisa_cancelamento' => filter_var($titularData['precisa_cancelamento'] ?? false, FILTER_VALIDATE_BOOLEAN),
                         ];
 
                         // Data de nascimento - converter formato BR para DB
@@ -144,6 +148,23 @@ class VendasRepository implements VendasRepositoryInterface
                         }
 
                         $titular = $venda->titulares()->create($titularPayload);
+
+                        // Sinal do vendedor: se pediu cancelamento do plano anterior,
+                        // nasce o processo (venda_demandas) por titular, fase SOLICITADO.
+                        if ($titularPayload['precisa_cancelamento'] && $titularPayload['operadora_anterior_id']) {
+                            VendaDemanda::create([
+                                'venda_id' => $venda->id,
+                                'titular_id' => $titular->id,
+                                'operadora_anterior_id' => $titularPayload['operadora_anterior_id'],
+                                'empresa_id' => $venda->empresa_id,
+                                'created_by' => Auth::id(),
+                                'origem' => 'VENDEDOR',
+                                'tipo' => TipoDemandaContrato::CANCELAMENTO_OPERADORA_ANTERIOR->value,
+                                'titulo' => 'Cancelamento na operadora anterior — '.$titular->nome,
+                                'meta' => ['fase' => FaseCancelamento::SOLICITADO->value, 'modalidade' => null],
+                                'status' => 'PENDENTE',
+                            ]);
+                        }
 
                         // Processar dependentes do titular - SEMPRE salvar
                         if (! empty($titularData['dependentes']) && is_array($titularData['dependentes'])) {
@@ -218,7 +239,7 @@ class VendasRepository implements VendasRepositoryInterface
                     'observacao' => 'Venda cadastrada no sistema',
                 ]);
 
-                return true;
+                return $venda;
             });
         } catch (\Throwable $ex) {
             throw $ex; // Propaga o erro para o controller tratar
