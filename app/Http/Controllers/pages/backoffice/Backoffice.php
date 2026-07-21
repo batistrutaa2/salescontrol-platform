@@ -200,38 +200,29 @@ class Backoffice extends Controller
             'backofficeUser', 'backofficeUsers'
         );
 
-        // Verifica se é layout novo (PME)
-        if ($sale->layout_venda === 'NOVO') {
-            // Carrega dependentes com relacionamentos
-            $dependentes = VendaDependente::with(['plano', 'operadoraAnterior'])
-                ->where('venda_id', $sale->id)
-                ->get();
+        // Todos os contratos abrem no layout novo (abas), independente do
+        // layout_venda de origem (ANTIGO/IMPORTACAO_SYS): os campos que o layout
+        // antigo não tinha aparecem em branco para preenchimento. O layout_venda
+        // segue intocado no banco — outros fluxos (recebíveis de importação)
+        // dependem dele.
+        $dependentes = VendaDependente::with(['plano', 'operadoraAnterior'])
+            ->where('venda_id', $sale->id)
+            ->get();
 
-            // Carrega portabilidades
-            $portabilidades = VendaPortabilidade::with('operadoraAnterior')
-                ->where('venda_id', $sale->id)
-                ->orderBy('sequencial')
-                ->get();
+        $portabilidades = VendaPortabilidade::with('operadoraAnterior')
+            ->where('venda_id', $sale->id)
+            ->orderBy('sequencial')
+            ->get();
 
-            return view('content.pages.backoffice.openContractPME', array_merge([
-                'contract' => $sale,
-                'operadoras' => $operadoras,
-                'selectedOperadoraId' => $selectedOperadoraId,
-                'planosDaOperadora' => $planosDaOperadora,
-                'plano' => $plano,
-                'titulares' => $titulares,
-                'dependentes' => $dependentes,
-                'portabilidades' => $portabilidades,
-            ], $backofficeVars));
-        }
-
-        return view('content.pages.backoffice.openContract', array_merge([
+        return view('content.pages.backoffice.openContractPME', array_merge([
             'contract' => $sale,
             'operadoras' => $operadoras,
             'selectedOperadoraId' => $selectedOperadoraId,
             'planosDaOperadora' => $planosDaOperadora,
             'plano' => $plano,
             'titulares' => $titulares,
+            'dependentes' => $dependentes,
+            'portabilidades' => $portabilidades,
         ], $backofficeVars));
     }
 

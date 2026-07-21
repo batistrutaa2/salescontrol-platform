@@ -4,7 +4,7 @@
 
 @section('vendor-style')
     @vite(['resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss'])
-    @vite(['resources/assets/vendor/scss/pages/backoffice-contract-pme.scss'])
+    @vite(['resources/assets/vendor/scss/pages/backoffice-contract-pme.scss', 'resources/assets/vendor/scss/pages/backoffice-processos.scss'])
 @endsection
 
 @section('vendor-script')
@@ -12,7 +12,7 @@
 @endsection
 
 @section('page-script')
-    @vite(['resources/assets/js/openContractPME.js'])
+    @vite(['resources/assets/js/openContractPME.js', 'resources/assets/js/backoffice-processos.js'])
 @endsection
 
 @section('content')
@@ -198,6 +198,15 @@
     </div>
     @endif
 
+    <div class="pv-screen" data-venda-id="{{ $contract->id }}" data-csrf="{{ csrf_token() }}">
+    <div class="pv-tabnav">
+        <button type="button" class="pv-tab active" data-pane="contrato">Contrato</button>
+        <button type="button" class="pv-tab" data-pane="portabilidade">Portabilidade</button>
+        <button type="button" class="pv-tab" data-pane="cancelamento">Cancelamento <span class="pv-tab-count" data-count="cancelamento"></span></button>
+        <button type="button" class="pv-tab" data-pane="cliente">Cliente <span class="pv-tab-count" data-count="cliente"></span></button>
+    </div>
+
+    <div class="pv-pane active" data-pane="contrato">
     <div class="pme-contract-wrapper">
 
         {{-- Header --}}
@@ -428,6 +437,16 @@
                                     <div class="portabilidade-card-header">
                                         <div class="portabilidade-seq">{{ $port->sequencial }}</div>
                                         <div class="portabilidade-nome">{{ $port->nome }}</div>
+                                        @php
+                                            $faseEnum = \App\Enums\FasePortabilidade::tryFrom($port->fase ?? '');
+                                            $faseCls = match ($faseEnum) {
+                                                \App\Enums\FasePortabilidade::CONCLUIDA => 'st-ok',
+                                                \App\Enums\FasePortabilidade::NEGADA => 'st-perdido',
+                                                \App\Enums\FasePortabilidade::ENVIADA_ANALISE => 'st-andamento',
+                                                default => 'st-atencao',
+                                            };
+                                        @endphp
+                                        <span class="pv-status {{ $faseCls }}" data-port-badge="{{ $port->id }}">{{ $faseEnum?->label() ?? 'Reunindo documentos' }}</span>
                                         <div class="portabilidade-actions">
                                             <button type="button" class="portabilidade-btn portabilidade-btn-edit"
                                                 data-port-id="{{ $port->id }}"
@@ -446,6 +465,16 @@
                                         </div>
                                     </div>
                                     <div class="portabilidade-card-body">
+                                        @if ($canEdit ?? true)
+                                        <div class="pv-port-fase-row">
+                                            <span class="pv-port-fase-label">Fase da portabilidade</span>
+                                            <select class="pv-input pv-port-fase" data-port-id="{{ $port->id }}">
+                                                @foreach (\App\Enums\FasePortabilidade::cases() as $f)
+                                                    <option value="{{ $f->value }}" data-final="{{ $f->ehFinal() ? '1' : '0' }}" @selected(($port->fase ?? 'REUNINDO_DOCUMENTOS') === $f->value)>{{ $f->label() }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        @endif
                                         <div class="portabilidade-info-grid">
                                             @if($port->cpf)
                                             <div class="portabilidade-info-item">
@@ -748,7 +777,28 @@
         </div>
 
 
+    </div>{{-- /pme-contract-wrapper --}}
+    </div>{{-- /pv-pane contrato --}}
+
+    {{-- Aba Portabilidade: a lista editável é movida para cá pelo JS (backoffice-processos.js) --}}
+    <div class="pv-pane" data-pane="portabilidade">
+        <div class="pv-portab-host"></div>
     </div>
+
+    {{-- Aba Cancelamento: processos por titular (modalidade + fase), renderizados pelo JS --}}
+    <div class="pv-pane" data-pane="cancelamento">
+        <div class="pv-cancel-host">
+            <div class="pv-loading"><div class="spinner-border spinner-border-sm" role="status"></div><span>Carregando…</span></div>
+        </div>
+    </div>
+
+    {{-- Aba Cliente: outros contratos do mesmo CNPJ (renovações) + acessos/senhas do CNPJ --}}
+    <div class="pv-pane" data-pane="cliente">
+        <div class="pv-cliente-host">
+            <div class="pv-loading"><div class="spinner-border spinner-border-sm" role="status"></div><span>Carregando…</span></div>
+        </div>
+    </div>
+    </div>{{-- /pv-screen --}}
 
     {{-- Modal: Adicionar/Editar Acesso --}}
     <div class="modal fade" id="modalAddAcesso" tabindex="-1" aria-hidden="true">
