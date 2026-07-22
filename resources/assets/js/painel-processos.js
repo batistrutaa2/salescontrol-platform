@@ -43,6 +43,48 @@
     setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 2400);
   }
 
+  const ICONS = {
+    check: '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    alert: '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  };
+
+  /** Confirmação própria do painel (substitui o confirm() nativo). Resolve boolean. */
+  function ppConfirm({ title, message, confirmLabel = 'Confirmar', tone = 'primary', icon = 'check' }) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'pp-modal-overlay';
+      overlay.innerHTML = `
+        <div class="pp-modal tone-${tone}" role="dialog" aria-modal="true" aria-labelledby="pp-modal-title">
+          <div class="pp-modal-icon">${ICONS[icon] || ICONS.check}</div>
+          <h3 class="pp-modal-title" id="pp-modal-title">${esc(title)}</h3>
+          <p class="pp-modal-text">${message}</p>
+          <div class="pp-modal-actions">
+            <button type="button" class="pp-btn pp-btn-ghost" data-cancel>Cancelar</button>
+            <button type="button" class="pp-btn pp-btn-solid" data-ok>${esc(confirmLabel)}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('show'));
+
+      const fechar = (val) => {
+        document.removeEventListener('keydown', onKey);
+        overlay.classList.remove('show');
+        setTimeout(() => overlay.remove(), 200);
+        resolve(val);
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape') fechar(false);
+        else if (e.key === 'Enter') fechar(true);
+      };
+      document.addEventListener('keydown', onKey);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay || e.target.closest('[data-cancel]')) fechar(false);
+        else if (e.target.closest('[data-ok]')) fechar(true);
+      });
+      overlay.querySelector('[data-ok]').focus();
+    });
+  }
+
   async function api(url, method = 'GET', body = null) {
     const opts = { method, headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' } };
     if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
@@ -206,9 +248,18 @@
   async function mudarFase(sel, tipo) {
     const fases = tipo === 'portabilidade' ? fasesPortab : fasesCancel;
     const escolhida = fases.find((f) => f.value === sel.value);
-    if (escolhida && escolhida.final && !confirm(`Marcar como "${escolhida.label}"? Isso encerra o processo.`)) {
-      load();
-      return;
+    if (escolhida && escolhida.final) {
+      const fonte = tipo === 'portabilidade' ? 'portabilidade' : 'demanda';
+      const item = ultimaFila.find((p) => p.fonte === fonte && p.id === Number(sel.dataset.id));
+      const negada = sel.value === 'NEGADA';
+      const ok = await ppConfirm({
+        title: negada ? 'Registrar como negada?' : 'Concluir processo?',
+        message: `<b>${esc(item ? item.contrato : 'Este processo')}</b> vai para <b>${esc(escolhida.label)}</b> e sai da fila. Isso encerra o processo.`,
+        confirmLabel: negada ? 'Registrar negada' : 'Concluir',
+        tone: negada ? 'danger' : 'success',
+        icon: negada ? 'alert' : 'check',
+      });
+      if (!ok) { load(); return; }
     }
     sel.disabled = true;
     const url = tipo === 'portabilidade'

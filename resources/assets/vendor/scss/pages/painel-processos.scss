@@ -181,6 +181,62 @@
 .pp-toast.ok { background: linear-gradient(135deg, #10b981, #34d399); }
 .pp-toast.err { background: linear-gradient(135deg, #ef4444, #f87171); }
 
+// ---------- Modal de confirmação (concluir / negar) ----------
+// Vive no <body> (fora de #painel-processos): declara os próprios tokens.
+.pp-modal-overlay {
+  --pp-primary: #7c3aed; --pp-primary-light: #a78bfa;
+  --pp-success: #10b981; --pp-danger: #ef4444;
+  --pp-card-bg: #ffffff; --pp-surface: #f6f5fb; --pp-border: #e7e3f2;
+  --pp-text: #1e293b; --pp-text-soft: #64748b;
+  --pp-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  position: fixed; inset: 0; z-index: 3100;
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+  background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity 0.2s ease;
+}
+.pp-modal-overlay.show { opacity: 1; }
+.dark-style .pp-modal-overlay {
+  --pp-card-bg: #2b2c40; --pp-surface: #232333; --pp-border: #3a3b52;
+  --pp-text: #f5f5f9; --pp-text-soft: #b6b7cf;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.pp-modal {
+  width: 100%; max-width: 400px;
+  background: var(--pp-card-bg); border: 1px solid var(--pp-border);
+  border-radius: 18px; padding: 1.6rem 1.5rem 1.35rem; text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  transform: translateY(10px) scale(0.97); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.pp-modal-overlay.show .pp-modal { transform: none; }
+
+.pp-modal-icon {
+  width: 54px; height: 54px; margin: 0 auto 0.9rem;
+  border-radius: 50%; display: grid; place-items: center;
+}
+.pp-modal.tone-success .pp-modal-icon { background: rgba(16, 185, 129, 0.14); color: var(--pp-success); }
+.pp-modal.tone-danger .pp-modal-icon { background: rgba(239, 68, 68, 0.14); color: var(--pp-danger); }
+.pp-modal.tone-primary .pp-modal-icon { background: rgba(124, 58, 237, 0.14); color: var(--pp-primary); }
+
+.pp-modal-title { margin: 0 0 0.4rem; font-size: 1.1rem; font-weight: 800; color: var(--pp-text); letter-spacing: -0.01em; }
+.pp-modal-text { margin: 0 0 1.35rem; font-size: 0.9rem; line-height: 1.5; color: var(--pp-text-soft); }
+.pp-modal-text b { color: var(--pp-text); font-weight: 700; }
+
+.pp-modal-actions { display: flex; gap: 0.6rem; }
+.pp-modal-actions .pp-btn { flex: 1; justify-content: center; }
+.pp-modal .pp-btn-solid { color: #fff; border: 0; }
+.pp-modal .pp-btn-solid:hover { transform: translateY(-1px); }
+.pp-modal.tone-success .pp-btn-solid { background: linear-gradient(135deg, #10b981, #34d399); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.32); }
+.pp-modal.tone-danger .pp-btn-solid { background: linear-gradient(135deg, #ef4444, #f87171); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.32); }
+.pp-modal.tone-primary .pp-btn-solid { background: linear-gradient(135deg, #7c3aed, #a78bfa); box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-modal-overlay, .pp-modal { transition: opacity 0.01ms; }
+  .pp-modal { transform: none; }
+}
+
 // ---------- KPI: dica + variante "vencendo" ----------
 .pp-kpi-hint { font-size: 0.72rem; color: var(--pp-text-muted); }
 .pp-kpi-warning { border-left-color: var(--pp-warning); }
