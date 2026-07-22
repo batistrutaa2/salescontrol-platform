@@ -277,7 +277,8 @@
         {
           "url": "/back-office/carteira-clientes",
           "name": "Carteira de Clientes",
-          "slug": "pages-carteira-clientes"
+          "slug": "pages-carteira-clientes",
+          "rules": ["ADMINISTRATIVO", "DEVELOPER"]
         },
         {
           "url": "/back-office/cadastrar-operadora",
