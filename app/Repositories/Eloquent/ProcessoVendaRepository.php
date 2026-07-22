@@ -270,6 +270,33 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
         ];
     }
 
+    public function buscarContratos(string $termo, int $empresaId, int $limite = 20): array
+    {
+        $digitos = preg_replace('/\D+/', '', $termo);
+
+        return Vendas::with('tabulacao:id,descricao')
+            ->where('empresa_id', $empresaId)
+            ->where(function ($q) use ($termo, $digitos) {
+                $q->where('nome_contrato', 'like', "%{$termo}%")
+                    ->orWhere('numero_proposta', 'like', "%{$termo}%");
+                if ($digitos !== '') {
+                    $q->orWhere('cpf_cnpj', 'like', "%{$digitos}%");
+                }
+            })
+            ->orderByDesc('id')
+            ->limit($limite)
+            ->get(['id', 'nome_contrato', 'cpf_cnpj', 'operadora', 'numero_proposta', 'tabulacao_id'])
+            ->map(fn ($v) => [
+                'id' => $v->id,
+                'nome_contrato' => $v->nome_contrato,
+                'cpf_cnpj' => $v->cpf_cnpj,
+                'operadora' => $v->operadora,
+                'numero_proposta' => $v->numero_proposta,
+                'status' => $v->tabulacao->descricao ?? '—',
+            ])
+            ->all();
+    }
+
     public function contratosDoCnpj(string $cnpj, int $empresaId, int $exceptVendaId): array
     {
         if ($cnpj === '') {

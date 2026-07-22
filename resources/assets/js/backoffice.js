@@ -114,14 +114,11 @@ $(function () {
         statusConfirmed: false,
         draggedItem: null,
         draggedFromColumn: null,
-        activeTab: 'kanban',
-        demandasLoaded: false,
 
         async init() {
             await this.loadContratos();
             this.initFilters();
             this.initEventListeners();
-            this.initTabs();
         },
 
         async loadContratos() {
@@ -164,13 +161,6 @@ $(function () {
                     this.populateVendedorFilter(result.vendedores);
                     this.populateBackofficeFilter(result.backoffices);
                     this.initDragDrop();
-                    // Update demandas badge count from KPI data
-                    this.updateDemandasBadge(result.kpis?.total_demandas_pendentes || 0);
-                    // Reset demandas tab; if active, reload it now
-                    this.demandasLoaded = false;
-                    if (this.activeTab === 'demandas') {
-                        this.loadDemandasList();
-                    }
                 } else {
                     throw new Error(result.message || 'Erro ao carregar dados');
                 }
@@ -349,12 +339,6 @@ $(function () {
                         }
                     </div>
 
-                    ${contract.demandas_pendentes > 0 ? `
-                        <div class="card-demandas-badge js-scroll-demandas" title="Clique para ver demandas pendentes">
-                            <i class="ri-todo-line"></i>
-                            <span>${contract.demandas_pendentes} demanda${contract.demandas_pendentes > 1 ? 's' : ''}</span>
-                        </div>
-                    ` : ''}
                 </div>
             `;
         },
@@ -546,30 +530,6 @@ $(function () {
                 card.style.pointerEvents = 'auto';
                 self.lastDropEvent = null;
             }
-        },
-
-        initTabs() {
-            const self = this;
-
-            $(document).on('click', '.kb-tab', function () {
-                const tab = $(this).data('tab');
-                if (tab === self.activeTab) return;
-
-                // Switch active tab
-                $('.kb-tab').removeClass('active');
-                $(this).addClass('active');
-
-                // Switch panes
-                $('.kb-tab-pane').hide().removeClass('active');
-                $(`#pane-${tab}`).show().addClass('active');
-
-                self.activeTab = tab;
-
-                // Load demandas on first switch
-                if (tab === 'demandas' && !self.demandasLoaded) {
-                    self.loadDemandasList();
-                }
-            });
         },
 
         getFilterParams() {
@@ -992,11 +952,6 @@ $(function () {
                 }
             });
 
-            // Click badge on kanban card → switch to demandas tab
-            $(document).on('click', '.js-scroll-demandas', function (e) {
-                e.stopPropagation();
-                $('.kb-tab[data-tab="demandas"]').trigger('click');
-            });
         },
 
         async loadHistorico(vendaId) {

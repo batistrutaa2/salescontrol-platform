@@ -26,6 +26,20 @@ class ProcessosVendaController extends Controller
         private ProcessoVendaRepositoryInterface $processos,
     ) {}
 
+    /** Busca global de contratos (para pesquisar e abrir qualquer contrato da base). */
+    public function buscar(Request $request)
+    {
+        $termo = trim((string) $request->input('termo', ''));
+        if (mb_strlen($termo) < 2) {
+            return response()->json(['success' => true, 'resultados' => []]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'resultados' => $this->processos->buscarContratos($termo, Auth::user()->empresa_id, 20),
+        ]);
+    }
+
     public function dados(int $vendaId)
     {
         try {

@@ -4,7 +4,7 @@
 
 <!-- Vendor Styles -->
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/libs/animate-css/animate.scss', 'resources/assets/vendor/scss/pages/backoffice-kanban.scss', 'resources/assets/vendor/libs/cleavejs/cleave.js'])
+    @vite(['resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/libs/animate-css/animate.scss', 'resources/assets/vendor/scss/pages/backoffice-kanban.scss', 'resources/assets/vendor/scss/pages/busca-contrato.scss', 'resources/assets/vendor/libs/cleavejs/cleave.js'])
 @endsection
 
 <!-- Vendor Scripts -->
@@ -14,7 +14,7 @@
 @endsection
 
 @section('page-script')
-    @vite(['resources/assets/js/backoffice.js'])
+    @vite(['resources/assets/js/backoffice.js', 'resources/assets/js/busca-contrato.js'])
 @endsection
 
 @section('content')
@@ -32,6 +32,17 @@
     @endif
 
     <div class="kanban-page">
+        {{-- Pesquisar contrato: abre qualquer contrato da base inteira (não filtra só o kanban) --}}
+        <div class="bc-search" id="bc-search">
+            <div class="bc-search-box">
+                <svg xmlns="http://www.w3.org/2000/svg" class="bc-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" id="bc-search-input" class="bc-search-input" autocomplete="off"
+                    placeholder="Pesquisar contrato por nome, CNPJ/CPF ou nº da proposta…">
+                <span class="bc-search-tag">Abre o contrato completo</span>
+            </div>
+            <div class="bc-results" id="bc-results" hidden></div>
+        </div>
+
         <!-- Header -->
         <div class="kanban-header">
             <div class="header-title">
@@ -120,29 +131,7 @@
             </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="kb-tabs">
-            <button type="button" class="kb-tab active" data-tab="kanban">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="7" height="7" rx="1"/>
-                    <rect x="14" y="3" width="7" height="7" rx="1"/>
-                    <rect x="3" y="14" width="7" height="7" rx="1"/>
-                    <rect x="14" y="14" width="7" height="7" rx="1"/>
-                </svg>
-                <span>Kanban</span>
-            </button>
-            <button type="button" class="kb-tab" data-tab="demandas">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 11l3 3L22 4"/>
-                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                </svg>
-                <span>Demandas</span>
-                <span class="kb-tab-badge" id="tab-demandas-count" style="display: none;">0</span>
-            </button>
-            <div class="kb-tab-indicator"></div>
-        </div>
-
-        <!-- Tab: Kanban -->
+        <!-- Kanban -->
         <div class="kb-tab-pane active" id="pane-kanban">
             <!-- Loading State -->
             <div class="kanban-loading" id="kanban-loading">
@@ -160,20 +149,6 @@
             </div>
         </div>
 
-        <!-- Tab: Demandas -->
-        <div class="kb-tab-pane" id="pane-demandas" style="display: none;">
-            <div class="demandas-loading" id="demandas-loading" style="display: none;">
-                <div class="spinner-wrapper">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Carregando...</span>
-                    </div>
-                    <p>Carregando demandas...</p>
-                </div>
-            </div>
-            <div class="demandas-backlog" id="demandas-backlog">
-                <!-- Populated by JS -->
-            </div>
-        </div>
     </div>
 
     <!-- Modal Alterar Status -->

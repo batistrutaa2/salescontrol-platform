@@ -178,6 +178,36 @@ class ProcessosVendaTest extends TestCase
         $this->assertSame('ROFER', $response->json('acessos.0.nome'));
     }
 
+    public function test_busca_contratos_por_nome_cnpj_e_proposta(): void
+    {
+        $a = $this->criarContrato($this->backoffice->id, cnpj: '11222333000199');
+        $a->update(['nome_contrato' => 'PADARIA CENTRAL LTDA', 'numero_proposta' => 'PROP-777']);
+        $b = $this->criarContrato($this->backoffice->id, cnpj: '55666777000188');
+        $b->update(['nome_contrato' => 'MERCADO SUL']);
+        // Contrato de outra empresa — não pode vazar.
+        $outra = Empresa::factory()->create();
+        $this->criarContrato($this->backoffice->id, empresa: $outra)->update(['nome_contrato' => 'PADARIA DA ESQUINA']);
+
+        $buscar = fn (string $t) => collect(
+            $this->actingAs($this->backoffice)->getJson(route('backoffice.processos.buscar', ['termo' => $t]))->json('resultados')
+        )->pluck('id');
+
+        $this->assertTrue($buscar('PADARIA')->contains($a->id));
+        $this->assertSame(1, $buscar('PADARIA')->count(), 'Não vaza contrato de outra empresa.');
+        $this->assertTrue($buscar('11.222.333/0001-99')->contains($a->id), 'Casa por CNPJ formatado (dígitos).');
+        $this->assertTrue($buscar('PROP-777')->contains($a->id), 'Casa por nº de proposta.');
+        $this->assertTrue($buscar('MERCADO')->contains($b->id));
+    }
+
+    public function test_busca_ignora_termo_curto(): void
+    {
+        $this->criarContrato($this->backoffice->id);
+
+        $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.processos.buscar', ['termo' => 'a']))
+            ->assertOk()->assertJson(['resultados' => []]);
+    }
+
     public function test_dados_multitenant_404(): void
     {
         $venda = $this->criarContrato($this->backoffice->id);

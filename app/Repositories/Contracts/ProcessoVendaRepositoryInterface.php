@@ -53,6 +53,9 @@ interface ProcessoVendaRepositoryInterface
 
     public function excluirEmailCriado(int $id, int $empresaId): bool;
 
+    /** Busca contratos da empresa por nome, CNPJ/CPF ou nº de proposta (para o "abrir contrato" global). */
+    public function buscarContratos(string $termo, int $empresaId, int $limite = 20): array;
+
     // ---- Contexto do cliente (mesmo CNPJ) ----
 
     /** Outros contratos da empresa com o mesmo CNPJ (histórico do cliente / renovações). */

@@ -280,7 +280,8 @@ Route::middleware(['auth'])->group(function () {
   Route::delete('/back-office/demandas-contrato/{id}', [Backoffice::class, 'destroyDemandaContrato'])->name('backoffice.destroyDemandaContrato');
 
   // Acompanhamento de Processos da Venda (tela única com abas no detalhe do contrato)
-  Route::get('/back-office/processos/{vendaId}', [ProcessosVendaController::class, 'dados'])->name('backoffice.processos.dados');
+  Route::get('/back-office/processos/buscar', [ProcessosVendaController::class, 'buscar'])->name('backoffice.processos.buscar');
+  Route::get('/back-office/processos/{vendaId}', [ProcessosVendaController::class, 'dados'])->whereNumber('vendaId')->name('backoffice.processos.dados');
   Route::patch('/back-office/processos/cancelamento/{id}', [ProcessosVendaController::class, 'atualizarCancelamento'])->name('backoffice.processos.cancelamento');
   Route::patch('/back-office/processos/portabilidade/{id}/fase', [ProcessosVendaController::class, 'fasePortabilidade'])->name('backoffice.processos.fasePortabilidade');
   Route::post('/back-office/processos/{vendaId}/emails', [ProcessosVendaController::class, 'storeEmailCriado'])->name('backoffice.processos.emails.store');

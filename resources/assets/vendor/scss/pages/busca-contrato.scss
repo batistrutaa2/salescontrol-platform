@@ -1,0 +1,125 @@
+// Busca global de contratos (topo da Fila de Contratos). Namespaced .bc-*.
+.bc-search {
+  --bc-primary: #7c3aed;
+  --bc-primary-light: #a78bfa;
+  --bc-card-bg: #ffffff;
+  --bc-surface: #f6f5fb;
+  --bc-border: #e7e3f2;
+  --bc-text: #1e293b;
+  --bc-text-soft: #64748b;
+  --bc-text-muted: #94a3b8;
+
+  position: relative;
+  margin-bottom: 1.25rem;
+  z-index: 20;
+}
+
+.bc-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  background: var(--bc-card-bg);
+  border: 1px solid var(--bc-border);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+.bc-search-box:focus-within {
+  border-color: var(--bc-primary-light);
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+}
+.bc-search-icon { color: var(--bc-primary); flex: none; }
+
+.bc-search-input {
+  flex: 1 1 auto;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.95rem;
+  color: var(--bc-text);
+}
+.bc-search-input::placeholder { color: var(--bc-text-muted); }
+
+.bc-search-tag {
+  flex: none;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bc-primary);
+  background: rgba(124, 58, 237, 0.1);
+  padding: 3px 9px;
+  border-radius: 100px;
+}
+
+// Dropdown de resultados
+.bc-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 380px;
+  overflow-y: auto;
+  background: var(--bc-card-bg);
+  border: 1px solid var(--bc-border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px -8px rgba(26, 21, 35, 0.22);
+  padding: 0.35rem;
+}
+
+.bc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.8rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.bc-item:hover,
+.bc-item.is-active { background: var(--bc-surface); }
+.bc-item-nome { font-size: 0.9rem; font-weight: 700; color: var(--bc-text); }
+.bc-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  flex-wrap: wrap;
+  font-size: 0.76rem;
+  color: var(--bc-text-muted);
+}
+.bc-doc { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; color: var(--bc-text-soft); }
+.bc-op { font-weight: 600; color: var(--bc-text-soft); }
+.bc-prop { color: var(--bc-text-muted); }
+
+.bc-status {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+.bc-status.ok { background: rgba(16, 185, 129, 0.13); color: #0f9d6a; }
+.bc-status.perdido { background: rgba(239, 68, 68, 0.12); color: #d02f22; }
+.bc-status.atencao { background: rgba(245, 158, 11, 0.15); color: #b7791f; }
+.bc-status.andamento { background: rgba(124, 58, 237, 0.12); color: var(--bc-primary); }
+
+.bc-empty { padding: 1.25rem; text-align: center; color: var(--bc-text-muted); font-size: 0.86rem; }
+
+// Dark mode
+.dark-style .bc-search {
+  --bc-card-bg: #2b2c40;
+  --bc-surface: #232333;
+  --bc-border: #3a3b52;
+  --bc-text: #f5f5f9;
+  --bc-text-soft: #b6b7cf;
+  --bc-text-muted: #8b8ca7;
+}
+.dark-style .bc-status.ok { color: #4fd39d; }
+.dark-style .bc-status.perdido { color: #f6837a; }
+.dark-style .bc-status.atencao { color: #f0be6a; }
