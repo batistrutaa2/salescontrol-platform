@@ -1,8 +1,8 @@
 /**
- * Painel operacional de processos (visão do gestor) — esteira kanban.
- * Duas trilhas (Cancelamento op. anterior, Portabilidade), cada uma com uma
- * coluna-portão "Aguardando implantação" + colunas de fase. O prazo conta a
- * partir da implantação do contrato (ver ProcessoVendaRepository::linhaProcesso).
+ * Painel operacional de processos (visão do gestor) — torre de controle.
+ * Raias por urgência: Atrasado · Vencendo · Aguardando implantação · Em dia.
+ * Uma linha por processo (cancelamento ou portabilidade). O prazo conta a partir
+ * da implantação do contrato (ver ProcessoVendaRepository::linhaProcesso).
  * Consome backoffice.painelProcessos.data / .atribuir / .faseCancelamento / .fasePortabilidade.
  */
 (function () {
@@ -18,12 +18,19 @@
   let fasesCancel = [];
   let fasesPortab = [];
   let ultimaFila = [];
+  const colapsadas = new Set(['em_dia']); // "Em dia" começa recolhida (foco no que precisa de ação)
+
+  const LANES = [
+    { key: 'atrasado', label: 'Atrasado', hint: 'passaram do prazo', cls: 'lane-danger' },
+    { key: 'vencendo', label: 'Vencendo', hint: 'vencem em até 7 dias', cls: 'lane-warning' },
+    { key: 'aguardando_implantacao', label: 'Aguardando implantação', hint: 'travados até a apólice implantar', cls: 'lane-muted' },
+    { key: 'em_dia', label: 'Em dia', hint: 'dentro do prazo, com folga', cls: 'lane-success' },
+  ];
+  const URG_LABEL = { atrasado: 'Atrasados', vencendo: 'Vencendo', aguardando_implantacao: 'Aguardando implantação', em_dia: 'Em dia' };
 
   const esc = (s) =>
     String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = (id) => document.getElementById(id);
-
-  const URG_LABEL = { atrasado: 'Atrasados', vencendo: 'Vencendo', aguardando_implantacao: 'Aguardando implantação' };
 
   function toast(msg, type = 'ok') {
     const el = document.createElement('div');
@@ -53,13 +60,11 @@
     const params = new URLSearchParams();
     Object.entries(filtros).forEach(([k, v]) => { if (v !== '' && v !== null) params.append(k, v); });
 
-    ['board-cancelamentos', 'board-portabilidade'].forEach((id) => {
-      $(id).innerHTML = '<div class="pp-board-loading">Carregando…</div>';
-    });
+    $('pp-lanes').innerHTML = '<div class="pp-board-loading">Carregando…</div>';
 
     const data = await api(`/back-office/painel-processos/data?${params.toString()}`);
     if (!data.success) {
-      $('board-cancelamentos').innerHTML = `<div class="pp-board-erro">${esc(data.message || 'Erro ao carregar.')}</div>`;
+      $('pp-lanes').innerHTML = `<div class="pp-board-erro">${esc(data.message || 'Erro ao carregar.')}</div>`;
       return;
     }
 
@@ -67,7 +72,7 @@
     fasesPortab = data.fases_portabilidade || [];
     ultimaFila = data.fila || [];
     renderKpis(data.kpis);
-    renderBoards(ultimaFila);
+    renderLanes(ultimaFila);
   }
 
   function renderKpis(k) {
@@ -77,82 +82,68 @@
     $('kpi-concluidos').textContent = k.concluidos_mes;
   }
 
-  // ---- Colunas de cada esteira (portão + fases não-finais) ----
-  function colunas(esteira) {
-    const fases = esteira === 'cancelamentos' ? fasesCancel : fasesPortab;
-    const cols = [{ key: 'aguardando_implantacao', label: 'Aguardando implantação', gate: true }];
-    fases.filter((f) => !f.final).forEach((f) => cols.push({ key: f.value, label: f.label }));
-    return cols;
+  // ---- Raias ----
+  function renderLanes(fila) {
+    const host = $('pp-lanes');
+    const grupos = { atrasado: [], vencendo: [], aguardando_implantacao: [], em_dia: [] };
+    fila.forEach((p) => (grupos[p.urgencia] || (grupos[p.urgencia] = [])).push(p));
+
+    const lanes = urgFiltro ? LANES.filter((l) => l.key === urgFiltro) : LANES;
+    host.innerHTML = lanes.map((l) => laneHtml(l, grupos[l.key] || [])).join('')
+      || '<div class="pp-board-loading">Nenhum processo em aberto. 🎉</div>';
   }
 
-  function colunaDoItem(p, cols) {
-    if (p.bloqueado) return 'aguardando_implantacao';
-    const existe = cols.some((c) => c.key === p.fase_valor);
-    return existe ? p.fase_valor : (cols[1] ? cols[1].key : 'aguardando_implantacao');
-  }
+  function laneHtml(l, itens) {
+    const collapsed = colapsadas.has(l.key) && !urgFiltro;
+    const corpo = itens.length
+      ? itens.map(row).join('')
+      : '<div class="pp-lane-empty">nada nesta faixa</div>';
 
-  // ---- Render dos boards ----
-  function renderBoards(fila) {
-    const nCancel = renderBoard('cancelamentos', 'board-cancelamentos', fila.filter((p) => p.grupo === 'cancelamentos'));
-    const nPortab = renderBoard('portabilidade', 'board-portabilidade', fila.filter((p) => p.grupo === 'portabilidade'));
-    $('count-cancelamentos').textContent = nCancel;
-    $('count-portabilidade').textContent = nPortab;
-  }
-
-  function renderBoard(esteiraKey, elId, itens) {
-    const cols = colunas(esteiraKey);
-    const buckets = {};
-    cols.forEach((c) => (buckets[c.key] = []));
-
-    itens.forEach((p) => {
-      if (urgFiltro && p.urgencia !== urgFiltro) return;
-      const k = colunaDoItem(p, cols);
-      (buckets[k] || (buckets[k] = [])).push(p);
-    });
-
-    $(elId).innerHTML = cols.map((c) => {
-      const lista = buckets[c.key] || [];
-      const corpo = lista.length ? lista.map(card).join('') : '<div class="pp-col-empty">vazio</div>';
-      return `<div class="pp-col ${c.gate ? 'is-gate' : ''}">
-          <div class="pp-col-head"><span class="pp-col-name">${esc(c.label)}</span><span class="pp-col-count">${lista.length}</span></div>
-          <div class="pp-col-body">${corpo}</div>
-        </div>`;
-    }).join('');
-
-    return cols.reduce((n, c) => n + (buckets[c.key] ? buckets[c.key].length : 0), 0);
+    return `<section class="pp-lane ${l.cls} ${collapsed ? 'is-collapsed' : ''}" data-lane="${esc(l.key)}">
+        <button type="button" class="pp-lane-head" data-lane-toggle="${esc(l.key)}">
+          <span class="pp-lane-dot"></span>
+          <span class="pp-lane-name">${esc(l.label)}</span>
+          <span class="pp-lane-count">${itens.length}</span>
+          <span class="pp-lane-hint">${esc(l.hint)}</span>
+          <span class="pp-lane-chev" aria-hidden="true">▾</span>
+        </button>
+        <div class="pp-lane-body">${corpo}</div>
+      </section>`;
   }
 
   function badgePrazo(p) {
     if (p.urgencia === 'atrasado') return `<span class="pp-badge danger">Venceu há ${p.dias_atraso}d</span>`;
     if (p.urgencia === 'vencendo') return `<span class="pp-badge warn">Vence em ${p.dias_para_vencer}d</span>`;
-    if (p.urgencia === 'aguardando_implantacao') return '<span class="pp-badge muted">Sem prazo ainda</span>';
     return `<span class="pp-badge ok">Vence ${esc(p.vence_em || '—')}</span>`;
   }
 
-  function card(p) {
+  function row(p) {
     const link = p.venda_id ? `/back-office/abrir-contrato/${p.venda_id}` : '#';
-    const fases = p.fonte === 'portabilidade' ? fasesPortab : fasesCancel;
-    const faseCls = p.fonte === 'portabilidade' ? 'pp-fase-portab' : 'pp-fase-cancel';
+    const ehPortab = p.fonte === 'portabilidade';
+    const wsCls = ehPortab ? 'ws-portab' : 'ws-cancel';
+    const wsLabel = ehPortab ? 'Portabilidade' : 'Cancelamento';
+
+    const fases = ehPortab ? fasesPortab : fasesCancel;
+    const faseCls = ehPortab ? 'pp-fase-portab' : 'pp-fase-cancel';
     const faseSel = `<select class="pp-input pp-mini ${faseCls}" data-id="${p.id}" title="Avançar fase">
         ${fases.map((f) => `<option value="${esc(f.value)}" ${p.fase_valor === f.value ? 'selected' : ''}>${esc(f.label)}</option>`).join('')}
       </select>`;
 
-    // No portão, explica POR QUE está parado (situação do contrato-pai).
-    const gate = p.bloqueado
-      ? `<div class="pp-card-gate">⏸ Contrato: ${esc(p.situacao_contrato)} · há ${p.dias_bloqueado}d</div>`
-      : '';
+    // Situação: no portão explica o bloqueio; senão o badge de prazo.
+    const situacao = p.bloqueado
+      ? `<span class="pp-when muted" title="Contrato ainda não implantado">⏸ ${esc(p.situacao_contrato)} · há ${p.dias_bloqueado}d</span>`
+      : badgePrazo(p);
 
-    return `<div class="pp-card urg-${esc(p.urgencia)}">
-        <div class="pp-card-top">
-          <a href="${link}" target="_blank" class="pp-card-contrato">${esc(p.contrato)}</a>
-          ${badgePrazo(p)}
+    return `<div class="pp-row urg-${esc(p.urgencia)}">
+        <span class="pp-ws ${wsCls}" title="${esc(p.tipo_label)}">${esc(wsLabel)}</span>
+        <div class="pp-row-main">
+          <a href="${link}" target="_blank" class="pp-row-contrato">${esc(p.contrato)}</a>
+          <span class="pp-row-pessoa">${esc(p.quem || '—')}</span>
         </div>
-        <div class="pp-card-pessoa">${esc(p.quem || '—')}</div>
-        ${gate}
-        <div class="pp-card-foot">
-          <select class="pp-input pp-mini pp-assign" data-fonte="${esc(p.fonte)}" data-id="${p.id}" title="Responsável">${opcoesResponsavel(p.responsavel_id)}</select>
-          ${faseSel}
-        </div>
+        <span class="pp-chip pp-row-fase">${esc(p.fase || '—')}</span>
+        <span class="pp-row-when">${situacao}</span>
+        <select class="pp-input pp-mini pp-assign" data-fonte="${esc(p.fonte)}" data-id="${p.id}" title="Responsável">${opcoesResponsavel(p.responsavel_id)}</select>
+        ${faseSel}
       </div>`;
   }
 
@@ -191,7 +182,7 @@
     } else {
       tag.style.display = 'none';
     }
-    renderBoards(ultimaFila);
+    renderLanes(ultimaFila);
   }
 
   // ---- Eventos ----
@@ -205,7 +196,13 @@
   root.addEventListener('click', (e) => {
     if (e.target.closest('.pp-urg-x')) { aplicarUrgencia(urgFiltro); return; }
     const kpi = e.target.closest('.pp-kpi[data-urg]');
-    if (kpi) aplicarUrgencia(kpi.dataset.urg);
+    if (kpi) { aplicarUrgencia(kpi.dataset.urg); return; }
+    const toggle = e.target.closest('[data-lane-toggle]');
+    if (toggle) {
+      const key = toggle.dataset.laneToggle;
+      if (colapsadas.has(key)) colapsadas.delete(key); else colapsadas.add(key);
+      renderLanes(ultimaFila);
+    }
   });
 
   // ---- Filtros de servidor ----

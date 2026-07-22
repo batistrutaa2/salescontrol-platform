@@ -22,7 +22,7 @@
     <div class="pp-header">
         <div>
             <h4 class="pp-title">Painel de Processos</h4>
-            <span class="pp-subtitle">A esteira da operação — cancelamento e portabilidade, do "aguardando implantação" à conclusão. O prazo começa quando a apólice é implantada.</span>
+            <span class="pp-subtitle">Torre de controle da operação — cancelamento e portabilidade por urgência. O prazo começa quando a apólice é implantada; antes disso o processo fica "aguardando implantação".</span>
         </div>
     </div>
 
@@ -61,29 +61,9 @@
         <span class="pp-urg-tag" id="pp-urg-tag" style="display:none;"></span>
     </div>
 
-    {{-- Esteiras (kanban por fase). As colunas são montadas pelo JS. --}}
-    <div class="pp-boards" id="pp-boards">
-        <section class="pp-board" data-esteira="cancelamentos">
-            <div class="pp-board-head">
-                <h5 class="pp-board-title">Cancelamento na operadora anterior</h5>
-                <span class="pp-board-sub">só roda depois que a apólice atual é implantada</span>
-                <span class="pp-board-count" id="count-cancelamentos">0</span>
-            </div>
-            <div class="pp-board-track" id="board-cancelamentos">
-                <div class="pp-board-loading">Carregando…</div>
-            </div>
-        </section>
-
-        <section class="pp-board" data-esteira="portabilidade">
-            <div class="pp-board-head">
-                <h5 class="pp-board-title">Portabilidade</h5>
-                <span class="pp-board-sub">normalmente após implantar a apólice, portar quem precisa</span>
-                <span class="pp-board-count" id="count-portabilidade">0</span>
-            </div>
-            <div class="pp-board-track" id="board-portabilidade">
-                <div class="pp-board-loading">Carregando…</div>
-            </div>
-        </section>
+    {{-- Raias por urgência (torre de controle). Montadas pelo JS. --}}
+    <div class="pp-lanes" id="pp-lanes">
+        <div class="pp-board-loading">Carregando…</div>
     </div>
 </div>
 @endsection
