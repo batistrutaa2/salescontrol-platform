@@ -286,15 +286,6 @@
           "slug": "backoffice.operadorasPlanos"
         },
         {
-          "url": "/back-office/relatorio-performance",
-          "name": "Relatorio de Performance",
-          "slug": "pages-backoffice-performance",
-          "rules": [
-            "DEVELOPER",
-            "ADMINISTRATIVO"
-          ]
-        },
-        {
           "url": "/back-office/credenciais",
           "name": "Acesso Empresas",
           "slug": "backoffice.credenciais"

@@ -262,8 +262,6 @@ Route::middleware(['auth'])->group(function () {
   Route::delete('/backoffice/portabilidades-pme/{id}', [Backoffice::class, 'destroyPortabilidadePME'])->name('backoffice.portabilidades.destroyPME');
   Route::get('/back-office/verificar-recebiveis/{vendaId}', [Backoffice::class, 'verificarRecebiveis'])->name('backoffice.verificarRecebiveis');
   Route::post('/back-office/gerar-recebivel/{vendaId}', [Backoffice::class, 'gerarRecebivelContrato'])->name('backoffice.gerarRecebivelContrato');
-  Route::get('/back-office/relatorio-performance', [Backoffice::class, 'relatorioPerformance'])->name('backoffice.relatorioPerformance');
-  Route::get('/back-office/relatorio-performance/data', [Backoffice::class, 'getPerformanceData'])->name('backoffice.getPerformanceData');
   Route::get('/back-office/pipeline-data', [Backoffice::class, 'getPipelineData'])->name('backoffice.pipelineData');
   Route::get('/back-office/demandas-pendentes-kanban', [Backoffice::class, 'getDemandasPendentesKanban'])->name('backoffice.demandasPendentesKanban');
   Route::get('/back-office/contratos-por-status/{tabulacaoId}', [Backoffice::class, 'getContratosPorStatus'])->name('backoffice.contratosPorStatus');
