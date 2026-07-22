@@ -353,7 +353,7 @@
 
     const acessosHtml = acessos.length
       ? `<div class="pv-cli-grid-cards">${acessos.map(acessoCard).join('')}</div>`
-      : '<div class="pv-empty">Nenhum acesso encontrado para este CNPJ. <a href="/back-office/credenciais" target="_blank">Cadastrar acesso</a>.</div>';
+      : '<div class="pv-empty">Nenhum acesso cadastrado para este cliente. <button type="button" class="pv-empty-link" data-add-acesso>Cadastrar acesso</button>.</div>';
 
     host.innerHTML = `
       <div class="pv-cliente-section">
@@ -369,10 +369,113 @@
           <h6 class="pv-cliente-title">Acessos do cliente</h6>
           <span class="pv-cliente-count">${acessos.length}</span>
           <span class="pv-cliente-hint">senhas de portais ligadas a este CNPJ</span>
+          <button type="button" class="pv-add-acesso" data-add-acesso>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Cadastrar acesso
+          </button>
         </div>
         ${acessosHtml}
       </div>`;
   }
+
+  // ---------- Cadastro de acessos do cliente (login/senha) ----------
+  const acModalEl = document.getElementById('pvAcessoModal');
+  const acForm = document.getElementById('pvAcessoForm');
+  const acBox = document.getElementById('pvac-acessos');
+  const acTpl = document.getElementById('pvac-acesso-tpl');
+  const acCount = document.getElementById('pvac-acessos-count');
+
+  function acAtualizarCount() {
+    const linhas = acBox ? acBox.querySelectorAll('.pvac-acesso') : [];
+    if (acCount) acCount.textContent = linhas.length ? `(${linhas.length})` : '';
+    linhas.forEach((l) => {
+      const rem = l.querySelector('.pvac-remove');
+      if (rem) rem.style.visibility = linhas.length > 1 ? 'visible' : 'hidden';
+    });
+  }
+
+  function acAddRow(foco = true) {
+    if (!acTpl || !acBox) return;
+    const node = acTpl.content.firstElementChild.cloneNode(true);
+    acBox.appendChild(node);
+    acAtualizarCount();
+    if (foco) node.querySelector('.pvac-acesso-nome')?.focus();
+  }
+
+  function acReset() {
+    acForm?.reset();
+    if (acBox) acBox.innerHTML = '';
+    acAddRow(false);
+  }
+
+  function acAbrir() {
+    if (!acModalEl || !window.bootstrap) return;
+    acReset();
+    bootstrap.Modal.getOrCreateInstance(acModalEl).show();
+  }
+
+  function acLerAcessos() {
+    if (!acBox) return [];
+    return Array.from(acBox.querySelectorAll('.pvac-acesso')).map((r) => ({
+      nome: (r.querySelector('.pvac-acesso-nome')?.value || '').trim(),
+      login: (r.querySelector('.pvac-acesso-login')?.value || '').trim(),
+      senha: r.querySelector('.pvac-acesso-senha')?.value || '',
+    }));
+  }
+
+  function wireAcessoModal() {
+    if (!acModalEl) return;
+
+    document.getElementById('pvac-add')?.addEventListener('click', () => acAddRow());
+
+    acBox?.addEventListener('click', (e) => {
+      const rem = e.target.closest('.pvac-remove');
+      if (rem) {
+        const linhas = acBox.querySelectorAll('.pvac-acesso');
+        if (linhas.length > 1) rem.closest('.pvac-acesso').remove();
+        else rem.closest('.pvac-acesso').querySelectorAll('input,textarea').forEach((i) => (i.value = ''));
+        acAtualizarCount();
+        return;
+      }
+      const eye = e.target.closest('.pvac-eye');
+      if (eye) {
+        const inp = eye.closest('.pvac-senha-wrap').querySelector('.pvac-acesso-senha');
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+      }
+    });
+
+    acForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const acessos = acLerAcessos().filter((a) => a.nome);
+      if (!acessos.length) {
+        toast('Informe ao menos um nome/rótulo.', 'err');
+        return;
+      }
+      const btn = document.getElementById('pvac-salvar');
+      if (btn) btn.disabled = true;
+      const json = await api('/back-office/credenciais/lote', 'POST', {
+        venda_id: Number(vendaId),
+        operadora_id: document.getElementById('pvac-operadora')?.value || null,
+        tipo: (document.getElementById('pvac-tipo')?.value || '').trim() || null,
+        status: document.getElementById('pvac-status')?.value || 'Y',
+        observacao: (document.getElementById('pvac-observacao')?.value || '').trim() || null,
+        acessos,
+      });
+      if (btn) btn.disabled = false;
+      if (json.success) {
+        bootstrap.Modal.getInstance(acModalEl)?.hide();
+        toast(json.message || 'Acessos cadastrados!');
+        await carregarCancelamentos();
+      } else {
+        toast(json.message || 'Não foi possível salvar os acessos.', 'err');
+      }
+    });
+  }
+
+  // Abre o modal a partir do botão da aba Cliente (conteúdo é re-renderizado).
+  root.addEventListener('click', (e) => {
+    if (e.target.closest('[data-add-acesso]')) acAbrir();
+  });
 
   function atualizarContador(lista) {
     const el = root.querySelector('.pv-tab-count[data-count="cancelamento"]');
@@ -565,5 +668,6 @@
 
   // ---------- Init ----------
   moverPortabilidade();
+  wireAcessoModal();
   carregarCancelamentos();
 })();

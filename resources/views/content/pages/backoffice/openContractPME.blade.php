@@ -804,6 +804,9 @@
     {{-- Boas-vindas (WhatsApp/E-mail): modais compartilhados, acionados por window.abrirBoasVindas() --}}
     @include('content.pages.backoffice.partials.boas-vindas-modals')
 
+    {{-- Cadastro de acessos (login/senha) do cliente, acionado pela aba Cliente --}}
+    @include('content.pages.backoffice.partials.acessos-cliente-modal')
+
     {{-- Modal: Confirmação de Exclusão de Dependente --}}
     <div class="modal fade" id="modalDeleteDependente" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">

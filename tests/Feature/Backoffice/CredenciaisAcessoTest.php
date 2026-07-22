@@ -162,6 +162,43 @@ class CredenciaisAcessoTest extends TestCase
             ->assertStatus(403);
     }
 
+    public function test_store_multiplo_amarra_venda_e_cnpj(): void
+    {
+        // Quando o cadastro parte da tela de um contrato, o acesso é amarrado ao
+        // venda_id e ao CNPJ (só dígitos) do contrato — para casar na aba Cliente.
+        $contatoId = DB::table('contatos')->insertGetId([
+            'empresa_id' => $this->empresa->id, 'user_import_id' => $this->admin->id,
+            'nome_cliente' => 'ACME LTDA', 'cpf' => '15285829000155',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $venda = \App\Models\Vendas::create([
+            'empresa_id' => $this->empresa->id,
+            'user_id' => $this->admin->id,
+            'contato_id' => $contatoId,
+            'nome_contrato' => 'ACME LTDA',
+            'cpf_cnpj' => '15.285.829/0001-55',
+            'operadora' => 'AMIL',
+            'data_vigencia' => now(),
+            'data_implantacao' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('backoffice.credenciais.storeMultiplo'), [
+                'status' => 'Y',
+                'venda_id' => $venda->id,
+                'acessos' => [['nome' => 'master', 'login' => 'x', 'senha' => 'y']],
+            ])
+            ->assertStatus(201);
+
+        $this->assertDatabaseHas('credenciais_acesso', [
+            'empresa_id' => $this->empresa->id,
+            'venda_id' => $venda->id,
+            'cnpj' => '15285829000155',
+            'nome' => 'MASTER',
+        ]);
+    }
+
     public function test_store_valida_nome_obrigatorio(): void
     {
         $this->actingAs($this->admin)

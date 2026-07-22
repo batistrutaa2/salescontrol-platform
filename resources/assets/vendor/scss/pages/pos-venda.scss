@@ -3089,3 +3089,135 @@
     .bv-app-row { grid-template-columns: 1fr; }
     .bv-app-remove { justify-self: end; }
 }
+
+// =====================================================================
+// Aba Cliente → cadastro de acessos (login/senha) do cliente
+// Botão na seção + modal com repetidor (mesmo fluxo do cofre de acessos)
+// =====================================================================
+.pv-add-acesso {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.78rem; font-weight: 700; white-space: nowrap;
+    color: var(--pv-primary); cursor: pointer;
+    background: rgba(var(--pv-primary-rgb), 0.08);
+    border: 1px dashed rgba(var(--pv-primary-rgb), 0.35);
+    border-radius: 9px; padding: 0.42rem 0.8rem;
+    transition: background 0.18s ease;
+}
+.pv-add-acesso:hover { background: rgba(var(--pv-primary-rgb), 0.16); }
+.pv-empty-link {
+    padding: 0; border: 0; background: none; cursor: pointer;
+    color: var(--pv-primary); font-weight: 700; text-decoration: underline;
+}
+
+// Modal --------------------------------------------------------------
+#pvAcessoModal .pvac-dialog {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.pvac-content {
+    border: 1px solid var(--pv-card-border);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--pv-card-bg);
+    backdrop-filter: blur(var(--pv-glass-blur));
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--pv-text-primary);
+}
+.pvac-head {
+    align-items: flex-start; gap: 0.85rem;
+    border-bottom: 1px solid var(--pv-card-border);
+    background: linear-gradient(135deg, rgba(var(--pv-primary-rgb), 0.08), rgba(var(--pv-info-rgb), 0.03));
+    padding: 1.15rem 1.4rem;
+}
+.pvac-head-txt { display: flex; align-items: center; gap: 0.8rem; }
+.pvac-head-icon {
+    width: 42px; height: 42px; flex: none;
+    display: grid; place-items: center; border-radius: 12px; color: #fff;
+    background: linear-gradient(135deg, var(--pv-primary), var(--pv-primary-light));
+    box-shadow: 0 6px 16px rgba(var(--pv-primary-rgb), 0.35);
+}
+.pvac-title { font-weight: 800; font-size: 1.05rem; color: var(--pv-text-primary); margin: 0; }
+.pvac-sub { font-size: 0.78rem; color: var(--pv-text-secondary); }
+
+.pvac-body { padding: 1.4rem; }
+.pvac-ctx {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+}
+.pvac-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.pvac-field-full { grid-column: 1 / -1; }
+.pvac-label {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--pv-text-muted);
+}
+.pvac-mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; letter-spacing: 0.2px; }
+
+.pvac-acessos-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    margin-bottom: 0.6rem;
+}
+.pvac-acessos-title { font-size: 0.82rem; font-weight: 800; color: var(--pv-text-primary); }
+.pvac-acessos-count { color: var(--pv-primary); font-weight: 800; }
+.pvac-add {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.78rem; font-weight: 700; white-space: nowrap;
+    color: var(--pv-primary); cursor: pointer;
+    background: rgba(var(--pv-primary-rgb), 0.08);
+    border: 1px dashed rgba(var(--pv-primary-rgb), 0.35);
+    border-radius: 9px; padding: 0.42rem 0.8rem;
+    transition: background 0.18s ease;
+}
+.pvac-add:hover { background: rgba(var(--pv-primary-rgb), 0.16); }
+
+.pvac-acessos { display: flex; flex-direction: column; gap: 0.6rem; }
+.pvac-acesso {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.9fr) 1fr 1fr auto;
+    gap: 0.6rem; align-items: end;
+    padding: 0.8rem 0.85rem; border-radius: 12px;
+    background: rgba(var(--pv-primary-rgb), 0.04);
+    border: 1px solid rgba(var(--pv-primary-rgb), 0.14);
+    border-left: 3px solid var(--pv-primary);
+}
+.pvac-acesso-f { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.pvac-senha-wrap { position: relative; }
+.pvac-senha-wrap .pvac-acesso-senha { padding-right: 2.4rem; }
+.pvac-eye {
+    position: absolute; top: 50%; right: 0.5rem; transform: translateY(-50%);
+    display: grid; place-items: center; width: 28px; height: 28px;
+    border: 0; background: none; color: var(--pv-text-muted); cursor: pointer;
+}
+.pvac-eye:hover { color: var(--pv-primary); }
+.pvac-remove {
+    width: 36px; height: 36px; flex: none; margin-bottom: 1px;
+    display: grid; place-items: center; border-radius: 8px;
+    border: 1px solid rgba(var(--pv-primary-rgb), 0.16);
+    background: transparent; color: var(--pv-danger); cursor: pointer;
+    transition: all 0.18s ease;
+}
+.pvac-remove:hover { background: rgba(var(--pv-danger-rgb), 0.1); border-color: rgba(var(--pv-danger-rgb), 0.3); }
+
+.pvac-foot {
+    border-top: 1px solid var(--pv-card-border);
+    padding: 1rem 1.4rem; gap: 0.6rem;
+}
+.pvac-btn-primary {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-weight: 700; color: #fff; cursor: pointer;
+    background: linear-gradient(135deg, var(--pv-primary), var(--pv-primary-light));
+    border: 0; border-radius: 10px; padding: 0.55rem 1.2rem;
+    box-shadow: 0 6px 16px rgba(var(--pv-primary-rgb), 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pvac-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(var(--pv-primary-rgb), 0.4); }
+.pvac-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+@media (max-width: 680px) {
+    .pvac-ctx { grid-template-columns: 1fr; }
+    .pvac-acesso { grid-template-columns: 1fr; }
+    .pvac-remove { justify-self: end; margin: 0; }
+}

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CredencialAcesso;
 use App\Models\CredencialAcessoHistorico;
 use App\Models\Operadora;
+use App\Models\Vendas;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -150,13 +151,25 @@ class CredenciaisAcessoController extends Controller
             'tipo' => 'nullable|string|max:50',
             'observacao' => 'nullable|string',
             'status' => 'required|in:Y,N',
+            'venda_id' => 'nullable|integer|exists:vendas,id',
             'acessos' => 'required|array|min:1',
             'acessos.*.nome' => 'required|string|max:255',
             'acessos.*.login' => 'nullable|string|max:255',
             'acessos.*.senha' => 'nullable|string|max:255',
         ]);
 
-        $qtd = DB::transaction(function () use ($validated) {
+        // Quando o cadastro parte da tela de um contrato, amarra o acesso ao
+        // contrato (venda_id) e ao CNPJ do cliente — assim ele já aparece na
+        // aba "Acessos do cliente" (casada por venda_id/CNPJ).
+        $vendaId = null;
+        $cnpj = null;
+        if (! empty($validated['venda_id'])) {
+            $venda = Vendas::where('empresa_id', $this->empresaId())->find($validated['venda_id']);
+            $vendaId = $venda?->id;
+            $cnpj = $venda ? preg_replace('/\D/', '', (string) $venda->cpf_cnpj) : null;
+        }
+
+        $qtd = DB::transaction(function () use ($validated, $vendaId, $cnpj) {
             $userId = Auth::id();
             $criadas = 0;
 
@@ -165,6 +178,8 @@ class CredenciaisAcessoController extends Controller
                     'empresa_id' => $this->empresaId(),
                     'operadora_id' => $validated['operadora_id'] ?? null,
                     'tipo' => $validated['tipo'] ?? null,
+                    'venda_id' => $vendaId,
+                    'cnpj' => $cnpj ?: null,
                     'nome' => $acesso['nome'],
                     'login' => $acesso['login'] ?? null,
                     'senha' => $acesso['senha'] ?? null,
