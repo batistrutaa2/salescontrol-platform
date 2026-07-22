@@ -3028,3 +3028,59 @@
         background: rgba(255,255,255,0.03);
     }
 }
+
+// =====================================================================
+// Boas-vindas: modal mais largo + repetidor de "Acessos ao aplicativo"
+// (vários login/senha por mensagem — cada acesso vira um bloco no texto)
+// =====================================================================
+.bv-modal-dialog { max-width: 960px; }
+
+.bv-acessos-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.bv-acessos-count {
+    display: inline-flex; min-width: 20px; height: 20px; padding: 0 6px;
+    align-items: center; justify-content: center; border-radius: 100px;
+    font-size: 0.7rem; font-weight: 700;
+    background: rgba(var(--pv-primary-rgb, 124, 58, 237), 0.12);
+    color: var(--pv-primary, #7C3AED);
+}
+.bv-acessos-count:empty { display: none; }
+.bv-add-acesso {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.78rem; font-weight: 700; white-space: nowrap;
+    color: var(--pv-primary, #7C3AED);
+    background: rgba(var(--pv-primary-rgb, 124, 58, 237), 0.08);
+    border: 1px dashed rgba(var(--pv-primary-rgb, 124, 58, 237), 0.35);
+    border-radius: 9px; padding: 0.42rem 0.8rem; cursor: pointer;
+    transition: background 0.18s ease;
+}
+.bv-add-acesso:hover { background: rgba(var(--pv-primary-rgb, 124, 58, 237), 0.16); }
+
+.bv-acessos-app { display: flex; flex-direction: column; gap: 0.6rem; }
+.bv-app-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.85fr) 1fr 1fr auto;
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+    background: rgba(var(--pv-primary-rgb, 124, 58, 237), 0.04);
+    border: 1px solid rgba(var(--pv-primary-rgb, 124, 58, 237), 0.14);
+    border-left: 3px solid var(--pv-primary, #7C3AED);
+}
+.bv-app-row .pv-form-input { margin: 0; }
+.bv-app-rotulo { font-weight: 600; }
+.bv-app-login, .bv-app-senha { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; letter-spacing: 0.2px; }
+
+.bv-app-remove {
+    width: 36px; height: 36px; flex: none;
+    display: grid; place-items: center; border-radius: 8px;
+    border: 1px solid rgba(var(--pv-primary-rgb, 124, 58, 237), 0.16);
+    background: transparent; color: #d02f22; cursor: pointer; transition: all 0.18s ease;
+}
+.bv-app-remove:hover:not(:disabled) { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+.bv-app-remove:disabled { opacity: 0.3; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+    .bv-app-row { grid-template-columns: 1fr; }
+    .bv-app-remove { justify-self: end; }
+}

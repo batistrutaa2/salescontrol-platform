@@ -2705,6 +2705,10 @@ class Backoffice extends Controller
                 'beneficiarios.*.codigo' => 'nullable|string',
                 'login_app' => 'nullable|string|max:100',
                 'senha_app' => 'nullable|string|max:100',
+                'acessos_app' => 'nullable|array',
+                'acessos_app.*.rotulo' => 'nullable|string|max:120',
+                'acessos_app.*.login' => 'nullable|string|max:150',
+                'acessos_app.*.senha' => 'nullable|string|max:150',
                 'portal_user' => 'nullable|string|max:100',
                 'portal_senha' => 'nullable|string|max:100',
                 'mensagem_personalizada' => 'required_if:tipo_envio,personalizado|nullable|string',
@@ -2903,6 +2907,10 @@ class Backoffice extends Controller
                 'beneficiarios.*.codigo' => 'nullable|string',
                 'login_app' => 'nullable|string|max:100',
                 'senha_app' => 'nullable|string|max:100',
+                'acessos_app' => 'nullable|array',
+                'acessos_app.*.rotulo' => 'nullable|string|max:120',
+                'acessos_app.*.login' => 'nullable|string|max:150',
+                'acessos_app.*.senha' => 'nullable|string|max:150',
                 'portal_user' => 'nullable|string|max:100',
                 'portal_senha' => 'nullable|string|max:100',
                 'mensagem_personalizada' => 'nullable|string',
@@ -2933,6 +2941,37 @@ class Backoffice extends Controller
      * Monta o array de dados consumido pelo BoasVindasMail (template HTML).
      * Reaproveita exatamente os mesmos inputs do envio por WhatsApp.
      */
+    /**
+     * Normaliza os acessos do aplicativo: aceita a lista nova (acessos_app) ou,
+     * como fallback, o par único legado (login_app/senha_app). Descarta vazios.
+     *
+     * @return array<int, array{rotulo:string, login:string, senha:string}>
+     */
+    private function normalizarAcessosApp(Request $request): array
+    {
+        $acessos = $request->input('acessos_app', []);
+        $acessos = is_array($acessos) ? $acessos : [];
+
+        $acessos = array_values(array_filter(
+            $acessos,
+            fn ($a) => trim((string) ($a['login'] ?? '')) !== '' || trim((string) ($a['senha'] ?? '')) !== ''
+        ));
+
+        if (empty($acessos)) {
+            $login = trim((string) $request->input('login_app', ''));
+            $senha = trim((string) $request->input('senha_app', ''));
+            if ($login !== '' || $senha !== '') {
+                $acessos = [['rotulo' => '', 'login' => $login, 'senha' => $senha]];
+            }
+        }
+
+        return array_map(fn ($a) => [
+            'rotulo' => trim((string) ($a['rotulo'] ?? '')),
+            'login' => trim((string) ($a['login'] ?? '')),
+            'senha' => (string) ($a['senha'] ?? ''),
+        ], $acessos);
+    }
+
     private function buildDadosEmailPadrao(Request $request, string $nomeEmpresa, string $operadora, string $tipoEnvio): array
     {
         return [
@@ -2941,6 +2980,7 @@ class Backoffice extends Controller
             'nomeEmpresa' => $nomeEmpresa ?: 'LK Brokers',
             'operadora' => $operadora,
             'beneficiarios' => $request->input('beneficiarios', []),
+            'acessosApp' => $this->normalizarAcessosApp($request),
             'loginApp' => $request->input('login_app', ''),
             'senhaApp' => $request->input('senha_app', ''),
             'linkIos' => $request->input('link_ios', ''),
@@ -2959,8 +2999,7 @@ class Backoffice extends Controller
     {
         $nomeContrato = $request->input('nome_contrato', '');
         $beneficiarios = $request->input('beneficiarios', []);
-        $loginApp = $request->input('login_app', '');
-        $senhaApp = $request->input('senha_app', '');
+        $acessosApp = $this->normalizarAcessosApp($request);
         $linkIos = $request->input('link_ios', '');
         $linkAndroid = $request->input('link_android', '');
         $portalUser = $request->input('portal_user', '');
@@ -2978,9 +3017,18 @@ class Backoffice extends Controller
         $msg .= "Parabenizamos pela escolha e confiança depositada em nossos serviços. Estamos certos de que essa parceria será um sucesso!\n\n";
         $msg .= "*Detalhes do Acesso e Benefícios*\n\n";
         $msg .= "*📋 Matrículas e Beneficiários:*{$linhasBeneficiarios}\n\n";
-        $msg .= "*📱 Login e Senha — Aplicativo da Operadora:*\n";
-        $msg .= "• Login: {$loginApp}\n";
-        $msg .= "• Senha: {$senhaApp}\n";
+
+        if (! empty($acessosApp)) {
+            $msg .= "*📱 Login e Senha — Aplicativo da Operadora:*\n";
+            foreach ($acessosApp as $a) {
+                $rotulo = strtoupper(trim($a['rotulo'] ?? ''));
+                if ($rotulo !== '') {
+                    $msg .= "\n*{$rotulo}*\n";
+                }
+                $msg .= "• Login: {$a['login']}\n";
+                $msg .= "• Senha: {$a['senha']}\n";
+            }
+        }
 
         if (! empty($linkIos) || ! empty($linkAndroid)) {
             $msg .= "\n*📲 Download do Aplicativo:*\n";

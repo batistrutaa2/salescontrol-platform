@@ -12,6 +12,10 @@
     $beneficiarios   = $dados['beneficiarios'] ?? [];
     $loginApp        = $dados['loginApp'] ?? '';
     $senhaApp        = $dados['senhaApp'] ?? '';
+    $acessosApp      = $dados['acessosApp'] ?? [];
+    if (empty($acessosApp) && ($loginApp || $senhaApp)) {
+        $acessosApp = [['rotulo' => '', 'login' => $loginApp, 'senha' => $senhaApp]];
+    }
     $linkIos         = $dados['linkIos'] ?? '';
     $linkAndroid     = $dados['linkAndroid'] ?? '';
     $portalUser      = $dados['portalUser'] ?? '';
@@ -106,20 +110,27 @@
                             </tr>
                         @endif
 
-                        {{-- Login / senha do app --}}
-                        @if($loginApp || $senhaApp)
+                        {{-- Login / senha do app (um ou vários acessos) --}}
+                        @if(count($acessosApp) > 0)
                             <tr>
                                 <td style="padding:22px 40px 0;">
                                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{{ $fundoSec }};border:1px solid {{ $borda }};border-radius:12px;">
                                         <tr>
                                             <td style="padding:18px 20px;">
                                                 <p style="margin:0 0 12px;font-family:{{ $fontUI }};font-size:14px;font-weight:700;color:{{ $texto }};">📱 Acesso ao Aplicativo da Operadora</p>
-                                                @if($loginApp)
-                                                    <p style="margin:0 0 6px;font-family:{{ $fontUI }};font-size:14px;color:{{ $textoSec }};">Login:&nbsp; <span style="font-family:{{ $fontMono }};font-weight:600;color:{{ $texto }};">{{ $loginApp }}</span></p>
-                                                @endif
-                                                @if($senhaApp)
-                                                    <p style="margin:0;font-family:{{ $fontUI }};font-size:14px;color:{{ $textoSec }};">Senha:&nbsp; <span style="font-family:{{ $fontMono }};font-weight:600;color:{{ $texto }};">{{ $senhaApp }}</span></p>
-                                                @endif
+                                                @foreach($acessosApp as $i => $a)
+                                                    <div style="@if($i > 0)margin-top:14px;padding-top:14px;border-top:1px solid {{ $borda }};@endif">
+                                                        @if(!empty($a['rotulo']))
+                                                            <p style="margin:0 0 6px;font-family:{{ $fontUI }};font-size:13px;font-weight:700;color:{{ $texto }};">{{ strtoupper($a['rotulo']) }}</p>
+                                                        @endif
+                                                        @if(!empty($a['login']))
+                                                            <p style="margin:0 0 6px;font-family:{{ $fontUI }};font-size:14px;color:{{ $textoSec }};">Login:&nbsp; <span style="font-family:{{ $fontMono }};font-weight:600;color:{{ $texto }};">{{ $a['login'] }}</span></p>
+                                                        @endif
+                                                        @if(!empty($a['senha']))
+                                                            <p style="margin:0;font-family:{{ $fontUI }};font-size:14px;color:{{ $textoSec }};">Senha:&nbsp; <span style="font-family:{{ $fontMono }};font-weight:600;color:{{ $texto }};">{{ $a['senha'] }}</span></p>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
                                             </td>
                                         </tr>
                                     </table>

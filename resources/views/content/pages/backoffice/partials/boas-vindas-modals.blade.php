@@ -2,7 +2,7 @@
 
 <!-- Modal Boas Vindas -->
 <div class="modal fade" id="modalBoasVindas" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-xl bv-modal-dialog">
         <div class="modal-content pv-modal-modern">
             <div class="pv-modal-header pv-modal-header-info">
                 <div class="pv-modal-header-content">
@@ -147,16 +147,26 @@
                         <div id="bv-beneficiarios-list" class="bv-beneficiarios-list"></div>
                     </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="pv-form-label">Login do Aplicativo</label>
-                            <input type="text" class="pv-form-input" id="bv-login-app" placeholder="CPF ou login">
-                        </div>
-                        <div class="col-6">
-                            <label class="pv-form-label">Senha do Aplicativo</label>
-                            <input type="text" class="pv-form-input" id="bv-senha-app" placeholder="Ex: Saude2026">
-                        </div>
+                    {{-- Acessos ao aplicativo (um ou vários login/senha) --}}
+                    <div class="bv-acessos-head mb-2">
+                        <label class="pv-form-label mb-0">Acessos ao aplicativo <span class="bv-acessos-count" id="bv-acessos-count"></span></label>
+                        <button type="button" class="bv-add-acesso" id="bv-add-acesso">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Adicionar acesso
+                        </button>
                     </div>
+                    <div class="bv-acessos-app mb-3" id="bv-acessos-app"></div>
+
+                    <template id="bv-acesso-app-tpl">
+                        <div class="bv-app-row">
+                            <input type="text" class="pv-form-input bv-app-rotulo" placeholder="Rótulo (ex.: titular)" oninput="atualizarPreviewPadrao()">
+                            <input type="text" class="pv-form-input bv-app-login" placeholder="Login / CPF" oninput="atualizarPreviewPadrao()">
+                            <input type="text" class="pv-form-input bv-app-senha" placeholder="Senha (ex.: Saude2026)" oninput="atualizarPreviewPadrao()">
+                            <button type="button" class="bv-app-remove" title="Remover acesso" aria-label="Remover acesso">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </template>
 
                     <div class="row g-2 mb-3">
                         <div class="col-6">

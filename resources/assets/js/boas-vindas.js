@@ -94,6 +94,45 @@
     }
 
     // -------------------------------------------------- abrir modal
+    // -------------------------------------------------- acessos ao app (repetidor)
+    const bvAcessosBox = () => document.getElementById('bv-acessos-app');
+
+    function bvAtualizarAcessosApp() {
+        const linhas = bvAcessosBox().querySelectorAll('.bv-app-row');
+        linhas.forEach((l) => {
+            const rm = l.querySelector('.bv-app-remove');
+            if (rm) rm.disabled = linhas.length <= 1;
+        });
+        const count = document.getElementById('bv-acessos-count');
+        if (count) count.textContent = linhas.length > 1 ? linhas.length : '';
+    }
+
+    function bvAddAcessoApp(dados = null, foco = false) {
+        const tpl = document.getElementById('bv-acesso-app-tpl');
+        const node = tpl.content.firstElementChild.cloneNode(true);
+        if (dados) {
+            node.querySelector('.bv-app-rotulo').value = dados.rotulo ?? '';
+            node.querySelector('.bv-app-login').value = dados.login ?? '';
+            node.querySelector('.bv-app-senha').value = dados.senha ?? '';
+        }
+        bvAcessosBox().appendChild(node);
+        bvAtualizarAcessosApp();
+        if (foco) node.querySelector('.bv-app-rotulo').focus();
+    }
+
+    function bvLerAcessosApp() {
+        return Array.from(bvAcessosBox().querySelectorAll('.bv-app-row')).map((l) => ({
+            rotulo: l.querySelector('.bv-app-rotulo').value.trim(),
+            login: l.querySelector('.bv-app-login').value.trim(),
+            senha: l.querySelector('.bv-app-senha').value.trim(),
+        }));
+    }
+
+    function bvResetAcessosApp() {
+        bvAcessosBox().innerHTML = '';
+        bvAddAcessoApp();
+    }
+
     window.abrirBoasVindas = async function (vendaId) {
         document.getElementById('boas-vindas-venda-id').value = vendaId;
         document.getElementById('bv-no-token-alert').classList.add('d-none');
@@ -104,6 +143,7 @@
 
         selecionarModoBoasVindas('padrao');
         atualizarCanaisUI();
+        bvResetAcessosApp();
 
         const modal = new bootstrap.Modal(modalBoasVindasEl);
         modal.show();
@@ -297,8 +337,7 @@
     window.atualizarPreviewPadrao = function () {
         const nomeContrato = document.getElementById('bv-contrato-nome').textContent;
         const operadora = document.getElementById('bv-operadora').textContent;
-        const loginApp = document.getElementById('bv-login-app').value.trim();
-        const senhaApp = document.getElementById('bv-senha-app').value.trim();
+        const acessosApp = bvLerAcessosApp();
         const portalUser = document.getElementById('bv-portal-user').value.trim();
         const portalSenha = document.getElementById('bv-portal-senha').value.trim();
         const linkIos = document.getElementById('bv-link-ios').value.trim();
@@ -317,9 +356,14 @@
         msg += `É com grande prazer que damos as boas-vindas! Parabenizamos pela escolha e confiança depositada em nossos serviços. Estamos certos de que essa parceria será um sucesso!\n\n`;
         msg += `*Detalhes do Acesso e Benefícios*\n\n`;
         msg += `*📋 Matrículas e Beneficiários:*${linhasBen || '\n(preencha os campos acima)'}\n\n`;
+        const comConteudo = acessosApp.filter((a) => a.rotulo || a.login || a.senha);
+        const paraMostrar = comConteudo.length ? comConteudo : [{ rotulo: '', login: '', senha: '' }];
         msg += `*📱 Login e Senha — Aplicativo da Operadora (${operadora}):*\n`;
-        msg += `• Login: ${loginApp || '...'}\n`;
-        msg += `• Senha: ${senhaApp || '...'}\n`;
+        paraMostrar.forEach((a) => {
+            if (a.rotulo) msg += `\n*${a.rotulo.toUpperCase()}*\n`;
+            msg += `• Login: ${a.login || '...'}\n`;
+            msg += `• Senha: ${a.senha || '...'}\n`;
+        });
 
         if (linkIos || linkAndroid) {
             msg += `\n*📲 Download do Aplicativo:*\n`;
@@ -355,8 +399,7 @@
 
             out.beneficiarios = beneficiarios;
             out.nome_contrato = document.getElementById('bv-contrato-nome').textContent;
-            out.login_app = document.getElementById('bv-login-app').value.trim();
-            out.senha_app = document.getElementById('bv-senha-app').value.trim();
+            out.acessos_app = bvLerAcessosApp().filter((a) => a.login || a.senha);
             out.link_ios = document.getElementById('bv-link-ios').value.trim();
             out.link_android = document.getElementById('bv-link-android').value.trim();
             out.portal_user = document.getElementById('bv-portal-user').value.trim();
@@ -661,7 +704,18 @@
     document.getElementById('btn-config-token')?.addEventListener('click', abrirConfigToken);
     document.getElementById('bv-canal-whatsapp')?.addEventListener('change', atualizarCanaisUI);
     document.getElementById('bv-canal-email')?.addEventListener('change', atualizarCanaisUI);
-    ['bv-login-app', 'bv-senha-app', 'bv-portal-user', 'bv-portal-senha'].forEach(id => {
+    ['bv-portal-user', 'bv-portal-senha'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', () => atualizarPreviewPadrao());
+    });
+
+    // Repetidor de acessos ao app: adicionar / remover.
+    document.getElementById('bv-add-acesso')?.addEventListener('click', () => bvAddAcessoApp(null, true));
+    document.getElementById('bv-acessos-app')?.addEventListener('click', (e) => {
+        const rm = e.target.closest('.bv-app-remove');
+        if (rm && !rm.disabled) {
+            rm.closest('.bv-app-row').remove();
+            bvAtualizarAcessosApp();
+            atualizarPreviewPadrao();
+        }
     });
 })();
