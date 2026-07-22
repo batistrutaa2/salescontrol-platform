@@ -201,12 +201,23 @@
     <div class="pv-screen" data-venda-id="{{ $contract->id }}" data-csrf="{{ csrf_token() }}">
     {{-- Switcher: navega entre os contratos do mesmo cliente (CNPJ/CPF) sem trocar de tela. Preenchido pelo JS. --}}
     <div class="pv-switcher-host"></div>
+    @php
+        $statusDesc = $contract->tabulacao->descricao ?? '—';
+        $s = mb_strtoupper($statusDesc, 'UTF-8');
+        $statusCls = (str_contains($s, 'IMPLANT') || str_contains($s, 'REGULAR')) ? 'st-ok'
+            : ((str_contains($s, 'ESTORNO') || str_contains($s, 'DECLIN') || str_contains($s, 'CANCEL')) ? 'st-perdido'
+            : (str_contains($s, 'PENDENC') ? 'st-atencao' : 'st-andamento'));
+    @endphp
     <div class="pv-tabnav">
         <button type="button" class="pv-tab active" data-pane="contrato">Contrato</button>
         <button type="button" class="pv-tab" data-pane="portabilidade">Portabilidade</button>
         <button type="button" class="pv-tab" data-pane="cancelamento">Cancelamento <span class="pv-tab-count" data-count="cancelamento"></span></button>
         <button type="button" class="pv-tab" data-pane="emails">E-mails criados <span class="pv-tab-count" data-count="emails"></span></button>
         <button type="button" class="pv-tab" data-pane="cliente">Cliente <span class="pv-tab-count" data-count="cliente"></span></button>
+        <span class="pv-header-status" title="Status atual da proposta (implantação)">
+            <span class="pv-header-status-label">Status da proposta</span>
+            <span class="pv-status {{ $statusCls }}">{{ $statusDesc }}</span>
+        </span>
     </div>
 
     <div class="pv-pane active" data-pane="contrato">

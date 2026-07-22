@@ -117,6 +117,27 @@
 .pv-tab-count.has-value { display: inline-flex; }
 .pv-tab-count.all-done { background: var(--pv-success); }
 
+// Status atual da proposta, sempre visível na barra de abas (para o pós-venda)
+.pv-header-status {
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.35rem;
+}
+.pv-header-status-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pv-text-muted);
+}
+.pv-header-status .pv-status { font-size: 0.72rem; padding: 4px 12px; }
+@media (max-width: 640px) {
+  .pv-header-status { margin-left: 0; width: 100%; padding-top: 0.5rem; }
+}
+
 // ---------- Panes ----------
 .pv-pane { display: none; }
 .pv-pane.active { display: block; animation: pvFade 0.2s ease; }
