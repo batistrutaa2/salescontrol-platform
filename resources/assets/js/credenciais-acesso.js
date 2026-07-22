@@ -108,15 +108,56 @@
     const credencialModal = () => bootstrap.Modal.getOrCreateInstance(document.getElementById('credencialModal'));
     const historicoModal = () => bootstrap.Modal.getOrCreateInstance(document.getElementById('historicoModal'));
 
+    // ---- Repetidor de acessos (login/senha) ----
+    const acessosBox = () => document.getElementById('cred-acessos');
+
+    function atualizarAcessos() {
+        const linhas = acessosBox().querySelectorAll('.cred-acesso');
+        linhas.forEach((l) => {
+            const rm = l.querySelector('.cred-remove-acesso');
+            if (rm) rm.disabled = linhas.length <= 1;
+        });
+        const count = document.getElementById('cred-acessos-count');
+        if (count) count.textContent = linhas.length > 1 ? linhas.length : '';
+        const editando = !!document.getElementById('credencial_id').value;
+        const btn = document.getElementById('cred-salvar-btn');
+        if (btn) btn.textContent = editando ? 'Salvar' : (linhas.length > 1 ? `Salvar ${linhas.length} acessos` : 'Salvar acesso');
+    }
+
+    function adicionarAcesso(dados = null, foco = false) {
+        const tpl = document.getElementById('cred-acesso-tpl');
+        const node = tpl.content.firstElementChild.cloneNode(true);
+        if (dados) {
+            node.querySelector('.acesso-nome').value = dados.nome ?? '';
+            node.querySelector('.acesso-login').value = dados.login ?? '';
+            node.querySelector('.acesso-senha').value = dados.senha ?? '';
+        }
+        acessosBox().appendChild(node);
+        atualizarAcessos();
+        if (foco) node.querySelector('.acesso-nome').focus();
+    }
+
+    function coletarAcessos() {
+        return Array.from(acessosBox().querySelectorAll('.cred-acesso')).map((l) => ({
+            nome: l.querySelector('.acesso-nome').value.trim(),
+            login: l.querySelector('.acesso-login').value.trim() || null,
+            senha: l.querySelector('.acesso-senha').value || null,
+        }));
+    }
+
     function resetForm() {
         document.getElementById('formCredencial').reset();
         document.getElementById('credencial_id').value = '';
         $('#operadora_id').val('').trigger('change');
+        acessosBox().innerHTML = '';
     }
 
     function abrirNova() {
         resetForm();
-        document.getElementById('credencialModalLabel').textContent = 'Nova Credencial';
+        document.getElementById('credencialModalLabel').textContent = 'Novo acesso';
+        document.getElementById('credencialModalSub').textContent = 'Cadastre um ou vários logins do mesmo portal';
+        document.getElementById('cred-add-acesso').style.display = '';
+        adicionarAcesso();
         credencialModal().show();
     }
 
@@ -126,15 +167,15 @@
             if (!resp.ok) throw new Error();
             const c = await resp.json();
             resetForm();
-            document.getElementById('credencialModalLabel').textContent = 'Editar Credencial';
+            document.getElementById('credencialModalLabel').textContent = 'Editar acesso';
+            document.getElementById('credencialModalSub').textContent = 'Altere os dados deste acesso';
             document.getElementById('credencial_id').value = c.id;
             document.getElementById('tipo').value = c.tipo ?? '';
-            document.getElementById('nome').value = c.nome ?? '';
-            document.getElementById('login').value = c.login ?? '';
-            document.getElementById('senha').value = c.senha ?? '';
             document.getElementById('observacao').value = c.observacao ?? '';
             document.getElementById('status').value = c.status ?? 'Y';
             $('#operadora_id').val(c.operadora_id ? String(c.operadora_id) : '').trigger('change');
+            document.getElementById('cred-add-acesso').style.display = 'none';
+            adicionarAcesso({ nome: c.nome, login: c.login, senha: c.senha });
             credencialModal().show();
         } catch {
             Toast.fire({ icon: 'error', title: 'Não foi possível carregar a credencial' });
@@ -144,27 +185,30 @@
     async function salvar(e) {
         e.preventDefault();
         const id = document.getElementById('credencial_id').value;
-        const url = id ? `/back-office/credenciais/${id}` : '/back-office/credenciais';
-        const method = id ? 'PUT' : 'POST';
+        const acessos = coletarAcessos();
 
-        const payload = {
+        if (acessos.some((a) => !a.nome)) {
+            Toast.fire({ icon: 'error', title: 'Informe o nome/rótulo de cada acesso' });
+            return;
+        }
+
+        const contexto = {
             operadora_id: document.getElementById('operadora_id').value || null,
             tipo: document.getElementById('tipo').value || null,
-            nome: document.getElementById('nome').value,
-            login: document.getElementById('login').value || null,
-            senha: document.getElementById('senha').value || null,
             observacao: document.getElementById('observacao').value || null,
             status: document.getElementById('status').value,
         };
 
+        const url = id ? `/back-office/credenciais/${id}` : '/back-office/credenciais/lote';
+        const method = id ? 'PUT' : 'POST';
+        const payload = id
+            ? { ...contexto, nome: acessos[0].nome, login: acessos[0].login, senha: acessos[0].senha }
+            : { ...contexto, acessos };
+
         try {
             const resp = await fetch(url, {
                 method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': CSRF,
-                },
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': CSRF },
                 body: JSON.stringify(payload),
             });
             const data = await resp.json();
@@ -390,6 +434,19 @@
 
         document.getElementById('btnNovaCredencial').addEventListener('click', abrirNova);
         document.getElementById('formCredencial').addEventListener('submit', salvar);
+
+        // Repetidor de acessos: adicionar, remover e mostrar/ocultar senha.
+        document.getElementById('cred-add-acesso').addEventListener('click', () => adicionarAcesso(null, true));
+        acessosBox().addEventListener('click', (e) => {
+            const rm = e.target.closest('.cred-remove-acesso');
+            if (rm && !rm.disabled) { rm.closest('.cred-acesso').remove(); atualizarAcessos(); return; }
+            const eye = e.target.closest('.cred-eye');
+            if (eye) {
+                const inp = eye.closest('.cred-senha-wrap').querySelector('.acesso-senha');
+                inp.type = inp.type === 'password' ? 'text' : 'password';
+                eye.classList.toggle('is-on', inp.type === 'text');
+            }
+        });
         document.getElementById('btnImportar').addEventListener('click', abrirImport);
         document.getElementById('btnPreview').addEventListener('click', previewImport);
         document.getElementById('btnConfirmarImport').addEventListener('click', confirmarImport);

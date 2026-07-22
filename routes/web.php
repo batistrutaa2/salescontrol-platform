@@ -331,6 +331,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/credenciais/data', [CredenciaisAcessoController::class, 'getData'])->name('backoffice.credenciais.data');
   Route::post('/back-office/credenciais/importar/preview', [CredenciaisAcessoController::class, 'importPreview'])->name('backoffice.credenciais.import.preview');
   Route::post('/back-office/credenciais/importar', [CredenciaisAcessoController::class, 'import'])->name('backoffice.credenciais.import');
+  Route::post('/back-office/credenciais/lote', [CredenciaisAcessoController::class, 'storeMultiplo'])->name('backoffice.credenciais.storeMultiplo');
   Route::post('/back-office/credenciais', [CredenciaisAcessoController::class, 'store'])->name('backoffice.credenciais.store');
   Route::get('/back-office/credenciais/{id}', [CredenciaisAcessoController::class, 'show'])->whereNumber('id')->name('backoffice.credenciais.show');
   Route::put('/back-office/credenciais/{id}', [CredenciaisAcessoController::class, 'update'])->whereNumber('id')->name('backoffice.credenciais.update');

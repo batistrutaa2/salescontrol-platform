@@ -153,18 +153,28 @@
 
 {{-- Modal Nova/Editar --}}
 <div class="modal fade cred-modal" id="credencialModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl cred-modal-wide modal-dialog-centered">
         <form id="formCredencial">
             <input type="hidden" id="credencial_id" name="id">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="credencialModalLabel">Nova Credencial</h5>
+            <div class="modal-content cred-modal-content">
+                <div class="modal-header cred-modal-head">
+                    <div class="cred-modal-head-txt">
+                        <span class="cred-modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 8.3-8.3M17 5l3 3M14 8l3 3"/></svg>
+                        </span>
+                        <div>
+                            <h5 class="modal-title" id="credencialModalLabel">Novo acesso</h5>
+                            <span class="cred-modal-sub" id="credencialModalSub">Cadastre um ou vários logins do mesmo portal</span>
+                        </div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label" for="operadora_id">Operadora</label>
+
+                <div class="modal-body cred-modal-body">
+                    {{-- Contexto compartilhado por todos os acessos --}}
+                    <div class="cred-ctx">
+                        <div class="cred-field">
+                            <label class="cred-label" for="operadora_id">Operadora</label>
                             <select class="form-select select2-operadora" id="operadora_id" name="operadora_id">
                                 <option value="">— Selecione —</option>
                                 @foreach ($operadoras as $operadora)
@@ -172,8 +182,8 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="tipo">Tipo de acesso</label>
+                        <div class="cred-field">
+                            <label class="cred-label" for="tipo">Tipo de acesso</label>
                             <input type="text" class="form-control" id="tipo" name="tipo"
                                 list="tipoSugestoes" placeholder="Empresa, Pessoa Física...">
                             <datalist id="tipoSugestoes">
@@ -182,40 +192,65 @@
                                 <option value="Adesão"></option>
                             </datalist>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label" for="nome">Nome (empresa/pessoa) <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="nome" name="nome" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="login">Login (CPF/CNPJ ou código)</label>
-                            <input type="text" class="form-control cred-mono-input" id="login" name="login">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="senha">Senha</label>
-                            <input type="text" class="form-control cred-mono-input" id="senha" name="senha">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label" for="observacao">Observação</label>
-                            <textarea class="form-control" id="observacao" name="observacao" rows="2"
-                                placeholder="Senha secundária, dia de vencimento, e-mail, etc."></textarea>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="status">Status</label>
+                        <div class="cred-field">
+                            <label class="cred-label" for="status">Status</label>
                             <select class="form-select" id="status" name="status">
                                 <option value="Y">Ativo</option>
                                 <option value="N">Inativo</option>
                             </select>
                         </div>
+                        <div class="cred-field cred-field-full">
+                            <label class="cred-label" for="observacao">Observação</label>
+                            <textarea class="form-control" id="observacao" name="observacao" rows="2"
+                                placeholder="Senha secundária, dia de vencimento, e-mail, etc."></textarea>
+                        </div>
                     </div>
+
+                    {{-- Acessos (repetidor) --}}
+                    <div class="cred-acessos-head">
+                        <span class="cred-acessos-title">Acessos <span class="cred-acessos-count" id="cred-acessos-count"></span></span>
+                        <button type="button" class="cred-add-acesso" id="cred-add-acesso">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Adicionar acesso
+                        </button>
+                    </div>
+                    <div class="cred-acessos" id="cred-acessos"></div>
                 </div>
-                <div class="modal-footer">
+
+                <div class="modal-footer cred-modal-foot">
                     <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="cred-btn cred-btn-primary">Salvar</button>
+                    <button type="submit" class="cred-btn cred-btn-primary" id="cred-salvar-btn">Salvar</button>
                 </div>
             </div>
         </form>
     </div>
 </div>
+
+{{-- Template de uma linha de acesso (login/senha) --}}
+<template id="cred-acesso-tpl">
+    <div class="cred-acesso">
+        <div class="cred-acesso-f cred-acesso-f-nome">
+            <label class="cred-label">Nome / rótulo <span class="text-danger">*</span></label>
+            <input type="text" class="form-control acesso-nome" placeholder="Ex.: MASTER, SUBMASTER" required>
+        </div>
+        <div class="cred-acesso-f">
+            <label class="cred-label">Login</label>
+            <input type="text" class="form-control cred-mono-input acesso-login" placeholder="CPF/CNPJ ou código">
+        </div>
+        <div class="cred-acesso-f">
+            <label class="cred-label">Senha</label>
+            <div class="cred-senha-wrap">
+                <input type="password" class="form-control cred-mono-input acesso-senha" placeholder="••••••••">
+                <button type="button" class="cred-eye" tabindex="-1" aria-label="Mostrar ou ocultar senha">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
+        </div>
+        <button type="button" class="cred-remove-acesso" aria-label="Remover acesso" title="Remover acesso">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+    </div>
+</template>
 
 {{-- Modal Importar Excel --}}
 <div class="modal fade cred-modal" id="importarModal" tabindex="-1" aria-hidden="true">

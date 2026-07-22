@@ -137,6 +137,64 @@ class CredenciaisAcessoController extends Controller
         ], 201);
     }
 
+    /**
+     * Cadastra vários acessos (login/senha) de uma vez, compartilhando
+     * operadora/tipo/status/observação. Cada item de "acessos" vira uma credencial.
+     */
+    public function storeMultiplo(Request $request): JsonResponse
+    {
+        $this->checkAccess();
+
+        $validated = $request->validate([
+            'operadora_id' => 'nullable|integer|exists:operadoras,id',
+            'tipo' => 'nullable|string|max:50',
+            'observacao' => 'nullable|string',
+            'status' => 'required|in:Y,N',
+            'acessos' => 'required|array|min:1',
+            'acessos.*.nome' => 'required|string|max:255',
+            'acessos.*.login' => 'nullable|string|max:255',
+            'acessos.*.senha' => 'nullable|string|max:255',
+        ]);
+
+        $qtd = DB::transaction(function () use ($validated) {
+            $userId = Auth::id();
+            $criadas = 0;
+
+            foreach ($validated['acessos'] as $acesso) {
+                $credencial = CredencialAcesso::create([
+                    'empresa_id' => $this->empresaId(),
+                    'operadora_id' => $validated['operadora_id'] ?? null,
+                    'tipo' => $validated['tipo'] ?? null,
+                    'nome' => $acesso['nome'],
+                    'login' => $acesso['login'] ?? null,
+                    'senha' => $acesso['senha'] ?? null,
+                    'observacao' => $validated['observacao'] ?? null,
+                    'status' => $validated['status'],
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
+                ]);
+
+                CredencialAcessoHistorico::create([
+                    'empresa_id' => $this->empresaId(),
+                    'credencial_id' => $credencial->id,
+                    'user_id' => $userId,
+                    'acao' => 'CRIACAO',
+                    'created_at' => now(),
+                ]);
+
+                $criadas++;
+            }
+
+            return $criadas;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => $qtd > 1 ? "{$qtd} acessos cadastrados!" : 'Acesso cadastrado!',
+            'quantidade' => $qtd,
+        ], 201);
+    }
+
     public function show(int $id): JsonResponse
     {
         $this->checkAccess();

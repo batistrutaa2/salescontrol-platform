@@ -651,3 +651,120 @@
     .cred-btn-primary:hover,
     .cred-btn-ghost:hover { transform: none; }
 }
+
+// =====================================================================
+// Modal de credenciais — contexto compartilhado + repetidor de acessos
+// (login/senha em JetBrains Mono, senha revelável, N acessos por vez)
+// =====================================================================
+.cred-modal-wide { max-width: 920px; }
+.cred-modal-content { border: none; border-radius: 18px; overflow: hidden; }
+
+.cred-modal-head {
+    align-items: center;
+    gap: 1rem;
+    padding: 1.15rem 1.5rem;
+    border-bottom: 1px solid var(--dash-card-border);
+}
+.cred-modal-head-txt { display: flex; align-items: center; gap: 0.85rem; }
+.cred-modal-icon {
+    width: 42px; height: 42px; flex: none;
+    display: grid; place-items: center; border-radius: 12px; color: #fff;
+    background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-light));
+    box-shadow: 0 6px 16px rgba(var(--dash-primary-rgb), 0.3);
+}
+.cred-modal-head .modal-title { font-weight: 800; font-size: 1.1rem; color: var(--dash-text-primary); margin: 0; }
+.cred-modal-sub { font-size: 0.82rem; color: var(--dash-text-muted); }
+
+.cred-modal-body { padding: 1.4rem 1.5rem; }
+
+// Contexto compartilhado (operadora / tipo / status / observação)
+.cred-ctx {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.9rem 1rem;
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px dashed var(--dash-card-border);
+}
+.cred-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.cred-field-full { grid-column: 1 / -1; }
+.cred-label {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--dash-text-muted);
+}
+
+// Campos do modal (mais respiro + foco claro)
+.cred-modal-body .form-control,
+.cred-modal-body .form-select {
+    border-radius: 10px;
+    border: 1px solid var(--dash-card-border);
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+    background: var(--dash-card-bg);
+    color: var(--dash-text-primary);
+}
+.cred-modal-body .form-control:focus,
+.cred-modal-body .form-select:focus {
+    border-color: var(--dash-primary);
+    box-shadow: 0 0 0 3px rgba(var(--dash-primary-rgb), 0.15);
+}
+
+// Cabeçalho da seção de acessos
+.cred-acessos-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+.cred-acessos-title { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dash-text-primary); }
+.cred-acessos-count {
+    display: inline-flex; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 4px;
+    align-items: center; justify-content: center; border-radius: 100px;
+    font-size: 0.7rem; font-weight: 700; background: rgba(var(--dash-primary-rgb), 0.12); color: var(--dash-primary);
+}
+.cred-acessos-count:empty { display: none; }
+.cred-add-acesso {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.8rem; font-weight: 700; color: var(--dash-primary);
+    background: rgba(var(--dash-primary-rgb), 0.08); border: 1px dashed rgba(var(--dash-primary-rgb), 0.35);
+    border-radius: 9px; padding: 0.45rem 0.8rem; cursor: pointer; transition: all 0.18s ease;
+}
+.cred-add-acesso:hover { background: rgba(var(--dash-primary-rgb), 0.14); }
+
+// Linha de acesso (o "key card" do cofre)
+.cred-acessos { display: flex; flex-direction: column; gap: 0.7rem; }
+.cred-acesso {
+    display: grid;
+    grid-template-columns: minmax(140px, 0.9fr) 1.1fr 1.1fr auto;
+    gap: 0.75rem;
+    align-items: end;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    background: rgba(var(--dash-primary-rgb), 0.03);
+    border: 1px solid var(--dash-card-border);
+    border-left: 3px solid var(--dash-primary);
+}
+.cred-acesso-f { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+
+.cred-senha-wrap { position: relative; }
+.cred-senha-wrap .acesso-senha { padding-right: 2.4rem; }
+.cred-eye {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 30px; height: 30px; display: grid; place-items: center;
+    border: none; background: transparent; color: var(--dash-text-muted);
+    cursor: pointer; border-radius: 7px;
+}
+.cred-eye:hover { color: var(--dash-primary); background: rgba(var(--dash-primary-rgb), 0.08); }
+.cred-eye.is-on { color: var(--dash-primary); }
+
+.cred-remove-acesso {
+    width: 38px; height: 38px; flex: none; align-self: end;
+    display: grid; place-items: center; border-radius: 9px;
+    border: 1px solid var(--dash-card-border); background: var(--dash-card-bg);
+    color: #d02f22; cursor: pointer; transition: all 0.18s ease;
+}
+.cred-remove-acesso:hover:not(:disabled) { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+.cred-remove-acesso:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.cred-modal-foot { padding: 1rem 1.5rem; border-top: 1px solid var(--dash-card-border); }
+
+@media (max-width: 720px) {
+    .cred-ctx { grid-template-columns: 1fr 1fr; }
+    .cred-acesso { grid-template-columns: 1fr; align-items: stretch; }
+    .cred-remove-acesso { justify-self: end; }
+}

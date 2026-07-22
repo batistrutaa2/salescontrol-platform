@@ -122,6 +122,46 @@ class CredenciaisAcessoTest extends TestCase
         ]);
     }
 
+    public function test_store_multiplo_cria_varios_acessos_com_contexto_compartilhado(): void
+    {
+        $resp = $this->actingAs($this->admin)
+            ->postJson(route('backoffice.credenciais.storeMultiplo'), [
+                'tipo' => 'Empresa',
+                'status' => 'Y',
+                'observacao' => 'mesmo portal',
+                'acessos' => [
+                    ['nome' => 'rofer master', 'login' => '15.285.829/0001-55', 'senha' => 'a1'],
+                    ['nome' => 'rofer submaster', 'login' => '15.285.829/0001-55', 'senha' => 'a2'],
+                ],
+            ]);
+
+        $resp->assertStatus(201)->assertJson(['success' => true, 'quantidade' => 2]);
+        // Nome em maiúsculas (mutator), contexto compartilhado replicado em cada acesso.
+        $this->assertDatabaseHas('credenciais_acesso', ['empresa_id' => $this->empresa->id, 'nome' => 'ROFER MASTER', 'senha' => 'a1', 'tipo' => 'Empresa', 'observacao' => 'mesmo portal']);
+        $this->assertDatabaseHas('credenciais_acesso', ['nome' => 'ROFER SUBMASTER', 'senha' => 'a2', 'observacao' => 'mesmo portal']);
+        // Histórico de criação para cada uma.
+        $this->assertDatabaseCount('credenciais_acesso_historico', 2);
+    }
+
+    public function test_store_multiplo_valida_nome_de_cada_acesso(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson(route('backoffice.credenciais.storeMultiplo'), [
+                'status' => 'Y',
+                'acessos' => [['login' => 'x', 'senha' => 'y']], // sem nome
+            ])
+            ->assertStatus(422);
+    }
+
+    public function test_store_multiplo_bloqueia_vendedor(): void
+    {
+        $this->actingAs($this->vendedor)
+            ->postJson(route('backoffice.credenciais.storeMultiplo'), [
+                'status' => 'Y', 'acessos' => [['nome' => 'X']],
+            ])
+            ->assertStatus(403);
+    }
+
     public function test_store_valida_nome_obrigatorio(): void
     {
         $this->actingAs($this->admin)
