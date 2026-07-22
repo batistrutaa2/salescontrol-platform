@@ -295,6 +295,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/back-office/painel-processos/data', [PainelProcessosController::class, 'data'])->name('backoffice.painelProcessos.data');
   Route::post('/back-office/painel-processos/atribuir', [PainelProcessosController::class, 'atribuir'])->name('backoffice.painelProcessos.atribuir');
   Route::post('/back-office/painel-processos/concluir', [PainelProcessosController::class, 'concluir'])->name('backoffice.painelProcessos.concluir');
+  Route::post('/back-office/painel-processos/cancelamento/fase', [PainelProcessosController::class, 'faseCancelamento'])->name('backoffice.painelProcessos.faseCancelamento');
   Route::post('/back-office/painel-processos/portabilidade/fase', [PainelProcessosController::class, 'fasePortabilidade'])->name('backoffice.painelProcessos.fasePortabilidade');
 
   // Pós-Venda

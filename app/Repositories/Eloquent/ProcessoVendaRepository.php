@@ -4,6 +4,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Enums\FaseCancelamento;
 use App\Enums\FasePortabilidade;
+use App\Enums\Tabulations;
 use App\Enums\TipoDemandaContrato;
 use App\Models\CredencialAcesso;
 use App\Models\VendaDemanda;
@@ -91,7 +92,12 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
         $gruposPainel = config('processos.grupos_painel', ['cancelamentos', 'portabilidade']);
         $tiposPainel = array_keys(array_filter($grupos, fn ($g) => in_array($g, $gruposPainel, true)));
 
-        $demandas = VendaDemanda::with(['venda:id,nome_contrato', 'titular:id,nome', 'responsavel:id,name'])
+        $demandas = VendaDemanda::with([
+            'venda:id,nome_contrato,tabulacao_id,data_implantacao',
+            'venda.tabulacao:id,descricao',
+            'titular:id,nome',
+            'responsavel:id,name',
+        ])
             ->where('empresa_id', $empresaId)
             ->where('status', 'PENDENTE')
             ->whereIn('tipo', $tiposPainel)
@@ -108,12 +114,19 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
                     $faseValor,
                     $faseValor ? (FaseCancelamento::tryFrom($faseValor)?->label() ?? $faseValor) : null,
                     $grupos[$d->tipo] ?? 'outros',
+                    $d->venda?->tabulacao_id,
+                    $d->venda ? $d->venda->getRawOriginal('data_implantacao') : null,
+                    $d->venda?->tabulacao?->descricao,
                 );
             });
 
         $portabilidades = ! in_array('portabilidade', $gruposPainel, true)
             ? collect()
-            : VendaPortabilidade::with(['venda:id,nome_contrato,empresa_id', 'responsavel:id,name'])
+            : VendaPortabilidade::with([
+                'venda:id,nome_contrato,empresa_id,tabulacao_id,data_implantacao',
+                'venda.tabulacao:id,descricao',
+                'responsavel:id,name',
+            ])
                 ->where('status', 'PENDENTE')
                 ->whereHas('venda', fn ($q) => $q->where('empresa_id', $empresaId))
                 ->when($corte, fn ($q) => $q->where('vendas_portabilidades.created_at', '>=', $corte))
@@ -126,6 +139,9 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
                     $p->fase,
                     $p->fase ? (FasePortabilidade::tryFrom($p->fase)?->label() ?? $p->fase) : null,
                     'portabilidade',
+                    $p->venda?->tabulacao_id,
+                    $p->venda ? $p->venda->getRawOriginal('data_implantacao') : null,
+                    $p->venda?->tabulacao?->descricao,
                 ));
 
         $fila = $demandas->concat($portabilidades);
@@ -373,18 +389,47 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
         return true;
     }
 
-    /** Normaliza uma linha da fila e calcula prazo/atraso a partir do SLA do tipo. */
+    /**
+     * Normaliza uma linha da fila e calcula prazo/urgência. O relógio do prazo só
+     * começa na IMPLANTAÇÃO do contrato (a operação depende dela); antes disso o
+     * processo fica "aguardando implantação" e não conta atraso.
+     */
     private function linhaProcesso(
         string $fonte, int $id, ?int $vendaId, string $contrato, string $tipo, ?string $quem,
         string $status, ?int $responsavelId, ?string $responsavel, $createdAt, ?string $faseValor, ?string $faseLabel, string $grupo,
+        ?int $tabulacaoId = null, $dataImplantacao = null, ?string $situacaoContrato = null,
     ): array {
         $sla = config('processos.sla_dias', []);
         $dias = $sla[$tipo] ?? ($sla['default'] ?? 15);
+        $alerta = (int) config('processos.alerta_dias', 7);
 
         $abertura = Carbon::parse($createdAt);
-        $vencimento = $abertura->copy()->addDays($dias);
         $hoje = Carbon::now();
-        $atrasado = $hoje->greaterThan($vencimento);
+
+        // Fonte da verdade da implantação: tabulação IMPLANTADO ou data preenchida.
+        $implantado = $tabulacaoId === Tabulations::IMPLANTADO || ! empty($dataImplantacao);
+
+        // Caso raro "portou/cancelou antes de implantar": se a fase já avançou além
+        // da primeira, trata como em andamento (não bloqueia).
+        $emAndamento = $faseValor !== null && ! in_array($faseValor, ['SOLICITADO', 'REUNINDO_DOCUMENTOS'], true);
+
+        // Início do relógio: data de implantação; se implantado sem data (legado) ou
+        // já em andamento, cai para a abertura. Sem nada disso, fica bloqueado.
+        $clockStart = null;
+        if (! empty($dataImplantacao)) {
+            $clockStart = Carbon::parse($dataImplantacao);
+        } elseif ($implantado || $emAndamento) {
+            $clockStart = $abertura;
+        }
+
+        $bloqueado = $clockStart === null;
+        $vencimento = $bloqueado ? null : $clockStart->copy()->addDays($dias);
+        $atrasado = $vencimento !== null && $hoje->greaterThan($vencimento);
+        $diasParaVencer = $vencimento !== null ? (int) $hoje->diffInDays($vencimento, false) : null;
+        $vencendo = $vencimento !== null && ! $atrasado && $diasParaVencer <= $alerta;
+
+        $urgencia = $bloqueado ? 'aguardando_implantacao'
+            : ($atrasado ? 'atrasado' : ($vencendo ? 'vencendo' : 'em_dia'));
 
         return [
             'fonte' => $fonte,
@@ -402,8 +447,16 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
             'responsavel' => $responsavel,
             'aberto_em' => $abertura->format('d/m/Y'),
             'dias_aberto' => (int) $abertura->diffInDays($hoje),
-            'vence_em' => $vencimento->format('d/m/Y'),
-            'ordem_venc' => $vencimento->timestamp,
+            // Situação do contrato-pai e estado do relógio de prazo.
+            'implantado' => $implantado,
+            'bloqueado' => $bloqueado,
+            'urgencia' => $urgencia,
+            'situacao_contrato' => $situacaoContrato ?? '—',
+            'data_implantacao' => ! empty($dataImplantacao) ? Carbon::parse($dataImplantacao)->format('d/m/Y') : null,
+            'dias_bloqueado' => $bloqueado ? (int) $abertura->diffInDays($hoje) : 0,
+            'vence_em' => $vencimento?->format('d/m/Y'),
+            'dias_para_vencer' => $diasParaVencer,
+            'ordem_venc' => $vencimento ? $vencimento->timestamp : PHP_INT_MAX,
             'atrasado' => $atrasado,
             'dias_atraso' => $atrasado ? (int) $vencimento->diffInDays($hoje) : 0,
         ];

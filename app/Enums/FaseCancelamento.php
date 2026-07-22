@@ -38,11 +38,11 @@ enum FaseCancelamento: string
         return $this === self::CONCLUIDO;
     }
 
-    /** Fases em ordem, para o front montar o stepper. @return array<int, array{value:string,label:string}> */
+    /** Fases em ordem, para o front montar o stepper. @return array<int, array{value:string,label:string,final:bool}> */
     public static function fluxo(): array
     {
         return array_map(
-            fn (self $f) => ['value' => $f->value, 'label' => $f->label()],
+            fn (self $f) => ['value' => $f->value, 'label' => $f->label(), 'final' => $f->ehFinal()],
             self::cases()
         );
     }

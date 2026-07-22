@@ -1,13 +1,21 @@
 <?php
 
 /**
- * Prazos (SLA) por tipo de processo operacional, em dias corridos a partir da
- * abertura. O vencimento é calculado on-the-fly (abertura + SLA); um processo
- * PENDENTE cujo vencimento já passou aparece como "atrasado" no painel.
+ * Prazos (SLA) por tipo de processo operacional, em dias corridos. O relógio do
+ * prazo começa na IMPLANTAÇÃO do contrato atual (vendas.data_implantacao), pois a
+ * operação só age depois disso (cancelamento na operadora anterior e portabilidade
+ * dependem da apólice implantada). Antes da implantação o processo fica "aguardando
+ * implantação" e NÃO conta atraso. O vencimento é calculado on-the-fly.
  *
  * Ajuste os números conforme a realidade da operação — sem migração.
  */
 return [
+    /*
+     * Antecedência (em dias) para marcar um processo como "vencendo": dentro do
+     * prazo, mas faltando <= alerta_dias para o vencimento. Vira o balde amarelo.
+     */
+    'alerta_dias' => 7,
+
     /*
      * Corte do painel: processos em aberto criados ANTES desta data não aparecem
      * na fila (já foram tratados fora do sistema; sem o corte seria preciso dar

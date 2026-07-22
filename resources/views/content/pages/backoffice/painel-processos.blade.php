@@ -22,72 +22,68 @@
     <div class="pp-header">
         <div>
             <h4 class="pp-title">Painel de Processos</h4>
-            <span class="pp-subtitle">Tudo que está em aberto na operação — por tipo, prazo e responsável</span>
+            <span class="pp-subtitle">A esteira da operação — cancelamento e portabilidade, do "aguardando implantação" à conclusão. O prazo começa quando a apólice é implantada.</span>
         </div>
     </div>
 
-    {{-- KPIs (clicáveis: filtram a fila) --}}
+    {{-- KPIs de acionabilidade (clicáveis: filtram os boards por urgência) --}}
     <div class="pp-kpis">
-        <button type="button" class="pp-kpi" data-filter="grupo:cancelamentos">
-            <span class="pp-kpi-label">Cancelamentos em aberto</span>
-            <span class="pp-kpi-value" id="kpi-cancel">—</span>
-        </button>
-        <button type="button" class="pp-kpi" data-filter="tipo:PORTABILIDADE">
-            <span class="pp-kpi-label">Portabilidades em aberto</span>
-            <span class="pp-kpi-value" id="kpi-portab">—</span>
-        </button>
-        <button type="button" class="pp-kpi pp-kpi-danger" data-filter="so_atrasados:1">
-            <span class="pp-kpi-label">Atrasados (fora do prazo)</span>
+        <button type="button" class="pp-kpi pp-kpi-danger" data-urg="atrasado">
+            <span class="pp-kpi-label">Atrasados</span>
             <span class="pp-kpi-value" id="kpi-atrasados">—</span>
+            <span class="pp-kpi-hint">passaram do prazo</span>
         </button>
-        <button type="button" class="pp-kpi pp-kpi-muted" data-filter="">
-            <span class="pp-kpi-label">Total em aberto</span>
-            <span class="pp-kpi-value" id="kpi-total">—</span>
+        <button type="button" class="pp-kpi pp-kpi-warning" data-urg="vencendo">
+            <span class="pp-kpi-label">Vencendo</span>
+            <span class="pp-kpi-value" id="kpi-vencendo">—</span>
+            <span class="pp-kpi-hint">vencem em até 7 dias</span>
+        </button>
+        <button type="button" class="pp-kpi pp-kpi-muted" data-urg="aguardando_implantacao">
+            <span class="pp-kpi-label">Aguardando implantação</span>
+            <span class="pp-kpi-value" id="kpi-aguardando">—</span>
+            <span class="pp-kpi-hint">travados até a apólice implantar</span>
         </button>
         <div class="pp-kpi pp-kpi-success pp-kpi-static">
             <span class="pp-kpi-label">Concluídos no mês</span>
             <span class="pp-kpi-value" id="kpi-concluidos">—</span>
+            <span class="pp-kpi-hint">baixados neste mês</span>
         </div>
     </div>
 
     {{-- Filtros --}}
     <div class="pp-filters">
         <input type="text" id="pp-busca" class="pp-input pp-input-grow" placeholder="Buscar por contrato ou pessoa…">
-        <select id="pp-tipo" class="pp-input"><option value="">Todos os tipos</option></select>
         <select id="pp-responsavel" class="pp-input">
             <option value="">Todos os responsáveis</option>
             <option value="sem">Sem responsável</option>
         </select>
-        <label class="pp-check"><input type="checkbox" id="pp-atrasados"> Só atrasados</label>
         <button type="button" id="pp-limpar" class="pp-btn pp-btn-ghost">Limpar</button>
+        <span class="pp-urg-tag" id="pp-urg-tag" style="display:none;"></span>
     </div>
 
-    <div class="pp-table-wrap">
-        <table class="pp-table">
-            <thead>
-                <tr>
-                    <th>Contrato</th>
-                    <th>Processo</th>
-                    <th>Pessoa</th>
-                    <th>Responsável</th>
-                    <th>Aberto há</th>
-                    <th>Prazo</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody id="pp-tbody">
-                <tr><td colspan="7" class="pp-loading">Carregando…</td></tr>
-            </tbody>
-        </table>
-
-        <div class="pp-pagination" id="pp-pagination" style="display:none;">
-            <span class="pp-pag-info" id="pp-pag-info"></span>
-            <div class="pp-pag-controls">
-                <button type="button" class="pp-btn pp-btn-ghost pp-btn-sm" id="pp-pag-prev" aria-label="Página anterior">‹ Anterior</button>
-                <span class="pp-pag-atual" id="pp-pag-atual"></span>
-                <button type="button" class="pp-btn pp-btn-ghost pp-btn-sm" id="pp-pag-next" aria-label="Próxima página">Próxima ›</button>
+    {{-- Esteiras (kanban por fase). As colunas são montadas pelo JS. --}}
+    <div class="pp-boards" id="pp-boards">
+        <section class="pp-board" data-esteira="cancelamentos">
+            <div class="pp-board-head">
+                <h5 class="pp-board-title">Cancelamento na operadora anterior</h5>
+                <span class="pp-board-sub">só roda depois que a apólice atual é implantada</span>
+                <span class="pp-board-count" id="count-cancelamentos">0</span>
             </div>
-        </div>
+            <div class="pp-board-track" id="board-cancelamentos">
+                <div class="pp-board-loading">Carregando…</div>
+            </div>
+        </section>
+
+        <section class="pp-board" data-esteira="portabilidade">
+            <div class="pp-board-head">
+                <h5 class="pp-board-title">Portabilidade</h5>
+                <span class="pp-board-sub">normalmente após implantar a apólice, portar quem precisa</span>
+                <span class="pp-board-count" id="count-portabilidade">0</span>
+            </div>
+            <div class="pp-board-track" id="board-portabilidade">
+                <div class="pp-board-loading">Carregando…</div>
+            </div>
+        </section>
     </div>
 </div>
 @endsection

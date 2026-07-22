@@ -15,8 +15,10 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * Painel operacional de processos: KPIs, prazo/atraso por SLA, atribuição de
- * responsável e conclusão. Gate para gestores (ADM/DEV/SUPERVISOR).
+ * Painel operacional de processos (esteira kanban): o prazo conta a partir da
+ * IMPLANTAÇÃO do contrato — antes disso o processo fica "aguardando implantação"
+ * e não conta atraso. KPIs de urgência, atribuição/conclusão e fase por trilha.
+ * Gate para gestores (ADM/DEV/SUPERVISOR).
  */
 class PainelProcessosTest extends TestCase
 {
@@ -47,7 +49,7 @@ class PainelProcessosTest extends TestCase
         ]);
     }
 
-    private function criarContrato(?Empresa $empresa = null): Vendas
+    private function criarContrato(?Empresa $empresa = null, ?string $dataImplantacao = null): Vendas
     {
         $empresa = $empresa ?? $this->empresa;
         $contatoId = DB::table('contatos')->insertGetId([
@@ -59,16 +61,40 @@ class PainelProcessosTest extends TestCase
             'empresa_id' => $empresa->id, 'user_id' => $this->gestor->id, 'contato_id' => $contatoId,
             'tabulacao_id' => Tabulations::IMPLANTADO, 'nome_contrato' => 'CONTRATO '.uniqid(),
             'cpf_cnpj' => (string) random_int(10000000000000, 99999999999999), 'operadora' => 'AMIL',
+            'valor_contrato' => 500, 'vidas' => 1, 'data_vigencia' => now(), 'data_implantacao' => $dataImplantacao,
+        ]);
+    }
+
+    /** Contrato ainda NÃO implantado (tabulação não-implantada, sem data). */
+    private function criarContratoNaoImplantado(): Vendas
+    {
+        $tabId = Tabulations::VENDA; // 16 — pós-venda, ainda não implantado
+        if (! DB::table('tabulacoes')->where('id', $tabId)->exists()) {
+            DB::table('tabulacoes')->insert([
+                'id' => $tabId, 'empresa_id' => $this->empresa->id, 'descricao' => 'EM ANÁLISE',
+                'tipo_tabulacao' => 'A', 'efetivo' => 'N', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        $contatoId = DB::table('contatos')->insertGetId([
+            'empresa_id' => $this->empresa->id, 'user_import_id' => $this->gestor->id, 'nome_cliente' => 'C '.uniqid(),
+            'cpf' => (string) random_int(10000000000, 99999999999), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        return Vendas::create([
+            'empresa_id' => $this->empresa->id, 'user_id' => $this->gestor->id, 'contato_id' => $contatoId,
+            'tabulacao_id' => $tabId, 'nome_contrato' => 'CONTRATO '.uniqid(),
+            'cpf_cnpj' => (string) random_int(10000000000000, 99999999999999), 'operadora' => 'AMIL',
             'valor_contrato' => 500, 'vidas' => 1, 'data_vigencia' => now(),
         ]);
     }
 
-    private function criarCancelamento(Vendas $venda, int $diasAtras): VendaDemanda
+    private function criarCancelamento(Vendas $venda, int $diasAtras, string $fase = 'SOLICITADO'): VendaDemanda
     {
         $d = VendaDemanda::create([
             'venda_id' => $venda->id, 'empresa_id' => $venda->empresa_id, 'created_by' => $this->gestor->id,
             'origem' => 'VENDEDOR', 'tipo' => TipoDemandaContrato::CANCELAMENTO_OPERADORA_ANTERIOR->value,
-            'titulo' => 'Cancelamento', 'meta' => ['fase' => 'SOLICITADO'], 'status' => 'PENDENTE',
+            'titulo' => 'Cancelamento', 'meta' => ['fase' => $fase], 'status' => 'PENDENTE',
         ]);
         DB::table('venda_demandas')->where('id', $d->id)->update(['created_at' => now()->subDays($diasAtras)]);
 
@@ -78,7 +104,7 @@ class PainelProcessosTest extends TestCase
     public function test_data_traz_kpis_e_fila(): void
     {
         $venda = $this->criarContrato();
-        $this->criarCancelamento($venda, 40); // SLA cancelamento = 30 -> atrasado
+        $this->criarCancelamento($venda, 40); // implantado (relógio na abertura) · SLA 30 -> atrasado
         VendaPortabilidade::create(['venda_id' => $venda->id, 'nome' => 'MARIA', 'sequencial' => 1]); // aberta, no prazo
         // Uma concluída neste mês (não entra na fila aberta, conta no KPI do mês).
         $c = $this->criarCancelamento($venda, 5);
@@ -92,11 +118,14 @@ class PainelProcessosTest extends TestCase
                 'cancelamentos_abertos' => 1,
                 'portabilidades_abertas' => 1,
                 'atrasados' => 1,
-                'total_abertos' => 2,
+                'aguardando_implantacao' => 0,
                 'concluidos_mes' => 1,
             ],
         ]);
         $this->assertCount(2, $response->json('fila'));
+        // Payload novo expõe fluxos das duas trilhas p/ o board montar as colunas.
+        $this->assertNotEmpty($response->json('fases_cancelamento'));
+        $this->assertNotEmpty($response->json('fases_portabilidade'));
     }
 
     public function test_atraso_calculado_por_sla(): void
@@ -110,6 +139,93 @@ class PainelProcessosTest extends TestCase
         $this->assertSame(1, $fila->where('atrasado', true)->count());
         $this->assertSame(1, $fila->where('atrasado', false)->count());
         $this->assertGreaterThanOrEqual(9, $fila->firstWhere('atrasado', true)['dias_atraso']);
+    }
+
+    public function test_prazo_conta_a_partir_da_implantacao(): void
+    {
+        // Contrato implantado há 40 dias, cancelamento aberto HOJE: relógio começou
+        // na implantação -> já atrasado (SLA 30), mesmo recém-criado.
+        $vAtrasado = $this->criarContrato(null, now()->subDays(40)->format('Y-m-d'));
+        $this->criarCancelamento($vAtrasado, 0);
+
+        // Implantado há 25 dias -> vence em ~5 dias -> "vencendo".
+        $vVencendo = $this->criarContrato(null, now()->subDays(25)->format('Y-m-d'));
+        $this->criarCancelamento($vVencendo, 0);
+
+        $json = $this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json();
+        $fila = collect($json['fila']);
+
+        $this->assertSame('atrasado', $fila->firstWhere('venda_id', $vAtrasado->id)['urgencia']);
+        $this->assertSame('vencendo', $fila->firstWhere('venda_id', $vVencendo->id)['urgencia']);
+        $this->assertSame(1, $json['kpis']['atrasados']);
+        $this->assertSame(1, $json['kpis']['vencendo']);
+    }
+
+    public function test_processo_bloqueado_quando_contrato_nao_implantado(): void
+    {
+        $venda = $this->criarContratoNaoImplantado();
+        $cancel = $this->criarCancelamento($venda, 10); // aberto, mas contrato sem implantar
+
+        $json = $this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json();
+        $item = collect($json['fila'])->firstWhere('id', $cancel->id);
+
+        $this->assertTrue($item['bloqueado']);
+        $this->assertFalse($item['atrasado'], 'Sem implantação, não conta atraso.');
+        $this->assertSame('aguardando_implantacao', $item['urgencia']);
+        $this->assertSame('EM ANÁLISE', $item['situacao_contrato']);
+        $this->assertNull($item['vence_em']);
+        // KPIs: fora de atrasados, dentro de aguardando implantação.
+        $this->assertSame(0, $json['kpis']['atrasados']);
+        $this->assertSame(1, $json['kpis']['aguardando_implantacao']);
+    }
+
+    public function test_caso_raro_fase_avancada_sem_implantacao_nao_bloqueia(): void
+    {
+        // Portou/cancelou ANTES de implantar (raro): fase já além da 1ª -> não bloqueia.
+        $venda = $this->criarContratoNaoImplantado();
+        $cancel = $this->criarCancelamento($venda, 2, 'PROTOCOLADO');
+
+        $item = collect($this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json('fila'))
+            ->firstWhere('id', $cancel->id);
+
+        $this->assertFalse($item['bloqueado']);
+        $this->assertNotSame('aguardando_implantacao', $item['urgencia']);
+        $this->assertNotNull($item['vence_em']);
+    }
+
+    public function test_fase_cancelamento_avanca_e_fase_final_conclui(): void
+    {
+        $venda = $this->criarContrato();
+        $cancel = $this->criarCancelamento($venda, 2);
+
+        // Avança para protocolado — continua aberto.
+        $this->actingAs($this->gestor)->postJson(route('backoffice.painelProcessos.faseCancelamento'), [
+            'id' => $cancel->id, 'fase' => 'PROTOCOLADO',
+        ])->assertOk()->assertJson(['success' => true]);
+        $this->assertSame('PENDENTE', $cancel->fresh()->status);
+        $this->assertSame('PROTOCOLADO', $cancel->fresh()->meta['fase']);
+
+        // CONCLUIDO é final — encerra o processo.
+        $this->actingAs($this->gestor)->postJson(route('backoffice.painelProcessos.faseCancelamento'), [
+            'id' => $cancel->id, 'fase' => 'CONCLUIDO',
+        ])->assertOk();
+        $fresh = $cancel->fresh();
+        $this->assertSame('CONCLUIDA', $fresh->status);
+        $this->assertNotNull($fresh->concluida_em);
+    }
+
+    public function test_fase_cancelamento_invalida_422_e_gate_403(): void
+    {
+        $venda = $this->criarContrato();
+        $cancel = $this->criarCancelamento($venda, 2);
+
+        $this->actingAs($this->gestor)->postJson(route('backoffice.painelProcessos.faseCancelamento'), [
+            'id' => $cancel->id, 'fase' => 'INEXISTENTE',
+        ])->assertStatus(422);
+
+        $this->actingAs($this->backoffice)->postJson(route('backoffice.painelProcessos.faseCancelamento'), [
+            'id' => $cancel->id, 'fase' => 'PROTOCOLADO',
+        ])->assertStatus(403);
     }
 
     public function test_atribuir_responsavel(): void
@@ -153,7 +269,7 @@ class PainelProcessosTest extends TestCase
 
         $json = $this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json();
 
-        $this->assertSame(2, $json['kpis']['total_abertos'], 'Só cancelamento + portabilidade contam.');
+        $this->assertCount(2, $json['fila'], 'Só cancelamento + portabilidade entram.');
         $tipos = collect($json['fila'])->pluck('tipo');
         $this->assertTrue($tipos->contains($cancel->tipo));
         $this->assertTrue($tipos->contains('PORTABILIDADE'));
@@ -180,27 +296,21 @@ class PainelProcessosTest extends TestCase
         $this->assertTrue($ids->contains($recente->id));
         $this->assertFalse($ids->contains($antigo->id), 'Processo anterior ao corte não deve aparecer.');
         $this->assertSame(0, collect($json['fila'])->where('fonte', 'portabilidade')->count());
-        $this->assertSame(1, $json['kpis']['total_abertos'], 'KPIs também respeitam o corte.');
+        $this->assertCount(1, $json['fila'], 'Fila também respeita o corte.');
     }
 
-    public function test_paginacao_20_por_pagina(): void
+    public function test_sem_paginacao_retorna_todos_os_processos(): void
     {
+        // Kanban não pagina: todos os itens (limitados pelo corte) voltam de uma vez.
         $venda = $this->criarContrato();
         for ($i = 0; $i < 25; $i++) {
             $this->criarCancelamento($venda, 1);
         }
 
-        $p1 = $this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json();
-        $this->assertCount(20, $p1['fila']);
-        $this->assertSame(25, $p1['paginacao']['total']);
-        $this->assertSame(2, $p1['paginacao']['total_paginas']);
-        $this->assertSame(1, $p1['paginacao']['de']);
-        $this->assertSame(20, $p1['paginacao']['ate']);
+        $json = $this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json();
 
-        $p2 = $this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data').'?pagina=2')->json();
-        $this->assertCount(5, $p2['fila']);
-        $this->assertSame(21, $p2['paginacao']['de']);
-        $this->assertSame(25, $p2['paginacao']['ate']);
+        $this->assertCount(25, $json['fila']);
+        $this->assertArrayNotHasKey('paginacao', $json);
     }
 
     public function test_fase_portabilidade_avanca_e_fase_final_encerra(): void

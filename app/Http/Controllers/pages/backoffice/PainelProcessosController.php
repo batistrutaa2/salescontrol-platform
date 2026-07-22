@@ -40,44 +40,52 @@ class PainelProcessosController extends Controller
         ]);
     }
 
-    private const POR_PAGINA = 20;
-
     public function data(Request $request)
     {
         abort_unless($this->podeGerir(), 403);
         $empresaId = Auth::user()->empresa_id;
 
         $filtros = $request->only(['grupo', 'tipo', 'responsavel_id', 'busca']);
-        $filtros['so_atrasados'] = $request->boolean('so_atrasados');
 
-        $completa = $this->processos->filaOperacional($empresaId, []);
-        $filtrada = collect($this->processos->filaOperacional($empresaId, array_filter($filtros, fn ($v) => $v !== null && $v !== '')));
-
-        $total = $filtrada->count();
-        $totalPaginas = max(1, (int) ceil($total / self::POR_PAGINA));
-        $pagina = min(max(1, (int) $request->input('pagina', 1)), $totalPaginas);
-        $fila = $filtrada->slice(($pagina - 1) * self::POR_PAGINA, self::POR_PAGINA)->values();
+        // Esteira kanban: sem paginação (volume limitado pelo corte de abertura).
+        // Os KPIs vêm da fila completa; a fila filtrada abastece os boards.
+        $completa = collect($this->processos->filaOperacional($empresaId, []));
+        $fila = collect($this->processos->filaOperacional($empresaId, array_filter($filtros, fn ($v) => $v !== null && $v !== '')));
 
         return response()->json([
             'success' => true,
             'kpis' => [
-                'cancelamentos_abertos' => collect($completa)->where('grupo', 'cancelamentos')->count(),
-                'portabilidades_abertas' => collect($completa)->where('tipo', 'PORTABILIDADE')->count(),
-                'atrasados' => collect($completa)->where('atrasado', true)->count(),
-                'total_abertos' => count($completa),
+                'atrasados' => $completa->where('urgencia', 'atrasado')->count(),
+                'vencendo' => $completa->where('urgencia', 'vencendo')->count(),
+                'aguardando_implantacao' => $completa->where('bloqueado', true)->count(),
                 'concluidos_mes' => $this->processos->concluidosNoMes($empresaId),
+                'cancelamentos_abertos' => $completa->where('grupo', 'cancelamentos')->count(),
+                'portabilidades_abertas' => $completa->where('grupo', 'portabilidade')->count(),
             ],
-            'fila' => $fila,
-            'paginacao' => [
-                'pagina' => $pagina,
-                'por_pagina' => self::POR_PAGINA,
-                'total' => $total,
-                'total_paginas' => $totalPaginas,
-                'de' => $total ? (($pagina - 1) * self::POR_PAGINA) + 1 : 0,
-                'ate' => min($pagina * self::POR_PAGINA, $total),
-            ],
+            'fila' => $fila->values(),
+            'fases_cancelamento' => \App\Enums\FaseCancelamento::fluxo(),
             'fases_portabilidade' => \App\Enums\FasePortabilidade::fluxo(),
         ]);
+    }
+
+    /** Avança a fase de um cancelamento (demanda); a fase final conclui o processo. */
+    public function faseCancelamento(Request $request)
+    {
+        abort_unless($this->podeGerir(), 403);
+
+        $dados = $request->validate([
+            'id' => 'required|integer',
+            'fase' => ['required', 'string', 'in:'.implode(',', array_column(\App\Enums\FaseCancelamento::fluxo(), 'value'))],
+        ]);
+
+        $demanda = $this->processos->atualizarCancelamento(
+            (int) $dados['id'], Auth::user()->empresa_id, ['fase' => $dados['fase']], Auth::id(),
+        );
+
+        return response()->json([
+            'success' => (bool) $demanda,
+            'message' => $demanda ? 'Fase do cancelamento atualizada.' : 'Processo não encontrado.',
+        ], $demanda ? 200 : 404);
     }
 
     /** Avança a fase de uma portabilidade (fase final fecha o processo). */

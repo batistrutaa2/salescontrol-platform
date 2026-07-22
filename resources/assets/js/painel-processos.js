@@ -1,7 +1,9 @@
 /**
- * Painel operacional de processos (visão do gestor).
- * KPIs clicáveis + fila filtrável com prazo/atraso (SLA), responsável e ações.
- * Consome backoffice.painelProcessos.data / .atribuir / .concluir.
+ * Painel operacional de processos (visão do gestor) — esteira kanban.
+ * Duas trilhas (Cancelamento op. anterior, Portabilidade), cada uma com uma
+ * coluna-portão "Aguardando implantação" + colunas de fase. O prazo conta a
+ * partir da implantação do contrato (ver ProcessoVendaRepository::linhaProcesso).
+ * Consome backoffice.painelProcessos.data / .atribuir / .faseCancelamento / .fasePortabilidade.
  */
 (function () {
   'use strict';
@@ -11,14 +13,17 @@
 
   const csrf = root.dataset.csrf;
   const cfg = window.__painel || { responsaveis: [], tipos: {} };
-  let filtros = { grupo: '', tipo: '', responsavel_id: '', busca: '', so_atrasados: '' };
-  let pagina = 1;
+  let filtros = { responsavel_id: '', busca: '' };
+  let urgFiltro = '';
+  let fasesCancel = [];
   let fasesPortab = [];
+  let ultimaFila = [];
 
   const esc = (s) =>
     String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
   const $ = (id) => document.getElementById(id);
+
+  const URG_LABEL = { atrasado: 'Atrasados', vencendo: 'Vencendo', aguardando_implantacao: 'Aguardando implantação' };
 
   function toast(msg, type = 'ok') {
     const el = document.createElement('div');
@@ -36,20 +41,6 @@
     return res.json().catch(() => ({ success: false, message: 'Resposta inválida.' }));
   }
 
-  // ---- Popular selects ----
-  function initSelects() {
-    const tipoSel = $('pp-tipo');
-    Object.keys(cfg.tipos).forEach((k) => {
-      const o = document.createElement('option');
-      o.value = k; o.textContent = cfg.tipos[k]; tipoSel.appendChild(o);
-    });
-    const respSel = $('pp-responsavel');
-    cfg.responsaveis.forEach((r) => {
-      const o = document.createElement('option');
-      o.value = r.id; o.textContent = r.name; respSel.appendChild(o);
-    });
-  }
-
   function opcoesResponsavel(selecionado) {
     const sem = `<option value="" ${!selecionado ? 'selected' : ''}>— Sem responsável —</option>`;
     return sem + cfg.responsaveis
@@ -61,86 +52,108 @@
   async function load() {
     const params = new URLSearchParams();
     Object.entries(filtros).forEach(([k, v]) => { if (v !== '' && v !== null) params.append(k, v); });
-    params.append('pagina', pagina);
 
-    const tbody = $('pp-tbody');
-    tbody.innerHTML = '<tr><td colspan="7" class="pp-loading">Carregando…</td></tr>';
+    ['board-cancelamentos', 'board-portabilidade'].forEach((id) => {
+      $(id).innerHTML = '<div class="pp-board-loading">Carregando…</div>';
+    });
 
     const data = await api(`/back-office/painel-processos/data?${params.toString()}`);
-    if (!data.success) { tbody.innerHTML = `<tr><td colspan="7" class="pp-empty">${esc(data.message || 'Erro.')}</td></tr>`; return; }
+    if (!data.success) {
+      $('board-cancelamentos').innerHTML = `<div class="pp-board-erro">${esc(data.message || 'Erro ao carregar.')}</div>`;
+      return;
+    }
 
+    fasesCancel = data.fases_cancelamento || [];
     fasesPortab = data.fases_portabilidade || [];
+    ultimaFila = data.fila || [];
     renderKpis(data.kpis);
-    renderFila(data.fila);
-    renderPaginacao(data.paginacao);
-  }
-
-  function renderPaginacao(p) {
-    const bar = $('pp-pagination');
-    if (!p || p.total <= p.por_pagina) { bar.style.display = 'none'; return; }
-    bar.style.display = 'flex';
-    $('pp-pag-info').textContent = `Mostrando ${p.de}–${p.ate} de ${p.total} processos`;
-    $('pp-pag-atual').textContent = `${p.pagina} / ${p.total_paginas}`;
-    $('pp-pag-prev').disabled = p.pagina <= 1;
-    $('pp-pag-next').disabled = p.pagina >= p.total_paginas;
-    $('pp-pag-prev').onclick = () => { pagina = Math.max(1, p.pagina - 1); load(); };
-    $('pp-pag-next').onclick = () => { pagina = Math.min(p.total_paginas, p.pagina + 1); load(); };
+    renderBoards(ultimaFila);
   }
 
   function renderKpis(k) {
-    $('kpi-cancel').textContent = k.cancelamentos_abertos;
-    $('kpi-portab').textContent = k.portabilidades_abertas;
     $('kpi-atrasados').textContent = k.atrasados;
-    $('kpi-total').textContent = k.total_abertos;
+    $('kpi-vencendo').textContent = k.vencendo;
+    $('kpi-aguardando').textContent = k.aguardando_implantacao;
     $('kpi-concluidos').textContent = k.concluidos_mes;
   }
 
-  function renderFila(fila) {
-    const tbody = $('pp-tbody');
-    if (!fila.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="pp-empty">Nenhum processo em aberto com esses filtros. 🎉</td></tr>';
-      return;
-    }
-    tbody.innerHTML = fila.map(linha).join('');
+  // ---- Colunas de cada esteira (portão + fases não-finais) ----
+  function colunas(esteira) {
+    const fases = esteira === 'cancelamentos' ? fasesCancel : fasesPortab;
+    const cols = [{ key: 'aguardando_implantacao', label: 'Aguardando implantação', gate: true }];
+    fases.filter((f) => !f.final).forEach((f) => cols.push({ key: f.value, label: f.label }));
+    return cols;
   }
 
-  // Cor do chip de fase por etapa (documentos = âmbar, análise = azul, concluída = verde, negada = vermelho).
-  function faseClasse(valor) {
-    const v = String(valor || '').toUpperCase();
-    if (v === 'REUNINDO_DOCUMENTOS' || v === 'SOLICITADO') return 'f-inicio';
-    if (v === 'ENVIADA_ANALISE' || v === 'EM_ANALISE' || v === 'PROTOCOLADO') return 'f-analise';
-    if (v === 'CONCLUIDA' || v === 'CONCLUIDO') return 'f-ok';
-    if (v === 'NEGADA') return 'f-negada';
-    return 'f-inicio';
+  function colunaDoItem(p, cols) {
+    if (p.bloqueado) return 'aguardando_implantacao';
+    const existe = cols.some((c) => c.key === p.fase_valor);
+    return existe ? p.fase_valor : (cols[1] ? cols[1].key : 'aguardando_implantacao');
   }
 
-  function linha(p) {
-    const prazo = p.atrasado
-      ? `<span class="pp-badge danger">Atrasado há ${p.dias_atraso}d</span>`
-      : `<span class="pp-badge ok">Vence ${esc(p.vence_em)}</span>`;
-    const fase = p.fase ? `<span class="pp-chip pp-fase ${faseClasse(p.fase_valor)}">${esc(p.fase)}</span>` : '';
+  // ---- Render dos boards ----
+  function renderBoards(fila) {
+    const nCancel = renderBoard('cancelamentos', 'board-cancelamentos', fila.filter((p) => p.grupo === 'cancelamentos'));
+    const nPortab = renderBoard('portabilidade', 'board-portabilidade', fila.filter((p) => p.grupo === 'portabilidade'));
+    $('count-cancelamentos').textContent = nCancel;
+    $('count-portabilidade').textContent = nPortab;
+  }
+
+  function renderBoard(esteiraKey, elId, itens) {
+    const cols = colunas(esteiraKey);
+    const buckets = {};
+    cols.forEach((c) => (buckets[c.key] = []));
+
+    itens.forEach((p) => {
+      if (urgFiltro && p.urgencia !== urgFiltro) return;
+      const k = colunaDoItem(p, cols);
+      (buckets[k] || (buckets[k] = [])).push(p);
+    });
+
+    $(elId).innerHTML = cols.map((c) => {
+      const lista = buckets[c.key] || [];
+      const corpo = lista.length ? lista.map(card).join('') : '<div class="pp-col-empty">vazio</div>';
+      return `<div class="pp-col ${c.gate ? 'is-gate' : ''}">
+          <div class="pp-col-head"><span class="pp-col-name">${esc(c.label)}</span><span class="pp-col-count">${lista.length}</span></div>
+          <div class="pp-col-body">${corpo}</div>
+        </div>`;
+    }).join('');
+
+    return cols.reduce((n, c) => n + (buckets[c.key] ? buckets[c.key].length : 0), 0);
+  }
+
+  function badgePrazo(p) {
+    if (p.urgencia === 'atrasado') return `<span class="pp-badge danger">Venceu há ${p.dias_atraso}d</span>`;
+    if (p.urgencia === 'vencendo') return `<span class="pp-badge warn">Vence em ${p.dias_para_vencer}d</span>`;
+    if (p.urgencia === 'aguardando_implantacao') return '<span class="pp-badge muted">Sem prazo ainda</span>';
+    return `<span class="pp-badge ok">Vence ${esc(p.vence_em || '—')}</span>`;
+  }
+
+  function card(p) {
     const link = p.venda_id ? `/back-office/abrir-contrato/${p.venda_id}` : '#';
+    const fases = p.fonte === 'portabilidade' ? fasesPortab : fasesCancel;
+    const faseCls = p.fonte === 'portabilidade' ? 'pp-fase-portab' : 'pp-fase-cancel';
+    const faseSel = `<select class="pp-input pp-mini ${faseCls}" data-id="${p.id}" title="Avançar fase">
+        ${fases.map((f) => `<option value="${esc(f.value)}" ${p.fase_valor === f.value ? 'selected' : ''}>${esc(f.label)}</option>`).join('')}
+      </select>`;
 
-    // Portabilidade: o passo a passo é a própria ação (fase final fecha o processo).
-    const acao = p.fonte === 'portabilidade'
-      ? `<select class="pp-input pp-fase-select" data-id="${p.id}" title="Fase da portabilidade">
-          ${fasesPortab.map((f) => `<option value="${esc(f.value)}" ${p.fase_valor === f.value ? 'selected' : ''}>${esc(f.label)}</option>`).join('')}
-        </select>`
-      : `<button type="button" class="pp-btn pp-btn-sm pp-btn-primary pp-concluir" data-fonte="${esc(p.fonte)}" data-id="${p.id}">Concluir</button>`;
+    // No portão, explica POR QUE está parado (situação do contrato-pai).
+    const gate = p.bloqueado
+      ? `<div class="pp-card-gate">⏸ Contrato: ${esc(p.situacao_contrato)} · há ${p.dias_bloqueado}d</div>`
+      : '';
 
-    return `<tr class="${p.atrasado ? 'is-late' : ''}">
-        <td><a href="${link}" class="pp-link" target="_blank">${esc(p.contrato)}</a></td>
-        <td><span class="pp-tipo">${esc(p.tipo_label)}</span>${fase}</td>
-        <td>${esc(p.quem || '—')}</td>
-        <td>
-          <select class="pp-input pp-assign" data-fonte="${esc(p.fonte)}" data-id="${p.id}">
-            ${opcoesResponsavel(p.responsavel_id)}
-          </select>
-        </td>
-        <td class="pp-num">${p.dias_aberto}d</td>
-        <td>${prazo}</td>
-        <td class="pp-actions">${acao}</td>
-      </tr>`;
+    return `<div class="pp-card urg-${esc(p.urgencia)}">
+        <div class="pp-card-top">
+          <a href="${link}" target="_blank" class="pp-card-contrato">${esc(p.contrato)}</a>
+          ${badgePrazo(p)}
+        </div>
+        <div class="pp-card-pessoa">${esc(p.quem || '—')}</div>
+        ${gate}
+        <div class="pp-card-foot">
+          <select class="pp-input pp-mini pp-assign" data-fonte="${esc(p.fonte)}" data-id="${p.id}" title="Responsável">${opcoesResponsavel(p.responsavel_id)}</select>
+          ${faseSel}
+        </div>
+      </div>`;
   }
 
   // ---- Ações ----
@@ -151,73 +164,72 @@
     toast(json.success ? 'Responsável atualizado.' : (json.message || 'Erro.'), json.success ? 'ok' : 'err');
   }
 
-  async function concluir(btn) {
-    if (!confirm('Marcar este processo como concluído?')) return;
-    const json = await api('/back-office/painel-processos/concluir', 'POST', {
-      fonte: btn.dataset.fonte, id: Number(btn.dataset.id),
-    });
-    toast(json.success ? 'Processo concluído.' : (json.message || 'Erro.'), json.success ? 'ok' : 'err');
-    if (json.success) load();
-  }
-
-  async function mudarFasePortabilidade(sel) {
-    const faseEscolhida = fasesPortab.find((f) => f.value === sel.value);
-    if (faseEscolhida && faseEscolhida.final && !confirm(`Marcar esta portabilidade como "${faseEscolhida.label}"? Isso encerra o processo.`)) {
+  async function mudarFase(sel, tipo) {
+    const fases = tipo === 'portabilidade' ? fasesPortab : fasesCancel;
+    const escolhida = fases.find((f) => f.value === sel.value);
+    if (escolhida && escolhida.final && !confirm(`Marcar como "${escolhida.label}"? Isso encerra o processo.`)) {
       load();
       return;
     }
     sel.disabled = true;
-    const json = await api('/back-office/painel-processos/portabilidade/fase', 'POST', {
-      id: Number(sel.dataset.id), fase: sel.value,
-    });
+    const url = tipo === 'portabilidade'
+      ? '/back-office/painel-processos/portabilidade/fase'
+      : '/back-office/painel-processos/cancelamento/fase';
+    const json = await api(url, 'POST', { id: Number(sel.dataset.id), fase: sel.value });
     toast(json.success ? 'Fase atualizada.' : (json.message || 'Erro.'), json.success ? 'ok' : 'err');
     load();
   }
 
-  // ---- Eventos ----
-  root.addEventListener('change', (e) => {
-    if (e.target.classList.contains('pp-assign')) { atribuir(e.target); return; }
-    if (e.target.classList.contains('pp-fase-select')) mudarFasePortabilidade(e.target);
-  });
-  root.addEventListener('click', (e) => {
-    const btn = e.target.closest('.pp-concluir');
-    if (btn) { concluir(btn); return; }
-    const kpi = e.target.closest('[data-filter]');
-    if (kpi) {
-      filtros = { grupo: '', tipo: '', responsavel_id: '', busca: '', so_atrasados: '' };
-      const f = kpi.dataset.filter;
-      if (f) { const [k, v] = f.split(':'); filtros[k] = v; }
-      pagina = 1;
-      root.querySelectorAll('.pp-kpi[data-filter]').forEach((el) => el.classList.toggle('active', el === kpi && !!f));
-      sincronizarControles();
-      load();
+  // ---- Filtro de urgência (KPIs) ----
+  function aplicarUrgencia(urg) {
+    urgFiltro = urgFiltro === urg ? '' : urg;
+    root.querySelectorAll('.pp-kpi[data-urg]').forEach((el) => el.classList.toggle('active', el.dataset.urg === urgFiltro));
+    const tag = $('pp-urg-tag');
+    if (urgFiltro) {
+      tag.style.display = '';
+      tag.innerHTML = `Filtrando: ${esc(URG_LABEL[urgFiltro] || urgFiltro)} <button type="button" class="pp-urg-x" aria-label="Remover filtro">✕</button>`;
+    } else {
+      tag.style.display = 'none';
     }
-  });
-
-  function sincronizarControles() {
-    $('pp-tipo').value = filtros.tipo || '';
-    $('pp-responsavel').value = filtros.responsavel_id || '';
-    $('pp-busca').value = filtros.busca || '';
-    $('pp-atrasados').checked = !!filtros.so_atrasados;
+    renderBoards(ultimaFila);
   }
 
-  function limparKpiAtivo() {
-    root.querySelectorAll('.pp-kpi.active').forEach((el) => el.classList.remove('active'));
+  // ---- Eventos ----
+  root.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.classList.contains('pp-assign')) return atribuir(t);
+    if (t.classList.contains('pp-fase-portab')) return mudarFase(t, 'portabilidade');
+    if (t.classList.contains('pp-fase-cancel')) return mudarFase(t, 'cancelamento');
+  });
+
+  root.addEventListener('click', (e) => {
+    if (e.target.closest('.pp-urg-x')) { aplicarUrgencia(urgFiltro); return; }
+    const kpi = e.target.closest('.pp-kpi[data-urg]');
+    if (kpi) aplicarUrgencia(kpi.dataset.urg);
+  });
+
+  // ---- Filtros de servidor ----
+  function initSelects() {
+    const respSel = $('pp-responsavel');
+    cfg.responsaveis.forEach((r) => {
+      const o = document.createElement('option');
+      o.value = r.id; o.textContent = r.name; respSel.appendChild(o);
+    });
   }
 
   let buscaTimer;
   $('pp-busca').addEventListener('input', (e) => {
     clearTimeout(buscaTimer);
-    buscaTimer = setTimeout(() => { filtros.busca = e.target.value.trim(); pagina = 1; load(); }, 350);
+    buscaTimer = setTimeout(() => { filtros.busca = e.target.value.trim(); load(); }, 350);
   });
-  $('pp-tipo').addEventListener('change', (e) => { filtros.tipo = e.target.value; filtros.grupo = ''; pagina = 1; limparKpiAtivo(); load(); });
-  $('pp-responsavel').addEventListener('change', (e) => { filtros.responsavel_id = e.target.value; pagina = 1; load(); });
-  $('pp-atrasados').addEventListener('change', (e) => { filtros.so_atrasados = e.target.checked ? '1' : ''; pagina = 1; load(); });
+  $('pp-responsavel').addEventListener('change', (e) => { filtros.responsavel_id = e.target.value; load(); });
   $('pp-limpar').addEventListener('click', () => {
-    filtros = { grupo: '', tipo: '', responsavel_id: '', busca: '', so_atrasados: '' };
-    pagina = 1;
-    limparKpiAtivo();
-    sincronizarControles();
+    filtros = { responsavel_id: '', busca: '' };
+    urgFiltro = '';
+    $('pp-busca').value = '';
+    $('pp-responsavel').value = '';
+    root.querySelectorAll('.pp-kpi.active').forEach((el) => el.classList.remove('active'));
+    $('pp-urg-tag').style.display = 'none';
     load();
   });
 
