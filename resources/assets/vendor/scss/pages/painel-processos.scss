@@ -199,6 +199,23 @@
 .pp-badge.warn { background: rgba(245, 158, 11, 0.14); color: #b7791f; }
 .pp-badge.muted { background: rgba(148, 163, 184, 0.16); color: var(--pp-text-soft); }
 
+// ---------- Abas (trilha) ----------
+.pp-tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 1rem; border-bottom: 2px solid var(--pp-border); }
+.pp-tab {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  font-size: 0.86rem; font-weight: 700; color: var(--pp-text-soft);
+  background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -2px;
+  padding: 0.65rem 1rem; cursor: pointer; transition: var(--pp-transition);
+}
+.pp-tab:hover { color: var(--pp-primary); }
+.pp-tab.active { color: var(--pp-primary); border-bottom-color: var(--pp-primary); }
+.pp-tab-count {
+  font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  min-width: 20px; text-align: center; padding: 0.05rem 0.4rem; border-radius: 100px;
+  background: var(--pp-surface); border: 1px solid var(--pp-border); color: var(--pp-text-soft);
+}
+.pp-tab.active .pp-tab-count { background: rgba(124, 58, 237, 0.12); border-color: transparent; color: var(--pp-primary); }
+
 // ---------- Raias por urgência (torre de controle) ----------
 .pp-lanes { display: flex; flex-direction: column; gap: 1rem; }
 .pp-board-loading, .pp-board-erro { padding: 1.75rem 1.25rem; color: var(--pp-text-muted); font-size: 0.88rem; }
@@ -236,6 +253,8 @@
 .pp-lane.is-collapsed .pp-lane-chev { transform: rotate(-90deg); }
 .pp-lane.is-collapsed .pp-lane-body { display: none; }
 .pp-lane-empty { padding: 0.9rem 1.1rem; font-size: 0.8rem; color: var(--pp-text-muted); opacity: 0.75; }
+.pp-lane-head.is-static { cursor: default; }
+.pp-lane-head.is-static .pp-lane-chev { display: none; }
 
 // ---------- Linha de processo ----------
 .pp-row {
@@ -260,6 +279,8 @@
 .pp-row-fase { flex: none; }
 .pp-row-when { flex: none; margin-left: auto; }
 .pp-when.muted { font-size: 0.76rem; color: var(--pp-text-muted); background: var(--pp-surface); border-radius: 7px; padding: 0.2rem 0.5rem; white-space: nowrap; }
+.pp-done-meta { font-size: 0.76rem; color: var(--pp-text-muted); white-space: nowrap; }
+.pp-row.is-done .pp-row-contrato { color: var(--pp-text); }
 
 .pp-mini { width: auto; font-size: 0.78rem; padding: 0.35rem 0.45rem; }
 .pp-assign.pp-mini { max-width: 160px; }

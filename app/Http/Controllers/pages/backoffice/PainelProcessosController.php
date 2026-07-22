@@ -63,6 +63,7 @@ class PainelProcessosController extends Controller
                 'portabilidades_abertas' => $completa->where('grupo', 'portabilidade')->count(),
             ],
             'fila' => $fila->values(),
+            'concluidos' => $this->processos->concluidosDoMesLista($empresaId),
             'fases_cancelamento' => \App\Enums\FaseCancelamento::fluxo(),
             'fases_portabilidade' => \App\Enums\FasePortabilidade::fluxo(),
         ]);

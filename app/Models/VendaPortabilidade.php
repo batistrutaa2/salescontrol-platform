@@ -54,6 +54,11 @@ class VendaPortabilidade extends Model
         return $this->belongsTo(User::class, 'responsavel_id');
     }
 
+    public function concluidaPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'concluida_por');
+    }
+
     /** Scopes */
     public function scopeDaVenda($query, int $vendaId)
     {

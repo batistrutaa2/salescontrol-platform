@@ -32,6 +32,9 @@ interface ProcessoVendaRepositoryInterface
     /** Processos concluídos no mês corrente (demandas + portabilidades). */
     public function concluidosNoMes(int $empresaId): int;
 
+    /** Lista dos processos concluídos no mês (com desfecho, data e responsável). */
+    public function concluidosDoMesLista(int $empresaId): array;
+
     /** Atribui/limpa o responsável de um processo. $fonte = 'demanda' | 'portabilidade'. */
     public function atribuirResponsavel(string $fonte, int $id, int $empresaId, ?int $responsavelId): bool;
 

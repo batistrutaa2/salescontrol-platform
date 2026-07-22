@@ -228,6 +228,33 @@ class PainelProcessosTest extends TestCase
         ])->assertStatus(403);
     }
 
+    public function test_aba_concluidos_lista_baixados_do_mes(): void
+    {
+        $venda = $this->criarContrato();
+
+        // Cancelamento concluído neste mês.
+        $c = $this->criarCancelamento($venda, 5);
+        $c->update(['status' => 'CONCLUIDA', 'concluida_em' => now(), 'concluida_por' => $this->gestor->id]);
+
+        // Portabilidade NEGADA neste mês (desfecho negativo, mas concluída).
+        $p = VendaPortabilidade::create(['venda_id' => $venda->id, 'nome' => 'MARIA', 'sequencial' => 1]);
+        $p->update(['status' => 'CONCLUIDA', 'fase' => 'NEGADA', 'concluida_em' => now(), 'concluida_por' => $this->gestor->id]);
+
+        $json = $this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json();
+
+        // Não entram na fila aberta; entram na lista de concluídos.
+        $this->assertCount(0, $json['fila']);
+        $concluidos = collect($json['concluidos']);
+        $this->assertCount(2, $concluidos);
+
+        $canc = $concluidos->firstWhere('grupo', 'cancelamentos');
+        $this->assertSame('Concluído', $canc['desfecho']);
+        $this->assertSame($this->gestor->name, $canc['por']);
+
+        $port = $concluidos->firstWhere('grupo', 'portabilidade');
+        $this->assertSame('Negada', $port['desfecho']);
+    }
+
     public function test_atribuir_responsavel(): void
     {
         $venda = $this->criarContrato();

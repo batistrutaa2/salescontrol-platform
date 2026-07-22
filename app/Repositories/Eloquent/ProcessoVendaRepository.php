@@ -197,6 +197,53 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
         return $demandas + $portab;
     }
 
+    public function concluidosDoMesLista(int $empresaId): array
+    {
+        [$ini, $fim] = [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()];
+
+        $grupos = TipoDemandaContrato::grupos();
+        $gruposPainel = config('processos.grupos_painel', ['cancelamentos', 'portabilidade']);
+        $tiposPainel = array_keys(array_filter($grupos, fn ($g) => in_array($g, $gruposPainel, true)));
+
+        $demandas = VendaDemanda::with(['venda:id,nome_contrato', 'titular:id,nome', 'concluidaPor:id,name'])
+            ->where('empresa_id', $empresaId)
+            ->where('status', 'CONCLUIDA')
+            ->whereIn('tipo', $tiposPainel)
+            ->whereBetween('concluida_em', [$ini, $fim])
+            ->get()
+            ->map(fn ($d) => [
+                'venda_id' => $d->venda_id,
+                'contrato' => $d->venda->nome_contrato ?? '—',
+                'grupo' => $grupos[$d->tipo] ?? 'outros',
+                'tipo_label' => TipoDemandaContrato::tryFrom($d->tipo)?->label() ?? $d->tipo,
+                'quem' => $d->titular->nome ?? null,
+                'desfecho' => 'Concluído',
+                'concluido_em' => optional($d->concluida_em)->format('d/m/Y'),
+                'por' => $d->concluidaPor->name ?? null,
+                'ts' => optional($d->concluida_em)->timestamp ?? 0,
+            ]);
+
+        $portab = ! in_array('portabilidade', $gruposPainel, true) ? collect()
+            : VendaPortabilidade::with(['venda:id,nome_contrato,empresa_id', 'concluidaPor:id,name'])
+                ->where('status', 'CONCLUIDA')
+                ->whereBetween('concluida_em', [$ini, $fim])
+                ->whereHas('venda', fn ($q) => $q->where('empresa_id', $empresaId))
+                ->get()
+                ->map(fn ($p) => [
+                    'venda_id' => $p->venda_id,
+                    'contrato' => $p->venda->nome_contrato ?? '—',
+                    'grupo' => 'portabilidade',
+                    'tipo_label' => 'Portabilidade',
+                    'quem' => $p->nome,
+                    'desfecho' => $p->fase === 'NEGADA' ? 'Negada' : 'Concluída',
+                    'concluido_em' => optional($p->concluida_em)->format('d/m/Y'),
+                    'por' => $p->concluidaPor->name ?? null,
+                    'ts' => optional($p->concluida_em)->timestamp ?? 0,
+                ]);
+
+        return $demandas->concat($portab)->sortByDesc('ts')->values()->all();
+    }
+
     public function atribuirResponsavel(string $fonte, int $id, int $empresaId, ?int $responsavelId): bool
     {
         if ($fonte === 'portabilidade') {

@@ -61,8 +61,20 @@
         <span class="pp-urg-tag" id="pp-urg-tag" style="display:none;"></span>
     </div>
 
-    {{-- Raias por urgência (torre de controle). Montadas pelo JS. --}}
-    <div class="pp-lanes" id="pp-lanes">
+    {{-- Abas por trilha (+ concluídos). O conteúdo é montado pelo JS. --}}
+    <div class="pp-tabs" role="tablist">
+        <button type="button" class="pp-tab active" data-tab="cancelamentos" role="tab">
+            Cancelamento <span class="pp-tab-count" id="tabcount-cancelamentos">0</span>
+        </button>
+        <button type="button" class="pp-tab" data-tab="portabilidade" role="tab">
+            Portabilidade <span class="pp-tab-count" id="tabcount-portabilidade">0</span>
+        </button>
+        <button type="button" class="pp-tab" data-tab="concluidos" role="tab">
+            Concluídos <span class="pp-tab-count" id="tabcount-concluidos">0</span>
+        </button>
+    </div>
+
+    <div id="pp-content">
         <div class="pp-board-loading">Carregando…</div>
     </div>
 </div>

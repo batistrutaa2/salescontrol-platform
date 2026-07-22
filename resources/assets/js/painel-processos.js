@@ -1,8 +1,8 @@
 /**
- * Painel operacional de processos (visão do gestor) — torre de controle.
- * Raias por urgência: Atrasado · Vencendo · Aguardando implantação · Em dia.
- * Uma linha por processo (cancelamento ou portabilidade). O prazo conta a partir
- * da implantação do contrato (ver ProcessoVendaRepository::linhaProcesso).
+ * Painel operacional de processos (visão do gestor) — abas por trilha.
+ * Abas: Cancelamento · Portabilidade (cada uma com raias de urgência
+ * Atrasado/Vencendo/Aguardando implantação/Em dia) · Concluídos (baixados no mês).
+ * O prazo conta a partir da implantação (ver ProcessoVendaRepository::linhaProcesso).
  * Consome backoffice.painelProcessos.data / .atribuir / .faseCancelamento / .fasePortabilidade.
  */
 (function () {
@@ -15,9 +15,11 @@
   const cfg = window.__painel || { responsaveis: [], tipos: {} };
   let filtros = { responsavel_id: '', busca: '' };
   let urgFiltro = '';
+  let abaAtiva = 'cancelamentos';
   let fasesCancel = [];
   let fasesPortab = [];
   let ultimaFila = [];
+  let ultimosConcluidos = [];
   const colapsadas = new Set(['em_dia']); // "Em dia" começa recolhida (foco no que precisa de ação)
 
   const LANES = [
@@ -60,19 +62,21 @@
     const params = new URLSearchParams();
     Object.entries(filtros).forEach(([k, v]) => { if (v !== '' && v !== null) params.append(k, v); });
 
-    $('pp-lanes').innerHTML = '<div class="pp-board-loading">Carregando…</div>';
+    $('pp-content').innerHTML = '<div class="pp-board-loading">Carregando…</div>';
 
     const data = await api(`/back-office/painel-processos/data?${params.toString()}`);
     if (!data.success) {
-      $('pp-lanes').innerHTML = `<div class="pp-board-erro">${esc(data.message || 'Erro ao carregar.')}</div>`;
+      $('pp-content').innerHTML = `<div class="pp-board-erro">${esc(data.message || 'Erro ao carregar.')}</div>`;
       return;
     }
 
     fasesCancel = data.fases_cancelamento || [];
     fasesPortab = data.fases_portabilidade || [];
     ultimaFila = data.fila || [];
+    ultimosConcluidos = data.concluidos || [];
     renderKpis(data.kpis);
-    renderLanes(ultimaFila);
+    atualizarContadoresAbas();
+    renderConteudo();
   }
 
   function renderKpis(k) {
@@ -82,15 +86,26 @@
     $('kpi-concluidos').textContent = k.concluidos_mes;
   }
 
-  // ---- Raias ----
-  function renderLanes(fila) {
-    const host = $('pp-lanes');
+  function atualizarContadoresAbas() {
+    $('tabcount-cancelamentos').textContent = ultimaFila.filter((p) => p.grupo === 'cancelamentos').length;
+    $('tabcount-portabilidade').textContent = ultimaFila.filter((p) => p.grupo === 'portabilidade').length;
+    $('tabcount-concluidos').textContent = ultimosConcluidos.length;
+  }
+
+  // ---- Conteúdo por aba ----
+  function renderConteudo() {
+    if (abaAtiva === 'concluidos') return renderConcluidos(ultimosConcluidos);
+    renderLanes(ultimaFila.filter((p) => p.grupo === abaAtiva));
+  }
+
+  function renderLanes(itens) {
+    const host = $('pp-content');
     const grupos = { atrasado: [], vencendo: [], aguardando_implantacao: [], em_dia: [] };
-    fila.forEach((p) => (grupos[p.urgencia] || (grupos[p.urgencia] = [])).push(p));
+    itens.forEach((p) => (grupos[p.urgencia] || (grupos[p.urgencia] = [])).push(p));
 
     const lanes = urgFiltro ? LANES.filter((l) => l.key === urgFiltro) : LANES;
     host.innerHTML = lanes.map((l) => laneHtml(l, grupos[l.key] || [])).join('')
-      || '<div class="pp-board-loading">Nenhum processo em aberto. 🎉</div>';
+      || '<div class="pp-board-loading">Nenhum processo em aberto nesta trilha. 🎉</div>';
   }
 
   function laneHtml(l, itens) {
@@ -120,9 +135,6 @@
   function row(p) {
     const link = p.venda_id ? `/back-office/abrir-contrato/${p.venda_id}` : '#';
     const ehPortab = p.fonte === 'portabilidade';
-    const wsCls = ehPortab ? 'ws-portab' : 'ws-cancel';
-    const wsLabel = ehPortab ? 'Portabilidade' : 'Cancelamento';
-
     const fases = ehPortab ? fasesPortab : fasesCancel;
     const faseCls = ehPortab ? 'pp-fase-portab' : 'pp-fase-cancel';
     const faseSel = `<select class="pp-input pp-mini ${faseCls}" data-id="${p.id}" title="Avançar fase">
@@ -135,7 +147,6 @@
       : badgePrazo(p);
 
     return `<div class="pp-row urg-${esc(p.urgencia)}">
-        <span class="pp-ws ${wsCls}" title="${esc(p.tipo_label)}">${esc(wsLabel)}</span>
         <div class="pp-row-main">
           <a href="${link}" target="_blank" class="pp-row-contrato">${esc(p.contrato)}</a>
           <span class="pp-row-pessoa">${esc(p.quem || '—')}</span>
@@ -144,6 +155,43 @@
         <span class="pp-row-when">${situacao}</span>
         <select class="pp-input pp-mini pp-assign" data-fonte="${esc(p.fonte)}" data-id="${p.id}" title="Responsável">${opcoesResponsavel(p.responsavel_id)}</select>
         ${faseSel}
+      </div>`;
+  }
+
+  // ---- Concluídos (somente leitura) ----
+  function renderConcluidos(lista) {
+    const host = $('pp-content');
+    if (!lista.length) {
+      host.innerHTML = '<div class="pp-board-loading">Nenhum processo concluído neste mês.</div>';
+      return;
+    }
+    host.innerHTML = `<section class="pp-lane lane-success">
+        <div class="pp-lane-head is-static">
+          <span class="pp-lane-dot"></span>
+          <span class="pp-lane-name">Concluídos no mês</span>
+          <span class="pp-lane-count">${lista.length}</span>
+          <span class="pp-lane-hint">cancelamentos e portabilidades baixados neste mês</span>
+        </div>
+        <div class="pp-lane-body">${lista.map(concluidoRow).join('')}</div>
+      </section>`;
+  }
+
+  function concluidoRow(c) {
+    const link = c.venda_id ? `/back-office/abrir-contrato/${c.venda_id}` : '#';
+    const ehPortab = c.grupo === 'portabilidade';
+    const wsCls = ehPortab ? 'ws-portab' : 'ws-cancel';
+    const wsLabel = ehPortab ? 'Portabilidade' : 'Cancelamento';
+    const desfCls = c.desfecho === 'Negada' ? 'danger' : 'ok';
+    const meta = `${esc(c.concluido_em || '—')}${c.por ? ' · por ' + esc(c.por) : ''}`;
+
+    return `<div class="pp-row is-done">
+        <span class="pp-ws ${wsCls}">${esc(wsLabel)}</span>
+        <div class="pp-row-main">
+          <a href="${link}" target="_blank" class="pp-row-contrato">${esc(c.contrato)}</a>
+          <span class="pp-row-pessoa">${esc(c.quem || '—')}</span>
+        </div>
+        <span class="pp-badge ${desfCls}">${esc(c.desfecho)}</span>
+        <span class="pp-row-when pp-done-meta">${meta}</span>
       </div>`;
   }
 
@@ -177,12 +225,20 @@
     root.querySelectorAll('.pp-kpi[data-urg]').forEach((el) => el.classList.toggle('active', el.dataset.urg === urgFiltro));
     const tag = $('pp-urg-tag');
     if (urgFiltro) {
+      // Filtro de urgência só faz sentido nas trilhas; sai de "Concluídos".
+      if (abaAtiva === 'concluidos') trocarAba('cancelamentos');
       tag.style.display = '';
       tag.innerHTML = `Filtrando: ${esc(URG_LABEL[urgFiltro] || urgFiltro)} <button type="button" class="pp-urg-x" aria-label="Remover filtro">✕</button>`;
     } else {
       tag.style.display = 'none';
     }
-    renderLanes(ultimaFila);
+    renderConteudo();
+  }
+
+  function trocarAba(aba) {
+    abaAtiva = aba;
+    root.querySelectorAll('.pp-tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === aba));
+    renderConteudo();
   }
 
   // ---- Eventos ----
@@ -195,13 +251,15 @@
 
   root.addEventListener('click', (e) => {
     if (e.target.closest('.pp-urg-x')) { aplicarUrgencia(urgFiltro); return; }
+    const tab = e.target.closest('.pp-tab');
+    if (tab) { trocarAba(tab.dataset.tab); return; }
     const kpi = e.target.closest('.pp-kpi[data-urg]');
     if (kpi) { aplicarUrgencia(kpi.dataset.urg); return; }
     const toggle = e.target.closest('[data-lane-toggle]');
     if (toggle) {
       const key = toggle.dataset.laneToggle;
       if (colapsadas.has(key)) colapsadas.delete(key); else colapsadas.add(key);
-      renderLanes(ultimaFila);
+      renderConteudo();
     }
   });
 
