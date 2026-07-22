@@ -555,6 +555,14 @@
     if (e.target.closest('#pv-email-cancelar')) preencherFormEmail(null);
   });
 
+  // Boas-vindas enviada → reflete no botão do cabeçalho.
+  document.addEventListener('boasVindasEnviada', () => {
+    const btn = document.getElementById('btn-boas-vindas');
+    const txt = document.getElementById('btn-boas-vindas-txt');
+    if (btn) btn.classList.add('is-sent');
+    if (txt) txt.textContent = 'Boas-vindas enviadas';
+  });
+
   // ---------- Init ----------
   moverPortabilidade();
   carregarCancelamentos();

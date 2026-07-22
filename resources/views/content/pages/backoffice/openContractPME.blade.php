@@ -3,16 +3,16 @@
 @section('title', 'Gestao de Contrato PME')
 
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss'])
-    @vite(['resources/assets/vendor/scss/pages/backoffice-contract-pme.scss', 'resources/assets/vendor/scss/pages/backoffice-processos.scss'])
+    @vite(['resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss'])
+    @vite(['resources/assets/vendor/scss/pages/backoffice-contract-pme.scss', 'resources/assets/vendor/scss/pages/backoffice-processos.scss', 'resources/assets/vendor/scss/pages/pos-venda.scss'])
 @endsection
 
 @section('vendor-script')
-    @vite(['resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/cleavejs/cleave.js', 'resources/assets/vendor/libs/cleavejs/cleave-phone.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js'])
+    @vite(['resources/assets/vendor/libs/select2/select2.js', 'resources/assets/vendor/libs/cleavejs/cleave.js', 'resources/assets/vendor/libs/cleavejs/cleave-phone.js', 'resources/assets/vendor/libs/flatpickr/flatpickr.js', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.js'])
 @endsection
 
 @section('page-script')
-    @vite(['resources/assets/js/openContractPME.js', 'resources/assets/js/backoffice-processos.js'])
+    @vite(['resources/assets/js/openContractPME.js', 'resources/assets/js/backoffice-processos.js', 'resources/assets/js/boas-vindas.js'])
 @endsection
 
 @section('content')
@@ -234,6 +234,12 @@
                     <h1 class="page-title">{{ $contract->nome_contrato }}</h1>
                     <span class="page-subtitle" id="page-subtitle-doc">{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'CPF' : 'CNPJ' }}: {{ $contract->cpf_cnpj }} | Contrato #{{ $contract->id }}</span>
                 </div>
+                @if ($canEdit ?? true)
+                <button type="button" class="pv-bv-btn {{ $contract->boas_vindas_enviado_em ? 'is-sent' : '' }}" id="btn-boas-vindas" onclick="window.abrirBoasVindas({{ $contract->id }})">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span id="btn-boas-vindas-txt">{{ $contract->boas_vindas_enviado_em ? 'Boas-vindas enviadas' : 'Enviar boas-vindas' }}</span>
+                </button>
+                @endif
             </div>
             <div class="pme-header-stats">
                 <div class="stat-item">
@@ -794,6 +800,9 @@
         </div>
     </div>
     </div>{{-- /pv-screen --}}
+
+    {{-- Boas-vindas (WhatsApp/E-mail): modais compartilhados, acionados por window.abrirBoasVindas() --}}
+    @include('content.pages.backoffice.partials.boas-vindas-modals')
 
     {{-- Modal: Confirmação de Exclusão de Dependente --}}
     <div class="modal fade" id="modalDeleteDependente" tabindex="-1" aria-hidden="true">

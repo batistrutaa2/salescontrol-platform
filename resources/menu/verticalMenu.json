@@ -259,11 +259,6 @@
           "slug": "pages-mailing-importar"
         },
         {
-          "url": "/back-office/pos-venda-demandas",
-          "name": "Demandas Pós-Venda",
-          "slug": "pages-pos-venda-demandas"
-        },
-        {
           "url": "/back-office/painel-processos",
           "name": "Painel de Processos",
           "slug": "backoffice.painelProcessos",

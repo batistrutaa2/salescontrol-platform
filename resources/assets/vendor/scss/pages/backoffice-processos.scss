@@ -66,6 +66,32 @@
 }
 .pv-switcher-select select:focus { outline: none; border-color: var(--pv-primary-light); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12); }
 
+// Botão de boas-vindas no cabeçalho do contrato
+.pv-bv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #fff;
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, #7c3aed, #a78bfa);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.28);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.pv-bv-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124, 58, 237, 0.36); }
+.pv-bv-btn.is-sent {
+  color: #0f9d6a;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: none;
+}
+.pv-bv-btn.is-sent:hover { transform: none; }
+
 // ---------- Nav de abas ----------
 .pv-tabnav {
   display: flex;

@@ -20,7 +20,6 @@ use App\Http\Controllers\pages\backoffice\Backoffice;
 use App\Http\Controllers\pages\backoffice\CredenciaisAcessoController;
 use App\Http\Controllers\pages\backoffice\LiminarController;
 use App\Http\Controllers\pages\backoffice\PainelProcessosController;
-use App\Http\Controllers\pages\backoffice\PosVendaDemandas;
 use App\Http\Controllers\pages\backoffice\ProcessosVendaController;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
@@ -297,14 +296,6 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/back-office/painel-processos/atribuir', [PainelProcessosController::class, 'atribuir'])->name('backoffice.painelProcessos.atribuir');
   Route::post('/back-office/painel-processos/concluir', [PainelProcessosController::class, 'concluir'])->name('backoffice.painelProcessos.concluir');
   Route::post('/back-office/painel-processos/portabilidade/fase', [PainelProcessosController::class, 'fasePortabilidade'])->name('backoffice.painelProcessos.fasePortabilidade');
-
-  // Demandas de Pós-Venda (workspace de check-list por contrato)
-  Route::get('/back-office/pos-venda-demandas', [PosVendaDemandas::class, 'index'])->name('backoffice.posVendaDemandas');
-  Route::get('/back-office/pos-venda-demandas/data', [PosVendaDemandas::class, 'data'])->name('backoffice.posVendaDemandas.data');
-  Route::get('/back-office/pos-venda-demandas/templates', [PosVendaDemandas::class, 'getTemplates'])->name('backoffice.posVendaDemandas.templates');
-  Route::get('/back-office/pos-venda-demandas/buscar-contratos', [PosVendaDemandas::class, 'buscarContratos'])->name('backoffice.posVendaDemandas.buscarContratos');
-  Route::get('/back-office/pos-venda-demandas/metricas', [PosVendaDemandas::class, 'metricas'])->name('backoffice.posVendaDemandas.metricas');
-  Route::post('/back-office/pos-venda-demandas/{vendaId}/concluir-todas', [PosVendaDemandas::class, 'concluirTodas'])->name('backoffice.posVendaDemandas.concluirTodas');
 
   // Pós-Venda
   Route::get('/back-office/pos-venda', [Backoffice::class, 'posVenda'])->name('backoffice.posVenda');
