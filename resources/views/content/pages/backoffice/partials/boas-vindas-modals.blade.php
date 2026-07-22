@@ -2,7 +2,7 @@
 
 <!-- Modal Boas Vindas -->
 <div class="modal fade" id="modalBoasVindas" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl bv-modal-dialog">
+    <div class="modal-dialog modal-dialog-centered bv-modal-dialog">
         <div class="modal-content pv-modal-modern">
             <div class="pv-modal-header pv-modal-header-info">
                 <div class="pv-modal-header-content">

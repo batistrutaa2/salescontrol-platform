@@ -153,7 +153,7 @@
 
 {{-- Modal Nova/Editar --}}
 <div class="modal fade cred-modal" id="credencialModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl cred-modal-wide modal-dialog-centered">
+    <div class="modal-dialog cred-modal-wide modal-dialog-centered">
         <form id="formCredencial">
             <input type="hidden" id="credencial_id" name="id">
             <div class="modal-content cred-modal-content">

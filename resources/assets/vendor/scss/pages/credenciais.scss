@@ -656,7 +656,12 @@
 // Modal de credenciais — contexto compartilhado + repetidor de acessos
 // (login/senha em JetBrains Mono, senha revelável, N acessos por vez)
 // =====================================================================
-.cred-modal-wide { max-width: 920px; }
+// Largura custom + centralização horizontal garantidas (especificidade > .modal-xl).
+.cred-modal .cred-modal-wide {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
 .cred-modal-content { border: none; border-radius: 18px; overflow: hidden; }
 
 .cred-modal-head {

@@ -3033,7 +3033,12 @@
 // Boas-vindas: modal mais largo + repetidor de "Acessos ao aplicativo"
 // (vários login/senha por mensagem — cada acesso vira um bloco no texto)
 // =====================================================================
-.bv-modal-dialog { max-width: 960px; }
+// Largura custom + centralização horizontal garantidas (especificidade > .modal-xl).
+#modalBoasVindas .bv-modal-dialog {
+    max-width: 940px;
+    margin-left: auto;
+    margin-right: auto;
+}
 
 .bv-acessos-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .bv-acessos-count {
