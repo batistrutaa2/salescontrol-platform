@@ -23,10 +23,15 @@
                     <div class="pvac-ctx">
                         <div class="pvac-field">
                             <label class="pvac-label" for="pvac-operadora">Operadora</label>
+                            @php
+                                // Pré-seleciona a operadora do contrato (casada por nome). Vira o
+                                // default do <select>, então persiste no form.reset() a cada abertura.
+                                $pvacOpSelId = optional(($operadoras ?? collect())->firstWhere('nome', $contract->operadora ?? null))->id;
+                            @endphp
                             <select class="form-select pvac-input" id="pvac-operadora" name="operadora_id">
                                 <option value="">— Selecione —</option>
                                 @foreach ($operadoras ?? collect() as $operadora)
-                                    <option value="{{ $operadora->id }}">{{ $operadora->nome }}</option>
+                                    <option value="{{ $operadora->id }}" @selected($pvacOpSelId == $operadora->id)>{{ $operadora->nome }}</option>
                                 @endforeach
                             </select>
                         </div>
