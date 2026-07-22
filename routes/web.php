@@ -238,10 +238,15 @@ Route::middleware(['auth'])->group(function () {
   Route::post(uri: '/back-office/quick-status-change', action: [Backoffice::class, 'quickStatusChange'])->name('backoffice.quickStatusChange');
   Route::get(uri: '/back-office/comprovante/{id}', action: [Backoffice::class, 'downloadPaymentProof'])->name('backoffice.downloadPaymentProof');
   Route::get(uri: '/back-office/deletar-contrato/{id}', action: [Backoffice::class, 'deleteContract'])->name('backoffice.deleteContract');
+  // Operadoras e Planos — tela única (as antigas cadastrar-planos/operadora redirecionam pra cá)
   Route::get(uri: '/back-office/cadastrar-planos', action: [Backoffice::class, 'planos'])->name('backoffice.planos');
   Route::get(uri: '/back-office/cadastrar-operadora', action: [Backoffice::class, 'operadoras'])->name('backoffice.operadoras');
+  Route::get('/back-office/operadoras-planos', [Backoffice::class, 'operadorasPlanos'])->name('backoffice.operadorasPlanos');
+  Route::get('/back-office/operadoras-planos/data', [Backoffice::class, 'getOperadorasComPlanos'])->name('backoffice.operadorasPlanos.data');
   Route::post(uri: '/back-office/createOperation', action: [Backoffice::class, 'createOperation'])->name('backoffice.createOperation');
   Route::post(uri: '/back-office/createPlan', action: [Backoffice::class, 'createPlan'])->name('backoffice.createPlan');
+  Route::patch('/back-office/operadoras/{id}/status', [Backoffice::class, 'toggleOperadoraStatus'])->name('backoffice.operadoras.toggleStatus');
+  Route::patch('/back-office/planos/{id}/status', [Backoffice::class, 'togglePlanoStatus'])->name('backoffice.planos.toggleStatus');
   Route::get(uri: '/back-office/getOperators', action: [Backoffice::class, 'getOperators'])->name('backoffice.getOperators');
   Route::get(uri: '/back-office/getPlans', action: [Backoffice::class, 'getPlans'])->name('backoffice.getPlans');
   Route::put('/backoffice/titulares/{id}', [Backoffice::class, 'updateTitular'])->name('backoffice.titulares.update');

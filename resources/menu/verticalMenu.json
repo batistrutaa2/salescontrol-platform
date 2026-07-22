@@ -281,14 +281,9 @@
           "rules": ["ADMINISTRATIVO", "DEVELOPER"]
         },
         {
-          "url": "/back-office/cadastrar-operadora",
-          "name": "Cadastrar Operadora",
-          "slug": "pages-cadastro-operadora"
-        },
-        {
-          "url": "/back-office/cadastrar-planos",
-          "name": "Cadastrar Planos",
-          "slug": "pages-cadastro-planos"
+          "url": "/back-office/operadoras-planos",
+          "name": "Operadoras e Planos",
+          "slug": "backoffice.operadorasPlanos"
         },
         {
           "url": "/back-office/relatorio-performance",

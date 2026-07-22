@@ -495,20 +495,67 @@ class Backoffice extends Controller
         }
     }
 
+    // Telas antigas separadas (Cadastrar Operadora / Cadastrar Planos) foram
+    // unificadas em "Operadoras e Planos" — redirecionam para a nova.
     public function planos()
     {
-        $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)->get();
-
-        return view('content.pages.backoffice.planos', [
-            'operadoras' => $operadoras,
-        ]);
+        return redirect()->route('backoffice.operadorasPlanos');
     }
 
     public function operadoras()
     {
-        $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)->get();
+        return redirect()->route('backoffice.operadorasPlanos');
+    }
 
-        return view('content.pages.backoffice.operadora');
+    /** Tela única: cadastra a operadora e, na mesma tela, os planos dela. */
+    public function operadorasPlanos()
+    {
+        return view('content.pages.backoffice.operadoras-planos');
+    }
+
+    /** Operadoras da empresa com seus planos aninhados (para o master-detail). */
+    public function getOperadorasComPlanos()
+    {
+        $empresaId = Auth::user()->empresa_id;
+
+        $planos = Plano::where('empresa_id', $empresaId)
+            ->orderBy('nome')
+            ->get(['id', 'operadora_id', 'nome', 'status', 'acomodacao'])
+            ->groupBy('operadora_id');
+
+        $operadoras = Operadora::where('empresa_id', $empresaId)
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'status'])
+            ->map(fn ($op) => [
+                'id' => $op->id,
+                'nome' => $op->nome,
+                'status' => $op->status,
+                'planos' => ($planos[$op->id] ?? collect())->values(),
+            ]);
+
+        return response()->json(['success' => true, 'operadoras' => $operadoras]);
+    }
+
+    public function toggleOperadoraStatus($id)
+    {
+        $op = Operadora::where('id', $id)->where('empresa_id', Auth::user()->empresa_id)->first();
+        if (! $op) {
+            return response()->json(['success' => false, 'message' => 'Operadora não encontrada.'], 404);
+        }
+        $op->update(['status' => $op->status === 'Y' ? 'N' : 'Y']);
+
+        return response()->json(['success' => true, 'status' => $op->status]);
+    }
+
+    public function togglePlanoStatus($id)
+    {
+        $plano = Plano::where('id', $id)->where('empresa_id', Auth::user()->empresa_id)->first();
+        if (! $plano) {
+            return response()->json(['success' => false, 'message' => 'Plano não encontrado.'], 404);
+        }
+        $plano->update(['status' => $plano->status === 'Y' ? 'N' : 'Y']);
+
+        return response()->json(['success' => true, 'status' => $plano->status]);
     }
 
     public function createOperation(Request $request)
