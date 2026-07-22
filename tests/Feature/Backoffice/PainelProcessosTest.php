@@ -255,6 +255,25 @@ class PainelProcessosTest extends TestCase
         $this->assertSame('Negada', $port['desfecho']);
     }
 
+    public function test_concluidos_ordenados_por_conclusao_desc(): void
+    {
+        $venda = $this->criarContrato();
+        $concluir = function (string $nome, $quando) use ($venda) {
+            $d = $this->criarCancelamento($venda, 5);
+            DB::table('venda_demandas')->where('id', $d->id)->update([
+                'titulo' => $nome, 'status' => 'CONCLUIDA', 'concluida_em' => $quando, 'concluida_por' => $this->gestor->id,
+            ]);
+        };
+        $concluir('A', now()->subDays(10));
+        $concluir('B', now()->subDays(1)); // mais recente -> deve vir primeiro
+        $concluir('C', now()->subDays(5));
+
+        $lista = collect($this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json('concluidos'));
+
+        $ts = $lista->pluck('ts')->all();
+        $this->assertSame(collect($ts)->sortDesc()->values()->all(), $ts, 'Concluídos devem vir do mais recente para o mais antigo.');
+    }
+
     public function test_atribuir_responsavel(): void
     {
         $venda = $this->criarContrato();

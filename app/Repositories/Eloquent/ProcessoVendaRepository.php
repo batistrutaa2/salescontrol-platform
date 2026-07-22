@@ -218,7 +218,7 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
                 'tipo_label' => TipoDemandaContrato::tryFrom($d->tipo)?->label() ?? $d->tipo,
                 'quem' => $d->titular->nome ?? null,
                 'desfecho' => 'Concluído',
-                'concluido_em' => optional($d->concluida_em)->format('d/m/Y'),
+                'concluido_em' => optional($d->concluida_em)->format('d/m/Y H:i'),
                 'por' => $d->concluidaPor->name ?? null,
                 'ts' => optional($d->concluida_em)->timestamp ?? 0,
             ]);
@@ -236,7 +236,7 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
                     'tipo_label' => 'Portabilidade',
                     'quem' => $p->nome,
                     'desfecho' => $p->fase === 'NEGADA' ? 'Negada' : 'Concluída',
-                    'concluido_em' => optional($p->concluida_em)->format('d/m/Y'),
+                    'concluido_em' => optional($p->concluida_em)->format('d/m/Y H:i'),
                     'por' => $p->concluidaPor->name ?? null,
                     'ts' => optional($p->concluida_em)->timestamp ?? 0,
                 ]);
