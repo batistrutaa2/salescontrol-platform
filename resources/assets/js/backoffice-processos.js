@@ -99,6 +99,53 @@
     atualizarContador(data.cancelamentos || []);
     renderCliente(data);
     renderEmailsCriados(data);
+    renderSwitcher(data);
+  }
+
+  // ---------- Switcher de contratos do cliente (mesmo CNPJ/CPF) ----------
+  function formatarDoc(doc) {
+    const d = String(doc || '').replace(/\D/g, '');
+    if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    return doc || '';
+  }
+
+  function renderSwitcher(data) {
+    const hostEl = root.querySelector('.pv-switcher-host');
+    if (!hostEl) return;
+
+    const anteriores = data.contratos_anteriores || [];
+    if (!anteriores.length) { hostEl.innerHTML = ''; return; } // cliente com um só contrato
+
+    const atualId = Number(vendaId);
+    const todos = [
+      { id: atualId, operadora: data.venda.operadora, status: data.venda.status, data_vigencia: data.venda.data_vigencia, atual: true },
+      ...anteriores.map((c) => ({ id: c.id, operadora: c.operadora, status: c.status, data_vigencia: c.data_vigencia, atual: false })),
+    ];
+
+    const rotulo = (c) =>
+      `${c.atual ? '● ' : ''}${c.operadora || 'Contrato'}${c.data_vigencia ? ' · ' + c.data_vigencia : ''} · ${c.status}${c.atual ? ' (atual)' : ''}`;
+
+    const opcoes = todos
+      .map((c) => `<option value="${c.id}" ${c.atual ? 'selected' : ''}>${esc(rotulo(c))}</option>`)
+      .join('');
+
+    hostEl.innerHTML = `
+      <div class="pv-switcher">
+        <div class="pv-switcher-info">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 9V7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2"/></svg>
+          <span>Este cliente tem <strong>${todos.length}</strong> contratos${data.venda.cpf_cnpj ? ` · ${esc(formatarDoc(data.venda.cpf_cnpj))}` : ''}</span>
+        </div>
+        <label class="pv-switcher-select">
+          <span>Ir para</span>
+          <select id="pv-switcher">${opcoes}</select>
+        </label>
+      </div>`;
+
+    root.querySelector('#pv-switcher').addEventListener('change', (e) => {
+      const alvo = Number(e.target.value);
+      if (alvo && alvo !== atualId) window.location.href = `/back-office/abrir-contrato/${alvo}`;
+    });
   }
 
   // ---------- Aba E-mails criados (contas criadas para o cliente) ----------

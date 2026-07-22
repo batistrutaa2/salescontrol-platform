@@ -20,6 +20,52 @@
   --pv-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+// ---------- Switcher de contratos do cliente ----------
+.pv-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--pv-radius-sm);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(167, 139, 250, 0.05));
+  border: 1px solid var(--pv-border);
+}
+.pv-switcher-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+  color: var(--pv-text-soft);
+}
+.pv-switcher-info svg { color: var(--pv-primary); flex: none; }
+.pv-switcher-info strong { color: var(--pv-primary); font-weight: 800; }
+.pv-switcher-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pv-text-muted);
+}
+.pv-switcher-select select {
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--pv-text);
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--pv-border);
+  background: var(--pv-card-bg);
+  max-width: min(60vw, 380px);
+}
+.pv-switcher-select select:focus { outline: none; border-color: var(--pv-primary-light); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12); }
+
 // ---------- Nav de abas ----------
 .pv-tabnav {
   display: flex;

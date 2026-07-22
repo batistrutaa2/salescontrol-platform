@@ -199,6 +199,8 @@
     @endif
 
     <div class="pv-screen" data-venda-id="{{ $contract->id }}" data-csrf="{{ csrf_token() }}">
+    {{-- Switcher: navega entre os contratos do mesmo cliente (CNPJ/CPF) sem trocar de tela. Preenchido pelo JS. --}}
+    <div class="pv-switcher-host"></div>
     <div class="pv-tabnav">
         <button type="button" class="pv-tab active" data-pane="contrato">Contrato</button>
         <button type="button" class="pv-tab" data-pane="portabilidade">Portabilidade</button>

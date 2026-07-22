@@ -78,6 +78,7 @@ class ProcessosVendaController extends Controller
                     'cpf_cnpj' => $venda->cpf_cnpj,
                     'operadora' => $venda->operadora,
                     'status' => $venda->tabulacao->descricao ?? '—',
+                    'data_vigencia' => optional($venda->data_vigencia)->format('d/m/Y'),
                 ],
                 'resumo' => $this->processos->resumo($vendaId, $empresaId),
                 'cancelamentos' => $cancelamentos,
