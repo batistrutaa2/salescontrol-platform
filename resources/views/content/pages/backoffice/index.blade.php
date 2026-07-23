@@ -140,6 +140,9 @@
             </div>
         </div>
 
+        {{-- Busca casou contratos que já saíram da fila (implantados, estornados) --}}
+        <div class="kanban-fora-fila" id="kanban-fora-fila" style="display: none;"></div>
+
         <!-- Kanban -->
         <div class="kb-tab-pane active" id="pane-kanban">
             <!-- Loading State -->

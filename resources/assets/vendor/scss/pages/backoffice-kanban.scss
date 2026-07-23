@@ -3487,3 +3487,100 @@
         transition: opacity 0.01ms;
     }
 }
+
+// =============================================================================
+// Aviso de contratos fora da fila
+//
+// A fila é o que está em andamento; implantado e estornado não têm raia. Quando
+// a busca casa um desses, o board fica vazio e parece que o contrato sumiu —
+// esta faixa diz onde ele está e leva direto para a tela dele.
+// =============================================================================
+.kanban-fora-fila {
+    margin-bottom: 1rem;
+    padding: 0.875rem 1.125rem;
+    background: var(--kb-card-bg);
+    border: 1px solid rgba(var(--kb-info-rgb), 0.25);
+    border-left: 3px solid var(--kb-info);
+    border-radius: var(--kb-border-radius-sm);
+    box-shadow: var(--kb-shadow-sm);
+
+    .kff-head {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--kb-text-secondary);
+
+        svg {
+            flex-shrink: 0;
+            color: var(--kb-info);
+        }
+    }
+
+    .kff-lista {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+        margin-top: 0.75rem;
+    }
+
+    .kff-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--kb-border-radius-xs);
+        background: var(--kb-glass-bg);
+        border: 1px solid var(--kb-card-border);
+        text-decoration: none;
+        transition: var(--kb-transition-fast);
+
+        &:hover {
+            border-color: rgba(var(--kb-info-rgb), 0.4);
+
+            .kff-abrir {
+                opacity: 1;
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--kb-info);
+            outline-offset: 2px;
+        }
+    }
+
+    .kff-nome {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--kb-text-primary);
+    }
+
+    .kff-prop {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        color: var(--kb-text-muted);
+    }
+
+    .kff-status {
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.66rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: rgba(var(--kb-info-rgb), 0.12);
+        color: var(--kb-info);
+    }
+
+    .kff-abrir {
+        margin-left: auto;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--kb-primary);
+        opacity: 0.6;
+        transition: var(--kb-transition-fast);
+    }
+}

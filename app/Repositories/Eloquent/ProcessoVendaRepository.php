@@ -425,19 +425,77 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
         ];
     }
 
+    /**
+     * Neutraliza os curingas do LIKE — sem isso um termo com "%" ou "_"
+     * (comum em nome de plano) vira wildcard e traz a base inteira.
+     */
+    private function escaparLike(string $valor): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $valor);
+    }
+
+    /**
+     * Busca de contratos por palavras soltas, em qualquer ordem: quem digita
+     * "empresa x10" precisa achar "X10 COMERCIO E AUTOMACAO LTDA". Casa se
+     * QUALQUER palavra bater (recall) e ordena por relevância, então o registro
+     * que casa a frase inteira ou mais palavras sobe para o topo.
+     */
     public function buscarContratos(string $termo, int $empresaId, int $limite = 20): array
     {
+        $termo = trim(preg_replace('/\s+/', ' ', $termo));
+        if ($termo === '') {
+            return [];
+        }
+
         $digitos = preg_replace('/\D+/', '', $termo);
+        $palavras = array_slice(array_filter(explode(' ', $termo), fn ($p) => $p !== ''), 0, 6);
+
+        $relevancia = [];
+        $bindings = [];
+
+        // Frase inteira e início do nome valem mais que palavra solta.
+        $relevancia[] = 'CASE WHEN nome_contrato LIKE ? THEN 100 ELSE 0 END';
+        $bindings[] = '%'.$this->escaparLike($termo).'%';
+        $relevancia[] = 'CASE WHEN nome_contrato LIKE ? THEN 50 ELSE 0 END';
+        $bindings[] = $this->escaparLike($termo).'%';
+
+        foreach ($palavras as $palavra) {
+            $like = '%'.$this->escaparLike($palavra).'%';
+
+            $relevancia[] = 'CASE WHEN nome_contrato LIKE ? THEN 10 ELSE 0 END';
+            $bindings[] = $like;
+            $relevancia[] = 'CASE WHEN numero_proposta LIKE ? THEN 8 ELSE 0 END';
+            $bindings[] = $like;
+            // Operadora pesa pouco: "amil" casaria centenas de contratos.
+            $relevancia[] = 'CASE WHEN operadora LIKE ? THEN 2 ELSE 0 END';
+            $bindings[] = $like;
+        }
+
+        if ($digitos !== '') {
+            $relevancia[] = 'CASE WHEN cpf_cnpj LIKE ? THEN 60 ELSE 0 END';
+            $bindings[] = '%'.$digitos.'%';
+        }
 
         return Vendas::with('tabulacao:id,descricao')
             ->where('empresa_id', $empresaId)
-            ->where(function ($q) use ($termo, $digitos) {
-                $q->where('nome_contrato', 'like', "%{$termo}%")
-                    ->orWhere('numero_proposta', 'like', "%{$termo}%");
+            ->where(function ($q) use ($palavras, $digitos) {
+                foreach ($palavras as $palavra) {
+                    $like = '%'.$this->escaparLike($palavra).'%';
+                    $q->orWhere('nome_contrato', 'like', $like)
+                        ->orWhere('numero_proposta', 'like', $like)
+                        ->orWhere('operadora', 'like', $like);
+
+                    $digitosPalavra = preg_replace('/\D+/', '', $palavra);
+                    if ($digitosPalavra !== '') {
+                        $q->orWhere('cpf_cnpj', 'like', '%'.$digitosPalavra.'%');
+                    }
+                }
+
                 if ($digitos !== '') {
-                    $q->orWhere('cpf_cnpj', 'like', "%{$digitos}%");
+                    $q->orWhere('cpf_cnpj', 'like', '%'.$digitos.'%');
                 }
             })
+            ->orderByRaw('('.implode(' + ', $relevancia).') DESC', $bindings)
             ->orderByDesc('id')
             ->limit($limite)
             ->get(['id', 'nome_contrato', 'cpf_cnpj', 'operadora', 'numero_proposta', 'tabulacao_id'])

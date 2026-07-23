@@ -1744,6 +1744,86 @@ class Backoffice extends Controller
     }
 
     /**
+     * Neutraliza curingas do LIKE — "%" ou "_" digitados viravam wildcard.
+     */
+    private function escaparLike(string $valor): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $valor);
+    }
+
+    /**
+     * Busca por palavras soltas, em qualquer ordem: "empresa x10" precisa achar
+     * "X10 COMERCIO E AUTOMACAO LTDA". Cada palavra casa contra nome, proposta,
+     * operadora ou documento; basta uma bater. Sem isso o LIKE exigia a frase
+     * inteira contígua e a fila parecia vazia mesmo com o contrato na base.
+     */
+    private function aplicarBuscaContratos($query, ?string $termo): void
+    {
+        $termo = trim(preg_replace('/\s+/', ' ', (string) $termo));
+        if ($termo === '') {
+            return;
+        }
+
+        $palavras = array_slice(array_filter(explode(' ', $termo), fn ($p) => $p !== ''), 0, 6);
+        $digitos = preg_replace('/\D+/', '', $termo);
+
+        $query->where(function ($q) use ($palavras, $digitos) {
+            foreach ($palavras as $palavra) {
+                $like = '%'.$this->escaparLike($palavra).'%';
+                $q->orWhere('vendas.nome_contrato', 'like', $like)
+                    ->orWhere('vendas.numero_proposta', 'like', $like)
+                    ->orWhere('vendas.operadora', 'like', $like);
+
+                $digitosPalavra = preg_replace('/\D+/', '', $palavra);
+                if ($digitosPalavra !== '') {
+                    $q->orWhere('vendas.cpf_cnpj', 'like', '%'.$digitosPalavra.'%');
+                }
+            }
+
+            if ($digitos !== '') {
+                $q->orWhere('vendas.cpf_cnpj', 'like', '%'.$digitos.'%');
+            }
+        });
+    }
+
+    /**
+     * Contratos que casam a busca mas estão em status que não têm raia na fila
+     * (IMPLANTADO, ESTORNO...). Sem esse aviso, procurar um contrato implantado
+     * na fila devolve "nenhum resultado" como se ele não existisse.
+     */
+    private function contratosForaDaFila(?string $busca, int $empresaId, $idsKanban): array
+    {
+        if (trim((string) $busca) === '') {
+            return [];
+        }
+
+        $query = DB::table('vendas')
+            ->select([
+                'vendas.id',
+                'vendas.nome_contrato',
+                'vendas.numero_proposta',
+                'vendas.cpf_cnpj',
+                'tabulacoes.descricao as status_atual',
+            ])
+            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
+            ->where('vendas.empresa_id', $empresaId)
+            ->whereNotIn('vendas.tabulacao_id', $idsKanban);
+
+        $this->aplicarBuscaContratos($query, $busca);
+
+        return $query->orderByDesc('vendas.id')
+            ->limit(5)
+            ->get()
+            ->map(fn ($v) => [
+                'id' => $v->id,
+                'nome_contrato' => $v->nome_contrato,
+                'numero_proposta' => $v->numero_proposta,
+                'status_atual' => $v->status_atual ?? '—',
+            ])
+            ->all();
+    }
+
+    /**
      * Retorna dados para o pipeline visual
      */
     public function getPipelineData(Request $request)
@@ -1798,13 +1878,7 @@ class Backoffice extends Controller
             if ($vendedorId) {
                 $query->where('vendas.user_id', $vendedorId);
             }
-            if ($busca) {
-                $query->where(function ($q) use ($busca) {
-                    $q->where('vendas.nome_contrato', 'like', "%{$busca}%")
-                        ->orWhere('vendas.numero_proposta', 'like', "%{$busca}%")
-                        ->orWhere('vendas.operadora', 'like', "%{$busca}%");
-                });
-            }
+            $this->aplicarBuscaContratos($query, $busca);
 
             // Filtro de custodia: backoffice ve apenas seus contratos por padrao
             if ($isBackoffice && $custodia !== 'todos') {
@@ -1960,6 +2034,7 @@ class Backoffice extends Controller
                 'backoffices' => $backoffices,
                 'tabulacoes' => $tabulacoes,
                 'isBackoffice' => $isBackoffice,
+                'fora_da_fila' => $this->contratosForaDaFila($busca, $empresaId, $tabulacoes->pluck('id')->all()),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
@@ -2000,13 +2075,7 @@ class Backoffice extends Controller
             if ($vendedorId) {
                 $query->where('vendas.user_id', $vendedorId);
             }
-            if ($busca) {
-                $query->where(function ($q) use ($busca) {
-                    $q->where('vendas.nome_contrato', 'like', "%{$busca}%")
-                        ->orWhere('vendas.numero_proposta', 'like', "%{$busca}%")
-                        ->orWhere('vendas.operadora', 'like', "%{$busca}%");
-                });
-            }
+            $this->aplicarBuscaContratos($query, $busca);
 
             if ($isBackoffice && $custodia !== 'todos') {
                 $query->where(function ($q) {

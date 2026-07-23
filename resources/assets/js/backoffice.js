@@ -157,6 +157,7 @@ $(function () {
 
                 if (result.success) {
                     this.data = result;
+                    this.renderForaDaFila(result.fora_da_fila);
                     this.renderBoard(result.pipeline);
                     this.populateVendedorFilter(result.vendedores);
                     this.populateBackofficeFilter(result.backoffices);
@@ -178,6 +179,38 @@ $(function () {
                 $('#kanban-loading').hide();
                 $('#kanban-board').show();
             }
+        },
+
+        // A fila só tem raia para os status em andamento. Quando a busca casa um
+        // contrato que já saiu dela (implantado, estornado), avisa onde ele está
+        // em vez de deixar o board vazio.
+        renderForaDaFila(contratos) {
+            const box = $('#kanban-fora-fila');
+            if (!box.length) return;
+
+            if (!contratos || !contratos.length) {
+                box.hide().empty();
+                return;
+            }
+
+            const itens = contratos.map(c => `
+                <a class="kff-item" href="/back-office/abrir-contrato/${c.id}">
+                    <span class="kff-nome">${escapeHtml(c.nome_contrato || 'Sem nome')}</span>
+                    ${c.numero_proposta ? `<span class="kff-prop">nº ${escapeHtml(c.numero_proposta)}</span>` : ''}
+                    <span class="kff-status">${escapeHtml(c.status_atual)}</span>
+                    <span class="kff-abrir">Abrir</span>
+                </a>
+            `).join('');
+
+            box.html(`
+                <div class="kff-head">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <span>${contratos.length === 1 ? 'Um contrato fora da fila' : `${contratos.length} contratos fora da fila`} casam com a busca — a fila mostra só o que está em andamento.</span>
+                </div>
+                <div class="kff-lista">${itens}</div>
+            `).show();
         },
 
         renderBoard(pipeline) {

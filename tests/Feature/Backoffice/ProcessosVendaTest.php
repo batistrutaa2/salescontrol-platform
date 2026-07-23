@@ -199,6 +199,52 @@ class ProcessosVendaTest extends TestCase
         $this->assertTrue($buscar('MERCADO')->contains($b->id));
     }
 
+    public function test_busca_casa_palavras_soltas_fora_de_ordem(): void
+    {
+        // Caso real: procurar "empresa x10" precisa achar "X10 COMERCIO ...".
+        // O LIKE da frase inteira falhava porque exigia o trecho contíguo.
+        $x10 = $this->criarContrato($this->backoffice->id, cnpj: '52138844000105');
+        $x10->update(['nome_contrato' => 'X10 COMERCIO E AUTOMACAO LTDA', 'numero_proposta' => '4565']);
+
+        $buscar = fn (string $t) => collect(
+            $this->actingAs($this->backoffice)->getJson(route('backoffice.processos.buscar', ['termo' => $t]))->json('resultados')
+        )->pluck('id');
+
+        $this->assertTrue($buscar('empresa x10')->contains($x10->id), 'Palavra extra não pode derrubar o resultado.');
+        $this->assertTrue($buscar('x10')->contains($x10->id));
+        $this->assertTrue($buscar('automacao comercio')->contains($x10->id), 'Ordem das palavras não importa.');
+        $this->assertTrue($buscar('  X10   COMERCIO  ')->contains($x10->id), 'Espaços extras são normalizados.');
+    }
+
+    public function test_busca_ordena_por_relevancia(): void
+    {
+        $exato = $this->criarContrato($this->backoffice->id, cnpj: '11111111000111');
+        $exato->update(['nome_contrato' => 'X10 COMERCIO E AUTOMACAO LTDA']);
+        $parcial = $this->criarContrato($this->backoffice->id, cnpj: '22222222000122');
+        $parcial->update(['nome_contrato' => 'COMERCIO DE ALIMENTOS SA']);
+
+        $ids = collect(
+            $this->actingAs($this->backoffice)
+                ->getJson(route('backoffice.processos.buscar', ['termo' => 'x10 comercio']))
+                ->json('resultados')
+        )->pluck('id');
+
+        $this->assertTrue($ids->contains($parcial->id), 'Quem casa só uma palavra ainda aparece.');
+        $this->assertSame($exato->id, $ids->first(), 'Quem casa a frase inteira vem primeiro.');
+    }
+
+    public function test_busca_nao_trata_curinga_do_like_como_wildcard(): void
+    {
+        $venda = $this->criarContrato($this->backoffice->id);
+        $venda->update(['nome_contrato' => 'CLINICA POPULAR']);
+
+        $resultados = $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.processos.buscar', ['termo' => '%%']))
+            ->json('resultados');
+
+        $this->assertSame([], $resultados, 'Curinga digitado não pode devolver a base inteira.');
+    }
+
     public function test_busca_ignora_termo_curto(): void
     {
         $this->criarContrato($this->backoffice->id);
