@@ -28,6 +28,7 @@ use App\Models\Vendas;
 use App\Models\VendaTitular;
 use App\Notifications\StatusPropostaAlterada;
 use App\Notifications\VendaEstornadaComComissaoPaga;
+use App\Notifications\VendaRetomadaPeloBackoffice;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\VendasRepositoryInterface;
@@ -1538,6 +1539,205 @@ class Backoffice extends Controller
         $sale->save();
 
         return response()->json(['success' => true, 'message' => 'Contrato reatribuido com sucesso!']);
+    }
+
+    /**
+     * Status de destino aceitos ao retomar um estorno. São os estágios do fluxo
+     * normal da fila — IMPLANTADO/PENDENCIA/ESTORNO exigem dados extras (modal)
+     * e DECLINADO é saída, não retomada.
+     */
+    private const DESTINOS_RETOMADA_ESTORNO = [
+        Tabulations::VENDA,
+        Tabulations::ANALISE_DOCUMENTOS,
+        Tabulations::AGUARD_ASSINATURA_DS,
+        Tabulations::ANALISE_OPERADORA,
+        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+        Tabulations::BOLETO_DISPONIVEL,
+        Tabulations::REGULARIZADO,
+    ];
+
+    /**
+     * Propostas estornadas da empresa, do estorno mais recente para o mais antigo —
+     * o que acabou de voltar é o que ainda dá para captar. Alimenta o painel de
+     * estornos da fila.
+     */
+    public function listaEstornos()
+    {
+        $user = Auth::user();
+
+        $vendas = DB::table('vendas')
+            ->select([
+                'vendas.id',
+                'vendas.numero_proposta',
+                'vendas.nome_contrato',
+                'vendas.cpf_cnpj',
+                'vendas.operadora',
+                'vendas.nome_plano',
+                'vendas.valor_contrato',
+                'vendas.vidas',
+                'vendas.motivo_pendencia',
+                'vendas.backoffice_id',
+                'vendas.tabulacao_updated_at',
+                'vendas.updated_at',
+                'users.name as vendedor_nome',
+                'backoffice_user.name as backoffice_nome',
+            ])
+            ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
+            ->leftJoin('users as backoffice_user', 'backoffice_user.id', '=', 'vendas.backoffice_id')
+            ->where('vendas.empresa_id', $user->empresa_id)
+            ->where('vendas.tabulacao_id', Tabulations::ESTORNO)
+            ->get();
+
+        // Quem estornou vem do histórico; a data do estorno usa tabulacao_updated_at
+        // (gravada na troca de status) e cai para o histórico em registros antigos.
+        $historicos = VendaHistorico::whereIn('venda_id', $vendas->pluck('id'))
+            ->where('tabulacao_nova_id', Tabulations::ESTORNO)
+            ->orderBy('id', 'desc')
+            ->get()
+            ->groupBy('venda_id');
+
+        $isBackoffice = $user->user_role_id == UserRole::BACKOFFICE;
+
+        $estornos = $vendas->map(function ($v) use ($historicos, $user, $isBackoffice) {
+            $hist = $historicos->get($v->id)?->first();
+            $estornadoEm = $v->tabulacao_updated_at ?? $hist?->created_at ?? $v->updated_at;
+            $estornadoEm = $estornadoEm ? Carbon::parse($estornadoEm) : null;
+
+            // BACKOFFICE retoma o que é dele ou o que está livre; ADM/DEV retomam tudo.
+            $podeRetomar = ! $isBackoffice
+                || $v->backoffice_id === null
+                || (int) $v->backoffice_id === $user->id;
+
+            return [
+                'id' => $v->id,
+                'numero_proposta' => $v->numero_proposta,
+                'nome_contrato' => $v->nome_contrato,
+                'cpf_cnpj' => $v->cpf_cnpj,
+                'operadora' => $v->operadora,
+                'plano' => $v->nome_plano,
+                'valor' => $v->valor_contrato,
+                'vidas' => $v->vidas,
+                'motivo' => $v->motivo_pendencia ?: $hist?->motivo_pendencia,
+                'vendedor' => $v->vendedor_nome,
+                'backoffice_nome' => $v->backoffice_nome,
+                'estornado_em' => $estornadoEm?->format('d/m/Y'),
+                'dias_parado' => $estornadoEm ? (int) $estornadoEm->diffInDays(now()) : 0,
+                'pode_retomar' => $podeRetomar,
+                'ordem' => [$estornadoEm?->getTimestamp() ?? 0, $v->id],
+            ];
+        })
+            ->sortByDesc('ordem')
+            ->values()
+            ->map(function ($e) {
+                unset($e['ordem']);
+
+                return $e;
+            });
+
+        return response()->json([
+            'success' => true,
+            'total' => $estornos->count(),
+            'estornos' => $estornos,
+        ]);
+    }
+
+    /**
+     * Puxa de volta para a fila do backoffice uma venda que está em ESTORNO,
+     * sem depender do reenvio do vendedor. Usado quando o alinhamento foi feito
+     * por outro canal ou o estorno saiu por engano.
+     */
+    public function retomarEstorno(Request $request)
+    {
+        $request->validate([
+            'venda_id' => 'required|integer',
+            'tabulacao_id' => 'nullable|integer',
+            'observacao' => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+
+        if (! in_array($user->user_role_id, [UserRole::BACKOFFICE, UserRole::ADMINISTRATIVO, UserRole::DEVELOPER], true)) {
+            return response()->json(['success' => false, 'message' => 'Voce nao tem permissao para retomar contratos estornados.'], 403);
+        }
+
+        $sale = $this->vendasRepository->find($request->venda_id);
+        if (! $sale || $sale->empresa_id != $user->empresa_id) {
+            return response()->json(['success' => false, 'message' => 'Contrato nao encontrado.'], 404);
+        }
+
+        if ((int) $sale->tabulacao_id !== Tabulations::ESTORNO) {
+            return response()->json(['success' => false, 'message' => 'Esta proposta nao esta em estorno.'], 409);
+        }
+
+        // BACKOFFICE retoma o que é dele ou o que está sem dono (e assume a custódia
+        // no mesmo passo). ADM/DEVELOPER retomam qualquer contrato da empresa.
+        $isBackoffice = $user->user_role_id == UserRole::BACKOFFICE;
+        if ($isBackoffice && $sale->backoffice_id !== null && $sale->backoffice_id !== $user->id) {
+            $responsavel = User::find($sale->backoffice_id);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Este contrato esta sob responsabilidade de '.($responsavel->name ?? 'outro backoffice').'.',
+            ], 403);
+        }
+
+        $destino = (int) ($request->input('tabulacao_id') ?: Tabulations::VENDA);
+        if (! in_array($destino, self::DESTINOS_RETOMADA_ESTORNO, true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Status de destino invalido para retomada. Traga para a fila e siga o fluxo normal.',
+            ], 422);
+        }
+
+        $observacao = trim((string) $request->input('observacao')) ?: null;
+
+        try {
+            DB::beginTransaction();
+
+            $ok = $this->vendasRepository->alterStatusVenda($sale->id, $destino, $observacao);
+
+            if (! $ok) {
+                DB::rollBack();
+
+                return response()->json(['success' => false, 'message' => 'Nao foi possivel retomar a proposta.'], 500);
+            }
+
+            // Motivo do estorno some da venda (fica no histórico) e o backoffice
+            // sem dono passa a ser quem retomou.
+            $updates = ['motivo_pendencia' => null, 'updated_at' => now()];
+            if ($sale->backoffice_id === null && $isBackoffice) {
+                $updates['backoffice_id'] = $user->id;
+            }
+            Vendas::where('id', $sale->id)->update($updates);
+
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+
+            return response()->json(['success' => false, 'message' => 'Erro ao retomar proposta: '.$th->getMessage()], 500);
+        }
+
+        $tabulacao = Tabulacoes::find($destino);
+        $novoStatus = $tabulacao->descricao ?? 'VENDA';
+
+        // O vendedor precisa saber que a venda saiu de "Meus Estornos" e que o
+        // reenvio dele não é mais necessário.
+        $vendedor = User::find($sale->user_id);
+        if ($vendedor) {
+            $vendedor->notify(new VendaRetomadaPeloBackoffice(
+                vendaId: $sale->id,
+                nomeContrato: $sale->nome_contrato ?? "#{$sale->id}",
+                novoStatus: $novoStatus,
+                backofficeNome: $user->name ?? null,
+                observacao: $observacao,
+            ));
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Proposta retomada para a fila do backoffice.',
+            'novo_status' => $novoStatus,
+        ]);
     }
 
     /**

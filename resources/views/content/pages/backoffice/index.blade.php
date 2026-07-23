@@ -56,6 +56,15 @@
             </div>
 
             <div class="header-actions">
+                <button type="button" id="btn-abrir-estornos" class="btn-estornos">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 14 4 9 9 4"/>
+                        <path d="M20 20v-7a4 4 0 0 0-4-4H4"/>
+                    </svg>
+                    <span>Estornos</span>
+                    <span class="btn-estornos-count d-none" id="estornos-count">0</span>
+                </button>
+
                 <div class="kanban-filters">
                     @if ($isBackoffice ?? false)
                     <div class="filter-item">
@@ -349,6 +358,52 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Estornos: propostas devolvidas ao vendedor, do estorno mais recente para o mais antigo --}}
+    <div class="modal fade" id="modalEstornos" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content kb-modal est-modal">
+                <div class="kb-modal-header kb-modal-header-estorno">
+                    <div class="kb-modal-header-content">
+                        <div class="kb-modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 14 4 9 9 4"/>
+                                <path d="M20 20v-7a4 4 0 0 0-4-4H4"/>
+                            </svg>
+                        </div>
+                        <div class="kb-modal-title-group">
+                            <h5 class="kb-modal-title">Estornos</h5>
+                            <span class="kb-modal-subtitle">Propostas que estão com o vendedor aguardando correção</span>
+                        </div>
+                    </div>
+                    <button type="button" class="kb-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="est-toolbar">
+                    <div class="est-search">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="est-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                        </svg>
+                        <input type="text" id="estornos-busca" class="est-search-input" autocomplete="off"
+                            aria-label="Buscar proposta estornada"
+                            placeholder="Buscar cliente, CPF/CNPJ, proposta ou vendedor…">
+                    </div>
+                    <span class="est-resumo" id="estornos-resumo" aria-live="polite">Carregando…</span>
+                </div>
+
+                <div class="kb-modal-body est-body" id="estornos-lista">
+                    <div class="est-empty">
+                        <div class="est-empty-title">Carregando estornos…</div>
+                    </div>
                 </div>
             </div>
         </div>

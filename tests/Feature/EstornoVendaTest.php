@@ -10,6 +10,7 @@ use App\Models\Vendas;
 use App\Notifications\StatusPropostaAlterada;
 use App\Notifications\VendaEstornadaComComissaoPaga;
 use App\Notifications\VendaReenviadaNotification;
+use App\Notifications\VendaRetomadaPeloBackoffice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -574,5 +575,251 @@ class EstornoVendaTest extends TestCase
 
         $response = $this->actingAs($this->vendedor)->get(route('backoffice.openContract', $venda->id));
         $response->assertStatus(403);
+    }
+
+    // =====================================================================
+    // RETOMADA — backoffice puxa a venda estornada de volta para a fila
+    // =====================================================================
+
+    private function criarVendaEstornada(array $overrides = []): Vendas
+    {
+        $venda = $this->criarVenda(array_merge(['motivo_pendencia' => 'Faltou documento.'], $overrides));
+        DB::table('vendas')->where('id', $venda->id)->update(['tabulacao_id' => $this->tabulacaoEstornoId]);
+
+        return $venda->refresh();
+    }
+
+    public function test_backoffice_dono_retoma_estorno_e_venda_volta_para_a_fila(): void
+    {
+        Notification::fake();
+        $venda = $this->criarVendaEstornada();
+
+        $response = $this->actingAs($this->backoffice)->postJson(route('backoffice.retomarEstorno'), [
+            'venda_id' => $venda->id,
+            'observacao' => 'Cliente enviou o documento direto para o backoffice.',
+        ]);
+
+        $response->assertOk()->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('vendas', [
+            'id' => $venda->id,
+            'tabulacao_id' => $this->tabulacaoVendaId,
+            'motivo_pendencia' => null,
+            'backoffice_id' => $this->backoffice->id,
+        ]);
+
+        $this->assertDatabaseHas('vendas_historico', [
+            'venda_id' => $venda->id,
+            'tabulacao_anterior_id' => $this->tabulacaoEstornoId,
+            'tabulacao_nova_id' => $this->tabulacaoVendaId,
+            'observacao' => 'Cliente enviou o documento direto para o backoffice.',
+        ]);
+
+        // O vendedor precisa saber que não deve mais reenviar.
+        Notification::assertSentTo($this->vendedor, VendaRetomadaPeloBackoffice::class);
+    }
+
+    public function test_retomada_assume_custodia_quando_contrato_esta_sem_responsavel(): void
+    {
+        $venda = $this->criarVendaEstornada(['backoffice_id' => null]);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.retomarEstorno'), ['venda_id' => $venda->id])
+            ->assertOk();
+
+        $this->assertDatabaseHas('vendas', [
+            'id' => $venda->id,
+            'backoffice_id' => $this->backoffice->id,
+        ]);
+    }
+
+    public function test_backoffice_nao_retoma_contrato_de_outro_responsavel(): void
+    {
+        $outroBackoffice = User::factory()->create([
+            'empresa_id' => $this->empresa->id,
+            'user_role_id' => UserRole::BACKOFFICE,
+            'ativo' => 'Y',
+        ]);
+        $venda = $this->criarVendaEstornada();
+
+        $this->actingAs($outroBackoffice)
+            ->postJson(route('backoffice.retomarEstorno'), ['venda_id' => $venda->id])
+            ->assertStatus(403);
+
+        $this->assertDatabaseHas('vendas', [
+            'id' => $venda->id,
+            'tabulacao_id' => $this->tabulacaoEstornoId,
+        ]);
+    }
+
+    public function test_admin_retoma_estorno_de_qualquer_responsavel(): void
+    {
+        $venda = $this->criarVendaEstornada();
+
+        $this->actingAs($this->admin)
+            ->postJson(route('backoffice.retomarEstorno'), ['venda_id' => $venda->id])
+            ->assertOk();
+
+        $this->assertDatabaseHas('vendas', [
+            'id' => $venda->id,
+            'tabulacao_id' => $this->tabulacaoVendaId,
+        ]);
+    }
+
+    public function test_supervisor_nao_pode_retomar_estorno(): void
+    {
+        $supervisor = User::factory()->create([
+            'empresa_id' => $this->empresa->id,
+            'user_role_id' => UserRole::SUPERVISOR,
+            'ativo' => 'Y',
+        ]);
+        $venda = $this->criarVendaEstornada();
+
+        $this->actingAs($supervisor)
+            ->postJson(route('backoffice.retomarEstorno'), ['venda_id' => $venda->id])
+            ->assertStatus(403);
+    }
+
+    public function test_retomada_de_venda_fora_de_estorno_e_rejeitada(): void
+    {
+        $venda = $this->criarVenda(); // permanece em VENDA
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.retomarEstorno'), ['venda_id' => $venda->id])
+            ->assertStatus(409);
+    }
+
+    public function test_retomada_de_outra_empresa_e_bloqueada(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $boOutraEmpresa = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::BACKOFFICE,
+            'ativo' => 'Y',
+        ]);
+        $venda = $this->criarVendaEstornada();
+
+        $this->actingAs($boOutraEmpresa)
+            ->postJson(route('backoffice.retomarEstorno'), ['venda_id' => $venda->id])
+            ->assertStatus(404);
+    }
+
+    public function test_retomada_para_status_que_exige_dados_extras_e_rejeitada(): void
+    {
+        $venda = $this->criarVendaEstornada();
+
+        // IMPLANTADO exige comprovante/data — não pode entrar pela retomada.
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.retomarEstorno'), [
+                'venda_id' => $venda->id,
+                'tabulacao_id' => Tabulations::IMPLANTADO,
+            ])
+            ->assertStatus(422);
+
+        $this->assertDatabaseHas('vendas', [
+            'id' => $venda->id,
+            'tabulacao_id' => $this->tabulacaoEstornoId,
+        ]);
+    }
+
+    public function test_lista_de_estornos_ordena_do_estorno_mais_recente_para_o_mais_antigo(): void
+    {
+        $antiga = $this->criarVendaEstornada(['nome_contrato' => 'Cliente Antigo']);
+        $recente = $this->criarVendaEstornada(['nome_contrato' => 'Cliente Recente']);
+
+        DB::table('vendas')->where('id', $antiga->id)->update(['tabulacao_updated_at' => now()->subDays(40)]);
+        DB::table('vendas')->where('id', $recente->id)->update(['tabulacao_updated_at' => now()->subDays(2)]);
+
+        $response = $this->actingAs($this->backoffice)->getJson(route('backoffice.listaEstornos'));
+
+        $response->assertOk()
+            ->assertJsonPath('total', 2)
+            ->assertJsonPath('estornos.0.id', $recente->id)
+            ->assertJsonPath('estornos.0.dias_parado', 2)
+            ->assertJsonPath('estornos.1.id', $antiga->id)
+            ->assertJsonPath('estornos.1.dias_parado', 40);
+    }
+
+    public function test_lista_de_estornos_marca_o_que_o_backoffice_pode_retomar(): void
+    {
+        $outroBackoffice = User::factory()->create([
+            'empresa_id' => $this->empresa->id,
+            'user_role_id' => UserRole::BACKOFFICE,
+            'ativo' => 'Y',
+        ]);
+        $doOutro = $this->criarVendaEstornada(['backoffice_id' => $outroBackoffice->id]);
+        $livre = $this->criarVendaEstornada(['backoffice_id' => null]);
+
+        $estornos = collect(
+            $this->actingAs($this->backoffice)
+                ->getJson(route('backoffice.listaEstornos'))
+                ->assertOk()
+                ->json('estornos')
+        )->keyBy('id');
+
+        $this->assertFalse($estornos[$doOutro->id]['pode_retomar']);
+        $this->assertTrue($estornos[$livre->id]['pode_retomar']);
+
+        // Admin retoma qualquer um.
+        $estornosAdmin = collect(
+            $this->actingAs($this->admin)->getJson(route('backoffice.listaEstornos'))->json('estornos')
+        )->keyBy('id');
+        $this->assertTrue($estornosAdmin[$doOutro->id]['pode_retomar']);
+    }
+
+    public function test_lista_de_estornos_nao_vaza_entre_empresas(): void
+    {
+        $this->criarVendaEstornada();
+
+        $outraEmpresa = Empresa::factory()->create();
+        $boOutraEmpresa = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::BACKOFFICE,
+            'ativo' => 'Y',
+        ]);
+
+        $this->actingAs($boOutraEmpresa)
+            ->getJson(route('backoffice.listaEstornos'))
+            ->assertOk()
+            ->assertJsonPath('total', 0);
+    }
+
+    public function test_lista_de_estornos_ignora_vendas_fora_de_estorno(): void
+    {
+        $this->criarVenda(); // segue em VENDA
+        $estornada = $this->criarVendaEstornada();
+
+        $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.listaEstornos'))
+            ->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('estornos.0.id', $estornada->id);
+    }
+
+    public function test_venda_retomada_sai_da_lista_de_estornos(): void
+    {
+        $venda = $this->criarVendaEstornada();
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.retomarEstorno'), ['venda_id' => $venda->id])
+            ->assertOk();
+
+        $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.listaEstornos'))
+            ->assertOk()
+            ->assertJsonPath('total', 0);
+    }
+
+    public function test_venda_retomada_sai_da_lista_de_meus_estornos_do_vendedor(): void
+    {
+        $venda = $this->criarVendaEstornada();
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.retomarEstorno'), ['venda_id' => $venda->id])
+            ->assertOk();
+
+        $response = $this->actingAs($this->vendedor)->getJson(route('sale.meusEstornosDados'));
+        $response->assertOk();
+        $this->assertSame(0, $response->json('total'));
     }
 }
