@@ -38,6 +38,17 @@ interface ProcessoVendaRepositoryInterface
     /** Atribui/limpa o responsável de um processo. $fonte = 'demanda' | 'portabilidade'. */
     public function atribuirResponsavel(string $fonte, int $id, int $empresaId, ?int $responsavelId): bool;
 
+    // ---- Ações por contrato (painel agrupa cancelamento/portabilidade por contrato+tipo) ----
+
+    /** Atribui responsável a todos os processos pendentes do mesmo contrato+tipo do id informado. */
+    public function atribuirResponsavelDoContrato(string $fonte, int $id, int $empresaId, ?int $responsavelId): bool;
+
+    /** Avança a fase de todos os cancelamentos pendentes do mesmo contrato+tipo (fase final conclui). */
+    public function avancarFaseCancelamentoDoContrato(int $id, int $empresaId, string $fase, int $userId): bool;
+
+    /** Avança a fase de todas as portabilidades pendentes do mesmo contrato (fase final conclui). */
+    public function avancarFasePortabilidadeDoContrato(int $id, int $empresaId, string $fase, int $userId): bool;
+
     /** Marca um processo como concluído. $fonte = 'demanda' | 'portabilidade'. */
     public function concluirProcesso(string $fonte, int $id, int $empresaId, int $userId): bool;
 

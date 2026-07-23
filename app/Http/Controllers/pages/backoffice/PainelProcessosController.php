@@ -79,14 +79,14 @@ class PainelProcessosController extends Controller
             'fase' => ['required', 'string', 'in:'.implode(',', array_column(\App\Enums\FaseCancelamento::fluxo(), 'value'))],
         ]);
 
-        $demanda = $this->processos->atualizarCancelamento(
-            (int) $dados['id'], Auth::user()->empresa_id, ['fase' => $dados['fase']], Auth::id(),
+        $ok = $this->processos->avancarFaseCancelamentoDoContrato(
+            (int) $dados['id'], Auth::user()->empresa_id, $dados['fase'], Auth::id(),
         );
 
         return response()->json([
-            'success' => (bool) $demanda,
-            'message' => $demanda ? 'Fase do cancelamento atualizada.' : 'Processo não encontrado.',
-        ], $demanda ? 200 : 404);
+            'success' => $ok,
+            'message' => $ok ? 'Fase do cancelamento atualizada.' : 'Processo não encontrado.',
+        ], $ok ? 200 : 404);
     }
 
     /** Avança a fase de uma portabilidade (fase final fecha o processo). */
@@ -99,7 +99,7 @@ class PainelProcessosController extends Controller
             'fase' => ['required', 'string', 'in:'.implode(',', array_column(\App\Enums\FasePortabilidade::fluxo(), 'value'))],
         ]);
 
-        $ok = $this->processos->atualizarFasePortabilidade((int) $dados['id'], Auth::user()->empresa_id, $dados['fase'], Auth::id());
+        $ok = $this->processos->avancarFasePortabilidadeDoContrato((int) $dados['id'], Auth::user()->empresa_id, $dados['fase'], Auth::id());
 
         return response()->json([
             'success' => $ok,
@@ -117,7 +117,7 @@ class PainelProcessosController extends Controller
             'responsavel_id' => 'nullable|integer|exists:users,id',
         ]);
 
-        $ok = $this->processos->atribuirResponsavel(
+        $ok = $this->processos->atribuirResponsavelDoContrato(
             $dados['fonte'], (int) $dados['id'], Auth::user()->empresa_id, $dados['responsavel_id'] ?? null,
         );
 

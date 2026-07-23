@@ -130,9 +130,9 @@ class PainelProcessosTest extends TestCase
 
     public function test_atraso_calculado_por_sla(): void
     {
-        $venda = $this->criarContrato();
-        $this->criarCancelamento($venda, 40); // atrasado
-        $this->criarCancelamento($venda, 2);  // dentro do prazo
+        // Contratos distintos p/ não agrupar (o painel agrupa por contrato+tipo).
+        $this->criarCancelamento($this->criarContrato(), 40); // atrasado
+        $this->criarCancelamento($this->criarContrato(), 2);  // dentro do prazo
 
         $fila = collect($this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json('fila'));
 
@@ -347,16 +347,53 @@ class PainelProcessosTest extends TestCase
 
     public function test_sem_paginacao_retorna_todos_os_processos(): void
     {
-        // Kanban não pagina: todos os itens (limitados pelo corte) voltam de uma vez.
-        $venda = $this->criarContrato();
+        // Sem paginação: todos os itens (limitados pelo corte) voltam de uma vez.
+        // Contratos distintos p/ não agrupar entre si.
         for ($i = 0; $i < 25; $i++) {
-            $this->criarCancelamento($venda, 1);
+            $this->criarCancelamento($this->criarContrato(), 1);
         }
 
         $json = $this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json();
 
         $this->assertCount(25, $json['fila']);
         $this->assertArrayNotHasKey('paginacao', $json);
+    }
+
+    public function test_agrupa_processos_do_mesmo_contrato_em_um_registro(): void
+    {
+        $venda = $this->criarContrato();
+        // Dois cancelamentos (por titular) do MESMO contrato+tipo.
+        $this->criarCancelamento($venda, 10);
+        $this->criarCancelamento($venda, 40);
+        // Duas portabilidades do mesmo contrato.
+        VendaPortabilidade::create(['venda_id' => $venda->id, 'nome' => 'MARIA', 'sequencial' => 1]);
+        VendaPortabilidade::create(['venda_id' => $venda->id, 'nome' => 'JOAO', 'sequencial' => 2]);
+
+        $fila = collect($this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json('fila'));
+
+        // 1 registro de cancelamento + 1 de portabilidade (não 4).
+        $this->assertCount(2, $fila);
+        $canc = $fila->firstWhere('grupo', 'cancelamentos');
+        $this->assertSame(2, $canc['qtd']);
+        $this->assertTrue($canc['atrasado'], 'Representa pelo mais urgente (o de 40 dias).');
+        $this->assertSame(2, $fila->firstWhere('grupo', 'portabilidade')['qtd']);
+    }
+
+    public function test_acao_de_fase_vale_para_todos_os_titulares_do_contrato(): void
+    {
+        $venda = $this->criarContrato();
+        $a = $this->criarCancelamento($venda, 5);
+        $b = $this->criarCancelamento($venda, 5);
+
+        // Concluir pelo painel usando o id representativo do grupo.
+        $rep = collect($this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json('fila'))->first();
+        $this->actingAs($this->gestor)->postJson(route('backoffice.painelProcessos.faseCancelamento'), [
+            'id' => $rep['id'], 'fase' => 'CONCLUIDO',
+        ])->assertOk();
+
+        // Ambos os titulares concluídos, não só o representativo.
+        $this->assertSame('CONCLUIDA', $a->fresh()->status);
+        $this->assertSame('CONCLUIDA', $b->fresh()->status);
     }
 
     public function test_fase_portabilidade_avanca_e_fase_final_encerra(): void

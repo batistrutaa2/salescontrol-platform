@@ -167,6 +167,19 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
                 || str_contains(mb_strtolower((string) $r['quem']), $termo));
         }
 
+        // Um registro por contrato+tipo: cancelamento/portabilidade criados por
+        // titular viram uma linha só (o painel é por contrato). Representa pelo
+        // processo mais urgente do grupo e guarda a contagem (qtd).
+        $fila = $fila
+            ->groupBy(fn ($r) => $r['fonte'].'|'.$r['venda_id'].'|'.$r['tipo'])
+            ->map(function ($grupo) {
+                $rep = $grupo->sortBy([['ordem_urg', 'asc'], ['ordem_venc', 'asc']])->first();
+                $rep['qtd'] = $grupo->count();
+
+                return $rep;
+            })
+            ->values();
+
         // Atrasados primeiro (maior atraso), depois vencimento mais próximo.
         return $fila
             ->sortBy([['atrasado', 'desc'], ['dias_atraso', 'desc'], ['ordem_venc', 'asc']])
@@ -242,6 +255,82 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
                 ]);
 
         return $demandas->concat($portab)->sortByDesc('ts')->values()->all();
+    }
+
+    /**
+     * Atribui responsável a TODOS os processos pendentes do mesmo contrato+tipo do
+     * processo informado (o painel agrupa por contrato). $fonte = 'demanda'|'portabilidade'.
+     */
+    public function atribuirResponsavelDoContrato(string $fonte, int $id, int $empresaId, ?int $responsavelId): bool
+    {
+        if ($fonte === 'portabilidade') {
+            $base = VendaPortabilidade::where('id', $id)
+                ->whereHas('venda', fn ($q) => $q->where('empresa_id', $empresaId))->first();
+            if (! $base) {
+                return false;
+            }
+            VendaPortabilidade::where('venda_id', $base->venda_id)->where('status', 'PENDENTE')
+                ->update(['responsavel_id' => $responsavelId]);
+
+            return true;
+        }
+
+        $base = VendaDemanda::where('id', $id)->where('empresa_id', $empresaId)->first();
+        if (! $base) {
+            return false;
+        }
+        VendaDemanda::where('empresa_id', $empresaId)->where('venda_id', $base->venda_id)
+            ->where('tipo', $base->tipo)->where('status', 'PENDENTE')
+            ->update(['responsavel_id' => $responsavelId]);
+
+        return true;
+    }
+
+    /** Avança a fase de TODOS os cancelamentos pendentes do mesmo contrato+tipo (fase final conclui). */
+    public function avancarFaseCancelamentoDoContrato(int $id, int $empresaId, string $fase, int $userId): bool
+    {
+        $base = VendaDemanda::where('id', $id)->where('empresa_id', $empresaId)->first();
+        if (! $base) {
+            return false;
+        }
+
+        $ehFinal = $fase === FaseCancelamento::CONCLUIDO->value;
+        $irmas = VendaDemanda::where('empresa_id', $empresaId)->where('venda_id', $base->venda_id)
+            ->where('tipo', $base->tipo)->where('status', 'PENDENTE')->get();
+
+        foreach ($irmas as $d) {
+            $meta = $d->meta ?? [];
+            $meta['fase'] = $fase;
+            $d->update([
+                'meta' => $meta,
+                'status' => $ehFinal ? 'CONCLUIDA' : 'PENDENTE',
+                'concluida_por' => $ehFinal ? $userId : null,
+                'concluida_em' => $ehFinal ? Carbon::now() : null,
+            ]);
+        }
+
+        return true;
+    }
+
+    /** Avança a fase de TODAS as portabilidades pendentes do mesmo contrato (fase final conclui). */
+    public function avancarFasePortabilidadeDoContrato(int $id, int $empresaId, string $fase, int $userId): bool
+    {
+        $base = VendaPortabilidade::where('id', $id)
+            ->whereHas('venda', fn ($q) => $q->where('empresa_id', $empresaId))->first();
+        if (! $base) {
+            return false;
+        }
+
+        $ehFinal = FasePortabilidade::tryFrom($fase)?->ehFinal() ?? false;
+        VendaPortabilidade::where('venda_id', $base->venda_id)->where('status', 'PENDENTE')
+            ->update([
+                'fase' => $fase,
+                'status' => $ehFinal ? 'CONCLUIDA' : 'PENDENTE',
+                'concluida_em' => $ehFinal ? Carbon::now() : null,
+                'concluida_por' => $ehFinal ? $userId : null,
+            ]);
+
+        return true;
     }
 
     public function atribuirResponsavel(string $fonte, int $id, int $empresaId, ?int $responsavelId): bool
@@ -477,11 +566,14 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
 
         $urgencia = $bloqueado ? 'aguardando_implantacao'
             : ($atrasado ? 'atrasado' : ($vencendo ? 'vencendo' : 'em_dia'));
+        $ordemUrg = ['atrasado' => 0, 'vencendo' => 1, 'em_dia' => 2, 'aguardando_implantacao' => 3][$urgencia] ?? 9;
 
         return [
             'fonte' => $fonte,
             'id' => $id,
             'venda_id' => $vendaId,
+            'qtd' => 1,
+            'ordem_urg' => $ordemUrg,
             'contrato' => $contrato,
             'tipo' => $tipo,
             'tipo_label' => TipoDemandaContrato::tryFrom($tipo)?->label() ?? $tipo,

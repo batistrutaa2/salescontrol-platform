@@ -191,7 +191,7 @@
     return `<div class="pp-row urg-${esc(p.urgencia)}">
         <div class="pp-row-main">
           <a href="${link}" target="_blank" class="pp-row-contrato">${esc(p.contrato)}</a>
-          <span class="pp-row-pessoa">${esc(p.quem || '—')}</span>
+          <span class="pp-row-pessoa">${esc(p.quem || '—')}${p.qtd > 1 ? ` <span class="pp-qtd" title="${p.qtd} titulares neste contrato — a ação vale para todos">×${p.qtd}</span>` : ''}</span>
         </div>
         <span class="pp-chip pp-row-fase">${esc(p.fase || '—')}</span>
         <span class="pp-row-when">${situacao}</span>

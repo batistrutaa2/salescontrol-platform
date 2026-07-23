@@ -331,6 +331,11 @@
 .pp-row-contrato { font-size: 0.88rem; font-weight: 700; color: var(--pp-primary); text-decoration: none; }
 .pp-row-contrato:hover { text-decoration: underline; }
 .pp-row-pessoa { font-size: 0.78rem; color: var(--pp-text-soft); }
+.pp-qtd {
+  display: inline-block; margin-left: 0.25rem; font-size: 0.68rem; font-weight: 800;
+  padding: 0 6px; border-radius: 100px; vertical-align: middle;
+  background: rgba(124, 58, 237, 0.12); color: var(--pp-primary);
+}
 
 .pp-row-fase { flex: none; }
 .pp-row-when { flex: none; margin-left: auto; }
