@@ -3045,7 +3045,7 @@ class Backoffice extends Controller
                 }
 
                 $mensagem = $tipoEnvio === 'padrao'
-                  ? $this->buildMensagemPadraoWhatsapp($request, $nomeEmpresa, $venda->operadora)
+                  ? $this->buildMensagemPadraoWhatsapp($request)
                   : $request->mensagem_personalizada;
 
                 $whatsappService = new WhatsappService();
@@ -3283,7 +3283,7 @@ class Backoffice extends Controller
     /**
      * Monta a mensagem padrão de boas-vindas para WhatsApp
      */
-    private function buildMensagemPadraoWhatsapp(Request $request, string $nomeEmpresa, string $operadora): string
+    private function buildMensagemPadraoWhatsapp(Request $request): string
     {
         $nomeContrato = $request->input('nome_contrato', '');
         $beneficiarios = $request->input('beneficiarios', []);
@@ -3297,45 +3297,55 @@ class Backoffice extends Controller
         foreach ($beneficiarios as $b) {
             $nome = strtoupper($b['nome'] ?? '');
             $codigo = $b['codigo'] ?? '';
-            $linhasBeneficiarios .= "\n{$nome} - {$codigo}";
+            $linhasBeneficiarios .= "\n* {$nome} – {$codigo}";
         }
 
-        $msg = "Prezado(a) {$nomeContrato},\n\n";
-        $msg .= "É com grande prazer que damos as boas-vindas à *{$nomeEmpresa}* em conjunto com a *{$operadora}*. ";
-        $msg .= "Parabenizamos pela escolha e confiança depositada em nossos serviços. Estamos certos de que essa parceria será um sucesso!\n\n";
-        $msg .= "*Detalhes do Acesso e Benefícios*\n\n";
-        $msg .= "*📋 Matrículas e Beneficiários:*{$linhasBeneficiarios}\n\n";
+        $msg = "Olá, *{$nomeContrato}* 👋\n\n";
+        $msg .= "Sejam muito bem-vindos à *LK Brokers Consultoria de Seguros*!\n\n";
+        $msg .= "É uma satisfação tê-los como nossos clientes. Agradecemos pela confiança e reforçamos que, a partir de agora, vocês contam com o nosso Concierge de Pós-Vendas, um atendimento dedicado para oferecer suporte durante toda a utilização do plano de saúde.\n\n";
+        $msg .= "*📋 Beneficiários e Matrículas*{$linhasBeneficiarios}\n\n";
 
+        // Blocos de acesso (dinâmicos) — só entram quando o formulário traz os dados.
         if (! empty($acessosApp)) {
             $msg .= "*📱 Login e Senha — Aplicativo da Operadora:*\n";
             foreach ($acessosApp as $a) {
                 $rotulo = strtoupper(trim($a['rotulo'] ?? ''));
                 if ($rotulo !== '') {
-                    $msg .= "\n*{$rotulo}*\n";
+                    $msg .= "*{$rotulo}*\n";
                 }
                 $msg .= "• Login: {$a['login']}\n";
                 $msg .= "• Senha: {$a['senha']}\n";
             }
+            $msg .= "\n";
         }
 
         if (! empty($linkIos) || ! empty($linkAndroid)) {
-            $msg .= "\n*📲 Download do Aplicativo:*\n";
+            $msg .= "*📲 Download do Aplicativo:*\n";
             if (! empty($linkIos)) {
                 $msg .= "• iOS: {$linkIos}\n";
             }
             if (! empty($linkAndroid)) {
                 $msg .= "• Android: {$linkAndroid}\n";
             }
+            $msg .= "\n";
         }
 
         if (! empty($portalUser)) {
-            $msg .= "\n*🖥️ Acesso ao Portal Corporativo:*\n";
+            $msg .= "*🖥️ Acesso ao Portal Corporativo:*\n";
             $msg .= "• Usuário: {$portalUser}\n";
-            $msg .= "• Senha: {$portalSenha}\n";
+            $msg .= "• Senha: {$portalSenha}\n\n";
         }
 
-        $msg .= "\nEstamos à disposição para auxiliá-lo em qualquer dúvida ou necessidade. ";
-        $msg .= 'Nossa equipe está pronta para fornecer todo o suporte necessário! 😊';
+        $msg .= "*💙 Sempre que precisarem de auxílio, nossa equipe estará à disposição para ajudar com:*\n";
+        $msg .= "* Agendamento e orientações de utilização do plano;\n";
+        $msg .= "* Inclusões, exclusões e alterações cadastrais;\n";
+        $msg .= "* Emissão de 2ª via de boletos e carteirinhas;\n";
+        $msg .= "* Esclarecimento de dúvidas sobre cobertura, reembolso e rede credenciada;\n";
+        $msg .= "* Suporte em solicitações junto à operadora.\n\n";
+        $msg .= "Nosso compromisso é proporcionar uma experiência tranquila, ágil e segura durante toda a vigência do plano.\n\n";
+        $msg .= "Conte conosco sempre que precisar. Será um prazer atendê-los!\n\n";
+        $msg .= "*Equipe LK Brokers | Concierge de Pós-Vendas*\n\n";
+        $msg .= '🤝 Seu plano de saúde com acompanhamento de quem realmente cuida de você';
 
         return $msg;
     }

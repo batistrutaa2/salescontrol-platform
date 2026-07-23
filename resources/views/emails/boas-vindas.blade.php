@@ -6,7 +6,6 @@
      */
     $modo            = $dados['modo'] ?? 'padrao';
     $nomeContrato    = trim($dados['nomeContrato'] ?? '');
-    $primeiroNome    = $nomeContrato !== '' ? explode(' ', $nomeContrato)[0] : 'Cliente';
     $nomeEmpresa     = $dados['nomeEmpresa'] ?? 'LK Brokers';
     $operadora       = $dados['operadora'] ?? '';
     $beneficiarios   = $dados['beneficiarios'] ?? [];
@@ -66,34 +65,25 @@
                     <tr>
                         <td style="padding:32px 40px 12px;">
                             <span style="display:inline-block;margin-bottom:16px;font-family:{{ $fontUI }};font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ $roxo }};background:{{ $fundoSec }};border:1px solid {{ $borda }};border-radius:999px;padding:5px 12px;">Boas-vindas</span>
-                            <h1 style="margin:0 0 4px;font-family:{{ $fontUI }};font-size:24px;line-height:1.25;font-weight:800;color:{{ $texto }};">Seja muito bem-vindo(a)!</h1>
-                            <p style="margin:0 0 22px;font-family:{{ $fontUI }};font-size:14px;color:{{ $textoSec }};">{{ $nomeEmpresa }}@if($operadora) &nbsp;•&nbsp; {{ $operadora }}@endif</p>
-                            <p style="margin:0 0 16px;font-family:{{ $fontUI }};font-size:17px;font-weight:700;color:{{ $texto }};">Prezado(a) {{ $primeiroNome }},</p>
+                            <h1 style="margin:0 0 16px;font-family:{{ $fontUI }};font-size:24px;line-height:1.25;font-weight:800;color:{{ $texto }};">Olá, {{ $nomeContrato ?: 'Cliente' }} 👋</h1>
 
                             @if($modo === 'personalizado')
                                 <div style="font-family:{{ $fontUI }};font-size:15px;line-height:1.7;color:{{ $texto }};">{!! nl2br(e($corpoLivre)) !!}</div>
                             @else
+                                <p style="margin:0 0 14px;font-family:{{ $fontUI }};font-size:17px;font-weight:700;color:{{ $texto }};">Sejam muito bem-vindos à LK Brokers Consultoria de Seguros!</p>
                                 <p style="margin:0 0 14px;font-family:{{ $fontUI }};font-size:15px;line-height:1.7;color:{{ $textoSec }};">
-                                    É com grande prazer que damos as boas-vindas à <strong style="color:{{ $texto }};">{{ $nomeEmpresa }}</strong>@if($operadora) em conjunto com a <strong style="color:{{ $texto }};">{{ $operadora }}</strong>@endif. Parabenizamos pela escolha e confiança depositada em nossos serviços. Estamos certos de que essa parceria será um sucesso e que superaremos todas as suas expectativas ao longo de nossa colaboração.
+                                    É uma satisfação tê-los como nossos clientes. Agradecemos pela confiança e reforçamos que, a partir de agora, vocês contam com o nosso Concierge de Pós-Vendas, um atendimento dedicado para oferecer suporte durante toda a utilização do plano de saúde.
                                 </p>
                             @endif
                         </td>
                     </tr>
 
                     @if($modo !== 'personalizado')
-                        {{-- Seção título --}}
-                        <tr>
-                            <td style="padding:14px 40px 0;">
-                                <p style="margin:0;font-family:{{ $fontUI }};font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:{{ $roxo }};">Detalhes do Acesso e Benefícios</p>
-                                <p style="margin:6px 0 0;font-family:{{ $fontUI }};font-size:14px;line-height:1.6;color:{{ $textoSec }};">Abaixo estão as informações essenciais para acompanhar o seu plano e utilizar os serviços contratados.</p>
-                            </td>
-                        </tr>
-
                         {{-- Beneficiários --}}
                         @if(count($beneficiarios) > 0)
                             <tr>
-                                <td style="padding:22px 40px 0;">
-                                    <p style="margin:0 0 10px;font-family:{{ $fontUI }};font-size:14px;font-weight:700;color:{{ $texto }};">👥 Matrículas e Beneficiários</p>
+                                <td style="padding:8px 40px 0;">
+                                    <p style="margin:0 0 10px;font-family:{{ $fontUI }};font-size:14px;font-weight:700;color:{{ $texto }};">📋 Beneficiários e Matrículas</p>
                                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid {{ $borda }};border-radius:12px;overflow:hidden;">
                                         <tr>
                                             <td style="padding:11px 16px;background:{{ $fundoSec }};font-family:{{ $fontUI }};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:{{ $textoSec }};border-bottom:1px solid {{ $borda }};">Beneficiário</td>
@@ -182,11 +172,28 @@
                             </tr>
                         @endif
 
-                        {{-- Fecho --}}
+                        {{-- Como podemos ajudar --}}
                         <tr>
                             <td style="padding:26px 40px 0;">
+                                <p style="margin:0 0 10px;font-family:{{ $fontUI }};font-size:15px;font-weight:700;color:{{ $texto }};">💙 Sempre que precisarem de auxílio, nossa equipe estará à disposição para ajudar com:</p>
+                                <ul style="margin:0;padding-left:20px;font-family:{{ $fontUI }};font-size:15px;line-height:1.8;color:{{ $textoSec }};">
+                                    <li>Agendamento e orientações de utilização do plano;</li>
+                                    <li>Inclusões, exclusões e alterações cadastrais;</li>
+                                    <li>Emissão de 2ª via de boletos e carteirinhas;</li>
+                                    <li>Esclarecimento de dúvidas sobre cobertura, reembolso e rede credenciada;</li>
+                                    <li>Suporte em solicitações junto à operadora.</li>
+                                </ul>
+                            </td>
+                        </tr>
+
+                        {{-- Fecho --}}
+                        <tr>
+                            <td style="padding:22px 40px 0;">
+                                <p style="margin:0 0 12px;font-family:{{ $fontUI }};font-size:15px;line-height:1.7;color:{{ $textoSec }};">
+                                    Nosso compromisso é proporcionar uma experiência tranquila, ágil e segura durante toda a vigência do plano.
+                                </p>
                                 <p style="margin:0;font-family:{{ $fontUI }};font-size:15px;line-height:1.7;color:{{ $textoSec }};">
-                                    Estamos à disposição para auxiliá-lo(a) em qualquer dúvida ou necessidade que surgir. Nossa equipe está pronta para fornecer todo o suporte necessário para que sua experiência conosco seja a melhor possível. 😊
+                                    Conte conosco sempre que precisar. Será um prazer atendê-los!
                                 </p>
                             </td>
                         </tr>
@@ -195,8 +202,8 @@
                     {{-- Assinatura --}}
                     <tr>
                         <td style="padding:26px 40px 36px;">
-                            <p style="margin:0;font-family:{{ $fontUI }};font-size:15px;color:{{ $textoSec }};">Atenciosamente,</p>
-                            <p style="margin:4px 0 0;font-family:{{ $fontUI }};font-size:16px;font-weight:700;color:{{ $roxo }};">Equipe {{ $nomeEmpresa }}</p>
+                            <p style="margin:0;font-family:{{ $fontUI }};font-size:16px;font-weight:700;color:{{ $roxo }};">Equipe LK Brokers | Concierge de Pós-Vendas</p>
+                            <p style="margin:10px 0 0;font-family:{{ $fontUI }};font-size:14px;line-height:1.6;color:{{ $textoSec }};">🤝 Seu plano de saúde com acompanhamento de quem realmente cuida de você</p>
                         </td>
                     </tr>
 

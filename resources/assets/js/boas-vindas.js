@@ -349,7 +349,6 @@
 
     window.atualizarPreviewPadrao = function () {
         const nomeContrato = document.getElementById('bv-contrato-nome').textContent;
-        const operadora = document.getElementById('bv-operadora').textContent;
         const acessosApp = bvLerAcessosApp();
         const portalUser = document.getElementById('bv-portal-user').value.trim();
         const portalSenha = document.getElementById('bv-portal-senha').value.trim();
@@ -362,35 +361,48 @@
         nomes.forEach((n, i) => {
             const nome = n.value.trim();
             const cod = codigos[i]?.value.trim() || '';
-            if (nome || cod) linhasBen += `\n${nome.toUpperCase()} - ${cod}`;
+            if (nome || cod) linhasBen += `\n* ${nome.toUpperCase()} – ${cod}`;
         });
 
-        let msg = `Prezado(a) ${nomeContrato},\n\n`;
-        msg += `É com grande prazer que damos as boas-vindas! Parabenizamos pela escolha e confiança depositada em nossos serviços. Estamos certos de que essa parceria será um sucesso!\n\n`;
-        msg += `*Detalhes do Acesso e Benefícios*\n\n`;
-        msg += `*📋 Matrículas e Beneficiários:*${linhasBen || '\n(preencha os campos acima)'}\n\n`;
+        let msg = `Olá, *${nomeContrato}* 👋\n\n`;
+        msg += `Sejam muito bem-vindos à *LK Brokers Consultoria de Seguros*!\n\n`;
+        msg += `É uma satisfação tê-los como nossos clientes. Agradecemos pela confiança e reforçamos que, a partir de agora, vocês contam com o nosso Concierge de Pós-Vendas, um atendimento dedicado para oferecer suporte durante toda a utilização do plano de saúde.\n\n`;
+        msg += `*📋 Beneficiários e Matrículas*${linhasBen || '\n(preencha os campos acima)'}\n\n`;
+
         const comConteudo = acessosApp.filter((a) => a.rotulo || a.login || a.senha);
-        const paraMostrar = comConteudo.length ? comConteudo : [{ rotulo: '', login: '', senha: '' }];
-        msg += `*📱 Login e Senha — Aplicativo da Operadora (${operadora}):*\n`;
-        paraMostrar.forEach((a) => {
-            if (a.rotulo) msg += `\n*${a.rotulo.toUpperCase()}*\n`;
-            msg += `• Login: ${a.login || '...'}\n`;
-            msg += `• Senha: ${a.senha || '...'}\n`;
-        });
+        if (comConteudo.length) {
+            msg += `*📱 Login e Senha — Aplicativo da Operadora:*\n`;
+            comConteudo.forEach((a) => {
+                if (a.rotulo) msg += `*${a.rotulo.toUpperCase()}*\n`;
+                msg += `• Login: ${a.login || '...'}\n`;
+                msg += `• Senha: ${a.senha || '...'}\n`;
+            });
+            msg += `\n`;
+        }
 
         if (linkIos || linkAndroid) {
-            msg += `\n*📲 Download do Aplicativo:*\n`;
+            msg += `*📲 Download do Aplicativo:*\n`;
             if (linkIos) msg += `• iOS: ${linkIos}\n`;
             if (linkAndroid) msg += `• Android: ${linkAndroid}\n`;
+            msg += `\n`;
         }
 
         if (!document.getElementById('bv-portal-fields').classList.contains('d-none') && portalUser) {
-            msg += `\n*🖥️ Acesso ao Portal Corporativo:*\n`;
+            msg += `*🖥️ Acesso ao Portal Corporativo:*\n`;
             msg += `• Usuário: ${portalUser}\n`;
-            msg += `• Senha: ${portalSenha}\n`;
+            msg += `• Senha: ${portalSenha}\n\n`;
         }
 
-        msg += `\nEstamos à disposição para auxiliá-lo em qualquer dúvida. Nossa equipe está pronta para fornecer todo o suporte necessário! 😊`;
+        msg += `*💙 Sempre que precisarem de auxílio, nossa equipe estará à disposição para ajudar com:*\n`;
+        msg += `* Agendamento e orientações de utilização do plano;\n`;
+        msg += `* Inclusões, exclusões e alterações cadastrais;\n`;
+        msg += `* Emissão de 2ª via de boletos e carteirinhas;\n`;
+        msg += `* Esclarecimento de dúvidas sobre cobertura, reembolso e rede credenciada;\n`;
+        msg += `* Suporte em solicitações junto à operadora.\n\n`;
+        msg += `Nosso compromisso é proporcionar uma experiência tranquila, ágil e segura durante toda a vigência do plano.\n\n`;
+        msg += `Conte conosco sempre que precisar. Será um prazer atendê-los!\n\n`;
+        msg += `*Equipe LK Brokers | Concierge de Pós-Vendas*\n\n`;
+        msg += `🤝 Seu plano de saúde com acompanhamento de quem realmente cuida de você`;
 
         document.getElementById('bv-preview-padrao').value = msg;
     };
