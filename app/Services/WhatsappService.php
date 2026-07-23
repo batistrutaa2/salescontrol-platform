@@ -15,8 +15,10 @@ class WhatsappService
      * @param  string  $token  Bearer token da conexão Ticketz
      * @param  string  $number  Número no formato (85) 99999-8888 ou 558599998888
      * @param  string  $body  Conteúdo da mensagem
+     * @param  bool  $saveOnTicket  Quando true, o Ticketz abre/registra um ticket no painel
+     *                              para esta mensagem (usado no boas-vindas p/ controle de acesso).
      */
-    public function send(string $token, string $number, string $body): array
+    public function send(string $token, string $number, string $body, bool $saveOnTicket = false): array
     {
         $formattedNumber = $this->formatNumber($number);
 
@@ -24,7 +26,7 @@ class WhatsappService
             $payload = json_encode([
                 'number' => $formattedNumber,
                 'body' => $body,
-                'saveOnTicket' => false,
+                'saveOnTicket' => $saveOnTicket,
                 'linkPreview' => false,
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 

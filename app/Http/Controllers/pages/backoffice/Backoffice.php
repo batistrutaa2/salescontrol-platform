@@ -3059,7 +3059,8 @@ class Backoffice extends Controller
                     $resultado = $whatsappService->send(
                         $empresa->whatsapp_token,
                         $dest['telefone'],
-                        $mensagem
+                        $mensagem,
+                        saveOnTicket: true, // abre ticket no painel do Ticketz p/ controlar o acesso do cliente
                     );
 
                     if (! $resultado['success']) {
