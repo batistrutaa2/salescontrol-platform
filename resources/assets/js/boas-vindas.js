@@ -136,6 +136,7 @@
     window.abrirBoasVindas = async function (vendaId) {
         document.getElementById('boas-vindas-venda-id').value = vendaId;
         document.getElementById('bv-no-token-alert').classList.add('d-none');
+        document.getElementById('bv-reenvio-alert')?.classList.add('d-none');
 
         // canais padrão: WhatsApp marcado, E-mail desmarcado
         document.getElementById('bv-canal-whatsapp').checked = true;
@@ -161,6 +162,18 @@
             document.getElementById('bv-operadora').textContent = data.venda.operadora || '-';
             document.getElementById('bv-plano').textContent = data.venda.plano || '-';
             document.getElementById('bv-data-implantacao').textContent = data.venda.data_implantacao || '-';
+
+            // Segundo disparo em diante: deixa claro que é reenvio, com data e autor do anterior.
+            const alertaReenvio = document.getElementById('bv-reenvio-alert');
+            if (alertaReenvio && data.venda.boas_vindas_enviado) {
+                document.getElementById('bv-reenvio-quando').textContent = data.venda.boas_vindas_enviado_em
+                    ? `em ${data.venda.boas_vindas_enviado_em}`
+                    : 'anteriormente';
+                document.getElementById('bv-reenvio-por').textContent = data.venda.boas_vindas_enviado_por
+                    ? `, por ${data.venda.boas_vindas_enviado_por}`
+                    : '';
+                alertaReenvio.classList.remove('d-none');
+            }
 
             const linksApp = getLinksAppPorOperadora(data.venda.operadora || '');
             document.getElementById('bv-link-ios').value = linksApp.ios;
@@ -502,7 +515,14 @@
             if (data.success) {
                 bootstrap.Modal.getInstance(modalBoasVindasEl)?.hide();
                 toastSucesso(data.message || 'Boas-vindas registrado!');
-                document.dispatchEvent(new CustomEvent('boasVindasEnviada', { detail: { vendaId } }));
+                document.dispatchEvent(new CustomEvent('boasVindasEnviada', {
+                    detail: {
+                        vendaId,
+                        enviadoEm: data.boas_vindas_enviado_em,
+                        enviadoPor: data.boas_vindas_enviado_por,
+                        reenvio: data.reenvio === true,
+                    },
+                }));
             } else {
                 Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Não foi possível registrar o Boas Vindas.', confirmButtonColor: '#7C3AED' });
             }

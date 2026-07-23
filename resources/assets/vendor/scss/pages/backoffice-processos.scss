@@ -66,6 +66,110 @@
 }
 .pv-switcher-select select:focus { outline: none; border-color: var(--pv-primary-light); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12); }
 
+// Boas-vindas no cabeçalho do contrato.
+// Estado 1 (nunca enviado): botão de ação, roxo, chamando o envio.
+// Estado 2 (enviado): selo verde com data e autor — o registro é o que importa;
+// o reenvio fica como link discreto porque é exceção, não fluxo.
+.pv-bv {
+  display: inline-flex;
+
+  .pv-bv-selo { display: none; }
+
+  &[data-enviado="1"] {
+    .pv-bv-btn { display: none; }
+    .pv-bv-selo { display: inline-flex; }
+  }
+}
+
+.pv-bv-selo {
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  background: rgba(16, 185, 129, 0.09);
+}
+
+.pv-bv-selo-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: #10b981;
+}
+
+.pv-bv-selo-texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.pv-bv-selo-titulo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f9d6a;
+}
+
+.pv-bv-selo-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  color: var(--pv-text-muted, #94a3b8);
+
+  #pv-bv-quando {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+.pv-bv-reenviar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.15rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #0f9d6a;
+  background: transparent;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(16, 185, 129, 0.16);
+    border-color: rgba(16, 185, 129, 0.5);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #10b981;
+    outline-offset: 2px;
+  }
+}
+
+.dark-style {
+  .pv-bv-selo {
+    background: rgba(16, 185, 129, 0.14);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+
+  .pv-bv-selo-titulo,
+  .pv-bv-reenviar {
+    color: #34d399;
+  }
+}
+
+@media (max-width: 576px) {
+  .pv-bv-selo {
+    flex-wrap: wrap;
+  }
+}
+
 // Botão de boas-vindas no cabeçalho do contrato
 .pv-bv-btn {
   display: inline-flex;
@@ -84,13 +188,6 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .pv-bv-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124, 58, 237, 0.36); }
-.pv-bv-btn.is-sent {
-  color: #0f9d6a;
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.3);
-  box-shadow: none;
-}
-.pv-bv-btn.is-sent:hover { transform: none; }
 
 // ---------- Nav de abas ----------
 .pv-tabnav {

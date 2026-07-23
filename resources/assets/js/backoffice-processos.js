@@ -658,12 +658,27 @@
     if (e.target.closest('#pv-email-cancelar')) preencherFormEmail(null);
   });
 
-  // Boas-vindas enviada → reflete no botão do cabeçalho.
-  document.addEventListener('boasVindasEnviada', () => {
-    const btn = document.getElementById('btn-boas-vindas');
-    const txt = document.getElementById('btn-boas-vindas-txt');
-    if (btn) btn.classList.add('is-sent');
-    if (txt) txt.textContent = 'Boas-vindas enviadas';
+  // Boas-vindas enviada → o cabeçalho vira selo com a data e o autor do envio.
+  document.addEventListener('boasVindasEnviada', (e) => {
+    const wrapper = document.getElementById('pv-bv');
+    if (!wrapper) return;
+
+    const { enviadoEm, enviadoPor } = e.detail || {};
+
+    if (enviadoEm) {
+      const quando = document.getElementById('pv-bv-quando');
+      if (quando) quando.textContent = enviadoEm;
+    }
+
+    if (enviadoPor) {
+      const quem = document.getElementById('pv-bv-quem');
+      if (quem) {
+        quem.textContent = enviadoPor;
+        quem.closest('.pv-bv-selo-por')?.classList.remove('d-none');
+      }
+    }
+
+    wrapper.dataset.enviado = '1';
   });
 
   // ---------- Init ----------

@@ -235,10 +235,38 @@
                     <span class="page-subtitle" id="page-subtitle-doc">{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'CPF' : 'CNPJ' }}: {{ $contract->cpf_cnpj }} | Contrato #{{ $contract->id }}</span>
                 </div>
                 @if ($canEdit ?? true)
-                <button type="button" class="pv-bv-btn {{ $contract->boas_vindas_enviado_em ? 'is-sent' : '' }}" id="btn-boas-vindas" onclick="window.abrirBoasVindas({{ $contract->id }})">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    <span id="btn-boas-vindas-txt">{{ $contract->boas_vindas_enviado_em ? 'Boas-vindas enviadas' : 'Enviar boas-vindas' }}</span>
-                </button>
+                {{-- Boas-vindas: enquanto não sai, é ação; depois de sair, vira registro
+                     (data + autor) com o reenvio como exceção, em segundo plano. --}}
+                <div class="pv-bv" id="pv-bv" data-venda="{{ $contract->id }}"
+                     data-enviado="{{ $contract->boas_vindas_enviado_em ? '1' : '0' }}">
+                    <button type="button" class="pv-bv-btn" id="btn-boas-vindas" onclick="window.abrirBoasVindas({{ $contract->id }})">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span id="btn-boas-vindas-txt">Enviar boas-vindas</span>
+                    </button>
+
+                    <div class="pv-bv-selo" id="pv-bv-selo">
+                        <span class="pv-bv-selo-check" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        </span>
+                        <span class="pv-bv-selo-texto">
+                            <span class="pv-bv-selo-titulo">Boas-vindas enviadas</span>
+                            <span class="pv-bv-selo-meta" id="pv-bv-selo-meta">
+                                <span id="pv-bv-quando">{{ $contract->boas_vindas_enviado_em?->format('d/m/Y H:i') }}</span>
+                                @if ($contract->usuarioBoasVindas?->name)
+                                    <span class="pv-bv-selo-por">por <span id="pv-bv-quem">{{ $contract->usuarioBoasVindas->name }}</span></span>
+                                @else
+                                    <span class="pv-bv-selo-por d-none">por <span id="pv-bv-quem"></span></span>
+                                @endif
+                            </span>
+                        </span>
+                        <button type="button" class="pv-bv-reenviar" id="btn-boas-vindas-reenviar"
+                                onclick="window.abrirBoasVindas({{ $contract->id }})"
+                                title="Disparar as boas-vindas de novo — o envio anterior fica no histórico">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                            Reenviar
+                        </button>
+                    </div>
+                </div>
                 @endif
             </div>
             <div class="pme-header-stats">

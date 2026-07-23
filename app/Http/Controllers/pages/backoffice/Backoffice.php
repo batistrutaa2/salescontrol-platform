@@ -179,6 +179,9 @@ class Backoffice extends Controller
             ->where('venda_id', $sale->id)
             ->get();
 
+        // Quem disparou as boas-vindas — o selo no cabeçalho mostra data e autor.
+        $sale->loadMissing('usuarioBoasVindas');
+
         // Backoffice responsável
         $isBackofficeRole = Auth::user()->user_role_id == UserRole::BACKOFFICE;
         $hasBackoffice = $sale->backoffice_id !== null;
@@ -2837,7 +2840,8 @@ class Backoffice extends Controller
 
             $venda = Vendas::where('id', $vendaId)
                 ->where('empresa_id', $empresaId)
-                ->select('id', 'nome_contrato', 'operadora', 'nome_plano', 'telefone1', 'telefone2', 'email', 'data_implantacao')
+                ->with('usuarioBoasVindas:id,name')
+                ->select('id', 'nome_contrato', 'operadora', 'nome_plano', 'telefone1', 'telefone2', 'email', 'data_implantacao', 'boas_vindas_enviado_em', 'boas_vindas_enviado_por')
                 ->first();
 
             if (! $venda) {
@@ -2867,6 +2871,11 @@ class Backoffice extends Controller
                     'data_implantacao' => $venda->data_implantacao
                       ? Carbon::parse($venda->data_implantacao)->format('d/m/Y')
                       : null,
+                    // Alimenta o aviso de reenvio na modal — quem abre precisa saber
+                    // que este contrato já recebeu boas-vindas antes de disparar de novo.
+                    'boas_vindas_enviado' => $venda->boas_vindas_enviado_em !== null,
+                    'boas_vindas_enviado_em' => $venda->boas_vindas_enviado_em?->format('d/m/Y H:i'),
+                    'boas_vindas_enviado_por' => $venda->usuarioBoasVindas?->name,
                 ],
                 'titulares' => $titulares,
                 'dependentes' => $dependentes,
@@ -2924,6 +2933,9 @@ class Backoffice extends Controller
             if (! $venda) {
                 return response()->json(['success' => false, 'message' => 'Contrato não encontrado.'], 404);
             }
+
+            // Guardado antes do update: define se este disparo é o primeiro ou um reenvio.
+            $jaEnviado = $venda->boas_vindas_enviado_em !== null;
 
             $tipoEnvio = $request->tipo_envio;
 
@@ -3053,9 +3065,12 @@ class Backoffice extends Controller
                 }
 
                 $canaisStr = implode(' e ', $canaisEnviados);
-                $descricaoAnotacao = "Boas Vindas enviado via {$canaisStr} (modo {$modoLabel}). ".implode('; ', $partes).'.';
+                $rotulo = $jaEnviado ? 'Boas Vindas REENVIADO' : 'Boas Vindas enviado';
+                $descricaoAnotacao = "{$rotulo} via {$canaisStr} (modo {$modoLabel}). ".implode('; ', $partes).'.';
             } else {
-                $descricaoAnotacao = 'Boas Vindas registrado (sem envio).';
+                $descricaoAnotacao = $jaEnviado
+                  ? 'Boas Vindas registrado novamente (sem envio).'
+                  : 'Boas Vindas registrado (sem envio).';
             }
 
             if ($request->observacao) {
@@ -3069,12 +3084,15 @@ class Backoffice extends Controller
                 'descricao' => $descricaoAnotacao,
             ]);
 
+            $verbo = $jaEnviado ? 'reenviado' : 'enviado';
+
             return response()->json([
                 'success' => true,
                 'message' => ! empty($canaisEnviados)
-                  ? 'Boas Vindas enviado via '.implode(' e ', $canaisEnviados).' com sucesso!'
+                  ? 'Boas Vindas '.$verbo.' via '.implode(' e ', $canaisEnviados).' com sucesso!'
                   : 'Boas Vindas registrado com sucesso!',
                 'canais_enviados' => $canaisEnviados,
+                'reenvio' => $jaEnviado,
                 'boas_vindas_enviado_em' => now()->format('d/m/Y H:i'),
                 'boas_vindas_enviado_por' => Auth::user()->name,
             ]);

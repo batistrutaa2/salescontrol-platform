@@ -5,6 +5,7 @@ namespace Tests\Feature\Backoffice;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
+use App\Models\Vendas;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -62,5 +63,119 @@ class BoasVindasTest extends TestCase
         ]);
 
         $resp->assertOk()->assertSee('unico@ex.com')->assertSee('Senha123');
+    }
+
+    // =====================================================================
+    // Registro do envio — o cabeçalho do contrato mostra data/autor e o
+    // reenvio continua permitido, entrando no histórico como reenvio.
+    // =====================================================================
+
+    private function criarVenda(array $overrides = []): Vendas
+    {
+        $contatoId = DB::table('contatos')->insertGetId([
+            'empresa_id' => $this->user->empresa_id,
+            'user_import_id' => $this->user->id,
+            'cpf' => '12345678900',
+            'nome_cliente' => 'Cliente Teste',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return Vendas::create(array_merge([
+            'empresa_id' => $this->user->empresa_id,
+            'user_id' => $this->user->id,
+            'contato_id' => $contatoId,
+            'nome_contrato' => 'ACME LTDA',
+            'cpf_cnpj' => '12345678000190',
+            'operadora' => 'AMIL',
+            'nome_plano' => 'Plano X',
+            'valor_contrato' => 1500.00,
+            'vidas' => 2,
+            'data_vigencia' => now(),
+        ], $overrides));
+    }
+
+    private function payloadRegistro(int $vendaId): array
+    {
+        // 'sem_whatsapp' = apenas registrar, sem disparar canal externo.
+        return [
+            'venda_id' => $vendaId,
+            'tipo_envio' => 'sem_whatsapp',
+            'canais' => [],
+            'beneficiarios' => [['nome' => 'Maria', 'codigo' => '123']],
+        ];
+    }
+
+    public function test_primeiro_envio_registra_data_e_autor(): void
+    {
+        $venda = $this->criarVenda();
+
+        $resp = $this->actingAs($this->user)
+            ->postJson(route('backoffice.marcarBoasVindas'), $this->payloadRegistro($venda->id));
+
+        $resp->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('reenvio', false);
+
+        $venda->refresh();
+        $this->assertNotNull($venda->boas_vindas_enviado_em);
+        $this->assertSame($this->user->id, $venda->boas_vindas_enviado_por);
+
+        $this->assertDatabaseHas('pos_venda_anotacoes', [
+            'venda_id' => $venda->id,
+            'descricao' => 'Boas Vindas registrado (sem envio).',
+        ]);
+    }
+
+    public function test_reenvio_atualiza_o_registro_e_preserva_o_historico(): void
+    {
+        $outroUsuario = User::factory()->create([
+            'empresa_id' => $this->user->empresa_id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'ativo' => 'Y',
+        ]);
+
+        $envioAnterior = now()->subDays(5);
+        $venda = $this->criarVenda([
+            'boas_vindas_enviado_em' => $envioAnterior,
+            'boas_vindas_enviado_por' => $outroUsuario->id,
+        ]);
+
+        $resp = $this->actingAs($this->user)
+            ->postJson(route('backoffice.marcarBoasVindas'), $this->payloadRegistro($venda->id));
+
+        $resp->assertOk()->assertJsonPath('reenvio', true);
+
+        $venda->refresh();
+        $this->assertTrue($venda->boas_vindas_enviado_em->greaterThan($envioAnterior));
+        $this->assertSame($this->user->id, $venda->boas_vindas_enviado_por);
+
+        // O envio anterior continua no histórico — a anotação do reenvio é um registro novo.
+        $this->assertDatabaseHas('pos_venda_anotacoes', [
+            'venda_id' => $venda->id,
+            'descricao' => 'Boas Vindas registrado novamente (sem envio).',
+        ]);
+    }
+
+    public function test_endpoint_de_beneficiarios_informa_status_das_boas_vindas(): void
+    {
+        $semEnvio = $this->criarVenda();
+        $this->actingAs($this->user)
+            ->getJson(route('backoffice.getBeneficiariosParaBoasVindas', $semEnvio->id))
+            ->assertOk()
+            ->assertJsonPath('venda.boas_vindas_enviado', false)
+            ->assertJsonPath('venda.boas_vindas_enviado_em', null);
+
+        $comEnvio = $this->criarVenda([
+            'boas_vindas_enviado_em' => now()->setTime(14, 32),
+            'boas_vindas_enviado_por' => $this->user->id,
+        ]);
+
+        $this->actingAs($this->user)
+            ->getJson(route('backoffice.getBeneficiariosParaBoasVindas', $comEnvio->id))
+            ->assertOk()
+            ->assertJsonPath('venda.boas_vindas_enviado', true)
+            ->assertJsonPath('venda.boas_vindas_enviado_em', now()->setTime(14, 32)->format('d/m/Y H:i'))
+            ->assertJsonPath('venda.boas_vindas_enviado_por', $this->user->name);
     }
 }

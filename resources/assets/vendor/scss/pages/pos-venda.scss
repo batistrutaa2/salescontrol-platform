@@ -2524,6 +2524,25 @@
     margin-bottom: 14px;
 }
 
+// Contrato que já recebeu boas-vindas: o aviso não impede o disparo, só deixa
+// explícito que este vai para o histórico como reenvio.
+.bv-reenvio-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: rgba(var(--pv-info-rgb), 0.1);
+    border: 1px solid rgba(var(--pv-info-rgb), 0.28);
+    color: var(--pv-info);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.5;
+    margin-bottom: 14px;
+
+    svg { flex-shrink: 0; margin-top: 2px; }
+}
+
 .bv-sem-whatsapp-info {
     display: flex;
     align-items: flex-start;
