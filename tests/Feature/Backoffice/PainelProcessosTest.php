@@ -433,6 +433,38 @@ class PainelProcessosTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_contratos_estornados_ou_declinados_ficam_fora_do_fluxo(): void
+    {
+        DB::table('tabulacoes')->insert([
+            ['id' => Tabulations::ESTORNO, 'empresa_id' => $this->empresa->id, 'descricao' => 'ESTORNO', 'tipo_tabulacao' => 'A', 'efetivo' => 'N', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => Tabulations::DECLINIO, 'empresa_id' => $this->empresa->id, 'descricao' => 'DECLÍNIO', 'tipo_tabulacao' => 'A', 'efetivo' => 'N', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        // Contrato vivo (implantado) — aparece.
+        $vivo = $this->criarContrato();
+        $this->criarCancelamento($vivo, 5);
+
+        // Estornado — cancelamento e portabilidade ficam fora.
+        $estornado = $this->criarContrato();
+        $estornado->update(['tabulacao_id' => Tabulations::ESTORNO]);
+        $this->criarCancelamento($estornado, 5);
+        VendaPortabilidade::create(['venda_id' => $estornado->id, 'nome' => 'X', 'sequencial' => 1]);
+
+        // Declinado — fora.
+        $declinado = $this->criarContrato();
+        $declinado->update(['tabulacao_id' => Tabulations::DECLINIO]);
+        $this->criarCancelamento($declinado, 5);
+
+        $json = $this->actingAs($this->gestor)->getJson(route('backoffice.painelProcessos.data'))->json();
+        $fila = collect($json['fila']);
+
+        $this->assertCount(1, $fila, 'Só o contrato vivo entra no fluxo.');
+        $this->assertSame($vivo->id, $fila->first()['venda_id']);
+        // KPIs também ignoram os mortos.
+        $this->assertSame(1, $json['kpis']['cancelamentos_abertos']);
+        $this->assertSame(0, $json['kpis']['portabilidades_abertas']);
+    }
+
     public function test_backoffice_comum_nao_acessa_painel(): void
     {
         $this->actingAs($this->backoffice)->getJson(route('backoffice.painelProcessos.data'))->assertStatus(403);

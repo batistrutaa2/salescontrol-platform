@@ -101,6 +101,8 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
             ->where('empresa_id', $empresaId)
             ->where('status', 'PENDENTE')
             ->whereIn('tipo', $tiposPainel)
+            // Contratos estornados/declinados estão mortos: fora do fluxo operacional.
+            ->whereDoesntHave('venda', fn ($q) => $q->whereIn('tabulacao_id', [Tabulations::ESTORNO, Tabulations::DECLINIO]))
             ->when($corte, fn ($q) => $q->where('created_at', '>=', $corte))
             ->get()
             ->map(function ($d) use ($grupos) {
@@ -129,6 +131,7 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
             ])
                 ->where('status', 'PENDENTE')
                 ->whereHas('venda', fn ($q) => $q->where('empresa_id', $empresaId))
+                ->whereDoesntHave('venda', fn ($q) => $q->whereIn('tabulacao_id', [Tabulations::ESTORNO, Tabulations::DECLINIO]))
                 ->when($corte, fn ($q) => $q->where('vendas_portabilidades.created_at', '>=', $corte))
                 ->get()
                 ->map(fn ($p) => $this->linhaProcesso(
