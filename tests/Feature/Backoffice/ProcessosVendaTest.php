@@ -178,6 +178,38 @@ class ProcessosVendaTest extends TestCase
         $this->assertSame('ROFER', $response->json('acessos.0.nome'));
     }
 
+    public function test_acessos_trazem_os_campos_necessarios_para_edicao(): void
+    {
+        // A aba Cliente reabre o acesso em edição sem uma segunda chamada, então
+        // o payload precisa carregar id, operadora_id e status — não só os rótulos.
+        $cnpj = '15285829000155';
+        $contrato = $this->criarContrato($this->backoffice->id, cnpj: $cnpj);
+
+        $operadoraId = DB::table('operadoras')->insertGetId([
+            'empresa_id' => $this->empresa->id, 'nome' => 'AMIL', 'status' => 'Y',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $credencial = CredencialAcesso::create([
+            'empresa_id' => $this->empresa->id, 'venda_id' => $contrato->id,
+            'operadora_id' => $operadoraId, 'tipo' => 'Empresa', 'nome' => 'MASTER',
+            'login' => $cnpj, 'senha' => 'segredo', 'status' => 'N',
+            'observacao' => 'Vence dia 10', 'created_by' => $this->backoffice->id,
+        ]);
+
+        $acesso = $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.processos.dados', $contrato->id))
+            ->assertOk()
+            ->json('acessos.0');
+
+        $this->assertSame($credencial->id, $acesso['id']);
+        $this->assertSame($operadoraId, $acesso['operadora_id']);
+        $this->assertSame('N', $acesso['status']);
+        $this->assertSame('Empresa', $acesso['tipo']);
+        $this->assertSame('Vence dia 10', $acesso['observacao']);
+        $this->assertSame('segredo', $acesso['senha'], 'A senha atual precisa vir para o form não apagá-la ao salvar.');
+    }
+
     public function test_busca_contratos_por_nome_cnpj_e_proposta(): void
     {
         $a = $this->criarContrato($this->backoffice->id, cnpj: '11222333000199');

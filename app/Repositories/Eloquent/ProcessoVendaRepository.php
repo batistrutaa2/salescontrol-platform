@@ -559,6 +559,9 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
                 'login' => $c->login,
                 'senha' => $c->senha,
                 'operadora' => $c->operadora->nome ?? null,
+                // Necessários para reabrir o acesso em edição sem perder o valor atual.
+                'operadora_id' => $c->operadora_id,
+                'status' => $c->status,
                 'observacao' => $c->observacao,
             ])
             ->all();

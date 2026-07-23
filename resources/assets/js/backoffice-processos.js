@@ -308,13 +308,19 @@
 
   function acessoCard(a, i) {
     const sid = `pv-cli-secret-${i}`;
-    return `<div class="pv-cli-card">
+    const inativo = String(a.status || 'Y').toUpperCase() === 'N';
+    return `<div class="pv-cli-card${inativo ? ' is-inativo' : ''}">
         <div class="pv-cli-head">
           <div class="pv-cli-id">
             <span class="pv-cli-op">${esc(a.nome || 'Acesso')}</span>
             ${a.operadora ? `<span class="pv-chip">${esc(a.operadora)}</span>` : ''}
             ${a.tipo ? `<span class="pv-chip origem">${esc(a.tipo)}</span>` : ''}
+            ${inativo ? '<span class="pv-chip inativo">Inativo</span>' : ''}
           </div>
+          <button type="button" class="pv-mini-btn pv-cli-editar" data-editar-acesso="${a.id}" title="Editar este acesso">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            editar
+          </button>
         </div>
         <div class="pv-cred">
           <div class="pv-cred-field">
@@ -345,6 +351,7 @@
     if (!host) return;
     const contratos = data.contratos_anteriores || [];
     const acessos = data.acessos || [];
+    acessosCache = acessos;
     setContador('cliente', contratos.length, contratos.length ? 'all-done' : '');
 
     const contratosHtml = contratos.length
@@ -378,12 +385,16 @@
       </div>`;
   }
 
-  // ---------- Cadastro de acessos do cliente (login/senha) ----------
+  // ---------- Acessos do cliente (login/senha): cadastro e edição ----------
+  // A mesma modal serve aos dois fluxos. Cadastrar aceita vários acessos de uma
+  // vez; editar mexe em um registro só, então o repetidor sai de cena.
   const acModalEl = document.getElementById('pvAcessoModal');
   const acForm = document.getElementById('pvAcessoForm');
   const acBox = document.getElementById('pvac-acessos');
   const acTpl = document.getElementById('pvac-acesso-tpl');
   const acCount = document.getElementById('pvac-acessos-count');
+  let acessosCache = [];
+  let acEditandoId = null;
 
   function acAtualizarCount() {
     const linhas = acBox ? acBox.querySelectorAll('.pvac-acesso') : [];
@@ -408,10 +419,59 @@
     acAddRow(false);
   }
 
+  // Alterna a modal entre cadastrar (vários) e editar (um registro).
+  function acModo(edicao) {
+    acEditandoId = edicao ? edicao.id : null;
+
+    const titulo = acModalEl.querySelector('.pvac-title');
+    const sub = acModalEl.querySelector('.pvac-sub');
+    const btnSalvar = document.getElementById('pvac-salvar');
+    const btnAdd = document.getElementById('pvac-add');
+    const cabecalho = acModalEl.querySelector('.pvac-acessos-head');
+
+    if (titulo) titulo.textContent = edicao ? 'Editar acesso' : 'Cadastrar acesso';
+    if (sub) {
+      sub.textContent = edicao
+        ? 'As alterações ficam registradas no histórico da credencial'
+        : 'Um ou vários logins/senhas de portais deste cliente';
+    }
+    if (btnSalvar) btnSalvar.textContent = edicao ? 'Salvar alterações' : 'Salvar acessos';
+    if (btnAdd) btnAdd.classList.toggle('d-none', !!edicao);
+    if (cabecalho) cabecalho.classList.toggle('d-none', !!edicao);
+  }
+
   function acAbrir() {
     if (!acModalEl || !window.bootstrap) return;
     acReset();
+    acModo(null);
     bootstrap.Modal.getOrCreateInstance(acModalEl).show();
+  }
+
+  function acAbrirEdicao(id) {
+    if (!acModalEl || !window.bootstrap) return;
+
+    const acesso = acessosCache.find((a) => String(a.id) === String(id));
+    if (!acesso) {
+      toast('Acesso não encontrado. Recarregue a página.', 'err');
+      return;
+    }
+
+    acReset();
+    acModo(acesso);
+
+    document.getElementById('pvac-operadora').value = acesso.operadora_id || '';
+    document.getElementById('pvac-tipo').value = acesso.tipo || '';
+    document.getElementById('pvac-status').value = (acesso.status || 'Y').toUpperCase();
+    document.getElementById('pvac-observacao').value = acesso.observacao || '';
+
+    const linha = acBox.querySelector('.pvac-acesso');
+    linha.querySelector('.pvac-acesso-nome').value = acesso.nome || '';
+    linha.querySelector('.pvac-acesso-login').value = acesso.login || '';
+    // Senha vem preenchida: salvar sem tocar nela não pode apagar a atual.
+    linha.querySelector('.pvac-acesso-senha').value = acesso.senha || '';
+
+    bootstrap.Modal.getOrCreateInstance(acModalEl).show();
+    linha.querySelector('.pvac-acesso-nome').focus();
   }
 
   function acLerAcessos() {
@@ -451,30 +511,53 @@
         toast('Informe ao menos um nome/rótulo.', 'err');
         return;
       }
-      const btn = document.getElementById('pvac-salvar');
-      if (btn) btn.disabled = true;
-      const json = await api('/back-office/credenciais/lote', 'POST', {
-        venda_id: Number(vendaId),
+
+      const contexto = {
         operadora_id: document.getElementById('pvac-operadora')?.value || null,
         tipo: (document.getElementById('pvac-tipo')?.value || '').trim() || null,
         status: document.getElementById('pvac-status')?.value || 'Y',
         observacao: (document.getElementById('pvac-observacao')?.value || '').trim() || null,
-        acessos,
-      });
+      };
+
+      const btn = document.getElementById('pvac-salvar');
+      if (btn) btn.disabled = true;
+
+      const json = acEditandoId
+        ? await api(`/back-office/credenciais/${acEditandoId}`, 'PUT', {
+            ...contexto,
+            nome: acessos[0].nome,
+            login: acessos[0].login || null,
+            senha: acessos[0].senha || null,
+          })
+        : await api('/back-office/credenciais/lote', 'POST', {
+            venda_id: Number(vendaId),
+            ...contexto,
+            acessos,
+          });
+
       if (btn) btn.disabled = false;
+
       if (json.success) {
         bootstrap.Modal.getInstance(acModalEl)?.hide();
-        toast(json.message || 'Acessos cadastrados!');
+        toast(json.message || (acEditandoId ? 'Acesso atualizado!' : 'Acessos cadastrados!'));
         await carregarCancelamentos();
       } else {
         toast(json.message || 'Não foi possível salvar os acessos.', 'err');
       }
     });
+
+    // Sai do modo edição ao fechar, para o próximo "Cadastrar" abrir limpo.
+    acModalEl.addEventListener('hidden.bs.modal', () => acModo(null));
   }
 
-  // Abre o modal a partir do botão da aba Cliente (conteúdo é re-renderizado).
+  // Abre o modal a partir dos botões da aba Cliente (conteúdo é re-renderizado).
   root.addEventListener('click', (e) => {
-    if (e.target.closest('[data-add-acesso]')) acAbrir();
+    if (e.target.closest('[data-add-acesso]')) {
+      acAbrir();
+      return;
+    }
+    const editar = e.target.closest('[data-editar-acesso]');
+    if (editar) acAbrirEdicao(editar.dataset.editarAcesso);
   });
 
   function atualizarContador(lista) {

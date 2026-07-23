@@ -543,6 +543,22 @@
 .pv-mini-btn:hover { background: rgba(124, 58, 237, 0.16); }
 .pv-mini-btn.is-copied { color: #0f9d6a; background: rgba(16, 185, 129, 0.13); }
 
+// Editar o acesso: ação do cartão, discreta até o hover — ler a senha é o uso
+// frequente, editar é ocasional.
+.pv-cli-editar {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  flex: none; opacity: 0.65;
+
+  svg { flex-shrink: 0; }
+}
+.pv-cli-card:hover .pv-cli-editar { opacity: 1; }
+.pv-cli-editar:focus-visible { opacity: 1; outline: 2px solid var(--pv-primary); outline-offset: 2px; }
+
+// Acesso inativo continua visível (histórico), mas sem competir com os ativos.
+.pv-chip.inativo { background: rgba(148, 163, 184, 0.16); color: var(--pv-text-muted); }
+.pv-cli-card.is-inativo { opacity: 0.72; }
+.pv-cli-card.is-inativo:hover { opacity: 1; }
+
 // Observação da credencial: campo fixo do cartão (texto corrido, quebra livre)
 .pv-obs-value {
   font-weight: 500; font-size: 0.82rem; color: var(--pv-text-soft);
