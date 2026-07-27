@@ -233,6 +233,7 @@
                     <span class="header-badge" id="header-badge-tipo">{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'ADESAO' : 'PME' }}</span>
                     <h1 class="page-title">{{ $contract->nome_contrato }}</h1>
                     <span class="page-subtitle" id="page-subtitle-doc">{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'CPF' : 'CNPJ' }}: {{ $contract->cpf_cnpj }} | Contrato #{{ $contract->id }}</span>
+                    <span class="page-subtitle page-vendedor">Vendedor: <strong>{{ optional($contract->user)->name ?? 'Não informado' }}</strong></span>
                 </div>
                 @if ($canEdit ?? true)
                 {{-- Boas-vindas: enquanto não sai, é ação; depois de sair, vira registro

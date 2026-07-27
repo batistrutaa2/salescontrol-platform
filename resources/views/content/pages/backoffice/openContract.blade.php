@@ -204,6 +204,13 @@
                                 disabled>
                         </div>
 
+                        {{-- Vendedor (informativo) --}}
+                        <div class="col-md-6">
+                            <label class="form-label">Vendedor</label>
+                            <input type="text" class="form-control"
+                                value="{{ optional($contract->user)->name ?? 'Não informado' }}" disabled>
+                        </div>
+
                         <div class="col-12">
                             <hr class="my-2">
                             <h6 class="mb-2">Dados da empresa (contrato)</h6>

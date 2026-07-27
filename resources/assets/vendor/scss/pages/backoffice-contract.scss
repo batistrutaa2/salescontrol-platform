@@ -786,6 +786,17 @@
     }
   }
 
+  .acesso-origem {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--bo-info);
+    background: rgba(var(--bo-info-rgb), 0.1);
+    border-radius: 6px;
+  }
+
   .acesso-footer {
     margin-top: 0.75rem;
     padding-top: 0.75rem;

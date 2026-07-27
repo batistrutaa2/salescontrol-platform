@@ -503,12 +503,14 @@
                 acessosCount.textContent = data.acessos.length;
 
                 data.acessos.forEach(acesso => {
+                    const outroContrato = acesso.venda_id && String(acesso.venda_id) !== String(vendaId);
                     const card = document.createElement('div');
                     card.className = 'acesso-card';
                     card.innerHTML = `
                         <div class="acesso-email">${acesso.email}</div>
                         <div class="acesso-senha">${acesso.senha}</div>
                         ${acesso.cpf ? `<div class="acesso-cpf">CPF: ${acesso.cpf}</div>` : ''}
+                        ${outroContrato ? `<div class="acesso-origem">Cadastrado no contrato #${acesso.venda_id}</div>` : ''}
                         <div class="acesso-actions">
                             <button type="button" class="btn-edit" data-id="${acesso.id}" data-email="${acesso.email}" data-senha="${acesso.senha}" data-cpf="${acesso.cpf || ''}">Editar</button>
                             <button type="button" class="btn-delete" data-id="${acesso.id}">Remover</button>

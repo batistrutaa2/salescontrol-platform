@@ -2366,12 +2366,23 @@ class Backoffice extends Controller
                 ], 404);
             }
 
-            $acessos = AcessoEmpresa::where('venda_id', $vendaId)
+            // Acessos sao gerais por CPF/CNPJ: retorna os acessos de todas as
+            // vendas da empresa com o mesmo documento, nao apenas desta proposta.
+            $documento = preg_replace('/\D/', '', (string) $venda->cpf_cnpj);
+
+            $vendaIds = $documento !== ''
+                ? Vendas::where('empresa_id', $empresaId)
+                    ->whereRaw("REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(cpf_cnpj, ''), '.', ''), '-', ''), '/', ''), ' ', '') = ?", [$documento])
+                    ->pluck('id')
+                : collect([$venda->id]);
+
+            $acessos = AcessoEmpresa::whereIn('venda_id', $vendaIds)
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function ($acesso) {
                     return [
                         'id' => $acesso->id,
+                        'venda_id' => $acesso->venda_id,
                         'email' => $acesso->email,
                         'senha' => $acesso->senha,
                         'cpf' => $acesso->cpf,

@@ -451,6 +451,10 @@ $(function () {
       </div>
     ` : '';
 
+    const origemHtml = acesso.venda_id && String(acesso.venda_id) !== String(vendaId) ? `
+      <div class="acesso-origem">Cadastrado no contrato #${acesso.venda_id}</div>
+    ` : '';
+
     return `
       <div class="acesso-card" data-acesso-id="${acesso.id}" style="animation-delay: ${index * 100}ms;">
         <div class="acesso-header">
@@ -513,6 +517,7 @@ $(function () {
             </button>
           </div>
           ${cpfHtml}
+          ${origemHtml}
         </div>
         ${acesso.created_at ? `
         <div class="acesso-footer">

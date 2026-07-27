@@ -332,6 +332,15 @@
             font-size: 0.7rem;
             color: var(--pme-text-muted);
         }
+
+        .page-vendedor {
+            display: block;
+
+            strong {
+                color: var(--pme-text-secondary);
+                font-weight: 600;
+            }
+        }
     }
 
     .pme-header-stats {
@@ -2516,6 +2525,17 @@ textarea.pme-input {
         font-size: 0.65rem;
         color: var(--pme-text-muted);
         margin-top: 0.15rem;
+    }
+
+    .acesso-origem {
+        display: inline-block;
+        margin-top: 0.35rem;
+        padding: 0.1rem 0.4rem;
+        font-size: 0.6rem;
+        font-weight: 600;
+        color: var(--pme-info);
+        background: rgba(var(--pme-info-rgb), 0.1);
+        border-radius: 4px;
     }
 
     .acesso-actions {
