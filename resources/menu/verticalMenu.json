@@ -259,10 +259,10 @@
           "slug": "pages-mailing-importar"
         },
         {
-          "url": "/back-office/painel-processos",
-          "name": "Painel de Processos",
-          "slug": "backoffice.painelProcessos",
-          "rules": ["ADMINISTRATIVO", "DEVELOPER", "SUPERVISOR"]
+          "url": "/back-office/cancelamentos",
+          "name": "Painel de Cancelamentos",
+          "slug": "backoffice.cancelamentos",
+          "rules": ["ADMINISTRATIVO", "DEVELOPER", "BACKOFFICE", "SUPERVISOR"]
         },
         {
           "url": "/back-office/liminar",

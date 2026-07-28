@@ -24,34 +24,6 @@ interface ProcessoVendaRepositoryInterface
      */
     public function atualizarCancelamento(int $id, int $empresaId, array $dados, ?int $userId): ?VendaDemanda;
 
-    // ---- Painel operacional (visão do gestor, cross-contrato) ----
-
-    /** Fila unificada de processos em aberto (demandas + portabilidades) com prazo/atraso já calculados. */
-    public function filaOperacional(int $empresaId, array $filtros = []): array;
-
-    /** Processos concluídos no mês corrente (demandas + portabilidades). */
-    public function concluidosNoMes(int $empresaId): int;
-
-    /** Lista dos processos concluídos no mês (com desfecho, data e responsável). */
-    public function concluidosDoMesLista(int $empresaId): array;
-
-    /** Atribui/limpa o responsável de um processo. $fonte = 'demanda' | 'portabilidade'. */
-    public function atribuirResponsavel(string $fonte, int $id, int $empresaId, ?int $responsavelId): bool;
-
-    // ---- Ações por contrato (painel agrupa cancelamento/portabilidade por contrato+tipo) ----
-
-    /** Atribui responsável a todos os processos pendentes do mesmo contrato+tipo do id informado. */
-    public function atribuirResponsavelDoContrato(string $fonte, int $id, int $empresaId, ?int $responsavelId): bool;
-
-    /** Avança a fase de todos os cancelamentos pendentes do mesmo contrato+tipo (fase final conclui). */
-    public function avancarFaseCancelamentoDoContrato(int $id, int $empresaId, string $fase, int $userId): bool;
-
-    /** Avança a fase de todas as portabilidades pendentes do mesmo contrato (fase final conclui). */
-    public function avancarFasePortabilidadeDoContrato(int $id, int $empresaId, string $fase, int $userId): bool;
-
-    /** Marca um processo como concluído. $fonte = 'demanda' | 'portabilidade'. */
-    public function concluirProcesso(string $fonte, int $id, int $empresaId, int $userId): bool;
-
     /** Avança a fase da portabilidade (REUNINDO_DOCUMENTOS → ENVIADA_ANALISE → CONCLUIDA|NEGADA); fase final fecha o processo. */
     public function atualizarFasePortabilidade(int $id, int $empresaId, string $fase, int $userId): bool;
 

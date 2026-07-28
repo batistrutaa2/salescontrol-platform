@@ -150,6 +150,11 @@ class Vendas extends Model
         return $this->hasMany(CancelamentoLiminar::class, 'venda_id');
     }
 
+    public function cancelamentosPosVenda()
+    {
+        return $this->hasMany(CancelamentoPosVenda::class, 'venda_id');
+    }
+
     public function getCreatedAtAttribute($value)
     {
         return $value ? Carbon::parse($value)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s') : null;

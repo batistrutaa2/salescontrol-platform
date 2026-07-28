@@ -19,7 +19,7 @@ use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
 use App\Http\Controllers\pages\backoffice\CredenciaisAcessoController;
 use App\Http\Controllers\pages\backoffice\LiminarController;
-use App\Http\Controllers\pages\backoffice\PainelProcessosController;
+use App\Http\Controllers\pages\backoffice\PainelCancelamentosController;
 use App\Http\Controllers\pages\backoffice\ProcessosVendaController;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
@@ -292,13 +292,16 @@ Route::middleware(['auth'])->group(function () {
   Route::patch('/back-office/processos/emails/{id}', [ProcessosVendaController::class, 'updateEmailCriado'])->name('backoffice.processos.emails.update');
   Route::delete('/back-office/processos/emails/{id}', [ProcessosVendaController::class, 'destroyEmailCriado'])->name('backoffice.processos.emails.destroy');
 
-  // Painel operacional de processos (visão do gestor, cross-contrato)
-  Route::get('/back-office/painel-processos', [PainelProcessosController::class, 'index'])->name('backoffice.painelProcessos');
-  Route::get('/back-office/painel-processos/data', [PainelProcessosController::class, 'data'])->name('backoffice.painelProcessos.data');
-  Route::post('/back-office/painel-processos/atribuir', [PainelProcessosController::class, 'atribuir'])->name('backoffice.painelProcessos.atribuir');
-  Route::post('/back-office/painel-processos/concluir', [PainelProcessosController::class, 'concluir'])->name('backoffice.painelProcessos.concluir');
-  Route::post('/back-office/painel-processos/cancelamento/fase', [PainelProcessosController::class, 'faseCancelamento'])->name('backoffice.painelProcessos.faseCancelamento');
-  Route::post('/back-office/painel-processos/portabilidade/fase', [PainelProcessosController::class, 'fasePortabilidade'])->name('backoffice.painelProcessos.fasePortabilidade');
+  // Painel de Cancelamentos (pipeline do cancelamento do plano anterior — pós-venda)
+  Route::get('/back-office/cancelamentos', [PainelCancelamentosController::class, 'index'])->name('backoffice.cancelamentos.index');
+  Route::get('/back-office/cancelamentos/dados', [PainelCancelamentosController::class, 'dados'])->name('backoffice.cancelamentos.dados');
+  Route::get('/back-office/cancelamentos/buscar-contratos', [PainelCancelamentosController::class, 'buscarContratos'])->name('backoffice.cancelamentos.buscarContratos');
+  Route::post('/back-office/cancelamentos', [PainelCancelamentosController::class, 'store'])->name('backoffice.cancelamentos.store');
+  Route::get('/back-office/cancelamentos/{id}', [PainelCancelamentosController::class, 'show'])->whereNumber('id')->name('backoffice.cancelamentos.show');
+  Route::patch('/back-office/cancelamentos/{id}', [PainelCancelamentosController::class, 'update'])->whereNumber('id')->name('backoffice.cancelamentos.update');
+  Route::post('/back-office/cancelamentos/{id}/mover', [PainelCancelamentosController::class, 'mover'])->whereNumber('id')->name('backoffice.cancelamentos.mover');
+  Route::post('/back-office/cancelamentos/{id}/atribuir', [PainelCancelamentosController::class, 'atribuir'])->whereNumber('id')->name('backoffice.cancelamentos.atribuir');
+  Route::post('/back-office/cancelamentos/{id}/desistir', [PainelCancelamentosController::class, 'desistir'])->whereNumber('id')->name('backoffice.cancelamentos.desistir');
 
   // Pós-Venda
   Route::get('/back-office/pos-venda', [Backoffice::class, 'posVenda'])->name('backoffice.posVenda');

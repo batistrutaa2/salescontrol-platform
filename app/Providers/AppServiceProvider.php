@@ -2,58 +2,58 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\URL;
 use App\Models\Agendamento;
-use App\Repositories\Contracts\LigacoesRepositoryInterface;
-use App\Repositories\Contracts\LogPreditivaRepositoryInterface;
-use App\Repositories\Contracts\PreditivaRepositoryInterface;
-use App\Repositories\Contracts\RamaisRepositoryInterface;
-use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
-use App\Repositories\Eloquent\LigacoesRepository;
-use App\Repositories\Eloquent\LogPreditivaRepository;
-use App\Repositories\Eloquent\PreditivaRepository;
-use App\Repositories\Eloquent\RamaisRepository;
-use App\Repositories\Eloquent\TransferenciaContatoRepository;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\View;
-use Illuminate\Support\Facades\Vite;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Auth\Events\Login;
-use Illuminate\Support\ServiceProvider;
-use App\Repositories\Eloquent\VendasRepository;
-use App\Repositories\Eloquent\EmpresaRepository;
-use App\Repositories\Eloquent\ContatosRepository;
-use App\Repositories\Eloquent\UsuariosRepository;
-use App\Repositories\Eloquent\TabulacoesRepository;
-use App\Repositories\Eloquent\AgendamentoRepository;
-use App\Repositories\Eloquent\BaseLegaceRespository;
-use App\Repositories\Eloquent\ComentariosRepository;
-use App\Repositories\Eloquent\LeadAtividadeRepository;
-use App\Repositories\Contracts\VendasRepositoryInterface;
-use App\Repositories\Contracts\EmpresaRepositoryInterface;
-use App\Repositories\Contracts\ContatosRepositoryInterface;
-use App\Repositories\Contracts\UsuariosRepositoryInterface;
-use App\Repositories\Eloquent\ComentariosLegadosRepository;
-use App\Repositories\Eloquent\ContatosCorretoresRepository;
-use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\AgendamentoRepositoryInterface;
 use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
-use App\Repositories\Contracts\ComentariosRepositoryInterface;
-use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
+use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
+use App\Repositories\Contracts\ContatosRepositoryInterface;
+use App\Repositories\Contracts\EmpresaRepositoryInterface;
+use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
+use App\Repositories\Contracts\LigacoesRepositoryInterface;
+use App\Repositories\Contracts\LogPreditivaRepositoryInterface;
 use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
-use App\Repositories\Eloquent\PreditivaRegraRepository;
+use App\Repositories\Contracts\PreditivaRepositoryInterface;
+use App\Repositories\Contracts\RamaisRepositoryInterface;
 use App\Repositories\Contracts\ResumoOperacionalRepositoryInterface;
-use App\Repositories\Eloquent\ResumoOperacionalRepository;
-use App\Repositories\Contracts\WhatsappInstanciaRepositoryInterface;
+use App\Repositories\Contracts\TabulacoesRepositoryInterface;
+use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
+use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Contracts\WhatsappConversaRepositoryInterface;
+use App\Repositories\Contracts\WhatsappInstanciaRepositoryInterface;
 use App\Repositories\Contracts\WhatsappMensagemRepositoryInterface;
-use App\Repositories\Eloquent\WhatsappInstanciaRepository;
+use App\Repositories\Eloquent\AgendamentoRepository;
+use App\Repositories\Eloquent\BaseLegaceRespository;
+use App\Repositories\Eloquent\ComentariosLegadosRepository;
+use App\Repositories\Eloquent\ComentariosRepository;
+use App\Repositories\Eloquent\ContatosCorretoresRepository;
+use App\Repositories\Eloquent\ContatosRepository;
+use App\Repositories\Eloquent\EmpresaRepository;
+use App\Repositories\Eloquent\LeadAtividadeRepository;
+use App\Repositories\Eloquent\LigacoesRepository;
+use App\Repositories\Eloquent\LogPreditivaRepository;
+use App\Repositories\Eloquent\PreditivaRegraRepository;
+use App\Repositories\Eloquent\PreditivaRepository;
+use App\Repositories\Eloquent\RamaisRepository;
+use App\Repositories\Eloquent\ResumoOperacionalRepository;
+use App\Repositories\Eloquent\TabulacoesRepository;
+use App\Repositories\Eloquent\TransferenciaContatoRepository;
+use App\Repositories\Eloquent\UsuariosRepository;
+use App\Repositories\Eloquent\VendasRepository;
 use App\Repositories\Eloquent\WhatsappConversaRepository;
+use App\Repositories\Eloquent\WhatsappInstanciaRepository;
 use App\Repositories\Eloquent\WhatsappMensagemRepository;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -89,6 +89,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             \App\Repositories\Contracts\ProcessoVendaRepositoryInterface::class,
             \App\Repositories\Eloquent\ProcessoVendaRepository::class
+        );
+
+        $this->app->bind(
+            \App\Repositories\Contracts\CancelamentoPosVendaRepositoryInterface::class,
+            \App\Repositories\Eloquent\CancelamentoPosVendaRepository::class
         );
     }
 
@@ -141,7 +146,7 @@ class AppServiceProvider extends ServiceProvider
 
                 $view->with([
                     'agendamentos' => $agendamentosAtrasados,
-                    'isNotification' => $quantidade >= 1
+                    'isNotification' => $quantidade >= 1,
                 ]);
             }
         });
@@ -149,13 +154,13 @@ class AppServiceProvider extends ServiceProvider
         Vite::useStyleTagAttributes(function (?string $src, string $url, ?array $chunk, ?array $manifest) {
             if ($src !== null) {
                 return [
-                    'class' => preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?core)-?.*/i", $src) ? 'template-customizer-core-css' : (preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?theme)-?.*/i", $src) ? 'template-customizer-theme-css' : '')
+                    'class' => preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?core)-?.*/i", $src) ? 'template-customizer-core-css' : (preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?theme)-?.*/i", $src) ? 'template-customizer-theme-css' : ''),
                 ];
             }
+
             return [];
         });
     }
-
 
     /**
      * Configurar trusted proxies para Docker + Apache
