@@ -344,8 +344,8 @@ Route::middleware(['auth'])->group(function () {
   Route::delete('/back-office/credenciais/{id}', [CredenciaisAcessoController::class, 'destroy'])->whereNumber('id')->name('backoffice.credenciais.destroy');
   Route::get('/back-office/credenciais/{id}/historico', [CredenciaisAcessoController::class, 'historico'])->whereNumber('id')->name('backoffice.credenciais.historico');
 
-  // Carteira de Clientes — contém valores/faturamento; restrito a ADMINISTRATIVO e DEVELOPER.
-  Route::middleware('role:' . \App\Enums\UserRole::ADMINISTRATIVO . ',' . \App\Enums\UserRole::DEVELOPER)->group(function () {
+  // Carteira de Clientes — contém valores/faturamento; restrito a ADMINISTRATIVO, BACKOFFICE e DEVELOPER.
+  Route::middleware('role:' . \App\Enums\UserRole::ADMINISTRATIVO . ',' . \App\Enums\UserRole::BACKOFFICE . ',' . \App\Enums\UserRole::DEVELOPER)->group(function () {
     Route::get('/back-office/carteira-clientes', [Backoffice::class, 'carteiraClientes'])->name('backoffice.carteiraClientes');
     Route::get('/back-office/carteira-clientes/data', [Backoffice::class, 'getCarteiraClientesData'])->name('backoffice.getCarteiraClientesData');
     Route::get('/back-office/carteira-clientes/detalhe/{cnpj}', [Backoffice::class, 'getDetalheClienteCarteira'])->name('backoffice.getDetalheClienteCarteira');

@@ -273,7 +273,7 @@
           "url": "/back-office/carteira-clientes",
           "name": "Carteira de Clientes",
           "slug": "pages-carteira-clientes",
-          "rules": ["ADMINISTRATIVO", "DEVELOPER"]
+          "rules": ["ADMINISTRATIVO", "BACKOFFICE", "DEVELOPER"]
         },
         {
           "url": "/back-office/operadoras-planos",

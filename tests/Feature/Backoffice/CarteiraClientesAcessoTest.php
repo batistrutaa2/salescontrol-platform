@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * Carteira de Clientes contém valores/faturamento: só ADMINISTRATIVO e DEVELOPER
- * acessam — e o bloqueio é na rota (não só no menu).
+ * Carteira de Clientes contém valores/faturamento: só ADMINISTRATIVO, BACKOFFICE
+ * e DEVELOPER acessam — e o bloqueio é na rota (não só no menu).
  */
 class CarteiraClientesAcessoTest extends TestCase
 {
@@ -43,9 +43,9 @@ class CarteiraClientesAcessoTest extends TestCase
         ]);
     }
 
-    public function test_administrador_e_developer_acessam(): void
+    public function test_administrador_backoffice_e_developer_acessam(): void
     {
-        foreach ([UserRole::ADMINISTRATIVO, UserRole::DEVELOPER] as $role) {
+        foreach ([UserRole::ADMINISTRATIVO, UserRole::BACKOFFICE, UserRole::DEVELOPER] as $role) {
             $this->actingAs($this->user($role))
                 ->get(route('backoffice.carteiraClientes'))
                 ->assertOk();
@@ -54,7 +54,7 @@ class CarteiraClientesAcessoTest extends TestCase
 
     public function test_demais_papeis_recebem_403(): void
     {
-        foreach ([UserRole::VENDEDOR, UserRole::BACKOFFICE, UserRole::SUPERVISOR] as $role) {
+        foreach ([UserRole::VENDEDOR, UserRole::SUPERVISOR] as $role) {
             $this->actingAs($this->user($role))
                 ->get(route('backoffice.carteiraClientes'))
                 ->assertStatus(403);
