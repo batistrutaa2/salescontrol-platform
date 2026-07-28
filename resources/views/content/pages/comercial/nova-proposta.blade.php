@@ -9,8 +9,7 @@ $isFooter = false;
 @section('title', 'Comercial - Nova Proposta PME')
 
 @section('vendor-style')
-    @vite(['resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss'])
-    @vite(['resources/assets/vendor/libs/toastr/toastr.js', 'resources/assets/vendor/libs/toastr/toastr.scss'])
+    @vite(['resources/assets/vendor/libs/sweetalert2/sweetalert2.scss', 'resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/animate-css/animate.scss'])
 @endsection
 
 @section('page-style')
@@ -69,7 +68,7 @@ $isFooter = false;
     </div>
 
     {{-- Form --}}
-    <form method="POST" action="{{ route('comercial.createSale') }}" class="np-form" id="formNovaProposta">
+    <form method="POST" action="{{ route('comercial.createSale') }}" class="np-form" id="formNovaProposta" novalidate>
         @csrf
         <input type="hidden" id="contato_id" name="contato_id" value="{{ $client->id }}" />
         <input type="hidden" id="tipo_contrato" name="tipo_contrato" value="PME" />
@@ -108,15 +107,15 @@ $isFooter = false;
 
                         <div class="np-grid grid-2">
                             <div class="np-field span-2">
-                                <label id="label-razao-social">Razao Social</label>
+                                <label id="label-razao-social" class="required">Razao Social</label>
                                 <input type="text" id="nome_contrato" name="nome_contrato" class="np-input @error('nome_contrato') is-invalid @enderror" placeholder="RAZAO SOCIAL DA EMPRESA" value="{{ old('nome_contrato') }}" required />
                             </div>
                             <div class="np-field">
-                                <label id="label-cpf-cnpj">CNPJ</label>
+                                <label id="label-cpf-cnpj" class="required">CNPJ</label>
                                 <input type="text" id="cpf_cnpj" name="cpf_cnpj" class="np-input @error('cpf_cnpj') is-invalid @enderror" placeholder="00.000.000/0000-00" value="{{ old('cpf_cnpj') }}" required />
                             </div>
                             <div class="np-field" id="field-tipo-empresa">
-                                <label>Tipo Empresa</label>
+                                <label class="required">Tipo Empresa</label>
                                 <select id="tipo_empresa" name="tipo_empresa" class="np-input @error('tipo_empresa') is-invalid @enderror" required>
                                     <option value="">Selecione...</option>
                                     <option value="MEI" {{ old('tipo_empresa') == 'MEI' ? 'selected' : '' }}>MEI</option>
@@ -159,7 +158,7 @@ $isFooter = false;
                     <div class="section-body">
                         <div class="np-grid grid-2">
                             <div class="np-field">
-                                <label>Operadora</label>
+                                <label class="required">Operadora</label>
                                 <select id="operadora" name="operadora_id" class="np-input @error('operadora_id') is-invalid @enderror" required>
                                     <option value="">Selecione...</option>
                                     @foreach ($operadoras as $op)
@@ -261,6 +260,7 @@ $isFooter = false;
                     <div class="titulares-title">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                         <span>Titulares e Dependentes</span>
+                        <span class="np-required-hint">* campos obrigatorios</span>
                     </div>
                     <button type="button" class="btn-add-titular-main" id="btn-add-titular">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -304,21 +304,21 @@ $isFooter = false;
         </div>
         <div class="titular-body">
             <div class="field-row">
-                <input type="text" name="titulares[__INDEX__][nome]" class="np-input" placeholder="Nome completo" required>
-                <input type="text" name="titulares[__INDEX__][cpf]" class="np-input mask-cpf" placeholder="CPF (000.000.000-00)">
+                <input type="text" name="titulares[__INDEX__][nome]" class="np-input" placeholder="Nome completo *" required>
+                <input type="text" name="titulares[__INDEX__][cpf]" class="np-input mask-cpf" placeholder="CPF (000.000.000-00) *">
             </div>
             <div class="field-row">
-                <input type="text" name="titulares[__INDEX__][data_nascimento]" class="np-input flatpickr-nascimento" placeholder="Data Nascimento">
-                <input type="email" name="titulares[__INDEX__][email]" class="np-input" placeholder="E-mail">
+                <input type="text" name="titulares[__INDEX__][data_nascimento]" class="np-input flatpickr-nascimento" placeholder="Data Nascimento *">
+                <input type="email" name="titulares[__INDEX__][email]" class="np-input" placeholder="E-mail *">
             </div>
             <div class="field-row">
-                <input type="text" name="titulares[__INDEX__][telefone1]" class="np-input mask-telefone" placeholder="Telefone 1">
+                <input type="text" name="titulares[__INDEX__][telefone1]" class="np-input mask-telefone" placeholder="Telefone 1 *">
                 <input type="text" name="titulares[__INDEX__][telefone2]" class="np-input mask-telefone" placeholder="Telefone 2">
             </div>
             <div class="field-row">
                 <div class="field-cargo-wrapper">
                     <select name="titulares[__INDEX__][cargo]" class="np-input select-cargo-titular" required>
-                        <option value="">Cargo...</option>
+                        <option value="">Cargo... *</option>
                         <option value="SOCIO">Socio</option>
                         <option value="DIRETOR">Diretor</option>
                         <option value="GERENTE">Gerente</option>
@@ -328,12 +328,12 @@ $isFooter = false;
                     </select>
                 </div>
                 <select name="titulares[__INDEX__][plano_id]" class="np-input select-plano-titular" required>
-                    <option value="">Plano...</option>
+                    <option value="">Plano... *</option>
                 </select>
             </div>
             <div class="field-row">
                 <select name="titulares[__INDEX__][coparticipacao]" class="np-input select-coparticipacao-titular" required>
-                    <option value="">Coparticipacao...</option>
+                    <option value="">Coparticipacao... *</option>
                     <option value="Y">Sim</option>
                     <option value="N">Nao</option>
                 </select>
@@ -359,66 +359,102 @@ $isFooter = false;
     </div>
 </template>
 
-{{-- Template Dependente --}}
-<template id="template-dependente">
-    <div class="dependente-card" data-dependente-index="__DEP_INDEX__">
-        <div class="dependente-header">
-            <span class="dep-badge">Dep. __DEP_NUMBER__</span>
-            <button type="button" class="btn-remove-dep" title="Remover">
+{{-- Modal de Dependente (adicionar/editar) --}}
+<div class="dep-modal-overlay" id="dep-modal-overlay">
+    <div class="dep-modal">
+        <div class="dep-modal-header">
+            <div class="dep-modal-title">
+                <span class="dep-modal-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
+                </span>
+                <div>
+                    <h3 id="dep-modal-title">Adicionar Dependente</h3>
+                    <span>Preencha todos os dados do beneficiario</span>
+                </div>
+            </div>
+            <button type="button" class="dep-modal-close" id="btn-dep-modal-close">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
-        <div class="dependente-body">
-            <div class="field-row">
-                <input type="text" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][nome]" class="np-input" placeholder="Nome" required>
-                <input type="text" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][cpf]" class="np-input mask-cpf" placeholder="CPF (000.000.000-00)">
-            </div>
-            <div class="field-row">
-                <input type="text" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][data_nascimento]" class="np-input flatpickr-nascimento" placeholder="Data Nascimento">
-                <input type="email" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][email]" class="np-input" placeholder="E-mail">
-            </div>
-            <div class="field-row">
-                <input type="text" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][telefone1]" class="np-input mask-telefone" placeholder="Telefone 1">
-                <input type="text" name="titulares[__INDEX__][dependentes][__DEP_INDEX__][telefone2]" class="np-input mask-telefone" placeholder="Telefone 2">
-            </div>
-            <div class="field-row">
-                <select name="titulares[__INDEX__][dependentes][__DEP_INDEX__][parentesco]" class="np-input" required>
-                    <option value="">Parentesco...</option>
-                    <option value="CONJUGE">Conjuge</option>
-                    <option value="COMPANHEIRO">Companheiro(a)</option>
-                    <option value="FILHO">Filho(a)</option>
-                    <option value="ENTEADO">Enteado(a)</option>
-                    <option value="PAI_MAE">Pai/Mae</option>
-                    <option value="SOGRO">Sogro(a)</option>
-                    <option value="IRMAO">Irmao(a)</option>
-                    <option value="NETO">Neto(a)</option>
-                    <option value="AVO">Avo(o)</option>
-                    <option value="BISNETO">Bisneto(a)</option>
-                    <option value="BISAVO">Bisavo(o)</option>
-                    <option value="TIO">Tio(a)</option>
-                    <option value="SOBRINHO">Sobrinho(a)</option>
-                    <option value="PRIMO">Primo(a)</option>
-                    <option value="GENRO_NORA">Genro/Nora</option>
-                    <option value="CUNHADO">Cunhado(a)</option>
-                    <option value="TUTELADO">Tutelado(a)/Menor sob guarda</option>
-                    <option value="OUTROS">Outros</option>
-                </select>
-            </div>
-            <div class="field-row">
-                <select name="titulares[__INDEX__][dependentes][__DEP_INDEX__][plano_anterior]" class="np-input select-plano-anterior">
-                    <option value="NAO">Plano anterior: Nao</option>
-                    <option value="SIM">Plano anterior: Sim</option>
-                </select>
-                <select name="titulares[__INDEX__][dependentes][__DEP_INDEX__][operadora_anterior_id]" class="np-input field-op-anterior" style="display:none;">
-                    <option value="">Operadora anterior...</option>
-                    @foreach ($operadoras as $op)
-                        <option value="{{ $op->id }}">{{ strtoupper($op->nome) }}</option>
-                    @endforeach
-                </select>
+
+        <div class="dep-modal-body">
+            <div class="np-grid grid-2">
+                <div class="np-field span-2">
+                    <label class="required" for="dep_nome">Nome completo</label>
+                    <input type="text" id="dep_nome" class="np-input" placeholder="Nome completo do dependente" autocomplete="off">
+                </div>
+                <div class="np-field">
+                    <label class="required" for="dep_cpf">CPF</label>
+                    <input type="text" id="dep_cpf" class="np-input" placeholder="000.000.000-00" autocomplete="off">
+                </div>
+                <div class="np-field">
+                    <label class="required" for="dep_data_nascimento">Data de Nascimento</label>
+                    <input type="text" id="dep_data_nascimento" class="np-input" placeholder="DD/MM/AAAA" autocomplete="off">
+                </div>
+                <div class="np-field span-2">
+                    <label class="required" for="dep_email">E-mail</label>
+                    <input type="email" id="dep_email" class="np-input" placeholder="email@exemplo.com" autocomplete="off">
+                </div>
+                <div class="np-field">
+                    <label class="required" for="dep_telefone1">Telefone 1</label>
+                    <input type="text" id="dep_telefone1" class="np-input" placeholder="(11) 91234-5678" autocomplete="off">
+                </div>
+                <div class="np-field">
+                    <label for="dep_telefone2">Telefone 2</label>
+                    <input type="text" id="dep_telefone2" class="np-input" placeholder="(11) 91234-5678" autocomplete="off">
+                </div>
+                <div class="np-field">
+                    <label class="required" for="dep_parentesco">Parentesco</label>
+                    <select id="dep_parentesco" class="np-input">
+                        <option value="">Selecione...</option>
+                        <option value="CONJUGE">Conjuge</option>
+                        <option value="COMPANHEIRO">Companheiro(a)</option>
+                        <option value="FILHO">Filho(a)</option>
+                        <option value="ENTEADO">Enteado(a)</option>
+                        <option value="PAI_MAE">Pai/Mae</option>
+                        <option value="SOGRO">Sogro(a)</option>
+                        <option value="IRMAO">Irmao(a)</option>
+                        <option value="NETO">Neto(a)</option>
+                        <option value="AVO">Avo(o)</option>
+                        <option value="BISNETO">Bisneto(a)</option>
+                        <option value="BISAVO">Bisavo(o)</option>
+                        <option value="TIO">Tio(a)</option>
+                        <option value="SOBRINHO">Sobrinho(a)</option>
+                        <option value="PRIMO">Primo(a)</option>
+                        <option value="GENRO_NORA">Genro/Nora</option>
+                        <option value="CUNHADO">Cunhado(a)</option>
+                        <option value="TUTELADO">Tutelado(a)/Menor sob guarda</option>
+                        <option value="OUTROS">Outros</option>
+                    </select>
+                </div>
+                <div class="np-field">
+                    <label for="dep_plano_anterior">Possui plano anterior?</label>
+                    <select id="dep_plano_anterior" class="np-input">
+                        <option value="NAO">Nao</option>
+                        <option value="SIM">Sim</option>
+                    </select>
+                </div>
+                <div class="np-field span-2" id="dep-op-anterior-row" style="display:none;">
+                    <label class="required" for="dep_operadora_anterior_id">Qual era a operadora?</label>
+                    <select id="dep_operadora_anterior_id" class="np-input">
+                        <option value="">Selecione a operadora anterior...</option>
+                        @foreach ($operadoras as $op)
+                            <option value="{{ $op->id }}">{{ strtoupper($op->nome) }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
         </div>
+
+        <div class="dep-modal-footer">
+            <button type="button" class="dep-btn dep-btn-ghost" id="btn-dep-modal-cancel">Cancelar</button>
+            <button type="button" class="dep-btn dep-btn-primary" id="btn-dep-modal-save">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                <span id="dep-modal-save-label">Adicionar dependente</span>
+            </button>
+        </div>
     </div>
-</template>
+</div>
 
 {{-- Template Portabilidade --}}
 <template id="template-portabilidade">
@@ -608,22 +644,12 @@ $isFooter = false;
         }
     });
 
-    // Mostrar erros via toastr
-    document.addEventListener('DOMContentLoaded', function() {
-        @if(session('status') === 'error' && session('message'))
-            if (typeof toastr !== 'undefined') {
-                toastr.error(@json(session('message')));
-            }
-        @endif
-
-        @if($errors->any())
-            if (typeof toastr !== 'undefined') {
-                @foreach($errors->all() as $error)
-                    toastr.error(@json($error));
-                @endforeach
-            }
-        @endif
-    });
+    // Erros do servidor - exibidos pelo novaProposta.js com showModernToast
+    window.pageFlash = {
+        status: @json(session('status')),
+        message: @json(session('message'))
+    };
+    window.pageErrors = @json($errors->all());
 </script>
 
 @endsection

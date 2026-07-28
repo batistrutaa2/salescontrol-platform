@@ -11,18 +11,120 @@
     let cnpjCleaveInstance = null;
 
     // ============================================
+    // Helpers
+    // ============================================
+    function escapeHtml(s) {
+        return String(s || '')
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function digitsOnly(v) {
+        return String(v || '').replace(/\D/g, '');
+    }
+
+    function isValidEmail(v) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim());
+    }
+
+    function isValidDateBr(v) {
+        return /^\d{2}\/\d{2}\/\d{4}$/.test(String(v || '').trim());
+    }
+
+    function setInvalid(el) {
+        el?.classList.add('is-invalid');
+    }
+
+    function clearInvalid(scope = document) {
+        scope.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    }
+
+    // Campo corrigido deixa de ficar destacado
+    document.addEventListener('input', e => e.target.classList?.remove('is-invalid'));
+    document.addEventListener('change', e => e.target.classList?.remove('is-invalid'));
+
+    /**
+     * Modern Toast Notification
+     * @param {string} type - 'success', 'error', 'warning', 'info'
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     */
+    function showModernToast(type, title, message) {
+        const icons = {
+            success: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>`,
+            error: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>`,
+            warning: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>`,
+            info: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>`
+        };
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            background: 'transparent',
+            showClass: {
+                popup: 'animate__animated animate__slideInRight animate__faster'
+            },
+            hideClass: {
+                popup: 'animate__animated animate__slideOutRight animate__faster'
+            },
+            html: `
+                <div class="custom-toast custom-toast-${type}">
+                    <div class="toast-icon">
+                        ${icons[type] || icons.info}
+                    </div>
+                    <div class="toast-content">
+                        <div class="toast-title">${escapeHtml(title)}</div>
+                        <div class="toast-message">${escapeHtml(message)}</div>
+                    </div>
+                    <div class="toast-close" onclick="Swal.close()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </div>
+                </div>
+            `,
+            customClass: {
+                popup: 'custom-toast-popup'
+            }
+        });
+    }
+
+    window.showModernToast = showModernToast;
+
+    // ============================================
     // Coparticipacao Options (dynamic based on operadora)
     // ============================================
     function getCoparticipacaoOptions() {
         if (isOperadoraAmil) {
             return `
-                <option value="">Coparticipacao...</option>
+                <option value="">Coparticipacao... *</option>
                 <option value="PARCIAL">Parcial</option>
                 <option value="COMPLETA">Completa</option>
             `;
         }
         return `
-            <option value="">Coparticipacao...</option>
+            <option value="">Coparticipacao... *</option>
             <option value="Y">Sim</option>
             <option value="N">Nao</option>
         `;
@@ -179,13 +281,16 @@
     // ============================================
     function updateStats() {
         const titulares = document.querySelectorAll('#titulares-container .titular-card').length;
-        const dependentes = document.querySelectorAll('#titulares-container .dependente-card').length;
+        const dependentes = document.querySelectorAll('#titulares-container .dependente-item').length;
         const totalVidas = titulares + dependentes;
 
         document.getElementById('total-titulares').textContent = titulares;
         document.getElementById('total-dependentes').textContent = dependentes;
         document.getElementById('total-vidas').textContent = totalVidas;
         document.getElementById('vidas').value = totalVidas;
+
+        // Add/remove de titular e dependente tambem persiste o rascunho
+        scheduleDraftSave();
     }
 
     // ============================================
@@ -193,9 +298,9 @@
     // ============================================
     function renderPlanOptions() {
         if (!planosDaOperadoraAtual.length) {
-            return '<option value="">Selecione a operadora primeiro</option>';
+            return '<option value="">Selecione a operadora primeiro *</option>';
         }
-        let opts = '<option value="">Selecione o plano...</option>';
+        let opts = '<option value="">Selecione o plano... *</option>';
         planosDaOperadoraAtual.forEach(p => {
             const nome = (p.nome || '').toUpperCase();
             const acomodacao = p.acomodacao ? ` - ${p.acomodacao.toUpperCase()}` : '';
@@ -269,9 +374,7 @@
         const allTitulares = container.querySelectorAll('.titular-card');
 
         if (allTitulares.length <= 1) {
-            if (typeof toastr !== 'undefined') {
-                toastr.warning('O contrato precisa ter pelo menos 1 titular.');
-            }
+            showModernToast('warning', 'Atenção', 'O contrato precisa ter pelo menos 1 titular.');
             return;
         }
 
@@ -316,44 +419,97 @@
     }
 
     // ============================================
-    // Add Dependente
+    // Dependentes - hidden inputs + card resumo + modal
     // ============================================
-    function addDependente(titularCard) {
-        const depContainer = titularCard.querySelector('.dependentes-container');
-        const template = document.getElementById('template-dependente');
-        if (!depContainer || !template) return;
+    const DEP_FIELDS = ['nome', 'cpf', 'data_nascimento', 'email', 'telefone1', 'telefone2', 'parentesco', 'plano_anterior', 'operadora_anterior_id'];
 
-        const titularIdx = depContainer.dataset.titularIndex;
-        const depIndex = depContainer.querySelectorAll('.dependente-card').length;
-        const depNumber = depIndex + 1;
+    function getDepValues(depItem) {
+        const values = {};
+        DEP_FIELDS.forEach(field => {
+            const input = depItem.querySelector(`input[data-dep-field="${field}"]`);
+            values[field] = input ? input.value : '';
+        });
+        return values;
+    }
 
-        const html = template.content.cloneNode(true).querySelector('.dependente-card').outerHTML
-            .replace(/__INDEX__/g, titularIdx)
-            .replace(/__DEP_INDEX__/g, depIndex)
-            .replace(/__DEP_NUMBER__/g, depNumber);
+    function parentescoLabel(value) {
+        if (!value) return '';
+        const option = document.querySelector(`#dep_parentesco option[value="${CSS.escape(value)}"]`);
+        return option ? option.textContent.trim() : value;
+    }
 
-        depContainer.insertAdjacentHTML('beforeend', html);
+    function renderDependenteSummary(depItem) {
+        const values = getDepValues(depItem);
+        const card = depItem.querySelector('.dep-summary-card');
+        if (!card) return;
 
-        // Get the newly added block
-        const newBlock = depContainer.lastElementChild;
+        const initials = String(values.nome || '?')
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map(part => part.charAt(0))
+            .join('')
+            .toUpperCase() || '?';
 
-        // Apply masks
-        newBlock.querySelectorAll('.mask-telefone').forEach(applyPhoneMask);
-        newBlock.querySelectorAll('.mask-cpf').forEach(applyCpfMask);
-        newBlock.querySelectorAll('.flatpickr-nascimento').forEach(applyFlatpickrNascimento);
+        const meta = [values.data_nascimento, values.telefone1].filter(Boolean).join(' · ');
+        const planoAnteriorBadge = values.plano_anterior === 'SIM'
+            ? '<span class="dep-pill dep-pill-warning">Plano anterior</span>'
+            : '';
 
-        updateStats();
-        updateDependenteNumbers(depContainer);
+        card.innerHTML = `
+            <span class="dep-avatar">${escapeHtml(initials)}</span>
+            <div class="dep-summary-info">
+                <div class="dep-summary-top">
+                    <span class="dep-summary-nome">${escapeHtml(values.nome || 'Dependente sem nome')}</span>
+                    <span class="dep-pill dep-pill-parentesco">${escapeHtml(parentescoLabel(values.parentesco) || 'Sem parentesco')}</span>
+                    ${planoAnteriorBadge}
+                </div>
+                <div class="dep-summary-meta">
+                    <span class="dep-chip">Dep.</span>
+                    ${escapeHtml(meta || 'Dados incompletos')}
+                </div>
+            </div>
+            <div class="dep-summary-actions">
+                <button type="button" class="btn-action btn-edit-dep" title="Editar Dependente">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <button type="button" class="btn-action btn-remove-dep" title="Remover Dependente">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        `;
+    }
+
+    function createDependenteElement(titularIdx, depIndex, data = {}) {
+        const item = document.createElement('div');
+        item.className = 'dependente-item';
+        item.dataset.dependenteIndex = depIndex;
+
+        DEP_FIELDS.forEach(field => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `titulares[${titularIdx}][dependentes][${depIndex}][${field}]`;
+            input.dataset.depField = field;
+            input.value = data[field] || (field === 'plano_anterior' ? 'NAO' : '');
+            item.appendChild(input);
+        });
+
+        const card = document.createElement('div');
+        card.className = 'dep-summary-card';
+        item.appendChild(card);
+
+        renderDependenteSummary(item);
+        return item;
     }
 
     // ============================================
     // Remove Dependente
     // ============================================
-    function removeDependente(dependenteCard) {
-        if (!dependenteCard) return;
+    function removeDependente(depItem) {
+        if (!depItem) return;
 
-        const depContainer = dependenteCard.closest('.dependentes-container');
-        dependenteCard.remove();
+        const depContainer = depItem.closest('.dependentes-container');
+        depItem.remove();
 
         updateStats();
         if (depContainer) {
@@ -366,19 +522,19 @@
     // ============================================
     function updateDependenteNumbers(depContainer) {
         const titularIdx = depContainer.dataset.titularIndex;
-        const dependentes = depContainer.querySelectorAll('.dependente-card');
+        const dependentes = depContainer.querySelectorAll('.dependente-item');
 
-        dependentes.forEach((card, index) => {
+        dependentes.forEach((item, index) => {
             const number = index + 1;
-            const titleEl = card.querySelector('.dep-badge');
+            const chipEl = item.querySelector('.dep-chip');
 
-            if (titleEl) titleEl.textContent = `Dep. ${number}`;
+            if (chipEl) chipEl.textContent = `Dep. ${number}`;
 
             // Update data attribute
-            card.dataset.dependenteIndex = index;
+            item.dataset.dependenteIndex = index;
 
             // Update input names
-            card.querySelectorAll('[name]').forEach(input => {
+            item.querySelectorAll('[name]').forEach(input => {
                 const name = input.getAttribute('name');
                 if (name && name.includes('[dependentes]')) {
                     const newName = name
@@ -387,6 +543,166 @@
                     input.setAttribute('name', newName);
                 }
             });
+        });
+    }
+
+    // ============================================
+    // Modal de Dependente (adicionar/editar)
+    // ============================================
+    const depModal = {
+        mode: 'add',
+        titularCard: null,
+        depItem: null
+    };
+
+    function getDepModalFields() {
+        const fields = {};
+        DEP_FIELDS.forEach(field => {
+            fields[field] = document.getElementById(`dep_${field}`);
+        });
+        return fields;
+    }
+
+    function toggleDepOperadoraAnterior(show) {
+        const row = document.getElementById('dep-op-anterior-row');
+        if (row) row.style.display = show ? '' : 'none';
+    }
+
+    function openDependenteModal(titularCard, depItem = null) {
+        const overlay = document.getElementById('dep-modal-overlay');
+        if (!overlay || !titularCard) return;
+
+        depModal.mode = depItem ? 'edit' : 'add';
+        depModal.titularCard = titularCard;
+        depModal.depItem = depItem;
+
+        const fields = getDepModalFields();
+        const values = depItem ? getDepValues(depItem) : {};
+
+        DEP_FIELDS.forEach(field => {
+            const el = fields[field];
+            if (!el) return;
+            el.value = values[field] || (field === 'plano_anterior' ? 'NAO' : '');
+        });
+
+        toggleDepOperadoraAnterior((values.plano_anterior || 'NAO') === 'SIM');
+        clearInvalid(overlay);
+
+        const title = document.getElementById('dep-modal-title');
+        if (title) title.textContent = depItem ? 'Editar Dependente' : 'Adicionar Dependente';
+
+        const saveLabel = document.getElementById('dep-modal-save-label');
+        if (saveLabel) saveLabel.textContent = depItem ? 'Salvar alterações' : 'Adicionar dependente';
+
+        overlay.classList.add('dep-modal-open');
+        document.body.style.overflow = 'hidden';
+        fields.nome?.focus();
+    }
+
+    function closeDependenteModal() {
+        const overlay = document.getElementById('dep-modal-overlay');
+        if (!overlay) return;
+
+        overlay.classList.remove('dep-modal-open');
+        document.body.style.overflow = '';
+        depModal.titularCard = null;
+        depModal.depItem = null;
+    }
+
+    function validateDependenteModal(fields) {
+        const checks = [
+            { el: fields.nome, ok: fields.nome?.value.trim() !== '', msg: 'Informe o nome completo do dependente.' },
+            { el: fields.cpf, ok: digitsOnly(fields.cpf?.value).length === 11, msg: 'Informe o CPF completo do dependente.' },
+            { el: fields.data_nascimento, ok: isValidDateBr(fields.data_nascimento?.value), msg: 'Informe a data de nascimento do dependente (DD/MM/AAAA).' },
+            { el: fields.email, ok: isValidEmail(fields.email?.value), msg: 'Informe um e-mail válido para o dependente.' },
+            { el: fields.telefone1, ok: digitsOnly(fields.telefone1?.value).length >= 10, msg: 'Informe o telefone do dependente com DDD.' },
+            { el: fields.parentesco, ok: fields.parentesco?.value !== '', msg: 'Selecione o parentesco do dependente.' },
+            {
+                el: fields.operadora_anterior_id,
+                ok: fields.plano_anterior?.value !== 'SIM' || fields.operadora_anterior_id?.value !== '',
+                msg: 'Informe qual era a operadora do plano anterior do dependente.'
+            }
+        ];
+
+        let firstError = null;
+        checks.forEach(check => {
+            if (!check.ok) {
+                setInvalid(check.el);
+                if (!firstError) firstError = check;
+            }
+        });
+
+        if (firstError) {
+            showModernToast('error', 'Dependente incompleto', firstError.msg);
+            firstError.el?.focus();
+            return false;
+        }
+        return true;
+    }
+
+    function saveDependenteModal() {
+        const fields = getDepModalFields();
+        if (!validateDependenteModal(fields)) return;
+
+        const values = {};
+        DEP_FIELDS.forEach(field => {
+            values[field] = fields[field] ? fields[field].value : '';
+        });
+        if (values.plano_anterior !== 'SIM') {
+            values.operadora_anterior_id = '';
+        }
+
+        const nome = values.nome.trim();
+
+        if (depModal.mode === 'edit' && depModal.depItem) {
+            DEP_FIELDS.forEach(field => {
+                const input = depModal.depItem.querySelector(`input[data-dep-field="${field}"]`);
+                if (input) input.value = values[field];
+            });
+            depModal.depItem.classList.remove('is-invalid');
+            renderDependenteSummary(depModal.depItem);
+            const depContainer = depModal.depItem.closest('.dependentes-container');
+            if (depContainer) updateDependenteNumbers(depContainer);
+            showModernToast('success', 'Dependente atualizado', nome);
+        } else if (depModal.titularCard) {
+            const depContainer = depModal.titularCard.querySelector('.dependentes-container');
+            if (!depContainer) return;
+            const titularIdx = depContainer.dataset.titularIndex;
+            const depIndex = depContainer.querySelectorAll('.dependente-item').length;
+            depContainer.appendChild(createDependenteElement(titularIdx, depIndex, values));
+            updateDependenteNumbers(depContainer);
+            showModernToast('success', 'Dependente adicionado', nome);
+        }
+
+        updateStats();
+        closeDependenteModal();
+    }
+
+    function initDependenteModal() {
+        const overlay = document.getElementById('dep-modal-overlay');
+        if (!overlay) return;
+
+        applyCpfMask(document.getElementById('dep_cpf'));
+        applyPhoneMask(document.getElementById('dep_telefone1'));
+        applyPhoneMask(document.getElementById('dep_telefone2'));
+        applyFlatpickrNascimento(document.getElementById('dep_data_nascimento'));
+
+        document.getElementById('dep_plano_anterior')?.addEventListener('change', function () {
+            toggleDepOperadoraAnterior(this.value === 'SIM');
+        });
+
+        document.getElementById('btn-dep-modal-save')?.addEventListener('click', saveDependenteModal);
+        document.getElementById('btn-dep-modal-cancel')?.addEventListener('click', closeDependenteModal);
+        document.getElementById('btn-dep-modal-close')?.addEventListener('click', closeDependenteModal);
+
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closeDependenteModal();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && overlay.classList.contains('dep-modal-open')) {
+                closeDependenteModal();
+            }
         });
     }
 
@@ -412,10 +728,10 @@
 
     // Delegated events for dynamic elements
     document.addEventListener('click', function (e) {
-        // Add Dependente
+        // Add Dependente (abre modal vazia)
         if (e.target.closest('.btn-add-dep')) {
             const titularCard = e.target.closest('.titular-card');
-            if (titularCard) addDependente(titularCard);
+            if (titularCard) openDependenteModal(titularCard);
         }
 
         // Remove Titular
@@ -424,10 +740,17 @@
             if (titularCard) removeTitular(titularCard);
         }
 
+        // Edit Dependente (abre modal preenchida)
+        if (e.target.closest('.btn-edit-dep')) {
+            const depItem = e.target.closest('.dependente-item');
+            const titularCard = e.target.closest('.titular-card');
+            if (depItem && titularCard) openDependenteModal(titularCard, depItem);
+        }
+
         // Remove Dependente
         if (e.target.closest('.btn-remove-dep')) {
-            const dependenteCard = e.target.closest('.dependente-card');
-            if (dependenteCard) removeDependente(dependenteCard);
+            const depItem = e.target.closest('.dependente-item');
+            if (depItem) removeDependente(depItem);
         }
 
         // Remove Portabilidade
@@ -492,22 +815,12 @@
             .catch(() => {
                 planosDaOperadoraAtual = [];
                 updateAllPlanSelects();
-                if (typeof toastr !== 'undefined') {
-                    toastr.error('Erro ao carregar planos da operadora.');
-                }
+                showModernToast('error', 'Erro', 'Erro ao carregar planos da operadora.');
             });
     });
 
-    // Plano anterior toggle (dependentes)
+    // Plano anterior toggle (titulares) - o de dependentes vive na modal
     document.addEventListener('change', function (e) {
-        if (e.target.classList.contains('select-plano-anterior')) {
-            const fieldOperadora = e.target.closest('.field-row')?.querySelector('.field-op-anterior');
-            if (fieldOperadora) {
-                fieldOperadora.style.display = e.target.value === 'SIM' ? 'block' : 'none';
-            }
-        }
-
-        // Plano anterior toggle (titulares)
         if (e.target.classList.contains('select-plano-anterior-titular')) {
             const titularCard = e.target.closest('.titular-card');
             const fieldRowOpAnterior = titularCard?.querySelector('.field-row-op-anterior');
@@ -767,44 +1080,151 @@
     // ============================================
     // Form Validation
     // ============================================
-    document.getElementById('formNovaProposta')?.addEventListener('submit', function (e) {
-        // Check operadora
-        const operadoraId = document.getElementById('operadora')?.value;
-        if (!operadoraId) {
-            e.preventDefault();
-            if (typeof toastr !== 'undefined') toastr.error('Selecione a operadora.');
-            return false;
+    function validateForm() {
+        const errors = [];
+        let firstInvalid = null;
+
+        const fail = (el, msg) => {
+            errors.push(msg);
+            setInvalid(el);
+            if (!firstInvalid && el) firstInvalid = el;
+        };
+
+        clearInvalid();
+
+        // Empresa / contrato
+        const nomeContrato = document.getElementById('nome_contrato');
+        if (!nomeContrato?.value.trim()) {
+            fail(nomeContrato, currentPropostaType === 'PME' ? 'Informe a razão social da empresa.' : 'Informe o nome do cliente.');
         }
 
-        // Check if at least one titular exists
+        const cpfCnpj = document.getElementById('cpf_cnpj');
+        if (!cpfCnpj?.value.trim()) {
+            fail(cpfCnpj, currentPropostaType === 'PME' ? 'Informe o CNPJ da empresa.' : 'Informe o CPF do cliente.');
+        }
+
+        if (currentPropostaType === 'PME') {
+            const tipoEmpresa = document.getElementById('tipo_empresa');
+            if (!tipoEmpresa?.value) {
+                fail(tipoEmpresa, 'Selecione o tipo da empresa.');
+            }
+        }
+
+        const operadora = document.getElementById('operadora');
+        if (!operadora?.value) {
+            fail(operadora, 'Selecione a operadora.');
+        }
+
+        // Titulares
         const titulares = document.querySelectorAll('#titulares-container .titular-card');
         if (titulares.length === 0) {
-            e.preventDefault();
-            if (typeof toastr !== 'undefined') toastr.error('Adicione pelo menos um titular.');
-            return false;
+            errors.push('Adicione pelo menos um titular.');
         }
 
-        // Check all titulares have plans selected
-        const planSelects = document.querySelectorAll('#titulares-container .select-plano-titular');
-        for (const select of planSelects) {
-            if (!select.value) {
-                e.preventDefault();
-                if (typeof toastr !== 'undefined') toastr.error('Selecione o plano para todos os titulares.');
-                return false;
+        const emailsVistos = {};
+        const telefonesVistos = {};
+
+        titulares.forEach((card, index) => {
+            const num = index + 1;
+            const body = card.querySelector('.titular-body');
+            const field = suffix => body?.querySelector(`[name$="${suffix}"]`);
+
+            const nome = field('[nome]');
+            if (!nome?.value.trim()) fail(nome, `Informe o nome completo do Titular ${num}.`);
+
+            const cpf = field('[cpf]');
+            if (digitsOnly(cpf?.value).length !== 11) fail(cpf, `Informe o CPF completo do Titular ${num}.`);
+
+            const nascimento = field('[data_nascimento]');
+            if (!isValidDateBr(nascimento?.value)) fail(nascimento, `Informe a data de nascimento do Titular ${num} (DD/MM/AAAA).`);
+
+            const email = field('[email]');
+            if (!isValidEmail(email?.value)) {
+                fail(email, `Informe um e-mail válido para o Titular ${num}.`);
+            } else {
+                const chave = email.value.trim().toLowerCase();
+                if (emailsVistos[chave]) {
+                    fail(email, `Titular ${emailsVistos[chave].num} e Titular ${num} não podem ter o mesmo e-mail.`);
+                    setInvalid(emailsVistos[chave].el);
+                } else {
+                    emailsVistos[chave] = { num, el: email };
+                }
+            }
+
+            const telefone = field('[telefone1]');
+            const telefoneDigits = digitsOnly(telefone?.value);
+            if (telefoneDigits.length < 10) {
+                fail(telefone, `Informe o telefone do Titular ${num} com DDD.`);
+            } else if (telefonesVistos[telefoneDigits]) {
+                fail(telefone, `Titular ${telefonesVistos[telefoneDigits].num} e Titular ${num} não podem ter o mesmo telefone.`);
+                setInvalid(telefonesVistos[telefoneDigits].el);
+            } else {
+                telefonesVistos[telefoneDigits] = { num, el: telefone };
+            }
+
+            if (currentPropostaType === 'PME') {
+                const cargo = card.querySelector('.select-cargo-titular');
+                if (!cargo?.value) fail(cargo, `Selecione o cargo do Titular ${num}.`);
+            }
+
+            const plano = card.querySelector('.select-plano-titular');
+            if (!plano?.value) fail(plano, `Selecione o plano do Titular ${num}.`);
+
+            const copart = card.querySelector('.select-coparticipacao-titular');
+            if (!copart?.value) fail(copart, `Selecione a coparticipação do Titular ${num}.`);
+
+            const planoAnterior = card.querySelector('.select-plano-anterior-titular');
+            if (planoAnterior?.value === 'SIM') {
+                const opAnterior = card.querySelector('.field-op-anterior-titular');
+                if (!opAnterior?.value) fail(opAnterior, `Informe qual era a operadora do plano anterior do Titular ${num}.`);
+            }
+
+            // Dependentes (hidden inputs) - a modal já valida, mas o restore de
+            // old input pode trazer dados incompletos
+            card.querySelectorAll('.dependente-item').forEach(depItem => {
+                const dep = getDepValues(depItem);
+                const depOk = dep.nome.trim() !== ''
+                    && digitsOnly(dep.cpf).length === 11
+                    && isValidDateBr(dep.data_nascimento)
+                    && isValidEmail(dep.email)
+                    && digitsOnly(dep.telefone1).length >= 10
+                    && dep.parentesco !== ''
+                    && (dep.plano_anterior !== 'SIM' || dep.operadora_anterior_id !== '');
+
+                if (!depOk) {
+                    const summaryCard = depItem.querySelector('.dep-summary-card');
+                    fail(summaryCard, `Complete os dados do dependente "${dep.nome.trim() || 'sem nome'}" do Titular ${num} (clique em editar).`);
+                }
+            });
+        });
+
+        return { ok: errors.length === 0, errors, firstInvalid };
+    }
+
+    document.getElementById('formNovaProposta')?.addEventListener('submit', function (e) {
+        const result = validateForm();
+        if (result.ok) {
+            // Proposta a caminho do servidor: descarta o rascunho local.
+            // Se a validacao server-side falhar, o old() restaura e o
+            // rascunho volta a ser salvo na sequencia.
+            draftDisabled = true;
+            clearTimeout(draftSaveTimer);
+            clearDraft();
+            return true;
+        }
+
+        e.preventDefault();
+
+        const extra = result.errors.length > 1 ? ` (+${result.errors.length - 1} outras pendências)` : '';
+        showModernToast('error', 'Proposta incompleta', result.errors[0] + extra);
+
+        if (result.firstInvalid) {
+            result.firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (typeof result.firstInvalid.focus === 'function') {
+                setTimeout(() => result.firstInvalid.focus({ preventScroll: true }), 300);
             }
         }
-
-        // Check all titulares have coparticipacao selected
-        const copartSelects = document.querySelectorAll('#titulares-container select[name*="[coparticipacao]"]');
-        for (const select of copartSelects) {
-            if (!select.value) {
-                e.preventDefault();
-                if (typeof toastr !== 'undefined') toastr.error('Selecione a coparticipacao para todos os titulares.');
-                return false;
-            }
-        }
-
-        return true;
+        return false;
     });
 
     // ============================================
@@ -961,47 +1381,174 @@
     // ============================================
     function addDependenteWithData(titularCard, depData, titularIdx, depIndex) {
         const depContainer = titularCard.querySelector('.dependentes-container');
-        const template = document.getElementById('template-dependente');
-        if (!depContainer || !template) return;
+        if (!depContainer) return;
 
-        const depNumber = depIndex + 1;
+        depContainer.appendChild(createDependenteElement(titularIdx, depIndex, depData || {}));
+        updateDependenteNumbers(depContainer);
+    }
 
-        const html = template.content.cloneNode(true).querySelector('.dependente-card').outerHTML
-            .replace(/__INDEX__/g, titularIdx)
-            .replace(/__DEP_INDEX__/g, depIndex)
-            .replace(/__DEP_NUMBER__/g, depNumber);
+    // ============================================
+    // Rascunho local - persiste o preenchimento em caso de F5.
+    // old() do Laravel so cobre o redirect de erro de validacao;
+    // recarregar a pagina e um GET novo, entao o rascunho vive no
+    // localStorage (por contato) ate a proposta ser enviada.
+    // ============================================
+    const DRAFT_KEY = `novaPropostaDraft:${document.getElementById('contato_id')?.value || 'novo'}`;
+    const DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // expira em 24h
+    const DRAFT_TOP_FIELDS = [
+        'nome_contrato', 'cpf_cnpj', 'tipo_empresa', 'data_abertura', 'email',
+        'telefone1', 'telefone2', 'operadora', 'qtd_titulares', 'plano_dental',
+        'valor_contrato', 'taxa_angariacao', 'angariacao_status',
+        'qtd_portabilidade', 'portabilidade_status', 'obs_contrato'
+    ];
+    let draftSaveTimer = null;
+    let draftDisabled = false;
 
-        depContainer.insertAdjacentHTML('beforeend', html);
+    function serializeTitularCard(card) {
+        const body = card.querySelector('.titular-body');
+        const field = suffix => body?.querySelector(`[name$="${suffix}"]`)?.value || '';
 
-        const newBlock = depContainer.lastElementChild;
-
-        // Fill data
-        const setVal = (selector, value) => {
-            const el = newBlock.querySelector(selector);
-            if (el && value) el.value = value;
+        return {
+            nome: field('[nome]'),
+            cpf: field('[cpf]'),
+            data_nascimento: field('[data_nascimento]'),
+            email: field('[email]'),
+            telefone1: field('[telefone1]'),
+            telefone2: field('[telefone2]'),
+            cargo: field('[cargo]'),
+            plano_id: field('[plano_id]'),
+            coparticipacao: field('[coparticipacao]'),
+            plano_anterior: field('[plano_anterior]') || 'NAO',
+            operadora_anterior_id: field('[operadora_anterior_id]'),
+            dependentes: Array.from(card.querySelectorAll('.dependente-item')).map(getDepValues)
         };
+    }
 
-        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][nome]"]`, depData.nome || '');
-        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][cpf]"]`, depData.cpf || '');
-        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][data_nascimento]"]`, depData.data_nascimento || '');
-        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][email]"]`, depData.email || '');
-        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][telefone1]"]`, depData.telefone1 || '');
-        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][telefone2]"]`, depData.telefone2 || '');
-        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][parentesco]"]`, depData.parentesco || '');
-        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][plano_anterior]"]`, depData.plano_anterior || 'NAO');
-        setVal(`[name="titulares[${titularIdx}][dependentes][${depIndex}][operadora_anterior_id]"]`, depData.operadora_anterior_id || '');
+    function buildDraft() {
+        const fields = {};
+        DRAFT_TOP_FIELDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) fields[id] = el.value;
+        });
 
-        // Show operadora anterior if plano_anterior = SIM
-        if (depData.plano_anterior === 'SIM') {
-            const opAnteriorField = newBlock.querySelector('.field-op-anterior');
-            if (opAnteriorField) opAnteriorField.style.display = 'block';
+        return {
+            savedAt: Date.now(),
+            tipo_contrato: currentPropostaType,
+            fields,
+            titulares: Array.from(document.querySelectorAll('#titulares-container .titular-card')).map(serializeTitularCard),
+            portabilidades: Array.from(document.querySelectorAll('#portabilidade-container .port-item input[name]')).map(i => i.value)
+        };
+    }
+
+    function draftTemConteudo(draft) {
+        const fields = draft.fields || {};
+        const camposDigitados = ['nome_contrato', 'cpf_cnpj', 'email', 'telefone1', 'telefone2', 'obs_contrato', 'operadora']
+            .some(id => String(fields[id] || '').trim() !== '');
+        const titularDigitado = (draft.titulares || []).some(t =>
+            [t.nome, t.cpf, t.email, t.telefone1, t.data_nascimento].some(v => String(v || '').trim() !== '')
+            || (t.dependentes || []).length > 0
+        );
+        return camposDigitados || titularDigitado;
+    }
+
+    function saveDraftNow() {
+        if (draftDisabled) return;
+        try {
+            const draft = buildDraft();
+            if (draftTemConteudo(draft)) {
+                localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+            } else {
+                localStorage.removeItem(DRAFT_KEY);
+            }
+        } catch (err) {
+            // localStorage indisponivel (modo privado/quota) - segue sem rascunho
+        }
+    }
+
+    function scheduleDraftSave() {
+        if (draftDisabled) return;
+        clearTimeout(draftSaveTimer);
+        draftSaveTimer = setTimeout(saveDraftNow, 400);
+    }
+
+    function clearDraft() {
+        try {
+            localStorage.removeItem(DRAFT_KEY);
+        } catch (err) {
+            // ignora
+        }
+    }
+
+    function readDraft() {
+        try {
+            const raw = localStorage.getItem(DRAFT_KEY);
+            if (!raw) return null;
+
+            const draft = JSON.parse(raw);
+            if (!draft || typeof draft !== 'object') return null;
+
+            if (!draft.savedAt || Date.now() - draft.savedAt > DRAFT_TTL_MS) {
+                clearDraft();
+                return null;
+            }
+            return draft;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    // Restaura o rascunho; retorna true quando restaurou titulares
+    // (mesma semantica de restoreOldTitulares para o init).
+    function restoreDraft() {
+        const draft = readDraft();
+        if (!draft || !draftTemConteudo(draft)) return false;
+
+        if (draft.tipo_contrato === 'ADESAO') {
+            const toggle = document.getElementById('tipo_proposta_toggle');
+            if (toggle) toggle.value = 'ADESAO';
+            switchToAdesaoMode();
         }
 
-        // Apply masks
-        newBlock.querySelectorAll('.mask-telefone').forEach(applyPhoneMask);
-        newBlock.querySelectorAll('.mask-cpf').forEach(applyCpfMask);
-        newBlock.querySelectorAll('.flatpickr-nascimento').forEach(applyFlatpickrNascimento);
+        Object.entries(draft.fields || {}).forEach(([id, value]) => {
+            const el = document.getElementById(id);
+            if (el && value !== undefined && value !== null) el.value = value;
+        });
+
+        // Badges e visibilidades que dependem do evento change
+        ['plano_dental', 'angariacao_status', 'portabilidade_status'].forEach(id => {
+            document.getElementById(id)?.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        // Portabilidades (o change acima ja mostrou o container quando SIM)
+        const qtdPort = parseInt(draft.fields?.qtd_portabilidade, 10) || 0;
+        if (draft.fields?.portabilidade_status === 'SIM' && qtdPort > 0) {
+            renderPortabilidadeItems(qtdPort);
+            const inputs = document.querySelectorAll('#portabilidade-container .port-item input[name]');
+            (draft.portabilidades || []).forEach((nome, i) => {
+                if (inputs[i]) inputs[i].value = nome;
+            });
+        }
+
+        const temTitulares = Array.isArray(draft.titulares) && draft.titulares.length > 0;
+        if (temTitulares) {
+            // Reusa o fluxo de restore do old(): carrega os planos da
+            // operadora e recria titulares + dependentes.
+            window.oldTitulares = draft.titulares;
+            window.oldOperadoraId = draft.fields?.operadora || null;
+            restoreOldTitulares();
+        }
+
+        showModernToast('info', 'Rascunho recuperado', 'Restauramos o que voce preencheu antes de atualizar a pagina.');
+        return temTitulares;
     }
+
+    // Qualquer digitacao/selecao no formulario agenda o salvamento
+    const formNovaProposta = document.getElementById('formNovaProposta');
+    formNovaProposta?.addEventListener('input', scheduleDraftSave);
+    formNovaProposta?.addEventListener('change', scheduleDraftSave);
+
+    // Garante o ultimo estado mesmo se o F5 vier antes do debounce
+    window.addEventListener('beforeunload', saveDraftNow);
 
     // ============================================
     // Initialize - Add first titular on load or restore old
@@ -1009,12 +1556,27 @@
     document.addEventListener('DOMContentLoaded', function () {
         const container = document.getElementById('titulares-container');
 
-        // Tentar restaurar dados old primeiro
-        const hasOldData = restoreOldTitulares();
+        initDependenteModal();
 
-        // Se não há dados old, adicionar titular vazio
-        if (!hasOldData && container && container.children.length === 0) {
+        // Prioridade de restore: old() (erro de validacao no servidor)
+        // vem antes do rascunho local (F5).
+        const hasOldData = restoreOldTitulares();
+        const hasDraft = !hasOldData && restoreDraft();
+
+        // Se nao ha dado nenhum para restaurar, adicionar titular vazio
+        if (!hasOldData && !hasDraft && container && container.children.length === 0) {
             addTitular();
+        }
+
+        // Erros vindos do servidor (flash session + validação)
+        const flash = window.pageFlash || {};
+        const serverErrors = window.pageErrors || [];
+
+        if (serverErrors.length) {
+            const extra = serverErrors.length > 1 ? ` (+${serverErrors.length - 1} outras pendências)` : '';
+            showModernToast('error', 'Proposta incompleta', serverErrors[0] + extra);
+        } else if (flash.status === 'error' && flash.message) {
+            showModernToast('error', 'Erro', flash.message);
         }
     });
 
