@@ -99,17 +99,26 @@
         const concl = d.status === 'CONCLUIDA' && d.concluida_em
             ? `<span class="mdv-card-meta-item">Concluída em ${fmtData(d.concluida_em)}</span>` : '';
 
+        // Em aberto, o badge acompanha a etapa do fluxo da central (Documentação,
+        // Em andamento...). Na etapa inicial "Aberta" mantém o "Aguardando".
+        const emEtapaAvancada = d.status === 'ABERTA' && d.etapa && d.etapa.toUpperCase() !== 'ABERTA';
+        const badgeCls = emEtapaAvancada ? 'is-andamento' : st.cls;
+        const badgeLabel = emEtapaAvancada ? escapeHtml(d.etapa) : st.label;
+        const prazo = d.status === 'ABERTA' && d.data_limite
+            ? `<span class="mdv-card-meta-item">Prazo: ${escapeHtml(d.data_limite)}</span>` : '';
+
         return `
-            <div class="mdv-card ${st.cls}">
+            <div class="mdv-card ${badgeCls}">
                 <div class="mdv-card-top">
                     <span class="mdv-card-tipo">${tipoLabel}</span>
-                    <span class="mdv-status-badge ${st.cls}">${st.label}</span>
+                    <span class="mdv-status-badge ${badgeCls}">${badgeLabel}</span>
                 </div>
                 <div class="mdv-card-cliente">${cliente} ${proposta}</div>
                 <div class="mdv-card-titulo">${escapeHtml(d.titulo)}</div>
                 ${desc}
                 <div class="mdv-card-meta">
                     <span class="mdv-card-meta-item">Aberta em ${fmtData(d.created_at)}</span>
+                    ${prazo}
                     ${concl}
                 </div>
             </div>`;

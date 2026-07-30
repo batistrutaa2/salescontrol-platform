@@ -191,6 +191,35 @@ class DemandaVendedorTest extends TestCase
         Notification::assertSentTo($this->vendedor, DemandaVendedorConcluida::class);
     }
 
+    public function test_vendedor_acompanha_a_etapa_da_solicitacao(): void
+    {
+        $venda = $this->criarVenda($this->vendedor);
+
+        $this->actingAs($this->vendedor)
+            ->postJson(route('comercial.minhasDemandas.store'), $this->payload($venda))
+            ->assertOk();
+
+        $solicitacao = PosVendaSolicitacao::where('venda_id', $venda->id)->firstOrFail();
+        $emAndamento = PosVendaFluxoEtapa::where('empresa_id', $this->empresa->id)
+            ->where('tipo', $solicitacao->tipo)
+            ->where('natureza', NaturezaEtapaSolicitacao::EM_ANDAMENTO->value)
+            ->orderByDesc('ordem')
+            ->firstOrFail();
+
+        // A central avança a etapa; a lista do vendedor reflete o progresso.
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.mover', $solicitacao->id), ['etapa_id' => $emAndamento->id])
+            ->assertOk();
+
+        $data = $this->actingAs($this->vendedor)
+            ->getJson(route('comercial.minhasDemandas.list'))
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame('ABERTA', $data[0]['status']);
+        $this->assertSame($emAndamento->nome, $data[0]['etapa']);
+    }
+
     public function test_nao_cria_para_venda_nao_implantada(): void
     {
         $venda = $this->criarVenda($this->vendedor, self::TAB_NAO_IMPLANTADO);
