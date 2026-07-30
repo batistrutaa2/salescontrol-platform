@@ -295,16 +295,18 @@ class ProcessosVendaTest extends TestCase
         $this->actingAs($userOutra)->getJson(route('backoffice.processos.dados', $venda->id))->assertStatus(404);
     }
 
-    public function test_atualizar_cancelamento_403_para_backoffice_nao_dono(): void
+    public function test_atualizar_cancelamento_permitido_para_backoffice_nao_dono(): void
     {
+        // O pós-venda atua em contratos sob custódia de terceiros — a trava por
+        // dono ficou restrita à alteração de status do contrato.
         $venda = $this->criarContrato($this->outroBackoffice->id);
         $cancel = $this->criarCancelamento($venda, $this->criarTitular($venda));
 
         $this->actingAs($this->backoffice)
             ->patchJson(route('backoffice.processos.cancelamento', $cancel->id), ['fase' => FaseCancelamento::CONCLUIDO->value])
-            ->assertStatus(403);
+            ->assertOk()->assertJson(['success' => true]);
 
-        $this->assertSame('PENDENTE', $cancel->fresh()->status);
+        $this->assertSame('CONCLUIDA', $cancel->fresh()->status);
     }
 
     public function test_fase_portabilidade_pela_tela_do_contrato(): void
@@ -330,16 +332,30 @@ class ProcessosVendaTest extends TestCase
             ->assertStatus(422);
     }
 
-    public function test_fase_portabilidade_403_para_backoffice_nao_dono(): void
+    public function test_fase_portabilidade_permitida_para_backoffice_nao_dono(): void
     {
         $venda = $this->criarContrato($this->outroBackoffice->id);
         $port = \App\Models\VendaPortabilidade::create(['venda_id' => $venda->id, 'nome' => 'ZE', 'sequencial' => 1]);
 
         $this->actingAs($this->backoffice)
             ->patchJson(route('backoffice.processos.fasePortabilidade', $port->id), ['fase' => 'ENVIADA_ANALISE'])
+            ->assertOk()->assertJson(['success' => true]);
+
+        $this->assertSame('ENVIADA_ANALISE', $port->fresh()->fase);
+    }
+
+    public function test_status_do_contrato_segue_travado_para_backoffice_nao_dono(): void
+    {
+        $venda = $this->criarContrato($this->outroBackoffice->id);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.quickStatusChange'), [
+                'venda_id' => $venda->id,
+                'tabulacao_id' => Tabulations::VENDA,
+            ])
             ->assertStatus(403);
 
-        $this->assertSame('REUNINDO_DOCUMENTOS', $port->fresh()->fase);
+        $this->assertSame(Tabulations::IMPLANTADO, (int) $venda->fresh()->tabulacao_id);
     }
 
     public function test_emails_criados_crud_completo(): void
@@ -394,10 +410,10 @@ class ProcessosVendaTest extends TestCase
     {
         $venda = $this->criarContrato($this->outroBackoffice->id);
 
-        // Backoffice não-dono: 403.
+        // Backoffice não-dono também registra e-mails (pós-venda compartilhado).
         $this->actingAs($this->backoffice)
             ->postJson(route('backoffice.processos.emails.store', $venda->id), ['email' => 'a@b.com', 'senha' => 'x'])
-            ->assertStatus(403);
+            ->assertOk()->assertJson(['success' => true]);
 
         // Outra empresa: 404 (nem enxerga).
         $registro = \App\Models\VendaEmailCriado::create([

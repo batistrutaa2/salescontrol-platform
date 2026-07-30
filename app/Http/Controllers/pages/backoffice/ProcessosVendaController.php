@@ -323,20 +323,14 @@ class ProcessosVendaController extends Controller
     }
 
     /**
-     * ADM/DEV editam tudo; BACKOFFICE só o que implantou; demais somente leitura.
+     * ADM/DEV e qualquer BACKOFFICE editam (o pós-venda atua em contratos sob
+     * custódia de terceiros); demais somente leitura. A trava por dono ficou
+     * restrita à alteração de status do contrato (Backoffice::canAlterStatus).
      */
     private function canEditContract(Vendas $sale): bool
     {
         $roleId = Auth::user()->user_role_id;
 
-        if (in_array($roleId, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])) {
-            return true;
-        }
-
-        if ($roleId === UserRole::BACKOFFICE) {
-            return $sale->backoffice_id !== null && $sale->backoffice_id === Auth::id();
-        }
-
-        return false;
+        return in_array($roleId, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER, UserRole::BACKOFFICE]);
     }
 }

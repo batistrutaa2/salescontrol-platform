@@ -338,7 +338,7 @@
                             </button>
                             @else
                             <div class="alert alert-warning mt-3 mb-0 ms-auto">
-                                <small>Somente o backoffice responsavel pode editar este contrato.</small>
+                                <small>Seu perfil nao tem permissao para editar este contrato.</small>
                             </div>
                             @endif
                         </div>

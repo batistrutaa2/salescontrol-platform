@@ -75,16 +75,31 @@ class Backoffice extends Controller
             return true;
         }
 
-        // BACKOFFICE só edita se for o dono do contrato
+        // BACKOFFICE edita qualquer contrato, mesmo sob custódia de outro:
+        // o pós-venda precisa anexar documentos, atualizar cancelamentos/
+        // portabilidades etc. A única trava por dono é a alteração de status
+        // do contrato (ver canAlterStatus).
         if ($roleId === UserRole::BACKOFFICE) {
-            if ($sale->backoffice_id === null) {
-                return false;
-            }
-
-            return $sale->backoffice_id === Auth::id();
+            return true;
         }
 
         // SUPERVISOR e demais: somente leitura
+        return false;
+    }
+
+    private function canAlterStatus(Vendas $sale): bool
+    {
+        $roleId = Auth::user()->user_role_id;
+
+        if (in_array($roleId, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])) {
+            return true;
+        }
+
+        // Status do contrato só muda pelo backoffice responsável (custódia).
+        if ($roleId === UserRole::BACKOFFICE) {
+            return $sale->backoffice_id !== null && $sale->backoffice_id === Auth::id();
+        }
+
         return false;
     }
 
@@ -249,10 +264,10 @@ class Backoffice extends Controller
     {
         $sale = $this->vendasRepository->find($request->idSale);
 
-        if (! $sale || ! $this->canEditContract($sale)) {
+        if (! $sale || ! $this->canAlterStatus($sale)) {
             return redirect()->route('backoffice.index')
                 ->with('status', 'error')
-                ->with('message', 'Voce nao tem permissao para alterar o status deste contrato.');
+                ->with('message', 'Somente o backoffice responsavel pelo contrato pode alterar o status.');
         }
 
         // ESTORNO exige motivo registrado em vendas_historico — devolve ao vendedor.
@@ -417,10 +432,10 @@ class Backoffice extends Controller
                 ], 404);
             }
 
-            if (! $this->canEditContract($sale)) {
+            if (! $this->canAlterStatus($sale)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Voce nao tem permissao para alterar o status deste contrato.',
+                    'message' => 'Somente o backoffice responsavel pelo contrato pode alterar o status.',
                 ], 403);
             }
 
