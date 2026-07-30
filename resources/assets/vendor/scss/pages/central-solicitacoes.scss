@@ -1,15 +1,15 @@
-// Painel de Cancelamentos — pipeline do cancelamento do plano anterior (pós-venda).
-// Usa as CSS vars --dash-* de dashboard-analytics.scss e as classes pv-modal-,
-// pv-btn- e pv-form- de pos-venda.scss (ambos carregados na view). Todo o resto
-// é namespaced .pcx-*.
+// Central de Solicitações do Pós-Venda — fila por prazo + kanban com fluxo
+// configurável por tipo. Usa as CSS vars --dash-* de dashboard-analytics.scss e
+// as classes pv-modal-, pv-btn- e pv-form- de pos-venda.scss (ambos carregados
+// na view). Todo o resto é namespaced .spv-*.
 //
-// Assinatura da tela: a "esteira" — régua de etapas clicável onde cada segmento
-// carrega a contagem grande (JetBrains Mono) e a cor da etapa.
+// Assinatura da tela: o badge de prazo (verde folgado / âmbar apertado /
+// vermelho vencido) presente na fila, nos cards do kanban e no detalhe.
 
 // ============================================
 // Wrapper
 // ============================================
-.pcx-wrapper {
+.spv-wrapper {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     min-height: 100vh;
 }
@@ -17,12 +17,12 @@
 // ============================================
 // Header
 // ============================================
-.pcx-header {
+.spv-header {
     margin-bottom: 1.5rem;
     padding: 1.5rem 0 0;
 }
 
-.pcx-header-content {
+.spv-header-content {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -30,9 +30,9 @@
     gap: 1.5rem;
 }
 
-.pcx-header-text { flex: 1; min-width: 260px; }
+.spv-header-text { flex: 1; min-width: 260px; }
 
-.pcx-greeting-label {
+.spv-greeting-label {
     display: inline-block;
     font-size: 0.75rem;
     font-weight: 600;
@@ -45,7 +45,7 @@
     margin-bottom: 0.75rem;
 }
 
-.pcx-main-title {
+.spv-main-title {
     font-size: 2rem;
     font-weight: 800;
     margin: 0 0 0.5rem 0;
@@ -56,14 +56,14 @@
     background-clip: text;
 }
 
-.pcx-subtitle {
+.spv-subtitle {
     font-size: 0.9375rem;
     color: var(--dash-text-secondary);
     margin: 0;
     font-weight: 500;
 }
 
-.pcx-header-actions {
+.spv-header-actions {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -71,7 +71,7 @@
     flex-wrap: wrap;
 }
 
-.pcx-btn-novo {
+.spv-btn-novo {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -93,8 +93,30 @@
     }
 }
 
-// Toggle kanban/tabela — segmentado, glass
-.pcx-view-toggle {
+.spv-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--dash-glass-bg);
+    color: var(--dash-text-secondary);
+    border: 1px solid var(--dash-card-border);
+    padding: 0.7rem 1.1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    cursor: pointer;
+    transition: var(--dash-transition-fast);
+    backdrop-filter: blur(var(--dash-glass-blur, 12px));
+
+    &:hover {
+        color: var(--dash-primary);
+        border-color: rgba(var(--dash-primary-rgb), 0.4);
+    }
+}
+
+// Toggle fila/kanban — segmentado, glass
+.spv-view-toggle {
     display: inline-flex;
     background: var(--dash-glass-bg);
     border: 1px solid var(--dash-card-border);
@@ -104,7 +126,7 @@
     backdrop-filter: blur(var(--dash-glass-blur, 12px));
 }
 
-.pcx-view-btn {
+.spv-view-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -129,113 +151,355 @@
 }
 
 // ============================================
-// Esteira — assinatura da tela
+// KPIs
 // ============================================
-.pcx-esteira {
+.spv-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+
+    @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
+}
+
+.spv-kpi {
+    --kpi-cor: var(--dash-primary);
+    position: relative;
     display: flex;
-    align-items: stretch;
-    gap: 0.4rem;
+    flex-direction: column;
+    gap: 0.15rem;
     background: var(--dash-card-bg);
     border: 1px solid var(--dash-card-border);
     border-radius: var(--dash-border-radius, 16px);
     box-shadow: var(--dash-shadow-sm);
-    padding: 0.6rem;
-    margin-bottom: 1.75rem;
-    overflow-x: auto;
-}
-
-.pcx-esteira-seg {
-    --seg-start: #7c3aed;
-    --seg-end: #a78bfa;
-    position: relative;
-    flex: 1 1 0;
-    min-width: 110px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.15rem;
-    border: 1px solid transparent;
-    background: transparent;
-    border-radius: 12px;
-    padding: 0.6rem 0.85rem 0.55rem;
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-    transition: var(--dash-transition-fast);
+    padding: 0.9rem 1.1rem 0.8rem;
     overflow: hidden;
 
-    // Filete da cor da etapa na base do segmento.
     &::after {
         content: '';
         position: absolute;
-        left: 0.85rem;
-        right: 0.85rem;
-        bottom: 0.35rem;
+        left: 1.1rem;
+        right: 1.1rem;
+        bottom: 0.5rem;
         height: 3px;
         border-radius: 3px;
-        background: linear-gradient(90deg, var(--seg-start), var(--seg-end));
+        background: var(--kpi-cor);
         opacity: 0.85;
-    }
-
-    &:hover {
-        background: color-mix(in srgb, var(--seg-start) 8%, transparent);
-        border-color: color-mix(in srgb, var(--seg-start) 25%, transparent);
-    }
-
-    &.is-active {
-        background: color-mix(in srgb, var(--seg-start) 12%, transparent);
-        border-color: color-mix(in srgb, var(--seg-start) 45%, transparent);
     }
 }
 
-.pcx-esteira-count {
+.spv-kpi-danger { --kpi-cor: var(--dash-danger, #EF4444); }
+.spv-kpi-warning { --kpi-cor: var(--dash-warning, #F59E0B); }
+.spv-kpi-primary { --kpi-cor: var(--dash-primary, #7C3AED); }
+.spv-kpi-success { --kpi-cor: var(--dash-success, #10B981); }
+
+.spv-kpi-count {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 1.55rem;
+    font-size: 1.65rem;
     font-weight: 500;
     line-height: 1.1;
     color: var(--dash-text-primary);
 }
 
-.pcx-esteira-label {
+.spv-kpi-label {
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--dash-text-muted);
-    white-space: nowrap;
     padding-bottom: 0.45rem;
 }
 
-.pcx-esteira-arrow {
-    align-self: center;
+// ============================================
+// Filtros
+// ============================================
+.spv-filtros {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.spv-filtro-select {
+    background: var(--dash-glass-bg);
+    border: 1px solid var(--dash-card-border);
+    border-radius: 10px;
+    padding: 0.5rem 0.75rem;
+    height: 40px;
+    font-size: 0.8125rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--dash-text-primary);
+    cursor: pointer;
+    min-width: 170px;
+
+    &:focus {
+        outline: none;
+        border-color: var(--dash-primary);
+        box-shadow: 0 0 0 3px rgba(var(--dash-primary-rgb), 0.15);
+    }
+
+    option { background: var(--dash-card-bg); }
+}
+
+.spv-chips {
+    display: inline-flex;
+    background: var(--dash-glass-bg);
+    border: 1px solid var(--dash-card-border);
+    border-radius: 12px;
+    padding: 0.25rem;
+    gap: 0.25rem;
+}
+
+.spv-chip {
+    border: none;
+    background: transparent;
     color: var(--dash-text-muted);
-    opacity: 0.5;
-    flex: 0 0 auto;
-}
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.45rem 0.8rem;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: var(--dash-transition-fast);
 
-// Desistidos: apartado do fluxo por um divisor, tom rebaixado.
-.pcx-esteira-divider {
-    align-self: stretch;
-    width: 1px;
-    background: var(--dash-card-border);
-    margin: 0.35rem 0.35rem;
-    flex: 0 0 auto;
-}
+    &:hover { color: var(--dash-text-primary); }
 
-.pcx-esteira-seg-off {
-    flex: 0 0 auto;
-    min-width: 96px;
-
-    .pcx-esteira-count { color: var(--dash-text-muted); font-size: 1.15rem; align-self: flex-start; padding-top: 0.2rem; }
-    &::after { opacity: 0.35; }
+    &.is-active {
+        background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-light));
+        color: #fff;
+    }
 }
 
 // ============================================
-// Kanban
+// Badge de prazo — assinatura da tela
 // ============================================
-.pcx-kanban-board {
+.spv-prazo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 0.22rem 0.6rem;
+    white-space: nowrap;
+
+    svg { flex: 0 0 auto; }
+}
+
+.spv-prazo--ok {
+    color: var(--dash-success, #10B981);
+    background: rgba(var(--dash-success-rgb, 16, 185, 129), 0.12);
+}
+
+.spv-prazo--alerta {
+    color: var(--dash-warning, #F59E0B);
+    background: rgba(var(--dash-warning-rgb, 245, 158, 11), 0.14);
+}
+
+.spv-prazo--vencido {
+    color: #fff;
+    background: linear-gradient(135deg, var(--dash-danger, #EF4444), #F87171);
+    animation: spv-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes spv-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35); }
+    50% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+}
+
+.spv-prazo--indefinido {
+    color: var(--dash-text-muted, #94A3B8);
+    background: rgba(148, 163, 184, 0.15);
+    border: 1px dashed rgba(148, 163, 184, 0.5);
+}
+
+.spv-prazo--done {
+    color: var(--dash-text-muted, #94A3B8);
+    background: rgba(148, 163, 184, 0.12);
+}
+
+// Badges auxiliares
+.spv-badge-tipo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--dash-primary);
+    background: rgba(var(--dash-primary-rgb), 0.1);
+    border-radius: 6px;
+    padding: 0.14rem 0.45rem;
+    white-space: nowrap;
+}
+
+.spv-badge-origem {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--dash-info, #06B6D4);
+    background: rgba(var(--dash-info-rgb, 6, 182, 212), 0.12);
+    border-radius: 6px;
+    padding: 0.14rem 0.45rem;
+    white-space: nowrap;
+}
+
+.spv-badge-etapa {
+    --etapa-cor: #7C3AED;
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--etapa-cor), color-mix(in srgb, var(--etapa-cor) 55%, #fff));
+    border-radius: 999px;
+    padding: 0.18rem 0.6rem;
+    white-space: nowrap;
+}
+
+// ============================================
+// Fila por prazo
+// ============================================
+.spv-fila-card {
+    background: var(--dash-card-bg);
+    border: 1px solid var(--dash-card-border);
+    border-radius: var(--dash-border-radius, 16px);
+    box-shadow: var(--dash-shadow-sm);
+    overflow: hidden;
+}
+
+.spv-fila-row {
     display: grid;
-    grid-template-columns: repeat(5, minmax(240px, 1fr));
+    grid-template-columns: 170px minmax(0, 1fr) auto 150px 150px;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1.25rem;
+    border-bottom: 1px solid var(--dash-card-border);
+    cursor: pointer;
+    transition: var(--dash-transition-fast);
+
+    &:hover { background: rgba(var(--dash-primary-rgb), 0.05); }
+    &:last-child { border-bottom: none; }
+
+    @media (max-width: 900px) {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            'prazo etapa'
+            'main main'
+            'resp data';
+
+        .spv-fila-prazo { grid-area: prazo; }
+        .spv-fila-etapa { grid-area: etapa; justify-self: end; }
+        .spv-fila-main { grid-area: main; }
+        .spv-fila-resp { grid-area: resp; }
+        .spv-fila-data { grid-area: data; justify-self: end; }
+    }
+}
+
+.spv-fila-main { min-width: 0; }
+
+.spv-fila-titulo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    strong {
+        font-size: 0.85rem;
+        color: var(--dash-text-primary);
+        line-height: 1.25;
+    }
+}
+
+.spv-fila-sub {
+    font-size: 0.72rem;
+    color: var(--dash-text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 0.15rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spv-fila-resp {
+    font-size: 0.78rem;
+    color: var(--dash-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spv-fila-data {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--dash-text-muted);
+    text-align: right;
+}
+
+.spv-fila-autor {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--dash-text-secondary);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// ============================================
+// Kanban — chips de tipo + board dinâmico
+// ============================================
+.spv-kanban-tipos {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.1rem;
+}
+
+.spv-tipo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid var(--dash-card-border);
+    background: var(--dash-glass-bg);
+    color: var(--dash-text-secondary);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: var(--dash-transition-fast);
+
+    &:hover { color: var(--dash-primary); border-color: rgba(var(--dash-primary-rgb), 0.4); }
+
+    &.is-active {
+        background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-light));
+        border-color: transparent;
+        color: #fff;
+
+        .spv-tipo-count { background: rgba(255, 255, 255, 0.22); color: #fff; }
+    }
+}
+
+.spv-tipo-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: rgba(var(--dash-primary-rgb), 0.1);
+    color: var(--dash-primary);
+    border-radius: 999px;
+    padding: 0.08rem 0.45rem;
+    min-width: 22px;
+    text-align: center;
+}
+
+.spv-kanban-board {
+    --spv-cols: 4;
+    display: grid;
+    grid-template-columns: repeat(var(--spv-cols), minmax(240px, 1fr));
     gap: 1.1rem;
     align-items: start;
     overflow-x: auto;
@@ -243,14 +507,15 @@
 }
 
 @media (max-width: 1300px) {
-    .pcx-kanban-board {
+    .spv-kanban-board {
         grid-auto-flow: column;
         grid-template-columns: none;
         grid-auto-columns: minmax(270px, 1fr);
     }
 }
 
-.pcx-kanban-column {
+.spv-kanban-column {
+    --col-cor: #7C3AED;
     background: var(--dash-glass-bg);
     border: 1px solid var(--dash-card-border);
     border-radius: var(--dash-border-radius, 16px);
@@ -258,36 +523,27 @@
     backdrop-filter: blur(var(--dash-glass-blur, 12px));
     box-shadow: var(--dash-shadow-sm);
     min-height: 220px;
-
-    &.is-flash {
-        animation: pcx-flash 1.2s ease;
-    }
 }
 
-@keyframes pcx-flash {
-    0%, 100% { box-shadow: var(--dash-shadow-sm); }
-    30% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--col-start) 55%, transparent); }
-}
-
-.pcx-kanban-column-header {
+.spv-kanban-column-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.25rem 0.35rem 0.85rem;
     border-bottom: 2px solid;
-    border-image: linear-gradient(90deg, var(--col-start), var(--col-end)) 1;
+    border-image: linear-gradient(90deg, var(--col-cor), color-mix(in srgb, var(--col-cor) 55%, #fff)) 1;
     margin-bottom: 0.85rem;
 }
 
-.pcx-kanban-column-dot {
+.spv-kanban-column-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--col-start), var(--col-end));
+    background: var(--col-cor);
     flex: 0 0 auto;
 }
 
-.pcx-kanban-column-title {
+.spv-kanban-column-title {
     font-weight: 700;
     font-size: 0.82rem;
     color: var(--dash-text-primary, #1e293b);
@@ -295,19 +551,19 @@
     line-height: 1.2;
 }
 
-.pcx-kanban-column-count {
+.spv-kanban-column-count {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.75rem;
     font-weight: 600;
     color: #fff;
-    background: linear-gradient(135deg, var(--col-start), var(--col-end));
+    background: var(--col-cor);
     border-radius: 999px;
     padding: 0.1rem 0.5rem;
     min-width: 24px;
     text-align: center;
 }
 
-.pcx-kanban-column-body {
+.spv-kanban-column-body {
     display: flex;
     flex-direction: column;
     gap: 0.7rem;
@@ -323,13 +579,13 @@
 }
 
 // ============================================
-// Card
+// Card do kanban
 // ============================================
-.pcx-card {
-    --pcx-card-status-color: #7c3aed;
+.spv-card {
+    --spv-card-status-color: #7C3AED;
     background: var(--dash-card-bg, #fff);
     border: 1px solid var(--dash-card-border);
-    border-left: 4px solid var(--pcx-card-status-color);
+    border-left: 4px solid var(--spv-card-status-color);
     border-radius: var(--dash-border-radius-sm, 12px);
     padding: 0.8rem 0.9rem;
     cursor: pointer;
@@ -342,71 +598,41 @@
     }
 }
 
-.pcx-card-header {
+.spv-card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 0.5rem;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.3rem;
 }
 
-.pcx-card-contrato {
+.spv-card-contrato {
     font-weight: 700;
     font-size: 0.85rem;
     color: var(--dash-text-primary, #1e293b);
     line-height: 1.25;
 }
 
-.pcx-card-via {
-    font-size: 0.62rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--pcx-card-status-color);
-    background: color-mix(in srgb, var(--pcx-card-status-color) 12%, transparent);
-    border-radius: 6px;
-    padding: 0.12rem 0.4rem;
-    white-space: nowrap;
-    flex: 0 0 auto;
-}
-
-.pcx-card-linha {
-    font-size: 0.78rem;
+.spv-card-linha {
+    font-size: 0.74rem;
     color: var(--dash-text-secondary, #64748b);
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.4rem;
 }
 
-.pcx-card-operadora { color: var(--dash-text-muted, #94a3b8); font-size: 0.72rem; }
+.spv-card-prazo { margin-bottom: 0.45rem; }
 
-// "Implantado — pode solicitar": chama a ação sem mover o card sozinho.
-.pcx-card-alerta {
-    display: inline-flex;
+.spv-card-autor {
+    display: flex;
     align-items: center;
     gap: 0.35rem;
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--dash-success, #10b981);
-    background: rgba(var(--dash-success-rgb, 16, 185, 129), 0.12);
-    border-radius: 6px;
-    padding: 0.2rem 0.5rem;
-    margin: 0.15rem 0 0.3rem;
-    animation: pcx-pulse 2.2s ease-in-out infinite;
-
-    svg { flex: 0 0 auto; }
-}
-
-@keyframes pcx-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35); }
-    50% { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
-}
-
-.pcx-card-protocolo {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.68rem;
+    font-size: 0.7rem;
     color: var(--dash-text-muted, #94a3b8);
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.4rem;
+
+    strong { color: var(--dash-text-secondary, #64748b); font-weight: 700; }
 }
 
-.pcx-card-footer {
+.spv-card-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -417,97 +643,16 @@
     padding-top: 0.45rem;
 }
 
-.pcx-card-data { font-family: 'JetBrains Mono', monospace; }
+.spv-card-data { font-family: 'JetBrains Mono', monospace; }
 
 .sortable-ghost { opacity: 0.4; }
 .sortable-chosen { box-shadow: var(--dash-shadow-lg); }
 .sortable-drag { transform: rotate(2deg); }
 
 // ============================================
-// Tabela
+// Vazio
 // ============================================
-.pcx-table-card {
-    background: var(--dash-card-bg);
-    border: 1px solid var(--dash-card-border);
-    border-radius: var(--dash-border-radius, 16px);
-    box-shadow: var(--dash-shadow-sm);
-    overflow: hidden;
-}
-
-.pcx-table-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--dash-card-border);
-}
-
-.pcx-check {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: var(--dash-text-secondary);
-    cursor: pointer;
-    user-select: none;
-
-    input { accent-color: var(--dash-primary); width: 15px; height: 15px; cursor: pointer; }
-}
-
-.pcx-table-scroll { overflow-x: auto; }
-
-.pcx-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8125rem;
-
-    th {
-        text-align: left;
-        font-size: 0.68rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--dash-text-muted);
-        padding: 0.7rem 1rem;
-        border-bottom: 1px solid var(--dash-card-border);
-        white-space: nowrap;
-    }
-
-    td {
-        padding: 0.7rem 1rem;
-        border-bottom: 1px solid var(--dash-card-border);
-        color: var(--dash-text-secondary);
-        vertical-align: middle;
-    }
-
-    tbody tr {
-        cursor: pointer;
-        transition: var(--dash-transition-fast);
-
-        &:hover { background: rgba(var(--dash-primary-rgb), 0.05); }
-        &:last-child td { border-bottom: none; }
-    }
-}
-
-.pcx-td-contrato { font-weight: 600; color: var(--dash-text-primary); }
-.pcx-td-mono { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; white-space: nowrap; }
-
-.pcx-badge-etapa {
-    --seg-start: #7c3aed;
-    --seg-end: #a78bfa;
-    display: inline-block;
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: #fff;
-    background: linear-gradient(135deg, var(--seg-start), var(--seg-end));
-    border-radius: 999px;
-    padding: 0.18rem 0.6rem;
-    white-space: nowrap;
-}
-
-.pcx-empty {
+.spv-empty {
     color: var(--dash-text-muted);
     font-size: 0.8125rem;
     text-align: center;
@@ -516,16 +661,16 @@
 }
 
 // ============================================
-// Busca (toolbar da tabela e modal de criação)
+// Busca (filtros e modal de criação)
 // ============================================
-.pcx-search,
-.pcx-busca-contrato {
+.spv-search,
+.spv-busca-contrato {
     position: relative;
     flex: 1;
     min-width: 220px;
 }
 
-.pcx-search-icon {
+.spv-search-icon {
     position: absolute;
     left: 0.8rem;
     top: 50%;
@@ -535,7 +680,7 @@
     display: flex;
 }
 
-.pcx-search-input {
+.spv-search-input {
     width: 100%;
     background: var(--dash-glass-bg);
     border: 1px solid var(--dash-card-border);
@@ -556,8 +701,7 @@
     }
 }
 
-// Dropdown flutuante de resultados
-.pcx-resultados {
+.spv-resultados {
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
@@ -572,7 +716,7 @@
     padding: 0.35rem;
 }
 
-.pcx-contrato-item {
+.spv-contrato-item {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
@@ -587,18 +731,18 @@
     &:hover { background: rgba(var(--dash-primary-rgb), 0.07); }
 }
 
-.pcx-empty-busca { padding: 0.5rem 0.75rem; text-align: left; }
+.spv-empty-busca { padding: 0.5rem 0.75rem; text-align: left; }
 
 // ============================================
-// Modal Novo Cancelamento
+// Modal Nova Solicitação
 // ============================================
-.pcx-form-section {
+.spv-form-section {
     margin-bottom: 1.35rem;
 
     &:last-child { margin-bottom: 0.25rem; }
 }
 
-.pcx-form-section-title {
+.spv-form-section-title {
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -607,28 +751,38 @@
     margin-bottom: 0.7rem;
 }
 
-.pcx-hint {
+.spv-hint {
     display: block;
     margin-top: 0.3rem;
     font-size: 0.72rem;
     color: var(--dash-text-muted);
 }
 
-.pcx-field { margin-top: 0.85rem; }
-
-// Resumo do contrato selecionado
-.pcx-contrato-resumo {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.75rem;
+.spv-contrato-resumo {
     background: rgba(var(--dash-primary-rgb), 0.05);
     border: 1px solid rgba(var(--dash-primary-rgb), 0.18);
     border-radius: 12px;
     padding: 0.7rem 0.9rem;
 }
 
-.pcx-contrato-resumo-main {
+.spv-contrato-resumo-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+// Visão rápida da venda (status, plano, valor, vidas, vendedor...)
+.spv-resumo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+
+    &:empty { display: none; }
+}
+
+.spv-contrato-resumo-main {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
@@ -638,35 +792,7 @@
     span { font-size: 0.72rem; color: var(--dash-text-muted); font-family: 'JetBrains Mono', monospace; }
 }
 
-.pcx-contrato-resumo-side {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    flex: 0 0 auto;
-}
-
-.pcx-badge-implantado {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--dash-success);
-    background: rgba(var(--dash-success-rgb), 0.12);
-    border-radius: 999px;
-    padding: 0.2rem 0.55rem;
-}
-
-.pcx-badge-aguardando {
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--dash-warning);
-    background: rgba(var(--dash-warning-rgb), 0.12);
-    border-radius: 999px;
-    padding: 0.2rem 0.55rem;
-}
-
-.pcx-resumo-trocar {
+.spv-resumo-trocar {
     border: none;
     background: transparent;
     color: var(--dash-primary);
@@ -675,85 +801,45 @@
     text-decoration: underline;
     cursor: pointer;
     padding: 0;
-}
-
-// Escopo — dois cartões-radio
-.pcx-escopo-toggle {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-
-    @media (max-width: 575px) { grid-template-columns: 1fr; }
-}
-
-.pcx-escopo-opt {
-    cursor: pointer;
-    margin: 0;
-
-    input { position: absolute; opacity: 0; pointer-events: none; }
-
-    .pcx-escopo-card {
-        display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-        border: 1.5px solid var(--dash-card-border);
-        border-radius: 12px;
-        padding: 0.7rem 0.9rem;
-        transition: var(--dash-transition-fast);
-
-        strong { font-size: 0.8125rem; color: var(--dash-text-primary); }
-        small { font-size: 0.72rem; color: var(--dash-text-muted); }
-    }
-
-    input:checked + .pcx-escopo-card {
-        border-color: var(--dash-primary);
-        background: rgba(var(--dash-primary-rgb), 0.06);
-        box-shadow: 0 0 0 3px rgba(var(--dash-primary-rgb), 0.12);
-    }
-
-    input:focus-visible + .pcx-escopo-card {
-        outline: 2px solid var(--dash-primary);
-        outline-offset: 2px;
-    }
+    flex: 0 0 auto;
 }
 
 // ============================================
-// Modal Detalhe — header status-aware + stepper
+// Modal Detalhe — header etapa-aware + stepper
 // ============================================
-.pcx-detail-header {
-    --pcx-etapa-start: #7c3aed;
-    --pcx-etapa-end: #a78bfa;
+.spv-detail-header {
+    --spv-etapa-cor: #7C3AED;
     position: relative;
     padding: 1.25rem 1.5rem 1rem;
     background:
-        linear-gradient(135deg, color-mix(in srgb, var(--pcx-etapa-start) 14%, transparent), transparent 55%),
+        linear-gradient(135deg, color-mix(in srgb, var(--spv-etapa-cor) 14%, transparent), transparent 55%),
         var(--pv-card-bg, var(--dash-card-bg));
     border-bottom: 1px solid var(--dash-card-border);
     border-radius: 16px 16px 0 0;
 }
 
-.pcx-detail-head-row {
+.spv-detail-head-row {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
 }
 
-.pcx-detail-titlewrap { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.spv-detail-titlewrap { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
 
-.pcx-detail-eyebrow {
+.spv-detail-eyebrow {
     align-self: flex-start;
     font-size: 0.66rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #fff;
-    background: linear-gradient(135deg, var(--pcx-etapa-start), var(--pcx-etapa-end));
+    background: linear-gradient(135deg, var(--spv-etapa-cor), color-mix(in srgb, var(--spv-etapa-cor) 55%, #fff));
     border-radius: 999px;
     padding: 0.2rem 0.6rem;
 }
 
-.pcx-detail-title {
+.spv-detail-title {
     margin: 0;
     font-size: 1.1rem;
     font-weight: 800;
@@ -761,9 +847,9 @@
     line-height: 1.25;
 }
 
-.pcx-detail-sub { font-size: 0.78rem; color: var(--dash-text-muted); }
+.spv-detail-sub { font-size: 0.78rem; color: var(--dash-text-muted); }
 
-.pcx-detail-close {
+.spv-detail-close {
     border: none;
     background: transparent;
     color: var(--dash-text-muted);
@@ -775,8 +861,7 @@
     &:hover { color: var(--dash-text-primary); background: rgba(0, 0, 0, 0.06); }
 }
 
-// Stepper
-.pcx-stepper {
+.spv-stepper {
     display: flex;
     gap: 0.35rem;
     list-style: none;
@@ -785,9 +870,8 @@
     flex-wrap: wrap;
 }
 
-.pcx-step {
-    --s: #7c3aed;
-    --e: #a78bfa;
+.spv-step {
+    --s: #7C3AED;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -803,7 +887,7 @@
     }
 }
 
-.pcx-step-marker {
+.spv-step-marker {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -817,14 +901,13 @@
     flex: 0 0 auto;
 }
 
-.pcx-step.is-done .pcx-step-marker,
-.pcx-step.is-active .pcx-step-marker {
-    background: linear-gradient(135deg, var(--s), var(--e));
+.spv-step.is-done .spv-step-marker,
+.spv-step.is-active .spv-step-marker {
+    background: linear-gradient(135deg, var(--s), color-mix(in srgb, var(--s) 55%, #fff));
     color: #fff;
 }
 
-// Mover pela modal
-.pcx-move-bar {
+.spv-move-bar {
     display: flex;
     align-items: center;
     gap: 0.6rem;
@@ -832,7 +915,7 @@
     flex-wrap: wrap;
 }
 
-.pcx-move-label {
+.spv-move-label {
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -840,7 +923,7 @@
     color: var(--dash-text-muted);
 }
 
-.pcx-move-select {
+.spv-move-select {
     flex: 1;
     min-width: 180px;
     background: var(--dash-glass-bg);
@@ -862,13 +945,13 @@
     option { background: var(--dash-card-bg); }
 }
 
-.pcx-move-btn {
+.spv-move-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     height: 36px;
     border: none;
-    background: linear-gradient(135deg, var(--pcx-etapa-start), var(--pcx-etapa-end));
+    background: linear-gradient(135deg, var(--spv-etapa-cor), color-mix(in srgb, var(--spv-etapa-cor) 55%, #fff));
     color: #fff;
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 0.8125rem;
@@ -885,7 +968,7 @@
 // ============================================
 // Abas + timeline (modal detalhe)
 // ============================================
-.pcx-tabs {
+.spv-tabs {
     display: flex;
     gap: 0.25rem;
     padding: 0 1.5rem;
@@ -893,7 +976,7 @@
     background: var(--pv-card-bg, var(--dash-card-bg));
 }
 
-.pcx-tab {
+.spv-tab {
     border: none;
     background: transparent;
     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -914,21 +997,20 @@
     }
 }
 
-.pcx-tabpane {
+.spv-tabpane {
     display: none;
 
     &.is-active { display: block; }
 }
 
-// Grid de informações
-#pcxDetalheInfo {
+#spvDetalheInfo {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 0.75rem;
     margin-bottom: 1.25rem;
 }
 
-.pcx-info-item {
+.spv-info-item {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
@@ -938,7 +1020,7 @@
     padding: 0.55rem 0.7rem;
 }
 
-.pcx-info-label {
+.spv-info-label {
     font-size: 0.62rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -946,22 +1028,21 @@
     color: var(--dash-text-muted);
 }
 
-.pcx-info-value {
+.spv-info-value {
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--dash-text-primary);
     word-break: break-word;
 }
 
-.pcx-detail-edit { margin-top: 0.25rem; }
+.spv-detail-edit { margin-top: 0.25rem; }
 
-// Timeline
-.pcx-timeline-container {
+.spv-timeline-container {
     max-height: 340px;
     overflow-y: auto;
 }
 
-.pcx-timeline {
+.spv-timeline {
     position: relative;
     padding-left: 1.1rem;
 
@@ -977,14 +1058,14 @@
     }
 }
 
-.pcx-timeline-item {
+.spv-timeline-item {
     position: relative;
     padding: 0 0 1rem 0.6rem;
 
     &:last-child { padding-bottom: 0.25rem; }
 }
 
-.pcx-timeline-dot {
+.spv-timeline-dot {
     position: absolute;
     left: -1.1rem;
     top: 5px;
@@ -995,19 +1076,33 @@
     box-shadow: 0 0 0 3px rgba(var(--dash-primary-rgb), 0.15);
 }
 
-.pcx-timeline-text {
+.spv-timeline-text {
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--dash-text-primary);
 }
 
-.pcx-timeline-obs {
+.spv-timeline-campo {
+    display: inline-block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--dash-primary);
+    background: rgba(var(--dash-primary-rgb), 0.1);
+    border-radius: 5px;
+    padding: 0.08rem 0.4rem;
+    margin-right: 0.3rem;
+    vertical-align: 1px;
+}
+
+.spv-timeline-obs {
     font-size: 0.75rem;
     color: var(--dash-text-secondary);
     margin-top: 0.15rem;
 }
 
-.pcx-timeline-meta {
+.spv-timeline-meta {
     font-size: 0.68rem;
     color: var(--dash-text-muted);
     margin-top: 0.2rem;
@@ -1015,9 +1110,92 @@
 }
 
 // ============================================
-// Rodapé das modais + botão desistir
+// Modal Gerenciar Etapas
 // ============================================
-.pcx-modal-footer-bar {
+.spv-etapas-toolbar {
+    margin-bottom: 1rem;
+
+    .pv-form-input { margin-top: 0.3rem; }
+}
+
+.spv-etapas-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.spv-etapa-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: rgba(var(--dash-primary-rgb), 0.035);
+    border: 1px solid var(--dash-card-border);
+    border-radius: 10px;
+    padding: 0.45rem 0.6rem;
+
+    .spv-etapa-nome { flex: 1; min-width: 0; height: 36px; }
+    .spv-etapa-natureza { width: 150px; flex: 0 0 auto; height: 36px; }
+}
+
+.spv-etapa-grip {
+    color: var(--dash-text-muted);
+    cursor: grab;
+    display: flex;
+    padding: 0.2rem;
+
+    &:active { cursor: grabbing; }
+}
+
+.spv-etapa-cor {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    flex: 0 0 auto;
+
+    &::-webkit-color-swatch-wrapper { padding: 2px; }
+    &::-webkit-color-swatch { border: 1px solid var(--dash-card-border); border-radius: 6px; }
+}
+
+.spv-etapa-del {
+    border: none;
+    background: transparent;
+    color: var(--dash-text-muted);
+    cursor: pointer;
+    padding: 0.35rem;
+    border-radius: 8px;
+    display: flex;
+    transition: var(--dash-transition-fast);
+    flex: 0 0 auto;
+
+    &:hover {
+        color: var(--dash-danger, #EF4444);
+        background: rgba(var(--dash-danger-rgb, 239, 68, 68), 0.1);
+    }
+}
+
+.spv-etapas-add {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+
+    .pv-form-input { flex: 1; }
+}
+
+.spv-btn-danger-confirm {
+    background: linear-gradient(135deg, var(--dash-danger, #EF4444), #F87171);
+    color: #fff;
+    border: none;
+}
+
+// ============================================
+// Rodapé das modais
+// ============================================
+.spv-modal-footer-bar {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -1027,40 +1205,22 @@
     background: var(--pv-card-bg, var(--dash-card-bg));
 }
 
-.pcx-btn-desistir {
-    margin-right: auto;
-    color: var(--dash-danger, #ef4444);
-    background: color-mix(in srgb, var(--dash-danger, #ef4444) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--dash-danger, #ef4444) 28%, transparent);
-
-    &:hover {
-        background: var(--dash-danger, #ef4444);
-        border-color: var(--dash-danger, #ef4444);
-        color: #fff;
-    }
-}
-
-.pcx-btn-desistir-confirm {
-    background: linear-gradient(135deg, var(--dash-danger, #ef4444), #f87171);
-    color: #fff;
-    border: none;
-}
-
 // ============================================
 // Dark mode
 // ============================================
 .dark-style {
-    .pcx-detail-close:hover { background: rgba(255, 255, 255, 0.08); }
+    .spv-detail-close:hover { background: rgba(255, 255, 255, 0.08); }
 
-    .pcx-modal-footer-bar { border-top-color: rgba(255, 255, 255, 0.08); }
+    .spv-modal-footer-bar { border-top-color: rgba(255, 255, 255, 0.08); }
 
-    .pcx-tabs { border-bottom-color: rgba(255, 255, 255, 0.08); }
+    .spv-tabs { border-bottom-color: rgba(255, 255, 255, 0.08); }
 
-    #modalNovoCancelamento,
-    #modalDetalheCancelamento {
+    #modalNovaSolicitacao,
+    #modalDetalheSolicitacao,
+    #modalGerenciarEtapas {
         .pv-form-input,
         .pv-form-textarea,
-        .pcx-move-select {
+        .spv-move-select {
             background: rgba(0, 0, 0, 0.22);
             border-color: rgba(255, 255, 255, 0.1);
             color: var(--pv-text-primary, #f9fafb);
@@ -1079,28 +1239,26 @@
 // ============================================
 // Acessibilidade / responsivo
 // ============================================
-.pcx-esteira-seg:focus-visible,
-.pcx-view-btn:focus-visible,
-.pcx-btn-novo:focus-visible {
+.spv-view-btn:focus-visible,
+.spv-chip:focus-visible,
+.spv-tipo-chip:focus-visible,
+.spv-btn-novo:focus-visible,
+.spv-btn-ghost:focus-visible {
     outline: 2px solid var(--dash-primary);
     outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .pcx-card-alerta { animation: none; }
-    .pcx-kanban-column.is-flash { animation: none; }
-    .pcx-card:hover,
-    .pcx-btn-novo:hover,
-    .pcx-move-btn:hover { transform: none; }
+    .spv-prazo--vencido { animation: none; }
+    .spv-card:hover,
+    .spv-btn-novo:hover,
+    .spv-move-btn:hover { transform: none; }
 }
 
 @media (max-width: 768px) {
-    .pcx-main-title { font-size: 1.5rem; }
+    .spv-main-title { font-size: 1.5rem; }
 
-    .pcx-esteira { padding: 0.45rem; }
-    .pcx-esteira-seg { min-width: 96px; padding: 0.5rem 0.6rem 0.5rem; }
-    .pcx-esteira-count { font-size: 1.25rem; }
-    .pcx-esteira-arrow { display: none; }
+    .spv-kpi-count { font-size: 1.3rem; }
 
-    .pcx-table-toolbar { padding: 0.75rem 1rem; }
+    .spv-fila-row { padding: 0.7rem 1rem; }
 }

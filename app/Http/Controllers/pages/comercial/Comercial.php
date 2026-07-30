@@ -4,6 +4,7 @@ namespace App\Http\Controllers\pages\comercial;
 
 use App\Enums\Tabulations;
 use App\Enums\TipoDemandaContrato;
+use App\Enums\TipoSolicitacaoPosVenda;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Http\Controllers\Controller;
@@ -16,6 +17,7 @@ use App\Models\Faq;
 use App\Models\LogPreditiva;
 use App\Models\Operadora;
 use App\Models\Plano;
+use App\Models\PosVendaSolicitacao;
 use App\Models\Preditiva;
 use App\Models\PreditivaConfiguracao;
 use App\Models\PreditivaTabulacaoHard;
@@ -31,6 +33,7 @@ use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\LeadAtividadeRepositoryInterface;
 use App\Repositories\Contracts\LogPreditivaRepositoryInterface;
+use App\Repositories\Contracts\PosVendaSolicitacaoRepositoryInterface;
 use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
 use App\Repositories\Contracts\PreditivaRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
@@ -1669,20 +1672,21 @@ class Comercial extends Controller
     public function demandasVendedor()
     {
         return view('content.pages.comercial.minhas-demandas', [
-            'tipoLabels' => TipoDemandaContrato::labels(),
+            'tipoLabels' => TipoSolicitacaoPosVenda::labels(),
         ]);
     }
 
     /**
      * Lista as solicitações de pós-venda abertas pelo próprio vendedor.
+     * Fonte única: a Central de Solicitações do backoffice (pos_venda_solicitacoes).
      */
     public function listMinhasDemandas()
     {
-        $demandas = Demanda::with(['venda:id,nome_contrato,numero_proposta'])
+        $demandas = PosVendaSolicitacao::with(['venda:id,nome_contrato,numero_proposta', 'etapa:id,nome'])
             ->where('empresa_id', Auth::user()->empresa_id)
-            ->where('origem', 'VENDEDOR')
+            ->where('origem', PosVendaSolicitacao::ORIGEM_VENDEDOR)
             ->where('created_by', Auth::id())
-            ->orderByRaw("FIELD(status, 'ABERTA', 'EM_ANDAMENTO', 'CONCLUIDA', 'CANCELADA')")
+            ->orderByRaw("FIELD(status, 'ABERTA', 'CONCLUIDA', 'CANCELADA')")
             ->orderByDesc('created_at')
             ->get()
             ->map(fn ($d) => [
@@ -1690,10 +1694,12 @@ class Comercial extends Controller
                 'titulo' => $d->titulo,
                 'descricao' => $d->descricao,
                 'status' => $d->status,
+                'etapa' => $d->etapa?->nome,
                 'tipo' => $d->tipo,
-                'tipo_label' => $d->tipo ? (TipoDemandaContrato::tryFrom($d->tipo)?->label() ?? $d->tipo) : null,
+                'tipo_label' => TipoSolicitacaoPosVenda::tryFrom($d->tipo)?->label() ?? $d->tipo,
                 'cliente' => $d->venda?->nome_contrato,
                 'numero_proposta' => $d->venda?->numero_proposta,
+                'data_limite' => $d->data_limite?->format('d/m/Y'),
                 'created_at' => $d->created_at->toDateTimeString(),
                 'concluida_em' => optional($d->concluida_em)->toDateTimeString(),
             ]);
@@ -1739,7 +1745,7 @@ class Comercial extends Controller
      */
     public function storeDemandaVendedor(Request $request)
     {
-        $tipos = array_map(fn ($t) => $t->value, TipoDemandaContrato::cases());
+        $tipos = array_map(fn ($t) => $t->value, TipoSolicitacaoPosVenda::cases());
 
         $data = $request->validate([
             'venda_id' => 'required|integer|exists:vendas,id',
@@ -1764,30 +1770,29 @@ class Comercial extends Controller
             ], 422);
         }
 
-        $demanda = Demanda::create([
-            'empresa_id' => $empresaId,
-            'origem' => 'VENDEDOR',
+        // Entra direto na fila da Central de Solicitações do pós-venda, sem prazo
+        // (o backoffice define a data-limite na triagem).
+        $solicitacao = app(PosVendaSolicitacaoRepositoryInterface::class)->criar($empresaId, [
             'venda_id' => $venda->id,
             'tipo' => $data['tipo'],
-            'created_by' => Auth::id(),
             'titulo' => $data['titulo'],
             'descricao' => $data['descricao'] ?? null,
-            'prioridade' => 'MEDIA',
-            'status' => 'ABERTA',
-        ]);
+            'origem' => PosVendaSolicitacao::ORIGEM_VENDEDOR,
+            'observacao_abertura' => 'Solicitação aberta pelo vendedor.',
+        ], Auth::id());
 
-        $this->notificarAdminsDemandaVendedor($demanda, $venda);
+        $this->notificarAdminsDemandaVendedor($solicitacao, $venda);
 
-        return response()->json(['ok' => true, 'id' => $demanda->id]);
+        return response()->json(['ok' => true, 'id' => $solicitacao->id]);
     }
 
     /**
      * Notifica os usuários administrativos/back-office da empresa sobre a nova
      * solicitação de pós-venda aberta por um vendedor.
      */
-    private function notificarAdminsDemandaVendedor(Demanda $demanda, Vendas $venda): void
+    private function notificarAdminsDemandaVendedor(PosVendaSolicitacao $solicitacao, Vendas $venda): void
     {
-        $admins = User::where('empresa_id', $demanda->empresa_id)
+        $admins = User::where('empresa_id', $solicitacao->empresa_id)
             ->whereIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER, UserRole::BACKOFFICE])
             ->where('ativo', 'Y')
             ->get();
@@ -1796,14 +1801,14 @@ class Comercial extends Controller
             return;
         }
 
-        $tipoLabel = TipoDemandaContrato::tryFrom($demanda->tipo)?->label() ?? $demanda->titulo;
+        $tipoLabel = TipoSolicitacaoPosVenda::tryFrom($solicitacao->tipo)?->label() ?? $solicitacao->titulo;
 
         Notification::send($admins, new DemandaVendedorCriada(
-            demandaId: $demanda->id,
+            demandaId: $solicitacao->id,
             vendedorNome: Auth::user()->name,
             cliente: $venda->nome_contrato ?? 'cliente',
             tipoLabel: $tipoLabel,
-            url: route('comercial.demands'),
+            url: route('backoffice.solicitacoes.index'),
         ));
     }
 

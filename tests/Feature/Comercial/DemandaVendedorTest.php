@@ -2,11 +2,15 @@
 
 namespace Tests\Feature\Comercial;
 
+use App\Enums\NaturezaEtapaSolicitacao;
 use App\Enums\Tabulations;
 use App\Enums\TipoDemandaContrato;
+use App\Enums\TipoSolicitacaoPosVenda;
 use App\Enums\UserRole;
 use App\Models\Demanda;
 use App\Models\Empresa;
+use App\Models\PosVendaFluxoEtapa;
+use App\Models\PosVendaSolicitacao;
 use App\Models\User;
 use App\Models\Vendas;
 use App\Notifications\DemandaVendedorConcluida;
@@ -124,7 +128,7 @@ class DemandaVendedorTest extends TestCase
     {
         return array_merge([
             'venda_id' => $venda->id,
-            'tipo' => TipoDemandaContrato::ENVIO_BOLETO->value,
+            'tipo' => TipoSolicitacaoPosVenda::ENVIO_BOLETO->value,
             'titulo' => 'Enviar boleto de junho',
             'descricao' => 'Cliente pediu o boleto atualizado.',
         ], $override);
@@ -141,18 +145,50 @@ class DemandaVendedorTest extends TestCase
 
         $response->assertOk()->assertJson(['ok' => true]);
 
-        $this->assertDatabaseHas('demandas', [
+        // Grava direto na Central de Solicitações do pós-venda, na etapa inicial.
+        $this->assertDatabaseHas('pos_venda_solicitacoes', [
             'empresa_id' => $this->empresa->id,
             'origem' => 'VENDEDOR',
             'venda_id' => $venda->id,
-            'tipo' => TipoDemandaContrato::ENVIO_BOLETO->value,
+            'tipo' => TipoSolicitacaoPosVenda::ENVIO_BOLETO->value,
             'created_by' => $this->vendedor->id,
             'status' => 'ABERTA',
+            'data_limite' => null,
+        ]);
+
+        $solicitacao = PosVendaSolicitacao::findOrFail($response->json('id'));
+        $this->assertSame(NaturezaEtapaSolicitacao::EM_ANDAMENTO->value, $solicitacao->etapa->natureza);
+        $this->assertDatabaseHas('pos_venda_solicitacao_historico', [
+            'solicitacao_id' => $solicitacao->id,
+            'campo_alterado' => 'abertura',
         ]);
 
         // Administrativo e back-office são avisados; o vendedor não.
         Notification::assertSentTo([$this->admin, $this->backoffice], DemandaVendedorCriada::class);
         Notification::assertNotSentTo($this->vendedor, DemandaVendedorCriada::class);
+    }
+
+    public function test_central_concluir_solicitacao_do_vendedor_notifica_o_vendedor(): void
+    {
+        Notification::fake();
+
+        $venda = $this->criarVenda($this->vendedor);
+
+        $this->actingAs($this->vendedor)
+            ->postJson(route('comercial.minhasDemandas.store'), $this->payload($venda))
+            ->assertOk();
+
+        $solicitacao = PosVendaSolicitacao::where('venda_id', $venda->id)->firstOrFail();
+        $etapaConcluida = PosVendaFluxoEtapa::where('empresa_id', $this->empresa->id)
+            ->where('tipo', $solicitacao->tipo)
+            ->where('natureza', NaturezaEtapaSolicitacao::CONCLUIDA->value)
+            ->firstOrFail();
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.mover', $solicitacao->id), ['etapa_id' => $etapaConcluida->id])
+            ->assertOk();
+
+        Notification::assertSentTo($this->vendedor, DemandaVendedorConcluida::class);
     }
 
     public function test_nao_cria_para_venda_nao_implantada(): void
@@ -163,7 +199,7 @@ class DemandaVendedorTest extends TestCase
             ->postJson(route('comercial.minhasDemandas.store'), $this->payload($venda))
             ->assertStatus(422);
 
-        $this->assertDatabaseMissing('demandas', ['venda_id' => $venda->id]);
+        $this->assertDatabaseMissing('pos_venda_solicitacoes', ['venda_id' => $venda->id]);
     }
 
     public function test_nao_cria_para_venda_de_outro_vendedor(): void
@@ -174,7 +210,7 @@ class DemandaVendedorTest extends TestCase
             ->postJson(route('comercial.minhasDemandas.store'), $this->payload($venda))
             ->assertStatus(422);
 
-        $this->assertDatabaseMissing('demandas', ['venda_id' => $venda->id]);
+        $this->assertDatabaseMissing('pos_venda_solicitacoes', ['venda_id' => $venda->id]);
     }
 
     public function test_nao_cria_para_venda_de_outra_empresa(): void
@@ -191,7 +227,7 @@ class DemandaVendedorTest extends TestCase
             ->postJson(route('comercial.minhasDemandas.store'), $this->payload($venda))
             ->assertStatus(422);
 
-        $this->assertDatabaseMissing('demandas', ['venda_id' => $venda->id]);
+        $this->assertDatabaseMissing('pos_venda_solicitacoes', ['venda_id' => $venda->id]);
     }
 
     public function test_tipo_invalido_retorna_422(): void
@@ -290,16 +326,12 @@ class DemandaVendedorTest extends TestCase
         $venda = $this->criarVenda($this->vendedor);
         $vendaOutro = $this->criarVenda($this->outroVendedor);
 
-        Demanda::create([
-            'empresa_id' => $this->empresa->id, 'origem' => 'VENDEDOR', 'venda_id' => $venda->id,
-            'tipo' => TipoDemandaContrato::REEMBOLSO->value, 'created_by' => $this->vendedor->id,
-            'titulo' => 'Minha', 'prioridade' => 'MEDIA', 'status' => 'ABERTA',
-        ]);
-        Demanda::create([
-            'empresa_id' => $this->empresa->id, 'origem' => 'VENDEDOR', 'venda_id' => $vendaOutro->id,
-            'tipo' => TipoDemandaContrato::REEMBOLSO->value, 'created_by' => $this->outroVendedor->id,
-            'titulo' => 'Do outro', 'prioridade' => 'MEDIA', 'status' => 'ABERTA',
-        ]);
+        $this->actingAs($this->vendedor)
+            ->postJson(route('comercial.minhasDemandas.store'), $this->payload($venda, ['titulo' => 'Minha']))
+            ->assertOk();
+        $this->actingAs($this->outroVendedor)
+            ->postJson(route('comercial.minhasDemandas.store'), $this->payload($vendaOutro, ['titulo' => 'Do outro']))
+            ->assertOk();
 
         $response = $this->actingAs($this->vendedor)
             ->getJson(route('comercial.minhasDemandas.list'));
@@ -308,6 +340,8 @@ class DemandaVendedorTest extends TestCase
         $data = $response->json('data');
         $this->assertCount(1, $data);
         $this->assertSame('Minha', $data[0]['titulo']);
+        $this->assertSame('Envio de Boleto', $data[0]['tipo_label']);
+        $this->assertSame($venda->nome_contrato, $data[0]['cliente']);
     }
 
     public function test_buscar_contratos_implantados_so_traz_os_do_vendedor_implantados(): void

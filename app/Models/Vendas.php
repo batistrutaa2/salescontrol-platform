@@ -150,9 +150,9 @@ class Vendas extends Model
         return $this->hasMany(CancelamentoLiminar::class, 'venda_id');
     }
 
-    public function cancelamentosPosVenda()
+    public function solicitacoesPosVenda()
     {
-        return $this->hasMany(CancelamentoPosVenda::class, 'venda_id');
+        return $this->hasMany(PosVendaSolicitacao::class, 'venda_id');
     }
 
     public function getCreatedAtAttribute($value)

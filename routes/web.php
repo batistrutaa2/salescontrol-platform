@@ -19,7 +19,7 @@ use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\pages\backoffice\Backoffice;
 use App\Http\Controllers\pages\backoffice\CredenciaisAcessoController;
 use App\Http\Controllers\pages\backoffice\LiminarController;
-use App\Http\Controllers\pages\backoffice\PainelCancelamentosController;
+use App\Http\Controllers\pages\backoffice\CentralSolicitacoesController;
 use App\Http\Controllers\pages\backoffice\ProcessosVendaController;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
@@ -292,16 +292,18 @@ Route::middleware(['auth'])->group(function () {
   Route::patch('/back-office/processos/emails/{id}', [ProcessosVendaController::class, 'updateEmailCriado'])->name('backoffice.processos.emails.update');
   Route::delete('/back-office/processos/emails/{id}', [ProcessosVendaController::class, 'destroyEmailCriado'])->name('backoffice.processos.emails.destroy');
 
-  // Painel de Cancelamentos (pipeline do cancelamento do plano anterior — pós-venda)
-  Route::get('/back-office/cancelamentos', [PainelCancelamentosController::class, 'index'])->name('backoffice.cancelamentos.index');
-  Route::get('/back-office/cancelamentos/dados', [PainelCancelamentosController::class, 'dados'])->name('backoffice.cancelamentos.dados');
-  Route::get('/back-office/cancelamentos/buscar-contratos', [PainelCancelamentosController::class, 'buscarContratos'])->name('backoffice.cancelamentos.buscarContratos');
-  Route::post('/back-office/cancelamentos', [PainelCancelamentosController::class, 'store'])->name('backoffice.cancelamentos.store');
-  Route::get('/back-office/cancelamentos/{id}', [PainelCancelamentosController::class, 'show'])->whereNumber('id')->name('backoffice.cancelamentos.show');
-  Route::patch('/back-office/cancelamentos/{id}', [PainelCancelamentosController::class, 'update'])->whereNumber('id')->name('backoffice.cancelamentos.update');
-  Route::post('/back-office/cancelamentos/{id}/mover', [PainelCancelamentosController::class, 'mover'])->whereNumber('id')->name('backoffice.cancelamentos.mover');
-  Route::post('/back-office/cancelamentos/{id}/atribuir', [PainelCancelamentosController::class, 'atribuir'])->whereNumber('id')->name('backoffice.cancelamentos.atribuir');
-  Route::post('/back-office/cancelamentos/{id}/desistir', [PainelCancelamentosController::class, 'desistir'])->whereNumber('id')->name('backoffice.cancelamentos.desistir');
+  // Central de Solicitações do Pós-Venda (fila + kanban com fluxo configurável por tipo)
+  Route::get('/back-office/solicitacoes', [CentralSolicitacoesController::class, 'index'])->name('backoffice.solicitacoes.index');
+  Route::get('/back-office/solicitacoes/dados', [CentralSolicitacoesController::class, 'dados'])->name('backoffice.solicitacoes.dados');
+  Route::get('/back-office/solicitacoes/buscar-contratos', [CentralSolicitacoesController::class, 'buscarContratos'])->name('backoffice.solicitacoes.buscarContratos');
+  Route::post('/back-office/solicitacoes', [CentralSolicitacoesController::class, 'store'])->name('backoffice.solicitacoes.store');
+  Route::post('/back-office/solicitacoes/etapas', [CentralSolicitacoesController::class, 'storeEtapa'])->name('backoffice.solicitacoes.etapas.store');
+  Route::post('/back-office/solicitacoes/etapas/reordenar', [CentralSolicitacoesController::class, 'reordenarEtapas'])->name('backoffice.solicitacoes.etapas.reordenar');
+  Route::put('/back-office/solicitacoes/etapas/{id}', [CentralSolicitacoesController::class, 'updateEtapa'])->whereNumber('id')->name('backoffice.solicitacoes.etapas.update');
+  Route::delete('/back-office/solicitacoes/etapas/{id}', [CentralSolicitacoesController::class, 'destroyEtapa'])->whereNumber('id')->name('backoffice.solicitacoes.etapas.destroy');
+  Route::get('/back-office/solicitacoes/{id}', [CentralSolicitacoesController::class, 'show'])->whereNumber('id')->name('backoffice.solicitacoes.show');
+  Route::patch('/back-office/solicitacoes/{id}', [CentralSolicitacoesController::class, 'update'])->whereNumber('id')->name('backoffice.solicitacoes.update');
+  Route::post('/back-office/solicitacoes/{id}/mover', [CentralSolicitacoesController::class, 'mover'])->whereNumber('id')->name('backoffice.solicitacoes.mover');
 
   // Pós-Venda
   Route::get('/back-office/pos-venda', [Backoffice::class, 'posVenda'])->name('backoffice.posVenda');

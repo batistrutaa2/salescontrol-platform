@@ -259,9 +259,9 @@
           "slug": "pages-mailing-importar"
         },
         {
-          "url": "/back-office/cancelamentos",
-          "name": "Painel de Cancelamentos",
-          "slug": "backoffice.cancelamentos",
+          "url": "/back-office/solicitacoes",
+          "name": "Central de Solicitações",
+          "slug": "backoffice.solicitacoes",
           "rules": ["ADMINISTRATIVO", "DEVELOPER", "BACKOFFICE", "SUPERVISOR"]
         },
         {

@@ -92,8 +92,8 @@ class AppServiceProvider extends ServiceProvider
         );
 
         $this->app->bind(
-            \App\Repositories\Contracts\CancelamentoPosVendaRepositoryInterface::class,
-            \App\Repositories\Eloquent\CancelamentoPosVendaRepository::class
+            \App\Repositories\Contracts\PosVendaSolicitacaoRepositoryInterface::class,
+            \App\Repositories\Eloquent\PosVendaSolicitacaoRepository::class
         );
     }
 
