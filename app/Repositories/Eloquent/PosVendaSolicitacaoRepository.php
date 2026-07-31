@@ -47,10 +47,12 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
             });
         }
 
-        // Fila por urgência: abertas primeiro (sem prazo no topo — precisam de
-        // triagem —, depois vencidas, hoje, próximas); encerradas por último.
+        // Fila por urgência: abertas primeiro — prioritárias no topo, depois
+        // sem prazo (precisam de triagem), vencidas, hoje, próximas;
+        // encerradas por último.
         return $query
             ->orderByRaw("(status = 'ABERTA') desc")
+            ->orderByDesc('prioridade')
             ->orderByRaw('(data_limite is null) desc')
             ->orderBy('data_limite')
             ->orderByDesc('id')
@@ -196,6 +198,40 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
 
             $solicitacao->save();
         });
+
+        return true;
+    }
+
+    public function alternarPrioridade(int $id, int $empresaId, int $userId): ?bool
+    {
+        $solicitacao = PosVendaSolicitacao::where('empresa_id', $empresaId)->find($id);
+        if (! $solicitacao) {
+            return null;
+        }
+
+        $nova = ! $solicitacao->prioridade;
+
+        DB::transaction(function () use ($solicitacao, $userId, $nova) {
+            $this->registrarHistorico($solicitacao->id, $userId, 'prioridade',
+                $solicitacao->prioridade ? 'Prioritária' : 'Normal',
+                $nova ? 'Prioritária' : 'Normal');
+
+            $solicitacao->prioridade = $nova;
+            $solicitacao->save();
+        });
+
+        return $nova;
+    }
+
+    public function excluir(int $id, int $empresaId): bool
+    {
+        $solicitacao = PosVendaSolicitacao::where('empresa_id', $empresaId)->find($id);
+        if (! $solicitacao) {
+            return false;
+        }
+
+        // O histórico cai junto via FK cascade.
+        $solicitacao->delete();
 
         return true;
     }
@@ -451,6 +487,7 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
             'etapa_cor' => $s->etapa?->cor,
             'etapa_natureza' => $s->etapa?->natureza,
             'status' => $s->status,
+            'prioridade' => (bool) $s->prioridade,
             'data_limite' => $dataLimite?->format('d/m/Y'),
             'data_limite_iso' => $dataLimite?->format('Y-m-d'),
             'dias_restantes' => $diasRestantes,

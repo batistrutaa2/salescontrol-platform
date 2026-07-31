@@ -14,6 +14,7 @@
         responsavel: 'Responsável',
         titulo: 'Título',
         observacoes: 'Descrição',
+        prioridade: 'Prioridade',
     };
 
     // Estado local: fonte única para fila e kanban.
@@ -51,6 +52,7 @@
         relogio: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
         grip: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1.2"/><circle cx="15" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="15" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/><circle cx="15" cy="18" r="1.2"/></svg>`,
         lixeira: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+        bandeira: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`,
     };
 
     const showModernToast = (type, title, message) => {
@@ -133,6 +135,53 @@
     const etapaBadge = (item) => {
         const cor = item.etapa_cor || COR_FALLBACK;
         return `<span class="spv-badge-etapa" style="--etapa-cor:${cor}">${escapar(item.etapa_nome || '—')}</span>`;
+    };
+
+    const prioridadeBadge = (item) => (item.prioridade
+        ? `<span class="spv-badge-prioridade" title="Solicitação prioritária">${SVG.bandeira} Prioridade</span>`
+        : '');
+
+    // =========================================================================
+    // Prioridade e exclusão
+    // =========================================================================
+    const alternarPrioridade = async (id) => {
+        try {
+            const body = await api(`/back-office/solicitacoes/${id}/prioridade`, { method: 'POST' });
+            showModernToast('success', body.prioridade ? 'Marcada como prioridade' : 'Prioridade removida',
+                body.prioridade ? 'A solicitação subiu para o topo da fila.' : 'A solicitação voltou à ordem normal da fila.');
+            return body.prioridade;
+        } catch (err) {
+            console.error(err);
+            showModernToast('error', 'Erro', err.message || 'Não foi possível alterar a prioridade.');
+            return null;
+        } finally {
+            carregarDados();
+        }
+    };
+
+    const excluirSolicitacao = async (item) => {
+        const result = await Swal.fire({
+            title: 'Excluir solicitação?',
+            text: `"${item.titulo || item.tipo_label}" de ${item.nome_contrato || 'cliente'} será excluída junto com o histórico. Essa ação não pode ser desfeita.`,
+            showCancelButton: true,
+            reverseButtons: true,
+            confirmButtonText: 'Excluir',
+            cancelButtonText: 'Voltar',
+            buttonsStyling: false,
+            customClass: { confirmButton: 'pv-btn spv-btn-danger-confirm', cancelButton: 'pv-btn pv-btn-ghost' },
+        });
+        if (!result.isConfirmed) return false;
+
+        try {
+            await api(`/back-office/solicitacoes/${item.id}`, { method: 'DELETE' });
+            showModernToast('success', 'Solicitação excluída', 'Ela saiu da fila do pós-venda.');
+            carregarDados();
+            return true;
+        } catch (err) {
+            console.error(err);
+            showModernToast('error', 'Erro ao excluir', err.message || 'Tente novamente.');
+            return false;
+        }
     };
 
     // =========================================================================
@@ -218,10 +267,11 @@
 
         const linhas = registrosFiltrados();
         cont.innerHTML = linhas.map((r) => `
-            <div class="spv-fila-row" data-id="${r.id}">
+            <div class="spv-fila-row ${r.prioridade ? 'is-prioridade' : ''}" data-id="${r.id}">
                 <div class="spv-fila-prazo">${prazoBadge(r)}</div>
                 <div class="spv-fila-main">
                     <div class="spv-fila-titulo">
+                        ${prioridadeBadge(r)}
                         <span class="spv-badge-tipo">${escapar(r.tipo_label)}</span>
                         <strong>${escapar(r.titulo || r.tipo_label)}</strong>
                         ${r.origem === 'VENDEDOR' ? `<span class="spv-badge-origem" title="Solicitação aberta pelo vendedor ${escapar(r.criado_por_nome || '')}">Vendedor</span>` : ''}
@@ -234,12 +284,29 @@
                     <span class="spv-fila-autor">${escapar(r.criado_por_nome || '—')}</span>
                     <span>${escapar(r.criado_em)}</span>
                 </div>
+                <div class="spv-fila-acoes">
+                    <button type="button" class="spv-acao-btn spv-acao-flag ${r.prioridade ? 'is-active' : ''}" data-acao="prioridade"
+                            title="${r.prioridade ? 'Remover prioridade' : 'Marcar como prioridade'}"
+                            aria-label="${r.prioridade ? 'Remover prioridade' : 'Marcar como prioridade'}" aria-pressed="${r.prioridade ? 'true' : 'false'}">${SVG.bandeira}</button>
+                    <button type="button" class="spv-acao-btn spv-acao-del" data-acao="excluir"
+                            title="Excluir solicitação" aria-label="Excluir solicitação">${SVG.lixeira}</button>
+                </div>
             </div>
         `).join('');
         vazio.hidden = linhas.length > 0;
 
         cont.querySelectorAll('.spv-fila-row').forEach((row) => {
-            row.addEventListener('click', () => abrirDetalhe(parseInt(row.dataset.id, 10)));
+            const id = parseInt(row.dataset.id, 10);
+            row.addEventListener('click', () => abrirDetalhe(id));
+            row.querySelectorAll('.spv-acao-btn').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const item = registros.find((r) => r.id === id);
+                    if (!item) return;
+                    if (btn.dataset.acao === 'prioridade') alternarPrioridade(id);
+                    else excluirSolicitacao(item);
+                });
+            });
         });
     };
 
@@ -272,9 +339,12 @@
         el.dataset.id = item.id;
         el.style.setProperty('--spv-card-status-color', item.etapa_cor || COR_FALLBACK);
 
+        if (item.prioridade) el.classList.add('is-prioridade');
+
         el.innerHTML = `
             <div class="spv-card-header">
                 <span class="spv-card-contrato">${escapar(item.titulo || item.tipo_label)}</span>
+                ${prioridadeBadge(item)}
             </div>
             <div class="spv-card-linha">${escapar(item.nome_contrato)}</div>
             <div class="spv-card-prazo">${prazoBadge(item)}</div>
@@ -362,6 +432,18 @@
     let detalheAtualId = null;
     let detalheTipo = null;
     let etapaModalAtual = null;
+    let detalheRegistro = null;
+
+    const atualizarFlagDetalhe = (prioridade) => {
+        const btn = document.getElementById('btnSpvPrioridadeDetalhe');
+        if (!btn) return;
+        btn.classList.toggle('is-active', !!prioridade);
+        btn.setAttribute('aria-pressed', prioridade ? 'true' : 'false');
+        const rotulo = prioridade ? 'Remover prioridade' : 'Marcar como prioridade';
+        btn.title = rotulo;
+        btn.setAttribute('aria-label', rotulo);
+        btn.querySelector('.spv-flag-btn-label').textContent = prioridade ? 'Prioritária' : 'Prioridade';
+    };
 
     const infoItem = (label, value) =>
         `<div class="spv-info-item"><span class="spv-info-label">${escapar(label)}</span><span class="spv-info-value">${escapar(value ?? '—')}</span></div>`;
@@ -436,8 +518,10 @@
             const data = await api(`/back-office/solicitacoes/${id}`);
             const r = data.registro;
             detalheTipo = r.tipo;
+            detalheRegistro = r;
 
             aplicarEtapaNaModal(r.tipo, r.etapa_id);
+            atualizarFlagDetalhe(r.prioridade);
             document.getElementById('spvDetalheTitulo').textContent = r.titulo || r.tipo_label;
             document.getElementById('spvDetalheSubtitulo').textContent = `${r.tipo_label} · ${r.nome_contrato || '—'}`;
 
@@ -471,6 +555,30 @@
             return {};
         }
     };
+
+    const btnFlagDetalhe = document.getElementById('btnSpvPrioridadeDetalhe');
+    btnFlagDetalhe?.addEventListener('click', async () => {
+        if (!detalheAtualId) return;
+        btnFlagDetalhe.disabled = true;
+        try {
+            const prioridade = await alternarPrioridade(detalheAtualId);
+            if (prioridade !== null) {
+                atualizarFlagDetalhe(prioridade);
+                const detalhe = await recarregarDetalhe();
+                if (detalhe.historico) renderTimeline(detalhe.historico);
+            }
+        } finally {
+            btnFlagDetalhe.disabled = false;
+        }
+    });
+
+    document.getElementById('btnSpvExcluirDetalhe')?.addEventListener('click', async () => {
+        if (!detalheAtualId || !detalheRegistro) return;
+        const excluida = await excluirSolicitacao(detalheRegistro);
+        if (excluida) {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetalheSolicitacao')).hide();
+        }
+    });
 
     const btnMover = document.getElementById('btnSpvMoverEtapa');
     btnMover?.addEventListener('click', async () => {

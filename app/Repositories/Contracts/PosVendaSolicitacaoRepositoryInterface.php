@@ -18,6 +18,12 @@ interface PosVendaSolicitacaoRepositoryInterface
 
     public function atualizar(int $id, int $empresaId, array $dados, int $userId): bool;
 
+    /** @return bool|null novo valor da prioridade; null se não encontrada na empresa */
+    public function alternarPrioridade(int $id, int $empresaId, int $userId): ?bool;
+
+    /** @return bool false se não encontrada na empresa */
+    public function excluir(int $id, int $empresaId): bool;
+
     /** @return string|null null = sucesso; 'NAO_ENCONTRADA' | 'ETAPA_INVALIDA' em erro */
     public function moverEtapa(int $id, int $empresaId, int $etapaId, int $userId, ?string $observacao = null): ?string;
 

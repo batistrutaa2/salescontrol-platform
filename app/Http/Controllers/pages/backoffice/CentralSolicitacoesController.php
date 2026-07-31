@@ -114,6 +114,30 @@ class CentralSolicitacoesController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function prioridade(int $id): JsonResponse
+    {
+        $this->checkAccess();
+
+        $prioridade = $this->solicitacoes->alternarPrioridade($id, $this->empresaId(), Auth::id());
+
+        if ($prioridade === null) {
+            abort(404);
+        }
+
+        return response()->json(['success' => true, 'prioridade' => $prioridade]);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $this->checkAccess();
+
+        if (! $this->solicitacoes->excluir($id, $this->empresaId())) {
+            abort(404);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     public function mover(Request $request, int $id): JsonResponse
     {
         $this->checkAccess();

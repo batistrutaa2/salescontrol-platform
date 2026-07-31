@@ -26,6 +26,7 @@ class PosVendaSolicitacao extends Model
         'titulo',
         'descricao',
         'status',
+        'prioridade',
         'data_limite',
         'origem',
         'responsavel_id',
@@ -34,6 +35,7 @@ class PosVendaSolicitacao extends Model
     ];
 
     protected $casts = [
+        'prioridade' => 'boolean',
         'data_limite' => 'date',
         'concluida_em' => 'datetime',
     ];

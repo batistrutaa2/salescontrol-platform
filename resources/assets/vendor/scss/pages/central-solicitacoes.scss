@@ -354,6 +354,22 @@
     white-space: nowrap;
 }
 
+.spv-badge-prioridade {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #fff;
+    background: linear-gradient(135deg, var(--dash-warning, #F59E0B), #FBBF24);
+    border-radius: 6px;
+    padding: 0.14rem 0.45rem;
+    white-space: nowrap;
+
+    svg { width: 11px; height: 11px; }
+}
+
 // ============================================
 // Fila por prazo
 // ============================================
@@ -367,7 +383,7 @@
 
 .spv-fila-row {
     display: grid;
-    grid-template-columns: 170px minmax(0, 1fr) auto 150px 150px;
+    grid-template-columns: 170px minmax(0, 1fr) auto 150px 150px auto;
     align-items: center;
     gap: 1rem;
     padding: 0.8rem 1.25rem;
@@ -378,18 +394,28 @@
     &:hover { background: rgba(var(--dash-primary-rgb), 0.05); }
     &:last-child { border-bottom: none; }
 
+    // Prioritária: filete âmbar na borda para saltar aos olhos na fila.
+    &.is-prioridade {
+        box-shadow: inset 3px 0 0 var(--dash-warning, #F59E0B);
+        background: rgba(245, 158, 11, 0.04);
+
+        &:hover { background: rgba(245, 158, 11, 0.09); }
+    }
+
     @media (max-width: 900px) {
         grid-template-columns: 1fr auto;
         grid-template-areas:
             'prazo etapa'
             'main main'
-            'resp data';
+            'resp data'
+            'acoes acoes';
 
         .spv-fila-prazo { grid-area: prazo; }
         .spv-fila-etapa { grid-area: etapa; justify-self: end; }
         .spv-fila-main { grid-area: main; }
         .spv-fila-resp { grid-area: resp; }
         .spv-fila-data { grid-area: data; justify-self: end; }
+        .spv-fila-acoes { grid-area: acoes; justify-self: end; }
     }
 }
 
@@ -446,6 +472,40 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+// Ações rápidas da linha (prioridade e exclusão)
+.spv-fila-acoes {
+    display: inline-flex;
+    gap: 0.25rem;
+}
+
+.spv-acao-btn {
+    border: none;
+    background: transparent;
+    color: var(--dash-text-muted);
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 8px;
+    display: flex;
+    transition: var(--dash-transition-fast);
+}
+
+.spv-acao-flag {
+    &:hover {
+        color: var(--dash-warning, #F59E0B);
+        background: rgba(245, 158, 11, 0.12);
+    }
+
+    &.is-active {
+        color: #fff;
+        background: linear-gradient(135deg, var(--dash-warning, #F59E0B), #FBBF24);
+    }
+}
+
+.spv-acao-del:hover {
+    color: var(--dash-danger, #EF4444);
+    background: rgba(var(--dash-danger-rgb, 239, 68, 68), 0.1);
 }
 
 // ============================================
@@ -861,6 +921,40 @@
     &:hover { color: var(--dash-text-primary); background: rgba(0, 0, 0, 0.06); }
 }
 
+.spv-detail-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+}
+
+// Toggle de prioridade no header da modal de detalhe
+.spv-flag-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    background: transparent;
+    color: var(--dash-warning, #F59E0B);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: var(--dash-transition-fast);
+
+    &:hover { background: rgba(245, 158, 11, 0.12); }
+
+    &.is-active {
+        background: linear-gradient(135deg, var(--dash-warning, #F59E0B), #FBBF24);
+        border-color: transparent;
+        color: #fff;
+    }
+
+    &:disabled { opacity: 0.6; cursor: default; }
+}
+
 .spv-stepper {
     display: flex;
     gap: 0.35rem;
@@ -1192,6 +1286,22 @@
     border: none;
 }
 
+// Excluir no rodapé da modal de detalhe: encostado à esquerda, longe do Salvar.
+.spv-btn-excluir {
+    margin-right: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid rgba(var(--dash-danger-rgb, 239, 68, 68), 0.35);
+    background: transparent;
+    color: var(--dash-danger, #EF4444);
+
+    &:hover {
+        background: rgba(var(--dash-danger-rgb, 239, 68, 68), 0.1);
+        color: var(--dash-danger, #EF4444);
+    }
+}
+
 // ============================================
 // Rodapé das modais
 // ============================================
@@ -1243,7 +1353,10 @@
 .spv-chip:focus-visible,
 .spv-tipo-chip:focus-visible,
 .spv-btn-novo:focus-visible,
-.spv-btn-ghost:focus-visible {
+.spv-btn-ghost:focus-visible,
+.spv-acao-btn:focus-visible,
+.spv-flag-btn:focus-visible,
+.spv-btn-excluir:focus-visible {
     outline: 2px solid var(--dash-primary);
     outline-offset: 2px;
 }

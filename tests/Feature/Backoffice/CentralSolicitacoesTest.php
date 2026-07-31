@@ -407,6 +407,61 @@ class CentralSolicitacoesTest extends TestCase
     }
 
     // ---------------------------------------------------------------
+    // Prioridade e exclusão
+    // ---------------------------------------------------------------
+
+    public function test_alternar_prioridade_sobe_na_fila_e_gera_historico(): void
+    {
+        $venda = $this->criarContrato();
+        $this->criarSolicitacao($venda, ['titulo' => 'VENCIDA', 'data_limite' => now()->subDays(3)->toDateString()]);
+        $futura = $this->criarSolicitacao($venda, ['titulo' => 'FUTURA', 'data_limite' => now()->addDays(10)->toDateString()]);
+
+        // Marcar: a prioritária fura a fila mesmo com prazo mais folgado.
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.prioridade', $futura->id))
+            ->assertOk()->assertJson(['success' => true, 'prioridade' => true]);
+
+        $this->assertTrue($futura->fresh()->prioridade);
+        $this->assertDatabaseHas('pos_venda_solicitacao_historico', [
+            'solicitacao_id' => $futura->id, 'campo_alterado' => 'prioridade',
+            'valor_anterior' => 'Normal', 'valor_novo' => 'Prioritária',
+        ]);
+
+        $resp = $this->actingAs($this->backoffice)->getJson(route('backoffice.solicitacoes.dados'))->assertOk();
+        $this->assertSame(['FUTURA', 'VENCIDA'], collect($resp->json('registros'))->pluck('titulo')->all());
+        $this->assertTrue($resp->json('registros.0.prioridade'));
+
+        // Desmarcar: volta à ordem por urgência.
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.prioridade', $futura->id))
+            ->assertOk()->assertJson(['success' => true, 'prioridade' => false]);
+        $this->assertFalse($futura->fresh()->prioridade);
+
+        $titulos = collect($this->actingAs($this->backoffice)->getJson(route('backoffice.solicitacoes.dados'))->json('registros'))
+            ->pluck('titulo')->all();
+        $this->assertSame(['VENCIDA', 'FUTURA'], $titulos);
+    }
+
+    public function test_excluir_solicitacao_remove_junto_com_historico(): void
+    {
+        $venda = $this->criarContrato();
+        $solicitacao = $this->criarSolicitacao($venda);
+
+        DB::table('pos_venda_solicitacao_historico')->insert([
+            'solicitacao_id' => $solicitacao->id, 'user_id' => $this->backoffice->id,
+            'campo_alterado' => 'abertura', 'valor_novo' => 'Aberta',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->backoffice)
+            ->deleteJson(route('backoffice.solicitacoes.destroy', $solicitacao->id))
+            ->assertOk()->assertJson(['success' => true]);
+
+        $this->assertDatabaseMissing('pos_venda_solicitacoes', ['id' => $solicitacao->id]);
+        $this->assertDatabaseMissing('pos_venda_solicitacao_historico', ['solicitacao_id' => $solicitacao->id]);
+    }
+
+    // ---------------------------------------------------------------
     // Multi-tenant
     // ---------------------------------------------------------------
 
@@ -423,6 +478,13 @@ class CentralSolicitacoesTest extends TestCase
         $this->actingAs($userOutra)
             ->postJson(route('backoffice.solicitacoes.mover', $solicitacao->id), ['etapa_id' => $solicitacao->etapa_id])
             ->assertStatus(404);
+        $this->actingAs($userOutra)
+            ->postJson(route('backoffice.solicitacoes.prioridade', $solicitacao->id))
+            ->assertStatus(404);
+        $this->actingAs($userOutra)
+            ->deleteJson(route('backoffice.solicitacoes.destroy', $solicitacao->id))
+            ->assertStatus(404);
+        $this->assertDatabaseHas('pos_venda_solicitacoes', ['id' => $solicitacao->id]);
 
         $this->actingAs($userOutra)->getJson(route('backoffice.solicitacoes.dados'))
             ->assertOk()->assertJsonCount(0, 'registros');
