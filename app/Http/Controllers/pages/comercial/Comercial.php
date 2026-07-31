@@ -1677,15 +1677,19 @@ class Comercial extends Controller
     }
 
     /**
-     * Lista as solicitações de pós-venda abertas pelo próprio vendedor.
+     * Lista as solicitações de pós-venda do vendedor: as que ele mesmo abriu e
+     * também as abertas pelo backoffice sobre contratos dele — o dono do
+     * contrato acompanha o andamento e as atualizações do pós-venda.
      * Fonte única: a Central de Solicitações do backoffice (pos_venda_solicitacoes).
      */
     public function listMinhasDemandas()
     {
-        $demandas = PosVendaSolicitacao::with(['venda:id,nome_contrato,numero_proposta', 'etapa:id,nome'])
+        $demandas = PosVendaSolicitacao::with(['venda:id,nome_contrato,numero_proposta,user_id', 'etapa:id,nome', 'historico.usuario:id,name'])
             ->where('empresa_id', Auth::user()->empresa_id)
-            ->where('origem', PosVendaSolicitacao::ORIGEM_VENDEDOR)
-            ->where('created_by', Auth::id())
+            ->where(function ($q) {
+                $q->where('created_by', Auth::id())
+                    ->orWhereHas('venda', fn ($v) => $v->where('user_id', Auth::id()));
+            })
             ->orderByRaw("FIELD(status, 'ABERTA', 'CONCLUIDA', 'CANCELADA')")
             ->orderByDesc('created_at')
             ->get()
@@ -1697,11 +1701,23 @@ class Comercial extends Controller
                 'etapa' => $d->etapa?->nome,
                 'tipo' => $d->tipo,
                 'tipo_label' => TipoSolicitacaoPosVenda::tryFrom($d->tipo)?->label() ?? $d->tipo,
+                'origem' => $d->origem,
                 'cliente' => $d->venda?->nome_contrato,
                 'numero_proposta' => $d->venda?->numero_proposta,
                 'data_limite' => $d->data_limite?->format('d/m/Y'),
                 'created_at' => $d->created_at->toDateTimeString(),
                 'concluida_em' => optional($d->concluida_em)->toDateTimeString(),
+                // Atualizações de andamento registradas pelo pós-venda (mais recentes primeiro).
+                'atualizacoes' => $d->historico
+                    ->where('campo_alterado', 'atualizacao')
+                    ->values()
+                    ->map(fn ($h) => [
+                        'texto' => $h->observacao,
+                        'autor' => $h->usuario?->name ?? 'Pós-venda',
+                        'data' => $h->getRawOriginal('created_at')
+                            ? \Carbon\Carbon::parse($h->getRawOriginal('created_at'))->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')
+                            : null,
+                    ]),
             ]);
 
         return response()->json(['data' => $demandas]);

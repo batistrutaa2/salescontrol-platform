@@ -223,6 +223,20 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
         return $nova;
     }
 
+    public function registrarAtualizacao(int $id, int $empresaId, int $userId, string $texto): ?PosVendaSolicitacao
+    {
+        $solicitacao = PosVendaSolicitacao::with('venda:id,nome_contrato,user_id')
+            ->where('empresa_id', $empresaId)
+            ->find($id);
+        if (! $solicitacao) {
+            return null;
+        }
+
+        $this->registrarHistorico($solicitacao->id, $userId, 'atualizacao', null, null, $texto);
+
+        return $solicitacao;
+    }
+
     public function excluir(int $id, int $empresaId): bool
     {
         $solicitacao = PosVendaSolicitacao::where('empresa_id', $empresaId)->find($id);

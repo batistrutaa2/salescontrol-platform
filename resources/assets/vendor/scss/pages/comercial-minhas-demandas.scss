@@ -202,6 +202,44 @@
         color: var(--mdv-text-muted);
     }
 
+    /* ---- atualizações registradas pelo pós-venda ---- */
+    .mdv-card-updates {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: rgba(6, 182, 212, 0.06);
+        border: 1px solid rgba(6, 182, 212, 0.18);
+        border-radius: 10px;
+    }
+
+    .mdv-card-updates-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--mdv-info);
+        margin-bottom: 6px;
+    }
+
+    .mdv-update {
+        padding: 6px 0;
+
+        & + .mdv-update { border-top: 1px dashed rgba(6, 182, 212, 0.18); }
+    }
+
+    .mdv-update-texto {
+        font-size: 0.82rem;
+        color: var(--mdv-text-secondary);
+    }
+
+    .mdv-update-meta {
+        margin-top: 2px;
+        font-size: 0.7rem;
+        color: var(--mdv-text-muted);
+    }
+
     .mdv-card-meta {
         display: flex;
         flex-wrap: wrap;
@@ -214,6 +252,11 @@
     .mdv-card-meta-item {
         font-size: 0.74rem;
         color: var(--mdv-text-muted);
+    }
+
+    .mdv-card-origem {
+        font-weight: 700;
+        color: var(--mdv-info);
     }
 
     /* ---- vazio ---- */

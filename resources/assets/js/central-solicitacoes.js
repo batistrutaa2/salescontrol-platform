@@ -15,6 +15,7 @@
         titulo: 'Título',
         observacoes: 'Descrição',
         prioridade: 'Prioridade',
+        atualizacao: 'Atualização',
     };
 
     // Estado local: fonte única para fila e kanban.
@@ -472,6 +473,19 @@
         }
         tl.innerHTML = hist.map((h) => {
             const label = CAMPO_LABEL[h.campo_alterado] || h.campo_alterado;
+
+            // Atualização de andamento: o texto livre é o conteúdo principal.
+            if (h.campo_alterado === 'atualizacao') {
+                return `
+                <div class="spv-timeline-item spv-timeline-item--atualizacao">
+                    <span class="spv-timeline-dot"></span>
+                    <div class="spv-timeline-content">
+                        <div class="spv-timeline-text"><span class="spv-timeline-campo">${escapar(label)}</span> ${escapar(h.observacao || '—')}</div>
+                        <div class="spv-timeline-meta">${escapar(h.usuario_nome ?? 'Sistema')} · ${escapar(h.created_at)}</div>
+                    </div>
+                </div>`;
+            }
+
             const texto = h.valor_anterior ? `${h.valor_anterior} → ${h.valor_novo}` : (h.valor_novo || '—');
             return `
             <div class="spv-timeline-item">
@@ -539,6 +553,7 @@
             document.getElementById('spvDetalhePrazo').value = r.data_limite_iso || '';
             document.getElementById('spvDetalheResponsavel').value = r.responsavel_id || '';
             document.getElementById('spvDetalheDescricao').value = r.descricao || '';
+            document.getElementById('spvAtualizacaoTexto').value = '';
 
             ativarAba('spvTabGeral');
             renderTimeline(data.historico || []);
@@ -555,6 +570,34 @@
             return {};
         }
     };
+
+    const btnRegistrarAtualizacao = document.getElementById('btnSpvRegistrarAtualizacao');
+    btnRegistrarAtualizacao?.addEventListener('click', async () => {
+        const campo = document.getElementById('spvAtualizacaoTexto');
+        const texto = campo.value.trim();
+        if (!detalheAtualId) return;
+        if (!texto) {
+            showModernToast('warning', 'Escreva a atualização', 'Conte o que aconteceu no processo antes de registrar.');
+            campo.focus();
+            return;
+        }
+        btnRegistrarAtualizacao.disabled = true;
+        try {
+            await api(`/back-office/solicitacoes/${detalheAtualId}/atualizacoes`, {
+                method: 'POST',
+                body: JSON.stringify({ texto }),
+            });
+            campo.value = '';
+            showModernToast('success', 'Atualização registrada', 'O vendedor dono do contrato foi avisado.');
+            const detalhe = await recarregarDetalhe();
+            if (detalhe.historico) renderTimeline(detalhe.historico);
+        } catch (err) {
+            console.error(err);
+            showModernToast('error', 'Erro ao registrar', err.message || 'Tente novamente.');
+        } finally {
+            btnRegistrarAtualizacao.disabled = false;
+        }
+    });
 
     const btnFlagDetalhe = document.getElementById('btnSpvPrioridadeDetalhe');
     btnFlagDetalhe?.addEventListener('click', async () => {

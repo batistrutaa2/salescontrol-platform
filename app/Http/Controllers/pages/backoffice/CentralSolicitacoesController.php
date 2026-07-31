@@ -10,6 +10,7 @@ use App\Models\PosVendaFluxoEtapa;
 use App\Models\PosVendaSolicitacao;
 use App\Models\User;
 use App\Notifications\DemandaVendedorConcluida;
+use App\Notifications\SolicitacaoAtualizadaVendedor;
 use App\Repositories\Contracts\PosVendaSolicitacaoRepositoryInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -112,6 +113,55 @@ class CentralSolicitacoesController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    public function storeAtualizacao(Request $request, int $id): JsonResponse
+    {
+        $this->checkAccess();
+
+        $validated = $request->validate([
+            'texto' => 'required|string|max:500',
+        ]);
+
+        $solicitacao = $this->solicitacoes->registrarAtualizacao(
+            $id,
+            $this->empresaId(),
+            Auth::id(),
+            $validated['texto'],
+        );
+
+        if (! $solicitacao) {
+            abort(404);
+        }
+
+        $this->notificarVendedorAtualizacao($solicitacao, $validated['texto']);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * O vendedor dono do contrato acompanha o andamento pelo mascote, mesmo
+     * quando a solicitação foi aberta pelo próprio pós-venda.
+     */
+    private function notificarVendedorAtualizacao(PosVendaSolicitacao $solicitacao, string $texto): void
+    {
+        $vendedor = User::where('empresa_id', $this->empresaId())
+            ->where('id', $solicitacao->venda?->user_id)
+            ->where('ativo', 'Y')
+            ->first();
+
+        if (! $vendedor || $vendedor->id === Auth::id()) {
+            return;
+        }
+
+        $vendedor->notify(new SolicitacaoAtualizadaVendedor(
+            solicitacaoId: $solicitacao->id,
+            cliente: $solicitacao->venda?->nome_contrato ?? 'cliente',
+            tipoLabel: TipoSolicitacaoPosVenda::tryFrom($solicitacao->tipo)?->label() ?? ($solicitacao->titulo ?? 'Solicitação'),
+            texto: mb_strimwidth($texto, 0, 140, '…'),
+            url: route('comercial.demandasVendedor'),
+            autorNome: Auth::user()->name ?? null,
+        ));
     }
 
     public function prioridade(int $id): JsonResponse

@@ -268,7 +268,7 @@
 
             <div class="spv-tabs" role="tablist">
                 <button type="button" class="spv-tab is-active" data-tab="spvTabGeral" role="tab">Visão geral</button>
-                <button type="button" class="spv-tab" data-tab="spvTabHist" role="tab">Histórico</button>
+                <button type="button" class="spv-tab" data-tab="spvTabHist" role="tab">Atualizações &amp; histórico</button>
             </div>
 
             <div class="pv-modal-body">
@@ -302,6 +302,19 @@
                 </div>
 
                 <div class="spv-tabpane" id="spvTabHist" role="tabpanel">
+                    {{-- Registro de andamento: o texto entra na timeline e avisa o vendedor dono do contrato --}}
+                    <div class="spv-atualizacao-composer">
+                        <label class="pv-form-label" for="spvAtualizacaoTexto">Registrar atualização do processo</label>
+                        <textarea id="spvAtualizacaoTexto" class="pv-form-textarea" rows="2" maxlength="500"
+                                  placeholder='Ex.: "Acessei hoje e a portabilidade ainda não saiu"'></textarea>
+                        <div class="spv-atualizacao-composer-bar">
+                            <small class="spv-hint">O vendedor dono do contrato é avisado na hora.</small>
+                            <button type="button" class="pv-btn pv-btn-primary" id="btnSpvRegistrarAtualizacao">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                Registrar
+                            </button>
+                        </div>
+                    </div>
                     <div class="spv-timeline-container">
                         <div id="spvTimeline" class="spv-timeline"></div>
                     </div>

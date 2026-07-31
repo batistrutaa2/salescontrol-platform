@@ -60,7 +60,7 @@ class CentralSolicitacoesTest extends TestCase
         ]);
     }
 
-    private function criarContrato(?Empresa $empresa = null): Vendas
+    private function criarContrato(?Empresa $empresa = null, ?User $dono = null): Vendas
     {
         $empresa = $empresa ?? $this->empresa;
 
@@ -71,7 +71,7 @@ class CentralSolicitacoesTest extends TestCase
         ]);
 
         return Vendas::create([
-            'empresa_id' => $empresa->id, 'user_id' => $this->backoffice->id,
+            'empresa_id' => $empresa->id, 'user_id' => ($dono ?? $this->backoffice)->id,
             'contato_id' => $contatoId, 'tabulacao_id' => Tabulations::IMPLANTADO,
             'nome_contrato' => 'Contrato '.uniqid(), 'cpf_cnpj' => (string) random_int(10000000000000, 99999999999999),
             'operadora' => 'AMIL', 'valor_contrato' => 500.00, 'vidas' => 1,
@@ -407,6 +407,77 @@ class CentralSolicitacoesTest extends TestCase
     }
 
     // ---------------------------------------------------------------
+    // Atualizações de andamento
+    // ---------------------------------------------------------------
+
+    public function test_registrar_atualizacao_entra_na_timeline_e_notifica_o_vendedor_dono_do_contrato(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+
+        $venda = $this->criarContrato(dono: $this->vendedor);
+        $solicitacao = $this->criarSolicitacao($venda);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.atualizacoes.store', $solicitacao->id), [
+                'texto' => 'Acessei hoje e a portabilidade ainda não saiu.',
+            ])
+            ->assertOk()->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('pos_venda_solicitacao_historico', [
+            'solicitacao_id' => $solicitacao->id,
+            'campo_alterado' => 'atualizacao',
+            'observacao' => 'Acessei hoje e a portabilidade ainda não saiu.',
+            'user_id' => $this->backoffice->id,
+        ]);
+
+        // A timeline do detalhe expõe a atualização com autor e data/hora.
+        $historico = $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.solicitacoes.show', $solicitacao->id))
+            ->assertOk()->json('historico');
+        $atualizacao = collect($historico)->firstWhere('campo_alterado', 'atualizacao');
+        $this->assertNotNull($atualizacao);
+        $this->assertSame($this->backoffice->name, $atualizacao['usuario_nome']);
+        $this->assertNotSame('—', $atualizacao['created_at']);
+
+        // O dono do contrato é avisado, mesmo sem ter aberto o chamado.
+        \Illuminate\Support\Facades\Notification::assertSentTo(
+            $this->vendedor,
+            \App\Notifications\SolicitacaoAtualizadaVendedor::class,
+        );
+    }
+
+    public function test_registrar_atualizacao_nao_notifica_quando_o_autor_e_o_dono_do_contrato(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+
+        // criarContrato() sem dono deixa a venda com o próprio backoffice.
+        $venda = $this->criarContrato();
+        $solicitacao = $this->criarSolicitacao($venda);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.atualizacoes.store', $solicitacao->id), [
+                'texto' => 'Cheguei à exclusão e ainda não saiu.',
+            ])
+            ->assertOk();
+
+        \Illuminate\Support\Facades\Notification::assertNothingSent();
+    }
+
+    public function test_registrar_atualizacao_valida_texto(): void
+    {
+        $venda = $this->criarContrato();
+        $solicitacao = $this->criarSolicitacao($venda);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.atualizacoes.store', $solicitacao->id), ['texto' => ''])
+            ->assertStatus(422);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.atualizacoes.store', $solicitacao->id), ['texto' => str_repeat('a', 501)])
+            ->assertStatus(422);
+    }
+
+    // ---------------------------------------------------------------
     // Prioridade e exclusão
     // ---------------------------------------------------------------
 
@@ -480,6 +551,9 @@ class CentralSolicitacoesTest extends TestCase
             ->assertStatus(404);
         $this->actingAs($userOutra)
             ->postJson(route('backoffice.solicitacoes.prioridade', $solicitacao->id))
+            ->assertStatus(404);
+        $this->actingAs($userOutra)
+            ->postJson(route('backoffice.solicitacoes.atualizacoes.store', $solicitacao->id), ['texto' => 'Invasão'])
             ->assertStatus(404);
         $this->actingAs($userOutra)
             ->deleteJson(route('backoffice.solicitacoes.destroy', $solicitacao->id))

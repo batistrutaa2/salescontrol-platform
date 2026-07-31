@@ -90,6 +90,24 @@
     });
 
     // ====== lista ======
+    function updatesHtml(d) {
+        const items = Array.isArray(d.atualizacoes) ? d.atualizacoes : [];
+        if (!items.length) return '';
+
+        return `
+            <div class="mdv-card-updates">
+                <div class="mdv-card-updates-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Atualizações do pós-venda
+                </div>
+                ${items.map(a => `
+                    <div class="mdv-update">
+                        <div class="mdv-update-texto">${escapeHtml(a.texto)}</div>
+                        <div class="mdv-update-meta">${escapeHtml(a.autor)}${a.data ? ' · ' + escapeHtml(a.data) : ''}</div>
+                    </div>`).join('')}
+            </div>`;
+    }
+
     function cardHtml(d) {
         const st = STATUS[d.status] || STATUS['ABERTA'];
         const cliente = escapeHtml(d.cliente || 'Contrato');
@@ -107,6 +125,10 @@
         const prazo = d.status === 'ABERTA' && d.data_limite
             ? `<span class="mdv-card-meta-item">Prazo: ${escapeHtml(d.data_limite)}</span>` : '';
 
+        // Chamado aberto pelo pós-venda em contrato do vendedor: ele acompanha do mesmo jeito.
+        const origem = d.origem && d.origem !== 'VENDEDOR'
+            ? '<span class="mdv-card-meta-item mdv-card-origem">Aberta pelo pós-venda</span>' : '';
+
         return `
             <div class="mdv-card ${badgeCls}">
                 <div class="mdv-card-top">
@@ -116,8 +138,10 @@
                 <div class="mdv-card-cliente">${cliente} ${proposta}</div>
                 <div class="mdv-card-titulo">${escapeHtml(d.titulo)}</div>
                 ${desc}
+                ${updatesHtml(d)}
                 <div class="mdv-card-meta">
                     <span class="mdv-card-meta-item">Aberta em ${fmtData(d.created_at)}</span>
+                    ${origem}
                     ${prazo}
                     ${concl}
                 </div>

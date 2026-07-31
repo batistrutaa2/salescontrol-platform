@@ -305,6 +305,7 @@ Route::middleware(['auth'])->group(function () {
   Route::patch('/back-office/solicitacoes/{id}', [CentralSolicitacoesController::class, 'update'])->whereNumber('id')->name('backoffice.solicitacoes.update');
   Route::post('/back-office/solicitacoes/{id}/mover', [CentralSolicitacoesController::class, 'mover'])->whereNumber('id')->name('backoffice.solicitacoes.mover');
   Route::post('/back-office/solicitacoes/{id}/prioridade', [CentralSolicitacoesController::class, 'prioridade'])->whereNumber('id')->name('backoffice.solicitacoes.prioridade');
+  Route::post('/back-office/solicitacoes/{id}/atualizacoes', [CentralSolicitacoesController::class, 'storeAtualizacao'])->whereNumber('id')->name('backoffice.solicitacoes.atualizacoes.store');
   Route::delete('/back-office/solicitacoes/{id}', [CentralSolicitacoesController::class, 'destroy'])->whereNumber('id')->name('backoffice.solicitacoes.destroy');
 
   // Pós-Venda

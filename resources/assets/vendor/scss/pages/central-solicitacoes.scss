@@ -1131,6 +1131,27 @@
 
 .spv-detail-edit { margin-top: 0.25rem; }
 
+// Composer de atualização de andamento (aba Atualizações & histórico)
+.spv-atualizacao-composer {
+    background: rgba(var(--dash-info-rgb, 6, 182, 212), 0.05);
+    border: 1px solid rgba(var(--dash-info-rgb, 6, 182, 212), 0.2);
+    border-radius: 12px;
+    padding: 0.8rem 0.9rem;
+    margin-bottom: 1rem;
+
+    .pv-form-textarea { margin-top: 0.35rem; }
+}
+
+.spv-atualizacao-composer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+
+    .spv-hint { margin-top: 0; }
+}
+
 .spv-timeline-container {
     max-height: 340px;
     overflow-y: auto;
@@ -1157,6 +1178,21 @@
     padding: 0 0 1rem 0.6rem;
 
     &:last-child { padding-bottom: 0.25rem; }
+}
+
+// Atualização de andamento se destaca das mudanças automáticas de campo
+.spv-timeline-item--atualizacao {
+    .spv-timeline-dot {
+        background: linear-gradient(135deg, var(--dash-info, #06B6D4), var(--dash-info-light, #22D3EE));
+        box-shadow: 0 0 0 3px rgba(var(--dash-info-rgb, 6, 182, 212), 0.15);
+    }
+
+    .spv-timeline-campo {
+        color: var(--dash-info, #06B6D4);
+        background: rgba(var(--dash-info-rgb, 6, 182, 212), 0.1);
+    }
+
+    .spv-timeline-text { font-weight: 500; }
 }
 
 .spv-timeline-dot {

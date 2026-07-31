@@ -373,6 +373,44 @@ class DemandaVendedorTest extends TestCase
         $this->assertSame($venda->nome_contrato, $data[0]['cliente']);
     }
 
+    public function test_vendedor_acompanha_solicitacao_aberta_pelo_backoffice_em_contrato_seu_com_atualizacoes(): void
+    {
+        $venda = $this->criarVenda($this->vendedor);
+
+        // O backoffice abre o chamado direto na central — sem o vendedor pedir.
+        $solicitacaoId = $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.store'), [
+                'venda_id' => $venda->id,
+                'tipo' => TipoSolicitacaoPosVenda::PORTABILIDADE->value,
+            ])
+            ->assertOk()->json('id');
+
+        // E registra uma atualização de andamento.
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.atualizacoes.store', $solicitacaoId), [
+                'texto' => 'Acessei hoje e a portabilidade ainda não saiu.',
+            ])
+            ->assertOk();
+
+        // O dono do contrato vê o chamado e as atualizações, mesmo sem tê-lo aberto.
+        $data = $this->actingAs($this->vendedor)
+            ->getJson(route('comercial.minhasDemandas.list'))
+            ->assertOk()->json('data');
+
+        $this->assertCount(1, $data);
+        $this->assertSame($solicitacaoId, $data[0]['id']);
+        $this->assertSame('BACKOFFICE', $data[0]['origem']);
+        $this->assertCount(1, $data[0]['atualizacoes']);
+        $this->assertSame('Acessei hoje e a portabilidade ainda não saiu.', $data[0]['atualizacoes'][0]['texto']);
+        $this->assertSame($this->backoffice->name, $data[0]['atualizacoes'][0]['autor']);
+        $this->assertNotEmpty($data[0]['atualizacoes'][0]['data']);
+
+        // Outro vendedor não enxerga nada: o contrato não é dele.
+        $this->assertCount(0, $this->actingAs($this->outroVendedor)
+            ->getJson(route('comercial.minhasDemandas.list'))
+            ->assertOk()->json('data'));
+    }
+
     public function test_buscar_contratos_implantados_so_traz_os_do_vendedor_implantados(): void
     {
         $minhaImplantada = $this->criarVenda($this->vendedor);

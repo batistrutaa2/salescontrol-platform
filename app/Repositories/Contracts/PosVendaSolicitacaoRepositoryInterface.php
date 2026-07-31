@@ -21,6 +21,13 @@ interface PosVendaSolicitacaoRepositoryInterface
     /** @return bool|null novo valor da prioridade; null se não encontrada na empresa */
     public function alternarPrioridade(int $id, int $empresaId, int $userId): ?bool;
 
+    /**
+     * Registra uma atualização de andamento na timeline da solicitação.
+     *
+     * @return PosVendaSolicitacao|null a solicitação (com venda carregada); null se não encontrada na empresa
+     */
+    public function registrarAtualizacao(int $id, int $empresaId, int $userId, string $texto): ?PosVendaSolicitacao;
+
     /** @return bool false se não encontrada na empresa */
     public function excluir(int $id, int $empresaId): bool;
 
