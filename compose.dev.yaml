@@ -1,11 +1,12 @@
-# Ambiente de desenvolvimento do SalesControl — sem Sail.
+# Ambiente Docker enxuto de desenvolvimento do SalesControl.
 # Pré-requisito: infra compartilhada de pé (MySQL brsolutions):
 #   docker compose -f ../docker-compose.yml up -d
 #
 # Uso diário (ou use o wrapper ./dev):
 #   docker compose -f compose.dev.yaml up -d              # app + vite
-#   docker compose -f compose.dev.yaml --profile queue up -d    # + fila
-#   docker compose -f compose.dev.yaml --profile reverb up -d   # + websockets
+#   docker compose -f compose.dev.yaml --profile queue up -d     # + fila
+#   docker compose -f compose.dev.yaml --profile scheduler up -d # + agendador
+#   docker compose -f compose.dev.yaml --profile reverb up -d    # + websockets
 #
 # Portas deslocadas (8001/5174/8082) para conviver com o bloo (8000/5173/8080)
 # se ambos rodarem ao mesmo tempo.
@@ -40,9 +41,15 @@ services:
 
   queue:
     <<: *base
-    command: php artisan queue:work --tries=3 --max-time=3600
+    command: php artisan queue:work --queue=whatsapp,default --tries=5 --max-time=3600
     profiles: [queue]
     mem_limit: 256m
+
+  scheduler:
+    <<: *base
+    command: php artisan schedule:work
+    profiles: [scheduler]
+    mem_limit: 192m
 
   reverb:
     <<: *base

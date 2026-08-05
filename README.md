@@ -63,7 +63,7 @@ O **SalesControl** é um sistema completo de **CRM (Customer Relationship Manage
 - **CSS/SCSS** - Estilização avançada
 
 ### **Banco de Dados**
-- **MySQL/PostgreSQL** - Banco de dados relacional
+- **MySQL 8.4 compartilhado** - Um database por produto na infraestrutura global
 - **Migrations** - Controle de versão do banco
 - **Seeders** - Dados iniciais do sistema
 
@@ -102,11 +102,10 @@ app/
 ## ⚙️ Instalação e Configuração
 
 ### **Pré-requisitos**
-- PHP 8.2 ou superior
-- Composer
-- Node.js e NPM/Yarn
-- MySQL ou PostgreSQL
-- Docker (opcional)
+- Docker 28+ com Docker Compose v2
+
+PHP, Composer, Node, npm, filas e agendador rodam exclusivamente em containers.
+Não instale nem execute runtimes diretamente na máquina host.
 
 ### **Instalação**
 
@@ -118,46 +117,39 @@ cd salescontrol-new
 
 2. **Instale as dependências PHP**
 ```bash
-composer install
+./dev composer install
 ```
 
 3. **Instale as dependências JavaScript**
 ```bash
-npm install
-# ou
-yarn install
+./dev npm install
 ```
 
 4. **Configure o ambiente**
 ```bash
 cp .env.example .env
-php artisan key:generate
+./dev artisan key:generate
 ```
 
-5. **Configure o banco de dados**
-- Edite o arquivo `.env` com suas credenciais
-- Execute as migrations:
+5. **Suba o ambiente e prepare o banco**
+
+O `./dev` sobe automaticamente o MySQL global definido em `../docker-compose.yml`.
+O projeto não mantém um MySQL próprio.
 ```bash
-php artisan migrate
-php artisan db:seed
+./dev up
+./dev artisan migrate
+./dev artisan db:seed
 ```
 
-6. **Compile os assets**
+6. **Serviços opcionais em containers separados**
 ```bash
-npm run build
-# Para desenvolvimento:
-npm run dev
+./dev queue       # worker de filas
+./dev scheduler   # scheduler/cron do Laravel
+./dev reverb      # websockets
+./dev down        # encerre os containers ociosos ao terminar
 ```
 
-7. **Inicie o servidor**
-```bash
-php artisan serve
-```
-
-### **Docker (Alternativa)**
-```bash
-docker-compose up -d
-```
+O servidor e o Vite já são iniciados por `./dev up`, nas portas 8001 e 5174.
 
 ## 🚀 Como Usar
 

@@ -11,7 +11,7 @@ class PreditivaTabulacoesHardSeeder extends Seeder
      * Insere as tabulações HARD padrão para todas as empresas existentes.
      * São chamadas quando o cliente ATENDE a ligação e dá uma negativa definitiva.
      *
-     * Rodar com: sail artisan db:seed --class=PreditivaTabulacoesHardSeeder
+     * Rodar com: ./dev artisan db:seed --class=PreditivaTabulacoesHardSeeder
      */
     public function run(): void
     {

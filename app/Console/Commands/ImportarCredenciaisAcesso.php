@@ -21,7 +21,7 @@ use Maatwebsite\Excel\Facades\Excel;
  *   Porto Seguro  → L-Q  (11,12,13,14,15,16)
  *
  * Uso:
- *   sail artisan credenciais:importar "Cópia de Acesso gempresas.xlsx" {empresa_id} [--user=ID] [--sheet=0]
+ *   ./dev artisan credenciais:importar "Cópia de Acesso gempresas.xlsx" {empresa_id} [--user=ID] [--sheet=0]
  */
 class ImportarCredenciaisAcesso extends Command
 {

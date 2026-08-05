@@ -1,4 +1,4 @@
-# Imagem de desenvolvimento enxuta do SalesControl (substitui o Laravel Sail).
+# Imagem Docker enxuta de desenvolvimento do SalesControl.
 # PHP + Node na mesma imagem: o Vite (laravel-vite-plugin) precisa do PHP para
 # resolver as rotas/hot, e alguns comandos artisan tocam assets. Alpine para
 # caber no orçamento de RAM do host (~4 GB).

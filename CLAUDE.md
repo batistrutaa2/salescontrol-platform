@@ -30,9 +30,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
-### IMPORTANT: Use Laravel Sail
+### OBRIGATÓRIO: use Docker via `./dev`
 
-**This project uses Laravel Sail (Docker-based environment). NEVER run PHP or Artisan commands directly. Always prefix with `./vendor/bin/sail` or `sail` (if aliased).**
+O projeto usa o ambiente Docker enxuto próprio (`Dockerfile.dev` +
+`compose.dev.yaml`). **Nunca rode PHP, Composer, Node, npm ou Artisan diretamente
+no host.** Todo comando de desenvolvimento passa pelo wrapper `./dev`.
+
+O MySQL é único e compartilhado entre os produtos, definido em
+`../docker-compose.yml` (container `brsolutions-mysql`, rede `brsolutions`). O
+SalesControl usa os databases `salescontrol`, `salescontrol_people` e `testing`;
+não adicione um serviço MySQL ao Compose deste projeto.
 
 ```bash
 # WRONG - Do NOT use:
@@ -40,42 +47,47 @@ php artisan migrate
 php artisan serve
 composer install
 
-# CORRECT - Always use Sail:
-./vendor/bin/sail artisan migrate
-./vendor/bin/sail artisan serve
-./vendor/bin/sail composer install
+# CORRETO - sempre use o wrapper Docker:
+./dev artisan migrate
+./dev up
+./dev composer install
 ```
 
 ### Initial Setup
 ```bash
 # Install PHP dependencies
-./vendor/bin/sail composer install
+./dev composer install
 
 # Install JavaScript dependencies
-npm install
+./dev npm install
 
 # Setup environment
 cp .env.example .env
-./vendor/bin/sail artisan key:generate
+./dev artisan key:generate
 
 # Run migrations and seed database
-./vendor/bin/sail artisan migrate
-./vendor/bin/sail artisan db:seed
+./dev artisan migrate
+./dev artisan db:seed
 ```
 
 ### Development Workflow
 ```bash
-# Start Sail containers
-./vendor/bin/sail up -d
+# Sobe app + Vite e garante o MySQL global
+./dev up
+
+# Serviços opcionais, sempre em containers separados
+./dev queue
+./dev scheduler
+./dev reverb
 
 # Watch and compile frontend assets (development)
-npm run dev
+./dev up
 
 # Run code formatting
-./vendor/bin/sail pint
+./dev pint
 
 # Run tests
-./vendor/bin/sail artisan test
+./dev test
 ```
 
 **IMPORTANT:** Never run `npm run build` - the user handles asset compilation manually.
@@ -83,34 +95,34 @@ npm run dev
 ### Database Operations
 ```bash
 # Create a new migration
-./vendor/bin/sail artisan make:migration create_table_name
+./dev artisan make:migration create_table_name
 
 # Run migrations
-./vendor/bin/sail artisan migrate
+./dev artisan migrate
 
 # Rollback last migration
-./vendor/bin/sail artisan migrate:rollback
+./dev artisan migrate:rollback
 
 # Fresh migration (drop all tables and re-migrate)
-./vendor/bin/sail artisan migrate:fresh
+./dev artisan migrate:fresh
 
 # Seed database
-./vendor/bin/sail artisan db:seed
+./dev artisan db:seed
 ```
 
 ### Artisan Commands
 ```bash
 # Clear all caches
-./vendor/bin/sail artisan optimize:clear
+./dev artisan optimize:clear
 
 # Create controller
-./vendor/bin/sail artisan make:controller ControllerName
+./dev artisan make:controller ControllerName
 
 # Create model with migration
-./vendor/bin/sail artisan make:model ModelName -m
+./dev artisan make:model ModelName -m
 
 # Create repository
-./vendor/bin/sail artisan make:class Repositories/Eloquent/RepositoryName
+./dev artisan make:class Repositories/Eloquent/RepositoryName
 ```
 
 ## Architecture & Code Organization
@@ -891,8 +903,8 @@ Feature = novo endpoint, novo service, nova regra de negócio. Sem teste, não m
 
 **Rodar:**
 ```bash
-./vendor/bin/sail artisan test --testsuite=Feature --filter=LkBeneficios
-./vendor/bin/sail artisan test --testsuite=Unit --filter=LkBeneficios
+./dev test --testsuite=Feature --filter=LkBeneficios
+./dev test --testsuite=Unit --filter=LkBeneficios
 ```
 
 ### Padrões de velocidade (o que NÃO fazer para ir rápido)
@@ -1010,4 +1022,4 @@ abstração prematura.
 - [ ] Toasts usam `showModernToast()` (SweetAlert2 + classe `.custom-toast`), nunca `alert()` cru.
 - [ ] Suporte a dark mode confirmado (`.dark-style .lkb-*` overrides ou herança correta de vars).
 - [ ] Zero credencial em código; tudo via `.env` + `config/services.php`.
-- [ ] `./vendor/bin/sail artisan test` verde.
+- [ ] `./dev test` verde.

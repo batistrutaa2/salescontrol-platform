@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Wrapper de desenvolvimento do SalesControl (substitui o Sail).
+# Wrapper Docker de desenvolvimento do SalesControl.
 # Uso: ./dev <comando> [args...]
 set -euo pipefail
 
@@ -18,12 +18,13 @@ cmd="${1:-help}"; shift || true
 
 case "$cmd" in
   up)       ensure_infra; $COMPOSE up -d "$@" ;;
-  down)     $COMPOSE --profile queue --profile reverb down "$@" ;;
+  down)     $COMPOSE --profile queue --profile scheduler --profile reverb down "$@" ;;
   restart)  $COMPOSE restart "$@" ;;
   ps)       $COMPOSE ps ;;
   logs)     $COMPOSE logs -f "$@" ;;
   build)    $COMPOSE build app ;;
   queue)    ensure_infra; $COMPOSE --profile queue up -d ;;
+  scheduler|cron) ensure_infra; $COMPOSE --profile scheduler up -d ;;
   reverb)   ensure_infra; $COMPOSE --profile reverb up -d ;;
   artisan|art) ensure_infra; $COMPOSE run --rm --no-deps app php artisan "$@" ;;
   tinker)   ensure_infra; $COMPOSE run --rm --no-deps -it app php artisan tinker ;;
@@ -40,6 +41,8 @@ Uso: ./dev <comando>
   up              Sobe app (:8001) + vite (:5174), e o MySQL se preciso
   down            Derruba todos os containers do SalesControl
   queue           Sobe também o worker de fila (profile opcional)
+  scheduler       Sobe o agendador/cron Laravel (profile opcional)
+  cron            Alias de scheduler
   reverb          Sobe também o servidor websocket (:8082, profile opcional)
   artisan <...>   Roda comando artisan            (ex.: ./dev artisan migrate)
   test [...]      Roda a suíte de testes          (ex.: ./dev test --filter=X)
