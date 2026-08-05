@@ -24,6 +24,7 @@ use App\Http\Controllers\pages\backoffice\ProcessosVendaController;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
 use App\Http\Controllers\pages\relatorios\RelatorioAproveitamento;
+use App\Http\Controllers\pages\relatorios\RelatorioQualidadeVendasController;
 use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\financeiro\Financeiro;
 use App\Http\Controllers\pages\comercial\ConsultaController;
@@ -411,6 +412,12 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/relatorios/aproveitamento', [RelatorioAproveitamento::class, 'index'])->name('relatorios.aproveitamento');
   Route::get('/relatorios/aproveitamento/dados', [RelatorioAproveitamento::class, 'getDados'])->name('relatorios.aproveitamento.dados');
   Route::post('/relatorios/aproveitamento/analise', [RelatorioAproveitamento::class, 'gerarAnalise'])->name('relatorios.aproveitamento.analise');
+
+  Route::middleware('role:' . \App\Enums\UserRole::ADMINISTRATIVO . ',' . \App\Enums\UserRole::SUPERVISOR . ',' . \App\Enums\UserRole::DEVELOPER)->group(function () {
+    Route::get('/relatorios/qualidade-vendas', [RelatorioQualidadeVendasController::class, 'index'])->name('relatorios.qualidadeVendas');
+    Route::get('/relatorios/qualidade-vendas/dados', [RelatorioQualidadeVendasController::class, 'dados'])->name('relatorios.qualidadeVendas.dados');
+    Route::get('/relatorios/qualidade-vendas/propostas', [RelatorioQualidadeVendasController::class, 'propostas'])->name('relatorios.qualidadeVendas.propostas');
+  });
 
   /** RANKING DE VENDAS */
   Route::get('/ranking', [RankingVendas::class, 'index'])->name('ranking.index');

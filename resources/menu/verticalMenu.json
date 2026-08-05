@@ -303,6 +303,15 @@
       ],
       "submenu": [
         {
+          "url": "/relatorios/qualidade-vendas",
+          "name": "Qualidade das Vendas",
+          "slug": "relatorios.qualidadeVendas",
+          "rules": [
+            "DEVELOPER",
+            "ADMINISTRATIVO"
+          ]
+        },
+        {
           "url": "/relatorios/distribuicao-leads",
           "name": "Distribuição de Leads",
           "slug": "pages-relatorio-distribuicao-leads"
@@ -347,6 +356,11 @@
         "SUPERVISOR"
       ],
       "submenu": [
+        {
+          "url": "/relatorios/qualidade-vendas",
+          "name": "Qualidade das Vendas",
+          "slug": "relatorios.qualidadeVendas"
+        },
         {
           "url": "/relatorios/distribuicao-leads",
           "name": "Distribuição de Leads",
