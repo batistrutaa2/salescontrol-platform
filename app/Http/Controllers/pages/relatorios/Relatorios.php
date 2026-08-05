@@ -1506,7 +1506,10 @@ class Relatorios extends Controller
      */
     public function distribuicaoLeads()
     {
-        return view('content.pages.relatorios.distribuicao-leads');
+        return view('content.pages.relatorios.distribuicao-leads', [
+            'inicioMes' => now()->startOfMonth()->format('Y-m-d'),
+            'hoje' => now()->format('Y-m-d'),
+        ]);
     }
 
     /**
@@ -1514,9 +1517,14 @@ class Relatorios extends Controller
      */
     public function distribuicaoLeadsData(Request $request)
     {
+        $request->validate([
+            'data_inicial' => 'nullable|date_format:Y-m-d|required_with:data_final',
+            'data_final' => 'nullable|date_format:Y-m-d|required_with:data_inicial|after_or_equal:data_inicial',
+        ]);
+
         $empresaId = Auth::user()->empresa_id;
-        $dataInicial = $request->input('data_inicial');
-        $dataFinal = $request->input('data_final');
+        $dataInicial = $request->filled('data_inicial') ? Carbon::parse($request->input('data_inicial'))->startOfDay() : null;
+        $dataFinal = $request->filled('data_final') ? Carbon::parse($request->input('data_final'))->endOfDay() : null;
 
         // Total de leads no sistema
         $totalLeadsQuery = DB::table('contatos')
@@ -1723,6 +1731,46 @@ class Relatorios extends Controller
 
         $tentativasPreditiva = $tentativasPreditiva->count();
 
+        // Evolução de entrada e distribuição. Períodos longos são agrupados por mês
+        // para manter o gráfico legível.
+        $agruparPorMes = $dataInicial && $dataFinal && $dataInicial->diffInDays($dataFinal) > 62;
+        $expressaoPeriodo = $agruparPorMes
+            ? 'DATE_FORMAT(contatos.created_at, "%Y-%m")'
+            : 'DATE(contatos.created_at)';
+        $evolucao = DB::table('contatos')
+            ->leftJoin('contatos_corretores', function ($join) use ($empresaId) {
+                $join->on('contatos_corretores.contato_id', '=', 'contatos.id')
+                    ->where('contatos_corretores.empresa_id', $empresaId);
+            })
+            ->where('contatos.empresa_id', $empresaId)
+            ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]))
+            ->selectRaw("{$expressaoPeriodo} as periodo")
+            ->selectRaw('COUNT(DISTINCT contatos.id) as total')
+            ->selectRaw('COUNT(DISTINCT contatos_corretores.contato_id) as distribuidos')
+            ->groupByRaw($expressaoPeriodo)
+            ->orderBy('periodo')
+            ->get();
+
+        // Ranking operacional: volume sob custódia e divisão por estágio atual.
+        $rankingVendedores = DB::table('contatos_corretores')
+            ->join('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
+            ->join('users', 'users.id', '=', 'contatos_corretores.user_id')
+            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]))
+            ->select('users.id', 'users.name')
+            ->selectRaw('COUNT(DISTINCT contatos_corretores.contato_id) as total')
+            ->selectRaw("COUNT(DISTINCT CASE WHEN tabulacoes.tipo_tabulacao = 'C' THEN contatos_corretores.contato_id END) as comercial")
+            ->selectRaw("COUNT(DISTINCT CASE WHEN tabulacoes.tipo_tabulacao = 'A' THEN contatos_corretores.contato_id END) as administrativo")
+            ->selectRaw("COUNT(DISTINCT CASE WHEN tabulacoes.sub_tabulacao = 'Y' OR tabulacoes.descricao = 'REMARKETING' THEN contatos_corretores.contato_id END) as descarte")
+            ->groupBy('users.id', 'users.name')
+            ->orderByDesc('total')
+            ->limit(20)
+            ->get();
+
+        $leadsNaoDistribuidos = max(0, $totalLeads - $leadsDistribuidos);
+        $percentual = static fn (int $valor, int $base): float => $base > 0 ? round(($valor / $base) * 100, 1) : 0.0;
+
         return response()->json([
             'resumo' => [
                 'total_leads' => $totalLeads,
@@ -1732,12 +1780,25 @@ class Relatorios extends Controller
                 'leads_preditiva' => $leadsPreditiva,
                 'leads_descartados' => $leadsDescartados,
                 'tentativas_preditiva' => $tentativasPreditiva,
+                'leads_nao_distribuidos' => $leadsNaoDistribuidos,
+                'cobertura_distribuicao' => $percentual($leadsDistribuidos, $totalLeads),
+                'taxa_comercial' => $percentual($leadsComercial, $leadsDistribuidos),
+                'taxa_administrativo' => $percentual($leadsAdministrativo, $leadsDistribuidos),
+                'taxa_descarte' => $percentual($leadsDescartados, $totalLeads),
+                'tentativas_por_lead' => $leadsPreditiva > 0 ? round($tentativasPreditiva / $leadsPreditiva, 1) : 0.0,
+            ],
+            'periodo' => [
+                'inicio' => $dataInicial?->format('d/m/Y'),
+                'fim' => $dataFinal?->format('d/m/Y'),
+                'agrupamento' => $agruparPorMes ? 'mensal' : 'diario',
             ],
             'distribuicao_status' => $distribuicaoPorStatus,
             'distribuicao_comercial' => $distribuicaoComercial,
             'distribuicao_administrativa' => $distribuicaoAdministrativa,
             'distribuicao_descarte' => $distribuicaoDescarte,
             'motivos_descarte' => $motivosDescarte,
+            'evolucao' => $evolucao,
+            'ranking_vendedores' => $rankingVendedores,
         ]);
     }
 }
