@@ -475,6 +475,103 @@ $cpfClienteData = $cliente->cpf ?? $venda->cpf_cnpj ?? '';
     </div>
 </template>
 
+{{-- O novaProposta.js usa este modal tanto para criar quanto para corrigir dependentes. --}}
+<div class="dep-modal-overlay" id="dep-modal-overlay">
+    <div class="dep-modal">
+        <div class="dep-modal-header">
+            <div class="dep-modal-title">
+                <span class="dep-modal-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
+                </span>
+                <div>
+                    <h3 id="dep-modal-title">Adicionar Dependente</h3>
+                    <span>Preencha todos os dados do beneficiario</span>
+                </div>
+            </div>
+            <button type="button" class="dep-modal-close" id="btn-dep-modal-close">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <div class="dep-modal-body">
+            <div class="np-grid grid-2">
+                <div class="np-field span-2">
+                    <label class="required" for="dep_nome">Nome completo</label>
+                    <input type="text" id="dep_nome" class="np-input" placeholder="Nome completo do dependente" autocomplete="off">
+                </div>
+                <div class="np-field">
+                    <label class="required" for="dep_cpf">CPF</label>
+                    <input type="text" id="dep_cpf" class="np-input" placeholder="000.000.000-00" autocomplete="off">
+                </div>
+                <div class="np-field">
+                    <label class="required" for="dep_data_nascimento">Data de Nascimento</label>
+                    <input type="text" id="dep_data_nascimento" class="np-input" placeholder="DD/MM/AAAA" autocomplete="off">
+                </div>
+                <div class="np-field span-2">
+                    <label class="required" for="dep_email">E-mail</label>
+                    <input type="email" id="dep_email" class="np-input" placeholder="email@exemplo.com" autocomplete="off">
+                </div>
+                <div class="np-field">
+                    <label class="required" for="dep_telefone1">Telefone 1</label>
+                    <input type="text" id="dep_telefone1" class="np-input" placeholder="(11) 91234-5678" autocomplete="off">
+                </div>
+                <div class="np-field">
+                    <label for="dep_telefone2">Telefone 2</label>
+                    <input type="text" id="dep_telefone2" class="np-input" placeholder="(11) 91234-5678" autocomplete="off">
+                </div>
+                <div class="np-field">
+                    <label class="required" for="dep_parentesco">Parentesco</label>
+                    <select id="dep_parentesco" class="np-input">
+                        <option value="">Selecione...</option>
+                        <option value="CONJUGE">Conjuge</option>
+                        <option value="COMPANHEIRO">Companheiro(a)</option>
+                        <option value="FILHO">Filho(a)</option>
+                        <option value="ENTEADO">Enteado(a)</option>
+                        <option value="PAI_MAE">Pai/Mae</option>
+                        <option value="SOGRO">Sogro(a)</option>
+                        <option value="IRMAO">Irmao(a)</option>
+                        <option value="NETO">Neto(a)</option>
+                        <option value="AVO">Avo(o)</option>
+                        <option value="BISNETO">Bisneto(a)</option>
+                        <option value="BISAVO">Bisavo(o)</option>
+                        <option value="TIO">Tio(a)</option>
+                        <option value="SOBRINHO">Sobrinho(a)</option>
+                        <option value="PRIMO">Primo(a)</option>
+                        <option value="GENRO_NORA">Genro/Nora</option>
+                        <option value="CUNHADO">Cunhado(a)</option>
+                        <option value="TUTELADO">Tutelado(a)/Menor sob guarda</option>
+                        <option value="OUTROS">Outros</option>
+                    </select>
+                </div>
+                <div class="np-field">
+                    <label for="dep_plano_anterior">Possui plano anterior?</label>
+                    <select id="dep_plano_anterior" class="np-input">
+                        <option value="NAO">Nao</option>
+                        <option value="SIM">Sim</option>
+                    </select>
+                </div>
+                <div class="np-field span-2" id="dep-op-anterior-row" style="display:none;">
+                    <label class="required" for="dep_operadora_anterior_id">Qual era a operadora?</label>
+                    <select id="dep_operadora_anterior_id" class="np-input">
+                        <option value="">Selecione a operadora anterior...</option>
+                        @foreach ($operadoras as $op)
+                            <option value="{{ $op->id }}">{{ strtoupper($op->nome) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="dep-modal-footer">
+            <button type="button" class="dep-btn dep-btn-ghost" id="btn-dep-modal-cancel">Cancelar</button>
+            <button type="button" class="dep-btn dep-btn-primary" id="btn-dep-modal-save">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                <span id="dep-modal-save-label">Adicionar dependente</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <template id="template-portabilidade">
     <div class="port-item" data-port-index="__PORT_INDEX__">
         <span class="port-num">__PORT_NUMBER__</span>

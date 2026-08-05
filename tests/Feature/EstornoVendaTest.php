@@ -368,6 +368,8 @@ class EstornoVendaTest extends TestCase
 
         $response = $this->actingAs($this->vendedor)->get(route('sale.editEstorno', $venda->id));
         $response->assertStatus(200);
+        $response->assertSee('id="dep-modal-overlay"', false);
+        $response->assertSee('id="btn-dep-modal-save"', false);
     }
 
     public function test_vendedor_nao_pode_editar_venda_de_outro_vendedor(): void
