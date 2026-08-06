@@ -306,8 +306,8 @@
       </a>`;
   }
 
-  function acessoCard(a, i) {
-    const sid = `pv-cli-secret-${i}`;
+  function acessoCard(a, i, contexto = 'cliente') {
+    const sid = `pv-cli-secret-${contexto}-${a.id || i}`;
     const inativo = String(a.status || 'Y').toUpperCase() === 'N';
     return `<div class="pv-cli-card${inativo ? ' is-inativo' : ''}">
         <div class="pv-cli-head">
@@ -346,6 +346,43 @@
       </div>`;
   }
 
+  function acessoResultadoBusca(a, i) {
+    const sid = `pv-cofre-secret-${a.id || i}`;
+    const inativo = String(a.status || 'Y').toUpperCase() === 'N';
+    return `<article class="pv-cofre-result${inativo ? ' is-inativo' : ''}">
+      <div class="pv-cofre-result-main">
+        <div class="pv-cofre-result-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="pv-cofre-result-identity">
+          <div class="pv-cofre-result-title">
+            <strong>${esc(a.nome || 'Acesso sem nome')}</strong>
+            <span class="pv-cofre-status ${inativo ? 'is-off' : 'is-on'}">${inativo ? 'Inativo' : 'Ativo'}</span>
+          </div>
+          <div class="pv-cofre-result-meta">
+            <span>${esc(a.operadora || 'Sem operadora')}</span>
+            ${a.tipo ? `<span>${esc(a.tipo)}</span>` : ''}
+            ${a.observacao ? `<span class="pv-cofre-result-note" title="${esc(a.observacao)}">${esc(a.observacao)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="pv-cofre-result-credentials">
+        <div class="pv-cofre-result-field">
+          <span class="pv-cli-label">Login</span>
+          <div class="pv-cofre-value"><span class="mono">${esc(a.login || '—')}</span>${a.login ? `<button type="button" class="pv-mini-btn" data-copy="${esc(a.login)}">copiar</button>` : ''}</div>
+        </div>
+        <div class="pv-cofre-result-field">
+          <span class="pv-cli-label">Senha</span>
+          <div class="pv-cofre-value"><span class="mono pv-secret" id="${sid}" data-secret="${esc(a.senha || '')}">${a.senha ? '••••••••' : '—'}</span>${a.senha ? `<button type="button" class="pv-mini-btn" data-reveal="${sid}">mostrar</button><button type="button" class="pv-mini-btn" data-copy="${esc(a.senha)}">copiar</button>` : ''}</div>
+        </div>
+      </div>
+      <button type="button" class="pv-cofre-edit" data-editar-acesso="${a.id}" aria-label="Editar ${esc(a.nome || 'acesso')}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Editar
+      </button>
+    </article>`;
+  }
+
   function renderCliente(data) {
     const host = root.querySelector('.pv-cliente-host');
     if (!host) return;
@@ -363,6 +400,26 @@
       : '<div class="pv-empty">Nenhum acesso cadastrado para este cliente. <button type="button" class="pv-empty-link" data-add-acesso>Cadastrar acesso</button>.</div>';
 
     host.innerHTML = `
+      <div class="pv-cofre-search" data-cofre-search>
+        <div class="pv-cofre-search-heading">
+          <div class="pv-cofre-search-symbol">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div>
+            <div class="pv-cofre-search-title-row"><h6>Consultar Cofre de Acessos</h6><span>Busca geral</span></div>
+            <p>Encontre credenciais de qualquer cliente sem sair do contrato atual.</p>
+          </div>
+        </div>
+        <div class="pv-cofre-search-input-wrap">
+          <svg class="pv-cofre-search-glass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="search" class="pv-cofre-search-input" data-cofre-search-input placeholder="Empresa, CNPJ, login, operadora..." autocomplete="off" aria-label="Pesquisar no Cofre de Acessos" aria-describedby="pv-cofre-search-help">
+          <button type="button" class="pv-cofre-search-clear" data-cofre-search-clear aria-label="Limpar pesquisa">×</button>
+        </div>
+        <div class="pv-cofre-search-help" id="pv-cofre-search-help"><span>Digite ao menos 2 caracteres</span><span>Até 20 resultados</span></div>
+        <div class="pv-cofre-search-results" data-cofre-search-results aria-live="polite">
+          <div class="pv-cofre-search-idle"><strong>Faça uma busca no cofre</strong><span>Os resultados aparecerão aqui de forma segura e organizada.</span></div>
+        </div>
+      </div>
       <div class="pv-cliente-section">
         <div class="pv-cliente-header">
           <h6 class="pv-cliente-title">Histórico de contratos</h6>
@@ -395,6 +452,41 @@
   const acCount = document.getElementById('pvac-acessos-count');
   let acessosCache = [];
   let acEditandoId = null;
+  let cofreSearchTimer = null;
+
+  async function pesquisarCofre(input) {
+    const results = root.querySelector('[data-cofre-search-results]');
+    if (!results) return;
+    const termo = input.value.trim();
+    input.closest('[data-cofre-search]')?.classList.toggle('has-query', termo.length > 0);
+    if (termo.length < 2) {
+      results.innerHTML = termo.length
+        ? '<div class="pv-cofre-search-feedback">Digite mais um caractere para pesquisar.</div>'
+        : '<div class="pv-cofre-search-idle"><strong>Faça uma busca no cofre</strong><span>Os resultados aparecerão aqui de forma segura e organizada.</span></div>';
+      return;
+    }
+
+    results.innerHTML = '<div class="pv-cofre-loading"><span></span><span></span><span></span></div>';
+    try {
+      const response = await fetch(`/back-office/credenciais/pesquisar?q=${encodeURIComponent(termo)}`, {
+        headers: { Accept: 'application/json' },
+      });
+      const json = await response.json();
+      if (!response.ok || !json.success) throw new Error(json.message || 'Erro na pesquisa');
+
+      const encontrados = json.acessos || [];
+      encontrados.forEach((acesso) => {
+        const posicao = acessosCache.findIndex((item) => String(item.id) === String(acesso.id));
+        if (posicao >= 0) acessosCache[posicao] = acesso;
+        else acessosCache.push(acesso);
+      });
+      results.innerHTML = encontrados.length
+        ? `<div class="pv-cofre-search-summary"><strong>${encontrados.length}</strong> ${encontrados.length === 1 ? 'acesso encontrado' : 'acessos encontrados'} para “${esc(termo)}”</div><div class="pv-cofre-results-list">${encontrados.map(acessoResultadoBusca).join('')}</div>`
+        : `<div class="pv-cofre-search-empty"><strong>Nenhum acesso encontrado</strong><span>Tente buscar pelo CNPJ sem pontuação, nome da empresa ou operadora.</span></div>`;
+    } catch (error) {
+      results.innerHTML = '<div class="pv-cofre-search-empty is-error"><strong>Não foi possível pesquisar agora</strong><span>Verifique sua conexão e tente novamente.</span></div>';
+    }
+  }
 
   function acAtualizarCount() {
     const linhas = acBox ? acBox.querySelectorAll('.pvac-acesso') : [];
@@ -558,6 +650,23 @@
     }
     const editar = e.target.closest('[data-editar-acesso]');
     if (editar) acAbrirEdicao(editar.dataset.editarAcesso);
+  });
+
+  root.addEventListener('input', (e) => {
+    if (!e.target.matches('[data-cofre-search-input]')) return;
+    clearTimeout(cofreSearchTimer);
+    cofreSearchTimer = setTimeout(() => pesquisarCofre(e.target), 300);
+  });
+
+  root.addEventListener('click', (e) => {
+    const clear = e.target.closest('[data-cofre-search-clear]');
+    if (!clear) return;
+    const search = clear.closest('[data-cofre-search]');
+    const input = search?.querySelector('[data-cofre-search-input]');
+    if (!input) return;
+    input.value = '';
+    pesquisarCofre(input);
+    input.focus();
   });
 
   function atualizarContador(lista) {

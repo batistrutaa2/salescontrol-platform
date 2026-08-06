@@ -77,7 +77,7 @@ class CentralSolicitacoesController extends Controller
         if (! $solicitacao) {
             return response()->json([
                 'success' => false,
-                'message' => 'Contrato não encontrado.',
+                'message' => 'Contrato não encontrado ou fora do processo de implantação.',
             ], 422);
         }
 

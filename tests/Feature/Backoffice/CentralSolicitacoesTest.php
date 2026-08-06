@@ -46,8 +46,18 @@ class CentralSolicitacoesTest extends TestCase
         $this->vendedor = $this->criarUsuario(UserRole::VENDEDOR);
 
         DB::table('tabulacoes')->insert([
-            'id' => Tabulations::IMPLANTADO, 'empresa_id' => $this->empresa->id, 'descricao' => 'IMPLANTADO',
-            'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
+            [
+                'id' => Tabulations::IMPLANTADO, 'empresa_id' => $this->empresa->id, 'descricao' => 'IMPLANTADO',
+                'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
+            ],
+            [
+                'id' => Tabulations::ANALISE_OPERADORA, 'empresa_id' => $this->empresa->id, 'descricao' => 'ANÁLISE NA OPERADORA',
+                'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
+            ],
+            [
+                'id' => Tabulations::NEGOCIAÇÃO, 'empresa_id' => $this->empresa->id, 'descricao' => 'NEGOCIAÇÃO',
+                'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
+            ],
         ]);
     }
 
@@ -60,7 +70,7 @@ class CentralSolicitacoesTest extends TestCase
         ]);
     }
 
-    private function criarContrato(?Empresa $empresa = null, ?User $dono = null): Vendas
+    private function criarContrato(?Empresa $empresa = null, ?User $dono = null, int $tabulacaoId = Tabulations::IMPLANTADO): Vendas
     {
         $empresa = $empresa ?? $this->empresa;
 
@@ -72,7 +82,7 @@ class CentralSolicitacoesTest extends TestCase
 
         return Vendas::create([
             'empresa_id' => $empresa->id, 'user_id' => ($dono ?? $this->backoffice)->id,
-            'contato_id' => $contatoId, 'tabulacao_id' => Tabulations::IMPLANTADO,
+            'contato_id' => $contatoId, 'tabulacao_id' => $tabulacaoId,
             'nome_contrato' => 'Contrato '.uniqid(), 'cpf_cnpj' => (string) random_int(10000000000000, 99999999999999),
             'operadora' => 'AMIL', 'valor_contrato' => 500.00, 'vidas' => 1,
             'data_vigencia' => now(), 'data_implantacao' => now(),
@@ -193,6 +203,43 @@ class CentralSolicitacoesTest extends TestCase
         $this->actingAs($userOutra)
             ->getJson(route('backoffice.solicitacoes.buscarContratos', ['q' => substr($venda->nome_contrato, 0, 10)]))
             ->assertOk()->assertJsonCount(0, 'contratos');
+    }
+
+    public function test_busca_e_abertura_aceitam_contrato_em_processo_de_implantacao(): void
+    {
+        $venda = $this->criarContrato(tabulacaoId: Tabulations::ANALISE_OPERADORA);
+
+        $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.solicitacoes.buscarContratos', ['q' => substr($venda->nome_contrato, 0, 10)]))
+            ->assertOk()
+            ->assertJsonPath('contratos.0.id', $venda->id)
+            ->assertJsonPath('contratos.0.status', 'ANÁLISE NA OPERADORA');
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.store'), [
+                'venda_id' => $venda->id,
+                'tipo' => TipoSolicitacaoPosVenda::OUTROS->value,
+                'descricao' => 'Acompanhamento durante a implantação.',
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true]);
+    }
+
+    public function test_busca_e_abertura_rejeitam_contrato_ainda_em_negociacao(): void
+    {
+        $venda = $this->criarContrato(tabulacaoId: Tabulations::NEGOCIAÇÃO);
+
+        $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.solicitacoes.buscarContratos', ['q' => substr($venda->nome_contrato, 0, 10)]))
+            ->assertOk()
+            ->assertJsonCount(0, 'contratos');
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.store'), [
+                'venda_id' => $venda->id,
+                'tipo' => TipoSolicitacaoPosVenda::OUTROS->value,
+            ])
+            ->assertStatus(422);
     }
 
     // ---------------------------------------------------------------

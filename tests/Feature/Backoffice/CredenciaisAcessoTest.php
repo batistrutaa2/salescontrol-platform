@@ -108,6 +108,51 @@ class CredenciaisAcessoTest extends TestCase
             ->assertSee('Cofre de Acessos');
     }
 
+    public function test_pesquisa_compacta_localiza_acesso_sem_vazar_outra_empresa(): void
+    {
+        $credencial = CredencialAcesso::create($this->payload([
+            'nome' => 'Portal Financeiro',
+            'observacao' => 'Acesso matriz Curitiba',
+        ]) + [
+            'empresa_id' => $this->empresa->id,
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $outraEmpresa = Empresa::factory()->create();
+        CredencialAcesso::create($this->payload([
+            'operadora_id' => null,
+            'nome' => 'Portal Financeiro Externo',
+        ]) + [
+            'empresa_id' => $outraEmpresa->id,
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson(route('backoffice.credenciais.pesquisar', ['q' => 'Financeiro']))
+            ->assertOk()
+            ->assertJson(['success' => true])
+            ->assertJsonCount(1, 'acessos');
+
+        $this->assertSame($credencial->id, $response->json('acessos.0.id'));
+        $this->assertSame('BRADESCO', $response->json('acessos.0.operadora'));
+    }
+
+    public function test_pesquisa_compacta_exige_dois_caracteres(): void
+    {
+        CredencialAcesso::create($this->payload() + [
+            'empresa_id' => $this->empresa->id,
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('backoffice.credenciais.pesquisar', ['q' => 'M']))
+            ->assertOk()
+            ->assertJsonCount(0, 'acessos');
+    }
+
     public function test_nome_salvo_sempre_em_maiusculas(): void
     {
         $this->actingAs($this->admin)

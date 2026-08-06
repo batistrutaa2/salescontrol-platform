@@ -97,6 +97,46 @@ class CredenciaisAcessoController extends Controller
             ->make(true);
     }
 
+    /** Pesquisa compacta do cofre, usada dentro da aba Cliente do contrato. */
+    public function pesquisar(Request $request): JsonResponse
+    {
+        $this->checkAccess();
+
+        $termo = trim((string) $request->input('q', ''));
+        if (mb_strlen($termo) < 2) {
+            return response()->json(['success' => true, 'acessos' => []]);
+        }
+
+        $acessos = CredencialAcesso::with('operadora:id,nome')
+            ->where('empresa_id', $this->empresaId())
+            ->where(function ($query) use ($termo) {
+                $like = "%{$termo}%";
+                $query->where('nome', 'like', $like)
+                    ->orWhere('login', 'like', $like)
+                    ->orWhere('cnpj', 'like', $like)
+                    ->orWhere('tipo', 'like', $like)
+                    ->orWhere('observacao', 'like', $like)
+                    ->orWhereHas('operadora', fn ($operadora) => $operadora->where('nome', 'like', $like));
+            })
+            ->orderBy('nome')
+            ->limit(20)
+            ->get()
+            ->map(fn (CredencialAcesso $acesso) => [
+                'id' => $acesso->id,
+                'operadora_id' => $acesso->operadora_id,
+                'operadora' => $acesso->operadora?->nome,
+                'tipo' => $acesso->tipo,
+                'nome' => $acesso->nome,
+                'login' => $acesso->login,
+                'senha' => $acesso->senha,
+                'observacao' => $acesso->observacao,
+                'status' => $acesso->status,
+            ])
+            ->values();
+
+        return response()->json(['success' => true, 'acessos' => $acessos]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $this->checkAccess();

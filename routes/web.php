@@ -341,6 +341,7 @@ Route::middleware(['auth'])->group(function () {
   // Credenciais de Acesso (cofre de logins das empresas nas operadoras)
   Route::get('/back-office/credenciais', [CredenciaisAcessoController::class, 'index'])->name('backoffice.credenciais.index');
   Route::get('/back-office/credenciais/data', [CredenciaisAcessoController::class, 'getData'])->name('backoffice.credenciais.data');
+  Route::get('/back-office/credenciais/pesquisar', [CredenciaisAcessoController::class, 'pesquisar'])->name('backoffice.credenciais.pesquisar');
   Route::post('/back-office/credenciais/importar/preview', [CredenciaisAcessoController::class, 'importPreview'])->name('backoffice.credenciais.import.preview');
   Route::post('/back-office/credenciais/importar', [CredenciaisAcessoController::class, 'import'])->name('backoffice.credenciais.import');
   Route::post('/back-office/credenciais/lote', [CredenciaisAcessoController::class, 'storeMultiplo'])->name('backoffice.credenciais.storeMultiplo');
