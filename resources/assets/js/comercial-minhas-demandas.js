@@ -2,7 +2,7 @@
 
 /**
  * Tela do vendedor para abrir e acompanhar solicitações de pós-venda sobre os
- * contratos que ele implantou. Inclui um onboarding (tour spotlight próprio,
+ * contratos dele em implantação ou já implantados. Inclui um onboarding (tour spotlight próprio,
  * mesmo padrão do mascote) exibido no primeiro acesso — reutilizável em features
  * futuras via a flag de localStorage.
  */
@@ -65,7 +65,7 @@
     $venda.select2({
         width: '100%',
         dropdownParent: $modal,
-        placeholder: 'Busque o contrato implantado…',
+        placeholder: 'Busque o contrato em implantação ou implantado…',
         minimumInputLength: 0,
         ajax: {
             url: URL_CONTRATOS,
@@ -210,7 +210,7 @@
         {
             target: '[data-tour="nova"]',
             titulo: 'Abra uma solicitação',
-            texto: 'Clique aqui para abrir uma demanda. Você escolhe um dos seus contratos já implantados e o que precisa que o administrativo faça.'
+            texto: 'Clique aqui para abrir uma demanda. Você escolhe um dos seus contratos em implantação ou já implantados e o que precisa que o administrativo faça.'
         },
         {
             target: '[data-tour="lista"]',

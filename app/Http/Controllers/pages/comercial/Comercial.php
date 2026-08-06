@@ -1724,7 +1724,7 @@ class Comercial extends Controller
     }
 
     /**
-     * Autocomplete dos contratos IMPLANTADOS do próprio vendedor, para abrir a demanda.
+     * Autocomplete dos contratos do próprio vendedor já em implantação ou implantados.
      */
     public function buscarContratosImplantados(Request $request)
     {
@@ -1733,7 +1733,7 @@ class Comercial extends Controller
         $contratos = Vendas::query()
             ->where('empresa_id', Auth::user()->empresa_id)
             ->where('user_id', Auth::id())
-            ->where('tabulacao_id', Tabulations::IMPLANTADO)
+            ->whereIn('tabulacao_id', Tabulations::STATUS_ELEGIVEIS_SOLICITACAO_POS_VENDA)
             ->when($termo !== '', function ($q) use ($termo) {
                 $q->where(function ($sub) use ($termo) {
                     $sub->where('nome_contrato', 'like', "%{$termo}%")
@@ -1756,7 +1756,7 @@ class Comercial extends Controller
     }
 
     /**
-     * Cria a solicitação de pós-venda do vendedor sobre um contrato implantado seu
+     * Cria a solicitação de pós-venda do vendedor sobre um contrato seu em implantação
      * e avisa o administrativo/back-office pelo mascote.
      */
     public function storeDemandaVendedor(Request $request)
@@ -1772,17 +1772,17 @@ class Comercial extends Controller
 
         $empresaId = Auth::user()->empresa_id;
 
-        // Garante que o contrato é do próprio vendedor, da empresa e está IMPLANTADO.
+        // Garante que o contrato é do próprio vendedor, da empresa e já entrou na implantação.
         $venda = Vendas::where('id', $data['venda_id'])
             ->where('empresa_id', $empresaId)
             ->where('user_id', Auth::id())
-            ->where('tabulacao_id', Tabulations::IMPLANTADO)
+            ->whereIn('tabulacao_id', Tabulations::STATUS_ELEGIVEIS_SOLICITACAO_POS_VENDA)
             ->first();
 
         if (! $venda) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Contrato inválido: só é possível abrir demanda para um contrato seu já implantado.',
+                'message' => 'Contrato inválido: só é possível abrir demanda para um contrato seu em implantação ou já implantado.',
             ], 422);
         }
 

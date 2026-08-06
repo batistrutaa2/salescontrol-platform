@@ -15,19 +15,6 @@ use Illuminate\Support\Facades\DB;
 
 class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInterface
 {
-    /** Implantado ou em alguma etapa operacional da implantação. */
-    private const STATUS_CONTRATO_ELEGIVEIS = [
-        Tabulations::VENDA,
-        Tabulations::ANALISE_DOCUMENTOS,
-        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-        Tabulations::AGUARD_ASSINATURA_DS,
-        Tabulations::ANALISE_OPERADORA,
-        Tabulations::PENDENCIA,
-        Tabulations::BOLETO_DISPONIVEL,
-        Tabulations::REGULARIZADO,
-        Tabulations::IMPLANTADO,
-    ];
-
     public function listar(int $empresaId, array $filtros = []): array
     {
         $query = PosVendaSolicitacao::with([
@@ -96,7 +83,7 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
     {
         $venda = Vendas::where('id', $dados['venda_id'])
             ->where('empresa_id', $empresaId)
-            ->whereIn('tabulacao_id', self::STATUS_CONTRATO_ELEGIVEIS)
+            ->whereIn('tabulacao_id', Tabulations::STATUS_ELEGIVEIS_SOLICITACAO_POS_VENDA)
             ->first();
 
         if (! $venda) {
@@ -351,7 +338,7 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
 
         return Vendas::with(['user:id,name', 'tabulacao:id,descricao', 'titulares:id,venda_id,nome'])
             ->where('empresa_id', $empresaId)
-            ->whereIn('tabulacao_id', self::STATUS_CONTRATO_ELEGIVEIS)
+            ->whereIn('tabulacao_id', Tabulations::STATUS_ELEGIVEIS_SOLICITACAO_POS_VENDA)
             ->where(function ($q) use ($like, $digitos) {
                 $q->where('nome_contrato', 'like', $like)
                     ->orWhere('numero_proposta', 'like', $like)

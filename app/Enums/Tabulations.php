@@ -28,6 +28,19 @@ class Tabulations
   const ANALISE_DOCUMENTOS = 54;
   const AGUARD_ASSINATURA_DS = 60;
 
+  /** Status em que o contrato já pode receber solicitações de pós-venda. */
+  const STATUS_ELEGIVEIS_SOLICITACAO_POS_VENDA = [
+    self::VENDA,
+    self::ANALISE_DOCUMENTOS,
+    self::CONTR_GERADO_AGUARDANDO_ASSINATURA,
+    self::AGUARD_ASSINATURA_DS,
+    self::ANALISE_OPERADORA,
+    self::PENDENCIA,
+    self::BOLETO_DISPONIVEL,
+    self::REGULARIZADO,
+    self::IMPLANTADO,
+  ];
+
   // Tabulações de Suporte - não conta como cadastrado
   const ESTORNO = 17;
   const DECLINIO = 53;

@@ -83,6 +83,16 @@ class DemandaVendedorTest extends TestCase
                 'updated_at' => now(),
             ],
             [
+                'id' => Tabulations::ANALISE_OPERADORA,
+                'empresa_id' => $this->empresa->id,
+                'descricao' => 'ANÁLISE NA OPERADORA',
+                'tipo_tabulacao' => 'A',
+                'efetivo' => 'Y',
+                'status' => 'Y',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
                 'id' => self::TAB_NAO_IMPLANTADO,
                 'empresa_id' => $this->empresa->id,
                 'descricao' => 'EM ANALISE',
@@ -166,6 +176,29 @@ class DemandaVendedorTest extends TestCase
         // Administrativo e back-office são avisados; o vendedor não.
         Notification::assertSentTo([$this->admin, $this->backoffice], DemandaVendedorCriada::class);
         Notification::assertNotSentTo($this->vendedor, DemandaVendedorCriada::class);
+    }
+
+    public function test_vendedor_busca_e_cria_demanda_para_contrato_em_implantacao(): void
+    {
+        Notification::fake();
+
+        $venda = $this->criarVenda($this->vendedor, Tabulations::ANALISE_OPERADORA);
+
+        $this->actingAs($this->vendedor)
+            ->getJson(route('comercial.minhasDemandas.contratos', ['termo' => $venda->numero_proposta]))
+            ->assertOk()
+            ->assertJsonPath('data.0.venda_id', $venda->id);
+
+        $this->actingAs($this->vendedor)
+            ->postJson(route('comercial.minhasDemandas.store'), $this->payload($venda))
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+
+        $this->assertDatabaseHas('pos_venda_solicitacoes', [
+            'venda_id' => $venda->id,
+            'created_by' => $this->vendedor->id,
+            'origem' => PosVendaSolicitacao::ORIGEM_VENDEDOR,
+        ]);
     }
 
     public function test_central_concluir_solicitacao_do_vendedor_notifica_o_vendedor(): void
