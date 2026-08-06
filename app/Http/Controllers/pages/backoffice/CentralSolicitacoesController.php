@@ -177,6 +177,31 @@ class CentralSolicitacoesController extends Controller
         return response()->json(['success' => true, 'prioridade' => $prioridade]);
     }
 
+    public function programarRetorno(Request $request, int $id): JsonResponse
+    {
+        $this->checkAccess();
+
+        $validated = $request->validate([
+            'data_retorno' => 'nullable|date_format:Y-m-d|after:today',
+        ]);
+
+        if (! $this->solicitacoes->programarRetorno(
+            $id,
+            $this->empresaId(),
+            $validated['data_retorno'] ?? null,
+            Auth::id(),
+        )) {
+            abort(404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data_retorno' => isset($validated['data_retorno'])
+                ? \Carbon\Carbon::parse($validated['data_retorno'])->format('d/m/Y')
+                : null,
+        ]);
+    }
+
     public function destroy(int $id): JsonResponse
     {
         $this->checkAccess();

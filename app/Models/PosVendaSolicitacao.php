@@ -28,6 +28,7 @@ class PosVendaSolicitacao extends Model
         'status',
         'prioridade',
         'data_limite',
+        'data_retorno',
         'origem',
         'responsavel_id',
         'created_by',
@@ -37,6 +38,7 @@ class PosVendaSolicitacao extends Model
     protected $casts = [
         'prioridade' => 'boolean',
         'data_limite' => 'date',
+        'data_retorno' => 'date',
         'concluida_em' => 'datetime',
     ];
 

@@ -35,8 +35,7 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
             'etapa:id,nome,cor,natureza,ordem',
             'responsavel:id,name',
             'criador:id,name',
-        ])
-            ->where('empresa_id', $empresaId);
+        ])->where('empresa_id', $empresaId);
 
         if (! empty($filtros['tipo'])) {
             $query->where('tipo', $filtros['tipo']);
@@ -78,7 +77,8 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
     public function kpis(int $empresaId): array
     {
         $hoje = Carbon::today()->toDateString();
-        $base = fn () => PosVendaSolicitacao::where('empresa_id', $empresaId);
+        $base = fn () => PosVendaSolicitacao::where('empresa_id', $empresaId)
+            ->where(fn ($q) => $q->whereNull('data_retorno')->orWhereDate('data_retorno', '<=', Carbon::today()));
 
         return [
             'atrasadas' => $base()->where('status', PosVendaSolicitacao::STATUS_ABERTA)
@@ -236,6 +236,34 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
         });
 
         return $nova;
+    }
+
+    public function programarRetorno(int $id, int $empresaId, ?string $dataRetorno, int $userId): bool
+    {
+        $solicitacao = PosVendaSolicitacao::where('empresa_id', $empresaId)
+            ->where('status', PosVendaSolicitacao::STATUS_ABERTA)
+            ->find($id);
+        if (! $solicitacao) {
+            return false;
+        }
+
+        $nova = $dataRetorno ? Carbon::parse($dataRetorno)->startOfDay() : null;
+        $anterior = $solicitacao->data_retorno?->startOfDay();
+
+        DB::transaction(function () use ($solicitacao, $userId, $nova, $anterior) {
+            $this->registrarHistorico(
+                $solicitacao->id,
+                $userId,
+                'retorno',
+                $anterior?->format('d/m/Y') ?? 'Na fila',
+                $nova?->format('d/m/Y') ?? 'Na fila',
+                $nova ? 'Tratativa adiada; o card voltará automaticamente à fila.' : 'Card devolvido à fila antes da data programada.',
+            );
+            $solicitacao->data_retorno = $nova;
+            $solicitacao->save();
+        });
+
+        return true;
     }
 
     public function registrarAtualizacao(int $id, int $empresaId, int $userId, string $texto): ?PosVendaSolicitacao
@@ -520,6 +548,10 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
             'prioridade' => (bool) $s->prioridade,
             'data_limite' => $dataLimite?->format('d/m/Y'),
             'data_limite_iso' => $dataLimite?->format('Y-m-d'),
+            'data_retorno' => $s->data_retorno?->format('d/m/Y'),
+            'data_retorno_iso' => $s->data_retorno?->format('Y-m-d'),
+            'adiado' => $s->status === PosVendaSolicitacao::STATUS_ABERTA
+                && $s->data_retorno?->startOfDay()->isAfter(Carbon::today()),
             'dias_restantes' => $diasRestantes,
             'origem' => $s->origem,
             'criado_por_nome' => $s->criador?->name,

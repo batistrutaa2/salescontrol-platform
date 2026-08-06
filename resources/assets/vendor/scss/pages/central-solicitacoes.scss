@@ -1351,6 +1351,47 @@
     background: var(--pv-card-bg, var(--dash-card-bg));
 }
 
+// Adiamento de tratativa: estado temporário, diferente do prazo final.
+.spv-prazo--adiado {
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.11);
+}
+.spv-btn-adiar {
+    margin-right: auto;
+    color: #7c3aed;
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    background: rgba(124, 58, 237, 0.07);
+}
+.spv-btn-adiar:hover { background: rgba(124, 58, 237, 0.14); }
+.spv-retorno-atual {
+    margin-bottom: 1rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 9px;
+    font-size: 0.75rem;
+    color: #6d28d9;
+    background: rgba(124, 58, 237, 0.09);
+}
+.spv-retorno-atalhos {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.4rem;
+    margin-top: 0.65rem;
+}
+.spv-retorno-atalhos button {
+    padding: 0.42rem 0.25rem;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 7px;
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.06);
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.spv-retorno-atalhos button:hover { background: rgba(124, 58, 237, 0.14); }
+.spv-retorno-preview { min-height: 2.2rem; margin: 0.8rem 0 0; font-size: 0.72rem; color: var(--pv-text-muted, #6b7280); }
+.spv-retorno-actions { display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; padding: 0.85rem 1rem; border-top: 1px solid rgba(0, 0, 0, 0.06); }
+.spv-retorno-actions #btnSpvRetornarAgora { margin-right: auto; color: #7c3aed; }
+
 // ============================================
 // Dark mode
 // ============================================
@@ -1363,7 +1404,8 @@
 
     #modalNovaSolicitacao,
     #modalDetalheSolicitacao,
-    #modalGerenciarEtapas {
+    #modalGerenciarEtapas,
+    #modalProgramarRetorno {
         .pv-form-input,
         .pv-form-textarea,
         .spv-move-select {
@@ -1380,6 +1422,9 @@
             }
         }
     }
+
+    .spv-retorno-actions { border-top-color: rgba(255, 255, 255, 0.08); }
+    .spv-retorno-atual { color: #c4b5fd; }
 }
 
 // ============================================
@@ -1393,6 +1438,12 @@
 .spv-acao-btn:focus-visible,
 .spv-flag-btn:focus-visible,
 .spv-btn-excluir:focus-visible {
+    outline: 2px solid var(--dash-primary);
+    outline-offset: 2px;
+}
+
+.spv-btn-adiar:focus-visible,
+.spv-retorno-atalhos button:focus-visible {
     outline: 2px solid var(--dash-primary);
     outline-offset: 2px;
 }

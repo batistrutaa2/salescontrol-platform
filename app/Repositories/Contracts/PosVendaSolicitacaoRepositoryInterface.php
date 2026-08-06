@@ -21,6 +21,9 @@ interface PosVendaSolicitacaoRepositoryInterface
     /** @return bool|null novo valor da prioridade; null se não encontrada na empresa */
     public function alternarPrioridade(int $id, int $empresaId, int $userId): ?bool;
 
+    /** Agenda o retorno à fila; null antecipa o retorno para agora. */
+    public function programarRetorno(int $id, int $empresaId, ?string $dataRetorno, int $userId): bool;
+
     /**
      * Registra uma atualização de andamento na timeline da solicitação.
      *

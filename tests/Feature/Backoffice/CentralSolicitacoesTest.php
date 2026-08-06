@@ -560,6 +560,67 @@ class CentralSolicitacoesTest extends TestCase
         $this->assertSame(['VENCIDA', 'FUTURA'], $titulos);
     }
 
+    public function test_adiar_tratativa_tira_card_da_fila_ativa_e_retorna_na_data(): void
+    {
+        $this->travelTo(now()->setDate(2026, 8, 6)->startOfDay());
+        $venda = $this->criarContrato();
+        $solicitacao = $this->criarSolicitacao($venda, ['titulo' => 'ALTERAR VENCIMENTO']);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.retorno', $solicitacao->id), [
+                'data_retorno' => '2026-09-20',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data_retorno', '20/09/2026');
+
+        $this->assertDatabaseHas('pos_venda_solicitacoes', [
+            'id' => $solicitacao->id,
+            'data_retorno' => '2026-09-20',
+        ]);
+        $this->assertDatabaseHas('pos_venda_solicitacao_historico', [
+            'solicitacao_id' => $solicitacao->id,
+            'campo_alterado' => 'retorno',
+            'valor_novo' => '20/09/2026',
+        ]);
+
+        $dados = $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.solicitacoes.dados'))
+            ->assertOk();
+        $this->assertTrue($dados->json('registros.0.adiado'));
+        $this->assertSame(0, $dados->json('kpis.abertas'), 'Adiado não conta na fila ativa.');
+
+        $this->travelTo(now()->setDate(2026, 9, 20)->startOfDay());
+        $dadosNoRetorno = $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.solicitacoes.dados'))
+            ->assertOk();
+        $this->assertFalse($dadosNoRetorno->json('registros.0.adiado'));
+        $this->assertSame(1, $dadosNoRetorno->json('kpis.abertas'));
+    }
+
+    public function test_retorno_pode_ser_antecipado_e_data_deve_ser_futura(): void
+    {
+        $this->travelTo(now()->setDate(2026, 8, 6)->startOfDay());
+        $solicitacao = $this->criarSolicitacao($this->criarContrato(), [
+            'data_retorno' => '2026-09-20',
+        ]);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.retorno', $solicitacao->id), [
+                'data_retorno' => '2026-08-06',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('data_retorno');
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.retorno', $solicitacao->id), [
+                'data_retorno' => null,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data_retorno', null);
+
+        $this->assertNull($solicitacao->fresh()->data_retorno);
+    }
+
     public function test_excluir_solicitacao_remove_junto_com_historico(): void
     {
         $venda = $this->criarContrato();

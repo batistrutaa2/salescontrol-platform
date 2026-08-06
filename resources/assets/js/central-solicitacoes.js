@@ -15,6 +15,7 @@
         titulo: 'Título',
         observacoes: 'Descrição',
         prioridade: 'Prioridade',
+        retorno: 'Retorno à fila',
         atualizacao: 'Atualização',
     };
 
@@ -111,6 +112,9 @@
     // Badge de prazo
     // =========================================================================
     const prazoBadge = (item) => {
+        if (item.adiado) {
+            return `<span class="spv-prazo spv-prazo--adiado">${SVG.relogio} Retorna em ${escapar(item.data_retorno)}</span>`;
+        }
         if (item.status !== 'ABERTA') {
             return item.status === 'CONCLUIDA'
                 ? `<span class="spv-prazo spv-prazo--done">${SVG.check} Concluída${item.concluida_em ? ` em ${escapar(item.concluida_em)}` : ''}</span>`
@@ -218,7 +222,8 @@
         const busca = (document.getElementById('spvFiltroBusca')?.value || '').trim().toLowerCase();
 
         return registros.filter((r) => {
-            if (filtroStatus === 'ABERTA' && r.status !== 'ABERTA') return false;
+            if (filtroStatus === 'ABERTA' && (r.status !== 'ABERTA' || r.adiado)) return false;
+            if (filtroStatus === 'ADIADOS' && !r.adiado) return false;
             if (filtroStatus === 'ENCERRADAS' && r.status === 'ABERTA') return false;
             if (tipo && r.tipo !== tipo) return false;
             if (responsavel === '0' && r.responsavel_id) return false;
@@ -319,7 +324,7 @@
         if (!cont) return;
 
         cont.innerHTML = Object.entries(tipos).map(([valor, label]) => {
-            const count = registros.filter((r) => r.tipo === valor && r.status === 'ABERTA').length;
+            const count = registros.filter((r) => r.tipo === valor && r.status === 'ABERTA' && !r.adiado).length;
             return `<button type="button" class="spv-tipo-chip ${valor === kanbanTipo ? 'is-active' : ''}" data-tipo="${valor}" role="tab">
                 ${escapar(label)}<span class="spv-tipo-count">${count}</span>
             </button>`;
@@ -533,6 +538,7 @@
             const r = data.registro;
             detalheTipo = r.tipo;
             detalheRegistro = r;
+            document.getElementById('btnSpvAbrirRetorno').hidden = r.status !== 'ABERTA';
 
             aplicarEtapaNaModal(r.tipo, r.etapa_id);
             atualizarFlagDetalhe(r.prioridade);
@@ -547,6 +553,7 @@
                 + infoItem('Origem', r.origem === 'VENDEDOR' ? 'Vendedor' : 'Pós-venda')
                 + infoItem('Aberta por', r.criado_por_nome)
                 + infoItem('Aberta em', r.criado_em)
+                + (r.adiado ? infoItem('Retorno à fila', r.data_retorno) : '')
                 + (r.status !== 'ABERTA' ? infoItem('Encerrada em', r.concluida_em) : '');
 
             document.getElementById('spvDetalheTituloInput').value = r.titulo || '';
@@ -620,6 +627,98 @@
         const excluida = await excluirSolicitacao(detalheRegistro);
         if (excluida) {
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetalheSolicitacao')).hide();
+        }
+    });
+
+    // Adiar tratativa: prazo e retorno são conceitos diferentes. O prazo segue
+    // intacto; data_retorno apenas controla quando o card reaparece na fila.
+    const modalRetornoEl = document.getElementById('modalProgramarRetorno');
+    const inputRetorno = document.getElementById('spvDataRetorno');
+    const previewRetorno = document.getElementById('spvRetornoPreview');
+    let retornoProgramado = false;
+
+    const dataLocalIso = (data) => {
+        const ano = data.getFullYear();
+        const mes = String(data.getMonth() + 1).padStart(2, '0');
+        const dia = String(data.getDate()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}`;
+    };
+
+    const formatarDataLonga = (iso) => {
+        if (!iso) return 'Escolha uma data futura.';
+        const [ano, mes, dia] = iso.split('-').map(Number);
+        return new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+            .format(new Date(ano, mes - 1, dia));
+    };
+
+    const atualizarPreviewRetorno = () => {
+        previewRetorno.textContent = inputRetorno.value
+            ? `O card voltará à fila em ${formatarDataLonga(inputRetorno.value)}.`
+            : 'Escolha uma data futura.';
+    };
+
+    document.getElementById('btnSpvAbrirRetorno')?.addEventListener('click', () => {
+        if (!detalheAtualId || !detalheRegistro || detalheRegistro.status !== 'ABERTA') return;
+        retornoProgramado = false;
+        const amanha = new Date();
+        amanha.setDate(amanha.getDate() + 1);
+        inputRetorno.min = dataLocalIso(amanha);
+        inputRetorno.value = detalheRegistro.data_retorno_iso || '';
+        document.getElementById('spvRetornoAtual').hidden = !detalheRegistro.adiado;
+        document.getElementById('spvRetornoAtual').textContent = detalheRegistro.adiado
+            ? `Este card está programado para voltar em ${detalheRegistro.data_retorno}.`
+            : '';
+        document.getElementById('btnSpvRetornarAgora').hidden = !detalheRegistro.adiado;
+        atualizarPreviewRetorno();
+        bootstrap.Modal.getInstance(document.getElementById('modalDetalheSolicitacao'))?.hide();
+        bootstrap.Modal.getOrCreateInstance(modalRetornoEl).show();
+    });
+
+    inputRetorno?.addEventListener('change', atualizarPreviewRetorno);
+    document.querySelectorAll('[data-retorno-dias]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const data = new Date();
+            data.setDate(data.getDate() + parseInt(btn.dataset.retornoDias, 10));
+            inputRetorno.value = dataLocalIso(data);
+            atualizarPreviewRetorno();
+        });
+    });
+
+    const salvarRetorno = async (dataRetorno) => {
+        const btn = document.getElementById('btnSpvConfirmarRetorno');
+        btn.disabled = true;
+        try {
+            const body = await api(`/back-office/solicitacoes/${detalheAtualId}/retorno`, {
+                method: 'POST',
+                body: JSON.stringify({ data_retorno: dataRetorno }),
+            });
+            retornoProgramado = true;
+            bootstrap.Modal.getInstance(modalRetornoEl)?.hide();
+            carregarDados();
+            showModernToast(
+                'success',
+                dataRetorno ? 'Tratativa adiada' : 'Card devolvido à fila',
+                dataRetorno ? `O card voltará automaticamente em ${body.data_retorno}.` : 'O card já está disponível nas tratativas abertas.',
+            );
+        } catch (err) {
+            showModernToast('error', 'Não foi possível programar', err.message || 'Confira a data e tente novamente.');
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    document.getElementById('btnSpvConfirmarRetorno')?.addEventListener('click', () => {
+        if (!inputRetorno.value) {
+            showModernToast('warning', 'Escolha uma data', 'Informe quando o card deve voltar para a fila.');
+            inputRetorno.focus();
+            return;
+        }
+        salvarRetorno(inputRetorno.value);
+    });
+    document.getElementById('btnSpvRetornarAgora')?.addEventListener('click', () => salvarRetorno(null));
+    modalRetornoEl?.addEventListener('hidden.bs.modal', () => {
+        if (!retornoProgramado && detalheAtualId) {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetalheSolicitacao')).show();
         }
     });
 

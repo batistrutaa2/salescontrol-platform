@@ -110,6 +110,7 @@
         </select>
         <div class="spv-chips" role="radiogroup" aria-label="Filtro de status">
             <button type="button" class="spv-chip is-active" data-status="ABERTA">Abertas</button>
+            <button type="button" class="spv-chip" data-status="ADIADOS">Adiados</button>
             <button type="button" class="spv-chip" data-status="ENCERRADAS">Encerradas</button>
             <button type="button" class="spv-chip" data-status="TODAS">Todas</button>
         </div>
@@ -326,6 +327,10 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     Excluir
                 </button>
+                <button type="button" class="pv-btn spv-btn-adiar" id="btnSpvAbrirRetorno">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M5 3v4h4"/></svg>
+                    Adiar tratativa
+                </button>
                 <button type="button" class="pv-btn pv-btn-ghost" data-bs-dismiss="modal">Fechar</button>
                 <button type="button" class="pv-btn pv-btn-primary" id="btnSpvSalvarDetalhe">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -333,6 +338,43 @@
                 </button>
             </div>
 
+        </div>
+    </div>
+</div>
+
+{{-- Adiar: tira temporariamente o card da fila e o devolve na data escolhida. --}}
+<div class="modal fade" id="modalProgramarRetorno" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content pv-modal-modern spv-retorno-modal">
+            <div class="pv-modal-header pv-modal-header-info">
+                <div class="pv-modal-header-content">
+                    <div class="pv-modal-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    </div>
+                    <div class="pv-modal-title-group">
+                        <h5 class="pv-modal-title">Quando retomar?</h5>
+                        <span class="pv-modal-subtitle">O card ficará fora da fila até essa data</span>
+                    </div>
+                </div>
+                <button type="button" class="pv-modal-close" data-bs-dismiss="modal" aria-label="Fechar">×</button>
+            </div>
+            <div class="pv-modal-body">
+                <div class="spv-retorno-atual" id="spvRetornoAtual" hidden></div>
+                <label class="pv-form-label" for="spvDataRetorno">Data de retorno</label>
+                <input type="date" id="spvDataRetorno" class="pv-form-input">
+                <div class="spv-retorno-atalhos" aria-label="Atalhos de data">
+                    <button type="button" data-retorno-dias="7">7 dias</button>
+                    <button type="button" data-retorno-dias="15">15 dias</button>
+                    <button type="button" data-retorno-dias="30">30 dias</button>
+                    <button type="button" data-retorno-dias="45">45 dias</button>
+                </div>
+                <p class="spv-retorno-preview" id="spvRetornoPreview">Escolha uma data futura.</p>
+            </div>
+            <div class="spv-retorno-actions">
+                <button type="button" class="pv-btn pv-btn-ghost" id="btnSpvRetornarAgora" hidden>Voltar para fila agora</button>
+                <button type="button" class="pv-btn pv-btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="pv-btn pv-btn-primary" id="btnSpvConfirmarRetorno">Programar retorno</button>
+            </div>
         </div>
     </div>
 </div>
