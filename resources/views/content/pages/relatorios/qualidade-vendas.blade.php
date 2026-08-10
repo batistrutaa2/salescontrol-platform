@@ -103,7 +103,12 @@
         <section class="qv-panel">
             <div class="qv-panel-head">
                 <div><span>VISÃO CONSOLIDADA</span><h2>Auditoria por vendedor</h2></div>
-                <span class="qv-help">Clique em uma linha para conferir as propostas</span>
+                <div class="qv-audit-actions">
+                    <span class="qv-help">Clique em uma linha para conferir as propostas</span>
+                    <button type="button" id="qv-exportar" class="qv-export-btn">
+                        <i class="ri-file-excel-2-line"></i> Exportar Excel
+                    </button>
+                </div>
             </div>
             <div class="qv-table-wrap">
                 <table class="qv-table">

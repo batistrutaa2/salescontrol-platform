@@ -398,7 +398,10 @@
                             @if($titular->data_nascimento)
                             <div class="col-md-4">
                                 <label class="form-label">Data Nasc.</label>
-                                <input type="text" class="form-control" value="{{ $titular->data_nascimento->format('d/m/Y') }} ({{ $titular->data_nascimento->age }} anos)" disabled>
+                                <div class="form-control birth-date-display" aria-label="Data de nascimento e idade">
+                                    <span>{{ $titular->data_nascimento->format('d/m/Y') }}</span>
+                                    <span class="age-highlight">{{ $titular->data_nascimento->age }} anos</span>
+                                </div>
                             </div>
                             @endif
 
@@ -499,7 +502,9 @@
                                                     <span class="text-muted ms-2" style="font-size: .78rem;">CPF: {{ $dep->cpf }}</span>
                                                 @endif
                                                 @if($dep->data_nascimento)
-                                                    <span class="text-muted ms-2" style="font-size: .78rem;">Nasc: {{ \Carbon\Carbon::parse($dep->data_nascimento)->format('d/m/Y') }}</span>
+                                                    @php($depNascimento = \Carbon\Carbon::parse($dep->data_nascimento))
+                                                    <span class="birth-date-text ms-2">Nasc: {{ $depNascimento->format('d/m/Y') }}</span>
+                                                    <span class="age-highlight ms-1">{{ $depNascimento->age }} anos</span>
                                                 @endif
                                             </div>
                                             @if ($canEdit ?? true)

@@ -64,6 +64,7 @@
           <div class="op-item-side">
             ${badgeStatus(o.status)}
             <button type="button" class="op-toggle" data-op-toggle="${o.id}" title="${o.status === 'Y' ? 'Inativar' : 'Ativar'}">${o.status === 'Y' ? 'Inativar' : 'Ativar'}</button>
+            ${o.can_delete ? `<button type="button" class="op-delete" data-op-delete="${o.id}" aria-label="Excluir operadora ${esc(o.nome)}">Excluir</button>` : ''}
           </div>
         </div>`
       )
@@ -93,6 +94,7 @@
               <div class="op-plano-side">
                 ${badgePlano(p.status)}
                 <button type="button" class="op-toggle" data-plano-toggle="${p.id}">${p.status === 'Y' ? 'Inativar' : 'Ativar'}</button>
+                ${p.can_delete ? `<button type="button" class="op-delete" data-plano-delete="${p.id}" aria-label="Excluir plano ${esc(p.nome)}">Excluir</button>` : ''}
               </div>
             </div>`
           )
@@ -176,6 +178,36 @@
     else toast(json.message || 'Erro.', 'err');
   }
 
+  async function excluirOperadora(id) {
+    const operadora = operadoras.find((item) => item.id === id);
+    if (!operadora || !window.confirm(`Excluir a operadora “${operadora.nome}” e todos os planos dela? Esta ação não pode ser desfeita.`)) return;
+
+    const json = await api(`/back-office/operadoras/${id}`, 'DELETE');
+    if (!json.success) {
+      toast(json.message || 'Erro ao excluir operadora.', 'err');
+      return;
+    }
+
+    if (selecionada && selecionada.id === id) selecionada = null;
+    toast(json.message || 'Operadora excluída.');
+    await load();
+  }
+
+  async function excluirPlano(id) {
+    if (!selecionada) return;
+    const plano = selecionada.planos.find((item) => item.id === id);
+    if (!plano || !window.confirm(`Excluir o plano “${plano.nome}”? Esta ação não pode ser desfeita.`)) return;
+
+    const json = await api(`/back-office/planos/${id}`, 'DELETE');
+    if (!json.success) {
+      toast(json.message || 'Erro ao excluir plano.', 'err');
+      return;
+    }
+
+    toast(json.message || 'Plano excluído.');
+    await load();
+  }
+
   // ---------- Eventos ----------
   $('op-add-toggle').addEventListener('click', () => {
     const f = $('op-form');
@@ -191,7 +223,11 @@
     const opTog = e.target.closest('[data-op-toggle]');
     if (opTog) { toggleOperadora(Number(opTog.dataset.opToggle)); return; }
     const plTog = e.target.closest('[data-plano-toggle]');
-    if (plTog) { togglePlano(Number(plTog.dataset.planoToggle)); }
+    if (plTog) { togglePlano(Number(plTog.dataset.planoToggle)); return; }
+    const opDelete = e.target.closest('[data-op-delete]');
+    if (opDelete) { excluirOperadora(Number(opDelete.dataset.opDelete)); return; }
+    const planoDelete = e.target.closest('[data-plano-delete]');
+    if (planoDelete) { excluirPlano(Number(planoDelete.dataset.planoDelete)); }
   });
 
   load();

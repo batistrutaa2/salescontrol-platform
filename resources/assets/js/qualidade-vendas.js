@@ -224,6 +224,9 @@
     }
 
     document.getElementById('qv-aplicar').addEventListener('click', carregar);
+    document.getElementById('qv-exportar').addEventListener('click', () => {
+        window.location.assign(`/relatorios/qualidade-vendas/excel?${qs()}`);
+    });
     document.getElementById('qv-presets').addEventListener('click', e => { const btn = e.target.closest('[data-preset]'); if (btn) { preset(btn.dataset.preset); carregar(); } });
     document.getElementById('qv-ranking-tabs').addEventListener('click', e => { const btn = e.target.closest('[data-ranking]'); if (!btn) return; rankingAtual = btn.dataset.ranking; document.querySelectorAll('#qv-ranking-tabs button').forEach(b => b.classList.toggle('is-active', b === btn)); renderRanking(); });
     document.getElementById('qv-kpis').addEventListener('click', e => { const card = e.target.closest('.qv-kpi'); if (card) abrirDetalhes(vendedorEl.value || null, vendedorEl.options[vendedorEl.selectedIndex].text, card.dataset.categoria); });

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Vendas;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
 
 class RelatorioQualidadeVendasTest extends TestCase
@@ -188,6 +189,30 @@ class RelatorioQualidadeVendasTest extends TestCase
             'data_inicio' => now()->format('Y-m-d'),
             'data_fim' => now()->subDay()->format('Y-m-d'),
         ]))->assertUnprocessable()->assertJsonValidationErrors('data_fim');
+    }
+
+    public function test_exporta_excel_com_auditoria_por_vendedor_respeitando_filtros(): void
+    {
+        Excel::fake();
+        $this->venda($this->vendedor, Tabulations::IMPLANTADO, 1000, 100);
+        $this->venda($this->vendedorDois, Tabulations::ESTORNO, 500);
+
+        $params = array_merge($this->filtros(), ['vendedor_id' => $this->vendedor->id]);
+        $this->actingAs($this->admin)
+            ->get(route('relatorios.qualidadeVendas.excel', $params))
+            ->assertOk();
+
+        $nome = 'qualidade-vendas-'.now()->startOfYear()->format('Y-m-d').'-a-'.now()->endOfYear()->format('Y-m-d').'.xlsx';
+        Excel::assertDownloaded($nome, function ($export) {
+            $abas = $export->sheets();
+
+            $this->assertCount(1, $abas);
+            $this->assertSame('Auditoria por vendedor', $abas[0]->title());
+            $this->assertCount(1, $abas[0]->array());
+            $this->assertSame('Ana Vendas', $abas[0]->array()[0][1]);
+
+            return true;
+        });
     }
 
     private function usuario(int $role, string $nome, bool $excluirRanking = false): User

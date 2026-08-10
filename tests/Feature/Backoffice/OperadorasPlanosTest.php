@@ -47,6 +47,29 @@ class OperadorasPlanosTest extends TestCase
         ]);
     }
 
+    private function criarVenda(int $operadoraId, int $planoId): int
+    {
+        $contatoId = DB::table('contatos')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'user_import_id' => $this->admin->id,
+            'cpf' => '12345678900',
+            'nome_cliente' => 'Cliente teste',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return DB::table('vendas')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'user_id' => $this->admin->id,
+            'contato_id' => $contatoId,
+            'operadora_id' => $operadoraId,
+            'plano_id' => $planoId,
+            'data_vigencia' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     public function test_data_lista_operadoras_com_planos_e_respeita_empresa(): void
     {
         $op = $this->criarOperadora($this->empresa->id, 'AMIL');
@@ -111,6 +134,65 @@ class OperadorasPlanosTest extends TestCase
             ->patchJson(route('backoffice.operadoras.toggleStatus', $op))
             ->assertStatus(404);
         $this->assertDatabaseHas('operadoras', ['id' => $op, 'status' => 'Y']);
+    }
+
+    public function test_exclui_plano_e_operadora_sem_vendas(): void
+    {
+        $op = $this->criarOperadora($this->empresa->id, 'SEM VENDAS');
+        $plano = $this->criarPlano($this->empresa->id, $op, 'LIVRE');
+
+        $this->actingAs($this->admin)
+            ->deleteJson(route('backoffice.planos.destroy', $plano))
+            ->assertOk()
+            ->assertJson(['success' => true]);
+        $this->assertDatabaseMissing('planos', ['id' => $plano]);
+
+        $outroPlano = $this->criarPlano($this->empresa->id, $op, 'OUTRO LIVRE');
+        $this->actingAs($this->admin)
+            ->deleteJson(route('backoffice.operadoras.destroy', $op))
+            ->assertOk()
+            ->assertJson(['success' => true]);
+        $this->assertDatabaseMissing('operadoras', ['id' => $op]);
+        $this->assertDatabaseMissing('planos', ['id' => $outroPlano]);
+    }
+
+    public function test_bloqueia_exclusao_quando_existe_venda_e_oculta_opcao_na_listagem(): void
+    {
+        $op = $this->criarOperadora($this->empresa->id, 'COM VENDAS');
+        $plano = $this->criarPlano($this->empresa->id, $op, 'VENDIDO');
+        $this->criarVenda($op, $plano);
+
+        $operadora = collect($this->actingAs($this->admin)
+            ->getJson(route('backoffice.operadorasPlanos.data'))
+            ->json('operadoras'))
+            ->firstWhere('id', $op);
+
+        $this->assertFalse($operadora['can_delete']);
+        $this->assertFalse(collect($operadora['planos'])->firstWhere('id', $plano)['can_delete']);
+
+        $this->actingAs($this->admin)
+            ->deleteJson(route('backoffice.planos.destroy', $plano))
+            ->assertStatus(409)
+            ->assertJson(['success' => false]);
+        $this->actingAs($this->admin)
+            ->deleteJson(route('backoffice.operadoras.destroy', $op))
+            ->assertStatus(409)
+            ->assertJson(['success' => false]);
+
+        $this->assertDatabaseHas('planos', ['id' => $plano]);
+        $this->assertDatabaseHas('operadoras', ['id' => $op]);
+    }
+
+    public function test_exclusao_multitenant_nao_encontra_registros_de_outra_empresa(): void
+    {
+        $outra = Empresa::factory()->create();
+        $op = $this->criarOperadora($outra->id, 'DE OUTRA');
+        $plano = $this->criarPlano($outra->id, $op, 'PLANO DE OUTRA');
+
+        $this->actingAs($this->admin)->deleteJson(route('backoffice.planos.destroy', $plano))->assertNotFound();
+        $this->actingAs($this->admin)->deleteJson(route('backoffice.operadoras.destroy', $op))->assertNotFound();
+        $this->assertDatabaseHas('planos', ['id' => $plano]);
+        $this->assertDatabaseHas('operadoras', ['id' => $op]);
     }
 
     public function test_rotas_antigas_redirecionam_para_tela_unica(): void

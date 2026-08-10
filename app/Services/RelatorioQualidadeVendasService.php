@@ -52,7 +52,17 @@ class RelatorioQualidadeVendasService
         ?string $categoria,
         int $porPagina = 20
     ): LengthAwarePaginator {
-        $query = $this->queryBase($empresaId, $inicio, $fim, $vendedorId)
+        $query = $this->queryPropostas($empresaId, $inicio, $fim, $vendedorId);
+
+        $this->aplicarCategoria($query, $categoria);
+
+        return $query->orderByDesc('v.created_at')->orderByDesc('v.id')->paginate($porPagina)
+            ->through(fn ($venda) => $this->normalizarProposta($venda));
+    }
+
+    private function queryPropostas(int $empresaId, CarbonImmutable $inicio, CarbonImmutable $fim, ?int $vendedorId): Builder
+    {
+        return $this->queryBase($empresaId, $inicio, $fim, $vendedorId)
             ->select([
                 'v.id', 'v.numero_proposta', 'v.nome_contrato', 'v.created_at',
                 'v.data_implantacao', 'v.valor_contrato', 'v.angariacao_status',
@@ -60,26 +70,26 @@ class RelatorioQualidadeVendasService
                 'u.id as vendedor_id', 'u.name as vendedor',
             ])
             ->selectRaw($this->valorSql().' as valor_total');
+    }
 
-        $this->aplicarCategoria($query, $categoria);
-
-        return $query->orderByDesc('v.created_at')->orderByDesc('v.id')->paginate($porPagina)
-            ->through(fn ($venda) => [
-                'id' => $venda->id,
-                'numero_proposta' => $venda->numero_proposta,
-                'cliente' => $venda->nome_contrato,
-                'vendedor_id' => $venda->vendedor_id,
-                'vendedor' => $venda->vendedor,
-                'data_venda' => CarbonImmutable::parse($venda->created_at)->format('d/m/Y'),
-                'data_implantacao' => $venda->data_implantacao
-                    ? CarbonImmutable::parse($venda->data_implantacao)->format('d/m/Y')
-                    : null,
-                'status' => $venda->status ?: 'Sem status',
-                'categoria' => $this->categoria((int) $venda->tabulacao_id),
-                'valor_contrato' => (float) ($venda->valor_contrato ?? 0),
-                'angariacao' => $venda->angariacao_status === 'SIM' ? (float) ($venda->angariacao_valor ?? 0) : 0.0,
-                'valor_total' => (float) $venda->valor_total,
-            ]);
+    private function normalizarProposta(object $venda): array
+    {
+        return [
+            'id' => $venda->id,
+            'numero_proposta' => $venda->numero_proposta,
+            'cliente' => $venda->nome_contrato,
+            'vendedor_id' => $venda->vendedor_id,
+            'vendedor' => $venda->vendedor,
+            'data_venda' => CarbonImmutable::parse($venda->created_at)->format('d/m/Y'),
+            'data_implantacao' => $venda->data_implantacao
+                ? CarbonImmutable::parse($venda->data_implantacao)->format('d/m/Y')
+                : null,
+            'status' => $venda->status ?: 'Sem status',
+            'categoria' => $this->categoria((int) $venda->tabulacao_id),
+            'valor_contrato' => (float) ($venda->valor_contrato ?? 0),
+            'angariacao' => $venda->angariacao_status === 'SIM' ? (float) ($venda->angariacao_valor ?? 0) : 0.0,
+            'valor_total' => (float) $venda->valor_total,
+        ];
     }
 
     private function queryBase(int $empresaId, CarbonImmutable $inicio, CarbonImmutable $fim, ?int $vendedorId = null): Builder

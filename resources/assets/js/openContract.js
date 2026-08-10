@@ -865,7 +865,8 @@ $(function () {
           const parentescoLabel = dep.parentesco || '';
           const cpfLabel = dep.cpf ? `<span class="text-muted ms-2" style="font-size: .78rem;">CPF: ${dep.cpf}</span>` : '';
           const nascLabel = dep.data_nascimento
-            ? `<span class="text-muted ms-2" style="font-size: .78rem;">Nasc: ${formatDateBr(dep.data_nascimento)}</span>`
+            ? `<span class="birth-date-text ms-2">Nasc: ${formatDateBr(dep.data_nascimento)}</span>
+               <span class="age-highlight ms-1">${calculateAge(dep.data_nascimento)} anos</span>`
             : '';
           const badgeParentesco = parentescoLabel
             ? `<span class="badge bg-label-info ms-1" style="font-size: .65rem;">${parentescoLabel}</span>`
@@ -912,6 +913,22 @@ $(function () {
     const parts = dateStr.split('-');
     if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
     return dateStr;
+  }
+
+  function calculateAge(dateStr) {
+    const normalized = dateStr.includes('/')
+      ? dateStr.split('/').reverse().join('-')
+      : dateStr;
+    const birthDate = new Date(`${normalized.substring(0, 10)}T00:00:00`);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+
+    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age;
   }
 
   // Open delete dependente confirmation modal

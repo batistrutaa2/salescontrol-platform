@@ -536,11 +536,31 @@ class Backoffice extends Controller
     public function getOperadorasComPlanos()
     {
         $empresaId = Auth::user()->empresa_id;
+        $planosComVenda = $this->planosComVenda($empresaId);
 
         $planos = Plano::where('empresa_id', $empresaId)
             ->orderBy('nome')
             ->get(['id', 'operadora_id', 'nome', 'status', 'acomodacao'])
+            ->map(fn ($plano) => [
+                'id' => $plano->id,
+                'operadora_id' => $plano->operadora_id,
+                'nome' => $plano->nome,
+                'status' => $plano->status,
+                'acomodacao' => $plano->acomodacao,
+                'can_delete' => ! $planosComVenda->contains($plano->id),
+            ])
             ->groupBy('operadora_id');
+
+        $operadorasComVenda = Vendas::where('empresa_id', $empresaId)
+            ->whereNotNull('operadora_id')
+            ->pluck('operadora_id')
+            ->merge(
+                Plano::where('empresa_id', $empresaId)
+                    ->whereIn('id', $planosComVenda)
+                    ->pluck('operadora_id')
+            )
+            ->map(fn ($id) => (int) $id)
+            ->unique();
 
         $operadoras = Operadora::where('empresa_id', $empresaId)
             ->orderBy('nome')
@@ -550,6 +570,7 @@ class Backoffice extends Controller
                 'nome' => $op->nome,
                 'status' => $op->status,
                 'planos' => ($planos[$op->id] ?? collect())->values(),
+                'can_delete' => ! $operadorasComVenda->contains($op->id),
             ]);
 
         return response()->json(['success' => true, 'operadoras' => $operadoras]);
@@ -575,6 +596,89 @@ class Backoffice extends Controller
         $plano->update(['status' => $plano->status === 'Y' ? 'N' : 'Y']);
 
         return response()->json(['success' => true, 'status' => $plano->status]);
+    }
+
+    public function destroyOperadora($id)
+    {
+        $empresaId = Auth::user()->empresa_id;
+        $operadora = Operadora::where('id', $id)->where('empresa_id', $empresaId)->first();
+        if (! $operadora) {
+            return response()->json(['success' => false, 'message' => 'Operadora não encontrada.'], 404);
+        }
+
+        $planoIds = Plano::where('empresa_id', $empresaId)->where('operadora_id', $operadora->id)->pluck('id');
+        $possuiVenda = Vendas::where('empresa_id', $empresaId)->where('operadora_id', $operadora->id)->exists()
+            || $this->planosComVenda($empresaId)->intersect($planoIds)->isNotEmpty();
+
+        if ($possuiVenda) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta operadora não pode ser excluída porque possui vendas cadastradas.',
+            ], 409);
+        }
+
+        try {
+            DB::transaction(function () use ($empresaId, $operadora) {
+                Plano::where('empresa_id', $empresaId)->where('operadora_id', $operadora->id)->delete();
+                $operadora->delete();
+            });
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'A operadora possui outros cadastros vinculados e não pode ser excluída.',
+            ], 409);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Operadora excluída com sucesso.']);
+    }
+
+    public function destroyPlano($id)
+    {
+        $empresaId = Auth::user()->empresa_id;
+        $plano = Plano::where('id', $id)->where('empresa_id', $empresaId)->first();
+        if (! $plano) {
+            return response()->json(['success' => false, 'message' => 'Plano não encontrado.'], 404);
+        }
+
+        if ($this->planosComVenda($empresaId)->contains($plano->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este plano não pode ser excluído porque possui vendas cadastradas.',
+            ], 409);
+        }
+
+        try {
+            $plano->delete();
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'O plano possui outros cadastros vinculados e não pode ser excluído.',
+            ], 409);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Plano excluído com sucesso.']);
+    }
+
+    private function planosComVenda(int $empresaId)
+    {
+        $diretos = Vendas::where('empresa_id', $empresaId)->whereNotNull('plano_id')->pluck('plano_id');
+        $titulares = DB::table('vendas_titulares')
+            ->join('vendas', 'vendas.id', '=', 'vendas_titulares.venda_id')
+            ->where('vendas.empresa_id', $empresaId)
+            ->whereNotNull('vendas_titulares.plano_id')
+            ->pluck('vendas_titulares.plano_id');
+        $dependentes = DB::table('vendas_dependentes')
+            ->join('vendas', 'vendas.id', '=', 'vendas_dependentes.venda_id')
+            ->where('vendas.empresa_id', $empresaId)
+            ->whereNotNull('vendas_dependentes.plano_id')
+            ->pluck('vendas_dependentes.plano_id');
+
+        return $diretos
+            ->merge($titulares)
+            ->merge($dependentes)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
     }
 
     public function createOperation(Request $request)

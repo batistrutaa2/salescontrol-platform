@@ -2420,3 +2420,51 @@
     min-width: 0;
   }
 }
+
+// Datas de nascimento precisam manter contraste mesmo em campos desabilitados.
+.birth-date-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: #000 !important;
+  font-weight: 800;
+  background-color: #f3f4f6;
+  border: 2px solid #374151;
+  opacity: 1 !important;
+}
+
+.birth-date-text {
+  color: #000 !important;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.age-highlight {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0.2rem 0.55rem;
+  color: #000 !important;
+  background: #facc15 !important;
+  border: 2px solid #854d0e;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-shadow: none;
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.25);
+}
+
+.dark-style {
+  .birth-date-display {
+    color: #fff !important;
+    background-color: #111827;
+    border-color: #f9fafb;
+  }
+
+  .birth-date-text {
+    color: #fff !important;
+  }
+}

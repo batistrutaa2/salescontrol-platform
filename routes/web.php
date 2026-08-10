@@ -247,6 +247,8 @@ Route::middleware(['auth'])->group(function () {
   Route::post(uri: '/back-office/createPlan', action: [Backoffice::class, 'createPlan'])->name('backoffice.createPlan');
   Route::patch('/back-office/operadoras/{id}/status', [Backoffice::class, 'toggleOperadoraStatus'])->name('backoffice.operadoras.toggleStatus');
   Route::patch('/back-office/planos/{id}/status', [Backoffice::class, 'togglePlanoStatus'])->name('backoffice.planos.toggleStatus');
+  Route::delete('/back-office/operadoras/{id}', [Backoffice::class, 'destroyOperadora'])->name('backoffice.operadoras.destroy');
+  Route::delete('/back-office/planos/{id}', [Backoffice::class, 'destroyPlano'])->name('backoffice.planos.destroy');
   Route::get(uri: '/back-office/getOperators', action: [Backoffice::class, 'getOperators'])->name('backoffice.getOperators');
   Route::get(uri: '/back-office/getPlans', action: [Backoffice::class, 'getPlans'])->name('backoffice.getPlans');
   Route::put('/backoffice/titulares/{id}', [Backoffice::class, 'updateTitular'])->name('backoffice.titulares.update');
@@ -419,6 +421,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/relatorios/qualidade-vendas', [RelatorioQualidadeVendasController::class, 'index'])->name('relatorios.qualidadeVendas');
     Route::get('/relatorios/qualidade-vendas/dados', [RelatorioQualidadeVendasController::class, 'dados'])->name('relatorios.qualidadeVendas.dados');
     Route::get('/relatorios/qualidade-vendas/propostas', [RelatorioQualidadeVendasController::class, 'propostas'])->name('relatorios.qualidadeVendas.propostas');
+    Route::get('/relatorios/qualidade-vendas/excel', [RelatorioQualidadeVendasController::class, 'excel'])->name('relatorios.qualidadeVendas.excel');
   });
 
   /** RANKING DE VENDAS */

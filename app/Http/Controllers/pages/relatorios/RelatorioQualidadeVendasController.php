@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\pages\relatorios;
 
+use App\Exports\RelatorioQualidadeVendasExport;
 use App\Http\Controllers\Controller;
 use App\Services\RelatorioQualidadeVendasService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class RelatorioQualidadeVendasController extends Controller
 {
@@ -47,6 +50,21 @@ class RelatorioQualidadeVendasController extends Controller
             $request->input('categoria'),
             (int) $request->input('por_pagina', 20),
         ));
+    }
+
+    public function excel(Request $request): BinaryFileResponse
+    {
+        [$inicio, $fim, $vendedorId] = $this->filtros($request);
+        $empresaId = auth()->user()->empresa_id;
+
+        $export = new RelatorioQualidadeVendasExport(
+            $this->service->resumo($empresaId, $inicio, $fim, $vendedorId),
+        );
+
+        return Excel::download(
+            $export,
+            "qualidade-vendas-{$inicio->format('Y-m-d')}-a-{$fim->format('Y-m-d')}.xlsx"
+        );
     }
 
     private function filtros(Request $request): array
