@@ -26,6 +26,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate production Compose contract
+        env:
+          EVOLUTION_DB_PASSWORD: ci-placeholder
+        run: |
+          test -f docker-compose.yml
+          docker compose -f docker-compose.yml config --quiet
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -68,9 +75,9 @@ jobs:
 
             # docker compose v2 (plugin) ou docker-compose v1 (standalone)
             if sudo docker compose version >/dev/null 2>&1; then
-              COMPOSE="sudo docker compose"
+              COMPOSE="sudo --preserve-env=PWD docker compose -f docker-compose.yml"
             else
-              COMPOSE="sudo docker-compose"
+              COMPOSE="sudo --preserve-env=PWD docker-compose -f docker-compose.yml"
             fi
             echo "==> Usando: $COMPOSE"
 
@@ -81,7 +88,25 @@ jobs:
 
             # Puxar alterações do repositório
             echo "==> Baixando alterações do repositório..."
+
+            # Migração única: durante a recuperação do incidente de 10/08/2026,
+            # o Compose foi restaurado manualmente na VPS como arquivo não
+            # rastreado. Preserve uma cópia antes de receber a versão oficial.
+            if [ -f docker-compose.yml ] && ! git ls-files --error-unmatch docker-compose.yml >/dev/null 2>&1; then
+              BACKUP_COMPOSE="/tmp/salescontrol-docker-compose.pre-versioned.$(date +%Y%m%d%H%M%S).yml"
+              sudo cp docker-compose.yml "$BACKUP_COMPOSE"
+              sudo rm docker-compose.yml
+              echo "==> Compose manual preservado em $BACKUP_COMPOSE"
+            fi
+
             sudo git pull origin master
+
+            # O Compose é parte obrigatória do contrato de produção. Esta trava
+            # impede que uma remoção acidental avance até alterar os containers.
+            if [ ! -f docker-compose.yml ]; then
+              echo "ERRO: docker-compose.yml de produção não está versionado."
+              exit 1
+            fi
 
             # Limpar credenciais após uso
             rm -f ~/.git-credentials
