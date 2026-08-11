@@ -570,29 +570,38 @@
 // Action Button
 // ============================================
 .lv-btn-view {
-    width: 36px;
-    height: 36px;
+    min-height: 44px;
+    padding: 0.65rem 0.9rem;
     display: inline-flex;
     align-items: center;
+    gap: 0.45rem;
     justify-content: center;
-    background: linear-gradient(135deg, var(--lv-primary) 0%, var(--lv-primary-light) 100%);
-    border: none;
+    background: rgba(var(--lv-primary-rgb), 0.08);
+    border: 1px solid rgba(var(--lv-primary-rgb), 0.22);
     border-radius: var(--lv-border-radius-sm);
     color: #fff;
-    font-size: 1rem;
+    color: var(--lv-primary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
     transition: var(--lv-transition);
     cursor: pointer;
 
     &:hover {
-        transform: scale(1.1);
-        box-shadow: 0 4px 16px rgba(var(--lv-primary-rgb), 0.4);
+        transform: translateY(-1px);
+        background: var(--lv-primary);
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(var(--lv-primary-rgb), 0.25);
     }
+
+    &:focus-visible { outline: 3px solid rgba(var(--lv-primary-rgb), 0.28); outline-offset: 2px; }
 }
 
 // ============================================
 // Modal
 // ============================================
 #modalVisualizarVenda {
+    .modal-dialog { max-width: min(1120px, calc(100vw - 2rem)); }
     .modal-content {
         border: none;
         border-radius: var(--lv-border-radius);
@@ -655,8 +664,18 @@
     }
 
     .lv-modal-body {
+        min-height: 0;
         padding: 1.5rem;
+        overflow-x: hidden;
+        overflow-y: auto;
         background: var(--lv-card-bg);
+        overscroll-behavior: contain;
+        scrollbar-color: rgba(var(--lv-primary-rgb), 0.45) transparent;
+        scrollbar-width: thin;
+
+        &::-webkit-scrollbar { width: 8px; }
+        &::-webkit-scrollbar-track { background: transparent; }
+        &::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(var(--lv-primary-rgb), 0.35); }
     }
 
     .lv-modal-footer {
@@ -684,6 +703,81 @@
         }
     }
 }
+
+// ============================================
+// Carteira: filtros e detalhes completos
+// ============================================
+.lv-period-filter { position: relative; display: grid !important; grid-template-columns: repeat(2, minmax(180px, 1fr)); min-width: 430px; padding-top: 1.6rem !important; }
+.lv-filter-legend { position: absolute; top: 0.55rem; left: 1rem; width: auto; margin: 0; color: var(--lv-text-muted); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.lv-filter-error { grid-column: 1 / -1; min-height: 1rem; margin-top: -0.15rem; color: var(--lv-danger); font-size: 0.7rem; font-weight: 600; }
+.lv-date-control:has(.lv-filter-select[aria-invalid='true']) { border-color: var(--lv-danger); }
+
+.lv-date-control {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) 44px;
+    align-items: center;
+    min-height: 48px;
+    padding-left: 0.75rem;
+    border: 1px solid var(--lv-card-border);
+    border-radius: 12px;
+    background: var(--lv-card-bg);
+    color: var(--lv-primary);
+
+    &:focus-within { border-color: var(--lv-primary); box-shadow: 0 0 0 3px rgba(var(--lv-primary-rgb), 0.12); }
+    .lv-filter-select { width: 100%; padding: 0.65rem 0.5rem; background-image: none !important; }
+}
+
+.lv-date-trigger {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    place-items: center;
+    border: 0;
+    border-left: 1px solid var(--lv-card-border);
+    background: transparent;
+    color: var(--lv-text-secondary);
+    cursor: pointer;
+}
+.lv-date-trigger:focus-visible { outline: 3px solid rgba(var(--lv-primary-rgb), 0.28); outline-offset: -3px; }
+
+.lv-portfolio-filter { display: flex; gap: 0.35rem; padding: 0.3rem; border: 1px solid var(--lv-card-border); border-radius: 12px; background: var(--lv-glass-bg); }
+.lv-portfolio-option { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 40px; padding: 0.45rem 0.75rem; border: 0; border-radius: 9px; background: transparent; color: var(--lv-text-secondary); font-size: 0.78rem; font-weight: 700; cursor: pointer; }
+.lv-portfolio-option:hover { color: var(--lv-text-primary); }
+.lv-portfolio-option.is-active { background: var(--lv-card-bg); color: var(--lv-primary); box-shadow: var(--lv-shadow-sm); }
+.lv-portfolio-option:focus-visible { outline: 3px solid rgba(var(--lv-primary-rgb), 0.28); }
+.lv-filter-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lv-warning); }
+.lv-filter-dot.is-success { background: var(--lv-success); }
+
+.lv-nav-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+.lv-nav-tabs .nav-link { min-height: 44px; padding-inline: 1rem; white-space: nowrap; }
+.lv-tab-count { min-width: 20px; margin-left: 0.4rem; padding: 0.1rem 0.35rem; border-radius: 999px; background: rgba(var(--lv-primary-rgb), 0.12); font-size: 0.65rem; text-align: center; }
+.lv-info-item-wide { grid-column: 1 / -1; }
+
+.lv-plan-hero { display: flex; align-items: center; gap: 1rem; padding: 1.25rem; margin-bottom: 1.25rem; border: 1px solid var(--lv-card-border); border-radius: 14px; background: linear-gradient(135deg, rgba(var(--lv-primary-rgb), 0.09), rgba(var(--lv-info-rgb), 0.05)); }
+.lv-plan-icon { display: grid; flex: 0 0 48px; width: 48px; height: 48px; place-items: center; border-radius: 12px; background: var(--lv-primary); color: #fff; font-size: 1.4rem; }
+.lv-plan-operator { color: var(--lv-text-muted); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.lv-plan-name { margin: 0.15rem 0 0; color: var(--lv-text-primary); font-size: 1.05rem; }
+.lv-plan-value { margin-left: auto; color: var(--lv-success); font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 800; }
+
+.lv-beneficiary-list { display: grid; gap: 1rem; padding-bottom: 0.5rem; }
+.lv-holder-card { padding: 1.1rem; border: 1px solid var(--lv-card-border); border-radius: 14px; background: var(--lv-glass-bg); }
+.lv-person-heading { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.lv-person-heading > div { display: flex; flex-direction: column; color: var(--lv-text-primary); }
+.lv-person-heading > div > span:not(.lv-person-role) { color: var(--lv-text-muted); font-size: 0.75rem; }
+.lv-person-avatar { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border-radius: 12px; background: rgba(var(--lv-primary-rgb), 0.14); color: var(--lv-primary); font-weight: 800; }
+.lv-person-avatar.is-dependent { background: rgba(var(--lv-info-rgb), 0.14); color: var(--lv-info); }
+.lv-person-role { color: var(--lv-primary); font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+.lv-person-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.85rem; }
+.lv-person-field { display: flex; min-width: 0; flex-direction: column; gap: 0.15rem; }
+.lv-person-field span { color: var(--lv-text-muted); font-size: 0.66rem; font-weight: 700; text-transform: uppercase; }
+.lv-person-field strong { overflow-wrap: anywhere; color: var(--lv-text-primary); font-size: 0.8rem; }
+.lv-dependents { padding-top: 1rem; margin-top: 1rem; border-top: 1px solid var(--lv-card-border); }
+.lv-dependents h4 { margin: 0 0 0.75rem; color: var(--lv-text-secondary); font-size: 0.78rem; }
+.lv-dependent-card { padding: 0.85rem; margin-top: 0.65rem; border-radius: 12px; background: var(--lv-card-bg); }
+.lv-no-dependents { margin: 1rem 0 0; color: var(--lv-text-muted); font-size: 0.78rem; }
+
+.lv-empty-symbol { color: var(--lv-text-muted); font-size: 2rem; }
 
 // ============================================
 // Contract Header (Modal)
@@ -1120,6 +1214,32 @@
     }
 
     .lv-kpi-card .lv-kpi-value { font-size: 1.25rem; }
+    .lv-period-filter { width: 100%; min-width: 0; }
+    .lv-table-card .lv-table-header { align-items: flex-start; flex-direction: column; gap: 1rem; }
+    .lv-portfolio-filter { width: 100%; overflow-x: auto; }
+    #modalVisualizarVenda .lv-modal-body { padding: 1rem; }
+    .lv-contract-header { flex-direction: column; }
+    .lv-plan-hero { align-items: flex-start; flex-wrap: wrap; }
+    .lv-plan-value { width: 100%; margin-left: 0; padding-left: 4rem; }
+}
+
+@media (max-width: 420px) {
+    .lv-period-filter { grid-template-columns: 1fr; }
+    .lv-portfolio-option { flex: 1 0 auto; }
+    .lv-info-grid,
+    .lv-person-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lv-kpi-card,
+    .lv-table-card { animation: none; opacity: 1; }
+    .lv-kpi-card,
+    .lv-btn-view,
+    .lv-timeline-card { transition: none; }
+    .lv-kpi-card:hover,
+    .lv-btn-view:hover,
+    .lv-timeline-card:hover { transform: none; }
+    .lv-spinner { animation-duration: 1.5s; }
 }
 
 // ============================================

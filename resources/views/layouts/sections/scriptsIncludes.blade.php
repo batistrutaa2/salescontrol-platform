@@ -32,18 +32,6 @@
 
 @if ($configData['hasCustomizer'])
 <script type="module">
-    document.addEventListener('DOMContentLoaded', function() {
-        toastr.options = {
-            closeButton: true,
-            progressBar: true,
-            positionClass: "toast-top-right",
-            timeOut: 8000,
-            extendedTimeOut: 8000
-        };
-    });
-
-
-
     window.templateCustomizer = new TemplateCustomizer({
         cssPath: '',
         themesPath: '',
@@ -79,7 +67,13 @@
         preventDuplicates: true,
         positionClass: "toast-top-right",
         timeOut: 7000,
-        extendedTimeOut: 3000
+        extendedTimeOut: 3000,
+        closeHtml: '<button type="button" aria-label="Fechar notificação">&times;</button>',
+        onShown: function() {
+            const toast = this?.[0] || this;
+            toast?.setAttribute?.('role', 'status');
+            toast?.setAttribute?.('aria-live', 'polite');
+        }
     };
 
     // ================= CSS Customizado para Notificações (Estilo Sonner) =================
@@ -312,7 +306,8 @@
             width: 100%;
         }
     `;
-    document.head.appendChild(notificationStyles);
+    // O estilo visual agora vive no SCSS global do Toastr. Mantido sem anexar
+    // apenas durante a transição para não haver dois padrões concorrentes.
 
     // ================= Sistema de Som para Notificações =================
     function playNotificationSound() {
@@ -381,7 +376,13 @@
             showEasing: 'swing',
             hideEasing: 'linear',
             showMethod: 'fadeIn',
-            hideMethod: 'fadeOut'
+            hideMethod: 'fadeOut',
+            closeHtml: '<button type="button" aria-label="Fechar notificação">&times;</button>',
+            onShown: function() {
+                const toast = this?.[0] || this;
+                toast?.setAttribute?.('role', tipo === 'error' ? 'alert' : 'status');
+                toast?.setAttribute?.('aria-live', tipo === 'error' ? 'assertive' : 'polite');
+            }
         };
 
         // Exibe a notificação (o ícone é adicionado via CSS ::before)
@@ -404,61 +405,96 @@
         return 'info';
     }
 
+    function escaparToast(valor) {
+        return String(valor ?? '').replace(/[&<>"']/g, caractere => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[caractere]));
+    }
+
     function linkWrap(html, url) {
-        return url ? `<a href="${url}" class="text-decoration-underline" style="color:inherit">${html}</a>` : html;
+        return url ? `<a href="${escaparToast(url)}">${html}</a>` : html;
+    }
+
+    function toastEstruturado({ contexto, titulo, mensagem = '', meta = '', url = null }) {
+        const corpo = `
+            <div class="app-toast-context">${escaparToast(contexto)}</div>
+            <div class="app-toast-heading">${escaparToast(titulo)}</div>
+            ${mensagem ? `<div class="app-toast-copy">${escaparToast(mensagem)}</div>` : ''}
+            ${meta ? `<div class="app-toast-meta">${escaparToast(meta)}</div>` : ''}`;
+        return linkWrap(corpo, url);
     }
 
     // Renderizadores por tipo
     function renderAgendamento(d) {
-        const tituloToast = 'Agendamento';
-        const corpo = `📅 ${d.titulo || 'Agendamento'}<br><small>
-      Quando: ${d.data_inicio || '-'}<br>
-      Por: ${d.criado_por || 'Desconhecido'}
-    </small>`;
         return {
             nivel: 'info',
-            tituloToast,
-            htmlMsg: linkWrap(corpo, d.url)
+            tituloToast: '',
+            htmlMsg: toastEstruturado({
+                contexto: 'Agendamento',
+                titulo: d.titulo || 'Novo agendamento',
+                mensagem: d.data_inicio ? `Quando: ${d.data_inicio}` : '',
+                meta: `Criado por ${d.criado_por || 'Desconhecido'}`,
+                url: d.url
+            })
         };
     }
 
     function renderReuniao(d) {
-        const tituloToast = 'Reunião';
-        const corpo = `🗓️ ${d.titulo || 'Reunião'}<br><small>
-      Início: ${d.data_inicio || '-'}<br>
-      Criado por: ${d.criado_por || 'Desconhecido'}
-    </small>`;
         return {
             nivel: 'info',
-            tituloToast,
-            htmlMsg: linkWrap(corpo, d.url)
+            tituloToast: '',
+            htmlMsg: toastEstruturado({
+                contexto: 'Reunião',
+                titulo: d.titulo || 'Nova reunião',
+                mensagem: d.data_inicio ? `Início: ${d.data_inicio}` : '',
+                meta: `Criada por ${d.criado_por || 'Desconhecido'}`,
+                url: d.url
+            })
         };
     }
 
     function renderStatusVenda(d) {
-        const tituloToast = 'Status da Venda';
-        // Evita repetir “Status” se já veio na mensagem
-        const msg = d.mensagem || '';
-        const statusLine = d.status ? `<br>Status: <strong>${d.status}</strong>` : '';
-        const corpo = `🔔 ${d.titulo || 'Status da venda atualizado'}<br><small>${msg}${statusLine}</small>`;
         return {
             nivel: nivelPorStatus(d.status),
-            tituloToast,
-            htmlMsg: linkWrap(corpo, d.url)
+            tituloToast: '',
+            htmlMsg: toastEstruturado({
+                contexto: 'Status da venda',
+                titulo: d.titulo || 'Venda atualizada',
+                mensagem: d.mensagem || '',
+                meta: d.status ? `Status: ${d.status}` : '',
+                url: d.url
+            })
         };
     }
 
     function renderGenerica(d) {
-        const tituloToast = 'Notificação';
         const linhas = [];
         if (d.mensagem) linhas.push(d.mensagem);
         if (d.data_inicio) linhas.push(`Quando: ${d.data_inicio}`);
-        if (d.criado_por) linhas.push(`Por: ${d.criado_por}`);
-        const corpo = `🔔 ${d.titulo || 'Notificação'}<br><small>${linhas.join('<br>')}</small>`;
         return {
             nivel: 'info',
-            tituloToast,
-            htmlMsg: linkWrap(corpo, d.url)
+            tituloToast: '',
+            htmlMsg: toastEstruturado({
+                contexto: 'Notificação',
+                titulo: d.titulo || 'Nova informação',
+                mensagem: linhas.join(' · '),
+                meta: d.criado_por ? `Por ${d.criado_por}` : '',
+                url: d.url
+            })
+        };
+    }
+
+    function renderSolicitacaoAtualizada(d) {
+        return {
+            nivel: 'info',
+            tituloToast: '',
+            htmlMsg: toastEstruturado({
+                contexto: 'Solicitação de pós-venda',
+                titulo: d.titulo || 'Atualização do pós-venda',
+                mensagem: d.mensagem || 'Sua solicitação recebeu uma nova atualização.',
+                meta: `Atualizado por ${d.criado_por || 'Pós-venda'}`,
+                url: d.url
+            })
         };
     }
 
@@ -471,6 +507,8 @@
                 return renderReuniao(d);
             case 'status_venda':
                 return renderStatusVenda(d);
+            case 'solicitacao_atualizada':
+                return renderSolicitacaoAtualizada(d);
             default:
                 return renderGenerica(d);
         }

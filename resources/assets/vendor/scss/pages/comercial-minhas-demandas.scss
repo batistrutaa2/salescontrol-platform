@@ -13,9 +13,12 @@
     --mdv-warning: #F59E0B;
     --mdv-danger: #EF4444;
 
-    --mdv-card-bg: rgba(255, 255, 255, 0.95);
-    --mdv-glass-bg: rgba(255, 255, 255, 0.7);
-    --mdv-border: rgba(124, 58, 237, 0.12);
+    --mdv-card-bg: #fff;
+    --mdv-glass-bg: #f8fafc;
+    --mdv-border: #dfe3eb;
+    --mdv-card-border: #d8dee9;
+    --mdv-timeline-bg: #f1f5f9;
+    --mdv-timeline-line: #cbd5e1;
     --mdv-text-primary: #1e293b;
     --mdv-text-secondary: #64748b;
     --mdv-text-muted: #94a3b8;
@@ -91,7 +94,7 @@
         background: var(--mdv-card-bg);
         border: 1px solid var(--mdv-border);
         border-radius: var(--mdv-radius);
-        box-shadow: var(--mdv-shadow-sm);
+        box-shadow: 0 8px 28px rgba(30, 41, 59, 0.08);
         overflow: hidden;
     }
 
@@ -122,23 +125,25 @@
     .mdv-list-body {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 14px;
-        padding: 18px 20px;
+        gap: 18px;
+        padding: 20px;
+        background: var(--mdv-glass-bg);
     }
 
     /* ---- card de solicitação ---- */
     .mdv-card {
         position: relative;
-        padding: 16px;
-        border: 1px solid var(--mdv-border);
+        padding: 18px;
+        border: 1px solid var(--mdv-card-border);
         border-left: 4px solid var(--mdv-warning);
         border-radius: var(--mdv-radius-sm);
-        background: var(--mdv-glass-bg);
+        background: var(--mdv-card-bg);
+        box-shadow: 0 3px 12px rgba(30, 41, 59, 0.07);
         transition: var(--mdv-transition);
 
         &.is-andamento { border-left-color: var(--mdv-info); }
         &.is-concluida { border-left-color: var(--mdv-success); }
-        &.is-cancelada { border-left-color: var(--mdv-danger); opacity: 0.75; }
+        &.is-cancelada { border-left-color: var(--mdv-danger); }
 
         &:hover {
             transform: translateY(-2px);
@@ -166,6 +171,9 @@
     }
 
     .mdv-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
         font-size: 0.7rem;
         font-weight: 700;
         padding: 3px 10px;
@@ -204,41 +212,84 @@
 
     /* ---- atualizações registradas pelo pós-venda ---- */
     .mdv-card-updates {
-        margin-top: 10px;
-        padding: 10px 12px;
-        background: rgba(6, 182, 212, 0.06);
-        border: 1px solid rgba(6, 182, 212, 0.18);
-        border-radius: 10px;
+        margin-top: 16px;
+        padding: 14px 14px 6px;
+        background: var(--mdv-timeline-bg);
+        border: 1px solid var(--mdv-card-border);
+        border-radius: 12px;
     }
 
     .mdv-card-updates-title {
-        display: inline-flex;
+        display: flex;
         align-items: center;
         gap: 6px;
         font-size: 0.7rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        color: var(--mdv-info);
-        margin-bottom: 6px;
+        color: var(--mdv-text-primary);
+        margin: 0 0 12px;
+    }
+
+    .mdv-timeline {
+        margin: 0;
+        padding: 0;
+        list-style: none;
     }
 
     .mdv-update {
-        padding: 6px 0;
+        position: relative;
+        display: grid;
+        grid-template-columns: 16px minmax(0, 1fr);
+        gap: 10px;
+        padding-bottom: 14px;
 
-        & + .mdv-update { border-top: 1px dashed rgba(6, 182, 212, 0.18); }
+        &:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            top: 14px;
+            bottom: 0;
+            left: 7px;
+            width: 2px;
+            background: var(--mdv-timeline-line);
+        }
+    }
+
+    .mdv-update-marker {
+        position: relative;
+        z-index: 1;
+        width: 10px;
+        height: 10px;
+        margin: 3px 0 0 2px;
+        border: 2px solid var(--mdv-card-bg);
+        border-radius: 50%;
+        background: var(--mdv-info);
+        box-shadow: 0 0 0 2px var(--mdv-info);
+    }
+
+    .mdv-update-content {
+        min-width: 0;
     }
 
     .mdv-update-texto {
+        margin: 0;
         font-size: 0.82rem;
+        line-height: 1.5;
         color: var(--mdv-text-secondary);
     }
 
     .mdv-update-meta {
-        margin-top: 2px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 8px;
+        margin: 5px 0 0;
         font-size: 0.7rem;
         color: var(--mdv-text-muted);
     }
+
+    .mdv-update-author { font-weight: 700; color: var(--mdv-text-secondary); }
+
+    .mdv-update-meta time::before { content: '•'; margin-right: 8px; }
 
     .mdv-card-meta {
         display: flex;
@@ -286,6 +337,12 @@
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 44px;
+
+    &:focus-visible {
+        outline: 3px solid rgba(124, 58, 237, 0.35);
+        outline-offset: 2px;
+    }
 }
 
 .mdv-btn-primary {
@@ -427,19 +484,59 @@
     }
 }
 
+@media (max-width: 575.98px) {
+    .mdv-page {
+        .mdv-header { padding: 16px; }
+        .mdv-title-group { align-items: flex-start; }
+        .mdv-icon { width: 42px; height: 42px; flex: 0 0 42px; }
+        .mdv-header-actions { width: 100%; }
+        .mdv-header-actions .mdv-btn { flex: 1 1 auto; justify-content: center; }
+        .mdv-list-header { padding: 14px 16px; }
+        .mdv-list-body { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+        .mdv-card { padding: 15px; }
+        .mdv-card-top { align-items: flex-start; flex-wrap: wrap; }
+        .mdv-card-updates { margin-inline: -3px; padding-inline: 12px; }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mdv-card,
+    .mdv-btn,
+    .mdv-tour .mdv-tour-spot { transition: none; }
+
+    .mdv-card:hover,
+    .mdv-btn-primary:hover { transform: none; }
+}
+
 /* =========================================================
    Dark mode
    ========================================================= */
 .dark-style {
     .mdv-page {
-        --mdv-card-bg: rgba(30, 32, 47, 0.95);
-        --mdv-glass-bg: rgba(30, 32, 47, 0.7);
-        --mdv-border: rgba(255, 255, 255, 0.08);
+        --mdv-card-bg: #252638;
+        --mdv-glass-bg: #191a29;
+        --mdv-border: #3b3d54;
+        --mdv-card-border: #45475f;
+        --mdv-timeline-bg: #1d1e2d;
+        --mdv-timeline-line: #55586f;
         --mdv-text-primary: #F9FAFB;
         --mdv-text-secondary: #D1D5DB;
         --mdv-text-muted: #9CA3AF;
         --mdv-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
         --mdv-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
+
+        .mdv-card { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28); }
+        .mdv-card-updates-title { color: #f3f4f6; }
+        .mdv-update-marker { border-color: var(--mdv-timeline-bg); }
+        .mdv-card-tipo { color: #c4b5fd; background: rgba(124, 58, 237, 0.24); }
+        .mdv-list-badge { color: #c4b5fd; background: rgba(124, 58, 237, 0.24); }
+
+        .mdv-status-badge {
+            &.is-aberta { color: #fcd34d; background: rgba(245, 158, 11, 0.2); }
+            &.is-andamento { color: #67e8f9; background: rgba(6, 182, 212, 0.2); }
+            &.is-concluida { color: #6ee7b7; background: rgba(16, 185, 129, 0.2); }
+            &.is-cancelada { color: #fca5a5; background: rgba(239, 68, 68, 0.2); }
+        }
     }
 
     .mdv-modal {

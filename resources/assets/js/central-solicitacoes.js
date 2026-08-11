@@ -80,10 +80,14 @@
                         <div class="toast-title">${escapar(title)}</div>
                         <div class="toast-message">${escapar(message)}</div>
                     </div>
-                    <div class="toast-close" onclick="Swal.close()">${SVG.toastClose}</div>
+                    <button type="button" class="toast-close" aria-label="Fechar notificação" onclick="Swal.close()">${SVG.toastClose}</button>
                 </div>
             `,
             customClass: { popup: 'custom-toast-popup' },
+            didOpen: (popup) => {
+                popup.setAttribute('role', type === 'error' ? 'alert' : 'status');
+                popup.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+            },
         });
     };
 

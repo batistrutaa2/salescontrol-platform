@@ -35,10 +35,10 @@
 
     // ====== helpers ======
     const STATUS = {
-        'ABERTA': { label: 'Aguardando', cls: 'is-aberta' },
-        'EM_ANDAMENTO': { label: 'Em andamento', cls: 'is-andamento' },
-        'CONCLUIDA': { label: 'Concluída', cls: 'is-concluida' },
-        'CANCELADA': { label: 'Cancelada', cls: 'is-cancelada' }
+        'ABERTA': { label: 'Aguardando', cls: 'is-aberta', icon: '●' },
+        'EM_ANDAMENTO': { label: 'Em andamento', cls: 'is-andamento', icon: '◐' },
+        'CONCLUIDA': { label: 'Concluída', cls: 'is-concluida', icon: '✓' },
+        'CANCELADA': { label: 'Cancelada', cls: 'is-cancelada', icon: '×' }
     };
 
     function escapeHtml(s) {
@@ -95,17 +95,25 @@
         if (!items.length) return '';
 
         return `
-            <div class="mdv-card-updates">
-                <div class="mdv-card-updates-title">
+            <section class="mdv-card-updates" aria-label="Timeline de atualizações do pós-venda">
+                <h3 class="mdv-card-updates-title">
                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     Atualizações do pós-venda
-                </div>
-                ${items.map(a => `
-                    <div class="mdv-update">
-                        <div class="mdv-update-texto">${escapeHtml(a.texto)}</div>
-                        <div class="mdv-update-meta">${escapeHtml(a.autor)}${a.data ? ' · ' + escapeHtml(a.data) : ''}</div>
-                    </div>`).join('')}
-            </div>`;
+                </h3>
+                <ol class="mdv-timeline">
+                    ${items.map(a => `
+                        <li class="mdv-update">
+                            <span class="mdv-update-marker" aria-hidden="true"></span>
+                            <div class="mdv-update-content">
+                                <p class="mdv-update-texto">${escapeHtml(a.texto)}</p>
+                                <p class="mdv-update-meta">
+                                    <span class="mdv-update-author">${escapeHtml(a.autor || 'Pós-venda')}</span>
+                                    ${a.data ? `<time>${escapeHtml(a.data)}</time>` : ''}
+                                </p>
+                            </div>
+                        </li>`).join('')}
+                </ol>
+            </section>`;
     }
 
     function cardHtml(d) {
@@ -122,6 +130,7 @@
         const emEtapaAvancada = d.status === 'ABERTA' && d.etapa && d.etapa.toUpperCase() !== 'ABERTA';
         const badgeCls = emEtapaAvancada ? 'is-andamento' : st.cls;
         const badgeLabel = emEtapaAvancada ? escapeHtml(d.etapa) : st.label;
+        const badgeIcon = emEtapaAvancada ? STATUS['EM_ANDAMENTO'].icon : st.icon;
         const prazo = d.status === 'ABERTA' && d.data_limite
             ? `<span class="mdv-card-meta-item">Prazo: ${escapeHtml(d.data_limite)}</span>` : '';
 
@@ -130,10 +139,10 @@
             ? '<span class="mdv-card-meta-item mdv-card-origem">Aberta pelo pós-venda</span>' : '';
 
         return `
-            <div class="mdv-card ${badgeCls}">
+            <article class="mdv-card ${badgeCls}">
                 <div class="mdv-card-top">
                     <span class="mdv-card-tipo">${tipoLabel}</span>
-                    <span class="mdv-status-badge ${badgeCls}">${badgeLabel}</span>
+                    <span class="mdv-status-badge ${badgeCls}"><span aria-hidden="true">${badgeIcon}</span>${badgeLabel}</span>
                 </div>
                 <div class="mdv-card-cliente">${cliente} ${proposta}</div>
                 <div class="mdv-card-titulo">${escapeHtml(d.titulo)}</div>
@@ -145,10 +154,11 @@
                     ${prazo}
                     ${concl}
                 </div>
-            </div>`;
+            </article>`;
     }
 
     function loadList() {
+        $lista.attr('aria-busy', 'true');
         $.get(URL_LIST, function (res) {
             const items = Array.isArray(res?.data) ? res.data : [];
             $count.text(items.length);
@@ -159,7 +169,8 @@
             }
             $empty.prop('hidden', true);
             $lista.html(items.map(cardHtml).join(''));
-        }).fail(xhr => showAjaxError(xhr, 'Não foi possível carregar suas solicitações.'));
+        }).fail(xhr => showAjaxError(xhr, 'Não foi possível carregar suas solicitações.'))
+            .always(() => $lista.attr('aria-busy', 'false'));
     }
 
     // ====== modal nova solicitação ======

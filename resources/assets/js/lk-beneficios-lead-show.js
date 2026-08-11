@@ -40,7 +40,7 @@
                         <div class="toast-title">${escapar(title)}</div>
                         <div class="toast-message">${escapar(message || '')}</div>
                     </div>
-                    <div class="toast-close" onclick="Swal.close()">${SVG.close}</div>
+                    <button type="button" class="toast-close" aria-label="Fechar notificação" onclick="Swal.close()">${SVG.close}</button>
                 </div>
             `,
             customClass: { popup: 'custom-toast-popup' },

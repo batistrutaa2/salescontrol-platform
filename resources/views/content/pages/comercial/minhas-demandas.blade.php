@@ -71,7 +71,7 @@
             <h3 class="mdv-list-title">Minhas solicitações</h3>
             <span class="mdv-list-badge"><span id="mdv-count">0</span> no total</span>
         </div>
-        <div id="mdv-lista" class="mdv-list-body">
+        <div id="mdv-lista" class="mdv-list-body" aria-live="polite" aria-busy="true">
             {{-- Cards renderizados via JS --}}
         </div>
         <div id="mdv-empty" class="mdv-empty" hidden>
@@ -95,13 +95,13 @@
             </div>
             <div class="modal-body">
                 <div class="mdv-form-group" data-tour="contrato">
-                    <label class="mdv-label">Contrato implantado *</label>
+                    <label class="mdv-label" for="mdv-venda">Contrato implantado *</label>
                     <select id="mdv-venda" class="mdv-select" style="width:100%"></select>
                     <small class="mdv-hint">Busque por nome, proposta ou CPF/CNPJ. Só aparecem contratos seus já implantados.</small>
                 </div>
 
                 <div class="mdv-form-group" data-tour="tipo">
-                    <label class="mdv-label">Tipo de demanda *</label>
+                    <label class="mdv-label" for="mdv-tipo">Tipo de demanda *</label>
                     <select id="mdv-tipo" class="mdv-select" style="width:100%">
                         <option value="">Selecione o que você precisa…</option>
                         @foreach ($tipoLabels as $value => $label)
@@ -111,12 +111,12 @@
                 </div>
 
                 <div class="mdv-form-group">
-                    <label class="mdv-label">Título *</label>
+                    <label class="mdv-label" for="mdv-titulo">Título *</label>
                     <input type="text" id="mdv-titulo" class="mdv-input" maxlength="255" placeholder="Ex.: Enviar boleto de junho">
                 </div>
 
                 <div class="mdv-form-group">
-                    <label class="mdv-label">Detalhes</label>
+                    <label class="mdv-label" for="mdv-descricao">Detalhes</label>
                     <textarea id="mdv-descricao" class="mdv-textarea" rows="4" maxlength="1000" placeholder="Explique o que o pós-venda precisa fazer (opcional)"></textarea>
                 </div>
             </div>

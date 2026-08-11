@@ -348,6 +348,9 @@
         return;
       }
 
+      // Atualizações de andamento usam o toast global; não duplicar no mascote.
+      if (aviso.tipo === 'solicitacao_atualizada') return;
+
       const estorno = aviso.tipo === 'venda_estornada';
       const statusTxt = aviso.status ? escapeHtml(aviso.status) : '';
       const html = estorno

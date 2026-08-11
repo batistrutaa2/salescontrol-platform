@@ -91,12 +91,12 @@ $(function () {
                         <div class="toast-title">${escapeHtml(title)}</div>
                         <div class="toast-message">${escapeHtml(message)}</div>
                     </div>
-                    <div class="toast-close" onclick="Swal.close()">
+                    <button type="button" class="toast-close" aria-label="Fechar notificação" onclick="Swal.close()">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"/>
                             <line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
-                    </div>
+                    </button>
                 </div>
             `,
             customClass: {

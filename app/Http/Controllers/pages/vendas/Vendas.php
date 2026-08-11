@@ -593,6 +593,7 @@ class Vendas extends Controller
         $vendasImplantadasMes = DB::table('vendas as a')
             ->where('a.tabulacao_id', Tabulations::IMPLANTADO)
             ->where('a.user_id', Auth::user()->id)
+            ->where('a.empresa_id', Auth::user()->empresa_id)
             ->when($dataInicio && $dataFim, fn ($q) => $q->whereBetween('a.created_at', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']))
             ->selectRaw("SUM(a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END) as total")
             ->value('total') ?? 0;
@@ -615,6 +616,7 @@ class Vendas extends Controller
             ->leftJoin('tabulacoes as c', 'c.id', '=', 'a.tabulacao_id')
             ->leftJoin('users as backoffice', 'backoffice.id', '=', 'a.backoffice_id')
             ->where('a.user_id', auth()->user()->id)
+            ->where('a.empresa_id', Auth::user()->empresa_id)
             ->when($dataInicio && $dataFim, fn ($q) => $q->whereBetween('a.created_at', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']))
             ->select(
                 'a.id',
@@ -659,25 +661,32 @@ class Vendas extends Controller
     public function detalhesVenda($id)
     {
         try {
-            $venda = DB::table('vendas')
-                ->leftJoin('users', 'vendas.user_id', '=', 'users.id')
-                ->leftJoin('users as backoffice', 'backoffice.id', '=', 'vendas.backoffice_id')
-                ->leftJoin('tabulacoes', 'vendas.tabulacao_id', '=', 'tabulacoes.id')
-                ->where('vendas.id', $id)
-                ->where('vendas.empresa_id', Auth::user()->empresa_id)
-                ->select(
-                    'vendas.*',
-                    'users.name as vendedor_nome',
-                    'backoffice.name as backoffice_nome',
-                    'tabulacoes.descricao'
-                )
+            $venda = VendasModel::query()
+                ->with([
+                    'user:id,name',
+                    'backoffice:id,name',
+                    'tabulacao:id,descricao',
+                    'titulares' => fn ($query) => $query->with([
+                        'plano:id,nome,acomodacao',
+                        'operadoraAnterior:id,nome',
+                        'dependentes.plano:id,nome,acomodacao',
+                        'dependentes.operadoraAnterior:id,nome',
+                    ])->orderBy('id'),
+                ])
+                ->whereKey($id)
+                ->where('empresa_id', Auth::user()->empresa_id)
+                ->where('user_id', Auth::id())
                 ->first();
 
             if (! $venda) {
                 return response()->json(['error' => 'Venda não encontrada'], 404);
             }
 
-            return response()->json($venda);
+            $dados = $venda->toArray();
+            $dados['vendedor_nome'] = $venda->user?->name;
+            $dados['backoffice_nome'] = $venda->backoffice?->name;
+            $dados['descricao'] = $venda->tabulacao?->descricao;
+            return response()->json($dados);
         } catch (\Throwable $th) {
             return response()->json(['error' => 'Erro ao buscar detalhes da venda: '.$th->getMessage()], 500);
         }

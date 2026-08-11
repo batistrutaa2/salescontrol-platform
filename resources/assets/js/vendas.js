@@ -2,6 +2,7 @@
 
 $(document).ready(function () {
   const endpoint = '/vendas/getResultsBroker';
+  let faseCarteira = 'todos';
 
   const formatMoeda = (valor) => new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -37,8 +38,6 @@ $(document).ready(function () {
         $('.js-valorCadastrado, .js-implantado, .js-quantidadeContatosImportados, .js-conversao').text('...');
       },
       success: function (res) {
-        toastr.success('Dados carregados com sucesso!');
-
         $('.js-valorCadastrado').text(formatMoeda(res.vendasCadastradasMes));
         $('.js-implantado').text(formatMoeda(res.vendasImplantadasMes ?? '0'));
         $('.js-quantidadeContatosImportados').text(res.quantidadeContatosMes ?? '0');
@@ -161,9 +160,8 @@ $(document).ready(function () {
                   return `
                     <button type="button" class="lv-btn-view btn-visualizar-venda"
                             data-venda-id="${row.id}"
-                            data-bs-toggle="tooltip"
-                            title="Visualizar Detalhes">
-                      <i class="ri-eye-line"></i>
+                            aria-label="Ver detalhes do contrato ${escapeHtml(row.nome_contrato)}">
+                      <i class="ri-eye-line" aria-hidden="true"></i><span>Ver contrato</span>
                     </button>
                   `;
                 }
@@ -207,7 +205,7 @@ $(document).ready(function () {
     return `${ano}-${mes}-${dia}`;
   }
 
-  // iniciar flatpickr com range do mês atual
+  // Campos independentes de data, com máscara e validação do intervalo.
   const now = new Date();
   const ano = now.getFullYear();
   const mes = now.getMonth(); // 0-indexed
@@ -215,17 +213,89 @@ $(document).ready(function () {
   const ultimoDia = new Date(ano, mes + 1, 0).getDate();
   const ultimoDiaMes = `${String(ultimoDia).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}/${ano}`;
 
-  const fp = flatpickr('#filtro-periodo', {
-    mode: 'range',
+  function aplicarMascaraData(valor) {
+    const digitos = String(valor || '').replace(/\D/g, '').slice(0, 8);
+    return digitos.replace(/^(\d{2})(\d)/, '$1/$2').replace(/^(\d{2}\/\d{2})(\d)/, '$1/$2');
+  }
+
+  function parseDataBr(valor) {
+    const match = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+    const data = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+    return data.getFullYear() === Number(match[3]) && data.getMonth() === Number(match[2]) - 1 && data.getDate() === Number(match[1]) ? data : null;
+  }
+
+  function exibirErroPeriodo(mensagem = '') {
+    $('#lv-periodo-erro').text(mensagem);
+    $('#filtro-data-inicio, #filtro-data-fim').attr('aria-invalid', mensagem ? 'true' : 'false');
+  }
+
+  function validarPeriodoECarregar() {
+    const valorInicio = $('#filtro-data-inicio').val();
+    const valorFim = $('#filtro-data-fim').val();
+    const inicio = parseDataBr(valorInicio);
+    const fim = parseDataBr(valorFim);
+    if (!inicio || !fim) {
+      if (valorInicio || valorFim) exibirErroPeriodo('Informe as duas datas completas no formato DD/MM/AAAA.');
+      return;
+    }
+    if (fpFim) fpFim.set('minDate', inicio);
+    if (fim < inicio) {
+      exibirErroPeriodo('A data final deve ser igual ou posterior à data inicial.');
+      return;
+    }
+    exibirErroPeriodo();
+    fetchData(formatDateToBackend(inicio), formatDateToBackend(fim));
+  }
+
+  let fpFim;
+  const fpInicio = flatpickr('#filtro-data-inicio', {
     dateFormat: 'd/m/Y',
     locale: 'pt',
     allowInput: true,
-    defaultDate: [primeiroDiaMes, ultimoDiaMes],
+    defaultDate: primeiroDiaMes,
     onChange: function (selectedDates) {
-      if (selectedDates.length === 2) {
-        fetchData(formatDateToBackend(selectedDates[0]), formatDateToBackend(selectedDates[1]));
-      }
+      if (selectedDates[0] && fpFim) fpFim.set('minDate', selectedDates[0]);
+      validarPeriodoECarregar();
     }
+  });
+
+  fpFim = flatpickr('#filtro-data-fim', {
+    dateFormat: 'd/m/Y',
+    locale: 'pt',
+    allowInput: true,
+    minDate: fpInicio.selectedDates[0],
+    defaultDate: ultimoDiaMes,
+    onChange: validarPeriodoECarregar
+  });
+
+  $('.js-date-mask').on('input', function () {
+    this.value = aplicarMascaraData(this.value);
+    exibirErroPeriodo();
+  }).on('blur', validarPeriodoECarregar);
+
+  $('.lv-date-trigger').on('click', function () {
+    ($(this).data('calendar-target') === 'inicio' ? fpInicio : fpFim).open();
+  });
+
+  $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+    if (settings.nTable.id !== 'tabela-vendas-detalhadas' || faseCarteira === 'todos') return true;
+    const row = settings.aoData[dataIndex]?._aData;
+    const implantado = Number(row?.tabulacao_id) === 18 || String(row?.descricao || '').toUpperCase() === 'IMPLANTADO';
+    return faseCarteira === 'implantados' ? implantado : !implantado;
+  });
+
+  $('.lv-portfolio-option').on('click', function () {
+    faseCarteira = $(this).data('fase');
+    $('.lv-portfolio-option').removeClass('is-active').attr('aria-pressed', 'false');
+    $(this).addClass('is-active').attr('aria-pressed', 'true');
+    if ($.fn.DataTable.isDataTable('#tabela-vendas-detalhadas')) $('#tabela-vendas-detalhadas').DataTable().draw();
+  });
+
+  document.querySelectorAll('#vendaDetailsTabs [data-bs-toggle="tab"]').forEach(tab => {
+    tab.addEventListener('shown.bs.tab', () => {
+      document.getElementById('venda-modal-scroll')?.scrollTo({ top: 0, behavior: 'auto' });
+    });
   });
 
   // carregar dados iniciais (mês atual)
@@ -249,6 +319,7 @@ $(document).ready(function () {
     $('#venda-loading').removeClass('d-none');
     $('#venda-content').addClass('d-none');
     $('#venda-modal-id').text(vendaId);
+    bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-contrato')).show();
 
     // Carregar dados da venda
     $.ajax({
@@ -318,30 +389,71 @@ $(document).ready(function () {
       $('#venda-backoffice-nome').text('Não atribuído');
     }
 
-    $('#venda-operadora').text(venda.operadora || '-');
-    $('#venda-plano').text(venda.nome_plano || '-');
-    $('#venda-coparticipacao').text(formatCoparticipacao(venda.coparticipacao));
     $('#venda-angariacao').text(venda.angariacao_status === 'SIM' ? 'Angariação' : 'Normal');
+    $('#venda-angariacao-valor').text(venda.angariacao_status === 'SIM' ? formatMoeda(venda.angariacao_valor) : 'Não se aplica');
     $('#venda-data-vigencia').text(venda.data_vigencia ? formatarData(venda.data_vigencia) : '-');
     $('#venda-data-implantacao').text(venda.data_implantacao ? formatarData(venda.data_implantacao) : '-');
-    $('#venda-vidas').text(venda.vidas || '-');
     $('#venda-valor').text(formatMoeda(venda.valor_contrato));
     $('#venda-vendedor').text(venda.vendedor_nome || '-');
     $('#venda-numero-proposta').text(venda.numero_proposta || '-');
 
-    // Comissão
-    $('#venda-comissao-valor').text(formatMoeda(venda.comissao_valor));
-    $('#venda-comissao-percentual').text(venda.comissao_percentual ? venda.comissao_percentual + '%' : '-');
+    $('#venda-empresa-nome').text(venda.nome_contrato || '-');
+    $('#venda-empresa-documento').text(venda.cpf_cnpj || '-');
+    $('#venda-empresa-email').text(venda.email || '-');
+    $('#venda-empresa-telefone1').text(venda.telefone1 || '-');
+    $('#venda-empresa-telefone2').text(venda.telefone2 || '-');
+    $('#venda-tipo-empresa').text(venda.tipo_empresa || '-');
+    $('#venda-tipo-contrato').text(venda.tipo_contrato || '-');
+    $('#venda-observacoes').text(venda.obs_contrato || 'Nenhuma observação cadastrada.');
+
+    $('#venda-plano-operadora').text(venda.operadora || 'Operadora não informada');
+    $('#venda-plano-nome').text(venda.nome_plano || 'Plano não informado');
+    $('#venda-plano-valor').text(formatMoeda(venda.valor_contrato));
+    $('#venda-plano-coparticipacao').text(formatCoparticipacao(venda.coparticipacao));
+    $('#venda-plano-vidas').text(venda.vidas || '-');
+    $('#venda-plano-vigencia').text(venda.data_vigencia ? formatarData(venda.data_vigencia) : '-');
+    $('#venda-plano-implantacao').text(venda.data_implantacao ? formatarData(venda.data_implantacao) : 'Em implantação');
+    $('#venda-plano-proposta').text(venda.numero_proposta || '-');
+    $('#venda-plano-modalidade').text(venda.angariacao_status === 'SIM' ? 'Com angariação' : 'Venda regular');
+
+    renderizarBeneficiarios(venda.titulares || []);
+  }
+
+  function pessoaInfo(label, value) {
+    return `<div class="lv-person-field"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || '-')}</strong></div>`;
+  }
+
+  function renderizarBeneficiarios(titulares) {
+    const container = $('#venda-beneficiarios').empty();
+    const totalDependentes = titulares.reduce((total, titular) => total + (titular.dependentes || []).length, 0);
+    $('#venda-beneficiarios-count').text(titulares.length + totalDependentes);
+    $('#venda-beneficiarios-vazio').toggleClass('d-none', titulares.length > 0);
+
+    titulares.forEach((titular, index) => {
+      const dependentes = titular.dependentes || [];
+      const dependentesHtml = dependentes.length ? `
+        <div class="lv-dependents">
+          <h4>Dependentes de ${escapeHtml(titular.nome || `Titular ${index + 1}`)}</h4>
+          ${dependentes.map(dep => `<article class="lv-dependent-card">
+            <div class="lv-person-heading"><span class="lv-person-avatar is-dependent">${escapeHtml((dep.nome || 'D').charAt(0))}</span><div><strong>${escapeHtml(dep.nome || 'Dependente')}</strong><span>${escapeHtml(dep.parentesco || 'Parentesco não informado')}</span></div></div>
+            <div class="lv-person-grid">${pessoaInfo('CPF', dep.cpf)}${pessoaInfo('Nascimento', dep.data_nascimento ? formatarData(dep.data_nascimento) : '-')}${pessoaInfo('Plano', dep.plano?.nome)}${pessoaInfo('Coparticipação', formatCoparticipacao(dep.coparticipacao))}</div>
+          </article>`).join('')}
+        </div>` : '<p class="lv-no-dependents">Sem dependentes vinculados.</p>';
+
+      container.append(`<article class="lv-holder-card">
+        <div class="lv-person-heading"><span class="lv-person-avatar">${escapeHtml((titular.nome || 'T').charAt(0))}</span><div><span class="lv-person-role">Titular ${index + 1}</span><strong>${escapeHtml(titular.nome || 'Titular sem nome')}</strong></div></div>
+        <div class="lv-person-grid">${pessoaInfo('CPF', titular.cpf)}${pessoaInfo('Nascimento', titular.data_nascimento ? formatarData(titular.data_nascimento) : '-')}${pessoaInfo('E-mail', titular.email)}${pessoaInfo('Telefone', titular.telefone)}${pessoaInfo('Plano', titular.plano?.nome)}${pessoaInfo('Coparticipação', formatCoparticipacao(titular.coparticipacao))}</div>
+        ${dependentesHtml}
+      </article>`);
+    });
   }
 
   // Função para formatar data
   function formatarData(dataStr) {
     if (!dataStr) return '-';
-    const data = new Date(dataStr);
-    const dia = String(data.getDate()).padStart(2, '0');
-    const mes = String(data.getMonth() + 1).padStart(2, '0');
-    const ano = data.getFullYear();
-    return `${dia}/${mes}/${ano}`;
+    const iso = String(dataStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    return String(dataStr);
   }
 
   // Função para formatar coparticipação
