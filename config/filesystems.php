@@ -56,6 +56,27 @@ return [
       'throw' => false,
     ],
 
+    'documentos_sftp' => [
+      'driver' => 'sftp',
+      'host' => env('DOCUMENTOS_SFTP_HOST'),
+      'username' => env('DOCUMENTOS_SFTP_USERNAME'),
+      'privateKey' => env('DOCUMENTOS_SFTP_PRIVATE_KEY'),
+      'passphrase' => env('DOCUMENTOS_SFTP_PASSPHRASE'),
+      'hostFingerprint' => env('DOCUMENTOS_SFTP_FINGERPRINT'),
+      'port' => (int) env('DOCUMENTOS_SFTP_PORT', 22),
+      'root' => env('DOCUMENTOS_SFTP_BASE_PATH', '/'),
+      'timeout' => (int) env('DOCUMENTOS_SFTP_TIMEOUT', 45),
+      // O retry do job aplica backoff; tentativas internas longas prenderiam o worker.
+      'maxTries' => (int) env('DOCUMENTOS_SFTP_CONNECT_TRIES', 1),
+      'visibility' => 'private',
+      'directory_visibility' => 'private',
+      'permissions' => [
+        'file' => ['public' => 0660, 'private' => 0660],
+        'dir' => ['public' => 0770, 'private' => 0770],
+      ],
+      'throw' => true,
+    ],
+
   ],
 
   /*

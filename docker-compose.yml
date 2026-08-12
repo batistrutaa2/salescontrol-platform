@@ -1,8 +1,8 @@
 services:
     laravel.test:
         build:
-            context: ./vendor/laravel/sail/runtimes/8.3
-            dockerfile: Dockerfile
+            context: .
+            dockerfile: docker/php83/Dockerfile
             args:
                 WWWGROUP: '${WWWGROUP:-1000}'
         image: sail-8.3/app
@@ -14,6 +14,9 @@ services:
         environment:
             WWWUSER: '${WWWUSER:-1000}'
             LARAVEL_SAIL: 1
+            QUEUE_CONNECTION: redis
+            CACHE_STORE: redis
+            REDIS_HOST: redis
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
             XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
@@ -142,12 +145,60 @@ services:
         depends_on:
             - redis
         restart: unless-stopped
+    documentos-queue:
+        image: sail-8.3/app
+        command: php artisan queue:work redis --queue=documentos-transfer,documentos --tries=5 --timeout=600 --max-time=21600
+        environment:
+            WWWUSER: '${WWWUSER:-1000}'
+            LARAVEL_SAIL: 1
+            QUEUE_CONNECTION: redis
+            CACHE_STORE: redis
+            REDIS_HOST: redis
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            redis:
+                condition: service_healthy
+            clamav:
+                condition: service_healthy
+        restart: unless-stopped
+    documentos-scan:
+        image: sail-8.3/app
+        command: php artisan queue:work redis --queue=documentos-scan --tries=5 --timeout=180 --max-time=21600
+        environment:
+            WWWUSER: '${WWWUSER:-1000}'
+            LARAVEL_SAIL: 1
+            QUEUE_CONNECTION: redis
+            CACHE_STORE: redis
+            REDIS_HOST: redis
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            redis:
+                condition: service_healthy
+            clamav:
+                condition: service_healthy
+        restart: unless-stopped
+    clamav:
+        image: 'clamav/clamav:1.4'
+        volumes:
+            - 'clamav-data:/var/lib/clamav'
+        networks:
+            - sail
+        restart: unless-stopped
     scheduler:
         image: sail-8.3/app
         command: php artisan schedule:work
         environment:
             WWWUSER: '${WWWUSER:-1000}'
             LARAVEL_SAIL: 1
+            QUEUE_CONNECTION: redis
+            CACHE_STORE: redis
+            REDIS_HOST: redis
         volumes:
             - '.:/var/www/html'
         networks:
@@ -166,4 +217,6 @@ volumes:
     evolution-instances:
         driver: local
     evolution-pg:
+        driver: local
+    clamav-data:
         driver: local

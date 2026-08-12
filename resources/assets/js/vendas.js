@@ -118,6 +118,26 @@ $(document).ready(function () {
           return `<span class="d-flex align-items-center text-heading">${icon}${label}</span>`;
         };
 
+        const renderDocumentacao = function (data, type, row) {
+          const quantidade = Number(row.documentos_count || 0);
+          const status = String(data || 'PENDENTE').toUpperCase();
+          if (type !== 'display') return `${status} ${quantidade}`;
+
+          if (quantidade === 0) {
+            return '<span class="lv-doc-status is-empty"><i class="ri-file-add-line" aria-hidden="true"></i><span><strong>Sem documentos</strong><small>Pendente de envio</small></span></span>';
+          }
+
+          const estados = {
+            PENDENTE: { classe: 'is-waiting', icone: 'ri-time-line', titulo: 'Recebido', detalhe: 'Aguardando servidor' },
+            PROCESSANDO: { classe: 'is-processing', icone: 'ri-loader-4-line', titulo: 'Processando', detalhe: 'Verificação em andamento' },
+            DISPONIVEL: { classe: 'is-success', icone: 'ri-checkbox-circle-line', titulo: 'Disponível', detalhe: 'Envio concluído' },
+            COM_FALHA: { classe: 'is-error', icone: 'ri-error-warning-line', titulo: 'Com falha', detalhe: 'Verifique os arquivos' }
+          };
+          const estado = estados[status] || estados.PENDENTE;
+          const arquivos = `${quantidade} ${quantidade === 1 ? 'arquivo' : 'arquivos'}`;
+          return `<span class="lv-doc-status ${estado.classe}" title="${arquivos}"><i class="${estado.icone}" aria-hidden="true"></i><span><strong>${estado.titulo} <b>${quantidade}</b></strong><small>${estado.detalhe}</small></span></span>`;
+        };
+
 
         if ($.fn.DataTable.isDataTable('#tabela-vendas-detalhadas')) {
           const dt = $('#tabela-vendas-detalhadas').DataTable();
@@ -130,6 +150,7 @@ $(document).ready(function () {
               { data: 'id' },
               { data: 'nome_contrato' },
               { data: 'descricao', render: renderStatus },
+              { data: 'documentacao_status', render: renderDocumentacao },
               {
                 data: 'backoffice_nome',
                 render: function (data, type, row) {
@@ -327,6 +348,7 @@ $(document).ready(function () {
       method: 'GET',
       success: function (data) {
         preencherModalVenda(data);
+        window.VendaDocumentos?.mount(document.querySelector('#panel-documentos [data-venda-documentos]'), vendaId);
         $('#venda-loading').addClass('d-none');
         $('#venda-content').removeClass('d-none');
 

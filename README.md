@@ -151,6 +151,12 @@ O projeto não mantém um MySQL próprio.
 
 O servidor e o Vite já são iniciados por `./dev up`, nas portas 8001 e 5174.
 
+### Documentos de vendas
+
+A arquitetura, os pré-requisitos secretos, o procedimento de deploy de final de semana e a
+contingência do pipeline SFTP estão registrados em
+[`docs/documentos-v1-operacao.md`](docs/documentos-v1-operacao.md).
+
 ## 🚀 Como Usar
 
 1. **Acesse o sistema** através do navegador

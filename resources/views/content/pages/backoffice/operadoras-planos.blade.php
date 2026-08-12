@@ -17,6 +17,7 @@
             <h4 class="op-title">Operadoras e Planos</h4>
             <span class="op-subtitle">Cadastre a operadora e os planos dela numa tela só</span>
         </div>
+        <div class="op-doc-health" id="op-doc-health" role="status" aria-live="polite">Carregando saúde dos documentos…</div>
     </div>
 
     <div class="op-layout">
@@ -31,8 +32,10 @@
             </div>
 
             <form class="op-form" id="op-form" hidden autocomplete="off">
+                <label for="op-nome">Nome da operadora</label>
                 <input type="text" class="op-input" id="op-nome" placeholder="Nome da operadora" maxlength="120" required>
                 <div class="op-form-row">
+                    <label class="visually-hidden" for="op-status">Status da operadora</label>
                     <select class="op-input" id="op-status">
                         <option value="Y">Ativa</option>
                         <option value="N">Inativa</option>

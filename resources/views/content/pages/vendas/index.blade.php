@@ -7,7 +7,7 @@
 @endsection
 
 @section('page-style')
-    @vite('resources/assets/vendor/scss/pages/lista-vendas.scss')
+    @vite(['resources/assets/vendor/scss/pages/lista-vendas.scss', 'resources/assets/vendor/scss/pages/venda-documentos.scss'])
 @endsection
 
 @section('vendor-script')
@@ -15,7 +15,7 @@
 @endsection
 
 @section('page-script')
-    @vite(['resources/assets/js/vendas.js'])
+    @vite(['resources/assets/js/vendas.js', 'resources/assets/js/venda-documentos.js'])
 @endsection
 
 @section('content')
@@ -159,12 +159,13 @@
                 <table id="tabela-vendas-detalhadas" class="table">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Nome do Contrato</th>
-                            <th>Status</th>
-                            <th>Backoffice</th>
-                            <th>Valor</th>
-                            <th>Ações</th>
+                            <th scope="col">ID</th>
+                            <th scope="col">Nome do Contrato</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Documentos</th>
+                            <th scope="col">Backoffice</th>
+                            <th scope="col">Valor</th>
+                            <th scope="col">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -182,14 +183,17 @@
         <div class="modal-content">
             <!-- Header -->
             <div class="lv-modal-header">
-                    <h2 class="lv-modal-title" id="venda-modal-title">
+                <div class="lv-modal-heading">
                     <span class="lv-modal-title-icon">
                         <i class="ri-file-text-line"></i>
                     </span>
-                    <span>Proposta #<span id="venda-modal-id">-</span></span>
-                    </h2>
+                    <div>
+                        <span class="lv-modal-eyebrow">Detalhes da venda</span>
+                        <h2 class="lv-modal-title" id="venda-modal-title">Proposta #<span id="venda-modal-id">-</span></h2>
+                    </div>
+                </div>
                 <button type="button" class="lv-btn-close" data-bs-dismiss="modal" aria-label="Fechar detalhes do contrato">
-                    <i class="ri-close-line"></i>
+                    <i class="ri-close-line" aria-hidden="true"></i>
                 </button>
             </div>
 
@@ -204,24 +208,25 @@
                 <!-- Content -->
                 <div id="venda-content" class="d-none">
 
-                    <!-- Contract Header -->
-                    <div class="lv-contract-header">
-                        <div>
+                    <!-- Contract summary -->
+                    <div class="lv-contract-summary">
+                        <div class="lv-contract-identity">
+                            <span class="lv-contract-kicker">Contrato</span>
                             <h4 class="lv-contract-name" id="venda-nome-contrato">-</h4>
                             <div class="lv-contract-meta">
                                 <span><i class="ri-id-card-line"></i> <span id="venda-cpf-cnpj">-</span></span>
                                 <span><i class="ri-phone-line"></i> <span id="venda-telefone">-</span></span>
                             </div>
                         </div>
-                        <span class="lv-status-badge primary" id="venda-status-badge">-</span>
-                    </div>
-
-                    <!-- Backoffice Responsável -->
-                    <div class="lv-backoffice-card" id="backoffice-card">
-                        <div class="lv-avatar" id="backoffice-avatar">-</div>
-                        <div>
-                            <div class="lv-bo-label">Responsável Backoffice</div>
-                            <div class="lv-bo-name" id="venda-backoffice-nome">-</div>
+                        <div class="lv-contract-aside">
+                            <span class="lv-status-badge primary" id="venda-status-badge">-</span>
+                            <div class="lv-backoffice-card" id="backoffice-card">
+                                <div class="lv-avatar" id="backoffice-avatar">-</div>
+                                <div>
+                                    <div class="lv-bo-label">Responsável</div>
+                                    <div class="lv-bo-name" id="venda-backoffice-nome">-</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -230,6 +235,11 @@
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="tab-contrato" data-bs-toggle="tab" data-bs-target="#panel-contrato" type="button" role="tab" aria-controls="panel-contrato" aria-selected="true">
                                 <i class="ri-building-line me-2"></i>Visão geral
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-documentos" data-bs-toggle="tab" data-bs-target="#panel-documentos" type="button" role="tab" aria-controls="panel-documentos" aria-selected="false">
+                                <i class="ri-attachment-2 me-2"></i>Documentos
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -251,6 +261,10 @@
 
                     <!-- Tabs Content -->
                     <div class="tab-content" id="vendaDetailsTabsContent">
+
+                        <div class="tab-pane fade" id="panel-documentos" role="tabpanel" aria-labelledby="tab-documentos" tabindex="0">
+                            <x-venda-documentos />
+                        </div>
 
                         <!-- Tab: Contrato -->
                         <div class="tab-pane fade show active" id="panel-contrato" role="tabpanel" aria-labelledby="tab-contrato" tabindex="0">

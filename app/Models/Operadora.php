@@ -16,6 +16,7 @@ class Operadora extends Model
         'id',
         'empresa_id',
         'nome',
+        'diretorio_documentos',
         'status',
         'created_at',
         'updated_at',

@@ -2852,6 +2852,41 @@
             "time": "2026-02-25T16:46:44+00:00"
         },
         {
+            "name": "league/flysystem-sftp-v3",
+            "version": "3.33.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/thephpleague/flysystem-sftp-v3.git",
+                "reference": "34ff5ef0f841add92e2b902c1005f72135b03646"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/thephpleague/flysystem-sftp-v3/zipball/34ff5ef0f841add92e2b902c1005f72135b03646",
+                "reference": "34ff5ef0f841add92e2b902c1005f72135b03646",
+                "shasum": ""
+            },
+            "require": {
+                "league/flysystem": "^3.0.14",
+                "league/mime-type-detection": "^1.0.0",
+                "php": "^8.0.2",
+                "phpseclib/phpseclib": "^3.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "League\\Flysystem\\PhpseclibV3\\": ""
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": ["MIT"],
+            "authors": [{"name": "Frank de Jonge", "email": "info@frankdejonge.nl"}],
+            "description": "SFTP filesystem adapter for Flysystem.",
+            "support": {
+                "source": "https://github.com/thephpleague/flysystem-sftp-v3/tree/3.33.0"
+            },
+            "time": "2026-03-25T08:09:00+00:00"
+        },
+        {
             "name": "league/flysystem-local",
             "version": "3.31.0",
             "source": {
@@ -3991,6 +4026,33 @@
             "time": "2024-05-08T12:18:48+00:00"
         },
         {
+            "name": "paragonie/random_compat",
+            "version": "v9.99.100",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/paragonie/random_compat.git",
+                "reference": "996434e5492cb4c3edcb9168db6fbb1359ef965a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/paragonie/random_compat/zipball/996434e5492cb4c3edcb9168db6fbb1359ef965a",
+                "reference": "996434e5492cb4c3edcb9168db6fbb1359ef965a",
+                "shasum": ""
+            },
+            "require": {"php": ">=7"},
+            "type": "library",
+            "autoload": {"files": ["lib/random.php"]},
+            "notification-url": "https://packagist.org/downloads/",
+            "license": ["MIT"],
+            "authors": [{"name": "Paragon Initiative Enterprises", "email": "security@paragonie.com"}],
+            "description": "PHP 5.x polyfill for random_bytes() and random_int() from PHP 7",
+            "support": {
+                "issues": "https://github.com/paragonie/random_compat/issues",
+                "source": "https://github.com/paragonie/random_compat/tree/v9.99.100"
+            },
+            "time": "2020-10-15T08:29:00+00:00"
+        },
+        {
             "name": "paragonie/sodium_compat",
             "version": "v2.1.0",
             "source": {
@@ -4260,6 +4322,45 @@
                 }
             ],
             "time": "2023-11-12T21:59:55+00:00"
+        },
+        {
+            "name": "phpseclib/phpseclib",
+            "version": "3.0.55",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/phpseclib/phpseclib.git",
+                "reference": "db9744e6d47e742b1f974e965ad49bdd041105af"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/db9744e6d47e742b1f974e965ad49bdd041105af",
+                "reference": "db9744e6d47e742b1f974e965ad49bdd041105af",
+                "shasum": ""
+            },
+            "require": {
+                "paragonie/constant_time_encoding": "^1|^2|^3",
+                "paragonie/random_compat": "^1.4|^2.0|^9.99.99",
+                "php": ">=5.6.1"
+            },
+            "type": "library",
+            "autoload": {
+                "files": ["phpseclib/bootstrap.php"],
+                "psr-4": {"phpseclib3\\": "phpseclib/"}
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": ["MIT"],
+            "authors": [
+                {"name": "Jim Wigginton", "email": "terrafrost@php.net", "role": "Lead Developer"},
+                {"name": "Patrick Monnerat", "email": "pm@datasphere.ch", "role": "Developer"},
+                {"name": "Andreas Fischer", "email": "bantu@phpbb.com", "role": "Developer"}
+            ],
+            "description": "PHP Secure Communications Library - Pure-PHP implementations of RSA, AES, SSH2, SFTP, X.509 etc.",
+            "homepage": "http://phpseclib.sourceforge.net",
+            "support": {
+                "issues": "https://github.com/phpseclib/phpseclib/issues",
+                "source": "https://github.com/phpseclib/phpseclib/tree/3.0.55"
+            },
+            "time": "2026-06-14T23:24:10+00:00"
         },
         {
             "name": "pragmarx/google2fa",

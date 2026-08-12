@@ -799,6 +799,14 @@ class Comercial extends Controller
             $updateStatus = $this->repositoryContatosCorretores->changeStatusLead($arrayData);
 
             if ($saveSale && $updateStatus) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'venda_id' => $saveSale->id,
+                        'redirect_url' => route('sale.listSale'),
+                        'documentacao_status' => $saveSale->documentacao_status ?? 'PENDENTE',
+                    ], 201);
+                }
                 return redirect()->route('sale.listSale')
                     ->with('status', 'success')
                     ->with('message', 'Venda Cadastrada com sucesso');
@@ -808,12 +816,19 @@ class Comercial extends Controller
                 ->with('status', 'error')
                 ->with('message', 'Venda salva, mas houve falha ao atualizar status do lead.');
         } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Verifique os campos obrigatórios.', 'errors' => $e->errors()], 422);
+            }
             return redirect()->back()
                 ->withErrors($e->errors())
                 ->withInput()
                 ->with('status', 'error')
                 ->with('message', 'Verifique os campos obrigatórios.');
         } catch (\Throwable $th) {
+            if ($request->expectsJson()) {
+                report($th);
+                return response()->json(['message' => 'Falha ao cadastrar a venda.'], 500);
+            }
             return redirect()->back()
                 ->withInput()
                 ->with('status', 'error')

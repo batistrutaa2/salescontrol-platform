@@ -4,7 +4,7 @@
 
 @section('vendor-style')
     @vite(['resources/assets/vendor/libs/select2/select2.scss', 'resources/assets/vendor/libs/flatpickr/flatpickr.scss', 'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss'])
-    @vite(['resources/assets/vendor/scss/pages/backoffice-contract-pme.scss', 'resources/assets/vendor/scss/pages/backoffice-processos.scss', 'resources/assets/vendor/scss/pages/pos-venda.scss'])
+    @vite(['resources/assets/vendor/scss/pages/backoffice-contract-pme.scss', 'resources/assets/vendor/scss/pages/backoffice-processos.scss', 'resources/assets/vendor/scss/pages/pos-venda.scss', 'resources/assets/vendor/scss/pages/venda-documentos.scss'])
 @endsection
 
 @section('vendor-script')
@@ -12,10 +12,11 @@
 @endsection
 
 @section('page-script')
-    @vite(['resources/assets/js/openContractPME.js', 'resources/assets/js/backoffice-processos.js', 'resources/assets/js/boas-vindas.js'])
+    @vite(['resources/assets/js/openContractPME.js', 'resources/assets/js/backoffice-processos.js', 'resources/assets/js/boas-vindas.js', 'resources/assets/js/venda-documentos.js'])
 @endsection
 
 @section('content')
+    <div class="mb-4"><x-venda-documentos :venda-id="$contract->id" /></div>
     @php
         $selectedOperadoraId = $selectedOperadoraId ?? optional(($operadoras ?? collect())->firstWhere('nome', $contract->operadora))->id;
         $planosDaOperadora = $planosDaOperadora ?? collect();

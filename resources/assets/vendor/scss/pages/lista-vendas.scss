@@ -567,6 +567,48 @@
 }
 
 // ============================================
+// Documentation status in sales table
+// ============================================
+.lv-doc-status {
+    display: inline-flex;
+    min-width: 9.5rem;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--lv-text-secondary);
+
+    > i {
+        display: grid;
+        width: 2rem;
+        height: 2rem;
+        flex: 0 0 2rem;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--lv-table-stripe);
+        font-size: 1rem;
+    }
+
+    span, strong, small { display: block; }
+    strong { color: var(--lv-text-primary); font-size: 0.75rem; line-height: 1.2; white-space: nowrap; }
+    strong b {
+        display: inline-grid;
+        min-width: 1.15rem;
+        height: 1.15rem;
+        margin-left: 0.2rem;
+        place-items: center;
+        border-radius: 999px;
+        background: currentColor;
+        color: var(--lv-card-bg);
+        font-size: 0.625rem;
+    }
+    small { margin-top: 0.15rem; color: var(--lv-text-muted); font-size: 0.625rem; white-space: nowrap; }
+
+    &.is-waiting > i { background: rgba(var(--lv-warning-rgb), 0.12); color: var(--lv-warning); }
+    &.is-processing > i { background: rgba(var(--lv-primary-rgb), 0.12); color: var(--lv-primary); }
+    &.is-success > i { background: rgba(var(--lv-success-rgb), 0.12); color: var(--lv-success); }
+    &.is-error > i { background: rgba(var(--lv-danger-rgb), 0.12); color: var(--lv-danger); }
+}
+
+// ============================================
 // Action Button
 // ============================================
 .lv-btn-view {
@@ -1240,6 +1282,151 @@
     .lv-btn-view:hover,
     .lv-timeline-card:hover { transform: none; }
     .lv-spinner { animation-duration: 1.5s; }
+}
+
+// ============================================
+// Sales detail dialog — refreshed layout
+// ============================================
+#modalVisualizarVenda {
+    --lv-dialog-surface: var(--lv-card-bg);
+    --lv-dialog-muted: var(--lv-table-stripe);
+
+    .modal-dialog {
+        width: min(1180px, calc(100vw - 2rem));
+        max-width: none;
+        height: min(900px, calc(100dvh - 2rem));
+        margin: 1rem auto;
+    }
+
+    .modal-content { height: 100%; border: 1px solid var(--lv-card-border); border-radius: 18px; }
+
+    .lv-modal-header {
+        min-height: 76px;
+        padding: 1rem 1.35rem;
+        background: var(--lv-dialog-surface);
+    }
+
+    .lv-modal-heading { display: flex; align-items: center; gap: .75rem; }
+    .lv-modal-title-icon {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border: 1px solid rgba(var(--lv-primary-rgb), .18);
+        border-radius: 11px;
+        background: rgba(var(--lv-primary-rgb), .08);
+        font-size: 1.15rem;
+    }
+    .lv-modal-eyebrow { display: block; margin-bottom: .1rem; color: var(--lv-text-muted); font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .lv-modal-title { display: block; font-size: 1rem; line-height: 1.25; }
+    .lv-btn-close { width: 44px; height: 44px; border: 1px solid var(--lv-card-border); background: transparent; font-size: 1.2rem; }
+    .lv-btn-close:focus-visible { outline: 3px solid rgba(var(--lv-primary-rgb), .28); outline-offset: 2px; }
+
+    .lv-modal-body { padding: 0; background: var(--lv-dialog-muted); }
+    #venda-content { min-height: 100%; }
+
+    .lv-contract-summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1.35rem 1.5rem;
+        border-bottom: 1px solid var(--lv-card-border);
+        background: var(--lv-dialog-surface);
+    }
+    .lv-contract-kicker { display: block; margin-bottom: .25rem; color: var(--lv-primary); font-size: .65rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .lv-contract-name { margin: 0; color: var(--lv-text-primary); font-size: 1.35rem; font-weight: 750; letter-spacing: -.02em; }
+    .lv-contract-meta { display: flex; flex-wrap: wrap; gap: .9rem; margin-top: .55rem; color: var(--lv-text-secondary); font-size: .75rem; }
+    .lv-contract-meta > span { display: inline-flex; align-items: center; gap: .35rem; }
+    .lv-contract-meta i { color: var(--lv-text-muted); }
+    .lv-contract-aside { display: flex; align-items: center; gap: 1rem; }
+
+    .lv-status-badge { display: inline-flex; min-height: 32px; align-items: center; padding: .35rem .7rem; border: 1px solid currentColor; border-radius: 999px; font-size: .65rem; font-weight: 800; }
+    .lv-backoffice-card {
+        display: flex;
+        min-width: 190px;
+        align-items: center;
+        gap: .65rem;
+        margin: 0;
+        padding: .55rem .75rem;
+        border: 1px solid var(--lv-card-border);
+        border-radius: 11px;
+        background: var(--lv-dialog-muted);
+    }
+    .lv-backoffice-card .lv-avatar { width: 34px; height: 34px; border-radius: 9px; background: var(--lv-primary); font-size: .72rem; }
+    .lv-backoffice-card .lv-bo-label { font-size: .58rem; }
+    .lv-backoffice-card .lv-bo-name { max-width: 145px; overflow: hidden; font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
+
+    .lv-nav-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        gap: .25rem;
+        margin: 0;
+        padding: .65rem 1.5rem;
+        overflow-x: auto;
+        border-bottom: 1px solid var(--lv-card-border);
+        background: var(--lv-dialog-surface);
+        scrollbar-width: thin;
+    }
+    .lv-nav-tabs .nav-link {
+        min-height: 40px;
+        padding: .55rem .8rem;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        color: var(--lv-text-secondary);
+        font-size: .75rem;
+        white-space: nowrap;
+    }
+    .lv-nav-tabs .nav-link:hover { border-color: var(--lv-card-border); background: var(--lv-dialog-muted); color: var(--lv-text-primary); }
+    .lv-nav-tabs .nav-link.active { border-color: rgba(var(--lv-primary-rgb), .2); background: rgba(var(--lv-primary-rgb), .09); color: var(--lv-primary); }
+    .lv-nav-tabs .nav-link.active::after { display: none; }
+    .lv-nav-tabs .nav-link:focus-visible { outline: 3px solid rgba(var(--lv-primary-rgb), .25); outline-offset: 1px; }
+
+    #vendaDetailsTabsContent { padding: 1.25rem 1.5rem 1.75rem; }
+    #vendaDetailsTabsContent > .tab-pane {
+        min-height: 260px;
+        padding: 1.25rem;
+        border: 1px solid var(--lv-card-border);
+        border-radius: 14px;
+        background: var(--lv-dialog-surface);
+    }
+
+    .lv-info-section { margin: 0; padding: 0; }
+    .lv-info-section + .lv-info-section { padding-top: 1.25rem; margin-top: 1.25rem; border-top: 1px solid var(--lv-card-border); }
+    .lv-info-section .lv-section-title { margin-bottom: .85rem; color: var(--lv-text-primary); font-size: .72rem; }
+    .lv-info-grid { gap: .75rem; }
+    .lv-info-item { min-height: 66px; padding: .75rem .85rem; border: 0; border-radius: 10px; background: var(--lv-dialog-muted); }
+
+    .lv-modal-footer { min-height: 64px; padding: .65rem 1.35rem; }
+    .lv-btn-close-modal { min-height: 44px; padding-inline: 1rem; }
+    .lv-btn-close-modal:focus-visible { outline: 3px solid rgba(var(--lv-primary-rgb), .28); outline-offset: 2px; }
+}
+
+@media (max-width: 767.98px) {
+    #modalVisualizarVenda {
+        .modal-dialog { width: 100%; height: 100dvh; margin: 0; }
+        .modal-content { border: 0; border-radius: 0; }
+        .lv-modal-header { min-height: 68px; padding: .75rem 1rem; }
+        .lv-contract-summary { grid-template-columns: 1fr; gap: 1rem; padding: 1rem; }
+        .lv-contract-name { font-size: 1.1rem; }
+        .lv-contract-aside { justify-content: space-between; }
+        .lv-backoffice-card { min-width: 0; }
+        .lv-nav-tabs { padding: .55rem 1rem; }
+        #vendaDetailsTabsContent { padding: 1rem; }
+        #vendaDetailsTabsContent > .tab-pane { padding: 1rem; }
+    }
+}
+
+@media (max-width: 420px) {
+    #modalVisualizarVenda {
+        .lv-contract-aside { align-items: stretch; flex-direction: column; }
+        .lv-status-badge { align-self: flex-start; }
+        .lv-backoffice-card { width: 100%; }
+        #vendaDetailsTabsContent { padding: .75rem; }
+        #vendaDetailsTabsContent > .tab-pane { padding: .85rem; border-radius: 12px; }
+        .lv-modal-footer { display: none; }
+    }
 }
 
 // ============================================

@@ -4,9 +4,11 @@ namespace Tests\Feature\Backoffice;
 
 use App\Enums\UserRole;
 use App\Models\Empresa;
+use App\Models\DocumentoDiretorio;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -123,6 +125,33 @@ class OperadorasPlanosTest extends TestCase
             ->patchJson(route('backoffice.planos.toggleStatus', $plano))
             ->assertOk()->assertJson(['status' => 'N']);
         $this->assertDatabaseHas('planos', ['id' => $plano, 'status' => 'N']);
+    }
+
+    public function test_valida_e_vincula_pasta_existente_do_servidor(): void
+    {
+        DocumentoDiretorio::create(['caminho' => 'EmAnalise/Bradesco', 'nome' => 'Bradesco', 'encontrado_em' => now()]);
+        $op = $this->criarOperadora($this->empresa->id, 'BRADESCO');
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('backoffice.operadoras.updateDiretorioDocumentos', $op), [
+                'diretorio_documentos' => 'Bradesco',
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true, 'diretorio_documentos' => 'Bradesco']);
+
+        $this->assertDatabaseHas('operadoras', ['id' => $op, 'diretorio_documentos' => 'Bradesco']);
+    }
+
+    public function test_recusa_vinculo_com_pasta_inexistente(): void
+    {
+        $op = $this->criarOperadora($this->empresa->id, 'BRADESCO');
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('backoffice.operadoras.updateDiretorioDocumentos', $op), [
+                'diretorio_documentos' => 'Pasta Fantasia Inexistente',
+            ])
+            ->assertUnprocessable()
+            ->assertJson(['success' => false]);
     }
 
     public function test_toggle_multitenant_bloqueia_outra_empresa(): void

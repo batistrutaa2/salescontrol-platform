@@ -60,6 +60,8 @@ class Vendas extends Model
         'pos_venda_concluida_em',
         'pos_venda_concluida_por',
         'vitalicio_ativo',
+        'documentacao_status',
+        'documentacao_diretorio',
     ];
 
     protected $casts = [
@@ -153,6 +155,11 @@ class Vendas extends Model
     public function solicitacoesPosVenda()
     {
         return $this->hasMany(PosVendaSolicitacao::class, 'venda_id');
+    }
+
+    public function documentos()
+    {
+        return $this->hasMany(VendaDocumento::class, 'venda_id');
     }
 
     public function getCreatedAtAttribute($value)

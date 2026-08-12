@@ -1204,12 +1204,6 @@
     document.getElementById('formNovaProposta')?.addEventListener('submit', function (e) {
         const result = validateForm();
         if (result.ok) {
-            // Proposta a caminho do servidor: descarta o rascunho local.
-            // Se a validacao server-side falhar, o old() restaura e o
-            // rascunho volta a ser salvo na sequencia.
-            draftDisabled = true;
-            clearTimeout(draftSaveTimer);
-            clearDraft();
             return true;
         }
 
@@ -1546,6 +1540,233 @@
     const formNovaProposta = document.getElementById('formNovaProposta');
     formNovaProposta?.addEventListener('input', scheduleDraftSave);
     formNovaProposta?.addEventListener('change', scheduleDraftSave);
+
+    // ============================================
+    // Documentos da venda — criação + multipart individual
+    // ============================================
+    const documentosInput = document.getElementById('documentos-venda');
+    const documentosLista = document.getElementById('documentos-lista');
+    const documentosStatus = document.getElementById('documentos-status');
+    const documentosDropzone = document.getElementById('documentos-dropzone');
+    const documentosSelecionar = document.getElementById('documentos-selecionar');
+    const documentosResumo = document.getElementById('documentos-resumo');
+    const documentosResumoQuantidade = document.getElementById('documentos-resumo-quantidade');
+    const documentosResumoTamanho = document.getElementById('documentos-resumo-tamanho');
+    const documentosLimpar = document.getElementById('documentos-limpar');
+    const documentosSelecionados = [];
+    const maxDocumentos = 30;
+    const maxDocumentoBytes = 25 * 1024 * 1024;
+    let vendaCriada = null;
+
+    function formatBytes(bytes) {
+        if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function arquivoPermitido(file) {
+        const extension = file.name.split('.').pop().toLowerCase();
+        return file.type === 'application/pdf'
+            || (file.type.startsWith('image/') && file.type !== 'image/svg+xml')
+            || ['heic', 'heif', 'tif', 'tiff'].includes(extension);
+    }
+
+    function anunciarDocumentos(mensagem, erro = false) {
+        if (!documentosStatus) return;
+        documentosStatus.textContent = mensagem;
+        documentosStatus.classList.toggle('is-error', erro);
+    }
+
+    function estadoDocumento(item) {
+        if (item.status === 'uploading') return { texto: item.label, classe: 'is-uploading' };
+        if (item.status === 'queued') return { texto: 'Recebido', classe: 'is-success' };
+        if (item.status === 'error') return { texto: 'Falha no envio', classe: 'is-error' };
+        return { texto: 'Pronto para enviar', classe: 'is-ready' };
+    }
+
+    function iconeDocumento(file) {
+        const extension = file.name.split('.').pop().toLowerCase();
+        const isPdf = file.type === 'application/pdf' || extension === 'pdf';
+        return isPdf
+            ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 15h8M8 11h2M8 19h5"></path></svg><span>PDF</span>'
+            : '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg><span>IMG</span>';
+    }
+
+    function renderDocumentos() {
+        if (!documentosLista) return;
+        documentosLista.innerHTML = '';
+        const quantidade = documentosSelecionados.length;
+        const tamanhoTotal = documentosSelecionados.reduce((total, item) => total + item.file.size, 0);
+        if (documentosResumo) documentosResumo.hidden = quantidade === 0;
+        if (documentosResumoQuantidade) documentosResumoQuantidade.textContent = `${quantidade} ${quantidade === 1 ? 'arquivo selecionado' : 'arquivos selecionados'}`;
+        if (documentosResumoTamanho) documentosResumoTamanho.textContent = `${formatBytes(tamanhoTotal)} no total`;
+        documentosSelecionados.forEach((item, index) => {
+            const estado = estadoDocumento(item);
+            const li = document.createElement('li');
+            li.className = `np-document-item status-${item.status}`;
+            li.innerHTML = `
+                <div class="np-document-type ${item.file.type === 'application/pdf' ? 'is-pdf' : 'is-image'}">${iconeDocumento(item.file)}</div>
+                <div class="np-document-info">
+                    <strong title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</strong>
+                    <span>${formatBytes(item.file.size)}</span>
+                    ${item.status === 'queued' || item.status === 'error' ? `<small>${escapeHtml(item.label)}</small>` : ''}
+                    ${item.status === 'uploading' || item.progress === 100 ? `<div class="np-document-progress" aria-hidden="true"><span style="width:${item.progress || 0}%"></span></div>` : ''}
+                </div>
+                <span class="np-document-state ${estado.classe}">${escapeHtml(estado.texto)}</span>
+                ${item.status === 'selected' ? `<button type="button" class="np-document-remove" data-index="${index}" aria-label="Remover ${escapeHtml(item.file.name)}" title="Remover arquivo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"></path></svg></button>` : ''}
+            `;
+            documentosLista.appendChild(li);
+        });
+    }
+
+    function adicionarDocumentos(files) {
+        const erros = [];
+        Array.from(files).forEach(file => {
+            if (documentosSelecionados.length >= maxDocumentos) {
+                erros.push(`O limite é de ${maxDocumentos} documentos.`);
+                return;
+            }
+            if (file.size > maxDocumentoBytes) {
+                erros.push(`${file.name} tem ${formatBytes(file.size)}; o máximo é 25 MB.`);
+                return;
+            }
+            if (!arquivoPermitido(file)) {
+                erros.push(`${file.name} não é um PDF ou imagem permitida.`);
+                return;
+            }
+            documentosSelecionados.push({ file, status: 'selected', label: 'Pronto para enviar', progress: 0, clientId: crypto.randomUUID() });
+        });
+        renderDocumentos();
+        anunciarDocumentos(erros[0] || `${documentosSelecionados.length} documento(s) selecionado(s).`, erros.length > 0);
+    }
+
+    documentosInput?.addEventListener('change', event => {
+        adicionarDocumentos(event.target.files);
+        event.target.value = '';
+    });
+    documentosSelecionar?.addEventListener('click', () => documentosInput?.click());
+    documentosLimpar?.addEventListener('click', () => {
+        documentosSelecionados.splice(0, documentosSelecionados.length);
+        renderDocumentos();
+        anunciarDocumentos('Seleção de documentos removida.');
+        documentosSelecionar?.focus();
+    });
+    documentosLista?.addEventListener('click', event => {
+        const button = event.target.closest('.np-document-remove');
+        if (!button) return;
+        documentosSelecionados.splice(Number(button.dataset.index), 1);
+        renderDocumentos();
+        anunciarDocumentos(`${documentosSelecionados.length} documento(s) selecionado(s).`);
+    });
+    ['dragenter', 'dragover'].forEach(name => documentosDropzone?.addEventListener(name, event => {
+        event.preventDefault();
+        documentosDropzone.classList.add('is-dragging');
+    }));
+    ['dragleave', 'drop'].forEach(name => documentosDropzone?.addEventListener(name, event => {
+        event.preventDefault();
+        documentosDropzone.classList.remove('is-dragging');
+        if (name === 'drop') adicionarDocumentos(event.dataTransfer.files);
+    }));
+
+    function uploadDocumento(vendaId, item) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            const data = new FormData();
+            data.append('arquivo', item.file);
+            data.append('client_upload_id', item.clientId);
+            data.append('_token', formNovaProposta.querySelector('[name="_token"]').value);
+            xhr.open('POST', `/vendas/${vendaId}/documentos`);
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.upload.addEventListener('progress', event => {
+                item.status = 'uploading';
+                item.label = event.lengthComputable ? `Enviando ${Math.round((event.loaded / event.total) * 100)}%` : 'Enviando';
+                item.progress = event.lengthComputable ? Math.round((event.loaded / event.total) * 100) : 0;
+                renderDocumentos();
+            });
+            xhr.addEventListener('load', () => {
+                let payload = {};
+                try { payload = JSON.parse(xhr.responseText); } catch (_) { /* resposta inválida */ }
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    item.status = 'queued';
+                    item.label = payload.processamento_ativo
+                        ? 'Recebido e aguardando verificação'
+                        : 'Recebido e aguardando configuração do servidor';
+                    item.progress = 100;
+                    renderDocumentos();
+                    resolve(payload);
+                } else {
+                    const errors = payload.errors ? Object.values(payload.errors).flat() : [];
+                    reject(new Error(errors[0] || payload.message || 'Falha ao enviar o documento.'));
+                }
+            });
+            xhr.addEventListener('error', () => reject(new Error('A conexão falhou durante o envio.')));
+            xhr.send(data);
+        });
+    }
+
+    formNovaProposta?.addEventListener('submit', async event => {
+        if (event.defaultPrevented) return;
+        event.preventDefault();
+        if (vendaCriada) {
+            window.location.assign(vendaCriada.redirect_url);
+            return;
+        }
+        const submitButton = formNovaProposta.querySelector('[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.setAttribute('aria-busy', 'true');
+
+        try {
+            const saleData = new FormData(formNovaProposta);
+            const response = await fetch(formNovaProposta.action, {
+                method: 'POST', body: saleData, headers: { Accept: 'application/json' }
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                const errors = payload.errors ? Object.values(payload.errors).flat() : [];
+                throw new Error(errors[0] || payload.message || 'Não foi possível cadastrar a venda.');
+            }
+
+            draftDisabled = true;
+            vendaCriada = payload;
+            clearTimeout(draftSaveTimer);
+            clearDraft();
+            if (documentosSelecionados.length === 0) {
+                window.location.assign(payload.redirect_url);
+                return;
+            }
+
+            anunciarDocumentos('Venda cadastrada. Enviando documentos…');
+            let cursor = 0;
+            const workers = Array.from({ length: Math.min(3, documentosSelecionados.length) }, async () => {
+                while (cursor < documentosSelecionados.length) {
+                    const item = documentosSelecionados[cursor++];
+                    try {
+                        await uploadDocumento(payload.venda_id, item);
+                    } catch (error) {
+                        item.status = 'error';
+                        item.label = error.message;
+                        renderDocumentos();
+                    }
+                }
+            });
+            await Promise.all(workers);
+            const falhas = documentosSelecionados.filter(item => item.status === 'error').length;
+            if (falhas) {
+                anunciarDocumentos(`A venda foi salva, mas ${falhas} documento(s) falharam. Tente novamente no detalhe da venda.`, true);
+                submitButton.disabled = false;
+                submitButton.removeAttribute('aria-busy');
+                const label = submitButton.querySelector('span');
+                if (label) label.textContent = 'Continuar para minhas vendas';
+                return;
+            }
+            anunciarDocumentos('Todos os documentos foram recebidos. Redirecionando…');
+            window.location.assign(payload.redirect_url);
+        } catch (error) {
+            submitButton.disabled = false;
+            submitButton.removeAttribute('aria-busy');
+            anunciarDocumentos(error.message, true);
+            showModernToast('error', 'Não foi possível salvar', error.message);
+        }
+    });
 
     // Garante o ultimo estado mesmo se o F5 vier antes do debounce
     window.addEventListener('beforeunload', saveDraftNow);

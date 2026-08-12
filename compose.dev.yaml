@@ -41,9 +41,34 @@ services:
 
   queue:
     <<: *base
-    command: php artisan queue:work --queue=whatsapp,default --tries=5 --max-time=3600
+    command: php artisan queue:work --queue=whatsapp,default --tries=5 --timeout=300 --max-time=3600
     profiles: [queue]
+    restart: unless-stopped
+
+  documentos-scan:
+    <<: *base
+    command: php artisan queue:work --queue=documentos-scan --tries=5 --timeout=180 --max-time=21600
+    profiles: [queue]
+    restart: unless-stopped
+    depends_on:
+      clamav:
+        condition: service_healthy
     mem_limit: 256m
+
+  documentos-queue:
+    <<: *base
+    command: php artisan queue:work --queue=documentos-transfer,documentos --tries=5 --timeout=600 --max-time=21600
+    profiles: [queue]
+    restart: unless-stopped
+    mem_limit: 256m
+
+  clamav:
+    image: clamav/clamav:1.4
+    profiles: [queue]
+    restart: unless-stopped
+    volumes:
+      - clamav-data:/var/lib/clamav
+    mem_limit: 1g
 
   scheduler:
     <<: *base
@@ -62,3 +87,6 @@ services:
 networks:
   brsolutions:
     external: true
+
+volumes:
+  clamav-data:

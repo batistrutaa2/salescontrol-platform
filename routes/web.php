@@ -21,6 +21,7 @@ use App\Http\Controllers\pages\backoffice\CredenciaisAcessoController;
 use App\Http\Controllers\pages\backoffice\LiminarController;
 use App\Http\Controllers\pages\backoffice\CentralSolicitacoesController;
 use App\Http\Controllers\pages\backoffice\ProcessosVendaController;
+use App\Http\Controllers\VendaDocumentoController;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
 use App\Http\Controllers\pages\relatorios\RelatorioAproveitamento;
@@ -173,6 +174,10 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/comercial/getCommentsLegacy/{cpf}', [Comercial::class, 'getCommentsLegacy'])->name('comercial.getCommentsLegacy');
   Route::post('/comercial/saveCommentsLegacy', [Comercial::class, 'saveCommentsLegacy'])->name('comercial.saveCommentsLegacy');
   Route::post('/comercial/criar-venda', [Comercial::class, 'createSale'])->name('comercial.createSale');
+  Route::get('/vendas/{venda}/documentos', [VendaDocumentoController::class, 'index'])->name('vendas.documentos.index');
+  Route::post('/vendas/{venda}/documentos', [VendaDocumentoController::class, 'store'])->name('vendas.documentos.store');
+  Route::post('/vendas/{venda}/documentos/{documento}/reenviar', [VendaDocumentoController::class, 'retry'])->name('vendas.documentos.retry');
+  Route::delete('/vendas/{venda}/documentos/{documento}', [VendaDocumentoController::class, 'destroy'])->name('vendas.documentos.destroy');
   Route::get('/comercial/cliente/{contato_id}/nova-proposta', [Comercial::class, 'novaProposta'])->name('comercial.novaProposta');
   Route::post('/comercial/createLead', [Comercial::class, 'createLead'])->name('comercial.createLead');
   Route::post('/comercial/sendRemaketing', [Comercial::class, 'sendRemaketing'])->name('comercial.sendRemaketing');
@@ -243,9 +248,11 @@ Route::middleware(['auth'])->group(function () {
   Route::get(uri: '/back-office/cadastrar-operadora', action: [Backoffice::class, 'operadoras'])->name('backoffice.operadoras');
   Route::get('/back-office/operadoras-planos', [Backoffice::class, 'operadorasPlanos'])->name('backoffice.operadorasPlanos');
   Route::get('/back-office/operadoras-planos/data', [Backoffice::class, 'getOperadorasComPlanos'])->name('backoffice.operadorasPlanos.data');
+  Route::get('/back-office/documentos/saude', [Backoffice::class, 'saudeDocumentos'])->name('backoffice.documentos.saude');
   Route::post(uri: '/back-office/createOperation', action: [Backoffice::class, 'createOperation'])->name('backoffice.createOperation');
   Route::post(uri: '/back-office/createPlan', action: [Backoffice::class, 'createPlan'])->name('backoffice.createPlan');
   Route::patch('/back-office/operadoras/{id}/status', [Backoffice::class, 'toggleOperadoraStatus'])->name('backoffice.operadoras.toggleStatus');
+  Route::patch('/back-office/operadoras/{id}/diretorio-documentos', [Backoffice::class, 'updateOperadoraDiretorioDocumentos'])->name('backoffice.operadoras.updateDiretorioDocumentos');
   Route::patch('/back-office/planos/{id}/status', [Backoffice::class, 'togglePlanoStatus'])->name('backoffice.planos.toggleStatus');
   Route::delete('/back-office/operadoras/{id}', [Backoffice::class, 'destroyOperadora'])->name('backoffice.operadoras.destroy');
   Route::delete('/back-office/planos/{id}', [Backoffice::class, 'destroyPlano'])->name('backoffice.planos.destroy');

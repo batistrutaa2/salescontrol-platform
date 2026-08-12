@@ -68,7 +68,7 @@ $isFooter = false;
     </div>
 
     {{-- Form --}}
-    <form method="POST" action="{{ route('comercial.createSale') }}" class="np-form" id="formNovaProposta" novalidate>
+    <form method="POST" action="{{ route('comercial.createSale') }}" enctype="multipart/form-data" class="np-form" id="formNovaProposta" novalidate>
         @csrf
         <input type="hidden" id="contato_id" name="contato_id" value="{{ $client->id }}" />
         <input type="hidden" id="tipo_contrato" name="tipo_contrato" value="PME" />
@@ -248,6 +248,50 @@ $isFooter = false;
                         </div>
                     </div>
                 </div>
+
+                <section class="np-section np-documents" aria-labelledby="np-documentos-titulo">
+                    <div class="section-header">
+                        <span class="section-icon icon-info" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        </span>
+                        <span class="section-title" id="np-documentos-titulo">Documentos da venda</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="np-documents-intro">
+                            <div>
+                                <strong>Adicione os arquivos desta venda</strong>
+                                <p>Você pode concluir a proposta sem documentos e anexá-los depois.</p>
+                            </div>
+                            <span class="np-documents-optional">Opcional</span>
+                        </div>
+                        <input id="documentos-venda" type="file" multiple accept="application/pdf,image/*" class="visually-hidden" aria-describedby="documentos-ajuda documentos-status">
+                        <div class="np-dropzone" id="documentos-dropzone">
+                            <span class="np-dropzone-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16l-4-4-4 4"></path><path d="M12 12v9"></path><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path><path d="M16 16l-4-4-4 4"></path></svg>
+                            </span>
+                            <div class="np-dropzone-copy">
+                                <strong>Arraste os documentos para esta área</strong>
+                                <span>ou escolha os arquivos no seu dispositivo</span>
+                            </div>
+                            <button type="button" class="np-dropzone-action" id="documentos-selecionar">Selecionar arquivos</button>
+                            <div class="np-dropzone-rules" aria-hidden="true">
+                                <span>PDF ou imagem</span>
+                                <span>Até 25 MB cada</span>
+                                <span>Máximo de 30</span>
+                            </div>
+                        </div>
+                        <p id="documentos-ajuda" class="visually-hidden">PDF e imagens raster. Máximo de 30 arquivos e 25 MB por arquivo.</p>
+                        <div id="documentos-status" class="np-documents-status" role="status" aria-live="polite"></div>
+                        <div class="np-documents-summary" id="documentos-resumo" hidden>
+                            <div>
+                                <strong id="documentos-resumo-quantidade">0 arquivos selecionados</strong>
+                                <span id="documentos-resumo-tamanho">0 MB no total</span>
+                            </div>
+                            <button type="button" id="documentos-limpar">Limpar seleção</button>
+                        </div>
+                        <ul id="documentos-lista" class="np-documents-list" aria-label="Documentos selecionados"></ul>
+                    </div>
+                </section>
 
                 </div>{{-- Fim np-col-left-scroll --}}
             </div>

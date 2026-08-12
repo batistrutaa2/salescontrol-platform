@@ -12,6 +12,7 @@
   const csrf = root.dataset.csrf;
   let operadoras = [];
   let selecionada = null;
+  let saudeDocumentos = { diretorios: [] };
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) =>
@@ -20,6 +21,7 @@
   function toast(msg, type = 'ok') {
     const el = document.createElement('div');
     el.className = `op-toast ${type}`;
+    el.setAttribute('role', type === 'err' ? 'alert' : 'status');
     el.textContent = msg;
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add('show'));
@@ -27,10 +29,28 @@
   }
 
   async function api(url, method = 'GET', body = null) {
-    const opts = { method, headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' } };
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const opts = { method, signal: controller.signal, headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' } };
     if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-    const res = await fetch(url, opts);
-    return res.json().catch(() => ({ success: false, message: 'Resposta inválida.' }));
+    try {
+      const res = await fetch(url, opts);
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const errors = payload.errors ? Object.values(payload.errors).flat() : [];
+        return { success: false, message: errors[0] || payload.message || `A solicitação falhou (${res.status}).` };
+      }
+      return payload;
+    } catch (error) {
+      return {
+        success: false,
+        message: error.name === 'AbortError'
+          ? 'O CRM demorou mais de 10 segundos para responder.'
+          : 'Não foi possível conectar ao CRM. Tente novamente.',
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   const badgeStatus = (s) =>
@@ -40,11 +60,28 @@
 
   // ---------- Carregar ----------
   async function load() {
-    const data = await api('/back-office/operadoras-planos/data');
+    const [data, saude] = await Promise.all([
+      api('/back-office/operadoras-planos/data'),
+      api('/back-office/documentos/saude'),
+    ]);
+    if (saude.success) saudeDocumentos = saude;
     operadoras = data.success ? data.operadoras : [];
     if (selecionada) selecionada = operadoras.find((o) => o.id === selecionada.id) || null;
     renderMaster();
     renderDetail();
+    renderSaude();
+  }
+
+  function renderSaude() {
+    const el = $('op-doc-health');
+    if (!el) return;
+    const ultima = saudeDocumentos.sincronizado_em
+      ? new Date(saudeDocumentos.sincronizado_em).toLocaleString('pt-BR')
+      : 'ainda não sincronizado';
+    el.classList.toggle('is-warning', !saudeDocumentos.sincronizado_em || saudeDocumentos.sincronizacao_erro);
+    const filas = saudeDocumentos.filas || {};
+    const filaTotal = Object.values(filas).filter(Number.isFinite).reduce((total, valor) => total + valor, 0);
+    el.textContent = `${saudeDocumentos.pendentes || 0} documento(s) em processamento · ${filaTotal} job(s) na fila · pastas: ${ultima}`;
   }
 
   // ---------- Master (operadoras) ----------
@@ -59,7 +96,7 @@
         (o) => `<div class="op-item ${selecionada && selecionada.id === o.id ? 'is-active' : ''} ${o.status === 'N' ? 'is-off' : ''}" data-op="${o.id}">
           <button type="button" class="op-item-main" data-select="${o.id}">
             <span class="op-item-nome">${esc(o.nome)}</span>
-            <span class="op-item-meta">${o.planos.length} plano${o.planos.length === 1 ? '' : 's'}</span>
+            <span class="op-item-meta">${o.planos.length} plano${o.planos.length === 1 ? '' : 's'} · ${o.diretorio_documentos ? `Pasta: ${esc(o.diretorio_documentos)}` : 'Pasta não vinculada'}</span>
           </button>
           <div class="op-item-side">
             ${badgeStatus(o.status)}
@@ -110,12 +147,44 @@
         ${badgeStatus(o.status)}
       </div>
 
+      <section class="op-directory" aria-labelledby="op-directory-title">
+        <div class="op-directory-icon" aria-hidden="true"><i class="ri-folder-shield-2-line"></i></div>
+        <div class="op-directory-content">
+          <div class="op-directory-heading">
+            <div>
+              <h6 id="op-directory-title">Pasta de documentos</h6>
+              <p>Vincule a operadora à pasta que já existe em <code>Y:\\EmAnalise</code>.</p>
+            </div>
+            <span class="op-folder-badge ${o.diretorio_documentos ? 'is-ready' : 'is-missing'}">
+              <i class="${o.diretorio_documentos ? 'ri-checkbox-circle-line' : 'ri-error-warning-line'}" aria-hidden="true"></i>
+              ${o.diretorio_documentos ? 'Configurada' : 'Não configurada'}
+            </span>
+          </div>
+          <form class="op-directory-form" id="op-directory-form" autocomplete="off">
+            <div class="op-directory-field">
+              <label for="op-directory-name">Nome exato da pasta</label>
+              <div class="op-directory-input-wrap">
+                <span aria-hidden="true">Y:\\EmAnalise\\</span>
+                <input type="text" id="op-directory-name" list="op-directory-options" value="${esc(o.diretorio_documentos || '')}" maxlength="120" required aria-describedby="op-directory-help">
+                <datalist id="op-directory-options">${(saudeDocumentos.diretorios || []).map(nome => `<option value="${esc(nome)}"></option>`).join('')}</datalist>
+              </div>
+              <small id="op-directory-help">Respeite espaços e letras maiúsculas/minúsculas, por exemplo: Bradesco.</small>
+              <p class="op-directory-feedback" id="op-directory-feedback" role="status" aria-live="polite"></p>
+            </div>
+            <button type="submit" class="op-btn op-btn-primary" id="op-directory-save">Salvar vínculo</button>
+          </form>
+        </div>
+      </section>
+
       <form class="op-plano-form" id="op-plano-form" autocomplete="off">
+        <label class="visually-hidden" for="op-plano-nome">Nome do plano</label>
         <input type="text" class="op-input op-input-grow" id="op-plano-nome" placeholder="Nome do plano" maxlength="120" required>
+        <label class="visually-hidden" for="op-plano-acom">Acomodação</label>
         <select class="op-input" id="op-plano-acom">
           <option value="ENFERMARIA">Enfermaria</option>
           <option value="APARTAMENTO">Apartamento</option>
         </select>
+        <label class="visually-hidden" for="op-plano-status">Status do plano</label>
         <select class="op-input" id="op-plano-status">
           <option value="Y">Ativo</option>
           <option value="N">Inativo</option>
@@ -127,6 +196,7 @@
       ${planosHtml}`;
 
     $('op-plano-form').addEventListener('submit', salvarPlano);
+    $('op-directory-form').addEventListener('submit', salvarDiretorioDocumentos);
   }
 
   // ---------- Ações ----------
@@ -163,6 +233,39 @@
       await load();
     } else {
       toast(json.message || 'Erro ao cadastrar plano.', 'err');
+    }
+  }
+
+  async function salvarDiretorioDocumentos(e) {
+    e.preventDefault();
+    if (!selecionada) return;
+    const input = $('op-directory-name');
+    const button = $('op-directory-save');
+    const feedback = $('op-directory-feedback');
+    const diretorio = input.value.trim();
+    if (!diretorio) return input.focus();
+
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = 'Salvando…';
+    feedback.className = 'op-directory-feedback';
+    feedback.textContent = 'Conferindo a pasta no catálogo local…';
+    const json = await api(`/back-office/operadoras/${selecionada.id}/diretorio-documentos`, 'PATCH', { diretorio_documentos: diretorio });
+    if (json.success) {
+      feedback.classList.add('is-success');
+      feedback.textContent = 'Pasta encontrada e vinculada com sucesso.';
+      toast('Pasta validada e vinculada.');
+      await load();
+    } else {
+      feedback.classList.add('is-error');
+      feedback.textContent = json.message || 'Não foi possível validar a pasta.';
+      toast(json.message || 'Não foi possível validar a pasta.', 'err');
+      input.focus();
+    }
+    if (document.body.contains(button)) {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.textContent = 'Salvar vínculo';
     }
   }
 

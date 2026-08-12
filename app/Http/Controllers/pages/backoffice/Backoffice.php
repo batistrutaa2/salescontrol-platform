@@ -11,6 +11,7 @@ use App\Jobs\GerarRecebiveisJob;
 use App\Mail\BoasVindasMail;
 use App\Models\AcessoEmpresa;
 use App\Models\Empresa;
+use App\Models\DocumentoDiretorio;
 use App\Models\Faq;
 use App\Models\Operadora;
 use App\Models\Plano;
@@ -36,6 +37,7 @@ use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\VendasRepository;
 use App\Services\PosVendaDemandaService;
+use App\Services\Documentos\NomeDocumentoService;
 use App\Services\WhatsappService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -564,10 +566,11 @@ class Backoffice extends Controller
 
         $operadoras = Operadora::where('empresa_id', $empresaId)
             ->orderBy('nome')
-            ->get(['id', 'nome', 'status'])
+            ->get(['id', 'nome', 'diretorio_documentos', 'status'])
             ->map(fn ($op) => [
                 'id' => $op->id,
                 'nome' => $op->nome,
+                'diretorio_documentos' => $op->diretorio_documentos,
                 'status' => $op->status,
                 'planos' => ($planos[$op->id] ?? collect())->values(),
                 'can_delete' => ! $operadorasComVenda->contains($op->id),
@@ -585,6 +588,74 @@ class Backoffice extends Controller
         $op->update(['status' => $op->status === 'Y' ? 'N' : 'Y']);
 
         return response()->json(['success' => true, 'status' => $op->status]);
+    }
+
+    public function updateOperadoraDiretorioDocumentos(Request $request, $id, NomeDocumentoService $nomes)
+    {
+        $operadora = Operadora::where('id', $id)
+            ->where('empresa_id', Auth::user()->empresa_id)
+            ->first();
+        if (! $operadora) {
+            return response()->json(['success' => false, 'message' => 'Operadora não encontrada.'], 404);
+        }
+
+        $request->validate(['diretorio_documentos' => ['required', 'string', 'max:120']]);
+        $diretorio = trim((string) $request->input('diretorio_documentos'));
+        if ($nomes->segmento($diretorio, '') !== $diretorio) {
+            return response()->json(['success' => false, 'message' => 'Informe somente o nome exato da pasta, sem barras ou caracteres especiais.'], 422);
+        }
+
+        $raiz = trim(config('documentos.root'), '/');
+        $catalogada = DocumentoDiretorio::whereRaw('LOWER(caminho) = LOWER(?)', ["{$raiz}/{$diretorio}"])->first();
+        if (! $catalogada) {
+            return response()->json([
+                'success' => false,
+                'message' => "A pasta {$raiz}/{$diretorio} não consta no catálogo sincronizado. Atualize o catálogo antes de vincular.",
+            ], 422);
+        }
+
+        $diretorio = $catalogada->nome;
+        $operadora->update(['diretorio_documentos' => $diretorio]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pasta de documentos vinculada.',
+            'diretorio_documentos' => $diretorio,
+        ]);
+    }
+
+    public function saudeDocumentos()
+    {
+        abort_unless(in_array((int) Auth::user()->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::BACKOFFICE, UserRole::DEVELOPER], true), 403);
+        $estados = \App\Models\VendaDocumento::where('empresa_id', Auth::user()->empresa_id)->whereNull('deleted_at')
+            ->selectRaw('status, COUNT(*) total')->groupBy('status')->pluck('total', 'status');
+        $maisAntigo = \App\Models\VendaDocumento::where('empresa_id', Auth::user()->empresa_id)
+            ->whereIn('status', ['RECEBIDO', 'VERIFICANDO', 'AGUARDANDO_ENVIO', 'ENVIANDO'])
+            ->oldest()->value('created_at');
+
+        $filas = ['documentos-scan' => null, 'documentos-transfer' => null];
+        try {
+            if (config('queue.default') === 'database') {
+                foreach (array_keys($filas) as $fila) $filas[$fila] = DB::table(config('queue.connections.database.table', 'jobs'))->where('queue', $fila)->count();
+            } elseif (config('queue.default') === 'redis') {
+                $redis = \Illuminate\Support\Facades\Redis::connection(config('queue.connections.redis.connection', 'default'));
+                foreach (array_keys($filas) as $fila) $filas[$fila] = (int) $redis->llen("queues:{$fila}");
+            }
+        } catch (\Throwable) {
+            // O estado dos documentos continua disponível mesmo se o backend da fila estiver indisponível.
+        }
+
+        return response()->json([
+            'success' => true,
+            'estados' => $estados,
+            'pendentes' => $estados->only(['RECEBIDO', 'VERIFICANDO', 'AGUARDANDO_ENVIO', 'ENVIANDO'])->sum(),
+            'mais_antigo_em' => $maisAntigo,
+            'diretorios' => DocumentoDiretorio::orderBy('nome')->pluck('nome'),
+            'sincronizado_em' => \Illuminate\Support\Facades\Cache::get('documentos:diretorios:sincronizado_em'),
+            'sincronizacao_erro' => (bool) \Illuminate\Support\Facades\Cache::get('documentos:diretorios:erro'),
+            'ultimo_sftp_em' => \Illuminate\Support\Facades\Cache::get('documentos:sftp:ultimo_sucesso_em'),
+            'filas' => $filas,
+        ]);
     }
 
     public function togglePlanoStatus($id)

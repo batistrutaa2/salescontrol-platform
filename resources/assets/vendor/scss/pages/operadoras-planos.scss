@@ -67,6 +67,50 @@
 .op-detail-title { margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--op-text); }
 .op-detail-sub { font-size: 0.8rem; color: var(--op-text-muted); }
 
+.op-directory {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--op-border);
+  border-radius: 12px;
+  background: var(--op-surface);
+}
+.op-directory-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--op-primary);
+  font-size: 1.2rem;
+}
+.op-directory-content { min-width: 0; }
+.op-directory-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.op-directory-heading h6 { margin: 0; color: var(--op-text); font-size: 0.9rem; font-weight: 800; }
+.op-directory-heading p { margin: 0.15rem 0 0; color: var(--op-text-soft); font-size: 0.74rem; }
+.op-directory-heading code { color: var(--op-primary); }
+.op-folder-badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.55rem; border-radius: 999px; font-size: 0.65rem; font-weight: 800; white-space: nowrap; }
+.op-folder-badge.is-ready { background: rgba(16, 185, 129, 0.12); color: #0f8a60; }
+.op-folder-badge.is-missing { background: rgba(245, 158, 11, 0.13); color: #a16207; }
+.op-directory-form { display: flex; align-items: flex-end; gap: 0.65rem; margin-top: 0.85rem; }
+.op-directory-field { min-width: 0; flex: 1; }
+.op-directory-field label { display: block; margin-bottom: 0.3rem; color: var(--op-text); font-size: 0.72rem; font-weight: 700; }
+.op-directory-field small { display: block; margin-top: 0.3rem; color: var(--op-text-muted); font-size: 0.66rem; }
+.op-directory-feedback { min-height: 1rem; margin: 0.35rem 0 0; color: var(--op-text-soft); font-size: 0.7rem; font-weight: 600; }
+.op-directory-feedback:empty { min-height: 0; margin: 0; }
+.op-directory-feedback.is-success { color: #0f8a60; }
+.op-directory-feedback.is-error { color: #dc2626; }
+.op-directory-input-wrap { display: flex; min-height: 44px; align-items: center; overflow: hidden; border: 1px solid var(--op-border); border-radius: 8px; background: var(--op-card-bg); }
+.op-directory-input-wrap:focus-within { border-color: var(--op-primary-light); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12); }
+.op-directory-input-wrap span { padding-left: 0.7rem; color: var(--op-text-muted); font-family: monospace; font-size: 0.72rem; white-space: nowrap; }
+.op-directory-input-wrap input { width: 100%; min-width: 8rem; height: 42px; padding: 0 0.7rem 0 0.1rem; border: 0; outline: 0; background: transparent; color: var(--op-text); font-size: 0.82rem; }
+.op-directory-form .op-btn { min-height: 44px; }
+.op-doc-health { padding: .45rem .7rem; border: 1px solid var(--op-border); border-radius: 8px; color: var(--op-text-soft); font-size: .72rem; font-weight: 700; }
+.op-doc-health.is-warning { border-color: rgba(245, 158, 11, .35); color: #a16207; }
+
 .op-plano-form { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.25rem; padding: 0.9rem; background: var(--op-surface); border: 1px dashed var(--op-border); border-radius: 10px; }
 .op-input-grow { flex: 1 1 200px; }
 
@@ -102,6 +146,7 @@
 .op-btn-ghost { color: var(--op-text-soft); background: var(--op-card-bg); border-color: var(--op-border); }
 
 .op-toggle { font-size: 0.72rem; font-weight: 700; color: var(--op-primary); background: rgba(124, 58, 237, 0.08); border: none; border-radius: 6px; padding: 3px 9px; cursor: pointer; transition: var(--op-transition); }
+.op-toggle { min-height: 44px; }
 .op-toggle:hover { background: rgba(124, 58, 237, 0.16); }
 
 .op-delete {
@@ -133,3 +178,18 @@
   --op-text-muted: #8b8ca7;
 }
 .dark-style .op-badge.off { color: #b6b7cf; }
+
+@media (max-width: 620px) {
+  .op-directory { grid-template-columns: 1fr; }
+  .op-directory-icon { display: none; }
+  .op-directory-heading, .op-directory-form { align-items: stretch; flex-direction: column; }
+  .op-folder-badge { align-self: flex-start; }
+  .op-directory-form .op-btn { justify-content: center; }
+  .op-directory-input-wrap span { display: none; }
+  .op-directory-input-wrap input { padding-left: 0.7rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .op-item, .op-btn, .op-toggle, .op-delete, .op-toast { transition: none; }
+  .op-btn-primary:hover { transform: none; }
+}

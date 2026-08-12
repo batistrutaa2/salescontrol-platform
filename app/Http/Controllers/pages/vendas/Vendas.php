@@ -615,6 +615,16 @@ class Vendas extends Controller
         $vendas = DB::table('vendas as a')
             ->leftJoin('tabulacoes as c', 'c.id', '=', 'a.tabulacao_id')
             ->leftJoin('users as backoffice', 'backoffice.id', '=', 'a.backoffice_id')
+            ->leftJoinSub(
+                DB::table('venda_documentos')
+                    ->selectRaw('venda_id, COUNT(*) as documentos_count')
+                    ->whereNull('deleted_at')
+                    ->groupBy('venda_id'),
+                'documentos_resumo',
+                'documentos_resumo.venda_id',
+                '=',
+                'a.id'
+            )
             ->where('a.user_id', auth()->user()->id)
             ->where('a.empresa_id', Auth::user()->empresa_id)
             ->when($dataInicio && $dataFim, fn ($q) => $q->whereBetween('a.created_at', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']))
@@ -630,6 +640,8 @@ class Vendas extends Controller
                 'a.path_boleto_disponivel',
                 'a.tabulacao_id',
                 'a.boas_vindas_enviado_em',
+                'a.documentacao_status',
+                DB::raw('COALESCE(documentos_resumo.documentos_count, 0) as documentos_count'),
                 'backoffice.name as backoffice_nome'
             )
             ->get();

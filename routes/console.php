@@ -46,3 +46,13 @@ Schedule::command('whatsapp:redownload-media')
     ->everyThirtyMinutes()
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('documentos:limpar-temporarios')
+    ->dailyAt('02:30')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('documentos:sincronizar-diretorios')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();

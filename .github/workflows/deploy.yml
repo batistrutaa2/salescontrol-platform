@@ -26,11 +26,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, bcmath, gmp, sodium, pdo_mysql, gd, zip, xml, curl
+          coverage: none
+
+      - name: Validate and install PHP dependencies
+        run: |
+          composer validate --strict --no-check-publish
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan test tests/Unit/Documentos
+
       - name: Validate production Compose contract
         env:
           EVOLUTION_DB_PASSWORD: ci-placeholder
         run: |
           test -f docker-compose.yml
+          test -f docker/php83/Dockerfile
           docker compose -f docker-compose.yml config --quiet
 
       - name: Setup Node.js
@@ -107,18 +121,20 @@ jobs:
               echo "ERRO: docker-compose.yml de produção não está versionado."
               exit 1
             fi
+            if [ ! -f docker/php83/Dockerfile ]; then
+              echo "ERRO: Dockerfile de produção não está versionado."
+              exit 1
+            fi
 
             # Limpar credenciais após uso
             rm -f ~/.git-credentials
 
-            # Bootstrap do vendor/ — o build do container precisa do runtime do
-            # Sail que mora em vendor/laravel/sail. Se faltar, instala via
-            # container oficial do Composer (não depende de PHP no host).
-            if [ ! -f vendor/bin/sail ]; then
-              echo "==> vendor/ ausente — instalando dependências via container do Composer..."
-              sudo docker run --rm -v "$PWD":/app -w /app composer:2 \
-                composer install --no-interaction --prefer-dist --ignore-platform-reqs
-            fi
+            # Instala sempre o lock antes do build. Isso cobre atualizações
+            # incrementais nas quais vendor/ existe, mas ainda não contém um
+            # pacote recém-adicionado (como o adapter SFTP).
+            echo "==> Instalando dependências PHP antes do build..."
+            sudo docker run --rm -v "$PWD":/app -w /app composer:2 \
+              composer install --no-interaction --prefer-dist --no-progress --ignore-platform-reqs
 
             # Limpeza única da geração antiga de containers (compose não-versionado):
             # o container avulso "reverb" segura a porta 6001 e impede o novo de subir.
@@ -127,11 +143,23 @@ jobs:
               sudo docker rm -f reverb
             fi
 
+            echo "==> Construindo runtime PHP versionado..."
+            $COMPOSE build laravel.test
+
             # Subir/atualizar serviços (evolution, reverb, queue, scheduler, redis).
             # Em produção NÃO existe COMPOSE_PROFILES=dev, então mysql/mailpit
             # do compose ficam de fora (o banco é o MySQL externo do host).
             echo "==> Atualizando containers..."
-            $COMPOSE up -d --remove-orphans
+            # Workers documentais só voltam após migration/cache para não executar
+            # código novo contra um schema antigo durante o deploy.
+            $COMPOSE up -d --remove-orphans --scale documentos-queue=0 --scale documentos-scan=0
+
+            for EXTENSION in openssl sodium gmp; do
+              $COMPOSE exec -T laravel.test php -m | grep -qi "^${EXTENSION}$" || {
+                echo "ERRO: extensão PHP ${EXTENSION} não está ativa."
+                exit 1
+              }
+            done
 
             echo "==> Containers ativos:"
             $COMPOSE ps
@@ -145,12 +173,35 @@ jobs:
             echo "==> Executando migrações..."
             $COMPOSE exec -T laravel.test php artisan migrate --force --no-interaction
 
+            # O pipeline documental só pode receber jobs com ClamAV saudável.
+            echo "==> Verificando serviço de documentos..."
+            CLAMAV_HEALTH="starting"
+            for ATTEMPT in $(seq 1 60); do
+              CLAMAV_HEALTH=$(sudo docker inspect --format='{{.State.Health.Status}}' "$($COMPOSE ps -q clamav)")
+              [ "$CLAMAV_HEALTH" = "healthy" ] && break
+              sleep 5
+            done
+            if [ "$CLAMAV_HEALTH" != "healthy" ]; then
+              echo "ERRO: ClamAV não está saudável."
+              $COMPOSE logs --tail=30 clamav
+              exit 1
+            fi
+
             # Garantir o symlink public/storage (mídias do WhatsApp)
             $COMPOSE exec -T laravel.test php artisan storage:link || true
 
             # Limpar caches
             echo "==> Limpando caches..."
             $COMPOSE exec -T laravel.test php artisan optimize:clear
+
+            echo "==> Validando configuração e acesso ao servidor documental..."
+            $COMPOSE exec -T laravel.test php artisan documentos:validar-configuracao --production
+            $COMPOSE exec -T laravel.test php artisan documentos:testar-conexao
+
+            echo "==> Sincronizando catálogo de pastas documentais..."
+            $COMPOSE exec -T laravel.test php artisan documentos:sincronizar-diretorios
+            $COMPOSE up -d --scale documentos-queue=2 --scale documentos-scan=2
+            $COMPOSE exec -T laravel.test php artisan documentos:processar-pendentes --limit=5000
 
             # Workers de fila recarregam o código novo (o container reinicia sozinho via restart policy)
             echo "==> Reiniciando workers..."
