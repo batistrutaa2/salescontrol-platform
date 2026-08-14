@@ -1553,10 +1553,78 @@
     const documentosResumoQuantidade = document.getElementById('documentos-resumo-quantidade');
     const documentosResumoTamanho = document.getElementById('documentos-resumo-tamanho');
     const documentosLimpar = document.getElementById('documentos-limpar');
+    const documentosSource = document.querySelector('.np-documents-source');
+    const documentosDestino = document.getElementById('np-documentos-destino');
+    const avancarEtapaButton = document.getElementById('np-avancar-etapa');
+    const voltarEtapaButton = document.getElementById('np-voltar-etapa');
+    const finalizarVendaButton = document.getElementById('np-finalizar-venda');
+    const concluirSemDocumentosButton = document.getElementById('np-concluir-sem-documentos');
+    const irVendasLink = document.getElementById('np-ir-vendas');
     const documentosSelecionados = [];
     const maxDocumentos = 30;
     const maxDocumentoBytes = 25 * 1024 * 1024;
     let vendaCriada = null;
+    let etapaAtual = 1;
+
+    if (documentosSource && documentosDestino) {
+        documentosSource.classList.remove('np-documents-source');
+        documentosDestino.appendChild(documentosSource);
+    }
+
+    function atualizarResumoProposta() {
+        const nome = document.getElementById('nome_contrato')?.value.trim() || 'Empresa não informada';
+        const operadora = document.getElementById('operadora');
+        const nomeOperadora = operadora?.selectedOptions?.[0]?.textContent.trim() || 'Não informada';
+        const vidas = Number(document.getElementById('vidas')?.value || 0);
+        document.getElementById('np-resumo-empresa').textContent = nome;
+        document.getElementById('np-resumo-operadora').textContent = nomeOperadora;
+        document.getElementById('np-resumo-vidas').textContent = `${vidas} ${vidas === 1 ? 'vida' : 'vidas'}`;
+    }
+
+    function mostrarEtapa(etapa, moverFoco = true) {
+        etapaAtual = etapa;
+        document.querySelectorAll('[data-step-panel]').forEach(panel => {
+            const ativo = Number(panel.dataset.stepPanel) === etapa;
+            panel.hidden = !ativo;
+            panel.classList.toggle('is-active', ativo);
+        });
+        document.querySelectorAll('[data-step-indicator]').forEach(indicator => {
+            const numero = Number(indicator.dataset.stepIndicator);
+            indicator.classList.toggle('is-active', numero === etapa);
+            indicator.classList.toggle('is-complete', numero < etapa);
+            if (numero === etapa) indicator.setAttribute('aria-current', 'step');
+            else indicator.removeAttribute('aria-current');
+        });
+        avancarEtapaButton.hidden = etapa !== 1;
+        voltarEtapaButton.hidden = etapa !== 2 || Boolean(vendaCriada);
+        finalizarVendaButton.hidden = etapa !== 2 || (documentosSelecionados.length === 0 && !vendaCriada);
+        concluirSemDocumentosButton.hidden = etapa !== 2 || documentosSelecionados.length > 0 || Boolean(vendaCriada);
+        document.querySelector('.nova-proposta-wrapper')?.classList.toggle('is-documents-step', etapa === 2);
+        if (etapa === 2) atualizarResumoProposta();
+        if (moverFoco) {
+            const titulo = document.getElementById(etapa === 1 ? 'np-step-proposta-title' : 'np-documentos-page-title');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => titulo?.focus({ preventScroll: true }), 250);
+        }
+    }
+
+    avancarEtapaButton?.addEventListener('click', () => {
+        const result = validateForm();
+        if (!result.ok) {
+            const extra = result.errors.length > 1 ? ` (+${result.errors.length - 1} outras pendências)` : '';
+            showModernToast('error', 'Proposta incompleta', result.errors[0] + extra);
+            result.firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => result.firstInvalid?.focus?.({ preventScroll: true }), 300);
+            return;
+        }
+        saveDraftNow();
+        mostrarEtapa(2);
+    });
+    voltarEtapaButton?.addEventListener('click', () => mostrarEtapa(1));
+    concluirSemDocumentosButton?.addEventListener('click', () => formNovaProposta?.requestSubmit(finalizarVendaButton));
+    document.getElementById('btn-open-docs-modal-step')?.addEventListener('click', () => {
+        document.getElementById('btn-open-docs-modal')?.click();
+    });
 
     function formatBytes(bytes) {
         if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -1597,8 +1665,15 @@
         const quantidade = documentosSelecionados.length;
         const tamanhoTotal = documentosSelecionados.reduce((total, item) => total + item.file.size, 0);
         if (documentosResumo) documentosResumo.hidden = quantidade === 0;
+        if (documentosLimpar) documentosLimpar.hidden = Boolean(vendaCriada);
         if (documentosResumoQuantidade) documentosResumoQuantidade.textContent = `${quantidade} ${quantidade === 1 ? 'arquivo selecionado' : 'arquivos selecionados'}`;
         if (documentosResumoTamanho) documentosResumoTamanho.textContent = `${formatBytes(tamanhoTotal)} no total`;
+        if (concluirSemDocumentosButton) concluirSemDocumentosButton.hidden = etapaAtual !== 2 || quantidade > 0 || Boolean(vendaCriada);
+        if (finalizarVendaButton) finalizarVendaButton.hidden = etapaAtual !== 2 || (quantidade === 0 && !vendaCriada);
+        if (finalizarVendaButton && !vendaCriada) {
+            const label = finalizarVendaButton.querySelector('span');
+            if (label) label.textContent = quantidade > 0 ? `Salvar venda e enviar ${quantidade} ${quantidade === 1 ? 'arquivo' : 'arquivos'}` : 'Salvar venda';
+        }
         documentosSelecionados.forEach((item, index) => {
             const estado = estadoDocumento(item);
             const li = document.createElement('li');
@@ -1609,10 +1684,10 @@
                     <strong title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</strong>
                     <span>${formatBytes(item.file.size)}</span>
                     ${item.status === 'queued' || item.status === 'error' ? `<small>${escapeHtml(item.label)}</small>` : ''}
-                    ${item.status === 'uploading' || item.progress === 100 ? `<div class="np-document-progress" aria-hidden="true"><span style="width:${item.progress || 0}%"></span></div>` : ''}
+                    ${item.status === 'uploading' || item.progress === 100 ? `<div class="np-document-progress" role="progressbar" aria-label="Progresso de ${escapeHtml(item.file.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${item.progress || 0}"><span style="width:${item.progress || 0}%"></span></div>` : ''}
                 </div>
                 <span class="np-document-state ${estado.classe}">${escapeHtml(estado.texto)}</span>
-                ${item.status === 'selected' ? `<button type="button" class="np-document-remove" data-index="${index}" aria-label="Remover ${escapeHtml(item.file.name)}" title="Remover arquivo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"></path></svg></button>` : ''}
+                ${item.status === 'selected' || item.status === 'error' ? `<button type="button" class="np-document-remove" data-index="${index}" aria-label="Remover ${escapeHtml(item.file.name)}" title="Remover arquivo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"></path></svg></button>` : ''}
             `;
             documentosLista.appendChild(li);
         });
@@ -1706,41 +1781,44 @@
     formNovaProposta?.addEventListener('submit', async event => {
         if (event.defaultPrevented) return;
         event.preventDefault();
-        if (vendaCriada) {
-            window.location.assign(vendaCriada.redirect_url);
-            return;
-        }
-        const submitButton = formNovaProposta.querySelector('[type="submit"]');
+        const submitButton = finalizarVendaButton;
         submitButton.disabled = true;
         submitButton.setAttribute('aria-busy', 'true');
+        voltarEtapaButton.hidden = true;
+        concluirSemDocumentosButton.hidden = true;
 
         try {
-            const saleData = new FormData(formNovaProposta);
-            const response = await fetch(formNovaProposta.action, {
-                method: 'POST', body: saleData, headers: { Accept: 'application/json' }
-            });
-            const payload = await response.json();
-            if (!response.ok) {
-                const errors = payload.errors ? Object.values(payload.errors).flat() : [];
-                throw new Error(errors[0] || payload.message || 'Não foi possível cadastrar a venda.');
+            if (!vendaCriada) {
+                const saleData = new FormData(formNovaProposta);
+                const response = await fetch(formNovaProposta.action, {
+                    method: 'POST', body: saleData, headers: { Accept: 'application/json' }
+                });
+                const payload = await response.json();
+                if (!response.ok) {
+                    const errors = payload.errors ? Object.values(payload.errors).flat() : [];
+                    throw new Error(errors[0] || payload.message || 'Não foi possível cadastrar a venda.');
+                }
+
+                draftDisabled = true;
+                vendaCriada = payload;
+                clearTimeout(draftSaveTimer);
+                clearDraft();
+                if (irVendasLink) irVendasLink.href = payload.redirect_url;
             }
 
-            draftDisabled = true;
-            vendaCriada = payload;
-            clearTimeout(draftSaveTimer);
-            clearDraft();
             if (documentosSelecionados.length === 0) {
-                window.location.assign(payload.redirect_url);
+                window.location.assign(vendaCriada.redirect_url);
                 return;
             }
 
             anunciarDocumentos('Venda cadastrada. Enviando documentos…');
+            const pendentes = documentosSelecionados.filter(item => item.status === 'selected' || item.status === 'error');
             let cursor = 0;
-            const workers = Array.from({ length: Math.min(3, documentosSelecionados.length) }, async () => {
-                while (cursor < documentosSelecionados.length) {
-                    const item = documentosSelecionados[cursor++];
+            const workers = Array.from({ length: Math.min(3, pendentes.length) }, async () => {
+                while (cursor < pendentes.length) {
+                    const item = pendentes[cursor++];
                     try {
-                        await uploadDocumento(payload.venda_id, item);
+                        await uploadDocumento(vendaCriada.venda_id, item);
                     } catch (error) {
                         item.status = 'error';
                         item.label = error.message;
@@ -1751,25 +1829,36 @@
             await Promise.all(workers);
             const falhas = documentosSelecionados.filter(item => item.status === 'error').length;
             if (falhas) {
-                anunciarDocumentos(`A venda foi salva, mas ${falhas} documento(s) falharam. Tente novamente no detalhe da venda.`, true);
+                anunciarDocumentos(`A venda foi salva. ${falhas} documento(s) falharam; revise o motivo e tente novamente.`, true);
                 submitButton.disabled = false;
                 submitButton.removeAttribute('aria-busy');
                 const label = submitButton.querySelector('span');
-                if (label) label.textContent = 'Continuar para minhas vendas';
+                if (label) label.textContent = `Tentar novamente (${falhas})`;
+                if (irVendasLink) irVendasLink.hidden = false;
                 return;
             }
             anunciarDocumentos('Todos os documentos foram recebidos. Redirecionando…');
-            window.location.assign(payload.redirect_url);
+            window.location.assign(vendaCriada.redirect_url);
         } catch (error) {
             submitButton.disabled = false;
             submitButton.removeAttribute('aria-busy');
+            voltarEtapaButton.hidden = Boolean(vendaCriada);
+            concluirSemDocumentosButton.hidden = documentosSelecionados.length > 0 || Boolean(vendaCriada);
             anunciarDocumentos(error.message, true);
             showModernToast('error', 'Não foi possível salvar', error.message);
         }
     });
 
-    // Garante o ultimo estado mesmo se o F5 vier antes do debounce
-    window.addEventListener('beforeunload', saveDraftNow);
+    // Garante o ultimo estado mesmo se o F5 vier antes do debounce e avisa
+    // quando houver File objects, que o navegador não permite restaurar.
+    window.addEventListener('beforeunload', event => {
+        saveDraftNow();
+        const temArquivosNaoEnviados = documentosSelecionados.some(item => item.status === 'selected' || item.status === 'error');
+        if (temArquivosNaoEnviados && !vendaCriada) {
+            event.preventDefault();
+            event.returnValue = '';
+        }
+    });
 
     // ============================================
     // Initialize - Add first titular on load or restore old

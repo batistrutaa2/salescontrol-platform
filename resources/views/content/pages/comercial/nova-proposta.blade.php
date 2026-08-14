@@ -67,14 +67,29 @@ $isFooter = false;
         </div>
     </div>
 
+    <nav class="np-steps" aria-label="Etapas do cadastro da venda">
+        <ol>
+            <li class="np-step is-active" data-step-indicator="1" aria-current="step">
+                <span class="np-step-number">1</span>
+                <span class="np-step-copy"><strong>Dados da proposta</strong><small>Empresa, plano e beneficiários</small></span>
+            </li>
+            <li class="np-step" data-step-indicator="2">
+                <span class="np-step-number">2</span>
+                <span class="np-step-copy"><strong>Documentos</strong><small>Envio opcional dos arquivos</small></span>
+            </li>
+        </ol>
+    </nav>
+
     {{-- Form --}}
     <form method="POST" action="{{ route('comercial.createSale') }}" enctype="multipart/form-data" class="np-form" id="formNovaProposta" novalidate>
         @csrf
         <input type="hidden" id="contato_id" name="contato_id" value="{{ $client->id }}" />
         <input type="hidden" id="tipo_contrato" name="tipo_contrato" value="PME" />
 
-        {{-- Layout Principal em 2 Colunas --}}
-        <div class="np-layout">
+        <section class="np-step-panel is-active" id="np-step-proposta" data-step-panel="1" aria-labelledby="np-step-proposta-title">
+            <h2 class="visually-hidden" id="np-step-proposta-title" tabindex="-1">Dados da proposta</h2>
+            {{-- Layout Principal em 2 Colunas --}}
+            <div class="np-layout">
 
             {{-- ============================================ --}}
             {{-- COLUNA ESQUERDA --}}
@@ -249,7 +264,7 @@ $isFooter = false;
                     </div>
                 </div>
 
-                <section class="np-section np-documents" aria-labelledby="np-documentos-titulo">
+                <section class="np-section np-documents np-documents-source" aria-labelledby="np-documentos-titulo">
                     <div class="section-header">
                         <span class="section-icon icon-info" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
@@ -264,6 +279,7 @@ $isFooter = false;
                             </div>
                             <span class="np-documents-optional">Opcional</span>
                         </div>
+                        <p class="np-files-refresh-note">Mantenha esta página aberta durante o envio. Por segurança, o navegador não recupera arquivos após atualizar ou fechar a tela.</p>
                         <input id="documentos-venda" type="file" multiple accept="application/pdf,image/*" class="visually-hidden" aria-describedby="documentos-ajuda documentos-status">
                         <div class="np-dropzone" id="documentos-dropzone">
                             <span class="np-dropzone-icon" aria-hidden="true">
@@ -314,17 +330,45 @@ $isFooter = false;
                 <div id="titulares-container" class="titulares-scroll"></div>
             </div>
 
-        </div>
+            </div>
+        </section>
 
-        {{-- Botao Flutuante Salvar --}}
-        <button type="submit" class="np-floating-save" title="Salvar Proposta">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                <polyline points="7 3 7 8 15 8"></polyline>
-            </svg>
-            <span>Salvar</span>
-        </button>
+        <section class="np-step-panel" id="np-step-documentos" data-step-panel="2" aria-labelledby="np-documentos-page-title" hidden>
+            <div class="np-documents-page">
+                <header class="np-documents-hero">
+                    <div>
+                        <span class="np-documents-eyebrow">Etapa 2 de 2</span>
+                        <h2 id="np-documentos-page-title" tabindex="-1">Anexe os documentos da venda</h2>
+                        <p>Confira os arquivos antes de concluir. Esta etapa é opcional e os documentos também podem ser adicionados depois.</p>
+                    </div>
+                    <span class="np-documents-optional">Opcional</span>
+                </header>
+                <div class="np-documents-context" aria-label="Resumo da proposta">
+                    <div><span>Empresa</span><strong id="np-resumo-empresa">—</strong></div>
+                    <div><span>Operadora</span><strong id="np-resumo-operadora">—</strong></div>
+                    <div><span>Beneficiários</span><strong id="np-resumo-vidas">0 vidas</strong></div>
+                </div>
+                <div class="np-documents-stage" id="np-documentos-destino"></div>
+                <aside class="np-documents-guide" aria-labelledby="np-guia-documentos">
+                    <span class="np-guide-icon" aria-hidden="true">✓</span>
+                    <div>
+                        <h3 id="np-guia-documentos">O que devo anexar?</h3>
+                        <p>Envie documentos legíveis do titular, dependentes e da empresa. Consulte a lista completa quando precisar.</p>
+                        <button type="button" class="np-guide-button" id="btn-open-docs-modal-step">Ver checklist de documentos</button>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <div class="np-step-actions">
+            <button type="button" class="np-action np-action-secondary" id="np-voltar-etapa" hidden>Voltar aos dados</button>
+            <div class="np-step-actions-end">
+                <button type="button" class="np-action np-action-ghost" id="np-concluir-sem-documentos" hidden>Concluir sem documentos</button>
+                <button type="button" class="np-action np-action-primary" id="np-avancar-etapa"><span>Continuar para documentos</span><span aria-hidden="true">→</span></button>
+                <button type="submit" class="np-action np-action-primary" id="np-finalizar-venda" hidden><span>Salvar venda e enviar documentos</span></button>
+                <a class="np-action np-action-ghost" id="np-ir-vendas" href="{{ route('sale.listSale') }}" hidden>Ir para minhas vendas</a>
+            </div>
+        </div>
     </form>
 
 </div>
@@ -512,19 +556,19 @@ $isFooter = false;
 </template>
 
 {{-- Modal de Documentacao PME --}}
-<div class="docs-modal-overlay" id="docs-modal-overlay">
-    <div class="docs-modal docs-modal-wide">
+<div class="docs-modal-overlay" id="docs-modal-overlay" aria-hidden="true">
+    <div class="docs-modal docs-modal-wide" role="dialog" aria-modal="true" aria-labelledby="docs-modal-heading" tabindex="-1">
         <div class="docs-modal-header">
             <div class="docs-modal-title">
                 <span class="docs-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                 </span>
                 <div>
-                    <h3>Checklist de Documentacao PME</h3>
+                    <h3 id="docs-modal-heading">Checklist de Documentacao PME</h3>
                     <span>Documentos necessarios para emissao do plano</span>
                 </div>
             </div>
-            <button type="button" class="docs-modal-close" id="btn-close-docs-modal">
+            <button type="button" class="docs-modal-close" id="btn-close-docs-modal" aria-label="Fechar checklist de documentos">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
@@ -638,26 +682,34 @@ $isFooter = false;
         const btnOpen = document.getElementById('btn-open-docs-modal');
         const btnClose = document.getElementById('btn-close-docs-modal');
         const overlay = document.getElementById('docs-modal-overlay');
+        const dialog = overlay?.querySelector('[role="dialog"]');
+        let modalTrigger = null;
+
+        function closeDocsModal() {
+            overlay?.classList.remove('docs-modal-open');
+            overlay?.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            modalTrigger?.focus();
+        }
 
         if (btnOpen && overlay) {
             btnOpen.addEventListener('click', function() {
+                modalTrigger = document.activeElement;
                 overlay.classList.add('docs-modal-open');
+                overlay.setAttribute('aria-hidden', 'false');
                 document.body.style.overflow = 'hidden';
+                dialog?.focus();
             });
         }
 
         if (btnClose && overlay) {
-            btnClose.addEventListener('click', function() {
-                overlay.classList.remove('docs-modal-open');
-                document.body.style.overflow = '';
-            });
+            btnClose.addEventListener('click', closeDocsModal);
         }
 
         if (overlay) {
             overlay.addEventListener('click', function(e) {
                 if (e.target === overlay) {
-                    overlay.classList.remove('docs-modal-open');
-                    document.body.style.overflow = '';
+                    closeDocsModal();
                 }
             });
         }
@@ -665,8 +717,19 @@ $isFooter = false;
         // Fechar com ESC
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && overlay && overlay.classList.contains('docs-modal-open')) {
-                overlay.classList.remove('docs-modal-open');
-                document.body.style.overflow = '';
+                closeDocsModal();
+            }
+            if (e.key === 'Tab' && overlay?.classList.contains('docs-modal-open')) {
+                const focusable = Array.from(dialog.querySelectorAll('button:not([disabled]), a[href]'));
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last?.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first?.focus();
+                }
             }
         });
 
