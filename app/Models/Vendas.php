@@ -23,6 +23,7 @@ class Vendas extends Model
         'tabulacao_updated_at',
         'nome_contrato',
         'cpf_cnpj',
+        'cpf_cnpj_normalizado',
         'email',
         'data_vigencia',
         'data_implantacao',
@@ -81,6 +82,20 @@ class Vendas extends Model
         'vitalicio_ativo' => 'boolean',
         'tabulacao_updated_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $venda) {
+            static $possuiDocumentoNormalizado;
+            $possuiDocumentoNormalizado ??= \Illuminate\Support\Facades\Schema::hasColumn('vendas', 'cpf_cnpj_normalizado');
+            if ($possuiDocumentoNormalizado) {
+                $venda->cpf_cnpj_normalizado = \App\Services\RenovacaoService::normalizarDocumento($venda->cpf_cnpj);
+            }
+        });
+        static::created(function (self $venda) {
+            app(\App\Services\RenovacaoService::class)->registrarNovaVenda($venda);
+        });
+    }
 
     public function titulares()
     {

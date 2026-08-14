@@ -21,6 +21,7 @@ use App\Http\Controllers\pages\backoffice\CredenciaisAcessoController;
 use App\Http\Controllers\pages\backoffice\LiminarController;
 use App\Http\Controllers\pages\backoffice\CentralSolicitacoesController;
 use App\Http\Controllers\pages\backoffice\ProcessosVendaController;
+use App\Http\Controllers\pages\backoffice\RenovacaoController;
 use App\Http\Controllers\VendaDocumentoController;
 
 use App\Http\Controllers\pages\relatorios\Relatorios;
@@ -366,6 +367,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/back-office/carteira-clientes', [Backoffice::class, 'carteiraClientes'])->name('backoffice.carteiraClientes');
     Route::get('/back-office/carteira-clientes/data', [Backoffice::class, 'getCarteiraClientesData'])->name('backoffice.getCarteiraClientesData');
     Route::get('/back-office/carteira-clientes/detalhe/{cnpj}', [Backoffice::class, 'getDetalheClienteCarteira'])->name('backoffice.getDetalheClienteCarteira');
+  });
+
+  Route::middleware('role:' . \App\Enums\UserRole::ADMINISTRATIVO . ',' . \App\Enums\UserRole::BACKOFFICE . ',' . \App\Enums\UserRole::SUPERVISOR . ',' . \App\Enums\UserRole::DEVELOPER)->prefix('/back-office/renovacoes')->name('backoffice.renovacoes.')->group(function () {
+    Route::get('/', [RenovacaoController::class, 'index'])->name('index');
+    Route::get('/dados', [RenovacaoController::class, 'dados'])->name('dados');
+    Route::get('/metricas', [RenovacaoController::class, 'metricas'])->name('metricas');
+    Route::get('/{oportunidade}', [RenovacaoController::class, 'show'])->whereNumber('oportunidade')->name('show');
+    Route::post('/{oportunidade}/tratar', [RenovacaoController::class, 'tratar'])->whereNumber('oportunidade')->name('tratar');
+    Route::patch('/{oportunidade}/responsavel', [RenovacaoController::class, 'atribuir'])->whereNumber('oportunidade')->name('atribuir');
+    Route::post('/{oportunidade}/reabrir', [RenovacaoController::class, 'reabrir'])->whereNumber('oportunidade')->name('reabrir');
   });
 
   // FAQs (Back-office)

@@ -217,8 +217,7 @@
       "rules": [
         "DEVELOPER",
         "ADMINISTRATIVO",
-        "BACKOFFICE",
-        "SUPERVISOR"
+        "BACKOFFICE"
       ],
       "submenu": [
         {
@@ -250,7 +249,8 @@
       "rules": [
         "DEVELOPER",
         "ADMINISTRATIVO",
-        "BACKOFFICE"
+        "BACKOFFICE",
+        "SUPERVISOR"
       ],
       "submenu": [
         {
@@ -276,6 +276,12 @@
           "rules": ["ADMINISTRATIVO", "BACKOFFICE", "DEVELOPER"]
         },
         {
+          "url": "/back-office/renovacoes",
+          "name": "Relacionamento e Renovação",
+          "slug": "backoffice.renovacoes",
+          "rules": ["ADMINISTRATIVO", "BACKOFFICE", "SUPERVISOR", "DEVELOPER"]
+        },
+        {
           "url": "/back-office/operadoras-planos",
           "name": "Operadoras e Planos",
           "slug": "backoffice.operadorasPlanos"
@@ -291,6 +297,13 @@
           "slug": "pages-faqs"
         }
       ]
+    },
+    {
+      "url": "/back-office/renovacoes",
+      "name": "Relacionamento e Renovação",
+      "icon": "menu-icon tf-icons ri-customer-service-2-line",
+      "slug": "backoffice.renovacoes",
+      "rules": ["SUPERVISOR"]
     },
     {
       "name": "Relatorios",

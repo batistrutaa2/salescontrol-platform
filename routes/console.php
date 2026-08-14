@@ -56,3 +56,9 @@ Schedule::command('documentos:sincronizar-diretorios')
     ->everyTenMinutes()
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('renovacoes:sincronizar')
+    ->timezone('America/Sao_Paulo')
+    ->dailyAt('06:30')
+    ->withoutOverlapping()
+    ->onOneServer();

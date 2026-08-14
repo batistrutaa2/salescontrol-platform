@@ -129,7 +129,10 @@ class OperadorasPlanosTest extends TestCase
 
     public function test_valida_e_vincula_pasta_existente_do_servidor(): void
     {
-        DocumentoDiretorio::create(['caminho' => 'EmAnalise/Bradesco', 'nome' => 'Bradesco', 'encontrado_em' => now()]);
+        DocumentoDiretorio::updateOrCreate(
+            ['caminho' => 'EmAnalise/Bradesco'],
+            ['nome' => 'Bradesco', 'encontrado_em' => now()]
+        );
         $op = $this->criarOperadora($this->empresa->id, 'BRADESCO');
 
         $this->actingAs($this->admin)
