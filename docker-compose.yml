@@ -77,6 +77,8 @@ services:
         networks:
             - sail
     evolution:
+        profiles:
+            - evolution
         image: 'evoapicloud/evolution-api:v2.3.7'
         ports:
             - '127.0.0.1:${EVOLUTION_PORT:-8080}:8080'
@@ -107,6 +109,8 @@ services:
             - redis
         restart: unless-stopped
     evolution-db:
+        profiles:
+            - evolution
         image: 'postgres:16-alpine'
         environment:
             POSTGRES_DB: evolution
@@ -134,7 +138,8 @@ services:
         restart: unless-stopped
     queue:
         image: sail-8.3/app
-        command: php artisan queue:work redis --queue=whatsapp,default --tries=5 --max-time=3600
+        # WhatsApp/Evolution pausado; jobs existentes permanecem no Redis.
+        command: php artisan queue:work redis --queue=default --tries=5 --max-time=3600
         environment:
             WWWUSER: '${WWWUSER:-1000}'
             LARAVEL_SAIL: 1

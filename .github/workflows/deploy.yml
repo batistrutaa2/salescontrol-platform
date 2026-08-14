@@ -183,7 +183,14 @@ jobs:
             echo "==> Construindo runtime PHP versionado..."
             $COMPOSE build laravel.test
 
-            # Subir/atualizar serviços (evolution, reverb, queue, scheduler, redis).
+            # Evolution e seu PostgreSQL estão pausados. Os containers são
+            # removidos sem apagar os volumes, preservando dados para uma
+            # eventual retomada com um plano explícito.
+            echo "==> Pausando Evolution API..."
+            $COMPOSE stop evolution evolution-db || true
+            $COMPOSE rm -f evolution evolution-db || true
+
+            # Subir/atualizar serviços (reverb, queue, scheduler e redis).
             # Em produção NÃO existe COMPOSE_PROFILES=dev, então mysql/mailpit
             # do compose ficam de fora (o banco é o MySQL externo do host).
             echo "==> Atualizando containers..."

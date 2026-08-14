@@ -31,22 +31,6 @@ Schedule::command('preditiva:reciclar-frios')
     ->withoutOverlapping()
     ->onOneServer();
 
-// WhatsApp — saúde das instâncias e reconciliação de mensagens
-Schedule::command('whatsapp:monitor')
-    ->everyTwoMinutes()
-    ->withoutOverlapping()
-    ->onOneServer();
-
-Schedule::command('whatsapp:resync')
-    ->everyTenMinutes()
-    ->withoutOverlapping()
-    ->onOneServer();
-
-Schedule::command('whatsapp:redownload-media')
-    ->everyThirtyMinutes()
-    ->withoutOverlapping()
-    ->onOneServer();
-
 Schedule::command('documentos:limpar-temporarios')
     ->dailyAt('02:30')
     ->withoutOverlapping()
