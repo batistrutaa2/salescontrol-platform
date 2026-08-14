@@ -103,6 +103,15 @@ jobs:
             # Puxar alterações do repositório
             echo "==> Baixando alterações do repositório..."
 
+            # Estes arquivos são caches gerados pelo Composer/Laravel. Versões
+            # antigas do repositório os rastreavam e package:discover os altera
+            # na VPS, o que impediria o git pull da correção que os desversiona.
+            for CACHE_FILE in bootstrap/cache/packages.php bootstrap/cache/services.php; do
+              if git ls-files --error-unmatch "$CACHE_FILE" >/dev/null 2>&1; then
+                sudo git restore --source=HEAD --worktree -- "$CACHE_FILE"
+              fi
+            done
+
             # Migração única: durante a recuperação do incidente de 10/08/2026,
             # o Compose foi restaurado manualmente na VPS como arquivo não
             # rastreado. Preserve uma cópia antes de receber a versão oficial.
