@@ -3,15 +3,16 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
-use App\Jobs\VerificarVendaDocumento;
 use App\Jobs\TransferirDocumentosVenda;
-use App\Models\VendaDocumento;
-use App\Services\Documentos\ClamAvService;
-use App\Services\Documentos\DocumentoStatusService;
+use App\Jobs\VerificarVendaDocumento;
 use App\Models\Empresa;
 use App\Models\Operadora;
 use App\Models\User;
+use App\Models\VendaDocumento;
 use App\Models\Vendas;
+use App\Services\Documentos\ClamAvService;
+use App\Services\Documentos\DocumentoStatusService;
+use App\Services\Documentos\VendaDocumentoPermissionPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class VendaDocumentoTest extends TestCase
     use RefreshDatabase;
 
     private User $vendedor;
+
     private Vendas $venda;
 
     protected function setUp(): void
@@ -134,8 +136,7 @@ class VendaDocumentoTest extends TestCase
 
     public function test_scan_e_transferencia_concluem_sem_reler_o_arquivo_remoto(): void
     {
-        Storage::fake('documentos_test');
-        config(['documentos.disk' => 'documentos_test', 'cache.default' => 'array']);
+        $this->configureCollaborativeDocumentDisk();
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
         $this->actingAs($this->vendedor)->postJson(route('vendas.documentos.store', $this->venda), [
             'arquivo' => UploadedFile::fake()->createWithContent('seguro.png', $png),
@@ -143,16 +144,59 @@ class VendaDocumentoTest extends TestCase
         ])->assertCreated();
 
         $doc = VendaDocumento::firstOrFail();
-        $clamAv = new class extends ClamAvService {
+        $clamAv = new class extends ClamAvService
+        {
             public function scan(string $absolutePath): void {}
         };
         (new VerificarVendaDocumento($doc->id))->handle($clamAv, app(DocumentoStatusService::class));
         $this->assertSame('AGUARDANDO_ENVIO', $doc->fresh()->status);
 
-        (new TransferirDocumentosVenda($this->venda->id))->handle(app(DocumentoStatusService::class));
+        (new TransferirDocumentosVenda($this->venda->id))->handle(
+            app(DocumentoStatusService::class),
+            app(VendaDocumentoPermissionPolicy::class)
+        );
         $doc->refresh();
         $this->assertSame('DISPONIVEL', $doc->status);
         Storage::disk('documentos_test')->assertExists($doc->caminho_remoto);
+        $absolutePath = Storage::disk('documentos_test')->path($doc->caminho_remoto);
+        clearstatcache(true, $absolutePath);
+        $this->assertSame(0660, fileperms($absolutePath) & 0777);
+        $this->assertSame(
+            0770,
+            config('filesystems.disks.documentos_test.permissions.dir.private')
+        );
+    }
+
+    public function test_reparo_reaplica_modo_colaborativo_apenas_em_documentos_catalogados(): void
+    {
+        $this->configureCollaborativeDocumentDisk();
+        $path = 'EmAnalise/Amil/Caragi Participacoes/contrato.pdf';
+        Storage::disk('documentos_test')->put($path, 'conteudo', ['visibility' => 'private']);
+        $absolutePath = Storage::disk('documentos_test')->path($path);
+        chmod($absolutePath, 0600);
+
+        VendaDocumento::create([
+            'venda_id' => $this->venda->id,
+            'empresa_id' => $this->venda->empresa_id,
+            'uploaded_by' => $this->vendedor->id,
+            'client_upload_id' => 'permissoes-existente',
+            'nome_original' => 'contrato.pdf',
+            'nome_remoto' => 'contrato.pdf',
+            'mime_type' => 'application/pdf',
+            'tamanho' => 8,
+            'sha256' => hash('sha256', 'conteudo'),
+            'caminho_temporario' => 'venda-documentos/temporario.upload',
+            'diretorio_remoto' => dirname($path),
+            'caminho_remoto' => $path,
+            'status' => 'DISPONIVEL',
+        ]);
+
+        $this->artisan('documentos:reparar-permissoes', ['--apply' => true])
+            ->expectsOutput('Reparo concluído: 1 ajustado(s), 0 ausente(s), 0 falha(s).')
+            ->assertSuccessful();
+
+        clearstatcache(true, $absolutePath);
+        $this->assertSame(0660, fileperms($absolutePath) & 0777);
     }
 
     public function test_vendas_duplicadas_recebem_diretorios_deterministicos_distintos(): void
@@ -182,5 +226,23 @@ class VendaDocumentoTest extends TestCase
             'diretorio_remoto' => 'EmAnalise/Amil/Caragi Participacoes',
             'status' => 'RECEBIDO',
         ]);
+    }
+
+    private function configureCollaborativeDocumentDisk(): void
+    {
+        config([
+            'documentos.disk' => 'documentos_test',
+            'cache.default' => 'array',
+            'filesystems.disks.documentos_test' => [
+                'driver' => 'local',
+                'root' => storage_path('framework/testing/disks/documentos-permissions'),
+                'visibility' => VendaDocumentoPermissionPolicy::VISIBILITY,
+                'directory_visibility' => VendaDocumentoPermissionPolicy::VISIBILITY,
+                'permissions' => VendaDocumentoPermissionPolicy::permissionMap(),
+                'throw' => true,
+            ],
+        ]);
+        Storage::purge('documentos_test');
+        Storage::disk('documentos_test')->deleteDirectory('EmAnalise');
     }
 }

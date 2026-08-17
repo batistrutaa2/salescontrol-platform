@@ -21,12 +21,15 @@ Falhas recuperáveis usam `FALHA`; malware usa `BLOQUEADO`; exclusões remotas p
 - Cada worker de transferência reutiliza sua sessão SFTP. O primeiro handshake pode ser
   lento; operações seguintes usam a conexão quente.
 - A transferência é serial por venda, drena até dez arquivos e grava `.part-<id>` antes da
-  renomeação atômica. O arquivo remoto não é baixado novamente para hash.
+  renomeação atômica. O arquivo remoto não é baixado novamente para hash. Após o rename, o
+  worker reaplica explicitamente o modo colaborativo `0660`.
 - Redis também fornece os locks por venda. `retry_after` é 900 segundos.
 - O catálogo `documento_diretorios` evita conexão SFTP durante ações do painel e é
   sincronizado a cada dez minutos.
 - Temporários ficam em `storage/app/private`; o bind mount do projeto é compartilhado pela
   aplicação e pelos workers. Sucesso retém a cópia por 24 horas e falha por sete dias.
+- A árvore remota `EmAnalise` usa arquivos `0660`, diretórios `2770`, grupo POSIX compartilhado
+  e ACL padrão. As máscaras do Samba não substituem grupo/ACL para objetos criados via SFTP.
 
 ## Pré-requisitos secretos de produção
 
@@ -54,6 +57,29 @@ pós-deploy obrigatória é rotacionar para um usuário SFTP dedicado, limitado 
 administrativo. Não alterar Samba, WireGuard ou os mapeamentos das estações durante essa
 rotação.
 
+### Contrato POSIX e Samba
+
+SFTP e Samba acessam os mesmos inodes, mas `create mask`, `force create mode` e a `umask` do
+Samba só governam objetos criados pelo Samba. Para os documentos criados via SFTP, a árvore
+`/srv/samba/administrativo/EmAnalise` precisa de grupo POSIX compartilhado, setgid e ACL padrão.
+O grupo deve conter somente `crm_documentos` e os usuários autorizados no share.
+
+Copie somente o script versionado para uma área administrativa do servidor de arquivos. Nesse
+servidor, audite e depois aplique o mecanismo idempotente:
+
+```bash
+sudo ./scripts/configurar-permissoes-documentos-samba.sh \
+  --root /srv/samba/administrativo/EmAnalise --group administrativo
+sudo ./scripts/configurar-permissoes-documentos-samba.sh \
+  --root /srv/samba/administrativo/EmAnalise --group administrativo --apply
+```
+
+O script recusa raízes amplas e links simbólicos, não cruza outros filesystems e corrige arquivos
+existentes para `0660`, diretórios para `2770`, ownership de grupo e ACLs atuais/padrão. No share,
+preserve `valid users = @administrativo`, `force group = administrativo`, máscaras `0660/0770`,
+`inherit acls = yes` e `map acl inherit = yes`. Valide com `testparm -s` antes de recarregar o Samba.
+Não conceda acesso a `Everyone`/`other` e não use `0777`.
+
 ## Deploy de final de semana
 
 O workflow executa automaticamente, nesta ordem:
@@ -78,7 +104,24 @@ docker compose -f docker-compose.yml exec -T laravel.test php artisan queue:fail
 ```
 
 Fazer uma venda controlada com PDF pequeno e confirmar `DISPONIVEL` tanto no CRM quanto no
-diretório `Y:\EmAnalise\<Operadora>\<Empresa>`.
+diretório `Y:\EmAnalise\<Operadora>\<Empresa>`. Na estação Windows autorizada, abrir, editar,
+salvar e renomear o arquivo; no servidor, conferir grupo e ACL com `stat` e `getfacl`.
+
+### Correção idempotente de permissões existentes
+
+O comando abaixo é restrito aos arquivos ativos catalogados em `venda_documentos` e cujos caminhos
+estão sob `DOCUMENTOS_ROOT`. Sem `--apply`, ele apenas informa quantos registros seriam processados:
+
+```bash
+docker compose -f docker-compose.yml exec -T laravel.test \
+  php artisan documentos:reparar-permissoes
+docker compose -f docker-compose.yml exec -T laravel.test \
+  php artisan documentos:reparar-permissoes --apply
+```
+
+Esse comando reaplica `0660` via SFTP nos arquivos. Para corrigir também ownership, diretórios e
+ACLs existentes, execute no servidor de arquivos o script descrito no contrato POSIX/Samba acima.
+Nunca aplique a correção no workspace nem na raiz inteira do share.
 
 ## Contingência e rollback
 

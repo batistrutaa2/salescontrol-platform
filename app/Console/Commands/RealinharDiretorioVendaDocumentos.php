@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Vendas;
 use App\Services\Documentos\NomeDocumentoService;
+use App\Services\Documentos\VendaDocumentoPermissionPolicy;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,7 @@ class RealinharDiretorioVendaDocumentos extends Command
 
     protected $description = 'Move documentos existentes para a pasta mapeada da operadora e atualiza os caminhos da venda';
 
-    public function handle(NomeDocumentoService $nomes): int
+    public function handle(NomeDocumentoService $nomes, VendaDocumentoPermissionPolicy $permissions): int
     {
         $venda = Vendas::with(['operadoraRelation', 'documentos'])->find((int) $this->argument('venda'));
         if (! $venda) {
@@ -46,7 +47,7 @@ class RealinharDiretorioVendaDocumentos extends Command
             return self::FAILURE;
         }
 
-        return Cache::lock("venda-documentos-realinhar:{$venda->id}", 60)->block(10, function () use ($venda, $origem, $destino) {
+        return Cache::lock("venda-documentos-realinhar:{$venda->id}", 60)->block(10, function () use ($venda, $origem, $destino, $permissions) {
             $disk = Storage::disk(config('documentos.disk'));
             $documentos = $venda->documentos->whereNull('deleted_at');
             $disponiveis = $documentos->where('status', 'DISPONIVEL');
@@ -71,6 +72,7 @@ class RealinharDiretorioVendaDocumentos extends Command
                     if (! $disk->move($documento->caminho_remoto, $arquivoDestino)) {
                         throw new RuntimeException("Não foi possível mover o documento {$documento->id}.");
                     }
+                    $permissions->applyToFile($disk, $arquivoDestino);
                     $movidos[] = [$documento->caminho_remoto, $arquivoDestino];
                 }
 
