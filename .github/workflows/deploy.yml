@@ -191,18 +191,23 @@ jobs:
             $COMPOSE rm -f evolution evolution-db || true
 
             clamav_health() {
-              CLAMAV_ID="$($COMPOSE ps -q clamav 2>/dev/null || true)"
+              CLAMAV_ID="$(timeout --signal=TERM --kill-after=2s 5s $COMPOSE ps -q clamav 2>/dev/null || true)"
               if [ -z "$CLAMAV_ID" ]; then
                 echo "missing"
                 return
               fi
 
-              sudo docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' \
-                "$CLAMAV_ID" 2>/dev/null || echo "missing"
+              CLAMAV_HEALTH="$(timeout --signal=TERM --kill-after=2s 5s sudo docker inspect \
+                --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' \
+                "$CLAMAV_ID" 2>/dev/null || true)"
+              echo "${CLAMAV_HEALTH:-missing}"
             }
 
             wait_for_clamav() {
-              for ATTEMPT in $(seq 1 60); do
+              CLAMAV_DEADLINE=$(($(date +%s) + 300))
+              ATTEMPT=0
+              while [ "$(date +%s)" -lt "$CLAMAV_DEADLINE" ]; do
+                ATTEMPT=$((ATTEMPT + 1))
                 CLAMAV_HEALTH="$(clamav_health)"
                 if [ "$CLAMAV_HEALTH" = "healthy" ]; then
                   echo "==> ClamAV saudável."
@@ -210,9 +215,12 @@ jobs:
                 fi
 
                 if [ "$ATTEMPT" -eq 1 ] || [ $((ATTEMPT % 6)) -eq 0 ]; then
-                  echo "==> Aguardando ClamAV (${CLAMAV_HEALTH}, tentativa ${ATTEMPT}/60)..."
+                  echo "==> Aguardando ClamAV (${CLAMAV_HEALTH}, tentativa ${ATTEMPT}, limite 300s)..."
                 fi
-                sleep 5
+
+                CLAMAV_REMAINING=$((CLAMAV_DEADLINE - $(date +%s)))
+                [ "$CLAMAV_REMAINING" -le 0 ] && break
+                [ "$CLAMAV_REMAINING" -lt 5 ] && sleep "$CLAMAV_REMAINING" || sleep 5
               done
 
               return 1
@@ -220,16 +228,20 @@ jobs:
 
             dump_clamav_diagnostics() {
               echo "==> Diagnóstico do ClamAV:"
-              $COMPOSE ps clamav || true
-              CLAMAV_ID="$($COMPOSE ps -q clamav 2>/dev/null || true)"
+              if ! timeout --signal=TERM --kill-after=5s 15s $COMPOSE ps clamav; then
+                echo "AVISO: consulta de status do ClamAV excedeu 15 segundos."
+              fi
+              CLAMAV_ID="$(timeout --signal=TERM --kill-after=2s 5s $COMPOSE ps -q clamav 2>/dev/null || true)"
               if [ -n "$CLAMAV_ID" ]; then
-                sudo docker inspect \
+                timeout --signal=TERM --kill-after=5s 15s sudo docker inspect \
                   --format='status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} restarts={{.RestartCount}} oom={{.State.OOMKilled}} exit={{.State.ExitCode}}' \
                   "$CLAMAV_ID" || true
-                sudo docker inspect --format='{{if .State.Health}}{{range .State.Health.Log}}{{.End}} exit={{.ExitCode}} {{printf "%q" .Output}}{{println}}{{end}}{{end}}' \
+                timeout --signal=TERM --kill-after=5s 15s sudo docker inspect --format='{{if .State.Health}}{{range .State.Health.Log}}{{.End}} exit={{.ExitCode}} {{printf "%q" .Output}}{{println}}{{end}}{{end}}' \
                   "$CLAMAV_ID" || true
               fi
-              $COMPOSE logs --tail=100 clamav || true
+              if ! timeout --signal=TERM --kill-after=5s 15s $COMPOSE logs --no-color --tail=100 clamav; then
+                echo "AVISO: coleta de logs do ClamAV excedeu 15 segundos; o deploy continuará a recuperação."
+              fi
             }
 
             # O Compose avalia depends_on antes de o script chegar às migrations.

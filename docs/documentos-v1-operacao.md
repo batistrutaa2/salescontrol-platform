@@ -88,8 +88,9 @@ O workflow executa automaticamente, nesta ordem:
 2. instala as dependências do `composer.lock` antes do build;
 3. constrói o runtime PHP com `openssl`, `sodium` e `gmp`;
 4. executa o preflight de Redis e ClamAV antes dos serviços dependentes; se encontrar o
-   ClamAV `unhealthy`, registra health/logs e recria somente o container uma vez, preservando
-   o volume `clamav-data`;
+   ClamAV `unhealthy`, registra health/logs com coleta limitada a 15 segundos por consulta e
+   recria somente o container uma vez, preservando o volume `clamav-data`; falha ou bloqueio
+   na coleta diagnóstica não impede a tentativa de recuperação;
 5. sobe a aplicação com os workers documentais em escala zero;
 6. instala/valida dependências dentro do runtime e executa migrations;
 7. limpa caches e executa `documentos:validar-configuracao --production`;
