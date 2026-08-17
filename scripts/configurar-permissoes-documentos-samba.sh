@@ -83,8 +83,11 @@ if ! getent passwd "$sftp_user" >/dev/null; then
   exit 1
 fi
 
+# root é a identidade SFTP já existente neste ambiente. Sob diretórios com
+# setgid ele herda o grupo do pai, sem precisar ser membro suplementar.
 sftp_has_group=false
-if id -nG "$sftp_user" | tr ' ' '\n' | grep -Fx -- "$shared_group" >/dev/null; then
+if [[ "$(id -u "$sftp_user")" -eq 0 ]] \
+  || id -nG "$sftp_user" | tr ' ' '\n' | grep -Fx -- "$shared_group" >/dev/null; then
   sftp_has_group=true
 fi
 
@@ -127,7 +130,7 @@ directory_count="$(find "$target" -xdev -type d -print | wc -l)"
 file_count="$(find "$target" -xdev -type f -print | wc -l)"
 
 if [[ "$apply" != true ]]; then
-  echo "Auditoria: $directory_count diretório(s), $file_count arquivo(s), usuário SFTP no grupo: $sftp_has_group, Samba: $samba_check. Nenhuma alteração aplicada."
+  echo "Auditoria: $directory_count diretório(s), $file_count arquivo(s), identidade SFTP compatível: $sftp_has_group, Samba: $samba_check. Nenhuma alteração aplicada."
   exit 0
 fi
 
@@ -164,5 +167,5 @@ find "$target" -xdev -type d -exec setfacl -m \
 find "$target" -xdev -type f -exec setfacl -m \
   "u::rw-,g::rw-,g:${shared_group}:rw-,m::rw-,o::---" -- {} +
 
-echo "Permissões aplicadas: usuário SFTP $sftp_user no grupo $shared_group, diretórios 2770, arquivos 0660 e ACLs colaborativas sob $target."
-echo "Encerre as sessões SFTP existentes para que a nova associação de grupo seja carregada."
+echo "Permissões aplicadas: identidade SFTP $sftp_user, grupo $shared_group, diretórios 2770, arquivos 0660 e ACLs colaborativas sob $target."
+echo "Reinicie os workers documentais para encerrar as sessões SFTP persistentes."

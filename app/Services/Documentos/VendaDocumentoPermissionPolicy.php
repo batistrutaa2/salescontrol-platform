@@ -8,8 +8,6 @@ use RuntimeException;
 
 final class VendaDocumentoPermissionPolicy
 {
-    public const SFTP_USERNAME = 'crm_documentos';
-
     public const VISIBILITY = 'private';
 
     public const FILE_MODE = 0660;
@@ -38,8 +36,9 @@ final class VendaDocumentoPermissionPolicy
     }
 
     /**
-     * No SFTP, a identidade autenticada define o owner POSIX do inode remoto.
-     * Chmod não corrige owner, grupo ou ACL de um arquivo criado por root.
+     * O login SFTP e as contas Samba são identidades independentes. A
+     * colaboração entre elas é garantida no servidor pelo grupo POSIX,
+     * setgid e ACL padrão, não por igualdade de nomes de usuário.
      */
     public function assertConfiguredSftpIdentity(): void
     {
@@ -51,10 +50,9 @@ final class VendaDocumentoPermissionPolicy
             return;
         }
 
-        if (($disk['username'] ?? null) !== self::SFTP_USERNAME) {
+        if (blank($disk['username'] ?? null)) {
             throw new RuntimeException(
-                'Escrita documental bloqueada: DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos; '
-                .'a identidade SFTP define o proprietário dos arquivos remotos.'
+                'Escrita documental bloqueada: DOCUMENTOS_SFTP_USERNAME não está configurado.'
             );
         }
     }

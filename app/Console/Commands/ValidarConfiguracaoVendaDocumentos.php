@@ -41,9 +41,6 @@ class ValidarConfiguracaoVendaDocumentos extends Command
         if (! is_dir($temporarios) || ! is_writable($temporarios)) {
             $erros[] = 'O armazenamento temporário local não pode ser escrito pelo container.';
         }
-        if (($disk['username'] ?? null) !== VendaDocumentoPermissionPolicy::SFTP_USERNAME) {
-            $erros[] = 'DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos; a identidade SFTP define o proprietário dos arquivos remotos.';
-        }
         if (! extension_loaded('openssl') || ! extension_loaded('sodium') || ! extension_loaded('gmp')) {
             $erros[] = 'As extensões openssl, sodium e gmp precisam estar ativas.';
         }

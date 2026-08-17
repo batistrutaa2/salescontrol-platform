@@ -38,7 +38,7 @@ Estes valores pertencem exclusivamente ao `.env` da VPS e nunca devem ser commit
 - `DOCUMENTOS_PROCESSAMENTO_ATIVO=true`
 - `DOCUMENTOS_DISK=documentos_sftp`
 - `DOCUMENTOS_ROOT=EmAnalise`
-- host, porta, usuário dedicado `crm_documentos`, passphrase e fingerprint SFTP validados
+- host, porta, usuário Linux/SFTP associado à chave, passphrase e fingerprint validados
 - `DOCUMENTOS_SFTP_BASE_PATH=/srv/samba/administrativo`
 - `DOCUMENTOS_SFTP_PRIVATE_KEY=/var/www/html/storage/app/private/keys/documentos_sftp`
 - `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis` e `REDIS_HOST=redis`
@@ -52,10 +52,11 @@ install -m 600 /origem/segura/documentos_sftp storage/app/private/keys/documento
 ```
 
 O usuário que executa os containers precisa conseguir ler a chave e escrever em
-`storage/app/private`. `DOCUMENTOS_SFTP_USERNAME=root` é proibido: o preflight e os pontos de
-mutação remota bloqueiam qualquer identidade SFTP diferente de `crm_documentos`. O usuário
-dedicado deve ser limitado ao diretório administrativo. Não alterar Samba, WireGuard ou os
-mapeamentos das estações durante a rotação da credencial.
+`storage/app/private`. `DOCUMENTOS_SFTP_USERNAME` identifica a conta Linux/OpenSSH na qual a
+chave pública está autorizada. O nome ou comentário da chave e os usuários Samba são identidades
+independentes. Quando houver uma conta SFTP dedicada, ela deve ser limitada ao diretório
+administrativo. Não alterar Samba, WireGuard ou os mapeamentos das estações durante a rotação da
+credencial.
 
 ### Contrato POSIX e Samba
 
@@ -70,50 +71,53 @@ excluir em toda a árvore `EmAnalise`.
 ### Causa raiz confirmada em 2026-08-17
 
 Um arquivo criado pelo fluxo de upload no servidor de documentos foi encontrado como `root:root`,
-modo `0660` e sem ACL. Nessas condições, `crm_documentos` não pertence ao owner nem ao grupo do
-inode e, por isso, não consegue ler ou alterar o arquivo. O modo `0660` isoladamente não garante o
-contrato colaborativo quando ownership, grupo e ACL estão incorretos. O nome original do arquivo
-não foi persistido neste repositório por conter identificação de cliente.
+modo `0660` e sem ACL. Nessas condições, as identidades Samba autorizadas não pertencem ao owner
+nem ao grupo do inode e, por isso, não conseguem ler ou alterar o arquivo. O modo `0660`
+isoladamente não garante o contrato colaborativo quando grupo e ACL estão incorretos. O nome
+original do arquivo não foi persistido neste repositório por conter identificação de cliente.
 
-O CRM estava configurado com `DOCUMENTOS_SFTP_USERNAME=root`. Como o upload é realizado por SFTP,
-o `sshd` cria o inode remoto com a identidade autenticada; o UID do processo PHP dentro do container
-não define o owner remoto. O `setVisibility()` posterior aplicava apenas `chmod 0660` e não podia
-corrigir owner, grupo ou ACL, permitindo que o preflight terminasse com sucesso apesar do contrato
-POSIX inválido.
+O upload é realizado por uma identidade Linux/SFTP, enquanto o administrativo acessa por
+identidades Samba distintas. O `sshd` cria o inode com o usuário SFTP autenticado; o UID do
+processo PHP dentro do container e o usuário Samba não definem esse owner. O `setVisibility()`
+posterior aplicava apenas `chmod 0660` e não podia corrigir grupo ou ACL, permitindo que o
+preflight terminasse com sucesso apesar do contrato POSIX inválido.
 
 A correção permanente exige conjuntamente:
 
-1. autenticar o CRM obrigatoriamente como `crm_documentos`, pertencente ao grupo
-   `administrativo`; o código recusa a abertura do disk para mutação com outra identidade;
+1. manter `DOCUMENTOS_SFTP_USERNAME` com o usuário Linux/SFTP que realmente aceita a chave e
+   incluir essa identidade no grupo POSIX `administrativo`; ela não precisa ter o mesmo nome de
+   nenhum usuário Samba;
 2. manter `2770`, setgid e ACL padrão em todos os diretórios existentes da árvore, para que arquivos
    futuros herdem o grupo e a ACL mesmo quando forem criados dentro de pastas antigas;
 3. manter arquivos em `0660`; a aplicação reaplica esse modo depois da renomeação atômica.
 
 Após a correção, validar um novo upload real com `stat` e `getfacl` e confirmar leitura, alteração,
-renomeação e exclusão tanto pela identidade `crm_documentos` quanto por uma estação Samba
-autorizada. Arquivos existentes com `root:root` continuam exigindo reparo idempotente; corrigir
-somente o processo de criação não altera inodes antigos.
+renomeação e exclusão pela identidade SFTP configurada e por uma estação Samba autorizada.
+Arquivos existentes com `root:root` continuam exigindo reparo idempotente; corrigir somente o
+processo de criação não altera inodes antigos.
 
 Na VPS de documentos, sem copiar script, valide e normalize o contrato com a raiz exata:
 
 ```bash
-ROOT=/srv/samba/administrativo/EmAnalise
-GROUP=administrativo
-SFTP_USER=crm_documentos
+DOCS_ROOT=/srv/samba/administrativo/EmAnalise
+DOCS_GROUP=administrativo
+SFTP_USER=root
+SAMBA_USER=crm_documentos
 
-sudo test "$(realpath -e -- "$ROOT")" = "$ROOT"
+sudo test "$(realpath -e -- "$DOCS_ROOT")" = "$DOCS_ROOT"
 getent passwd "$SFTP_USER"
-getent group "$GROUP"
-sudo usermod -aG "$GROUP" "$SFTP_USER"
+getent passwd "$SAMBA_USER"
+getent group "$DOCS_GROUP"
+sudo usermod -aG "$DOCS_GROUP" "$SAMBA_USER"
 
-sudo find "$ROOT" -xdev -exec chgrp -- "$GROUP" {} +
-sudo find "$ROOT" -xdev -type d -exec chmod 2770 -- {} +
-sudo find "$ROOT" -xdev -type f -exec chmod 0660 -- {} +
-sudo find "$ROOT" -xdev -type d -exec setfacl -m \
-  "u::rwx,g::rwx,g:${GROUP}:rwx,m::rwx,o::---" \
-  -m "d:u::rwx,d:g::rwx,d:g:${GROUP}:rwx,d:m::rwx,d:o::---" -- {} +
-sudo find "$ROOT" -xdev -type f -exec setfacl -m \
-  "u::rw-,g::rw-,g:${GROUP}:rw-,m::rw-,o::---" -- {} +
+sudo find "$DOCS_ROOT" -xdev -exec chgrp -- "$DOCS_GROUP" {} +
+sudo find "$DOCS_ROOT" -xdev -type d -exec chmod 2770 -- {} +
+sudo find "$DOCS_ROOT" -xdev -type f -exec chmod 0660 -- {} +
+sudo find "$DOCS_ROOT" -xdev -type d -exec setfacl -m \
+  "u::rwx,g::rwx,g:${DOCS_GROUP}:rwx,m::rwx,o::---" \
+  -m "d:u::rwx,d:g::rwx,d:g:${DOCS_GROUP}:rwx,d:m::rwx,d:o::---" -- {} +
+sudo find "$DOCS_ROOT" -xdev -type f -exec setfacl -m \
+  "u::rw-,g::rw-,g:${DOCS_GROUP}:rw-,m::rw-,o::---" -- {} +
 ```
 
 Esses comandos não atravessam outros filesystems. A normalização inicial dos diretórios existentes
@@ -126,10 +130,10 @@ servidor, audite e depois aplique o mecanismo idempotente:
 ```bash
 sudo ./scripts/configurar-permissoes-documentos-samba.sh \
   --root /srv/samba/administrativo/EmAnalise \
-  --group administrativo --sftp-user crm_documentos --share administrativo
+  --group administrativo --sftp-user root --share administrativo
 sudo ./scripts/configurar-permissoes-documentos-samba.sh \
   --root /srv/samba/administrativo/EmAnalise \
-  --group administrativo --sftp-user crm_documentos --share administrativo --apply
+  --group administrativo --sftp-user root --share administrativo --apply
 ```
 
 Se a auditoria informar que o usuário SFTP ainda não pertence ao grupo, confirme a identidade

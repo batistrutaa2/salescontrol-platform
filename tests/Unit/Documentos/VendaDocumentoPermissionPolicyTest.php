@@ -30,7 +30,23 @@ class VendaDocumentoPermissionPolicyTest extends TestCase
         (new VendaDocumentoPermissionPolicy)->assertProposalDocumentPath('Financeiro/arquivo.pdf');
     }
 
-    public function test_bloqueia_escrita_sftp_com_identidade_root(): void
+    public function test_bloqueia_escrita_sftp_sem_identidade_configurada(): void
+    {
+        config([
+            'documentos.disk' => 'documentos_test',
+            'filesystems.disks.documentos_test' => [
+                'driver' => 'sftp',
+                'username' => '',
+            ],
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('DOCUMENTOS_SFTP_USERNAME não está configurado');
+
+        (new VendaDocumentoPermissionPolicy)->assertConfiguredSftpIdentity();
+    }
+
+    public function test_identidade_sftp_independe_do_usuario_samba(): void
     {
         config([
             'documentos.disk' => 'documentos_test',
@@ -40,9 +56,8 @@ class VendaDocumentoPermissionPolicyTest extends TestCase
             ],
         ]);
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos');
-
         (new VendaDocumentoPermissionPolicy)->assertConfiguredSftpIdentity();
+
+        $this->addToAssertionCount(1);
     }
 }

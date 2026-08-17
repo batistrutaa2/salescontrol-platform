@@ -16,7 +16,7 @@ class ValidarConfiguracaoVendaDocumentosTest extends TestCase
             'filesystems.disks.documentos_test' => [
                 'driver' => 'sftp',
                 'host' => 'servidor-documentos.test',
-                'username' => 'crm_documentos',
+                'username' => 'usuario_sftp_documentos',
                 'privateKey' => __FILE__,
                 'hostFingerprint' => 'SHA256:teste-local',
                 'root' => '/srv/samba/administrativo',
@@ -45,12 +45,21 @@ class ValidarConfiguracaoVendaDocumentosTest extends TestCase
             ->assertFailed();
     }
 
-    public function test_rejeita_root_como_identidade_sftp(): void
+    public function test_rejeita_identidade_sftp_vazia(): void
+    {
+        config(['filesystems.disks.documentos_test.username' => '']);
+
+        $this->artisan('documentos:validar-configuracao')
+            ->expectsOutput('A configuração SFTP username está vazia.')
+            ->assertFailed();
+    }
+
+    public function test_aceita_usuario_sftp_diferente_das_contas_samba(): void
     {
         config(['filesystems.disks.documentos_test.username' => 'root']);
 
         $this->artisan('documentos:validar-configuracao')
-            ->expectsOutput('DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos; a identidade SFTP define o proprietário dos arquivos remotos.')
-            ->assertFailed();
+            ->expectsOutput('Configuração documental validada sem exposição de credenciais.')
+            ->assertSuccessful();
     }
 }

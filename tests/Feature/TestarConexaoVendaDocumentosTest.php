@@ -20,18 +20,18 @@ class TestarConexaoVendaDocumentosTest extends TestCase
         $this->assertSame([], Storage::disk('documentos_test')->allFiles());
     }
 
-    public function test_bloqueia_identidade_root_antes_de_abrir_a_conexao_sftp(): void
+    public function test_bloqueia_identidade_vazia_antes_de_abrir_a_conexao_sftp(): void
     {
         config([
             'documentos.disk' => 'documentos_test',
             'filesystems.disks.documentos_test' => [
                 'driver' => 'sftp',
-                'username' => 'root',
+                'username' => '',
             ],
         ]);
 
         $this->artisan('documentos:testar-conexao')
-            ->expectsOutputToContain('Escrita documental bloqueada: DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos')
+            ->expectsOutputToContain('Escrita documental bloqueada: DOCUMENTOS_SFTP_USERNAME não está configurado')
             ->assertFailed();
     }
 }

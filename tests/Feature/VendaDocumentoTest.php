@@ -165,18 +165,18 @@ class VendaDocumentoTest extends TestCase
         $this->assertSame(02770, config('filesystems.disks.documentos_test.permissions.dir.private'));
     }
 
-    public function test_transferencia_bloqueia_root_antes_de_abrir_o_disco_sftp(): void
+    public function test_transferencia_bloqueia_identidade_vazia_antes_de_abrir_o_disco_sftp(): void
     {
         config([
             'documentos.disk' => 'documentos_test',
             'filesystems.disks.documentos_test' => [
                 'driver' => 'sftp',
-                'username' => 'root',
+                'username' => '',
             ],
         ]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos');
+        $this->expectExceptionMessage('DOCUMENTOS_SFTP_USERNAME não está configurado');
 
         (new TransferirDocumentosVenda($this->venda->id))->handle(
             app(DocumentoStatusService::class),
