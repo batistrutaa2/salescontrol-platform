@@ -13,9 +13,25 @@ class TestarConexaoVendaDocumentosTest extends TestCase
         config(['documentos.disk' => 'documentos_test']);
 
         $this->artisan('documentos:testar-conexao')
-            ->expectsOutput('Conexão validada: escrita, leitura, integridade, renomeação e exclusão concluídas.')
+            ->expectsOutput('SFTP validado: escrita, leitura, integridade, renomeação e exclusão concluídas.')
+            ->expectsOutput('A identidade Samba/Windows não foi validada por este comando; confirme grupo, ACL e abertura pela unidade mapeada.')
             ->assertSuccessful();
 
         $this->assertSame([], Storage::disk('documentos_test')->allFiles());
+    }
+
+    public function test_bloqueia_identidade_root_antes_de_abrir_a_conexao_sftp(): void
+    {
+        config([
+            'documentos.disk' => 'documentos_test',
+            'filesystems.disks.documentos_test' => [
+                'driver' => 'sftp',
+                'username' => 'root',
+            ],
+        ]);
+
+        $this->artisan('documentos:testar-conexao')
+            ->expectsOutputToContain('Escrita documental bloqueada: DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos')
+            ->assertFailed();
     }
 }

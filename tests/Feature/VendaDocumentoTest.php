@@ -161,9 +161,26 @@ class VendaDocumentoTest extends TestCase
         $absolutePath = Storage::disk('documentos_test')->path($doc->caminho_remoto);
         clearstatcache(true, $absolutePath);
         $this->assertSame(0660, fileperms($absolutePath) & 0777);
-        $this->assertSame(
-            0770,
-            config('filesystems.disks.documentos_test.permissions.dir.private')
+        $this->assertNotSame(0, fileperms(dirname($absolutePath)) & 0110, 'O reparo de arquivo não pode remover a travessia do diretório.');
+        $this->assertSame(02770, config('filesystems.disks.documentos_test.permissions.dir.private'));
+    }
+
+    public function test_transferencia_bloqueia_root_antes_de_abrir_o_disco_sftp(): void
+    {
+        config([
+            'documentos.disk' => 'documentos_test',
+            'filesystems.disks.documentos_test' => [
+                'driver' => 'sftp',
+                'username' => 'root',
+            ],
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos');
+
+        (new TransferirDocumentosVenda($this->venda->id))->handle(
+            app(DocumentoStatusService::class),
+            app(VendaDocumentoPermissionPolicy::class)
         );
     }
 

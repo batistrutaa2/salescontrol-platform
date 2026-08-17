@@ -74,6 +74,7 @@ class ProcessarVendaDocumento implements ShouldQueue
         $doc->update(['status' => 'ENVIANDO']);
         $this->ajustarPastaManual($doc, $nomes);
         $doc->refresh();
+        $permissions->assertConfiguredSftpIdentity();
         $remoto = Storage::disk(config('documentos.disk'));
         $parcial = $doc->caminho_remoto.'.part-'.$doc->id;
         $stream = $local->readStream($doc->caminho_temporario);

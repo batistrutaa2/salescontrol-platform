@@ -28,7 +28,7 @@ Falhas recuperáveis usam `FALHA`; malware usa `BLOQUEADO`; exclusões remotas p
   sincronizado a cada dez minutos.
 - Temporários ficam em `storage/app/private`; o bind mount do projeto é compartilhado pela
   aplicação e pelos workers. Sucesso retém a cópia por 24 horas e falha por sete dias.
-- A árvore remota `EmAnalise` usa arquivos `0660`, diretórios `2770`, grupo POSIX compartilhado
+- A árvore remota `EmAnalise` usa arquivos `0660`, diretórios `2770` (setgid), grupo POSIX compartilhado
   e ACL padrão. As máscaras do Samba não substituem grupo/ACL para objetos criados via SFTP.
 
 ## Pré-requisitos secretos de produção
@@ -38,7 +38,7 @@ Estes valores pertencem exclusivamente ao `.env` da VPS e nunca devem ser commit
 - `DOCUMENTOS_PROCESSAMENTO_ATIVO=true`
 - `DOCUMENTOS_DISK=documentos_sftp`
 - `DOCUMENTOS_ROOT=EmAnalise`
-- host, porta, usuário, passphrase e fingerprint SFTP validados
+- host, porta, usuário dedicado `crm_documentos`, passphrase e fingerprint SFTP validados
 - `DOCUMENTOS_SFTP_BASE_PATH=/srv/samba/administrativo`
 - `DOCUMENTOS_SFTP_PRIVATE_KEY=/var/www/html/storage/app/private/keys/documentos_sftp`
 - `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis` e `REDIS_HOST=redis`
@@ -52,33 +52,105 @@ install -m 600 /origem/segura/documentos_sftp storage/app/private/keys/documento
 ```
 
 O usuário que executa os containers precisa conseguir ler a chave e escrever em
-`storage/app/private`. A versão inicial pode usar a credencial testada, mas a ação de
-pós-deploy obrigatória é rotacionar para um usuário SFTP dedicado, limitado ao diretório
-administrativo. Não alterar Samba, WireGuard ou os mapeamentos das estações durante essa
-rotação.
+`storage/app/private`. `DOCUMENTOS_SFTP_USERNAME=root` é proibido: o preflight e os pontos de
+mutação remota bloqueiam qualquer identidade SFTP diferente de `crm_documentos`. O usuário
+dedicado deve ser limitado ao diretório administrativo. Não alterar Samba, WireGuard ou os
+mapeamentos das estações durante a rotação da credencial.
 
 ### Contrato POSIX e Samba
 
 SFTP e Samba acessam os mesmos inodes, mas `create mask`, `force create mode` e a `umask` do
 Samba só governam objetos criados pelo Samba. Para os documentos criados via SFTP, a árvore
 `/srv/samba/administrativo/EmAnalise` precisa de grupo POSIX compartilhado, setgid e ACL padrão.
-O grupo deve conter somente `crm_documentos` e os usuários autorizados no share.
+O grupo deve conter o usuário SFTP e representar o grupo forçado para qualquer identidade já
+autorizada a entrar no share. A autorização continua no Samba; uma vez autenticada, a identidade
+opera os arquivos com o grupo forçado e pode ler, criar, editar, sobrescrever, renomear, mover e
+excluir em toda a árvore `EmAnalise`.
+
+### Causa raiz confirmada em 2026-08-17
+
+Um arquivo criado pelo fluxo de upload no servidor de documentos foi encontrado como `root:root`,
+modo `0660` e sem ACL. Nessas condições, `crm_documentos` não pertence ao owner nem ao grupo do
+inode e, por isso, não consegue ler ou alterar o arquivo. O modo `0660` isoladamente não garante o
+contrato colaborativo quando ownership, grupo e ACL estão incorretos. O nome original do arquivo
+não foi persistido neste repositório por conter identificação de cliente.
+
+O CRM estava configurado com `DOCUMENTOS_SFTP_USERNAME=root`. Como o upload é realizado por SFTP,
+o `sshd` cria o inode remoto com a identidade autenticada; o UID do processo PHP dentro do container
+não define o owner remoto. O `setVisibility()` posterior aplicava apenas `chmod 0660` e não podia
+corrigir owner, grupo ou ACL, permitindo que o preflight terminasse com sucesso apesar do contrato
+POSIX inválido.
+
+A correção permanente exige conjuntamente:
+
+1. autenticar o CRM obrigatoriamente como `crm_documentos`, pertencente ao grupo
+   `administrativo`; o código recusa a abertura do disk para mutação com outra identidade;
+2. manter `2770`, setgid e ACL padrão em todos os diretórios existentes da árvore, para que arquivos
+   futuros herdem o grupo e a ACL mesmo quando forem criados dentro de pastas antigas;
+3. manter arquivos em `0660`; a aplicação reaplica esse modo depois da renomeação atômica.
+
+Após a correção, validar um novo upload real com `stat` e `getfacl` e confirmar leitura, alteração,
+renomeação e exclusão tanto pela identidade `crm_documentos` quanto por uma estação Samba
+autorizada. Arquivos existentes com `root:root` continuam exigindo reparo idempotente; corrigir
+somente o processo de criação não altera inodes antigos.
+
+Na VPS de documentos, sem copiar script, valide e normalize o contrato com a raiz exata:
+
+```bash
+ROOT=/srv/samba/administrativo/EmAnalise
+GROUP=administrativo
+SFTP_USER=crm_documentos
+
+sudo test "$(realpath -e -- "$ROOT")" = "$ROOT"
+getent passwd "$SFTP_USER"
+getent group "$GROUP"
+sudo usermod -aG "$GROUP" "$SFTP_USER"
+
+sudo find "$ROOT" -xdev -exec chgrp -- "$GROUP" {} +
+sudo find "$ROOT" -xdev -type d -exec chmod 2770 -- {} +
+sudo find "$ROOT" -xdev -type f -exec chmod 0660 -- {} +
+sudo find "$ROOT" -xdev -type d -exec setfacl -m \
+  "u::rwx,g::rwx,g:${GROUP}:rwx,m::rwx,o::---" \
+  -m "d:u::rwx,d:g::rwx,d:g:${GROUP}:rwx,d:m::rwx,d:o::---" -- {} +
+sudo find "$ROOT" -xdev -type f -exec setfacl -m \
+  "u::rw-,g::rw-,g:${GROUP}:rw-,m::rw-,o::---" -- {} +
+```
+
+Esses comandos não atravessam outros filesystems. A normalização inicial dos diretórios existentes
+é necessária porque uma ACL padrão aplicada somente em `EmAnalise` não alcança pastas antigas onde
+novos documentos continuarão sendo criados.
 
 Copie somente o script versionado para uma área administrativa do servidor de arquivos. Nesse
 servidor, audite e depois aplique o mecanismo idempotente:
 
 ```bash
 sudo ./scripts/configurar-permissoes-documentos-samba.sh \
-  --root /srv/samba/administrativo/EmAnalise --group administrativo
+  --root /srv/samba/administrativo/EmAnalise \
+  --group administrativo --sftp-user crm_documentos --share administrativo
 sudo ./scripts/configurar-permissoes-documentos-samba.sh \
-  --root /srv/samba/administrativo/EmAnalise --group administrativo --apply
+  --root /srv/samba/administrativo/EmAnalise \
+  --group administrativo --sftp-user crm_documentos --share administrativo --apply
 ```
 
+Se a auditoria informar que o usuário SFTP ainda não pertence ao grupo, confirme a identidade
+e repita a aplicação acrescentando a autorização explícita `--add-sftp-user-to-group`. O script
+não altera grupos de usuários implicitamente.
+
 O script recusa raízes amplas e links simbólicos, não cruza outros filesystems e corrige arquivos
-existentes para `0660`, diretórios para `2770`, ownership de grupo e ACLs atuais/padrão. No share,
-preserve `valid users = @administrativo`, `force group = administrativo`, máscaras `0660/0770`,
-`inherit acls = yes` e `map acl inherit = yes`. Valide com `testparm -s` antes de recarregar o Samba.
+existentes para `0660`, diretórios para `2770`, ownership de grupo e ACLs atuais/padrão. Ele também
+garante que o usuário SFTP pertença ao grupo e recusa a aplicação sem `--share`, se o share não
+estiver gravável ou se ele não forçar o mesmo grupo. No share, preserve
+`valid users = @administrativo`, `read only = no`, `force group = administrativo`, máscaras
+`0660/0770`, `force create mode = 0660`, `force directory mode = 0770`, `inherit acls = yes` e
+`map acl inherit = yes`. Valide com `testparm -s` antes de recarregar o Samba.
 Não conceda acesso a `Everyone`/`other` e não use `0777`.
+
+Depois da aplicação, encerre as sessões SFTP persistentes para que o processo carregue o novo grupo.
+Na VPS da aplicação, isso é feito sem derrubar containers ou volumes:
+
+```bash
+docker compose -f docker-compose.yml exec -T laravel.test php artisan queue:restart
+```
 
 ## Deploy de final de semana
 
@@ -94,7 +166,7 @@ O workflow executa automaticamente, nesta ordem:
 5. sobe a aplicação com os workers documentais em escala zero;
 6. instala/valida dependências dentro do runtime e executa migrations;
 7. limpa caches e executa `documentos:validar-configuracao --production`;
-8. valida escrita, leitura, renomeação e exclusão SFTP;
+8. valida escrita, leitura, renomeação e exclusão pela identidade SFTP (isso não valida Samba);
 9. sincroniza as pastas, sobe dois workers de cada tipo e reconcilia pendências;
 10. reinicia workers e valida a saúde HTTP da aplicação.
 
@@ -123,8 +195,10 @@ docker compose -f docker-compose.yml exec -T laravel.test \
   php artisan documentos:reparar-permissoes --apply
 ```
 
-Esse comando reaplica `0660` via SFTP nos arquivos. Para corrigir também ownership, diretórios e
-ACLs existentes, execute no servidor de arquivos o script descrito no contrato POSIX/Samba acima.
+Esse comando reaplica `0660` via SFTP somente nos arquivos catalogados. O adaptador SFTP não deve
+usar `setVisibility()` em diretórios, pois essa operação aplica modo de arquivo e pode retirar a
+permissão de travessia. Para corrigir ownership, diretórios e ACLs existentes, execute no servidor
+de arquivos o script descrito no contrato POSIX/Samba acima.
 Nunca aplique a correção no workspace nem na raiz inteira do share.
 
 ## Contingência e rollback

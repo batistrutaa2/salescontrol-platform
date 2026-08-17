@@ -34,6 +34,7 @@ class RepararPermissoesVendaDocumentos extends Command
             return self::SUCCESS;
         }
 
+        $permissions->assertConfiguredSftpIdentity();
         $disk = Storage::disk(config('documentos.disk'));
         $updated = 0;
         $missing = 0;

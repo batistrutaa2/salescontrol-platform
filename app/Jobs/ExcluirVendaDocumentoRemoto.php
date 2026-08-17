@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Events\VendaDocumentoAtualizado;
 use App\Models\VendaDocumento;
 use App\Services\Documentos\DocumentoStatusService;
+use App\Services\Documentos\VendaDocumentoPermissionPolicy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -17,7 +18,9 @@ class ExcluirVendaDocumentoRemoto implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 5;
+
     public int $timeout = 120;
+
     public array $backoff = [30, 120, 300, 900];
 
     public function __construct(public int $documentoId)
@@ -25,8 +28,9 @@ class ExcluirVendaDocumentoRemoto implements ShouldQueue
         $this->onQueue('documentos-transfer');
     }
 
-    public function handle(DocumentoStatusService $status): void
+    public function handle(DocumentoStatusService $status, VendaDocumentoPermissionPolicy $permissions): void
     {
+        $permissions->assertConfiguredSftpIdentity();
         $doc = VendaDocumento::with('venda')->findOrFail($this->documentoId);
         Storage::disk(config('documentos.disk'))->delete($doc->caminho_remoto);
         Storage::disk('local')->delete($doc->caminho_temporario);

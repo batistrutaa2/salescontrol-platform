@@ -41,7 +41,16 @@ class ValidarConfiguracaoVendaDocumentosTest extends TestCase
         config(['filesystems.disks.documentos_test.permissions.file.private' => 0600]);
 
         $this->artisan('documentos:validar-configuracao')
-            ->expectsOutput('O disco documental precisa criar arquivos 0660 e diretórios 0770.')
+            ->expectsOutput('O disco documental precisa criar arquivos 0660 e diretórios 2770 (setgid).')
+            ->assertFailed();
+    }
+
+    public function test_rejeita_root_como_identidade_sftp(): void
+    {
+        config(['filesystems.disks.documentos_test.username' => 'root']);
+
+        $this->artisan('documentos:validar-configuracao')
+            ->expectsOutput('DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos; a identidade SFTP define o proprietário dos arquivos remotos.')
             ->assertFailed();
     }
 }

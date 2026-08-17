@@ -34,6 +34,8 @@ class TransferirDocumentosVenda implements ShouldQueue
 
     public function handle(DocumentoStatusService $status, VendaDocumentoPermissionPolicy $permissions): void
     {
+        $permissions->assertConfiguredSftpIdentity();
+
         $lock = Cache::lock("documentos:transferir-venda:{$this->vendaId}", 660);
         if (! $lock->get()) {
             return;

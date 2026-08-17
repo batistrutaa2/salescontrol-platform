@@ -13,12 +13,12 @@ class TestarConexaoVendaDocumentos extends Command
 {
     protected $signature = 'documentos:testar-conexao';
 
-    protected $description = 'Valida escrita, leitura, integridade, renomeação e exclusão no servidor de documentos';
+    protected $description = 'Valida operações pela identidade SFTP; não substitui o teste de acesso pelo Samba';
 
     public function handle(VendaDocumentoPermissionPolicy $permissions): int
     {
         $diskName = config('documentos.disk');
-        $disk = Storage::disk($diskName);
+        $disk = null;
         $directory = trim((string) config('documentos.root'), '/')
             .'/.salescontrol-healthcheck-'.Str::uuid();
         $source = $directory.'/origem.txt';
@@ -26,6 +26,8 @@ class TestarConexaoVendaDocumentos extends Command
         $contents = 'salescontrol-healthcheck:'.Str::random(48);
 
         try {
+            $permissions->assertConfiguredSftpIdentity();
+            $disk = Storage::disk($diskName);
             if (! $disk->put($source, $contents, [
                 'visibility' => VendaDocumentoPermissionPolicy::VISIBILITY,
             ])) {
@@ -42,7 +44,8 @@ class TestarConexaoVendaDocumentos extends Command
                 throw new RuntimeException('O servidor não concluiu a exclusão do arquivo de teste.');
             }
 
-            $this->info('Conexão validada: escrita, leitura, integridade, renomeação e exclusão concluídas.');
+            $this->info('SFTP validado: escrita, leitura, integridade, renomeação e exclusão concluídas.');
+            $this->warn('A identidade Samba/Windows não foi validada por este comando; confirme grupo, ACL e abertura pela unidade mapeada.');
 
             return self::SUCCESS;
         } catch (Throwable $exception) {
@@ -50,11 +53,13 @@ class TestarConexaoVendaDocumentos extends Command
 
             return self::FAILURE;
         } finally {
-            try {
-                $disk->delete([$source, $destination]);
-                $disk->deleteDirectory($directory);
-            } catch (Throwable) {
-                $this->warn('Não foi possível remover automaticamente todos os resíduos do teste.');
+            if ($disk !== null) {
+                try {
+                    $disk->delete([$source, $destination]);
+                    $disk->deleteDirectory($directory);
+                } catch (Throwable) {
+                    $this->warn('Não foi possível remover automaticamente todos os resíduos do teste.');
+                }
             }
         }
     }

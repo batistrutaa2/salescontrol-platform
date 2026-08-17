@@ -14,7 +14,6 @@ class ValidarConfiguracaoVendaDocumentos extends Command
     public function handle(): int
     {
         $erros = [];
-        $avisos = [];
         $disk = config('filesystems.disks.'.config('documentos.disk'));
 
         if (! is_array($disk) || ($disk['driver'] ?? null) !== 'sftp') {
@@ -31,7 +30,7 @@ class ValidarConfiguracaoVendaDocumentos extends Command
         if (($disk['visibility'] ?? null) !== VendaDocumentoPermissionPolicy::VISIBILITY
             || ($disk['directory_visibility'] ?? null) !== VendaDocumentoPermissionPolicy::VISIBILITY
             || ($disk['permissions'] ?? null) !== VendaDocumentoPermissionPolicy::permissionMap()) {
-            $erros[] = 'O disco documental precisa criar arquivos 0660 e diretórios 0770.';
+            $erros[] = 'O disco documental precisa criar arquivos 0660 e diretórios 2770 (setgid).';
         }
 
         $chave = $disk['privateKey'] ?? null;
@@ -42,8 +41,8 @@ class ValidarConfiguracaoVendaDocumentos extends Command
         if (! is_dir($temporarios) || ! is_writable($temporarios)) {
             $erros[] = 'O armazenamento temporário local não pode ser escrito pelo container.';
         }
-        if (($disk['username'] ?? null) === 'root') {
-            $avisos[] = 'O SFTP ainda usa root; rotacione para o usuário dedicado antes da estabilização definitiva.';
+        if (($disk['username'] ?? null) !== VendaDocumentoPermissionPolicy::SFTP_USERNAME) {
+            $erros[] = 'DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos; a identidade SFTP define o proprietário dos arquivos remotos.';
         }
         if (! extension_loaded('openssl') || ! extension_loaded('sodium') || ! extension_loaded('gmp')) {
             $erros[] = 'As extensões openssl, sodium e gmp precisam estar ativas.';
@@ -64,9 +63,6 @@ class ValidarConfiguracaoVendaDocumentos extends Command
             }
         }
 
-        foreach ($avisos as $aviso) {
-            $this->warn($aviso);
-        }
         foreach ($erros as $erro) {
             $this->error($erro);
         }

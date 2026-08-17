@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Coordenação operacional obrigatória com o Foundry
+
+Qualquer alteração, correção, planejamento ou intervenção relacionada ao projeto SalesControl
+ou aos seus servidores deve ser comunicada ao agente Foundry. A comunicação deve informar o
+que precisa ser feito, o escopo afetado, os impactos esperados e as validações, riscos ou
+pendências relevantes. Essa coordenação é obrigatória também para mudanças de infraestrutura,
+CI/CD, integrações e procedimentos operacionais, sem ampliar a autorização para modificar
+produção.
+
 ## Project Overview
 
 **SalesControl** is a comprehensive CRM (Customer Relationship Management) system built with Laravel 11 and PHP 8.2+ designed for sales companies, brokerages, and commercial teams. The system manages the complete sales cycle including contacts, leads, sales, commissions, and integrations with PABX systems.

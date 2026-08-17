@@ -3,11 +3,14 @@
 set -euo pipefail
 
 usage() {
-  echo "Uso: $0 --root /srv/samba/administrativo/EmAnalise --group GRUPO [--apply]"
+  echo "Uso: $0 --root /srv/samba/administrativo/EmAnalise --group GRUPO --sftp-user USUARIO [--share SHARE] [--add-sftp-user-to-group] [--apply]"
 }
 
 target=""
 shared_group=""
+sftp_user=""
+samba_share=""
+add_sftp_user_to_group=false
 apply=false
 
 while (($# > 0)); do
@@ -19,6 +22,18 @@ while (($# > 0)); do
     --group)
       shared_group="${2:-}"
       shift 2
+      ;;
+    --sftp-user)
+      sftp_user="${2:-}"
+      shift 2
+      ;;
+    --share)
+      samba_share="${2:-}"
+      shift 2
+      ;;
+    --add-sftp-user-to-group)
+      add_sftp_user_to_group=true
+      shift
       ;;
     --apply)
       apply=true
@@ -35,12 +50,12 @@ while (($# > 0)); do
   esac
 done
 
-if [[ -z "$target" || -z "$shared_group" ]]; then
+if [[ -z "$target" || -z "$shared_group" || -z "$sftp_user" ]]; then
   usage >&2
   exit 2
 fi
 
-for command_name in realpath getent find stat; do
+for command_name in realpath getent find stat id; do
   command -v "$command_name" >/dev/null || {
     echo "Dependência ausente: $command_name" >&2
     exit 1
@@ -63,12 +78,62 @@ if ! getent group "$shared_group" >/dev/null; then
   exit 1
 fi
 
+if ! getent passwd "$sftp_user" >/dev/null; then
+  echo "O usuário SFTP informado não existe neste servidor." >&2
+  exit 1
+fi
+
+sftp_has_group=false
+if id -nG "$sftp_user" | tr ' ' '\n' | grep -Fx -- "$shared_group" >/dev/null; then
+  sftp_has_group=true
+fi
+
+samba_check="não solicitado"
+if [[ -n "$samba_share" ]]; then
+  command -v testparm >/dev/null || {
+    echo "Dependência ausente: testparm" >&2
+    exit 1
+  }
+
+  share_path="$(testparm -s --parameter-name=path --section-name="$samba_share" 2>/dev/null || true)"
+  share_read_only="$(testparm -s --parameter-name='read only' --section-name="$samba_share" 2>/dev/null || true)"
+  share_force_group="$(testparm -s --parameter-name='force group' --section-name="$samba_share" 2>/dev/null || true)"
+
+  if [[ -z "$share_path" ]]; then
+    echo "O share Samba '$samba_share' não existe ou não possui path configurado." >&2
+    exit 1
+  fi
+  share_path="$(realpath -e -- "$share_path")"
+  if [[ "$target" != "$share_path" && "$target" != "$share_path"/* ]]; then
+    echo "A raiz documental não pertence ao path do share Samba '$samba_share'." >&2
+    exit 1
+  fi
+  if [[ "${share_read_only,,}" != "no" ]]; then
+    echo "O share Samba '$samba_share' precisa de 'read only = no'." >&2
+    exit 1
+  fi
+  if [[ "${share_force_group#+}" != "$shared_group" ]]; then
+    echo "O share Samba '$samba_share' precisa de 'force group = $shared_group'." >&2
+    exit 1
+  fi
+  if [[ "$share_force_group" == +* ]]; then
+    echo "Use 'force group = $shared_group' sem o prefixo + para abranger toda identidade autorizada no share." >&2
+    exit 1
+  fi
+  samba_check="válido (read only = no; force group = $shared_group)"
+fi
+
 directory_count="$(find "$target" -xdev -type d -print | wc -l)"
 file_count="$(find "$target" -xdev -type f -print | wc -l)"
 
 if [[ "$apply" != true ]]; then
-  echo "Auditoria: $directory_count diretório(s) e $file_count arquivo(s). Nenhuma alteração aplicada."
+  echo "Auditoria: $directory_count diretório(s), $file_count arquivo(s), usuário SFTP no grupo: $sftp_has_group, Samba: $samba_check. Nenhuma alteração aplicada."
   exit 0
+fi
+
+if [[ -z "$samba_share" ]]; then
+  echo "Informe --share ao aplicar, para validar que o Samba força o mesmo grupo com escrita habilitada." >&2
+  exit 1
 fi
 
 command -v setfacl >/dev/null || {
@@ -76,7 +141,21 @@ command -v setfacl >/dev/null || {
   exit 1
 }
 
-chgrp -R -- "$shared_group" "$target"
+if [[ "$sftp_has_group" != true && "$add_sftp_user_to_group" != true ]]; then
+  echo "O usuário SFTP não pertence ao grupo $shared_group." >&2
+  echo "Audite e execute novamente com --add-sftp-user-to-group para autorizar essa alteração explícita." >&2
+  exit 1
+fi
+
+if [[ "$sftp_has_group" != true ]]; then
+  command -v usermod >/dev/null || {
+    echo "Dependência ausente: usermod" >&2
+    exit 1
+  }
+  usermod -aG "$shared_group" "$sftp_user"
+fi
+
+find "$target" -xdev -exec chgrp -- "$shared_group" {} +
 find "$target" -xdev -type d -exec chmod 2770 -- {} +
 find "$target" -xdev -type f -exec chmod 0660 -- {} +
 find "$target" -xdev -type d -exec setfacl -m \
@@ -85,4 +164,5 @@ find "$target" -xdev -type d -exec setfacl -m \
 find "$target" -xdev -type f -exec setfacl -m \
   "u::rw-,g::rw-,g:${shared_group}:rw-,m::rw-,o::---" -- {} +
 
-echo "Permissões aplicadas: grupo $shared_group, diretórios 2770 e arquivos 0660 sob $target."
+echo "Permissões aplicadas: usuário SFTP $sftp_user no grupo $shared_group, diretórios 2770, arquivos 0660 e ACLs colaborativas sob $target."
+echo "Encerre as sessões SFTP existentes para que a nova associação de grupo seja carregada."

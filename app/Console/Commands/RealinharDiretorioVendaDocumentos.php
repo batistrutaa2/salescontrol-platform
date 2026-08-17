@@ -48,6 +48,7 @@ class RealinharDiretorioVendaDocumentos extends Command
         }
 
         return Cache::lock("venda-documentos-realinhar:{$venda->id}", 60)->block(10, function () use ($venda, $origem, $destino, $permissions) {
+            $permissions->assertConfiguredSftpIdentity();
             $disk = Storage::disk(config('documentos.disk'));
             $documentos = $venda->documentos->whereNull('deleted_at');
             $disponiveis = $documentos->where('status', 'DISPONIVEL');

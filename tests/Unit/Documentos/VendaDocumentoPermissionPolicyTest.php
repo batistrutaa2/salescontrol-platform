@@ -4,6 +4,7 @@ namespace Tests\Unit\Documentos;
 
 use App\Services\Documentos\VendaDocumentoPermissionPolicy;
 use InvalidArgumentException;
+use RuntimeException;
 use Tests\TestCase;
 
 class VendaDocumentoPermissionPolicyTest extends TestCase
@@ -12,7 +13,7 @@ class VendaDocumentoPermissionPolicyTest extends TestCase
     {
         $this->assertSame([
             'file' => ['public' => 0660, 'private' => 0660],
-            'dir' => ['public' => 0770, 'private' => 0770],
+            'dir' => ['public' => 02770, 'private' => 02770],
         ], VendaDocumentoPermissionPolicy::permissionMap());
 
         $this->assertSame(
@@ -27,5 +28,21 @@ class VendaDocumentoPermissionPolicyTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
         (new VendaDocumentoPermissionPolicy)->assertProposalDocumentPath('Financeiro/arquivo.pdf');
+    }
+
+    public function test_bloqueia_escrita_sftp_com_identidade_root(): void
+    {
+        config([
+            'documentos.disk' => 'documentos_test',
+            'filesystems.disks.documentos_test' => [
+                'driver' => 'sftp',
+                'username' => 'root',
+            ],
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('DOCUMENTOS_SFTP_USERNAME deve ser crm_documentos');
+
+        (new VendaDocumentoPermissionPolicy)->assertConfiguredSftpIdentity();
     }
 }
