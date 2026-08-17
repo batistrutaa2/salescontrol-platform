@@ -190,7 +190,66 @@ jobs:
             $COMPOSE stop evolution evolution-db || true
             $COMPOSE rm -f evolution evolution-db || true
 
-            # Subir/atualizar serviços (reverb, queue, scheduler e redis).
+            clamav_health() {
+              CLAMAV_ID="$($COMPOSE ps -q clamav 2>/dev/null || true)"
+              if [ -z "$CLAMAV_ID" ]; then
+                echo "missing"
+                return
+              fi
+
+              sudo docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' \
+                "$CLAMAV_ID" 2>/dev/null || echo "missing"
+            }
+
+            wait_for_clamav() {
+              for ATTEMPT in $(seq 1 60); do
+                CLAMAV_HEALTH="$(clamav_health)"
+                if [ "$CLAMAV_HEALTH" = "healthy" ]; then
+                  echo "==> ClamAV saudável."
+                  return 0
+                fi
+
+                if [ "$ATTEMPT" -eq 1 ] || [ $((ATTEMPT % 6)) -eq 0 ]; then
+                  echo "==> Aguardando ClamAV (${CLAMAV_HEALTH}, tentativa ${ATTEMPT}/60)..."
+                fi
+                sleep 5
+              done
+
+              return 1
+            }
+
+            dump_clamav_diagnostics() {
+              echo "==> Diagnóstico do ClamAV:"
+              $COMPOSE ps clamav || true
+              CLAMAV_ID="$($COMPOSE ps -q clamav 2>/dev/null || true)"
+              if [ -n "$CLAMAV_ID" ]; then
+                sudo docker inspect \
+                  --format='status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} restarts={{.RestartCount}} oom={{.State.OOMKilled}} exit={{.State.ExitCode}}' \
+                  "$CLAMAV_ID" || true
+                sudo docker inspect --format='{{if .State.Health}}{{range .State.Health.Log}}{{.End}} exit={{.ExitCode}} {{printf "%q" .Output}}{{println}}{{end}}{{end}}' \
+                  "$CLAMAV_ID" || true
+              fi
+              $COMPOSE logs --tail=100 clamav || true
+            }
+
+            # O Compose avalia depends_on antes de o script chegar às migrations.
+            # Por isso Redis e ClamAV precisam passar pelo preflight antes dos
+            # serviços dependentes. Uma recriação troca só o container e preserva
+            # o volume clamav-data com as assinaturas já baixadas.
+            echo "==> Preparando Redis e ClamAV..."
+            $COMPOSE up -d redis clamav
+            if [ "$(clamav_health)" = "unhealthy" ]; then
+              echo "AVISO: ClamAV já estava unhealthy; coletando diagnóstico e recriando o container uma vez."
+              dump_clamav_diagnostics
+              $COMPOSE up -d --no-deps --force-recreate clamav
+            fi
+            if ! wait_for_clamav; then
+              echo "ERRO: ClamAV não ficou saudável após o preflight."
+              dump_clamav_diagnostics
+              exit 1
+            fi
+
+            # Subir/atualizar serviços (reverb, queue e scheduler).
             # Em produção NÃO existe COMPOSE_PROFILES=dev, então mysql/mailpit
             # do compose ficam de fora (o banco é o MySQL externo do host).
             echo "==> Atualizando containers..."
@@ -219,15 +278,9 @@ jobs:
 
             # O pipeline documental só pode receber jobs com ClamAV saudável.
             echo "==> Verificando serviço de documentos..."
-            CLAMAV_HEALTH="starting"
-            for ATTEMPT in $(seq 1 60); do
-              CLAMAV_HEALTH=$(sudo docker inspect --format='{{.State.Health.Status}}' "$($COMPOSE ps -q clamav)")
-              [ "$CLAMAV_HEALTH" = "healthy" ] && break
-              sleep 5
-            done
-            if [ "$CLAMAV_HEALTH" != "healthy" ]; then
+            if ! wait_for_clamav; then
               echo "ERRO: ClamAV não está saudável."
-              $COMPOSE logs --tail=30 clamav
+              dump_clamav_diagnostics
               exit 1
             fi
 

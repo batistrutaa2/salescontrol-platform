@@ -87,12 +87,15 @@ O workflow executa automaticamente, nesta ordem:
 1. valida o Compose e o Dockerfile versionado;
 2. instala as dependências do `composer.lock` antes do build;
 3. constrói o runtime PHP com `openssl`, `sodium` e `gmp`;
-4. sobe a aplicação com os workers documentais em escala zero;
-5. instala/valida dependências dentro do runtime e executa migrations;
-6. limpa caches e executa `documentos:validar-configuracao --production`;
-7. valida escrita, leitura, renomeação e exclusão SFTP;
-8. sincroniza as pastas, sobe dois workers de cada tipo e reconcilia pendências;
-9. reinicia workers e valida a saúde HTTP da aplicação.
+4. executa o preflight de Redis e ClamAV antes dos serviços dependentes; se encontrar o
+   ClamAV `unhealthy`, registra health/logs e recria somente o container uma vez, preservando
+   o volume `clamav-data`;
+5. sobe a aplicação com os workers documentais em escala zero;
+6. instala/valida dependências dentro do runtime e executa migrations;
+7. limpa caches e executa `documentos:validar-configuracao --production`;
+8. valida escrita, leitura, renomeação e exclusão SFTP;
+9. sincroniza as pastas, sobe dois workers de cada tipo e reconcilia pendências;
+10. reinicia workers e valida a saúde HTTP da aplicação.
 
 Antes do push que dispara o deploy, confirmar na VPS que `.env` e chave estão prontos. Após
 o deploy, conferir:
