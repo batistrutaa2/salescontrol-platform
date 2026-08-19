@@ -370,7 +370,8 @@ jobs:
             $COMPOSE up -d --remove-orphans --scale documentos-queue=0 --scale documentos-scan=0
 
             for EXTENSION in openssl sodium gmp; do
-              $COMPOSE exec -T laravel.test php -m | grep -qi "^${EXTENSION}$" || {
+              $COMPOSE exec -T laravel.test php -r \
+                "exit(extension_loaded('${EXTENSION}') ? 0 : 1);" || {
                 echo "ERRO: extensão PHP ${EXTENSION} não está ativa."
                 exit 1
               }
