@@ -3,39 +3,36 @@ name: Deploy to VPS
 on:
   push:
     branches: [ master ]
+  pull_request:
+    branches: [ master ]
   workflow_dispatch:
 
-concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
-  deploy:
+  ci:
+    name: Validate backend and production contract
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 20
 
     steps:
-      - name: Get current time
-        id: current-time
-        run: echo "TIME=$(date +'%H:%M:%S %d/%m/%Y')" >> "$GITHUB_OUTPUT"
-
-      - name: Send Discord notification - Starting deployment
-        uses: Ilshidur/action-discord@master
-        continue-on-error: true
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        with:
-          args: '🚀 **Iniciando deploy do SalesControl**\nAtualizações detectadas no repositório.'
-
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout exact commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.3'
           extensions: mbstring, intl, bcmath, gmp, sodium, pdo_mysql, gd, zip, xml, curl
           coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
 
       - name: Validate and install PHP dependencies
         run: |
@@ -51,8 +48,17 @@ jobs:
           test -f docker/php83/Dockerfile
           docker compose -f docker-compose.yml config --quiet
 
+  build-assets:
+    name: Build frontend artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -68,75 +74,140 @@ jobs:
           VITE_REVERB_SCHEME: ${{ secrets.VITE_REVERB_SCHEME }}
         run: npm run build
 
-      - name: Upload built assets to VPS
-        id: upload-assets
-        continue-on-error: true
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          port: 22
-          protocol: tcp4
-          timeout: 120s
-          command_timeout: 10m
-          source: "public/build/"
-          target: "/var/www/html/salescontrol-new/public/"
-          strip_components: 1
+      - name: Package built assets
+        run: |
+          tar -czf salescontrol-assets.tar.gz -C public build
+          sha256sum salescontrol-assets.tar.gz > salescontrol-assets.tar.gz.sha256
 
-      - name: Retry built assets upload to VPS
-        if: steps.upload-assets.outcome == 'failure'
-        uses: appleboy/scp-action@v1
+      - name: Upload built assets artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-assets-${{ github.sha }}
+          path: |
+            salescontrol-assets.tar.gz
+            salescontrol-assets.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy exact commit to production
+    needs: [ci, build-assets]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production
+    concurrency:
+      group: salescontrol-production
+      cancel-in-progress: false
+    env:
+      ASSET_STAGE: /tmp/salescontrol-assets-${{ github.run_id }}-${{ github.run_attempt }}
+      DEPLOY_SHA: ${{ github.sha }}
+
+    steps:
+      - name: Get current time
+        id: current-time
+        run: echo "TIME=$(date +'%H:%M:%S %d/%m/%Y')" >> "$GITHUB_OUTPUT"
+
+      - name: Send Discord notification - Starting deployment
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_MESSAGE: |-
+            🚀 **Iniciando deploy do SalesControl**
+            Commit: `${{ github.sha }}`
+        run: |
+          jq -nc --arg content "$DISCORD_MESSAGE" '{content: $content}' > /tmp/discord-payload.json
+          curl --fail-with-body --retry 2 --silent --show-error \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/discord-payload.json \
+            "$DISCORD_WEBHOOK"
+
+      - name: Download validated frontend artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: production-assets-${{ github.sha }}
+
+      - name: Preflight SSH connectivity
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+        run: |
+          set -euo pipefail
+          for delay in 0 10 30; do
+            sleep "$delay"
+            if timeout 10 bash -c "</dev/tcp/${VPS_HOST}/${VPS_PORT}" 2>/dev/null; then
+              echo "SSH disponível para o runner."
+              exit 0
+            fi
+            echo "SSH indisponível; nova tentativa após backoff."
+          done
+          echo "A porta SSH não ficou acessível para o runner."
+          exit 1
+
+      - name: Upload built assets to VPS
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          port: 22
+          key: ${{ secrets.VPS_SSH_KEY }}
+          fingerprint: ${{ secrets.VPS_FINGERPRINT }}
+          port: ${{ secrets.VPS_PORT || '22' }}
           protocol: tcp4
-          timeout: 120s
-          command_timeout: 10m
-          source: "public/build/"
-          target: "/var/www/html/salescontrol-new/public/"
-          strip_components: 1
+          timeout: 30s
+          command_timeout: 3m
+          source: "salescontrol-assets.tar.gz,salescontrol-assets.tar.gz.sha256"
+          target: ${{ env.ASSET_STAGE }}
 
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
+        env:
+          ASSET_STAGE: ${{ env.ASSET_STAGE }}
+          DEPLOY_SHA: ${{ env.DEPLOY_SHA }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          port: 22
+          key: ${{ secrets.VPS_SSH_KEY }}
+          fingerprint: ${{ secrets.VPS_FINGERPRINT }}
+          port: ${{ secrets.VPS_PORT || '22' }}
           protocol: tcp4
-          timeout: 120s
+          timeout: 30s
           command_timeout: "30m"
+          envs: ASSET_STAGE,DEPLOY_SHA
           script: |
-            # Qualquer comando que falhar aborta o deploy IMEDIATAMENTE (sem falha silenciosa)
-            set -e
+            set -Eeuo pipefail
 
-            cd /var/www/html/salescontrol-new
+            APP_DIR=/var/www/html/salescontrol-new
+            case "$DEPLOY_SHA" in
+              *[!0-9a-f]*|'') echo "ERRO: SHA de deploy inválido."; exit 1 ;;
+            esac
+            if [ "${#DEPLOY_SHA}" -ne 40 ]; then
+              echo "ERRO: SHA de deploy deve ter 40 caracteres."
+              exit 1
+            fi
+
+            cleanup() {
+              rm -rf "$ASSET_STAGE"
+            }
+            trap cleanup EXIT
+
+            cd "$APP_DIR"
 
             # docker compose v2 (plugin) ou docker-compose v1 (standalone)
-            if sudo docker compose version >/dev/null 2>&1; then
-              COMPOSE="sudo --preserve-env=PWD docker compose -f docker-compose.yml"
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE="docker compose -f docker-compose.yml"
             else
-              COMPOSE="sudo --preserve-env=PWD docker-compose -f docker-compose.yml"
+              COMPOSE="docker-compose -f docker-compose.yml"
             fi
             echo "==> Usando: $COMPOSE"
 
-
-            # Configurar credenciais Git temporariamente
-            git config --local credential.helper store
-            echo "https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_TOKEN }}@github.com" > ~/.git-credentials
-
-            # Puxar alterações do repositório
-            echo "==> Baixando alterações do repositório..."
+            echo "==> Baixando o commit validado pelo CI: $DEPLOY_SHA"
 
             # Estes arquivos são caches gerados pelo Composer/Laravel. Versões
             # antigas do repositório os rastreavam e package:discover os altera
             # na VPS, o que impediria o git pull da correção que os desversiona.
             for CACHE_FILE in bootstrap/cache/packages.php bootstrap/cache/services.php; do
               if git ls-files --error-unmatch "$CACHE_FILE" >/dev/null 2>&1; then
-                sudo git restore --source=HEAD --worktree -- "$CACHE_FILE"
+                git restore --source=HEAD --worktree -- "$CACHE_FILE"
               fi
             done
 
@@ -145,12 +216,27 @@ jobs:
             # rastreado. Preserve uma cópia antes de receber a versão oficial.
             if [ -f docker-compose.yml ] && ! git ls-files --error-unmatch docker-compose.yml >/dev/null 2>&1; then
               BACKUP_COMPOSE="/tmp/salescontrol-docker-compose.pre-versioned.$(date +%Y%m%d%H%M%S).yml"
-              sudo cp docker-compose.yml "$BACKUP_COMPOSE"
-              sudo rm docker-compose.yml
+              cp docker-compose.yml "$BACKUP_COMPOSE"
+              rm docker-compose.yml
               echo "==> Compose manual preservado em $BACKUP_COMPOSE"
             fi
 
-            sudo git pull origin master
+            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+              echo "ERRO: há alterações locais rastreadas na cópia de produção."
+              git status --short --untracked-files=no
+              exit 1
+            fi
+
+            git fetch --prune origin master
+            if ! git cat-file -e "${DEPLOY_SHA}^{commit}" 2>/dev/null; then
+              git fetch origin "$DEPLOY_SHA"
+            fi
+            git cat-file -e "${DEPLOY_SHA}^{commit}"
+            git checkout --detach "$DEPLOY_SHA"
+            if [ "$(git rev-parse HEAD)" != "$DEPLOY_SHA" ]; then
+              echo "ERRO: o commit ativo não corresponde ao artefato validado."
+              exit 1
+            fi
 
             # O Compose é parte obrigatória do contrato de produção. Esta trava
             # impede que uma remoção acidental avance até alterar os containers.
@@ -163,21 +249,35 @@ jobs:
               exit 1
             fi
 
-            # Limpar credenciais após uso
-            rm -f ~/.git-credentials
+            echo "==> Validando e ativando assets do mesmo commit..."
+            (
+              cd "$ASSET_STAGE"
+              sha256sum -c salescontrol-assets.tar.gz.sha256
+              rm -rf extracted
+              mkdir extracted
+              tar -xzf salescontrol-assets.tar.gz -C extracted
+            )
+            test -f "$ASSET_STAGE/extracted/build/manifest.json"
+            rm -rf public/build.next public/build.previous
+            mv "$ASSET_STAGE/extracted/build" public/build.next
+            if [ -d public/build ]; then
+              mv public/build public/build.previous
+            fi
+            mv public/build.next public/build
 
             # Instala sempre o lock antes do build. Isso cobre atualizações
             # incrementais nas quais vendor/ existe, mas ainda não contém um
             # pacote recém-adicionado (como o adapter SFTP).
             echo "==> Instalando dependências PHP antes do build..."
-            sudo docker run --rm -v "$PWD":/app -w /app composer:2 \
+            docker run --rm --user "$(id -u):$(id -g)" -e COMPOSER_HOME=/tmp/composer \
+              -v "$PWD":/app -w /app composer:2 \
               composer install --no-interaction --prefer-dist --no-progress --ignore-platform-reqs
 
             # Limpeza única da geração antiga de containers (compose não-versionado):
             # o container avulso "reverb" segura a porta 6001 e impede o novo de subir.
-            if sudo docker ps -a --format '{{.Names}}' | grep -qx 'reverb'; then
+            if docker ps -a --format '{{.Names}}' | grep -qx 'reverb'; then
               echo "==> Removendo container legado 'reverb'..."
-              sudo docker rm -f reverb
+              docker rm -f reverb
             fi
 
             echo "==> Construindo runtime PHP versionado..."
@@ -197,7 +297,7 @@ jobs:
                 return
               fi
 
-              CLAMAV_HEALTH="$(timeout --signal=TERM --kill-after=2s 5s sudo docker inspect \
+              CLAMAV_HEALTH="$(timeout --signal=TERM --kill-after=2s 5s docker inspect \
                 --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' \
                 "$CLAMAV_ID" 2>/dev/null || true)"
               echo "${CLAMAV_HEALTH:-missing}"
@@ -233,10 +333,10 @@ jobs:
               fi
               CLAMAV_ID="$(timeout --signal=TERM --kill-after=2s 5s $COMPOSE ps -q clamav 2>/dev/null || true)"
               if [ -n "$CLAMAV_ID" ]; then
-                timeout --signal=TERM --kill-after=5s 15s sudo docker inspect \
+                timeout --signal=TERM --kill-after=5s 15s docker inspect \
                   --format='status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} restarts={{.RestartCount}} oom={{.State.OOMKilled}} exit={{.State.ExitCode}}' \
                   "$CLAMAV_ID" || true
-                timeout --signal=TERM --kill-after=5s 15s sudo docker inspect --format='{{if .State.Health}}{{range .State.Health.Log}}{{.End}} exit={{.ExitCode}} {{printf "%q" .Output}}{{println}}{{end}}{{end}}' \
+                timeout --signal=TERM --kill-after=5s 15s docker inspect --format='{{if .State.Health}}{{range .State.Health.Log}}{{.End}} exit={{.ExitCode}} {{printf "%q" .Output}}{{println}}{{end}}{{end}}' \
                   "$CLAMAV_ID" || true
               fi
               if ! timeout --signal=TERM --kill-after=5s 15s $COMPOSE logs --no-color --tail=100 clamav; then
@@ -315,7 +415,7 @@ jobs:
             # Workers de fila recarregam o código novo (o container reinicia sozinho via restart policy)
             echo "==> Reiniciando workers..."
             $COMPOSE exec -T laravel.test php artisan queue:restart
-            sudo docker restart $(sudo docker ps -qf name=reverb) || true
+            docker restart $(docker ps -qf name=reverb) || true
 
             # Health check DIRETO no container do Laravel (não passa pelo Apache,
             # que responderia 301 e mascararia uma aplicação fora do ar)
@@ -334,27 +434,35 @@ jobs:
 
       - name: Send Discord notification - Success
         if: success()
-        uses: Ilshidur/action-discord@master
         continue-on-error: true
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        with:
-          args: |
+          DISCORD_MESSAGE: |-
             ✅ **Deploy concluído com sucesso!**
             **Projeto:** SalesControl
-            **Branch:** master
+            **Commit:** `${{ github.sha }}`
             **Hora:** ${{ steps.current-time.outputs.TIME }}
+        run: |
+          jq -nc --arg content "$DISCORD_MESSAGE" '{content: $content}' > /tmp/discord-payload.json
+          curl --fail-with-body --retry 2 --silent --show-error \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/discord-payload.json \
+            "$DISCORD_WEBHOOK"
 
       - name: Send Discord notification - Failure
         if: failure()
-        uses: Ilshidur/action-discord@master
         continue-on-error: true
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        with:
-          args: |
+          DISCORD_MESSAGE: |-
             ❌ **Falha no deploy!**
             **Projeto:** SalesControl
-            **Branch:** master
+            **Commit:** `${{ github.sha }}`
             **Hora:** ${{ steps.current-time.outputs.TIME }}
             Por favor, verifique os logs para mais detalhes.
+        run: |
+          jq -nc --arg content "$DISCORD_MESSAGE" '{content: $content}' > /tmp/discord-payload.json
+          curl --fail-with-body --retry 2 --silent --show-error \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/discord-payload.json \
+            "$DISCORD_WEBHOOK"
