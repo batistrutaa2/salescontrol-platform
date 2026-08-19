@@ -15,7 +15,6 @@
 @endsection
 
 @section('content')
-    <div class="mb-4"><x-venda-documentos :venda-id="$contract->id" /></div>
     @php
         // resolve operadora selecionada por ID
         $selectedOperadoraId =
@@ -134,6 +133,12 @@
         @endif
     </div>
     @endif
+
+    <x-venda-documentos
+        :venda-id="$contract->id"
+        :venda-nome="$contract->nome_contrato"
+        presentation="modal"
+    />
 
     <div class="row g-4 contract-page">
 

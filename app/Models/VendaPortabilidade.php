@@ -20,6 +20,8 @@ class VendaPortabilidade extends Model
         'operadora_anterior_id',
         'plano_anterior',
         'numero_carteirinha',
+        'operadora_destino_id',
+        'plano_destino_id',
         'sequencial',
         'status',
         'fase',
@@ -31,6 +33,8 @@ class VendaPortabilidade extends Model
     protected $casts = [
         'venda_id' => 'integer',
         'operadora_anterior_id' => 'integer',
+        'operadora_destino_id' => 'integer',
+        'plano_destino_id' => 'integer',
         'data_nascimento' => 'date',
         'sequencial' => 'integer',
         'concluida_em' => 'datetime',
@@ -47,6 +51,16 @@ class VendaPortabilidade extends Model
     public function operadoraAnterior(): BelongsTo
     {
         return $this->belongsTo(Operadora::class, 'operadora_anterior_id');
+    }
+
+    public function operadoraDestino(): BelongsTo
+    {
+        return $this->belongsTo(Operadora::class, 'operadora_destino_id');
+    }
+
+    public function planoDestino(): BelongsTo
+    {
+        return $this->belongsTo(Plano::class, 'plano_destino_id');
     }
 
     public function responsavel(): BelongsTo

@@ -37,6 +37,10 @@ class VendasRepository implements VendasRepositoryInterface
                 $contatoId = (int) ($data['contato_id'] ?? 0);
                 $operadoraId = (int) ($data['operadora_id'] ?? 0);
                 $titulares = is_array($data['titulares'] ?? null) ? $data['titulares'] : [];
+                $portabilidades = array_values(array_filter(
+                    is_array($data['portabilidades'] ?? null) ? $data['portabilidades'] : [],
+                    fn (array $item) => trim((string) ($item['nome'] ?? '')) !== ''
+                ));
 
                 // Tipo de contrato (default PME se não informado)
                 $tipoContrato = $data['tipo_contrato'] ?? 'PME';
@@ -101,8 +105,8 @@ class VendasRepository implements VendasRepositoryInterface
                 // Campos adicionais - SEMPRE layout NOVO
                 $vendaData['layout_venda'] = 'NOVO';
                 $vendaData['tipo_contrato'] = $tipoContrato;
-                $vendaData['portabilidade_status'] = $data['portabilidade_status'] ?? 'NAO';
-                $vendaData['qtd_portabilidade'] = (int) ($data['qtd_portabilidade'] ?? 0);
+                $vendaData['portabilidade_status'] = $portabilidades === [] ? 'NAO' : 'SIM';
+                $vendaData['qtd_portabilidade'] = count($portabilidades);
                 $vendaData['plano_dental'] = $data['plano_dental'] ?? 'SIM';
 
                 // Campos específicos de PME (empresa) - não aplicáveis para ADESAO
@@ -177,6 +181,9 @@ class VendasRepository implements VendasRepositoryInterface
                                     'telefone1' => Helpers::cleanSpecialCharacters($depData['telefone1'] ?? ''),
                                     'telefone2' => Helpers::cleanSpecialCharacters($depData['telefone2'] ?? ''),
                                     'parentesco' => $depData['parentesco'] ?? null,
+                                    'plano_id' => ! empty($depData['plano_id']) ? (int) $depData['plano_id'] : null,
+                                    'coparticipacao' => isset($depData['coparticipacao']) && $depData['coparticipacao'] !== ''
+                                      ? strtoupper($depData['coparticipacao']) : null,
                                     'plano_anterior' => $depData['plano_anterior'] ?? 'NAO',
                                     'operadora_anterior_id' => ! empty($depData['operadora_anterior_id'])
                                       ? (int) $depData['operadora_anterior_id']
@@ -201,13 +208,9 @@ class VendasRepository implements VendasRepositoryInterface
                 }
 
                 // Processar portabilidades - SEMPRE salvar
-                if (! empty($data['portabilidades']) && is_array($data['portabilidades'])) {
+                if ($portabilidades !== []) {
                     $sequencial = 1;
-                    foreach ($data['portabilidades'] as $portData) {
-                        if (empty($portData['nome'])) {
-                            continue;
-                        }
-
+                    foreach ($portabilidades as $portData) {
                         VendaPortabilidade::create([
                             'venda_id' => $venda->id,
                             'nome' => mb_strtoupper(trim($portData['nome'] ?? ''), 'UTF-8'),
@@ -217,6 +220,8 @@ class VendasRepository implements VendasRepositoryInterface
                               : null,
                             'plano_anterior' => $portData['plano_anterior'] ?? null,
                             'numero_carteirinha' => $portData['numero_carteirinha'] ?? null,
+                            'operadora_destino_id' => (int) $portData['operadora_destino_id'],
+                            'plano_destino_id' => (int) $portData['plano_destino_id'],
                             'sequencial' => $sequencial++,
                         ]);
                     }
@@ -299,6 +304,10 @@ class VendasRepository implements VendasRepositoryInterface
 
             $operadoraId = (int) ($data['operadora_id'] ?? $venda->operadora_id);
             $titulares = is_array($data['titulares'] ?? null) ? $data['titulares'] : [];
+            $portabilidades = array_values(array_filter(
+                is_array($data['portabilidades'] ?? null) ? $data['portabilidades'] : [],
+                fn (array $item) => trim((string) ($item['nome'] ?? '')) !== ''
+            ));
             $tipoContrato = $data['tipo_contrato'] ?? $venda->tipo_contrato ?? 'PME';
 
             $operadora = Operadora::findOrFail($operadoraId);
@@ -338,8 +347,8 @@ class VendasRepository implements VendasRepositoryInterface
                 'angariacao_status' => $isAngariacao,
                 'layout_venda' => 'NOVO',
                 'tipo_contrato' => $tipoContrato,
-                'portabilidade_status' => $data['portabilidade_status'] ?? 'NAO',
-                'qtd_portabilidade' => (int) ($data['qtd_portabilidade'] ?? 0),
+                'portabilidade_status' => $portabilidades === [] ? 'NAO' : 'SIM',
+                'qtd_portabilidade' => count($portabilidades),
                 'plano_dental' => $data['plano_dental'] ?? 'SIM',
             ]);
 
@@ -396,6 +405,9 @@ class VendasRepository implements VendasRepositoryInterface
                         'telefone2' => Helpers::cleanSpecialCharacters($depData['telefone2'] ?? ''),
                         'cpf' => ! empty($depData['cpf']) ? Helpers::cleanSpecialCharacters($depData['cpf']) : null,
                         'parentesco' => $depData['parentesco'] ?? null,
+                        'plano_id' => ! empty($depData['plano_id']) ? (int) $depData['plano_id'] : null,
+                        'coparticipacao' => isset($depData['coparticipacao']) && $depData['coparticipacao'] !== ''
+                            ? strtoupper($depData['coparticipacao']) : null,
                         'plano_anterior' => $depData['plano_anterior'] ?? 'NAO',
                         'operadora_anterior_id' => ! empty($depData['operadora_anterior_id'])
                             ? (int) $depData['operadora_anterior_id']
@@ -406,11 +418,7 @@ class VendasRepository implements VendasRepositoryInterface
             }
 
             $sequencial = 1;
-            foreach ($data['portabilidades'] ?? [] as $portData) {
-                if (empty($portData['nome'])) {
-                    continue;
-                }
-
+            foreach ($portabilidades as $portData) {
                 VendaPortabilidade::create([
                     'venda_id' => $venda->id,
                     'nome' => mb_strtoupper(trim($portData['nome'] ?? ''), 'UTF-8'),
@@ -420,6 +428,8 @@ class VendasRepository implements VendasRepositoryInterface
                         : null,
                     'plano_anterior' => $portData['plano_anterior'] ?? null,
                     'numero_carteirinha' => $portData['numero_carteirinha'] ?? null,
+                    'operadora_destino_id' => (int) $portData['operadora_destino_id'],
+                    'plano_destino_id' => (int) $portData['plano_destino_id'],
                     'sequencial' => $sequencial++,
                 ]);
             }

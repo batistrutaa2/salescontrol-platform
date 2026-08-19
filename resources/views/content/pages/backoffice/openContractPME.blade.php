@@ -16,7 +16,6 @@
 @endsection
 
 @section('content')
-    <div class="mb-4"><x-venda-documentos :venda-id="$contract->id" /></div>
     @php
         $selectedOperadoraId = $selectedOperadoraId ?? optional(($operadoras ?? collect())->firstWhere('nome', $contract->operadora))->id;
         $planosDaOperadora = $planosDaOperadora ?? collect();
@@ -198,6 +197,12 @@
         @endif
     </div>
     @endif
+
+    <x-venda-documentos
+        :venda-id="$contract->id"
+        :venda-nome="$contract->nome_contrato"
+        presentation="modal"
+    />
 
     <div class="pv-screen" data-venda-id="{{ $contract->id }}" data-csrf="{{ csrf_token() }}">
     {{-- Switcher: navega entre os contratos do mesmo cliente (CNPJ/CPF) sem trocar de tela. Preenchido pelo JS. --}}
@@ -506,6 +511,8 @@
                                                 data-operadora-anterior-id="{{ $port->operadora_anterior_id }}"
                                                 data-plano-anterior="{{ $port->plano_anterior }}"
                                                 data-numero-carteirinha="{{ $port->numero_carteirinha }}"
+                                                data-operadora-destino-id="{{ $port->operadora_destino_id }}"
+                                                data-plano-destino-id="{{ $port->plano_destino_id }}"
                                                 title="Editar">
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                             </button>
@@ -526,6 +533,14 @@
                                         </div>
                                         @endif
                                         <div class="portabilidade-info-grid">
+                                            <div class="portabilidade-info-item">
+                                                <span class="portabilidade-info-label">Operadora de destino</span>
+                                                <span class="portabilidade-info-value portabilidade-info-highlight">{{ $port->operadoraDestino?->nome ?? 'Não informada' }}</span>
+                                            </div>
+                                            <div class="portabilidade-info-item">
+                                                <span class="portabilidade-info-label">Plano de destino</span>
+                                                <span class="portabilidade-info-value portabilidade-info-highlight">{{ $port->planoDestino?->nome ?? 'Não informado' }}</span>
+                                            </div>
                                             @if($port->cpf)
                                             <div class="portabilidade-info-item">
                                                 <span class="portabilidade-info-label">CPF</span>
@@ -1376,6 +1391,21 @@
                                 <label>Numero da Carteirinha</label>
                                 <input type="text" name="numero_carteirinha" id="edit_port_numero_carteirinha" class="pme-input">
                             </div>
+                            <div class="pme-field">
+                                <label>Operadora de Destino <span class="required">*</span></label>
+                                <select name="operadora_destino_id" id="edit_port_operadora_destino_id" class="pme-input" required>
+                                    <option value="">Selecione...</option>
+                                    @foreach ($operadoras ?? collect() as $op)
+                                        <option value="{{ $op->id }}">{{ $op->nome }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="pme-field">
+                                <label>Plano de Destino <span class="required">*</span></label>
+                                <select name="plano_destino_id" id="edit_port_plano_destino_id" class="pme-input" required disabled>
+                                    <option value="">Selecione a operadora...</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -1441,4 +1471,7 @@
         </div>
     </div>
 
+    <script>
+        window.portabilidadePlanos = @json($planosPortabilidade ?? collect());
+    </script>
 @endsection

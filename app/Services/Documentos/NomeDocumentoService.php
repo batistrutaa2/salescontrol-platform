@@ -36,6 +36,16 @@ class NomeDocumentoService
         return $extensao === '' ? $base : $base.'.'.mb_strtolower($extensao);
     }
 
+    public function normalizado(string $nome): string
+    {
+        $nome = preg_replace('~^.*[\\\\/]~u', '', $nome) ?? $nome;
+        $nome = \Normalizer::normalize($nome, \Normalizer::FORM_C) ?: $nome;
+        $nome = preg_replace('/^[\p{Z}\s]+|[\p{Z}\s]+$/u', '', $nome) ?? '';
+        $nome = preg_replace('/[\p{Z}\s]+/u', ' ', $nome) ?? '';
+
+        return mb_strtolower($nome, 'UTF-8');
+    }
+
     public function comSufixo(string $nome, int $sequencia): string
     {
         $extensao = pathinfo($nome, PATHINFO_EXTENSION);

@@ -30,6 +30,7 @@ use App\Http\Controllers\pages\relatorios\RelatorioQualidadeVendasController;
 use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\financeiro\Financeiro;
 use App\Http\Controllers\pages\comercial\ConsultaController;
+use App\Http\Controllers\pages\comercial\PropostaConsultaDocumentoController;
 use App\Http\Controllers\pages\comercial\EnvioCotacaoController;
 use App\Http\Controllers\pages\estudo\Estudo;
 use App\Http\Controllers\pages\escola\EscolaController;
@@ -180,6 +181,9 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/vendas/{venda}/documentos/{documento}/reenviar', [VendaDocumentoController::class, 'retry'])->name('vendas.documentos.retry');
   Route::delete('/vendas/{venda}/documentos/{documento}', [VendaDocumentoController::class, 'destroy'])->name('vendas.documentos.destroy');
   Route::get('/comercial/cliente/{contato_id}/nova-proposta', [Comercial::class, 'novaProposta'])->name('comercial.novaProposta');
+  Route::post('/comercial/proposta/consulta-documento', PropostaConsultaDocumentoController::class)
+    ->middleware('throttle:60,1')
+    ->name('comercial.proposta.consultaDocumento');
   Route::post('/comercial/createLead', [Comercial::class, 'createLead'])->name('comercial.createLead');
   Route::post('/comercial/sendRemaketing', [Comercial::class, 'sendRemaketing'])->name('comercial.sendRemaketing');
   Route::get('/comercial/marketing', [Comercial::class, 'indexMarketing'])->name('comercial.indexMarketing');

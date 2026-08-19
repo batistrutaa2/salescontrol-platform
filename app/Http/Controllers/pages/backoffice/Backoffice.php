@@ -10,8 +10,8 @@ use App\Http\Controllers\Controller;
 use App\Jobs\GerarRecebiveisJob;
 use App\Mail\BoasVindasMail;
 use App\Models\AcessoEmpresa;
-use App\Models\Empresa;
 use App\Models\DocumentoDiretorio;
+use App\Models\Empresa;
 use App\Models\Faq;
 use App\Models\Operadora;
 use App\Models\Plano;
@@ -36,8 +36,8 @@ use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\VendasRepository;
-use App\Services\PosVendaDemandaService;
 use App\Services\Documentos\NomeDocumentoService;
+use App\Services\PosVendaDemandaService;
 use App\Services\WhatsappService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -190,6 +190,11 @@ class Backoffice extends Controller
           ? Plano::where('operadora_id', $selectedOperadoraId)->get()
           : collect();
 
+        $planosPortabilidade = Plano::where('empresa_id', Auth::user()->empresa_id)
+            ->where('status', 'Y')
+            ->orderBy('nome')
+            ->get(['id', 'operadora_id', 'nome']);
+
         $plano = $sale->plano_id ? Plano::find($sale->plano_id) : null;
 
         $titulares = VendaTitular::with(['plano', 'dependentes', 'operadoraAnterior'])
@@ -230,7 +235,7 @@ class Backoffice extends Controller
             ->where('venda_id', $sale->id)
             ->get();
 
-        $portabilidades = VendaPortabilidade::with('operadoraAnterior')
+        $portabilidades = VendaPortabilidade::with(['operadoraAnterior', 'operadoraDestino', 'planoDestino'])
             ->where('venda_id', $sale->id)
             ->orderBy('sequencial')
             ->get();
@@ -240,6 +245,7 @@ class Backoffice extends Controller
             'operadoras' => $operadoras,
             'selectedOperadoraId' => $selectedOperadoraId,
             'planosDaOperadora' => $planosDaOperadora,
+            'planosPortabilidade' => $planosPortabilidade,
             'plano' => $plano,
             'titulares' => $titulares,
             'dependentes' => $dependentes,
@@ -636,10 +642,14 @@ class Backoffice extends Controller
         $filas = ['documentos-scan' => null, 'documentos-transfer' => null];
         try {
             if (config('queue.default') === 'database') {
-                foreach (array_keys($filas) as $fila) $filas[$fila] = DB::table(config('queue.connections.database.table', 'jobs'))->where('queue', $fila)->count();
+                foreach (array_keys($filas) as $fila) {
+                    $filas[$fila] = DB::table(config('queue.connections.database.table', 'jobs'))->where('queue', $fila)->count();
+                }
             } elseif (config('queue.default') === 'redis') {
                 $redis = \Illuminate\Support\Facades\Redis::connection(config('queue.connections.redis.connection', 'default'));
-                foreach (array_keys($filas) as $fila) $filas[$fila] = (int) $redis->llen("queues:{$fila}");
+                foreach (array_keys($filas) as $fila) {
+                    $filas[$fila] = (int) $redis->llen("queues:{$fila}");
+                }
             }
         } catch (\Throwable) {
             // O estado dos documentos continua disponível mesmo se o backend da fila estiver indisponível.
@@ -1282,6 +1292,21 @@ class Backoffice extends Controller
                 'operadora_anterior_id' => ['required', 'integer', 'exists:operadoras,id'],
                 'plano_anterior' => ['nullable', 'string', 'max:100'],
                 'numero_carteirinha' => ['nullable', 'string', 'max:50'],
+                'operadora_destino_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('operadoras', 'id')
+                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('status', 'Y'),
+                ],
+                'plano_destino_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('planos', 'id')
+                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('status', 'Y')
+                        ->where('operadora_id', $request->integer('operadora_destino_id')),
+                ],
             ]);
 
             $venda = Vendas::findOrFail((int) $validated['venda_id']);
@@ -1305,7 +1330,7 @@ class Backoffice extends Controller
                 // Calcula o próximo sequencial
                 $maxSequencial = VendaPortabilidade::where('venda_id', $venda->id)->max('sequencial') ?? 0;
 
-                return VendaPortabilidade::create([
+                $portabilidade = VendaPortabilidade::create([
                     'venda_id' => $venda->id,
                     'nome' => mb_strtoupper(trim($validated['nome']), 'UTF-8'),
                     'cpf' => Helpers::cleanSpecialCharacters($validated['cpf'] ?? ''),
@@ -1313,8 +1338,18 @@ class Backoffice extends Controller
                     'operadora_anterior_id' => (int) $validated['operadora_anterior_id'],
                     'plano_anterior' => $validated['plano_anterior'] ?? null,
                     'numero_carteirinha' => $validated['numero_carteirinha'] ?? null,
+                    'operadora_destino_id' => (int) $validated['operadora_destino_id'],
+                    'plano_destino_id' => (int) $validated['plano_destino_id'],
                     'sequencial' => $maxSequencial + 1,
                 ]);
+
+                $quantidade = VendaPortabilidade::where('venda_id', $venda->id)->count();
+                $venda->update([
+                    'portabilidade_status' => 'SIM',
+                    'qtd_portabilidade' => $quantidade,
+                ]);
+
+                return $portabilidade;
             });
 
             return response()->json([
@@ -1368,6 +1403,21 @@ class Backoffice extends Controller
                 'operadora_anterior_id' => ['required', 'integer', 'exists:operadoras,id'],
                 'plano_anterior' => ['nullable', 'string', 'max:100'],
                 'numero_carteirinha' => ['nullable', 'string', 'max:50'],
+                'operadora_destino_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('operadoras', 'id')
+                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('status', 'Y'),
+                ],
+                'plano_destino_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('planos', 'id')
+                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('status', 'Y')
+                        ->where('operadora_id', $request->integer('operadora_destino_id')),
+                ],
             ]);
 
             DB::transaction(function () use ($portabilidade, $validated) {
@@ -1386,6 +1436,8 @@ class Backoffice extends Controller
                     'operadora_anterior_id' => (int) $validated['operadora_anterior_id'],
                     'plano_anterior' => $validated['plano_anterior'] ?? null,
                     'numero_carteirinha' => $validated['numero_carteirinha'] ?? null,
+                    'operadora_destino_id' => (int) $validated['operadora_destino_id'],
+                    'plano_destino_id' => (int) $validated['plano_destino_id'],
                 ]);
             });
 
@@ -1423,7 +1475,14 @@ class Backoffice extends Controller
                 ], 403);
             }
 
-            $portabilidade->delete();
+            DB::transaction(function () use ($portabilidade, $venda) {
+                $portabilidade->delete();
+                $quantidade = VendaPortabilidade::where('venda_id', $venda->id)->count();
+                $venda->update([
+                    'portabilidade_status' => $quantidade > 0 ? 'SIM' : 'NAO',
+                    'qtd_portabilidade' => $quantidade,
+                ]);
+            });
 
             return response()->json([
                 'success' => true,

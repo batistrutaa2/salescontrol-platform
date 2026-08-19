@@ -6,6 +6,7 @@ use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Operadora;
+use App\Models\Plano;
 use App\Models\Tabulacoes;
 use App\Models\User;
 use App\Models\VendaHistorico;
@@ -21,6 +22,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class Vendas extends Controller
 {
@@ -698,6 +701,7 @@ class Vendas extends Controller
             $dados['vendedor_nome'] = $venda->user?->name;
             $dados['backoffice_nome'] = $venda->backoffice?->name;
             $dados['descricao'] = $venda->tabulacao?->descricao;
+
             return response()->json($dados);
         } catch (\Throwable $th) {
             return response()->json(['error' => 'Erro ao buscar detalhes da venda: '.$th->getMessage()], 500);
@@ -804,19 +808,28 @@ class Vendas extends Controller
             'titulares.dependentes',
             'titulares.operadoraAnterior',
             'portabilidades.operadoraAnterior',
+            'portabilidades.operadoraDestino',
+            'portabilidades.planoDestino',
             'contatoCorretor',
         ]);
 
         $cliente = DB::table('contatos')->where('id', $venda->contato_id)->first();
 
         $operadoras = Operadora::where('status', 'Y')
+            ->where('empresa_id', Auth::user()->empresa_id)
             ->orderBy('nome')
             ->get(['id', 'nome']);
+
+        $planosPortabilidade = Plano::where('empresa_id', Auth::user()->empresa_id)
+            ->where('status', 'Y')
+            ->orderBy('nome')
+            ->get(['id', 'operadora_id', 'nome']);
 
         return view('content.pages.vendas.edit-estorno', [
             'venda' => $venda,
             'cliente' => $cliente,
             'operadoras' => $operadoras,
+            'planosPortabilidade' => $planosPortabilidade,
         ]);
     }
 
@@ -827,7 +840,7 @@ class Vendas extends Controller
         // Mesmo conjunto de validações da nova proposta. Observação do reenvio é opcional —
         // alinhamentos podem acontecer por canais internos (telefone/whatsapp) e o vendedor
         // só precisa devolver a venda para o backoffice continuar a tratativa.
-        $request->validate([
+        $validated = $request->validate([
             'observacao_reenvio' => 'nullable|string|max:500',
             'nome_contrato' => 'required|string|max:255',
             'cpf_cnpj' => 'required|string',
@@ -835,6 +848,22 @@ class Vendas extends Controller
             'titulares' => 'required|array|min:1',
             'titulares.*.nome' => 'required|string|max:100',
             'titulares.*.plano_id' => 'required|integer|exists:planos,id',
+            'portabilidades' => 'nullable|array|max:50',
+            'portabilidades.*.nome' => 'required|string|max:100',
+            'portabilidades.*.operadora_destino_id' => [
+                'required',
+                'integer',
+                Rule::exists('operadoras', 'id')
+                    ->where('empresa_id', Auth::user()->empresa_id)
+                    ->where('status', 'Y'),
+            ],
+            'portabilidades.*.plano_destino_id' => [
+                'required',
+                'integer',
+                Rule::exists('planos', 'id')
+                    ->where('empresa_id', Auth::user()->empresa_id)
+                    ->where('status', 'Y'),
+            ],
         ], [
             'nome_contrato.required' => 'Razão Social é obrigatória.',
             'cpf_cnpj.required' => 'CNPJ/CPF é obrigatório.',
@@ -843,7 +872,23 @@ class Vendas extends Controller
             'titulares.min' => 'Adicione pelo menos um titular.',
             'titulares.*.nome.required' => 'Nome do titular é obrigatório.',
             'titulares.*.plano_id.required' => 'Selecione o plano para todos os titulares.',
+            'portabilidades.*.nome.required' => 'Informe o nome completo de cada cliente em portabilidade.',
+            'portabilidades.*.operadora_destino_id.required' => 'Selecione a operadora de destino de cada portabilidade.',
+            'portabilidades.*.plano_destino_id.required' => 'Selecione o plano de destino de cada portabilidade.',
         ]);
+
+        foreach ($validated['portabilidades'] ?? [] as $index => $portabilidade) {
+            $planoValido = Plano::whereKey((int) $portabilidade['plano_destino_id'])
+                ->where('empresa_id', Auth::user()->empresa_id)
+                ->where('operadora_id', (int) $portabilidade['operadora_destino_id'])
+                ->exists();
+
+            if (! $planoValido) {
+                throw ValidationException::withMessages([
+                    "portabilidades.$index.plano_destino_id" => 'O plano selecionado não pertence à operadora de destino informada.',
+                ]);
+            }
+        }
 
         $observacaoReenvio = trim((string) $request->input('observacao_reenvio')) ?: null;
 

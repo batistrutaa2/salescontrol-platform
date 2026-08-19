@@ -1057,6 +1057,26 @@
     // ============================================
     function initEditPortabilidade() {
         const modalTitle = document.getElementById('modalPortabilidadeTitle');
+        const operadoraDestino = document.getElementById('edit_port_operadora_destino_id');
+        const planoDestino = document.getElementById('edit_port_plano_destino_id');
+        const planosPortabilidade = Array.isArray(window.portabilidadePlanos) ? window.portabilidadePlanos : [];
+        const escapePortHtml = value => String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+        function preencherPlanosDestino(operadoraId, selectedId = '') {
+            if (!planoDestino) return;
+            const planos = planosPortabilidade.filter(plano => String(plano.operadora_id) === String(operadoraId));
+            planoDestino.disabled = !operadoraId || planos.length === 0;
+            planoDestino.innerHTML = planos.length === 0
+                ? `<option value="">${operadoraId ? 'Nenhum plano ativo' : 'Selecione a operadora...'}</option>`
+                : `<option value="">Selecione...</option>${planos.map(plano => `<option value="${plano.id}">${escapePortHtml(plano.nome)}</option>`).join('')}`;
+            planoDestino.value = String(selectedId || '');
+        }
+
+        operadoraDestino?.addEventListener('change', () => preencherPlanosDestino(operadoraDestino.value));
 
         // Add portabilidade button click
         document.querySelectorAll('.btn-add-port').forEach(function (btn) {
@@ -1069,6 +1089,8 @@
                 document.getElementById('edit_port_operadora_anterior_id').value = '';
                 document.getElementById('edit_port_plano_anterior').value = '';
                 document.getElementById('edit_port_numero_carteirinha').value = '';
+                document.getElementById('edit_port_operadora_destino_id').value = '';
+                preencherPlanosDestino('');
 
                 // Update modal title
                 if (modalTitle) {
@@ -1088,6 +1110,8 @@
                 document.getElementById('edit_port_operadora_anterior_id').value = this.dataset.operadoraAnteriorId || '';
                 document.getElementById('edit_port_plano_anterior').value = this.dataset.planoAnterior || '';
                 document.getElementById('edit_port_numero_carteirinha').value = this.dataset.numeroCarteirinha || '';
+                document.getElementById('edit_port_operadora_destino_id').value = this.dataset.operadoraDestinoId || '';
+                preencherPlanosDestino(this.dataset.operadoraDestinoId || '', this.dataset.planoDestinoId || '');
 
                 // Update modal title
                 if (modalTitle) {
@@ -1157,7 +1181,9 @@
                     data_nascimento: document.getElementById('edit_port_data_nascimento').value,
                     operadora_anterior_id: document.getElementById('edit_port_operadora_anterior_id').value,
                     plano_anterior: document.getElementById('edit_port_plano_anterior').value,
-                    numero_carteirinha: document.getElementById('edit_port_numero_carteirinha').value
+                    numero_carteirinha: document.getElementById('edit_port_numero_carteirinha').value,
+                    operadora_destino_id: document.getElementById('edit_port_operadora_destino_id').value,
+                    plano_destino_id: document.getElementById('edit_port_plano_destino_id').value
                 };
 
                 let url, method;

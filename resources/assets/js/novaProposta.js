@@ -7,8 +7,10 @@
     let planosDaOperadoraAtual = [];
     let titularIndex = 0;
     let isOperadoraAmil = false;
-    let currentPropostaType = 'PME';
+    let currentPropostaType = document.getElementById('tipo_contrato')?.value || 'PME';
     let cnpjCleaveInstance = null;
+    let portabilidades = [];
+    const isGuidedProposal = Boolean(document.querySelector('.np-wizard-shell'));
 
     // ============================================
     // Helpers
@@ -23,6 +25,30 @@
 
     function digitsOnly(v) {
         return String(v || '').replace(/\D/g, '');
+    }
+
+    function cpfValido(value) {
+        const cpf = digitsOnly(value);
+        if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+        for (let pos = 9; pos < 11; pos++) {
+            let soma = 0;
+            for (let i = 0; i < pos; i++) soma += Number(cpf[i]) * ((pos + 1) - i);
+            let digito = (10 * soma) % 11;
+            if (digito === 10) digito = 0;
+            if (Number(cpf[pos]) !== digito) return false;
+        }
+        return true;
+    }
+
+    function cnpjValido(value) {
+        const cnpj = digitsOnly(value);
+        if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+        const pesos = [[5,4,3,2,9,8,7,6,5,4,3,2], [6,5,4,3,2,9,8,7,6,5,4,3,2]];
+        return pesos.every((lista, etapa) => {
+            const soma = lista.reduce((total, peso, i) => total + Number(cnpj[i]) * peso, 0);
+            const resto = soma % 11;
+            return Number(cnpj[12 + etapa]) === (resto < 2 ? 0 : 11 - resto);
+        });
     }
 
     function isValidEmail(v) {
@@ -145,6 +171,7 @@
                 }
             }
         });
+        updateTitularActionState();
     }
 
     // ============================================
@@ -196,8 +223,8 @@
     const inputCnpj = document.getElementById('cpf_cnpj');
     if (inputCnpj && typeof Cleave !== 'undefined') {
         cnpjCleaveInstance = new Cleave(inputCnpj, {
-            delimiters: ['.', '.', '/', '-'],
-            blocks: [2, 3, 3, 4, 2],
+            delimiters: currentPropostaType === 'ADESAO' ? ['.', '.', '-'] : ['.', '.', '/', '-'],
+            blocks: currentPropostaType === 'ADESAO' ? [3, 3, 3, 2] : [2, 3, 3, 4, 2],
             numericOnly: true
         });
     }
@@ -233,6 +260,126 @@
     }
 
     document.querySelectorAll('.mask-cpf').forEach(applyCpfMask);
+
+    // ============================================
+    // Enriquecimento de CPF/CNPJ da proposta
+    // ============================================
+    const lookupStates = new WeakMap();
+
+    function lookupStatus(input) {
+        return input.closest('.np-field')?.querySelector('.np-lookup-status')
+            || document.querySelector(`[data-lookup-status-for="${input.id}"]`);
+    }
+
+    function setLookupState(input, state, message) {
+        const field = input.closest('.np-field');
+        const status = lookupStatus(input);
+        const lookupButton = input.id === 'portabilidade_cpf'
+            ? document.getElementById('btn-consultar-portabilidade-cpf')
+            : null;
+        field?.classList.toggle('is-looking-up', state === 'loading');
+        if (lookupButton) {
+            lookupButton.disabled = state === 'loading';
+            lookupButton.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
+        }
+        if (status) {
+            status.className = `np-lookup-status is-${state}`;
+            status.textContent = message;
+        }
+    }
+
+    function preencherSeVazio(field, value) {
+        if (!field || !value || String(field.value || '').trim() !== '') return;
+        field.value = value;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function aplicarEnriquecimento(input, dados) {
+        if (input.id === 'cpf_cnpj') {
+            preencherSeVazio(document.getElementById('nome_contrato'), dados.nome);
+            preencherSeVazio(document.getElementById('data_abertura'), dados.data_abertura);
+            preencherSeVazio(document.getElementById('email'), dados.email);
+            preencherSeVazio(document.getElementById('telefone1'), dados.telefone1);
+            preencherSeVazio(document.getElementById('telefone2'), dados.telefone2);
+            return;
+        }
+        if (input.id === 'dep_cpf') {
+            preencherSeVazio(document.getElementById('dep_nome'), dados.nome);
+            preencherSeVazio(document.getElementById('dep_data_nascimento'), dados.data_nascimento);
+            preencherSeVazio(document.getElementById('dep_email'), dados.email);
+            preencherSeVazio(document.getElementById('dep_telefone1'), dados.telefone1);
+            preencherSeVazio(document.getElementById('dep_telefone2'), dados.telefone2);
+            return;
+        }
+        if (input.id === 'portabilidade_cpf') {
+            preencherSeVazio(document.getElementById('portabilidade_nome'), dados.nome);
+            return;
+        }
+        const card = input.closest('.titular-card');
+        if (!card) return;
+        const field = suffix => card.querySelector(`[name$="${suffix}"]`);
+        preencherSeVazio(field('[nome]'), dados.nome);
+        preencherSeVazio(field('[data_nascimento]'), dados.data_nascimento);
+        preencherSeVazio(field('[email]'), dados.email);
+        preencherSeVazio(field('[telefone1]'), dados.telefone1);
+        preencherSeVazio(field('[telefone2]'), dados.telefone2);
+    }
+
+    async function consultarDocumento(input, force = false) {
+        const documento = digitsOnly(input.value);
+        const valido = documento.length === 11 ? cpfValido(documento) : cnpjValido(documento);
+        const estado = lookupStates.get(input) || {};
+        if (!valido) {
+            setLookupState(input, 'idle', 'Digite um CPF válido para realizar a consulta.');
+            input.focus();
+            return;
+        }
+        if (!force && estado.last === documento) return;
+        estado.controller?.abort();
+        estado.controller = new AbortController();
+        estado.last = documento;
+        lookupStates.set(input, estado);
+        setLookupState(input, 'loading', 'Consultando dados…');
+        try {
+            const response = await fetch(window.propostaLookupUrl, {
+                method: 'POST',
+                signal: estado.controller.signal,
+                headers: {
+                    'Content-Type': 'application/json', 'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({ documento })
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.message || 'Consulta indisponível.');
+            if (!payload.encontrado) {
+                setLookupState(input, 'empty', 'Nenhum dado localizado. Preencha manualmente.');
+                return;
+            }
+            aplicarEnriquecimento(input, payload.dados || {});
+            setLookupState(input, 'success', 'Dados localizados. Confira e ajuste se necessário.');
+        } catch (error) {
+            if (error.name !== 'AbortError') setLookupState(input, 'error', 'Não foi possível consultar. Continue manualmente.');
+        }
+    }
+
+    document.addEventListener('input', event => {
+        const input = event.target.closest('#cpf_cnpj, .js-documento-pessoa');
+        if (!input || !isGuidedProposal || !window.propostaLookupUrl) return;
+        const documento = digitsOnly(input.value);
+        const esperado = input.id === 'cpf_cnpj' && currentPropostaType === 'PME' ? 14 : 11;
+        const valido = esperado === 14 ? cnpjValido(documento) : cpfValido(documento);
+        const estado = lookupStates.get(input) || {};
+        clearTimeout(estado.timer);
+        estado.controller?.abort();
+        if (!valido) {
+            estado.last = null;
+            setLookupState(input, 'idle', documento.length === esperado ? 'Documento inválido. Revise os números.' : 'Digite o documento completo para consultar.');
+        } else {
+            estado.timer = setTimeout(() => consultarDocumento(input), 500);
+        }
+        lookupStates.set(input, estado);
+    });
 
     // ============================================
     // Flatpickr for birth date (global)
@@ -284,14 +431,86 @@
         const dependentes = document.querySelectorAll('#titulares-container .dependente-item').length;
         const totalVidas = titulares + dependentes;
 
-        document.getElementById('total-titulares').textContent = titulares;
-        document.getElementById('total-dependentes').textContent = dependentes;
-        document.getElementById('total-vidas').textContent = totalVidas;
-        document.getElementById('vidas').value = totalVidas;
+        const totalTitulares = document.getElementById('total-titulares');
+        const totalDependentes = document.getElementById('total-dependentes');
+        const totalVidasElement = document.getElementById('total-vidas');
+        const vidas = document.getElementById('vidas');
+        if (totalTitulares) totalTitulares.textContent = titulares;
+        if (totalDependentes) totalDependentes.textContent = dependentes;
+        if (totalVidasElement) totalVidasElement.textContent = totalVidas;
+        if (vidas) vidas.value = totalVidas;
+        updateTitularActionState();
+        if (typeof atualizarResumoProposta === 'function') atualizarResumoProposta();
 
         // Add/remove de titular e dependente tambem persiste o rascunho
         scheduleDraftSave();
     }
+
+    function pendenciasTitular(card) {
+        if (!card) return ['titular'];
+        const value = selector => card.querySelector(selector)?.value?.trim() || '';
+        const pendencias = [];
+
+        if (!cpfValido(value('.mask-cpf'))) pendencias.push('CPF válido');
+        if (!value('[name$="[nome]"]')) pendencias.push('nome completo');
+        if (!isValidDateBr(value('[name$="[data_nascimento]"]'))) pendencias.push('data de nascimento');
+        if (!isValidEmail(value('[name$="[email]"]'))) pendencias.push('e-mail');
+        if (digitsOnly(value('[name$="[telefone1]"]')).length < 10) pendencias.push('telefone');
+        if (currentPropostaType === 'PME' && !value('[name$="[cargo]"]')) pendencias.push('cargo');
+        if (!value('[name$="[plano_id]"]')) pendencias.push('plano');
+        if (!value('[name$="[coparticipacao]"]')) pendencias.push('coparticipação');
+        if (value('[name$="[plano_anterior]"]') === 'SIM' && !value('[name$="[operadora_anterior_id]"]')) {
+            pendencias.push('operadora anterior');
+        }
+
+        return pendencias;
+    }
+
+    function updateTitularActionState() {
+        if (!isGuidedProposal) return;
+        const cards = Array.from(document.querySelectorAll('#titulares-container .titular-card'));
+
+        cards.forEach(card => {
+            const pendencias = pendenciasTitular(card);
+            const completo = pendencias.length === 0;
+            const addDependente = card.querySelector('.btn-add-dep');
+            const status = card.querySelector('.titular-completion');
+
+            card.classList.toggle('is-complete', completo);
+            if (addDependente) {
+                addDependente.disabled = !completo;
+                addDependente.setAttribute('aria-disabled', String(!completo));
+                addDependente.title = completo
+                    ? 'Adicionar dependente a este titular'
+                    : `Complete o titular: ${pendencias.join(', ')}`;
+            }
+            if (status) {
+                status.classList.toggle('is-complete', completo);
+                status.textContent = completo
+                    ? 'Titular completo'
+                    : `Falta: ${pendencias[0]}${pendencias.length > 1 ? ` e mais ${pendencias.length - 1}` : ''}`;
+            }
+        });
+
+        const podeAdicionarTitular = cards.length > 0 && cards.every(card => pendenciasTitular(card).length === 0);
+        const addTitularButton = document.getElementById('btn-add-titular');
+        const addTitularHint = document.getElementById('np-add-titular-hint');
+        if (addTitularButton) {
+            addTitularButton.disabled = !podeAdicionarTitular;
+            addTitularButton.setAttribute('aria-disabled', String(!podeAdicionarTitular));
+            addTitularButton.title = podeAdicionarTitular
+                ? 'Adicionar outro titular'
+                : 'Complete todos os titulares antes de adicionar outro.';
+        }
+        if (addTitularHint) addTitularHint.hidden = podeAdicionarTitular;
+    }
+
+    document.addEventListener('input', event => {
+        if (event.target.closest?.('.titular-card')) updateTitularActionState();
+    });
+    document.addEventListener('change', event => {
+        if (event.target.closest?.('.titular-card')) updateTitularActionState();
+    });
 
     // ============================================
     // Render Plan Options
@@ -317,10 +536,16 @@
         const template = document.getElementById('template-titular');
         if (!container || !template) return;
 
+        const templateCard = template.content?.querySelector('.titular-card');
+        if (!templateCard) {
+            showModernToast('error', 'Não foi possível abrir beneficiários', 'Atualize a página e tente novamente.');
+            return;
+        }
+
         const number = titularIndex + 1;
 
         // Get HTML from template and replace placeholders
-        const html = template.content.cloneNode(true).querySelector('.titular-card').outerHTML
+        const html = templateCard.outerHTML
             .replace(/__INDEX__/g, titularIndex)
             .replace(/__NUMBER__/g, number);
 
@@ -421,7 +646,9 @@
     // ============================================
     // Dependentes - hidden inputs + card resumo + modal
     // ============================================
-    const DEP_FIELDS = ['nome', 'cpf', 'data_nascimento', 'email', 'telefone1', 'telefone2', 'parentesco', 'plano_anterior', 'operadora_anterior_id'];
+    const DEP_FIELDS = isGuidedProposal
+        ? ['nome', 'cpf', 'data_nascimento', 'email', 'telefone1', 'telefone2', 'parentesco', 'plano_id', 'coparticipacao', 'herda_plano', 'plano_anterior', 'operadora_anterior_id']
+        : ['nome', 'cpf', 'data_nascimento', 'email', 'telefone1', 'telefone2', 'parentesco', 'plano_anterior', 'operadora_anterior_id'];
 
     function getDepValues(depItem) {
         const values = {};
@@ -544,6 +771,7 @@
                 }
             });
         });
+
     }
 
     // ============================================
@@ -552,7 +780,8 @@
     const depModal = {
         mode: 'add',
         titularCard: null,
-        depItem: null
+        depItem: null,
+        trigger: null
     };
 
     function getDepModalFields() {
@@ -565,7 +794,20 @@
 
     function toggleDepOperadoraAnterior(show) {
         const row = document.getElementById('dep-op-anterior-row');
-        if (row) row.style.display = show ? '' : 'none';
+        if (row) row.hidden = !show;
+    }
+
+    function syncDepPlanoComTitular() {
+        const herda = document.getElementById('dep_herda_plano')?.checked;
+        const plano = document.getElementById('dep_plano_id');
+        const copart = document.getElementById('dep_coparticipacao');
+        if (!plano || !copart) return;
+        plano.disabled = Boolean(herda);
+        copart.disabled = Boolean(herda);
+        if (herda && depModal.titularCard) {
+            plano.value = depModal.titularCard.querySelector('.select-plano-titular')?.value || '';
+            copart.value = depModal.titularCard.querySelector('.select-coparticipacao-titular')?.value || '';
+        }
     }
 
     function openDependenteModal(titularCard, depItem = null) {
@@ -573,17 +815,28 @@
         if (!overlay || !titularCard) return;
 
         depModal.mode = depItem ? 'edit' : 'add';
+        depModal.trigger = document.activeElement;
         depModal.titularCard = titularCard;
         depModal.depItem = depItem;
 
         const fields = getDepModalFields();
         const values = depItem ? getDepValues(depItem) : {};
 
+        if (fields.plano_id) fields.plano_id.innerHTML = renderPlanOptions();
+        if (fields.coparticipacao) fields.coparticipacao.innerHTML = getCoparticipacaoOptions();
+
         DEP_FIELDS.forEach(field => {
             const el = fields[field];
             if (!el) return;
-            el.value = values[field] || (field === 'plano_anterior' ? 'NAO' : '');
+            if (field === 'herda_plano') {
+                el.checked = depItem ? values.herda_plano !== 'NAO' : true;
+            } else {
+                el.value = values[field] || (field === 'plano_anterior' ? 'NAO' : '');
+            }
         });
+
+        if (!depItem) syncDepPlanoComTitular();
+        else syncDepPlanoComTitular();
 
         toggleDepOperadoraAnterior((values.plano_anterior || 'NAO') === 'SIM');
         clearInvalid(overlay);
@@ -596,7 +849,8 @@
 
         overlay.classList.add('dep-modal-open');
         document.body.style.overflow = 'hidden';
-        fields.nome?.focus();
+        overlay.setAttribute('aria-hidden', 'false');
+        fields.cpf?.focus();
     }
 
     function closeDependenteModal() {
@@ -604,9 +858,12 @@
         if (!overlay) return;
 
         overlay.classList.remove('dep-modal-open');
+        overlay.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
         depModal.titularCard = null;
         depModal.depItem = null;
+        depModal.trigger?.focus?.();
+        depModal.trigger = null;
     }
 
     function validateDependenteModal(fields) {
@@ -623,6 +880,12 @@
                 msg: 'Informe qual era a operadora do plano anterior do dependente.'
             }
         ];
+        if (isGuidedProposal) {
+            checks.push(
+                { el: fields.plano_id, ok: fields.plano_id?.value !== '', msg: 'Selecione o plano do dependente.' },
+                { el: fields.coparticipacao, ok: fields.coparticipacao?.value !== '', msg: 'Selecione a coparticipação do dependente.' }
+            );
+        }
 
         let firstError = null;
         checks.forEach(check => {
@@ -646,7 +909,9 @@
 
         const values = {};
         DEP_FIELDS.forEach(field => {
-            values[field] = fields[field] ? fields[field].value : '';
+            values[field] = field === 'herda_plano'
+                ? (fields[field]?.checked ? 'SIM' : 'NAO')
+                : (fields[field]?.value || '');
         });
         if (values.plano_anterior !== 'SIM') {
             values.operadora_anterior_id = '';
@@ -690,6 +955,7 @@
         document.getElementById('dep_plano_anterior')?.addEventListener('change', function () {
             toggleDepOperadoraAnterior(this.value === 'SIM');
         });
+        document.getElementById('dep_herda_plano')?.addEventListener('change', syncDepPlanoComTitular);
 
         document.getElementById('btn-dep-modal-save')?.addEventListener('click', saveDependenteModal);
         document.getElementById('btn-dep-modal-cancel')?.addEventListener('click', closeDependenteModal);
@@ -702,6 +968,13 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && overlay.classList.contains('dep-modal-open')) {
                 closeDependenteModal();
+            }
+            if (e.key === 'Tab' && overlay.classList.contains('dep-modal-open')) {
+                const focusable = Array.from(overlay.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled)'));
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
             }
         });
     }
@@ -717,6 +990,7 @@
                 select.value = currentValue;
             }
         });
+        updateTitularActionState();
     }
 
     // ============================================
@@ -753,14 +1027,6 @@
             if (depItem) removeDependente(depItem);
         }
 
-        // Remove Portabilidade
-        if (e.target.closest('.btn-remove-port')) {
-            const portItem = e.target.closest('.port-item');
-            if (portItem) {
-                portItem.remove();
-                updatePortabilidadeNumbers();
-            }
-        }
     });
 
     // Quantity of titulares change
@@ -825,8 +1091,22 @@
             const titularCard = e.target.closest('.titular-card');
             const fieldRowOpAnterior = titularCard?.querySelector('.field-row-op-anterior');
             if (fieldRowOpAnterior) {
-                fieldRowOpAnterior.style.display = e.target.value === 'SIM' ? 'flex' : 'none';
+                fieldRowOpAnterior.hidden = e.target.value !== 'SIM';
             }
+        }
+
+        if (e.target.classList.contains('select-plano-titular') || e.target.classList.contains('select-coparticipacao-titular')) {
+            const card = e.target.closest('.titular-card');
+            if (!card) return;
+            const plano = card.querySelector('.select-plano-titular')?.value || '';
+            const copart = card.querySelector('.select-coparticipacao-titular')?.value || '';
+            card.querySelectorAll('.dependente-item').forEach(dep => {
+                if (dep.querySelector('[data-dep-field="herda_plano"]')?.value !== 'SIM') return;
+                const depPlano = dep.querySelector('[data-dep-field="plano_id"]');
+                const depCopart = dep.querySelector('[data-dep-field="coparticipacao"]');
+                if (depPlano) depPlano.value = plano;
+                if (depCopart) depCopart.value = copart;
+            });
         }
     });
 
@@ -835,6 +1115,8 @@
     // ============================================
     document.getElementById('angariacao_status')?.addEventListener('change', function () {
         const isSim = this.value === 'SIM';
+        const field = document.getElementById('field-taxa-angariacao');
+        if (field) field.hidden = !isSim;
 
         const badge = document.getElementById('angariacao-badge');
         const indicator = document.getElementById('angariacao-indicator');
@@ -849,77 +1131,240 @@
         }
     });
 
-    // ============================================
-    // Portabilidade Toggle
-    // ============================================
-    document.getElementById('portabilidade_status')?.addEventListener('change', function () {
-        const isSim = this.value === 'SIM';
+    const angariacaoSelect = document.getElementById('angariacao_status');
+    if (angariacaoSelect) angariacaoSelect.dispatchEvent(new Event('change'));
 
-        const badge = document.getElementById('portabilidade-badge');
-        const qtdInput = document.getElementById('qtd_portabilidade');
-        const container = document.getElementById('portabilidade-container');
-
-        if (badge) {
-            badge.className = `status-badge ${isSim ? 'badge-ativo' : 'badge-inativo'}`;
-            badge.textContent = isSim ? 'Ativo' : 'Inativo';
-        }
-
-        if (qtdInput) {
-            qtdInput.style.display = isSim ? 'block' : 'none';
-            if (!isSim) {
-                qtdInput.value = 0;
-            }
-        }
-
-        if (container) {
-            container.style.display = isSim ? 'flex' : 'none';
-            if (!isSim) {
-                container.innerHTML = '';
-            }
-        }
-    });
-
-    // Quantity of portabilidade change
-    document.getElementById('qtd_portabilidade')?.addEventListener('change', function () {
-        const qtd = Math.max(0, parseInt(this.value, 10) || 0);
-        renderPortabilidadeItems(qtd);
-    });
-
-    function renderPortabilidadeItems(qtd) {
-        const container = document.getElementById('portabilidade-container');
-        const template = document.getElementById('template-portabilidade');
-        if (!container || !template) return;
-
-        container.innerHTML = '';
-
-        for (let i = 0; i < qtd; i++) {
-            const html = template.content.cloneNode(true).querySelector('.port-item').outerHTML
-                .replace(/__PORT_INDEX__/g, i)
-                .replace(/__PORT_NUMBER__/g, i + 1);
-            container.insertAdjacentHTML('beforeend', html);
-        }
-    }
-
-    function updatePortabilidadeNumbers() {
-        const container = document.getElementById('portabilidade-container');
-        const items = container.querySelectorAll('.port-item');
-        const qtdInput = document.getElementById('qtd_portabilidade');
-
-        items.forEach((item, index) => {
-            const numberEl = item.querySelector('.port-num');
-            if (numberEl) numberEl.textContent = index + 1;
-
-            // Update input name
-            const input = item.querySelector('input[name]');
-            if (input) {
-                input.name = `portabilidades[${index}][nome]`;
+    document.querySelectorAll('[name="tem_portabilidade_escolha"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (!radio.checked) return;
+            const stage = document.getElementById('np-portabilidade-stage');
+            if (stage) stage.hidden = radio.value !== 'SIM';
+            if (radio.value === 'NAO' && portabilidades.length) {
+                portabilidades = [];
+                renderPortabilidades();
             }
         });
+    });
 
-        if (qtdInput) {
-            qtdInput.value = items.length;
-        }
+    // ============================================
+    // Portabilidade — inclusão e edição em modal
+    // ============================================
+    const portabilidadeContainer = document.getElementById('portabilidade-container');
+    const portabilidadeEmpty = document.getElementById('portabilidade-empty');
+    const portabilidadeStatus = document.getElementById('portabilidade_status');
+    const portabilidadeQuantidade = document.getElementById('qtd_portabilidade');
+    const portabilidadeBadge = document.getElementById('portabilidade-badge');
+    const portabilidadeLive = document.getElementById('portabilidade-live');
+    const portabilidadeModal = document.getElementById('portabilidade-modal');
+    const portabilidadeModalTitle = document.getElementById('portabilidade-modal-title');
+    const portabilidadeModalError = document.getElementById('portabilidade-modal-error');
+    const portabilidadeCpf = document.getElementById('portabilidade_cpf');
+    const portabilidadeCpfLookup = document.getElementById('btn-consultar-portabilidade-cpf');
+    const portabilidadeNome = document.getElementById('portabilidade_nome');
+    const portabilidadeOperadoraAnterior = document.getElementById('portabilidade_operadora_anterior_id');
+    const portabilidadeOperadora = document.getElementById('portabilidade_operadora_destino_id');
+    const portabilidadePlano = document.getElementById('portabilidade_plano_destino_id');
+    const portabilidadeSave = document.getElementById('btn-save-portabilidade');
+    const portabilidadeAdd = document.getElementById('btn-add-portabilidade');
+    const planosPortabilidade = Array.isArray(window.portabilidadePlanos) ? window.portabilidadePlanos : [];
+    let portabilidadeEditIndex = null;
+    let portabilidadeModalTrigger = null;
+
+    function normalizarPortabilidade(item) {
+        return {
+            cpf: String(item?.cpf || ''),
+            nome: String(item?.nome || '').trim(),
+            operadora_anterior_id: String(item?.operadora_anterior_id || ''),
+            operadora_destino_id: String(item?.operadora_destino_id || ''),
+            plano_destino_id: String(item?.plano_destino_id || '')
+        };
     }
+
+    function nomeOperadoraPortabilidade(id) {
+        return Array.from(portabilidadeOperadora?.options || []).find(option => option.value === String(id))?.textContent.trim() || 'Operadora não informada';
+    }
+
+    function nomePlanoPortabilidade(id) {
+        return planosPortabilidade.find(plano => String(plano.id) === String(id))?.nome || 'Plano não informado';
+    }
+
+    function renderPortabilidades() {
+        if (!portabilidadeContainer) return;
+
+        portabilidadeContainer.innerHTML = portabilidades.map((item, index) => `
+            <article class="port-item" role="listitem" data-port-index="${index}">
+                <span class="port-num" aria-hidden="true">${index + 1}</span>
+                <div class="port-summary">
+                    <strong>${escapeHtml(item.nome)}</strong>
+                    <span>${escapeHtml(item.cpf)} · ${escapeHtml(nomeOperadoraPortabilidade(item.operadora_anterior_id))} → ${escapeHtml(nomeOperadoraPortabilidade(item.operadora_destino_id))}</span>
+                    <small>${escapeHtml(nomePlanoPortabilidade(item.plano_destino_id))}</small>
+                </div>
+                <input type="hidden" name="portabilidades[${index}][nome]" value="${escapeHtml(item.nome)}">
+                <input type="hidden" name="portabilidades[${index}][cpf]" value="${escapeHtml(item.cpf)}">
+                <input type="hidden" name="portabilidades[${index}][operadora_anterior_id]" value="${escapeHtml(item.operadora_anterior_id)}">
+                <input type="hidden" name="portabilidades[${index}][operadora_destino_id]" value="${escapeHtml(item.operadora_destino_id)}">
+                <input type="hidden" name="portabilidades[${index}][plano_destino_id]" value="${escapeHtml(item.plano_destino_id)}">
+                <div class="port-actions">
+                    <button type="button" class="btn-edit-port" data-port-edit="${index}" aria-label="Editar portabilidade de ${escapeHtml(item.nome)}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg>
+                    </button>
+                    <button type="button" class="btn-remove-port" data-port-remove="${index}" aria-label="Remover portabilidade de ${escapeHtml(item.nome)}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"></path></svg>
+                    </button>
+                </div>
+            </article>
+        `).join('');
+
+        const quantidade = portabilidades.length;
+        if (portabilidadeStatus) portabilidadeStatus.value = quantidade > 0 ? 'SIM' : 'NAO';
+        if (portabilidadeQuantidade) portabilidadeQuantidade.value = quantidade;
+        if (portabilidadeEmpty) portabilidadeEmpty.hidden = quantidade > 0;
+        if (portabilidadeBadge) {
+            portabilidadeBadge.className = `status-badge ${quantidade > 0 ? 'badge-ativo' : 'badge-inativo'}`;
+            portabilidadeBadge.textContent = quantidade === 0 ? 'Nenhuma' : `${quantidade} ${quantidade === 1 ? 'cliente' : 'clientes'}`;
+        }
+        scheduleDraftSave();
+    }
+
+    function preencherPlanosPortabilidade(operadoraId, selectedId = '') {
+        if (!portabilidadePlano) return;
+        const planos = planosPortabilidade.filter(plano => String(plano.operadora_id) === String(operadoraId));
+        portabilidadePlano.disabled = !operadoraId || planos.length === 0;
+        portabilidadePlano.innerHTML = planos.length === 0
+            ? `<option value="">${operadoraId ? 'Nenhum plano ativo para esta operadora' : 'Selecione primeiro a operadora'}</option>`
+            : `<option value="">Selecione o plano...</option>${planos.map(plano => `<option value="${plano.id}">${escapeHtml(plano.nome)}</option>`).join('')}`;
+        portabilidadePlano.value = String(selectedId || '');
+    }
+
+    function abrirModalPortabilidade(index = null) {
+        if (!portabilidadeModal || !portabilidadeCpf || !portabilidadeNome || !portabilidadeOperadoraAnterior || !portabilidadeOperadora || !portabilidadePlano) return;
+        if (index === null && portabilidades.length >= 50) {
+            showModernToast('warning', 'Limite atingido', 'A proposta aceita até 50 clientes em portabilidade.');
+            return;
+        }
+
+        portabilidadeEditIndex = index;
+        portabilidadeModalTrigger = document.activeElement;
+        const item = index === null ? normalizarPortabilidade({}) : portabilidades[index];
+        portabilidadeCpf.value = item.cpf;
+        portabilidadeNome.value = item.nome;
+        portabilidadeOperadoraAnterior.value = item.operadora_anterior_id;
+        portabilidadeOperadora.value = item.operadora_destino_id;
+        preencherPlanosPortabilidade(item.operadora_destino_id, item.plano_destino_id);
+        portabilidadeModalTitle.textContent = index === null ? 'Adicionar Portabilidade' : 'Editar Portabilidade';
+        portabilidadeSave.textContent = index === null ? 'Adicionar Portabilidade' : 'Salvar alterações';
+        portabilidadeModalError.hidden = true;
+        setLookupState(
+            portabilidadeCpf,
+            'idle',
+            item.cpf ? 'Você pode consultar novamente para conferir os dados.' : 'Digite um CPF válido para consultar na Lemit.'
+        );
+        clearInvalid(portabilidadeModal);
+        portabilidadeModal.classList.add('is-open');
+        portabilidadeModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('port-modal-lock');
+        requestAnimationFrame(() => portabilidadeCpf.focus());
+    }
+
+    function fecharModalPortabilidade() {
+        if (!portabilidadeModal?.classList.contains('is-open')) return;
+        portabilidadeModal.classList.remove('is-open');
+        portabilidadeModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('port-modal-lock');
+        portabilidadeModalTrigger?.focus?.();
+    }
+
+    function salvarPortabilidade() {
+        const item = normalizarPortabilidade({
+            cpf: portabilidadeCpf?.value,
+            nome: portabilidadeNome?.value,
+            operadora_anterior_id: portabilidadeOperadoraAnterior?.value,
+            operadora_destino_id: portabilidadeOperadora?.value,
+            plano_destino_id: portabilidadePlano?.value
+        });
+        clearInvalid(portabilidadeModal);
+        const erros = [];
+        if (!cpfValido(item.cpf)) {
+            erros.push('Informe um CPF válido.');
+            setInvalid(portabilidadeCpf);
+        }
+        if (!item.nome) {
+            erros.push('Informe o nome completo do cliente.');
+            setInvalid(portabilidadeNome);
+        }
+        if (!item.operadora_anterior_id) {
+            erros.push('Selecione a operadora anterior.');
+            setInvalid(portabilidadeOperadoraAnterior);
+        }
+        if (!item.operadora_destino_id) {
+            erros.push('Selecione a operadora de destino.');
+            setInvalid(portabilidadeOperadora);
+        }
+        if (!item.plano_destino_id) {
+            erros.push('Selecione o plano de destino.');
+            setInvalid(portabilidadePlano);
+        }
+        if (erros.length > 0) {
+            portabilidadeModalError.textContent = erros[0];
+            portabilidadeModalError.hidden = false;
+            [portabilidadeCpf, portabilidadeNome, portabilidadeOperadoraAnterior, portabilidadeOperadora, portabilidadePlano].find(field => field?.classList.contains('is-invalid'))?.focus();
+            return;
+        }
+
+        if (portabilidadeEditIndex === null) portabilidades.push(item);
+        else portabilidades[portabilidadeEditIndex] = item;
+        renderPortabilidades();
+        fecharModalPortabilidade();
+        portabilidadeLive.textContent = portabilidadeEditIndex === null ? 'Portabilidade adicionada.' : 'Portabilidade atualizada.';
+    }
+
+    function restaurarPortabilidades(items) {
+        portabilidades = (Array.isArray(items) ? items : [])
+            .map(normalizarPortabilidade)
+            .filter(item => item.nome || item.cpf || item.operadora_destino_id || item.plano_destino_id);
+        renderPortabilidades();
+        return portabilidades.length > 0;
+    }
+
+    portabilidadeAdd?.addEventListener('click', () => abrirModalPortabilidade());
+    applyCpfMask(portabilidadeCpf);
+    portabilidadeCpfLookup?.addEventListener('click', () => consultarDocumento(portabilidadeCpf, true));
+    document.getElementById('btn-close-portabilidade')?.addEventListener('click', fecharModalPortabilidade);
+    document.getElementById('btn-cancel-portabilidade')?.addEventListener('click', fecharModalPortabilidade);
+    portabilidadeSave?.addEventListener('click', salvarPortabilidade);
+    portabilidadeOperadora?.addEventListener('change', () => preencherPlanosPortabilidade(portabilidadeOperadora.value));
+    portabilidadeModal?.addEventListener('click', event => {
+        if (event.target === portabilidadeModal) fecharModalPortabilidade();
+    });
+    portabilidadeContainer?.addEventListener('click', event => {
+        const edit = event.target.closest('[data-port-edit]');
+        const remove = event.target.closest('[data-port-remove]');
+        if (edit) abrirModalPortabilidade(Number(edit.dataset.portEdit));
+        if (remove) {
+            const index = Number(remove.dataset.portRemove);
+            const nome = portabilidades[index]?.nome || 'Cliente';
+            portabilidades.splice(index, 1);
+            renderPortabilidades();
+            portabilidadeLive.textContent = `Portabilidade de ${nome} removida.`;
+            (portabilidadeContainer.querySelector('[data-port-edit]') || portabilidadeAdd)?.focus();
+        }
+    });
+    document.addEventListener('keydown', event => {
+        if (!portabilidadeModal?.classList.contains('is-open')) return;
+        if (event.key === 'Escape') fecharModalPortabilidade();
+        if (event.key === 'Tab') {
+            const focusable = Array.from(portabilidadeModal.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled)'));
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus();
+            }
+        }
+    });
 
     // ============================================
     // Toggle ADESAO/PME
@@ -978,8 +1423,8 @@
         // Ocultar campos
         const fieldTipoEmpresa = document.getElementById('field-tipo-empresa');
         const fieldDataAbertura = document.getElementById('field-data-abertura');
-        if (fieldTipoEmpresa) fieldTipoEmpresa.style.display = 'none';
-        if (fieldDataAbertura) fieldDataAbertura.style.display = 'none';
+        if (fieldTipoEmpresa) fieldTipoEmpresa.hidden = true;
+        if (fieldDataAbertura) fieldDataAbertura.hidden = true;
 
         // Remover required do tipo_empresa
         const tipoEmpresaSelect = document.getElementById('tipo_empresa');
@@ -997,6 +1442,7 @@
                 select.value = '';
             }
         });
+        updateTitularActionState();
     }
 
     function switchToPmeMode() {
@@ -1049,8 +1495,8 @@
         // Mostrar campos
         const fieldTipoEmpresa = document.getElementById('field-tipo-empresa');
         const fieldDataAbertura = document.getElementById('field-data-abertura');
-        if (fieldTipoEmpresa) fieldTipoEmpresa.style.display = '';
-        if (fieldDataAbertura) fieldDataAbertura.style.display = '';
+        if (fieldTipoEmpresa) fieldTipoEmpresa.hidden = false;
+        if (fieldDataAbertura) fieldDataAbertura.hidden = false;
 
         // Restaurar required do tipo_empresa
         const tipoEmpresaSelect = document.getElementById('tipo_empresa');
@@ -1066,6 +1512,7 @@
                 select.setAttribute('required', '');
             }
         });
+        updateTitularActionState();
     }
 
     // Event listener para toggle de tipo de proposta
@@ -1077,10 +1524,20 @@
         }
     });
 
+    document.querySelectorAll('[name="tipo_proposta_escolha"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (!radio.checked) return;
+            const toggle = document.getElementById('tipo_proposta_toggle');
+            toggle.value = radio.value;
+            toggle.dispatchEvent(new Event('change', { bubbles: true }));
+            document.getElementById('np-summary-type').textContent = radio.value;
+        });
+    });
+
     // ============================================
     // Form Validation
     // ============================================
-    function validateForm() {
+    function validateForm(includePortabilidade = false) {
         const errors = [];
         let firstInvalid = null;
 
@@ -1099,8 +1556,11 @@
         }
 
         const cpfCnpj = document.getElementById('cpf_cnpj');
-        if (!cpfCnpj?.value.trim()) {
-            fail(cpfCnpj, currentPropostaType === 'PME' ? 'Informe o CNPJ da empresa.' : 'Informe o CPF do cliente.');
+        const documentoContratoValido = isGuidedProposal
+            ? (currentPropostaType === 'PME' ? cnpjValido(cpfCnpj?.value) : cpfValido(cpfCnpj?.value))
+            : Boolean(cpfCnpj?.value.trim());
+        if (!documentoContratoValido) {
+            fail(cpfCnpj, currentPropostaType === 'PME' ? 'Informe um CNPJ válido.' : 'Informe um CPF válido.');
         }
 
         if (currentPropostaType === 'PME') {
@@ -1113,6 +1573,13 @@
         const operadora = document.getElementById('operadora');
         if (!operadora?.value) {
             fail(operadora, 'Selecione a operadora.');
+        }
+
+        const valorContrato = document.getElementById('valor_contrato');
+        if (isGuidedProposal && Number(digitsOnly(valorContrato?.value)) <= 0) fail(valorContrato, 'Informe o valor mensal do contrato.');
+        if (isGuidedProposal && document.getElementById('angariacao_status')?.value === 'SIM') {
+            const taxa = document.getElementById('taxa_angariacao');
+            if (Number(digitsOnly(taxa?.value)) <= 0) fail(taxa, 'Informe o valor da angariação.');
         }
 
         // Titulares
@@ -1133,7 +1600,7 @@
             if (!nome?.value.trim()) fail(nome, `Informe o nome completo do Titular ${num}.`);
 
             const cpf = field('[cpf]');
-            if (digitsOnly(cpf?.value).length !== 11) fail(cpf, `Informe o CPF completo do Titular ${num}.`);
+            if (isGuidedProposal ? !cpfValido(cpf?.value) : digitsOnly(cpf?.value).length !== 11) fail(cpf, `Informe um CPF válido para o Titular ${num}.`);
 
             const nascimento = field('[data_nascimento]');
             if (!isValidDateBr(nascimento?.value)) fail(nascimento, `Informe a data de nascimento do Titular ${num} (DD/MM/AAAA).`);
@@ -1184,11 +1651,12 @@
             card.querySelectorAll('.dependente-item').forEach(depItem => {
                 const dep = getDepValues(depItem);
                 const depOk = dep.nome.trim() !== ''
-                    && digitsOnly(dep.cpf).length === 11
+                    && (isGuidedProposal ? cpfValido(dep.cpf) : digitsOnly(dep.cpf).length === 11)
                     && isValidDateBr(dep.data_nascimento)
                     && isValidEmail(dep.email)
                     && digitsOnly(dep.telefone1).length >= 10
                     && dep.parentesco !== ''
+                    && (!isGuidedProposal || (dep.plano_id !== '' && dep.coparticipacao !== ''))
                     && (dep.plano_anterior !== 'SIM' || dep.operadora_anterior_id !== '');
 
                 if (!depOk) {
@@ -1198,11 +1666,20 @@
             });
         });
 
+        if (includePortabilidade && document.querySelector('[name="tem_portabilidade_escolha"]:checked')?.value === 'SIM') {
+            if (portabilidades.length === 0) errors.push('Adicione pelo menos uma pessoa em portabilidade.');
+            portabilidades.forEach((item, index) => {
+                if (cpfValido(item.cpf) && item.nome && item.operadora_anterior_id && item.operadora_destino_id && item.plano_destino_id) return;
+                const editButton = portabilidadeContainer?.querySelector(`[data-port-edit="${index}"]`);
+                fail(editButton, `Complete todos os dados da Portabilidade ${index + 1}.`);
+            });
+        }
+
         return { ok: errors.length === 0, errors, firstInvalid };
     }
 
     document.getElementById('formNovaProposta')?.addEventListener('submit', function (e) {
-        const result = validateForm();
+        const result = validateForm(true);
         if (result.ok) {
             return true;
         }
@@ -1335,7 +1812,7 @@
         // Show operadora anterior row if plano_anterior = SIM
         if (titularData.plano_anterior === 'SIM') {
             const opAnteriorRow = newBlock.querySelector('.field-row-op-anterior');
-            if (opAnteriorRow) opAnteriorRow.style.display = 'flex';
+            if (opAnteriorRow) opAnteriorRow.hidden = false;
         }
 
         // Apply masks
@@ -1427,10 +1904,12 @@
 
         return {
             savedAt: Date.now(),
+            etapa: isGuidedProposal && typeof etapaAtual === 'number' ? etapaAtual : undefined,
             tipo_contrato: currentPropostaType,
             fields,
             titulares: Array.from(document.querySelectorAll('#titulares-container .titular-card')).map(serializeTitularCard),
-            portabilidades: Array.from(document.querySelectorAll('#portabilidade-container .port-item input[name]')).map(i => i.value)
+            portabilidades: portabilidades.map(item => ({ ...item })),
+            tem_portabilidade: document.querySelector('[name="tem_portabilidade_escolha"]:checked')?.value || 'NAO'
         };
     }
 
@@ -1442,7 +1921,8 @@
             [t.nome, t.cpf, t.email, t.telefone1, t.data_nascimento].some(v => String(v || '').trim() !== '')
             || (t.dependentes || []).length > 0
         );
-        return camposDigitados || titularDigitado;
+        const portabilidadeDigitada = (draft.portabilidades || []).some(item => String(item?.nome || '').trim() !== '');
+        return camposDigitados || titularDigitado || portabilidadeDigitada;
     }
 
     function saveDraftNow() {
@@ -1500,6 +1980,8 @@
         if (draft.tipo_contrato === 'ADESAO') {
             const toggle = document.getElementById('tipo_proposta_toggle');
             if (toggle) toggle.value = 'ADESAO';
+            const radio = document.querySelector('[name="tipo_proposta_escolha"][value="ADESAO"]');
+            if (radio) radio.checked = true;
             switchToAdesaoMode();
         }
 
@@ -1509,18 +1991,16 @@
         });
 
         // Badges e visibilidades que dependem do evento change
-        ['plano_dental', 'angariacao_status', 'portabilidade_status'].forEach(id => {
+        ['plano_dental', 'angariacao_status'].forEach(id => {
             document.getElementById(id)?.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
-        // Portabilidades (o change acima ja mostrou o container quando SIM)
-        const qtdPort = parseInt(draft.fields?.qtd_portabilidade, 10) || 0;
-        if (draft.fields?.portabilidade_status === 'SIM' && qtdPort > 0) {
-            renderPortabilidadeItems(qtdPort);
-            const inputs = document.querySelectorAll('#portabilidade-container .port-item input[name]');
-            (draft.portabilidades || []).forEach((nome, i) => {
-                if (inputs[i]) inputs[i].value = nome;
-            });
+        restaurarPortabilidades(draft.portabilidades || []);
+        if (draft.tem_portabilidade === 'SIM') {
+            const radio = document.querySelector('[name="tem_portabilidade_escolha"][value="SIM"]');
+            if (radio) radio.checked = true;
+            const stage = document.getElementById('np-portabilidade-stage');
+            if (stage) stage.hidden = false;
         }
 
         const temTitulares = Array.isArray(draft.titulares) && draft.titulares.length > 0;
@@ -1533,6 +2013,7 @@
         }
 
         showModernToast('info', 'Rascunho recuperado', 'Restauramos o que voce preencheu antes de atualizar a pagina.');
+        if (isGuidedProposal && draft.etapa) mostrarEtapa(Math.min(5, Math.max(1, Number(draft.etapa))), false);
         return temTitulares;
     }
 
@@ -1540,6 +2021,8 @@
     const formNovaProposta = document.getElementById('formNovaProposta');
     formNovaProposta?.addEventListener('input', scheduleDraftSave);
     formNovaProposta?.addEventListener('change', scheduleDraftSave);
+    formNovaProposta?.addEventListener('input', atualizarResumoProposta);
+    formNovaProposta?.addEventListener('change', atualizarResumoProposta);
 
     // ============================================
     // Documentos da venda — criação + multipart individual
@@ -1576,12 +2059,51 @@
         const operadora = document.getElementById('operadora');
         const nomeOperadora = operadora?.selectedOptions?.[0]?.textContent.trim() || 'Não informada';
         const vidas = Number(document.getElementById('vidas')?.value || 0);
-        document.getElementById('np-resumo-empresa').textContent = nome;
-        document.getElementById('np-resumo-operadora').textContent = nomeOperadora;
-        document.getElementById('np-resumo-vidas').textContent = `${vidas} ${vidas === 1 ? 'vida' : 'vidas'}`;
+        const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+        setText('np-resumo-empresa', nome);
+        setText('np-resumo-operadora', nomeOperadora);
+        setText('np-resumo-vidas', `${vidas} ${vidas === 1 ? 'vida' : 'vidas'}`);
+        setText('np-summary-type', currentPropostaType);
+        setText('np-summary-name', nome);
+        setText('np-summary-operator', nomeOperadora);
+        setText('np-summary-value', document.getElementById('valor_contrato')?.value || 'R$ 0,00');
+    }
+
+    function erroEtapa(errors, firstInvalid) {
+        const extra = errors.length > 1 ? ` (+${errors.length - 1} outras pendências)` : '';
+        showModernToast('error', 'Etapa incompleta', errors[0] + extra);
+        firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => firstInvalid?.focus?.({ preventScroll: true }), 300);
+    }
+
+    function validarEtapa(etapa) {
+        if (etapa >= 3) return validateForm(etapa >= 4);
+        const errors = [];
+        let firstInvalid = null;
+        const fail = (el, message) => { errors.push(message); setInvalid(el); if (!firstInvalid) firstInvalid = el; };
+        clearInvalid(document.querySelector(`[data-step-panel="${etapa}"]`) || document);
+        if (etapa === 1) {
+            const documento = document.getElementById('cpf_cnpj');
+            const documentoOk = currentPropostaType === 'PME' ? cnpjValido(documento?.value) : cpfValido(documento?.value);
+            if (!documentoOk) fail(documento, `Informe um ${currentPropostaType === 'PME' ? 'CNPJ' : 'CPF'} válido.`);
+            const nome = document.getElementById('nome_contrato');
+            if (!nome?.value.trim()) fail(nome, currentPropostaType === 'PME' ? 'Informe a razão social.' : 'Informe o nome completo.');
+            const tipo = document.getElementById('tipo_empresa');
+            if (currentPropostaType === 'PME' && !tipo?.value) fail(tipo, 'Selecione o tipo da empresa.');
+        }
+        if (etapa === 2) {
+            const operadora = document.getElementById('operadora');
+            if (!operadora?.value) fail(operadora, 'Selecione a operadora vendida.');
+            const valor = document.getElementById('valor_contrato');
+            if (Number(digitsOnly(valor?.value)) <= 0) fail(valor, 'Informe o valor mensal do contrato.');
+            const taxa = document.getElementById('taxa_angariacao');
+            if (document.getElementById('angariacao_status')?.value === 'SIM' && Number(digitsOnly(taxa?.value)) <= 0) fail(taxa, 'Informe o valor da angariação.');
+        }
+        return { ok: errors.length === 0, errors, firstInvalid };
     }
 
     function mostrarEtapa(etapa, moverFoco = true) {
+        if (!isGuidedProposal) return;
         etapaAtual = etapa;
         document.querySelectorAll('[data-step-panel]').forEach(panel => {
             const ativo = Number(panel.dataset.stepPanel) === etapa;
@@ -1590,37 +2112,49 @@
         });
         document.querySelectorAll('[data-step-indicator]').forEach(indicator => {
             const numero = Number(indicator.dataset.stepIndicator);
+            const tituloEtapa = indicator.querySelector('.np-step-copy strong')?.textContent?.trim() || `Etapa ${numero}`;
             indicator.classList.toggle('is-active', numero === etapa);
             indicator.classList.toggle('is-complete', numero < etapa);
-            if (numero === etapa) indicator.setAttribute('aria-current', 'step');
-            else indicator.removeAttribute('aria-current');
+            if (numero === etapa) {
+                indicator.setAttribute('aria-current', 'step');
+                indicator.setAttribute('aria-label', `Etapa ${numero} de 5: ${tituloEtapa}, atual`);
+            } else {
+                indicator.removeAttribute('aria-current');
+                indicator.setAttribute('aria-label', `Etapa ${numero} de 5: ${tituloEtapa}${numero < etapa ? ', concluída' : ''}`);
+            }
         });
-        avancarEtapaButton.hidden = etapa !== 1;
-        voltarEtapaButton.hidden = etapa !== 2 || Boolean(vendaCriada);
-        finalizarVendaButton.hidden = etapa !== 2 || (documentosSelecionados.length === 0 && !vendaCriada);
-        concluirSemDocumentosButton.hidden = etapa !== 2 || documentosSelecionados.length > 0 || Boolean(vendaCriada);
-        document.querySelector('.nova-proposta-wrapper')?.classList.toggle('is-documents-step', etapa === 2);
-        if (etapa === 2) atualizarResumoProposta();
+        const etapaAtiva = document.querySelector(`[data-step-indicator="${etapa}"]`);
+        const trilhaEtapas = etapaAtiva?.closest('.np-steps');
+        if (etapaAtiva && trilhaEtapas?.scrollWidth > trilhaEtapas.clientWidth) {
+            requestAnimationFrame(() => etapaAtiva.scrollIntoView({
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            }));
+        }
+        if (avancarEtapaButton) avancarEtapaButton.hidden = etapa >= 5;
+        if (voltarEtapaButton) voltarEtapaButton.hidden = etapa <= 1 || Boolean(vendaCriada);
+        if (finalizarVendaButton) finalizarVendaButton.hidden = etapa !== 5 || (documentosSelecionados.length === 0 && !vendaCriada);
+        if (concluirSemDocumentosButton) concluirSemDocumentosButton.hidden = etapa !== 5 || documentosSelecionados.length > 0 || Boolean(vendaCriada);
+        document.querySelector('.nova-proposta-wrapper')?.classList.toggle('is-documents-step', etapa === 5);
+        atualizarResumoProposta();
         if (moverFoco) {
-            const titulo = document.getElementById(etapa === 1 ? 'np-step-proposta-title' : 'np-documentos-page-title');
+            const titulo = document.getElementById(`np-step-${etapa}-title`);
             window.scrollTo({ top: 0, behavior: 'smooth' });
             setTimeout(() => titulo?.focus({ preventScroll: true }), 250);
         }
     }
 
     avancarEtapaButton?.addEventListener('click', () => {
-        const result = validateForm();
+        const result = validarEtapa(etapaAtual);
         if (!result.ok) {
-            const extra = result.errors.length > 1 ? ` (+${result.errors.length - 1} outras pendências)` : '';
-            showModernToast('error', 'Proposta incompleta', result.errors[0] + extra);
-            result.firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setTimeout(() => result.firstInvalid?.focus?.({ preventScroll: true }), 300);
+            erroEtapa(result.errors, result.firstInvalid);
             return;
         }
         saveDraftNow();
-        mostrarEtapa(2);
+        mostrarEtapa(Math.min(5, etapaAtual + 1));
     });
-    voltarEtapaButton?.addEventListener('click', () => mostrarEtapa(1));
+    voltarEtapaButton?.addEventListener('click', () => mostrarEtapa(Math.max(1, etapaAtual - 1)));
     concluirSemDocumentosButton?.addEventListener('click', () => formNovaProposta?.requestSubmit(finalizarVendaButton));
     document.getElementById('btn-open-docs-modal-step')?.addEventListener('click', () => {
         document.getElementById('btn-open-docs-modal')?.click();
@@ -1668,8 +2202,8 @@
         if (documentosLimpar) documentosLimpar.hidden = Boolean(vendaCriada);
         if (documentosResumoQuantidade) documentosResumoQuantidade.textContent = `${quantidade} ${quantidade === 1 ? 'arquivo selecionado' : 'arquivos selecionados'}`;
         if (documentosResumoTamanho) documentosResumoTamanho.textContent = `${formatBytes(tamanhoTotal)} no total`;
-        if (concluirSemDocumentosButton) concluirSemDocumentosButton.hidden = etapaAtual !== 2 || quantidade > 0 || Boolean(vendaCriada);
-        if (finalizarVendaButton) finalizarVendaButton.hidden = etapaAtual !== 2 || (quantidade === 0 && !vendaCriada);
+        if (concluirSemDocumentosButton) concluirSemDocumentosButton.hidden = etapaAtual !== 5 || quantidade > 0 || Boolean(vendaCriada);
+        if (finalizarVendaButton) finalizarVendaButton.hidden = etapaAtual !== 5 || (quantidade === 0 && !vendaCriada);
         if (finalizarVendaButton && !vendaCriada) {
             const label = finalizarVendaButton.querySelector('span');
             if (label) label.textContent = quantidade > 0 ? `Salvar venda e enviar ${quantidade} ${quantidade === 1 ? 'arquivo' : 'arquivos'}` : 'Salvar venda';
@@ -1684,7 +2218,7 @@
                     <strong title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</strong>
                     <span>${formatBytes(item.file.size)}</span>
                     ${item.status === 'queued' || item.status === 'error' ? `<small>${escapeHtml(item.label)}</small>` : ''}
-                    ${item.status === 'uploading' || item.progress === 100 ? `<div class="np-document-progress" role="progressbar" aria-label="Progresso de ${escapeHtml(item.file.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${item.progress || 0}"><span style="width:${item.progress || 0}%"></span></div>` : ''}
+                    ${item.status === 'uploading' || item.progress === 100 ? `<div class="np-document-progress" role="progressbar" aria-label="Progresso de ${escapeHtml(item.file.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${item.progress || 0}"><span style="transform:scaleX(${(item.progress || 0) / 100})"></span></div>` : ''}
                 </div>
                 <span class="np-document-state ${estado.classe}">${escapeHtml(estado.texto)}</span>
                 ${item.status === 'selected' || item.status === 'error' ? `<button type="button" class="np-document-remove" data-index="${index}" aria-label="Remover ${escapeHtml(item.file.name)}" title="Remover arquivo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"></path></svg></button>` : ''}
@@ -1863,15 +2397,26 @@
     // ============================================
     // Initialize - Add first titular on load or restore old
     // ============================================
-    document.addEventListener('DOMContentLoaded', function () {
+    function initializeProposal() {
+        if (document.documentElement.dataset.novaPropostaInitialized === '1') return;
+        document.documentElement.dataset.novaPropostaInitialized = '1';
+
         const container = document.getElementById('titulares-container');
 
         initDependenteModal();
 
+        const hasOldPortabilidades = restaurarPortabilidades(window.oldPortabilidades || []);
+        if (hasOldPortabilidades) {
+            const radio = document.querySelector('[name="tem_portabilidade_escolha"][value="SIM"]');
+            if (radio) radio.checked = true;
+            const stage = document.getElementById('np-portabilidade-stage');
+            if (stage) stage.hidden = false;
+        }
+
         // Prioridade de restore: old() (erro de validacao no servidor)
         // vem antes do rascunho local (F5).
         const hasOldData = restoreOldTitulares();
-        const hasDraft = !hasOldData && restoreDraft();
+        const hasDraft = !hasOldData && !hasOldPortabilidades && restoreDraft();
 
         // Se nao ha dado nenhum para restaurar, adicionar titular vazio
         if (!hasOldData && !hasDraft && container && container.children.length === 0) {
@@ -1888,6 +2433,12 @@
         } else if (flash.status === 'error' && flash.message) {
             showModernToast('error', 'Erro', flash.message);
         }
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeProposal, { once: true });
+    } else {
+        initializeProposal();
+    }
 
 })();

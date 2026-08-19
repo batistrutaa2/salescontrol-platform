@@ -1,56 +1,12 @@
 // Camada extra para a tela de estorno: reaproveita 100% o JS de novaProposta
-// e adiciona apenas (a) restauração das portabilidades antigas e (b) confirmação
-// SweetAlert antes de devolver a venda ao backoffice.
+// e adiciona a confirmação SweetAlert antes de devolver a venda ao backoffice.
 
 (function () {
     'use strict';
 
     document.addEventListener('DOMContentLoaded', function () {
-        restoreOldPortabilidades();
         wireConfirmReenvio();
     });
-
-    // ---------------------------------------------------------------
-    // Portabilidades — reconstrói os items com os dados antigos.
-    // O JS de novaProposta só monta items vazios via change handler,
-    // então fazemos isso explicitamente quando há dados pré-existentes.
-    // ---------------------------------------------------------------
-    function restoreOldPortabilidades() {
-        const olds = Array.isArray(window.oldPortabilidades) ? window.oldPortabilidades : [];
-        if (!olds.length) return;
-
-        const container = document.getElementById('portabilidade-container');
-        const template = document.getElementById('template-portabilidade');
-        const qtdInput = document.getElementById('qtd_portabilidade');
-        const statusSelect = document.getElementById('portabilidade_status');
-        const badge = document.getElementById('portabilidade-badge');
-        if (!container || !template) return;
-
-        container.style.display = 'flex';
-        container.innerHTML = '';
-
-        olds.forEach(function (port, index) {
-            const html = template.content.cloneNode(true).querySelector('.port-item').outerHTML
-                .replace(/__PORT_INDEX__/g, index)
-                .replace(/__PORT_NUMBER__/g, index + 1);
-            container.insertAdjacentHTML('beforeend', html);
-
-            const last = container.lastElementChild;
-            const input = last.querySelector('input[name]');
-            if (input) input.value = port.nome || '';
-        });
-
-        if (qtdInput) {
-            qtdInput.value = olds.length;
-            qtdInput.style.display = 'block';
-        }
-        if (statusSelect) statusSelect.value = 'SIM';
-        if (badge) {
-            badge.classList.remove('badge-inativo');
-            badge.classList.add('badge-ativo');
-            badge.textContent = 'Ativo';
-        }
-    }
 
     // ---------------------------------------------------------------
     // Submit: confirma com o vendedor antes de devolver ao backoffice.

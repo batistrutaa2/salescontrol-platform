@@ -50,6 +50,7 @@ use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\TransferenciaContatoRepository;
 use App\Repositories\Eloquent\UsuariosRepository;
 use App\Repositories\Eloquent\VendasRepository;
+use App\Support\DocumentoFiscal;
 use App\UseCases\ComercialUseCase;
 use App\UseCases\MailingUseCase;
 use App\UseCases\PreditivaPriorizacaoUseCase;
@@ -62,6 +63,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class Comercial extends Controller
 {
@@ -692,9 +694,31 @@ class Comercial extends Controller
             // Validação dos campos
             $rules = [
                 'contato_id' => 'required|integer',
+                'tipo_contrato' => 'required|in:PME,ADESAO',
                 'nome_contrato' => 'required|string|max:255',
-                'cpf_cnpj' => 'required|string',
-                'operadora_id' => 'required|integer',
+                'cpf_cnpj' => ['required', 'string', function ($attribute, $value, $fail) use ($request) {
+                    $digitos = DocumentoFiscal::somenteDigitos($value);
+                    $tamanhoEsperado = $request->input('tipo_contrato') === 'ADESAO' ? 11 : 14;
+                    if (strlen($digitos) !== $tamanhoEsperado || ! DocumentoFiscal::valido($digitos)) {
+                        $fail($tamanhoEsperado === 11 ? 'Informe um CPF válido.' : 'Informe um CNPJ válido.');
+                    }
+                }],
+                'tipo_empresa' => 'required_if:tipo_contrato,PME|nullable|in:MEI,ME,EPP,LTDA,SA,EIRELI,SLU',
+                'operadora_id' => [
+                    'required', 'integer',
+                    Rule::exists('operadoras', 'id')->where('empresa_id', Auth::user()->empresa_id)->where('status', 'Y'),
+                ],
+                'valor_contrato' => ['required', function ($attribute, $value, $fail) {
+                    if (Helpers::converterParaDecimal($value) <= 0) {
+                        $fail('Informe um valor de contrato maior que zero.');
+                    }
+                }],
+                'angariacao_status' => 'required|in:SIM,NAO',
+                'taxa_angariacao' => [function ($attribute, $value, $fail) use ($request) {
+                    if ($request->input('angariacao_status') === 'SIM' && Helpers::converterParaDecimal($value) <= 0) {
+                        $fail('Informe o valor da angariação.');
+                    }
+                }],
                 'titulares' => 'required|array|min:1',
 
                 'titulares.*.nome' => 'required|string|max:100',
@@ -715,15 +739,46 @@ class Comercial extends Controller
                 'titulares.*.dependentes.*.email' => 'required|email',
                 'titulares.*.dependentes.*.telefone1' => 'required|string|min:14',
                 'titulares.*.dependentes.*.parentesco' => 'required|string',
+                'titulares.*.dependentes.*.plano_id' => 'required|integer',
+                'titulares.*.dependentes.*.coparticipacao' => 'required|in:Y,N,PARCIAL,COMPLETA',
                 'titulares.*.dependentes.*.plano_anterior' => 'nullable|in:SIM,NAO',
                 'titulares.*.dependentes.*.operadora_anterior_id' => 'nullable|integer|required_if:titulares.*.dependentes.*.plano_anterior,SIM',
+
+                'portabilidades' => ['nullable', 'array', 'max:50'],
+                'portabilidades.*.nome' => ['required', 'string', 'max:100'],
+                'portabilidades.*.cpf' => ['required', 'string', function ($attribute, $value, $fail) {
+                    if (! DocumentoFiscal::cpfValido($value)) {
+                        $fail('Informe um CPF válido para cada portabilidade.');
+                    }
+                }],
+                'portabilidades.*.operadora_anterior_id' => [
+                    'required', 'integer',
+                    Rule::exists('operadoras', 'id')->where('empresa_id', Auth::user()->empresa_id),
+                ],
+                'portabilidades.*.operadora_destino_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('operadoras', 'id')
+                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('status', 'Y'),
+                ],
+                'portabilidades.*.plano_destino_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('planos', 'id')
+                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('status', 'Y'),
+                ],
             ];
 
             $messages = [
                 'contato_id.required' => 'Contato não identificado.',
                 'nome_contrato.required' => 'Razão Social é obrigatória.',
                 'cpf_cnpj.required' => 'CNPJ é obrigatório.',
+                'tipo_empresa.required_if' => 'Selecione o tipo da empresa.',
                 'operadora_id.required' => 'Selecione uma operadora.',
+                'valor_contrato.required' => 'Informe o valor do contrato.',
+                'angariacao_status.required' => 'Informe se a venda possui angariação.',
                 'titulares.required' => 'Adicione pelo menos um titular.',
                 'titulares.min' => 'Adicione pelo menos um titular.',
 
@@ -752,7 +807,16 @@ class Comercial extends Controller
                 'titulares.*.dependentes.*.telefone1.required' => 'Informe o telefone de todos os dependentes.',
                 'titulares.*.dependentes.*.telefone1.min' => 'Telefone de dependente incompleto.',
                 'titulares.*.dependentes.*.parentesco.required' => 'Selecione o parentesco de todos os dependentes.',
+                'titulares.*.dependentes.*.plano_id.required' => 'Selecione o plano de todos os dependentes.',
+                'titulares.*.dependentes.*.coparticipacao.required' => 'Selecione a coparticipação de todos os dependentes.',
                 'titulares.*.dependentes.*.operadora_anterior_id.required_if' => 'Informe a operadora anterior do dependente com plano anterior.',
+                'portabilidades.*.nome.required' => 'Informe o nome completo de cada cliente em portabilidade.',
+                'portabilidades.*.cpf.required' => 'Informe o CPF de cada cliente em portabilidade.',
+                'portabilidades.*.operadora_anterior_id.required' => 'Selecione a operadora anterior de cada portabilidade.',
+                'portabilidades.*.operadora_destino_id.required' => 'Selecione a operadora de destino de cada portabilidade.',
+                'portabilidades.*.operadora_destino_id.exists' => 'A operadora de destino selecionada não está disponível.',
+                'portabilidades.*.plano_destino_id.required' => 'Selecione o plano de destino de cada portabilidade.',
+                'portabilidades.*.plano_destino_id.exists' => 'O plano de destino selecionado não está disponível.',
             ];
 
             $validator = Validator::make($request->all(), $rules, $messages);
@@ -760,6 +824,14 @@ class Comercial extends Controller
             // Telefones de titulares não podem se repetir; compara só os dígitos
             // porque a máscara pode variar entre restores de old input.
             $validator->after(function ($v) use ($request) {
+                $contatoValido = ContatosCorretores::where('contato_id', $request->integer('contato_id'))
+                    ->where('empresa_id', Auth::user()->empresa_id)
+                    ->where('user_id', Auth::id())
+                    ->exists();
+                if (! $contatoValido) {
+                    $v->errors()->add('contato_id', 'Contato inválido ou sem permissão de acesso.');
+                }
+
                 $seen = [];
                 foreach ((array) $request->input('titulares', []) as $i => $titular) {
                     $digits = preg_replace('/\D/', '', $titular['telefone1'] ?? '');
@@ -770,6 +842,52 @@ class Comercial extends Controller
                         $v->errors()->add("titulares.$i.telefone1", 'Dois titulares não podem ter o mesmo telefone.');
                     } else {
                         $seen[$digits] = $i;
+                    }
+
+                    if (! DocumentoFiscal::cpfValido($titular['cpf'] ?? '')) {
+                        $v->errors()->add("titulares.$i.cpf", 'Informe um CPF válido para o titular.');
+                    }
+                    if (! empty($titular['precisa_cancelamento']) && empty($titular['operadora_anterior_id'])) {
+                        $v->errors()->add("titulares.$i.operadora_anterior_id", 'Informe a operadora que deverá ser cancelada.');
+                    }
+
+                    $planoTitular = Plano::whereKey((int) ($titular['plano_id'] ?? 0))
+                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('operadora_id', $request->integer('operadora_id'))->exists();
+                    if (! $planoTitular) {
+                        $v->errors()->add("titulares.$i.plano_id", 'O plano do titular não pertence à operadora selecionada.');
+                    }
+
+                    foreach ((array) ($titular['dependentes'] ?? []) as $j => $dependente) {
+                        if (! DocumentoFiscal::cpfValido($dependente['cpf'] ?? '')) {
+                            $v->errors()->add("titulares.$i.dependentes.$j.cpf", 'Informe um CPF válido para o dependente.');
+                        }
+                        $planoDependente = Plano::whereKey((int) ($dependente['plano_id'] ?? 0))
+                            ->where('empresa_id', Auth::user()->empresa_id)
+                            ->where('operadora_id', $request->integer('operadora_id'))->exists();
+                        if (! $planoDependente) {
+                            $v->errors()->add("titulares.$i.dependentes.$j.plano_id", 'O plano do dependente não pertence à operadora selecionada.');
+                        }
+                    }
+                }
+
+                foreach ((array) $request->input('portabilidades', []) as $i => $portabilidade) {
+                    $operadoraId = (int) ($portabilidade['operadora_destino_id'] ?? 0);
+                    $planoId = (int) ($portabilidade['plano_destino_id'] ?? 0);
+                    if ($operadoraId === 0 || $planoId === 0) {
+                        continue;
+                    }
+
+                    $planoValido = Plano::whereKey($planoId)
+                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('operadora_id', $operadoraId)
+                        ->exists();
+
+                    if (! $planoValido) {
+                        $v->errors()->add(
+                            "portabilidades.$i.plano_destino_id",
+                            'O plano selecionado não pertence à operadora de destino informada.'
+                        );
                     }
                 }
             });
@@ -807,6 +925,7 @@ class Comercial extends Controller
                         'documentacao_status' => $saveSale->documentacao_status ?? 'PENDENTE',
                     ], 201);
                 }
+
                 return redirect()->route('sale.listSale')
                     ->with('status', 'success')
                     ->with('message', 'Venda Cadastrada com sucesso');
@@ -819,6 +938,7 @@ class Comercial extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Verifique os campos obrigatórios.', 'errors' => $e->errors()], 422);
             }
+
             return redirect()->back()
                 ->withErrors($e->errors())
                 ->withInput()
@@ -827,8 +947,10 @@ class Comercial extends Controller
         } catch (\Throwable $th) {
             if ($request->expectsJson()) {
                 report($th);
+
                 return response()->json(['message' => 'Falha ao cadastrar a venda.'], 500);
             }
+
             return redirect()->back()
                 ->withInput()
                 ->with('status', 'error')
@@ -846,13 +968,20 @@ class Comercial extends Controller
                 ->with('message', 'Sem permissão de acesso');
         }
 
-        $operadoras = Operadora::where('status', 'Y')
+        $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)
+            ->where('status', 'Y')
             ->orderBy('nome')
             ->get(['id', 'nome']);
+
+        $planosPortabilidade = Plano::where('empresa_id', Auth::user()->empresa_id)
+            ->where('status', 'Y')
+            ->orderBy('nome')
+            ->get(['id', 'operadora_id', 'nome']);
 
         return view('content.pages.comercial.nova-proposta', [
             'client' => $clientInfo,
             'operadoras' => $operadoras,
+            'planosPortabilidade' => $planosPortabilidade,
         ]);
     }
 
@@ -1522,6 +1651,7 @@ class Comercial extends Controller
     public function getPlansByOperator($operadora_id)
     {
         $planos = Plano::where('operadora_id', $operadora_id)
+            ->where('empresa_id', Auth::user()->empresa_id)
             ->where('status', 'Y')
             ->orderBy('created_at', 'desc')
             ->get(['id', 'nome', 'acomodacao']);

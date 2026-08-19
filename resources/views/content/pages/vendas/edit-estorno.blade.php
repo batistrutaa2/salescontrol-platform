@@ -52,7 +52,11 @@ $titularesPayload = $venda->titulares->map(function ($t) {
 })->values();
 
 $portabilidadesPayload = $venda->portabilidades->map(function ($p) {
-    return ['nome' => $p->nome];
+    return [
+        'nome' => $p->nome,
+        'operadora_destino_id' => $p->operadora_destino_id,
+        'plano_destino_id' => $p->plano_destino_id,
+    ];
 })->values();
 
 $titularesParaJs = old('titulares') ?: $titularesPayload;
@@ -287,21 +291,7 @@ $cpfClienteData = $cliente->cpf ?? $venda->cpf_cnpj ?? '';
                             </div>
                         </div>
 
-                        <div class="np-inline-toggle">
-                            <div class="toggle-info">
-                                <span class="toggle-label">Portabilidade</span>
-                                <span class="status-badge {{ $portabilidadeStatus === 'SIM' ? 'badge-ativo' : 'badge-inativo' }}" id="portabilidade-badge">{{ $portabilidadeStatus === 'SIM' ? 'Ativo' : 'Inativo' }}</span>
-                            </div>
-                            <div class="toggle-controls">
-                                <input type="number" id="qtd_portabilidade" name="qtd_portabilidade" min="0" value="{{ old('qtd_portabilidade', $venda->qtd_portabilidade ?? 0) }}" class="np-input np-input-sm" placeholder="Qtd" style="{{ $portabilidadeStatus === 'SIM' ? '' : 'display:none;' }}" />
-                                <select id="portabilidade_status" name="portabilidade_status" class="np-input np-input-sm">
-                                    <option value="NAO" {{ $portabilidadeStatus !== 'SIM' ? 'selected' : '' }}>NAO</option>
-                                    <option value="SIM" {{ $portabilidadeStatus === 'SIM' ? 'selected' : '' }}>SIM</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div id="portabilidade-container" class="portabilidade-list" style="{{ $portabilidadeStatus === 'SIM' ? 'display:flex;' : 'display:none;' }}"></div>
+                        <x-proposta-portabilidades :operadoras="$operadoras" />
 
                         <div class="np-field" style="margin-top: 0.75rem;">
                             <label>Observacoes</label>
@@ -572,16 +562,6 @@ $cpfClienteData = $cliente->cpf ?? $venda->cpf_cnpj ?? '';
     </div>
 </div>
 
-<template id="template-portabilidade">
-    <div class="port-item" data-port-index="__PORT_INDEX__">
-        <span class="port-num">__PORT_NUMBER__</span>
-        <input type="text" name="portabilidades[__PORT_INDEX__][nome]" class="np-input" placeholder="Nome do beneficiario" required>
-        <button type="button" class="btn-remove-port">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
-    </div>
-</template>
-
 {{-- Modal de Documentacao PME (mesmo da nova-proposta) --}}
 <div class="docs-modal-overlay" id="docs-modal-overlay">
     <div class="docs-modal docs-modal-wide">
@@ -640,6 +620,7 @@ $cpfClienteData = $cliente->cpf ?? $venda->cpf_cnpj ?? '';
     window.oldTitulares = @json($titularesParaJs);
     window.oldOperadoraId = @json($operadoraIdAtual);
     window.oldPortabilidades = @json($portabilidadesParaJs);
+    window.portabilidadePlanos = @json($planosPortabilidade);
 
     window.clientData = {
         nome: @json($nomeCliente),

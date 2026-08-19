@@ -28,4 +28,19 @@ class NomeDocumentoServiceTest extends TestCase
         $this->assertSame('contrato final - 2.pdf', $this->service->comSufixo('contrato final.pdf', 2));
     }
 
+    public function test_normaliza_nome_original_sem_confundir_extensoes_ou_colisoes_de_sanitizacao(): void
+    {
+        $this->assertSame(
+            $this->service->normalizado('Contrato Ágil.PDF'),
+            $this->service->normalizado("\u{00A0}/origem/CONTRATO\u{2003}\u{2003}A\u{0301}GIL.pdf\u{00A0}")
+        );
+        $this->assertNotSame(
+            $this->service->normalizado('contrato.pdf'),
+            $this->service->normalizado('contrato.png')
+        );
+        $this->assertNotSame(
+            $this->service->normalizado('contrato:final.pdf'),
+            $this->service->normalizado('contrato?final.pdf')
+        );
+    }
 }

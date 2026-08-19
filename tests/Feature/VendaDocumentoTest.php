@@ -12,7 +12,9 @@ use App\Models\VendaDocumento;
 use App\Models\Vendas;
 use App\Services\Documentos\ClamAvService;
 use App\Services\Documentos\DocumentoStatusService;
+use App\Services\Documentos\RegistrarVendaDocumentoService;
 use App\Services\Documentos\VendaDocumentoPermissionPolicy;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +84,227 @@ class VendaDocumentoTest extends TestCase
             'diretorio_remoto' => 'EmAnalise/Amil/Caragi Participacoes',
         ]);
         Queue::assertPushed(VerificarVendaDocumento::class);
+    }
+
+    public function test_vendedor_reenvia_documento_com_falha_e_job_e_enfileirado(): void
+    {
+        $caminhoTemporario = "venda-documentos/{$this->venda->empresa_id}/{$this->venda->id}/falha.pdf";
+        Storage::disk('local')->put($caminhoTemporario, 'conteudo');
+        $documento = VendaDocumento::create([
+            'venda_id' => $this->venda->id,
+            'empresa_id' => $this->venda->empresa_id,
+            'uploaded_by' => $this->vendedor->id,
+            'client_upload_id' => 'reenvio-1',
+            'nome_original' => 'falha.pdf',
+            'nome_remoto' => 'falha.pdf',
+            'mime_type' => 'application/pdf',
+            'tamanho' => 8,
+            'sha256' => hash('sha256', 'conteudo'),
+            'caminho_temporario' => $caminhoTemporario,
+            'diretorio_remoto' => 'EmAnalise/Amil/Caragi Participacoes',
+            'caminho_remoto' => 'EmAnalise/Amil/Caragi Participacoes/falha.pdf',
+            'status' => 'FALHA',
+            'erro' => 'Falha transitória',
+        ]);
+
+        $this->actingAs($this->vendedor)
+            ->postJson(route('vendas.documentos.retry', [$this->venda, $documento]))
+            ->assertOk()
+            ->assertJsonPath('status', 'RECEBIDO')
+            ->assertJsonPath('erro', null);
+
+        $this->assertSame('PROCESSANDO', $this->venda->fresh()->documentacao_status);
+        Queue::assertPushed(VerificarVendaDocumento::class, fn ($job) => $job->documentoId === $documento->id);
+    }
+
+    public function test_rejeita_nome_repetido_normalizado_sem_criar_efeitos_colaterais(): void
+    {
+        $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->image('Contrato Ágil.png'),
+                'client_upload_id' => 'nome-normalizado-1',
+            ]
+        )->assertCreated();
+
+        $response = $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->image("CONTRATO   A\u{0301}GIL.png"),
+                'client_upload_id' => 'nome-normalizado-2',
+            ]
+        );
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('arquivo')
+            ->assertJsonPath(
+                'errors.arquivo.0',
+                'Já existe um documento chamado “CONTRATO   ÁGIL.png” nesta venda. Renomeie o arquivo ou exclua o existente antes de enviar novamente.'
+            );
+        $this->assertSame(1, VendaDocumento::where('venda_id', $this->venda->id)->count());
+        $this->assertCount(1, Storage::disk('local')->allFiles("venda-documentos/{$this->venda->empresa_id}/{$this->venda->id}"));
+        Queue::assertPushed(VerificarVendaDocumento::class, 1);
+    }
+
+    public function test_mesmo_client_upload_id_e_arquivo_retorna_o_registro_sem_repetir_job(): void
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+        $primeira = $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->createWithContent('Documento.png', $png),
+                'client_upload_id' => 'idempotente-1',
+            ]
+        )->assertCreated();
+
+        $segunda = $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->createWithContent('documento.PNG', $png),
+                'client_upload_id' => 'idempotente-1',
+            ]
+        )->assertOk();
+
+        $this->assertSame($primeira->json('id'), $segunda->json('id'));
+        $this->assertSame(1, VendaDocumento::where('venda_id', $this->venda->id)->count());
+        $this->assertCount(1, Storage::disk('local')->allFiles("venda-documentos/{$this->venda->empresa_id}/{$this->venda->id}"));
+        Queue::assertPushed(VerificarVendaDocumento::class, 1);
+    }
+
+    public function test_rejeita_reuso_do_client_upload_id_por_outro_arquivo_antes_da_duplicidade(): void
+    {
+        $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->image('documento.png', 1, 1),
+                'client_upload_id' => 'idempotente-conflitante',
+            ]
+        )->assertCreated();
+
+        $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->image('documento.png', 2, 2),
+                'client_upload_id' => 'idempotente-conflitante',
+            ]
+        )->assertUnprocessable()
+            ->assertJsonValidationErrors('client_upload_id');
+
+        $this->assertSame(1, VendaDocumento::where('venda_id', $this->venda->id)->count());
+        Queue::assertPushed(VerificarVendaDocumento::class, 1);
+    }
+
+    public function test_colisoes_distintas_apos_sanitizacao_recebem_sufixo_remoto(): void
+    {
+        $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->image('contrato:final.png'),
+                'client_upload_id' => 'sanitizacao-1',
+            ]
+        )->assertCreated();
+        $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->image('contrato?final.png'),
+                'client_upload_id' => 'sanitizacao-2',
+            ]
+        )->assertCreated();
+
+        $this->assertDatabaseHas('venda_documentos', [
+            'venda_id' => $this->venda->id,
+            'nome_remoto' => 'contrato final.png',
+        ]);
+        $this->assertDatabaseHas('venda_documentos', [
+            'venda_id' => $this->venda->id,
+            'nome_remoto' => 'contrato final - 2.png',
+        ]);
+    }
+
+    public function test_nome_so_e_liberado_quando_a_exclusao_termina(): void
+    {
+        $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->image('contrato.png'),
+                'client_upload_id' => 'exclusao-1',
+            ]
+        )->assertCreated();
+        $documento = VendaDocumento::firstOrFail();
+        $documento->update(['status' => 'EXCLUSAO_PENDENTE']);
+
+        $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->image('CONTRATO.png'),
+                'client_upload_id' => 'exclusao-2',
+            ]
+        )->assertUnprocessable()->assertJsonValidationErrors('arquivo');
+
+        $documento->update(['status' => 'EXCLUIDO', 'deleted_at' => now()]);
+        $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->image('CONTRATO.png'),
+                'client_upload_id' => 'exclusao-3',
+            ]
+        )->assertCreated();
+
+        $this->assertSame(2, VendaDocumento::where('venda_id', $this->venda->id)->count());
+    }
+
+    public function test_remove_temporario_quando_a_persistencia_falha_e_faz_rollback(): void
+    {
+        $arquivo = UploadedFile::fake()->image('rollback.png');
+
+        try {
+            app(RegistrarVendaDocumentoService::class)->registrar(
+                $this->venda,
+                $arquivo,
+                'rollback-1',
+                PHP_INT_MAX
+            );
+            $this->fail('A chave estrangeira de uploaded_by deveria impedir o registro.');
+        } catch (QueryException) {
+            $this->assertDatabaseMissing('venda_documentos', ['client_upload_id' => 'rollback-1']);
+            $this->assertSame([], Storage::disk('local')->allFiles("venda-documentos/{$this->venda->empresa_id}/{$this->venda->id}"));
+            $this->assertNull($this->venda->fresh()->documentacao_diretorio);
+            Queue::assertNothingPushed();
+        }
+    }
+
+    public function test_revalida_limite_de_documentos_ativos_sem_criar_temporario(): void
+    {
+        foreach (range(1, 30) as $numero) {
+            VendaDocumento::create([
+                'venda_id' => $this->venda->id,
+                'empresa_id' => $this->venda->empresa_id,
+                'uploaded_by' => $this->vendedor->id,
+                'client_upload_id' => "limite-{$numero}",
+                'nome_original' => "documento-{$numero}.pdf",
+                'nome_remoto' => "documento-{$numero}.pdf",
+                'mime_type' => 'application/pdf',
+                'tamanho' => 1,
+                'sha256' => hash('sha256', (string) $numero),
+                'caminho_temporario' => "temporarios/{$numero}",
+                'diretorio_remoto' => 'EmAnalise/Amil/Caragi Participacoes',
+                'caminho_remoto' => "EmAnalise/Amil/Caragi Participacoes/documento-{$numero}.pdf",
+                'status' => 'RECEBIDO',
+            ]);
+        }
+
+        $this->actingAs($this->vendedor)->postJson(
+            route('vendas.documentos.store', $this->venda),
+            [
+                'arquivo' => UploadedFile::fake()->image('documento-31.png'),
+                'client_upload_id' => 'limite-31',
+            ]
+        )->assertUnprocessable()
+            ->assertJsonValidationErrors('arquivo');
+
+        $this->assertSame(30, VendaDocumento::where('venda_id', $this->venda->id)->count());
+        $this->assertSame([], Storage::disk('local')->allFiles());
+        Queue::assertNothingPushed();
     }
 
     public function test_rejeita_upload_quando_operadora_nao_tem_pasta_mapeada(): void

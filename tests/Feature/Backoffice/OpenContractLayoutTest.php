@@ -8,6 +8,7 @@ use App\Models\Empresa;
 use App\Models\User;
 use App\Models\Vendas;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -106,5 +107,86 @@ class OpenContractLayoutTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('pv-tabnav', false);
+    }
+
+    public function test_documentos_do_contrato_abrem_em_modal_sem_ocupar_o_conteudo_principal(): void
+    {
+        $venda = $this->criarContratoLegado('NOVO');
+
+        $response = $this->actingAs($this->admin)->get(route('backoffice.openContract', $venda->id));
+
+        $response->assertOk();
+        $response->assertSee('class="vd-launcher"', false);
+        $response->assertSee('data-bs-target="#vd-modal-venda-'.$venda->id.'"', false);
+        $response->assertSee('class="modal fade vd-modal"', false);
+        $response->assertSee('modal-dialog-scrollable', false);
+        $response->assertSee('Importe novos documentos');
+
+        $html = $response->getContent();
+        $this->assertLessThan(strpos($html, 'class="pv-screen"'), strpos($html, 'class="vd-launcher"'));
+    }
+
+    public function test_componente_de_documentos_permanece_inline_por_padrao(): void
+    {
+        $html = Blade::render('<x-venda-documentos />');
+
+        $this->assertStringContainsString('class="vd-panel" data-venda-documentos', $html);
+        $this->assertStringNotContainsString('data-vd-modal', $html);
+        $this->assertStringNotContainsString('class="vd-launcher"', $html);
+    }
+
+    public function test_backoffice_cadastra_e_exibe_destino_da_portabilidade(): void
+    {
+        $venda = $this->criarContratoLegado('NOVO');
+        $operadoraAnteriorId = DB::table('operadoras')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'nome' => 'ORIGEM SAÚDE',
+            'status' => 'Y',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $operadoraDestinoId = DB::table('operadoras')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'nome' => 'DESTINO SAÚDE',
+            'status' => 'Y',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $planoDestinoId = DB::table('planos')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'operadora_id' => $operadoraDestinoId,
+            'nome' => 'PLANO DESTINO OURO',
+            'status' => 'Y',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('backoffice.portabilidades.storePME'), [
+                'venda_id' => $venda->id,
+                'nome' => 'Cliente Portado',
+                'operadora_anterior_id' => $operadoraAnteriorId,
+                'operadora_destino_id' => $operadoraDestinoId,
+                'plano_destino_id' => $planoDestinoId,
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('vendas_portabilidades', [
+            'venda_id' => $venda->id,
+            'nome' => 'CLIENTE PORTADO',
+            'operadora_destino_id' => $operadoraDestinoId,
+            'plano_destino_id' => $planoDestinoId,
+        ]);
+        $this->assertSame('SIM', $venda->fresh()->portabilidade_status);
+        $this->assertSame(1, $venda->fresh()->qtd_portabilidade);
+
+        $this->actingAs($this->admin)
+            ->get(route('backoffice.openContract', $venda->id))
+            ->assertOk()
+            ->assertSee('Operadora de destino')
+            ->assertSee('DESTINO SAÚDE')
+            ->assertSee('Plano de destino')
+            ->assertSee('PLANO DESTINO OURO');
     }
 }

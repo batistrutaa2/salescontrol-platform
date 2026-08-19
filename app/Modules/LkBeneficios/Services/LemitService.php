@@ -5,7 +5,9 @@ namespace App\Modules\LkBeneficios\Services;
 use App\Models\People\Empresa;
 use App\Models\People\Pessoa;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class LemitService
@@ -21,20 +23,17 @@ class LemitService
         $this->apiToken = (string) config('services.lemit.api_key', '');
         $this->baseUrl = rtrim((string) config('services.lemit.base_url'), '/');
         $this->cacheMonths = (int) config('services.lemit.cache_months', 3);
-
-        if ($this->apiToken === '' || $this->baseUrl === '') {
-            throw new RuntimeException('Lemit: credenciais ausentes. Configure LEMIT_API_TOKEN e LEMIT_BASE_URL no .env');
-        }
     }
 
     public function consultarCpf(string $cpf): array
     {
+        $this->ensureConfigured();
         $cpf = preg_replace('/\D+/', '', $cpf);
         if (strlen($cpf) !== 11) {
             throw new \InvalidArgumentException('CPF inválido.');
         }
 
-        $pessoa = Pessoa::where('cpf', $cpf)->first();
+        $pessoa = $this->buscarPessoaNoCache($cpf);
         if ($pessoa && $this->aindaNoCache($pessoa->data_consulta ?? $pessoa->created_at)) {
             return [
                 'fonte' => 'local_db_lemit',
@@ -54,19 +53,24 @@ class LemitService
         }
 
         $data = $response->json();
-        $this->persistirPessoa($data);
+        try {
+            $this->persistirPessoa($data);
+        } catch (QueryException $e) {
+            $this->registrarCacheIndisponivel($e);
+        }
 
         return array_merge(['fonte' => 'api_lemit'], $data);
     }
 
     public function consultarCnpj(string $cnpj): array
     {
+        $this->ensureConfigured();
         $cnpj = preg_replace('/\D+/', '', $cnpj);
         if (strlen($cnpj) !== 14) {
             throw new \InvalidArgumentException('CNPJ inválido.');
         }
 
-        $empresa = Empresa::where('cnpj', $cnpj)->first();
+        $empresa = $this->buscarEmpresaNoCache($cnpj);
         if ($empresa && $this->aindaNoCache($empresa->created_at)) {
             $empresa->load(['enderecos', 'celulares', 'fixos', 'emails', 'socios', 'carros']);
 
@@ -88,7 +92,11 @@ class LemitService
         }
 
         $json = $response->json();
-        $this->persistirEmpresa($json['empresa'] ?? null);
+        try {
+            $this->persistirEmpresa($json['empresa'] ?? null);
+        } catch (QueryException $e) {
+            $this->registrarCacheIndisponivel($e);
+        }
 
         return array_merge(['fonte' => 'api_lemit'], $json);
     }
@@ -100,6 +108,43 @@ class LemitService
         }
 
         return Carbon::parse($dataConsulta)->gt(now()->subMonths($this->cacheMonths));
+    }
+
+    private function ensureConfigured(): void
+    {
+        if ($this->apiToken === '' || $this->baseUrl === '') {
+            throw new RuntimeException('Lemit: credenciais ausentes. Configure LEMIT_API_TOKEN e LEMIT_BASE_URL no .env');
+        }
+    }
+
+    private function buscarPessoaNoCache(string $cpf): ?Pessoa
+    {
+        try {
+            return Pessoa::where('cpf', $cpf)->first();
+        } catch (QueryException $e) {
+            $this->registrarCacheIndisponivel($e);
+
+            return null;
+        }
+    }
+
+    private function buscarEmpresaNoCache(string $cnpj): ?Empresa
+    {
+        try {
+            return Empresa::where('cnpj', $cnpj)->first();
+        } catch (QueryException $e) {
+            $this->registrarCacheIndisponivel($e);
+
+            return null;
+        }
+    }
+
+    private function registrarCacheIndisponivel(QueryException $e): void
+    {
+        Log::warning('Cache da Lemit indisponível; a consulta seguirá diretamente pela API.', [
+            'connection' => $e->getConnectionName(),
+            'code' => $e->getCode(),
+        ]);
     }
 
     private function persistirPessoa(array $data): void

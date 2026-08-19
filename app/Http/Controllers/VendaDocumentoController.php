@@ -7,14 +7,11 @@ use App\Jobs\ExcluirVendaDocumentoRemoto;
 use App\Jobs\VerificarVendaDocumento;
 use App\Models\VendaDocumento;
 use App\Models\Vendas;
-use App\Models\Operadora;
-use App\Services\Documentos\NomeDocumentoService;
+use App\Services\Documentos\RegistrarVendaDocumentoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class VendaDocumentoController extends Controller
@@ -32,7 +29,7 @@ class VendaDocumentoController extends Controller
         ]);
     }
 
-    public function store(Request $request, Vendas $venda, NomeDocumentoService $nomes): JsonResponse
+    public function store(Request $request, Vendas $venda, RegistrarVendaDocumentoService $registrador): JsonResponse
     {
         $this->autorizar($venda);
         $request->validate([
@@ -52,53 +49,17 @@ class VendaDocumentoController extends Controller
             ]);
         }
 
-        $clientId = $request->string('client_upload_id')->trim()->value() ?: (string) Str::uuid();
-        if ($existente = VendaDocumento::where('venda_id', $venda->id)->where('client_upload_id', $clientId)->first()) {
-            return response()->json($this->payload($existente));
-        }
-
-        $ativos = $venda->documentos()->whereNull('deleted_at')->count();
-        if ($ativos >= config('documentos.max_files')) {
-            throw ValidationException::withMessages(['arquivo' => 'A venda aceita no máximo 30 documentos.']);
-        }
-
-        $sha256 = hash_file('sha256', $arquivo->getRealPath());
-        $nomeRemoto = $this->nomeRemotoDisponivel($venda, $nomes->arquivo($arquivo->getClientOriginalName()), $nomes);
-        $diretorio = $this->reservarDiretorio($venda, $nomes);
-        $temporario = $arquivo->storeAs(
-            "venda-documentos/{$venda->empresa_id}/{$venda->id}",
-            Str::uuid().'.upload',
-            'local'
+        $resultado = $registrador->registrar(
+            $venda,
+            $arquivo,
+            $request->string('client_upload_id')->trim()->value(),
+            (int) Auth::id()
         );
 
-        if (! $temporario) {
-            throw ValidationException::withMessages(['arquivo' => 'Não foi possível guardar o arquivo para envio.']);
-        }
-
-        $doc = VendaDocumento::create([
-            'venda_id' => $venda->id,
-            'empresa_id' => $venda->empresa_id,
-            'uploaded_by' => Auth::id(),
-            'client_upload_id' => $clientId,
-            'nome_original' => $arquivo->getClientOriginalName(),
-            'nome_remoto' => $nomeRemoto,
-            'mime_type' => $mime,
-            'tamanho' => $arquivo->getSize(),
-            'sha256' => $sha256,
-            'caminho_temporario' => $temporario,
-            'diretorio_remoto' => $diretorio,
-            'caminho_remoto' => "{$diretorio}/{$nomeRemoto}",
-            'status' => 'RECEBIDO',
-        ]);
-
-        if (config('documentos.processamento_ativo')) {
-            $venda->update(['documentacao_status' => 'PROCESSANDO']);
-            VerificarVendaDocumento::dispatch($doc->id)->afterCommit();
-        } else {
-            $venda->update(['documentacao_status' => 'PENDENTE']);
-        }
-
-        return response()->json($this->payload($doc), 201);
+        return response()->json(
+            $this->payload($resultado['documento']),
+            $resultado['criado'] ? 201 : 200
+        );
     }
 
     public function retry(Vendas $venda, VendaDocumento $documento): JsonResponse
@@ -155,69 +116,6 @@ class VendaDocumentoController extends Controller
         if ($role === UserRole::VENDEDOR) {
             abort_unless($venda->user_id === Auth::id(), 403);
         }
-    }
-
-    private function reservarDiretorio(Vendas $venda, NomeDocumentoService $nomes): string
-    {
-        return DB::transaction(function () use ($venda, $nomes) {
-            $bloqueada = Vendas::whereKey($venda->id)->lockForUpdate()->firstOrFail();
-            $diretorioOperadora = Operadora::whereKey($bloqueada->operadora_id)
-                ->where('empresa_id', $bloqueada->empresa_id)
-                ->value('diretorio_documentos');
-            if (! $diretorioOperadora) {
-                throw ValidationException::withMessages([
-                    'arquivo' => "A operadora {$bloqueada->operadora} ainda não está vinculada a uma pasta no servidor de documentos.",
-                ]);
-            }
-
-            $prefixo = config('documentos.root').'/'.$nomes->segmento($diretorioOperadora, 'Sem operadora');
-            if ($bloqueada->documentacao_diretorio) {
-                if (! str_starts_with($bloqueada->documentacao_diretorio, $prefixo.'/')) {
-                    $partes = explode('/', $bloqueada->documentacao_diretorio, 3);
-                    $segmentoVenda = $partes[2] ?? $nomes->segmento((string) $bloqueada->nome_contrato, "Venda {$bloqueada->id}");
-                    $novoDiretorio = $prefixo.'/'.$segmentoVenda;
-                    if (Vendas::where('empresa_id', $bloqueada->empresa_id)->where('documentacao_diretorio', $novoDiretorio)->whereKeyNot($bloqueada->id)->exists()) {
-                        $novoDiretorio .= " - Venda {$bloqueada->id}";
-                    }
-
-                    $bloqueada->documentos()->whereNull('deleted_at')->get()->each(function (VendaDocumento $doc) use ($novoDiretorio) {
-                        $doc->update([
-                            'diretorio_remoto' => $novoDiretorio,
-                            'caminho_remoto' => $novoDiretorio.'/'.$doc->nome_remoto,
-                            'status' => $doc->status === 'DISPONIVEL' ? 'FALHA' : $doc->status,
-                            'erro' => $doc->status === 'DISPONIVEL'
-                                ? 'Documento registrado no diretório anterior. Reenvie para confirmar a cópia na pasta correta.'
-                                : $doc->erro,
-                        ]);
-                    });
-                    $bloqueada->update(['documentacao_diretorio' => $novoDiretorio]);
-
-                    return $novoDiretorio;
-                }
-
-                return $bloqueada->documentacao_diretorio;
-            }
-
-            $base = $prefixo.'/'.$nomes->segmento((string) $bloqueada->nome_contrato, "Venda {$bloqueada->id}");
-            $diretorio = Vendas::where('empresa_id', $bloqueada->empresa_id)
-                ->where('documentacao_diretorio', $base)->exists()
-                ? "{$base} - Venda {$bloqueada->id}"
-                : $base;
-            $bloqueada->update(['documentacao_diretorio' => $diretorio]);
-
-            return $diretorio;
-        });
-    }
-
-    private function nomeRemotoDisponivel(Vendas $venda, string $nome, NomeDocumentoService $nomes): string
-    {
-        $candidato = $nome;
-        $numero = 2;
-        while ($venda->documentos()->whereNull('deleted_at')->where('nome_remoto', $candidato)->exists()) {
-            $candidato = $nomes->comSufixo($nome, $numero++);
-        }
-
-        return $candidato;
     }
 
     private function atualizarResumo(Vendas $venda): void

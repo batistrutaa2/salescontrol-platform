@@ -118,12 +118,14 @@ class CreateSaleValidationTest extends TestCase
     {
         return array_merge([
             'nome' => 'DEPENDENTE TESTE',
-            'cpf' => '222.555.888-96',
+            'cpf' => '529.982.247-25',
             'data_nascimento' => '05/05/2010',
             'email' => 'dependente@teste.com',
             'telefone1' => '(11) 95555-4444',
             'telefone2' => '',
             'parentesco' => 'FILHO',
+            'plano_id' => $this->planoId,
+            'coparticipacao' => 'Y',
             'plano_anterior' => 'NAO',
             'operadora_anterior_id' => '',
         ], $overrides);
@@ -135,9 +137,11 @@ class CreateSaleValidationTest extends TestCase
             'contato_id' => $this->contatoId,
             'tipo_contrato' => 'PME',
             'nome_contrato' => 'EMPRESA TESTE LTDA',
-            'cpf_cnpj' => '12.345.678/0001-90',
+            'cpf_cnpj' => '12.345.678/0001-95',
             'tipo_empresa' => 'LTDA',
             'operadora_id' => $this->operadoraId,
+            'valor_contrato' => 'R$ 500,00',
+            'angariacao_status' => 'NAO',
             'titulares' => [$this->titularValido()],
         ], $overrides);
     }
@@ -291,10 +295,173 @@ class CreateSaleValidationTest extends TestCase
         $this->assertDatabaseCount('vendas_dependentes', 1);
     }
 
+    public function test_portabilidade_exige_nome_operadora_e_plano_de_destino(): void
+    {
+        $response = $this->postVenda($this->payloadValido([
+            'portabilidades' => [[
+                'nome' => '',
+                'cpf' => '',
+                'operadora_anterior_id' => '',
+                'operadora_destino_id' => '',
+                'plano_destino_id' => '',
+            ]],
+        ]));
+
+        $response->assertSessionHasErrors([
+            'portabilidades.0.nome',
+            'portabilidades.0.operadora_destino_id',
+            'portabilidades.0.plano_destino_id',
+        ]);
+        $this->assertDatabaseCount('vendas', 0);
+    }
+
+    public function test_plano_da_portabilidade_deve_pertencer_a_operadora_de_destino(): void
+    {
+        $response = $this->postVenda($this->payloadValido([
+            'portabilidades' => [[
+                'nome' => 'CLIENTE PORTABILIDADE',
+                'cpf' => '111.444.777-35',
+                'operadora_anterior_id' => $this->operadoraAnteriorId,
+                'operadora_destino_id' => $this->operadoraAnteriorId,
+                'plano_destino_id' => $this->planoId,
+            ]],
+        ]));
+
+        $response->assertSessionHasErrors(['portabilidades.0.plano_destino_id']);
+        $this->assertDatabaseCount('vendas', 0);
+    }
+
+    public function test_portabilidade_nao_aceita_destino_de_outra_empresa(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $outraOperadoraId = DB::table('operadoras')->insertGetId([
+            'empresa_id' => $outraEmpresa->id,
+            'nome' => 'OPERADORA EXTERNA',
+            'status' => 'Y',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $outroPlanoId = DB::table('planos')->insertGetId([
+            'empresa_id' => $outraEmpresa->id,
+            'operadora_id' => $outraOperadoraId,
+            'nome' => 'PLANO EXTERNO',
+            'status' => 'Y',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->postVenda($this->payloadValido([
+            'portabilidades' => [[
+                'nome' => 'CLIENTE EXTERNO',
+                'cpf' => '111.444.777-35',
+                'operadora_anterior_id' => $this->operadoraAnteriorId,
+                'operadora_destino_id' => $outraOperadoraId,
+                'plano_destino_id' => $outroPlanoId,
+            ]],
+        ]));
+
+        $response->assertSessionHasErrors([
+            'portabilidades.0.operadora_destino_id',
+            'portabilidades.0.plano_destino_id',
+        ]);
+        $this->assertDatabaseCount('vendas', 0);
+    }
+
+    public function test_happy_path_salva_destino_da_portabilidade_e_calcula_quantidade(): void
+    {
+        $response = $this->postVenda($this->payloadValido([
+            'portabilidade_status' => 'NAO',
+            'qtd_portabilidade' => 0,
+            'portabilidades' => [[
+                'nome' => 'Cliente Portabilidade',
+                'cpf' => '111.444.777-35',
+                'operadora_anterior_id' => $this->operadoraAnteriorId,
+                'operadora_destino_id' => $this->operadoraId,
+                'plano_destino_id' => $this->planoId,
+            ]],
+        ]));
+
+        $response->assertRedirect(route('sale.listSale'));
+        $venda = Vendas::firstOrFail();
+        $this->assertSame('SIM', $venda->portabilidade_status);
+        $this->assertSame(1, $venda->qtd_portabilidade);
+        $this->assertDatabaseHas('vendas_portabilidades', [
+            'venda_id' => $venda->id,
+            'nome' => 'CLIENTE PORTABILIDADE',
+            'cpf' => '11144477735',
+            'operadora_anterior_id' => $this->operadoraAnteriorId,
+            'operadora_destino_id' => $this->operadoraId,
+            'plano_destino_id' => $this->planoId,
+        ]);
+    }
+
+    public function test_tela_exibe_modal_de_adicionar_portabilidade(): void
+    {
+        $this->actingAs($this->vendedor)
+            ->get(route('comercial.novaProposta', $this->contatoId))
+            ->assertOk()
+            ->assertSee('Adicionar Portabilidade')
+            ->assertSee('Quem está contratando?')
+            ->assertSee('aria-label="Etapa 1 de 5: Identificação, atual"', false)
+            ->assertSee('Monte os grupos familiares')
+            ->assertSee('Esta proposta possui portabilidade?')
+            ->assertSee('window.propostaLookupUrl', false)
+            ->assertSee('id="btn-consultar-portabilidade-cpf"', false)
+            ->assertSee('Digite um CPF válido para consultar na Lemit.')
+            ->assertSee('Operadora anterior')
+            ->assertSee('Operadora de destino')
+            ->assertSee('Plano de destino');
+    }
+
+    public function test_tela_separa_produto_valores_e_move_observacoes_para_etapa_final(): void
+    {
+        $response = $this->actingAs($this->vendedor)
+            ->get(route('comercial.novaProposta', $this->contatoId));
+
+        $response
+            ->assertOk()
+            ->assertSee('Produto vendido')
+            ->assertSee('Valores da venda')
+            ->assertSee('Observações para o pós-venda');
+
+        $html = $response->getContent();
+        $produto = strpos($html, 'id="np-product-card-title"');
+        $valores = strpos($html, 'id="np-values-card-title"');
+        $etapaFinal = strpos($html, 'data-step-panel="5"');
+        $observacoes = strpos($html, 'id="obs_contrato"');
+        $documentos = strpos($html, 'id="np-documentos-destino"');
+
+        $this->assertSame(1, substr_count($html, 'id="obs_contrato"'));
+        $this->assertNotFalse($produto);
+        $this->assertNotFalse($valores);
+        $this->assertNotFalse($etapaFinal);
+        $this->assertNotFalse($observacoes);
+        $this->assertNotFalse($documentos);
+        $this->assertTrue($produto < $valores);
+        $this->assertTrue($etapaFinal < $observacoes && $observacoes < $documentos);
+    }
+
+    public function test_tela_entrega_estrutura_interativa_dos_beneficiarios(): void
+    {
+        $this->actingAs($this->vendedor)
+            ->get(route('comercial.novaProposta', $this->contatoId))
+            ->assertOk()
+            ->assertSee('data-step-panel="3"', false)
+            ->assertSee('id="titulares-container"', false)
+            ->assertSee('id="template-titular"', false)
+            ->assertSee('id="btn-add-titular"', false)
+            ->assertSee('id="btn-add-titular" aria-describedby="np-add-titular-hint" disabled', false)
+            ->assertSee('class="btn-action btn-add-dep" disabled', false)
+            ->assertSee('class="titular-completion" role="status"', false)
+            ->assertSee('id="dep-modal-overlay"', false)
+            ->assertSee('id="btn-dep-modal-save"', false);
+    }
+
     public function test_adesao_nao_exige_cargo(): void
     {
         $response = $this->postVenda($this->payloadValido([
             'tipo_contrato' => 'ADESAO',
+            'cpf_cnpj' => '529.982.247-25',
             'tipo_empresa' => '',
             'titulares' => [
                 $this->titularValido(['cargo' => '']),
@@ -333,6 +500,20 @@ class CreateSaleValidationTest extends TestCase
             'venda_id' => $venda->id,
             'nome' => 'DEPENDENTE TESTE',
             'parentesco' => 'FILHO',
+            'plano_id' => $this->planoId,
+            'coparticipacao' => 'Y',
         ]);
+    }
+
+    public function test_valor_e_angariacao_condicional_sao_obrigatorios(): void
+    {
+        $response = $this->postVenda($this->payloadValido([
+            'valor_contrato' => 'R$ 0,00',
+            'angariacao_status' => 'SIM',
+            'taxa_angariacao' => 'R$ 0,00',
+        ]));
+
+        $response->assertSessionHasErrors(['valor_contrato', 'taxa_angariacao']);
+        $this->assertDatabaseCount('vendas', 0);
     }
 }
