@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
   (function () {
     // Form validation for Add new record
     if (formAuthentication) {
-      const fv = FormValidation.formValidation(formAuthentication, {
-        fields: {
+      const availableFields = Object.fromEntries(
+        Object.entries({
           username: {
             validators: {
               notEmpty: {
@@ -78,12 +78,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
               }
             }
           }
-        },
+        }).filter(([field]) => formAuthentication.elements.namedItem(field))
+      );
+
+      const fv = FormValidation.formValidation(formAuthentication, {
+        fields: availableFields,
         plugins: {
           trigger: new FormValidation.plugins.Trigger(),
           bootstrap5: new FormValidation.plugins.Bootstrap5({
             eleValidClass: '',
-            rowSelector: '.lk5-field, .mb-5'
+            rowSelector: '.form-password-toggle, .form-floating, .mb-5'
           }),
           submitButton: new FormValidation.plugins.SubmitButton(),
 
