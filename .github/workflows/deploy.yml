@@ -361,6 +361,22 @@ jobs:
               exit 1
             fi
 
+            echo "==> Validando limites de recursos do ClamAV..."
+            for SETTING in \
+              "ConcurrentDatabaseReload no" \
+              "MaxThreads 1" \
+              "MaxQueue 2" \
+              "StreamMaxLength 30M" \
+              "MaxFileSize 30M" \
+              "MaxScanSize 100M" \
+              "AlertExceedsMax yes" \
+              "ForceToDisk yes"; do
+              $COMPOSE exec -T clamav grep -qxF "$SETTING" /etc/clamav/clamd.conf || {
+                echo "ERRO: configuração ausente no ClamAV: $SETTING"
+                exit 1
+              }
+            done
+
             # Subir/atualizar serviços (reverb, queue e scheduler).
             # Em produção NÃO existe COMPOSE_PROFILES=dev, então mysql/mailpit
             # do compose ficam de fora (o banco é o MySQL externo do host).
@@ -410,7 +426,8 @@ jobs:
 
             echo "==> Sincronizando catálogo de pastas documentais..."
             $COMPOSE exec -T laravel.test php artisan documentos:sincronizar-diretorios
-            $COMPOSE up -d --scale documentos-queue=2 --scale documentos-scan=2
+            # O antivírus processa um documento por vez para preservar RAM/CPU.
+            $COMPOSE up -d --scale documentos-queue=2 --scale documentos-scan=1
             $COMPOSE exec -T laravel.test php artisan documentos:processar-pendentes --limit=5000
 
             # Workers de fila recarregam o código novo (o container reinicia sozinho via restart policy)

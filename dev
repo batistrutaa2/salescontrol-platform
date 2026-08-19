@@ -23,7 +23,7 @@ case "$cmd" in
   ps)       $COMPOSE ps ;;
   logs)     $COMPOSE logs -f "$@" ;;
   build)    $COMPOSE build app ;;
-  queue)    ensure_infra; $COMPOSE --profile queue up -d --scale documentos-queue=2 --scale documentos-scan=2 ;;
+  queue)    ensure_infra; $COMPOSE --profile queue up -d --scale documentos-queue=2 --scale documentos-scan=1 ;;
   scheduler|cron) ensure_infra; $COMPOSE --profile scheduler up -d ;;
   reverb)   ensure_infra; $COMPOSE --profile reverb up -d ;;
   artisan|art) ensure_infra; $COMPOSE run --rm --no-deps app php artisan "$@" ;;

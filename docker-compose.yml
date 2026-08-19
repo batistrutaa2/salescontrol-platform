@@ -190,10 +190,30 @@ services:
         restart: unless-stopped
     clamav:
         image: 'clamav/clamav:1.4'
+        environment:
+            # A VPS prioriza estabilidade: uma análise por vez e sem manter
+            # duas bases de assinatura em RAM durante atualizações.
+            CLAMD_CONF_ConcurrentDatabaseReload: 'no'
+            CLAMD_CONF_MaxThreads: '1'
+            CLAMD_CONF_MaxQueue: '2'
+            CLAMD_CONF_MaxConnectionQueueLength: '4'
+            # Uploads da aplicação têm no máximo 25 MiB. Conteúdo expandido
+            # acima destes limites é bloqueado por AlertExceedsMax.
+            CLAMD_CONF_StreamMaxLength: '30M'
+            CLAMD_CONF_MaxFileSize: '30M'
+            CLAMD_CONF_MaxScanSize: '100M'
+            CLAMD_CONF_MaxRecursion: '12'
+            CLAMD_CONF_MaxFiles: '5000'
+            CLAMD_CONF_AlertExceedsMax: 'yes'
+            # Troca pressão de memória por I/O temporário em disco.
+            CLAMD_CONF_ForceToDisk: 'yes'
         volumes:
             - 'clamav-data:/var/lib/clamav'
         networks:
             - sail
+        mem_limit: 2g
+        mem_reservation: 1g
+        cpus: '0.75'
         restart: unless-stopped
     scheduler:
         image: sail-8.3/app
