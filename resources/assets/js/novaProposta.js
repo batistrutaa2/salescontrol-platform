@@ -2313,6 +2313,11 @@
     }
 
     formNovaProposta?.addEventListener('submit', async event => {
+        // A tela de estorno reutiliza os campos e a validacao desta tela, mas
+        // possui um fluxo de envio proprio em edit-estorno.js. Os controles de
+        // etapas/documentos abaixo so existem na criacao de uma nova proposta.
+        if (formNovaProposta.dataset.modo === 'estorno') return;
+
         if (event.defaultPrevented) return;
         event.preventDefault();
         const submitButton = finalizarVendaButton;
