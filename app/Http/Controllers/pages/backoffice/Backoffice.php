@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\pages\backoffice;
 
 use App\Enums\Tabulations;
+use App\Enums\TipoDemandaContrato;
 use App\Enums\UserRole;
 use App\Events\ContratoImplantado;
 use App\Helpers\Helpers;
@@ -3687,11 +3688,21 @@ class Backoffice extends Controller
             ->orderBy('operadora')
             ->pluck('operadora');
 
-        return view('content.pages.backoffice.carteira-clientes', compact('operadoras'));
+        $backoffices = User::where('empresa_id', $empresaId)
+            ->whereIn('user_role_id', [UserRole::BACKOFFICE, UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])
+            ->where('ativo', 'Y')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return view('content.pages.backoffice.carteira-clientes', compact('operadoras', 'backoffices'));
     }
 
     public function getCarteiraClientesData(Request $request)
     {
+        if ($request->input('visao', 'recentes') === 'recentes') {
+            return $this->getImplantadosRecentesData($request);
+        }
+
         try {
             $empresaId = Auth::user()->empresa_id;
             $page = max(1, (int) $request->input('page', 1));
@@ -3817,6 +3828,189 @@ class Backoffice extends Controller
                     'valor_carteira' => (float) ($kpiBase->valor_carteira ?? 0),
                     'total_vidas' => (int) ($kpiBase->total_vidas ?? 0),
                 ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    private function getImplantadosRecentesData(Request $request)
+    {
+        try {
+            $empresaId = (int) Auth::user()->empresa_id;
+            $page = max(1, (int) $request->input('page', 1));
+            $perPage = min(100, max(10, (int) $request->input('per_page', 15)));
+            $periodo = in_array((int) $request->input('periodo', 30), [30, 60, 365], true)
+                ? (int) $request->input('periodo', 30)
+                : 30;
+            $dataInicial = now()->startOfDay()->subDays($periodo - 1);
+            $tiposCancelamento = [
+                TipoDemandaContrato::CANCELAMENTO->value,
+                TipoDemandaContrato::CANCELAMENTO_OPERADORA_ANTERIOR->value,
+                TipoDemandaContrato::CANCELAMENTO_QUALICORP->value,
+                TipoDemandaContrato::CANCELAMENTO_LIMITAR->value,
+                TipoDemandaContrato::CARTA_PERMANENCIA->value,
+            ];
+
+            $baseQuery = DB::table('vendas as v')
+                ->leftJoin('users as bo', 'bo.id', '=', 'v.backoffice_id')
+                ->leftJoin('users as vendedor', 'vendedor.id', '=', 'v.user_id')
+                ->where('v.empresa_id', $empresaId)
+                ->where('v.tabulacao_id', Tabulations::IMPLANTADO)
+                ->whereNotNull('v.data_implantacao')
+                ->whereDate('v.data_implantacao', '>=', $dataInicial->toDateString());
+
+            if ($request->filled('busca')) {
+                $busca = trim((string) $request->input('busca'));
+                $baseQuery->where(function ($query) use ($busca) {
+                    $query->where('v.cpf_cnpj', 'like', "%{$busca}%")
+                        ->orWhere('v.nome_contrato', 'like', "%{$busca}%")
+                        ->orWhere('v.numero_proposta', 'like', "%{$busca}%");
+                });
+            }
+
+            if ($request->filled('operadora')) {
+                $baseQuery->where('v.operadora', $request->input('operadora'));
+            }
+
+            if ($request->filled('backoffice')) {
+                if ($request->input('backoffice') === 'sem_responsavel') {
+                    $baseQuery->whereNull('v.backoffice_id');
+                } else {
+                    $baseQuery->where('v.backoffice_id', (int) $request->input('backoffice'));
+                }
+            }
+
+            $portabilidadePendente = function ($query) {
+                $query->selectRaw('1')
+                    ->from('vendas_portabilidades as vp')
+                    ->whereColumn('vp.venda_id', 'v.id')
+                    ->where('vp.status', 'PENDENTE');
+            };
+            $cancelamentoPendente = function ($query) use ($tiposCancelamento) {
+                $query->selectRaw('1')
+                    ->from('venda_demandas as vd')
+                    ->whereColumn('vd.venda_id', 'v.id')
+                    ->where('vd.status', 'PENDENTE')
+                    ->whereIn('vd.tipo', $tiposCancelamento);
+            };
+
+            $kpiBase = clone $baseQuery;
+            $kpis = [
+                'implantados' => (clone $kpiBase)->count('v.id'),
+                'atencao' => (clone $kpiBase)
+                    ->where(function ($query) use ($portabilidadePendente, $cancelamentoPendente) {
+                        $query->whereExists($portabilidadePendente)
+                            ->orWhereExists($cancelamentoPendente);
+                    })
+                    ->count('v.id'),
+                'portabilidades' => (clone $kpiBase)->whereExists($portabilidadePendente)->count('v.id'),
+                'cancelamentos' => (clone $kpiBase)->whereExists($cancelamentoPendente)->count('v.id'),
+                'total_vidas' => (int) ((clone $kpiBase)->sum('v.vidas') ?? 0),
+                'valor_implantado' => (float) ((clone $kpiBase)->sum('v.valor_contrato') ?? 0),
+            ];
+
+            $distribuicaoBackoffice = (clone $kpiBase)
+                ->selectRaw("COALESCE(bo.name, 'Sem responsável') as responsavel, v.backoffice_id, COUNT(v.id) as total")
+                ->groupBy('v.backoffice_id', 'bo.name')
+                ->orderByDesc('total')
+                ->get()
+                ->map(fn ($item) => [
+                    'id' => $item->backoffice_id ? (string) $item->backoffice_id : 'sem_responsavel',
+                    'nome' => $item->responsavel,
+                    'total' => (int) $item->total,
+                ]);
+
+            if ($request->filled('acao')) {
+                match ($request->input('acao')) {
+                    'portabilidade' => $baseQuery->whereExists($portabilidadePendente),
+                    'cancelamento' => $baseQuery->whereExists($cancelamentoPendente),
+                    'sem_acao' => $baseQuery
+                        ->whereNotExists($portabilidadePendente)
+                        ->whereNotExists($cancelamentoPendente),
+                    default => null,
+                };
+            }
+
+            $total = (clone $baseQuery)->count('v.id');
+            $results = $baseQuery
+                ->select([
+                    'v.id', 'v.numero_proposta', 'v.nome_contrato', 'v.cpf_cnpj',
+                    'v.operadora', 'v.nome_plano', 'v.valor_contrato', 'v.vidas',
+                    'v.data_implantacao', 'v.data_vigencia', 'v.boas_vindas_enviado_em',
+                    'v.backoffice_id', 'bo.name as backoffice', 'vendedor.name as vendedor',
+                ])
+                ->selectSub(function ($query) {
+                    $query->from('vendas_portabilidades as vp')
+                        ->whereColumn('vp.venda_id', 'v.id')
+                        ->where('vp.status', 'PENDENTE')
+                        ->selectRaw('COUNT(*)');
+                }, 'portabilidades_pendentes')
+                ->selectSub(function ($query) use ($tiposCancelamento) {
+                    $query->from('venda_demandas as vd')
+                        ->whereColumn('vd.venda_id', 'v.id')
+                        ->where('vd.status', 'PENDENTE')
+                        ->whereIn('vd.tipo', $tiposCancelamento)
+                        ->selectRaw('COUNT(*)');
+                }, 'cancelamentos_pendentes')
+                ->orderByDesc('v.data_implantacao')
+                ->orderByDesc('v.id')
+                ->forPage($page, $perPage)
+                ->get();
+
+            $contratos = $results->map(function ($contrato) {
+                $implantacao = Carbon::parse($contrato->data_implantacao)->startOfDay();
+                $diasImplantado = (int) $implantacao->diffInDays(now()->startOfDay());
+                $portabilidades = (int) $contrato->portabilidades_pendentes;
+                $cancelamentos = (int) $contrato->cancelamentos_pendentes;
+
+                return [
+                    'id' => (int) $contrato->id,
+                    'numero_proposta' => $contrato->numero_proposta,
+                    'nome_contrato' => $contrato->nome_contrato,
+                    'cpf_cnpj' => $contrato->cpf_cnpj,
+                    'cpf_cnpj_formatado' => $this->formatarCpfCnpj($contrato->cpf_cnpj),
+                    'operadora' => $contrato->operadora,
+                    'nome_plano' => $contrato->nome_plano,
+                    'valor_contrato' => (float) $contrato->valor_contrato,
+                    'vidas' => (int) $contrato->vidas,
+                    'data_implantacao' => $implantacao->format('d/m/Y'),
+                    'data_vigencia' => $contrato->data_vigencia
+                        ? Carbon::parse($contrato->data_vigencia)->format('d/m/Y')
+                        : null,
+                    'dias_implantado' => $diasImplantado,
+                    'idade_label' => match ($diasImplantado) {
+                        0 => 'Implantado hoje',
+                        1 => 'Implantado ontem',
+                        default => "Implantado há {$diasImplantado} dias",
+                    },
+                    'backoffice_id' => $contrato->backoffice_id,
+                    'backoffice' => $contrato->backoffice ?: 'Sem responsável',
+                    'vendedor' => $contrato->vendedor,
+                    'portabilidades_pendentes' => $portabilidades,
+                    'cancelamentos_pendentes' => $cancelamentos,
+                    'precisa_atencao' => $portabilidades > 0 || $cancelamentos > 0,
+                    'boas_vindas' => ! empty($contrato->boas_vindas_enviado_em),
+                ];
+            });
+
+            $totalPages = max(1, (int) ceil($total / $perPage));
+
+            return response()->json([
+                'success' => true,
+                'visao' => 'recentes',
+                'contratos' => $contratos,
+                'distribuicao_backoffice' => $distribuicaoBackoffice,
+                'periodo' => $periodo,
+                'pagination' => [
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'total_pages' => $totalPages,
+                    'has_prev' => $page > 1,
+                    'has_next' => $page < $totalPages,
+                ],
+                'kpis' => $kpis,
             ]);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);

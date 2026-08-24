@@ -1,316 +1,422 @@
 'use strict';
 
 (function () {
-  // ============================================
-  // Estado
-  // ============================================
-  let pagination = { currentPage: 1, totalPages: 1, perPage: 15, total: 0 };
-  let filtersAtivos = {};
-
-  const el = {
-    loading:         document.getElementById('cc-loading'),
-    tableCard:       document.getElementById('cc-table-card'),
-    tbody:           document.getElementById('cc-tbody'),
-    empty:           document.getElementById('cc-empty'),
-    totalBadge:      document.getElementById('cc-total-badge'),
-    paginationWrap:  document.getElementById('cc-pagination'),
-    paginationInfo:  document.getElementById('cc-pagination-info'),
-    pageIndicator:   document.getElementById('cc-page-indicator'),
-    perPageSelect:   document.getElementById('cc-per-page'),
-    btnFirst:        document.getElementById('cc-btn-first'),
-    btnPrev:         document.getElementById('cc-btn-prev'),
-    btnNext:         document.getElementById('cc-btn-next'),
-    btnLast:         document.getElementById('cc-btn-last'),
-    // Filtros
-    inputBusca:      document.getElementById('cc-busca'),
-    selectStatus:    document.getElementById('cc-status'),
-    selectOperadora: document.getElementById('cc-operadora'),
-    btnClear:        document.getElementById('cc-btn-clear'),
-    // KPIs
-    kpiTotal:        document.getElementById('kpi-total'),
-    kpiAtivos:       document.getElementById('kpi-ativos'),
-    kpiInativos:     document.getElementById('kpi-inativos'),
-    kpiValor:        document.getElementById('kpi-valor'),
-    kpiVidas:        document.getElementById('kpi-vidas'),
-    // Modal detalhe
-    modalDetalhe:    document.getElementById('modalDetalheCliente'),
-    detalheNome:     document.getElementById('cc-detalhe-nome'),
-    detalheCnpj:     document.getElementById('cc-detalhe-cnpj'),
-    detalheTempo:    document.getElementById('cc-detalhe-tempo'),
-    detalheBody:     document.getElementById('cc-detalhe-body'),
+  const state = {
+    view: 'recentes',
+    period: 30,
+    pagination: { currentPage: 1, totalPages: 1, perPage: 15, total: 0 },
+    request: null
   };
 
-  // ============================================
-  // Init
-  // ============================================
+  const el = {
+    viewButtons: document.querySelectorAll('[data-cc-view]'),
+    periodPanel: document.getElementById('cc-period-panel'),
+    periodButtons: document.querySelectorAll('[data-period]'),
+    recentOnly: document.querySelectorAll('.cc-recentes-only'),
+    portfolioOnly: document.querySelectorAll('.cc-carteira-only'),
+    responsaveis: document.getElementById('cc-responsaveis'),
+    responsaveisLista: document.getElementById('cc-responsaveis-lista'),
+    responsaveisPeriodo: document.getElementById('cc-responsaveis-periodo'),
+    loading: document.getElementById('cc-loading'),
+    error: document.getElementById('cc-error'),
+    tableWrap: document.querySelector('.cc-table-wrap'),
+    tbody: document.getElementById('cc-tbody'),
+    thead: document.getElementById('cc-thead'),
+    empty: document.getElementById('cc-empty'),
+    emptyTitle: document.getElementById('cc-empty-title'),
+    emptyCopy: document.getElementById('cc-empty-copy'),
+    emptyAction: document.getElementById('cc-empty-action'),
+    retry: document.getElementById('cc-btn-retry'),
+    totalBadge: document.getElementById('cc-total-badge'),
+    tableTitle: document.getElementById('cc-table-title'),
+    tableSubtitle: document.getElementById('cc-table-subtitle'),
+    paginationWrap: document.getElementById('cc-pagination'),
+    paginationInfo: document.getElementById('cc-pagination-info'),
+    pageIndicator: document.getElementById('cc-page-indicator'),
+    perPageSelect: document.getElementById('cc-per-page'),
+    btnFirst: document.getElementById('cc-btn-first'),
+    btnPrev: document.getElementById('cc-btn-prev'),
+    btnNext: document.getElementById('cc-btn-next'),
+    btnLast: document.getElementById('cc-btn-last'),
+    inputBusca: document.getElementById('cc-busca'),
+    selectStatus: document.getElementById('cc-status'),
+    selectOperadora: document.getElementById('cc-operadora'),
+    selectBackoffice: document.getElementById('cc-backoffice'),
+    selectAcao: document.getElementById('cc-acao'),
+    btnClear: document.getElementById('cc-btn-clear'),
+    kpiTotal: document.getElementById('kpi-total'),
+    kpiAtencao: document.getElementById('kpi-atencao'),
+    kpiPortabilidades: document.getElementById('kpi-portabilidades'),
+    kpiCancelamentos: document.getElementById('kpi-cancelamentos'),
+    kpiVidas: document.getElementById('kpi-vidas'),
+    kpiTotalLabel: document.getElementById('kpi-total-label'),
+    kpiAttentionLabel: document.getElementById('kpi-attention-label'),
+    kpiPortLabel: document.getElementById('kpi-port-label'),
+    kpiCancelLabel: document.getElementById('kpi-cancel-label'),
+    kpiVidasLabel: document.getElementById('kpi-vidas-label'),
+    modalDetalhe: document.getElementById('modalDetalheCliente'),
+    detalheNome: document.getElementById('cc-detalhe-nome'),
+    detalheCnpj: document.getElementById('cc-detalhe-cnpj'),
+    detalheTempo: document.getElementById('cc-detalhe-tempo'),
+    detalheBody: document.getElementById('cc-detalhe-body')
+  };
+
   function init() {
     bindEvents();
+    updateView();
     loadData();
   }
 
   function bindEvents() {
+    el.viewButtons.forEach(button => button.addEventListener('click', () => changeView(button.dataset.ccView)));
+    el.periodButtons.forEach(button => button.addEventListener('click', () => changePeriod(Number(button.dataset.period))));
     el.perPageSelect?.addEventListener('change', () => {
-      pagination.perPage = parseInt(el.perPageSelect.value);
+      state.pagination.perPage = Number(el.perPageSelect.value);
       goToPage(1);
     });
     el.btnFirst?.addEventListener('click', () => goToPage(1));
-    el.btnPrev?.addEventListener('click',  () => goToPage(pagination.currentPage - 1));
-    el.btnNext?.addEventListener('click',  () => goToPage(pagination.currentPage + 1));
-    el.btnLast?.addEventListener('click',  () => goToPage(pagination.totalPages));
+    el.btnPrev?.addEventListener('click', () => goToPage(state.pagination.currentPage - 1));
+    el.btnNext?.addEventListener('click', () => goToPage(state.pagination.currentPage + 1));
+    el.btnLast?.addEventListener('click', () => goToPage(state.pagination.totalPages));
     el.btnClear?.addEventListener('click', clearFilters);
-
-    el.inputBusca?.addEventListener('input',    debounce(() => goToPage(1), 350));
-    el.selectStatus?.addEventListener('change',    () => goToPage(1));
-    el.selectOperadora?.addEventListener('change', () => goToPage(1));
-  }
-
-  // ============================================
-  // Data Loading
-  // ============================================
-  async function loadData() {
-    showLoading(true);
-
-    const params = new URLSearchParams({
-      page:     pagination.currentPage,
-      per_page: pagination.perPage,
+    el.emptyAction?.addEventListener('click', clearFilters);
+    el.retry?.addEventListener('click', loadData);
+    el.inputBusca?.addEventListener('input', debounce(() => goToPage(1), 350));
+    [el.selectStatus, el.selectOperadora, el.selectBackoffice, el.selectAcao].forEach(select => {
+      select?.addEventListener('change', () => goToPage(1));
     });
-    if (el.inputBusca?.value.trim())      params.set('busca',     el.inputBusca.value.trim());
-    if (el.selectStatus?.value)           params.set('status',    el.selectStatus.value);
-    if (el.selectOperadora?.value)        params.set('operadora', el.selectOperadora.value);
-
-    try {
-      const res  = await fetch(`/back-office/carteira-clientes/data?${params}`);
-      const data = await res.json();
-
-      if (!data.success) throw new Error(data.message || 'Erro ao carregar dados');
-
-      renderKpis(data.kpis);
-      renderTable(data.clientes);
-      renderPagination(data.pagination);
-    } catch (e) {
-      console.error(e);
-      showEmpty(true);
-    } finally {
-      showLoading(false);
-    }
+    el.tbody?.addEventListener('click', handleTableClick);
+    el.responsaveisLista?.addEventListener('click', handleBackofficeClick);
   }
 
-  function goToPage(page) {
-    pagination.currentPage = page;
+  function changeView(view) {
+    if (!['recentes', 'carteira'].includes(view) || state.view === view) return;
+    state.view = view;
+    state.pagination.currentPage = 1;
+    updateView();
     loadData();
   }
 
-  // ============================================
-  // Render
-  // ============================================
-  function renderKpis(kpis) {
-    if (el.kpiTotal)    el.kpiTotal.textContent    = kpis.total_clientes.toLocaleString('pt-BR');
-    if (el.kpiAtivos)   el.kpiAtivos.textContent   = kpis.clientes_ativos.toLocaleString('pt-BR');
-    if (el.kpiInativos) el.kpiInativos.textContent = kpis.clientes_inativos.toLocaleString('pt-BR');
-    if (el.kpiValor)    el.kpiValor.textContent     = formatCurrency(kpis.valor_carteira);
-    if (el.kpiVidas)    el.kpiVidas.textContent     = kpis.total_vidas.toLocaleString('pt-BR');
+  function changePeriod(period) {
+    if (![30, 60, 365].includes(period) || state.period === period) return;
+    state.period = period;
+    state.pagination.currentPage = 1;
+    el.periodButtons.forEach(button => {
+      const active = Number(button.dataset.period) === period;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    loadData();
   }
 
-  function renderTable(clientes) {
-    if (!clientes || clientes.length === 0) {
+  function updateView() {
+    const recentes = state.view === 'recentes';
+    el.viewButtons.forEach(button => {
+      const active = button.dataset.ccView === state.view;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    el.periodPanel?.classList.toggle('d-none', !recentes);
+    el.responsaveis?.classList.toggle('d-none', !recentes);
+    el.recentOnly.forEach(item => item.classList.toggle('d-none', !recentes));
+    el.portfolioOnly.forEach(item => item.classList.toggle('d-none', recentes));
+    if (el.tableTitle) el.tableTitle.textContent = recentes ? 'Contratos que acabaram de ser implantados' : 'Consulta da carteira completa';
+    if (el.tableSubtitle) el.tableSubtitle.textContent = recentes
+      ? 'Mais recentes primeiro, para facilitar o acompanhamento.'
+      : 'Clientes agrupados por CPF ou CNPJ, com todo o histórico da carteira.';
+  }
+
+  function buildParams() {
+    const params = new URLSearchParams({
+      visao: state.view,
+      page: state.pagination.currentPage,
+      per_page: state.pagination.perPage
+    });
+    if (state.view === 'recentes') params.set('periodo', state.period);
+    if (el.inputBusca?.value.trim()) params.set('busca', el.inputBusca.value.trim());
+    if (el.selectOperadora?.value) params.set('operadora', el.selectOperadora.value);
+    if (state.view === 'recentes' && el.selectBackoffice?.value) params.set('backoffice', el.selectBackoffice.value);
+    if (state.view === 'recentes' && el.selectAcao?.value) params.set('acao', el.selectAcao.value);
+    if (state.view === 'carteira' && el.selectStatus?.value) params.set('status', el.selectStatus.value);
+    return params;
+  }
+
+  async function loadData() {
+    state.request?.abort();
+    const request = new AbortController();
+    state.request = request;
+    showLoading(true);
+
+    try {
+      const response = await fetch(`/back-office/carteira-clientes/data?${buildParams()}`, {
+        signal: request.signal,
+        headers: { Accept: 'application/json' }
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || 'Erro ao carregar dados');
+
+      showError(false);
+      renderKpis(data.kpis);
+      if (state.view === 'recentes') {
+        renderRecentContracts(data.contratos);
+        renderBackofficeDistribution(data.distribuicao_backoffice || []);
+      } else {
+        renderPortfolio(data.clientes);
+      }
+      renderPagination(data.pagination);
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      console.error(error);
+      showError(true);
+    } finally {
+      if (state.request === request) showLoading(false);
+    }
+  }
+
+  function renderKpis(kpis) {
+    if (state.view === 'recentes') {
+      setText(el.kpiTotalLabel, 'Implantados no período');
+      setText(el.kpiAttentionLabel, 'Com ação pendente');
+      setText(el.kpiPortLabel, 'Com portabilidade');
+      setText(el.kpiCancelLabel, 'Com cancelamento');
+      setText(el.kpiVidasLabel, 'Vidas implantadas');
+      setNumber(el.kpiTotal, kpis.implantados);
+      setNumber(el.kpiAtencao, kpis.atencao);
+      setNumber(el.kpiPortabilidades, kpis.portabilidades);
+      setNumber(el.kpiCancelamentos, kpis.cancelamentos);
+      setNumber(el.kpiVidas, kpis.total_vidas);
+      return;
+    }
+
+    setText(el.kpiTotalLabel, 'Total de clientes');
+    setText(el.kpiAttentionLabel, 'Clientes ativos');
+    setText(el.kpiPortLabel, 'Clientes inativos');
+    setText(el.kpiCancelLabel, 'Valor da carteira');
+    setText(el.kpiVidasLabel, 'Total de vidas');
+    setNumber(el.kpiTotal, kpis.total_clientes);
+    setNumber(el.kpiAtencao, kpis.clientes_ativos);
+    setNumber(el.kpiPortabilidades, kpis.clientes_inativos);
+    setText(el.kpiCancelamentos, formatCurrency(kpis.valor_carteira));
+    setNumber(el.kpiVidas, kpis.total_vidas);
+  }
+
+  function renderRecentContracts(contracts) {
+    el.thead.innerHTML = `<tr><th>Contrato</th><th>Implantação</th><th>Backoffice</th><th>Ação necessária</th><th>Plano</th><th>Vidas / valor</th><th><span class="visually-hidden">Ações</span></th></tr>`;
+    if (!contracts?.length) {
       showEmpty(true);
       return;
     }
     showEmpty(false);
-
-    el.tbody.innerHTML = clientes.map(c => `
-      <tr>
-        <td>
-          <div class="cc-cell-cliente">
-            <div class="cc-nome">${escapeHtml(c.nome_contrato)}</div>
-            <div class="cc-cnpj">${escapeHtml(c.cpf_cnpj_formatado)}</div>
-          </div>
+    el.tbody.innerHTML = contracts.map(contract => `
+      <tr class="${contract.precisa_atencao ? 'cc-row-attention' : ''}">
+        <td data-label="Contrato">
+          <div class="cc-cell-cliente"><strong>${escapeHtml(contract.nome_contrato || 'Cliente sem nome')}</strong><span>${escapeHtml(contract.cpf_cnpj_formatado || '')}${contract.numero_proposta ? ` · Proposta ${escapeHtml(contract.numero_proposta)}` : ''}</span></div>
         </td>
-        <td>
-          <div class="cc-contratos-badges">
-            <span class="cc-badge badge-total">
-              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              ${c.total_contratos} total
-            </span>
-            ${c.contratos_ativos > 0 ? `<span class="cc-badge badge-ativo">${c.contratos_ativos} ativo${c.contratos_ativos > 1 ? 's' : ''}</span>` : ''}
-            ${c.contratos_cancelados > 0 ? `<span class="cc-badge badge-cancelado">${c.contratos_cancelados} cancel.</span>` : ''}
-          </div>
+        <td data-label="Implantação">
+          <div class="cc-implantacao"><strong>${escapeHtml(contract.data_implantacao)}</strong><span class="${ageClass(contract.dias_implantado)}">${escapeHtml(contract.idade_label)}</span>${contract.data_vigencia ? `<small>Vigência ${escapeHtml(contract.data_vigencia)}</small>` : ''}</div>
         </td>
-        <td>
-          <div class="cc-operadoras-chips">
-            ${(c.operadoras || '').split(', ').filter(Boolean).map(op => `<span class="cc-chip">${escapeHtml(op)}</span>`).join('')}
-          </div>
+        <td data-label="Backoffice"><div class="cc-owner"><span>${initials(contract.backoffice)}</span><div><strong>${escapeHtml(contract.backoffice)}</strong><small>${contract.vendedor ? `Vendedor: ${escapeHtml(contract.vendedor)}` : 'Vendedor não informado'}</small></div></div></td>
+        <td data-label="Ação necessária">${renderAttention(contract)}</td>
+        <td data-label="Plano"><div class="cc-plan"><strong>${escapeHtml(contract.operadora || 'Não informada')}</strong><span>${escapeHtml(contract.nome_plano || 'Plano não informado')}</span>${contract.boas_vindas ? '<small class="is-done">Boas-vindas enviadas</small>' : '<small>Boas-vindas pendentes</small>'}</div></td>
+        <td data-label="Vidas / valor"><div class="cc-numbers"><strong>${formatCurrency(contract.valor_contrato)}</strong><span>${formatNumber(contract.vidas)} ${contract.vidas === 1 ? 'vida' : 'vidas'}</span></div></td>
+        <td class="cc-actions-cell">
+          <a href="/back-office/abrir-contrato/${contract.id}" class="cc-btn-open">Abrir contrato</a>
+          <button type="button" class="cc-btn-detail" data-client-detail data-cnpj="${escapeHtml(contract.cpf_cnpj)}" data-name="${escapeHtml(contract.nome_contrato)}" data-document="${escapeHtml(contract.cpf_cnpj_formatado)}" data-context="${escapeHtml(contract.idade_label)}">Histórico</button>
         </td>
-        <td><span class="cc-valor">${formatCurrency(c.valor_ativo)}</span></td>
-        <td><span class="cc-valor" style="font-size:0.82rem">${c.vidas_ativas.toLocaleString('pt-BR')}</span></td>
-        <td style="font-size:0.8rem;color:var(--cc-text-secondary)">${c.primeiro_contrato || '—'}</td>
-        <td>
-          <div class="cc-tempo">
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            ${escapeHtml(c.tempo_label)}
-          </div>
-        </td>
-        <td>${getStatusBadge(c.status)}</td>
-        <td>
-          <button class="cc-btn-detalhe" onclick="carteiraClientes.abrirDetalhe('${escapeHtml(c.cpf_cnpj)}', '${escapeHtml(c.nome_contrato)}', '${escapeHtml(c.cpf_cnpj_formatado)}', '${escapeHtml(c.tempo_label)}')">
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            Ver Detalhes
-          </button>
-        </td>
-      </tr>
-    `).join('');
+      </tr>`).join('');
   }
 
-  function renderPagination(pag) {
-    pagination.currentPage = pag.current_page;
-    pagination.totalPages  = pag.total_pages;
-    pagination.total       = pag.total;
-
-    const from = Math.min((pag.current_page - 1) * pag.per_page + 1, pag.total);
-    const to   = Math.min(pag.current_page * pag.per_page, pag.total);
-
-    if (el.paginationInfo)
-      el.paginationInfo.innerHTML = `Mostrando <strong>${from}–${to}</strong> de <strong>${pag.total}</strong> clientes`;
-    if (el.pageIndicator)
-      el.pageIndicator.textContent = `${pag.current_page} / ${pag.total_pages}`;
-    if (el.totalBadge)
-      el.totalBadge.textContent = `${pag.total} cliente${pag.total !== 1 ? 's' : ''}`;
-
-    if (el.btnFirst) el.btnFirst.disabled = !pag.has_prev;
-    if (el.btnPrev)  el.btnPrev.disabled  = !pag.has_prev;
-    if (el.btnNext)  el.btnNext.disabled  = !pag.has_next;
-    if (el.btnLast)  el.btnLast.disabled  = !pag.has_next;
-
-    if (el.paginationWrap) el.paginationWrap.classList.toggle('d-none', pag.total === 0);
-  }
-
-  // ============================================
-  // Modal Detalhe
-  // ============================================
-  window.carteiraClientes = {
-    abrirDetalhe: async function(cnpj, nome, cnpjFormatado, tempoLabel) {
-      if (el.detalheNome) el.detalheNome.textContent = nome;
-      if (el.detalheCnpj) el.detalheCnpj.textContent = cnpjFormatado;
-      if (el.detalheTempo) el.detalheTempo.textContent = `Cliente há ${tempoLabel}`;
-      if (el.detalheBody) el.detalheBody.innerHTML = `
-        <div class="cc-loading"><span class="spinner-border spinner-border-sm"></span> Carregando contratos...</div>
-      `;
-
-      new bootstrap.Modal(el.modalDetalhe).show();
-
-      try {
-        const cnpjEnc = encodeURIComponent(cnpj);
-        const res  = await fetch(`/back-office/carteira-clientes/detalhe/${cnpjEnc}`);
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message);
-        renderDetalhe(data.contratos);
-      } catch (e) {
-        if (el.detalheBody) el.detalheBody.innerHTML = `<p class="text-center text-muted p-4">Erro ao carregar contratos.</p>`;
-      }
-    }
-  };
-
-  function renderDetalhe(contratos) {
-    if (!contratos || contratos.length === 0) {
-      el.detalheBody.innerHTML = `<p class="text-center text-muted p-4">Nenhum contrato encontrado.</p>`;
+  function renderPortfolio(clients) {
+    el.thead.innerHTML = '<tr><th>Cliente</th><th>Contratos</th><th>Operadoras</th><th>Valor ativo</th><th>Vidas</th><th>Cliente desde</th><th>Status</th><th><span class="visually-hidden">Ações</span></th></tr>';
+    if (!clients?.length) {
+      showEmpty(true);
       return;
     }
-
-    const maisAntigo = contratos[contratos.length - 1]?.id;
-
-    el.detalheBody.innerHTML = `<div class="cc-contratos-list">${contratos.map(c => `
-      <div class="cc-contrato-item ${c.is_ativo ? 'contrato-ativo' : 'contrato-inativo'}">
-        ${c.id === maisAntigo ? '<span class="cc-primeiro-badge">⭐ 1º Contrato</span>' : ''}
-        <div class="cc-contrato-top">
-          <div>
-            <div class="cc-contrato-operadora">${escapeHtml(c.operadora || '—')}</div>
-            <div class="cc-contrato-plano">${escapeHtml(c.nome_plano || '—')}</div>
-          </div>
-          ${getStatusBadge(c.is_ativo ? 'ativo' : 'inativo', c.status_descricao)}
-        </div>
-        <div class="cc-contrato-grid">
-          <div class="cc-contrato-field">
-            <div class="cc-field-label">Valor</div>
-            <div class="cc-field-value mono">${formatCurrency(c.valor_contrato)}</div>
-          </div>
-          <div class="cc-contrato-field">
-            <div class="cc-field-label">Vidas</div>
-            <div class="cc-field-value">${c.vidas || '—'}</div>
-          </div>
-          <div class="cc-contrato-field">
-            <div class="cc-field-label">Implantado</div>
-            <div class="cc-field-value">${c.data_implantacao || '—'}</div>
-          </div>
-          <div class="cc-contrato-field">
-            <div class="cc-field-label">Vigência</div>
-            <div class="cc-field-value">${c.data_vigencia || '—'}</div>
-          </div>
-        </div>
-        <div class="cc-contrato-footer">
-          <span class="cc-vendedor">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            ${escapeHtml(c.vendedor || '—')}
-          </span>
-          <span class="cc-proposta">${c.numero_proposta ? `Proposta: ${escapeHtml(c.numero_proposta)}` : ''}</span>
-        </div>
-        <div class="cc-contrato-acoes">
-          <a href="/back-office/abrir-contrato/${c.id}" target="_blank" rel="noopener" class="cc-btn-abrir-contrato">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
-            Abrir / Editar contrato
-          </a>
-        </div>
-      </div>
-    `).join('')}</div>`;
+    showEmpty(false);
+    el.tbody.innerHTML = clients.map(client => `
+      <tr>
+        <td data-label="Cliente"><div class="cc-cell-cliente"><strong>${escapeHtml(client.nome_contrato)}</strong><span>${escapeHtml(client.cpf_cnpj_formatado)}</span></div></td>
+        <td data-label="Contratos"><div class="cc-contract-count"><strong>${formatNumber(client.total_contratos)}</strong><span>${formatNumber(client.contratos_ativos)} ativos${client.contratos_cancelados ? ` · ${formatNumber(client.contratos_cancelados)} cancelados` : ''}</span></div></td>
+        <td data-label="Operadoras"><div class="cc-tags">${String(client.operadoras || '').split(', ').filter(Boolean).map(item => `<span>${escapeHtml(item)}</span>`).join('')}</div></td>
+        <td data-label="Valor ativo"><strong class="cc-money">${formatCurrency(client.valor_ativo)}</strong></td>
+        <td data-label="Vidas">${formatNumber(client.vidas_ativas)}</td>
+        <td data-label="Cliente desde"><div class="cc-plan"><strong>${escapeHtml(client.primeiro_contrato || '—')}</strong><span>Há ${escapeHtml(client.tempo_label)}</span></div></td>
+        <td data-label="Status">${getStatusBadge(client.status)}</td>
+        <td class="cc-actions-cell"><button type="button" class="cc-btn-open" data-client-detail data-cnpj="${escapeHtml(client.cpf_cnpj)}" data-name="${escapeHtml(client.nome_contrato)}" data-document="${escapeHtml(client.cpf_cnpj_formatado)}" data-context="Cliente há ${escapeHtml(client.tempo_label)}">Ver contratos</button></td>
+      </tr>`).join('');
   }
 
-  // ============================================
-  // Helpers
-  // ============================================
-  function getStatusBadge(status, label) {
-    const map = {
-      ativo:   { cls: 'status-ativo',   txt: label || 'Ativo' },
-      misto:   { cls: 'status-misto',   txt: label || 'Misto' },
-      inativo: { cls: 'status-inativo', txt: label || 'Inativo' },
-    };
-    const s = map[status] || map.inativo;
-    return `<span class="cc-status-badge ${s.cls}"><span class="cc-dot"></span>${escapeHtml(s.txt)}</span>`;
+  function renderAttention(contract) {
+    const actions = [];
+    if (contract.portabilidades_pendentes > 0) actions.push(`<span class="cc-action-chip is-port">${formatNumber(contract.portabilidades_pendentes)} portabilidade${contract.portabilidades_pendentes > 1 ? 's' : ''}</span>`);
+    if (contract.cancelamentos_pendentes > 0) actions.push(`<span class="cc-action-chip is-cancel">${formatNumber(contract.cancelamentos_pendentes)} cancelamento${contract.cancelamentos_pendentes > 1 ? 's' : ''}</span>`);
+    return actions.length ? `<div class="cc-action-list">${actions.join('')}</div>` : '<span class="cc-no-action">Sem ação sinalizada</span>';
   }
 
-  function formatCurrency(val) {
-    return 'R$ ' + parseFloat(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function renderBackofficeDistribution(items) {
+    if (!el.responsaveisLista) return;
+    const max = Math.max(...items.map(item => item.total), 1);
+    el.responsaveisLista.innerHTML = items.length ? items.map(item => `
+      <button type="button" class="cc-owner-summary ${String(el.selectBackoffice?.value) === String(item.id) ? 'is-active' : ''}" data-backoffice-id="${escapeHtml(item.id)}" role="listitem">
+        <span class="cc-owner-summary-avatar">${initials(item.nome)}</span>
+        <span class="cc-owner-summary-copy"><strong>${escapeHtml(item.nome)}</strong><span><i style="--cc-progress:${Math.round((item.total / max) * 100)}%"></i></span></span>
+        <b>${formatNumber(item.total)}</b>
+      </button>`).join('') : '<p class="cc-distribution-empty">Nenhum contrato implantado neste período.</p>';
+    if (el.responsaveisPeriodo) el.responsaveisPeriodo.textContent = periodLabel(state.period);
+  }
+
+  function renderPagination(pagination) {
+    state.pagination.currentPage = pagination.current_page;
+    state.pagination.totalPages = pagination.total_pages;
+    state.pagination.total = pagination.total;
+    const from = pagination.total ? ((pagination.current_page - 1) * pagination.per_page) + 1 : 0;
+    const to = Math.min(pagination.current_page * pagination.per_page, pagination.total);
+    const subject = state.view === 'recentes' ? 'contrato' : 'cliente';
+    setText(el.paginationInfo, `Mostrando ${from}–${to} de ${pagination.total}`);
+    setText(el.pageIndicator, `${pagination.current_page} / ${pagination.total_pages}`);
+    setText(el.totalBadge, `${formatNumber(pagination.total)} ${subject}${pagination.total === 1 ? '' : 's'}`);
+    if (el.btnFirst) el.btnFirst.disabled = !pagination.has_prev;
+    if (el.btnPrev) el.btnPrev.disabled = !pagination.has_prev;
+    if (el.btnNext) el.btnNext.disabled = !pagination.has_next;
+    if (el.btnLast) el.btnLast.disabled = !pagination.has_next;
+    el.paginationWrap?.classList.toggle('d-none', pagination.total === 0);
+  }
+
+  function handleTableClick(event) {
+    const button = event.target.closest('[data-client-detail]');
+    if (!button) return;
+    openDetail(button.dataset.cnpj, button.dataset.name, button.dataset.document, button.dataset.context);
+  }
+
+  function handleBackofficeClick(event) {
+    const button = event.target.closest('[data-backoffice-id]');
+    if (!button || !el.selectBackoffice) return;
+    el.selectBackoffice.value = el.selectBackoffice.value === button.dataset.backofficeId ? '' : button.dataset.backofficeId;
+    goToPage(1);
+  }
+
+  async function openDetail(cnpj, name, documentNumber, context) {
+    setText(el.detalheNome, name);
+    setText(el.detalheCnpj, documentNumber);
+    setText(el.detalheTempo, context);
+    if (el.detalheBody) el.detalheBody.innerHTML = '<div class="cc-modal-skeleton"><span></span><span></span><span></span></div>';
+    if (typeof bootstrap !== 'undefined' && el.modalDetalhe) new bootstrap.Modal(el.modalDetalhe).show();
+
+    try {
+      const response = await fetch(`/back-office/carteira-clientes/detalhe/${encodeURIComponent(cnpj)}`, { headers: { Accept: 'application/json' } });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || 'Erro ao carregar contratos');
+      renderDetail(data.contratos);
+    } catch (error) {
+      if (el.detalheBody) el.detalheBody.innerHTML = '<div class="cc-modal-state"><strong>Não foi possível carregar o histórico.</strong><span>Feche esta janela e tente novamente.</span></div>';
+    }
+  }
+
+  function renderDetail(contracts) {
+    if (!el.detalheBody) return;
+    if (!contracts?.length) {
+      el.detalheBody.innerHTML = '<div class="cc-modal-state"><strong>Nenhum contrato encontrado.</strong></div>';
+      return;
+    }
+    el.detalheBody.innerHTML = `<div class="cc-contract-list">${contracts.map(contract => `
+      <article class="cc-contract-item ${contract.is_ativo ? 'is-active' : 'is-inactive'}">
+        <header><div><strong>${escapeHtml(contract.operadora || 'Operadora não informada')}</strong><span>${escapeHtml(contract.nome_plano || 'Plano não informado')}</span></div>${getStatusBadge(contract.is_ativo ? 'ativo' : 'inativo', contract.status_descricao)}</header>
+        <dl><div><dt>Valor</dt><dd>${formatCurrency(contract.valor_contrato)}</dd></div><div><dt>Vidas</dt><dd>${formatNumber(contract.vidas)}</dd></div><div><dt>Implantação</dt><dd>${escapeHtml(contract.data_implantacao || '—')}</dd></div><div><dt>Vigência</dt><dd>${escapeHtml(contract.data_vigencia || '—')}</dd></div></dl>
+        <footer><span>${escapeHtml(contract.vendedor || 'Vendedor não informado')}</span>${contract.numero_proposta ? `<span>Proposta ${escapeHtml(contract.numero_proposta)}</span>` : ''}<a href="/back-office/abrir-contrato/${contract.id}">Abrir contrato</a></footer>
+      </article>`).join('')}</div>`;
   }
 
   function showLoading(show) {
     el.loading?.classList.toggle('d-none', !show);
-    if (el.tableCard) el.tableCard.style.opacity = show ? '0.5' : '1';
+    if (show) {
+      el.tableWrap?.classList.add('d-none');
+      el.empty?.classList.add('d-none');
+      el.error?.classList.add('d-none');
+      el.paginationWrap?.classList.add('d-none');
+    }
   }
 
   function showEmpty(show) {
     el.empty?.classList.toggle('d-none', !show);
-    if (el.tbody) el.tbody.style.display = show ? 'none' : '';
+    el.tableWrap?.classList.toggle('d-none', show);
+    if (show) {
+      setText(el.emptyTitle, state.view === 'recentes' ? 'Nenhum contrato neste período' : 'Nenhum cliente encontrado');
+      setText(el.emptyCopy, state.view === 'recentes' ? 'Amplie o período ou limpe os filtros para consultar outros contratos.' : 'Ajuste a busca ou limpe os filtros da carteira.');
+    }
+  }
+
+  function showError(show) {
+    el.error?.classList.toggle('d-none', !show);
+    if (show) {
+      el.empty?.classList.add('d-none');
+      el.tableWrap?.classList.add('d-none');
+      el.paginationWrap?.classList.add('d-none');
+    }
   }
 
   function clearFilters() {
-    if (el.inputBusca)      el.inputBusca.value      = '';
-    if (el.selectStatus)    el.selectStatus.value    = '';
+    if (el.inputBusca) el.inputBusca.value = '';
+    if (el.selectStatus) el.selectStatus.value = '';
     if (el.selectOperadora) el.selectOperadora.value = '';
+    if (el.selectBackoffice) el.selectBackoffice.value = '';
+    if (el.selectAcao) el.selectAcao.value = '';
     goToPage(1);
   }
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
+  function goToPage(page) {
+    state.pagination.currentPage = Math.max(1, Math.min(page, state.pagination.totalPages || 1));
+    loadData();
   }
 
-  function debounce(fn, wait) {
-    let t;
-    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
+  function getStatusBadge(status, label) {
+    const badges = { ativo: ['is-active', 'Ativo'], misto: ['is-mixed', 'Misto'], inativo: ['is-inactive', 'Inativo'] };
+    const badge = badges[status] || badges.inativo;
+    return `<span class="cc-status ${badge[0]}"><i></i>${escapeHtml(label || badge[1])}</span>`;
   }
 
-  // ============================================
-  // Boot
-  // ============================================
+  function ageClass(days) {
+    if (days <= 30) return 'is-new';
+    if (days <= 60) return 'is-recent';
+    return 'is-year';
+  }
+
+  function periodLabel(period) {
+    return { 30: 'Último mês', 60: 'Últimos 2 meses', 365: 'Últimos 12 meses' }[period] || 'Período selecionado';
+  }
+
+  function initials(name) {
+    return String(name || '?').trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+  }
+
+  function formatCurrency(value) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+  }
+
+  function formatNumber(value) {
+    return Number(value || 0).toLocaleString('pt-BR');
+  }
+
+  function setText(element, value) {
+    if (element) element.textContent = value;
+  }
+
+  function setNumber(element, value) {
+    setText(element, formatNumber(value));
+  }
+
+  function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = String(value ?? '');
+    return div.innerHTML;
+  }
+
+  function debounce(callback, wait) {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => callback(...args), wait);
+    };
+  }
+
   document.addEventListener('DOMContentLoaded', init);
-})();
+}());

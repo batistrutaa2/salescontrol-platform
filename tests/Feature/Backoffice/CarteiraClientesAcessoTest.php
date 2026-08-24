@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Backoffice;
 
+use App\Enums\Tabulations;
+use App\Enums\TipoDemandaContrato;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
@@ -52,6 +54,99 @@ class CarteiraClientesAcessoTest extends TestCase
         }
     }
 
+    public function test_tela_prioriza_implantados_recentes_e_mantem_consulta_da_carteira(): void
+    {
+        $response = $this->actingAs($this->user(UserRole::BACKOFFICE))
+            ->get(route('backoffice.carteiraClientes'));
+
+        $response->assertOk()
+            ->assertSee('Contratos implantados recentemente')
+            ->assertSee('data-cc-view="recentes"', false)
+            ->assertSee('data-cc-view="carteira"', false)
+            ->assertSee('data-period="30"', false)
+            ->assertSee('data-period="60"', false)
+            ->assertSee('data-period="365"', false);
+    }
+
+    public function test_endpoint_mapeia_implantados_por_periodo_backoffice_e_acoes_pendentes(): void
+    {
+        $admin = $this->user(UserRole::ADMINISTRATIVO);
+        $backoffice = $this->user(UserRole::BACKOFFICE);
+        $vendedor = $this->user(UserRole::VENDEDOR);
+
+        DB::table('tabulacoes')->insert([
+            'id' => Tabulations::IMPLANTADO,
+            'empresa_id' => $this->empresa->id,
+            'descricao' => 'IMPLANTADO',
+            'tipo_tabulacao' => 'A',
+            'efetivo' => 'Y',
+            'status' => 'Y',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $contatoId = DB::table('contatos')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'user_import_id' => $vendedor->id,
+            'nome_cliente' => 'Cliente Implantado',
+            'cpf' => '12345678900',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $vendaRecente = $this->criarVendaImplantada($vendedor, $backoffice, $contatoId, now()->subDays(10), '11.222.333/0001-44');
+        $this->criarVendaImplantada($vendedor, $backoffice, $contatoId, now()->subDays(90), '55.666.777/0001-88');
+
+        DB::table('vendas_portabilidades')->insert([
+            'venda_id' => $vendaRecente,
+            'nome' => 'Titular Portabilidade',
+            'sequencial' => 1,
+            'status' => 'PENDENTE',
+            'fase' => 'REUNINDO_DOCUMENTOS',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('venda_demandas')->insert([
+            'venda_id' => $vendaRecente,
+            'empresa_id' => $this->empresa->id,
+            'created_by' => $vendedor->id,
+            'origem' => 'VENDEDOR',
+            'tipo' => TipoDemandaContrato::CANCELAMENTO_OPERADORA_ANTERIOR->value,
+            'titulo' => 'Cancelar plano anterior',
+            'status' => 'PENDENTE',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->getJson(route('backoffice.getCarteiraClientesData', [
+            'visao' => 'recentes',
+            'periodo' => 30,
+            'backoffice' => $backoffice->id,
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('visao', 'recentes')
+            ->assertJsonCount(1, 'contratos')
+            ->assertJsonPath('contratos.0.id', $vendaRecente)
+            ->assertJsonPath('contratos.0.backoffice', $backoffice->name)
+            ->assertJsonPath('contratos.0.portabilidades_pendentes', 1)
+            ->assertJsonPath('contratos.0.cancelamentos_pendentes', 1)
+            ->assertJsonPath('contratos.0.precisa_atencao', true)
+            ->assertJsonPath('kpis.implantados', 1)
+            ->assertJsonPath('kpis.atencao', 1)
+            ->assertJsonPath('kpis.portabilidades', 1)
+            ->assertJsonPath('kpis.cancelamentos', 1);
+
+        $this->actingAs($admin)->getJson(route('backoffice.getCarteiraClientesData', [
+            'visao' => 'recentes',
+            'periodo' => 365,
+        ]))->assertOk()->assertJsonPath('kpis.implantados', 2);
+
+        $this->actingAs($admin)->getJson(route('backoffice.getCarteiraClientesData', [
+            'visao' => 'carteira',
+        ]))->assertOk()->assertJsonCount(2, 'clientes');
+    }
+
     public function test_demais_papeis_recebem_403(): void
     {
         foreach ([UserRole::VENDEDOR, UserRole::SUPERVISOR] as $role) {
@@ -64,5 +159,27 @@ class CarteiraClientesAcessoTest extends TestCase
                 ->getJson(route('backoffice.getCarteiraClientesData'))
                 ->assertStatus(403);
         }
+    }
+
+    private function criarVendaImplantada(User $vendedor, User $backoffice, int $contatoId, $dataImplantacao, string $cnpj): int
+    {
+        return DB::table('vendas')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'user_id' => $vendedor->id,
+            'backoffice_id' => $backoffice->id,
+            'contato_id' => $contatoId,
+            'tabulacao_id' => Tabulations::IMPLANTADO,
+            'nome_contrato' => 'Empresa '.$cnpj,
+            'cpf_cnpj' => $cnpj,
+            'numero_proposta' => 'PROP-'.$cnpj,
+            'data_vigencia' => $dataImplantacao,
+            'data_implantacao' => $dataImplantacao,
+            'operadora' => 'AMIL',
+            'nome_plano' => 'Plano Empresarial',
+            'valor_contrato' => 1500,
+            'vidas' => 4,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

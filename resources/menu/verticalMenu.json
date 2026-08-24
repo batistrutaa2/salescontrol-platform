@@ -271,7 +271,7 @@
         },
         {
           "url": "/back-office/carteira-clientes",
-          "name": "Carteira de Clientes",
+          "name": "Implantados Recentes",
           "slug": "pages-carteira-clientes",
           "rules": ["ADMINISTRATIVO", "BACKOFFICE", "DEVELOPER"]
         },
