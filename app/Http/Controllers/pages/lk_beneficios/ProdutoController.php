@@ -4,6 +4,8 @@ namespace App\Http\Controllers\pages\lk_beneficios;
 
 use App\Http\Controllers\Controller;
 use App\Models\Operadora;
+use App\Modules\LkBeneficios\Enums\CoberturaVida;
+use App\Modules\LkBeneficios\Enums\ModalidadeVida;
 use App\Modules\LkBeneficios\Enums\TipoBeneficio;
 use App\Modules\LkBeneficios\Repositories\Contracts\ProdutoRepositoryInterface;
 use Illuminate\Http\JsonResponse;
@@ -31,6 +33,11 @@ class ProdutoController extends Controller
         return view('content.pages.lk-beneficios.produtos.index', [
             'tipos' => $tipos,
             'operadoras' => $operadoras,
+            'modalidadesVida' => collect(ModalidadeVida::all())->map(fn ($value) => [
+                'value' => $value,
+                'label' => ModalidadeVida::label($value),
+            ])->values(),
+            'coberturasVida' => CoberturaVida::all(),
         ]);
     }
 
@@ -46,6 +53,8 @@ class ProdutoController extends Controller
             ->addColumn('tipo_label', fn ($row) => TipoBeneficio::label($row->tipo))
             ->addColumn('tipo_icon', fn ($row) => TipoBeneficio::icon($row->tipo))
             ->addColumn('operadora_nome', fn ($row) => $row->operadora?->nome)
+            ->addColumn('modalidade_label', fn ($row) => ModalidadeVida::label($row->modalidade))
+            ->addColumn('coberturas_count', fn ($row) => count($row->coberturas ?? []))
             ->addColumn('status_label', fn ($row) => $row->ativo ? 'Ativo' : 'Inativo')
             ->addColumn('created_at_fmt', fn ($row) => $row->created_at?->format('d/m/Y'))
             ->make(true);
@@ -59,7 +68,7 @@ class ProdutoController extends Controller
         $produto = $this->produtos->create($data);
 
         return response()->json([
-            'message' => 'Produto criado com sucesso.',
+            'message' => 'Plano criado com sucesso.',
             'produto' => $produto->load('operadora:id,nome'),
         ], 201);
     }
@@ -72,6 +81,10 @@ class ProdutoController extends Controller
         $produto = $this->produtos->findByEmpresa($id, $empresaId);
         if (! $produto) {
             return response()->json(['message' => 'Produto não encontrado.'], 404);
+        }
+
+        if (($data['tipo'] ?? $produto->tipo) !== TipoBeneficio::VIDA) {
+            $data['modalidade'] = null;
         }
 
         if (
@@ -87,7 +100,7 @@ class ProdutoController extends Controller
         $produto = $this->produtos->update($id, $empresaId, $data);
 
         return response()->json([
-            'message' => 'Produto atualizado.',
+            'message' => 'Plano atualizado.',
             'produto' => $produto,
         ]);
     }
@@ -109,7 +122,7 @@ class ProdutoController extends Controller
 
         $this->produtos->delete($id, $empresaId);
 
-        return response()->json(['message' => 'Produto removido.']);
+        return response()->json(['message' => 'Plano removido.']);
     }
 
     public function toggleAtivo(Request $request, int $id): JsonResponse
@@ -134,13 +147,31 @@ class ProdutoController extends Controller
     {
         $rule = $forUpdate ? 'sometimes|' : 'required|';
 
-        return $request->validate([
+        $data = $request->validate([
             'nome' => $rule . 'string|max:120',
             'tipo' => [trim($rule, '|'), Rule::in(TipoBeneficio::all())],
             'subtipo' => 'nullable|string|max:80',
+            'modalidade' => ['nullable', 'string', Rule::in(ModalidadeVida::all())],
             'operadora_id' => 'nullable|integer|exists:operadoras,id',
             'descricao' => 'nullable|string|max:1000',
+            'coberturas' => 'sometimes|array|max:50',
+            'coberturas.*' => 'required|string|max:160',
             'ativo' => 'sometimes|boolean',
         ]);
+
+        if (array_key_exists('coberturas', $data)) {
+            $data['coberturas'] = collect($data['coberturas'])
+                ->map(fn ($cobertura) => trim($cobertura))
+                ->filter()
+                ->unique(fn ($cobertura) => mb_strtolower($cobertura))
+                ->values()
+                ->all();
+        }
+
+        if (($data['tipo'] ?? null) !== null && ($data['tipo'] ?? null) !== TipoBeneficio::VIDA) {
+            $data['modalidade'] = null;
+        }
+
+        return $data;
     }
 }

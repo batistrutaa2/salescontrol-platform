@@ -1,6 +1,6 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'LK Benefícios - Catálogo de Produtos')
+@section('title', 'LK Benefícios - Catálogo de Planos')
 
 @section('vendor-style')
     @vite([
@@ -43,8 +43,8 @@
             </div>
             <div class="lkb-title-text">
                 <span class="lkb-greeting-label">Administrativo</span>
-                <h4>Catálogo de Produtos</h4>
-                <p class="lkb-subtitle">Defina o que você comercializa — Vida, Odonto, Previdência, Patrimoniais</p>
+                <h4>Catálogo de Planos</h4>
+                <p class="lkb-subtitle">Organize seguradoras, modalidades e coberturas de cada plano comercializado</p>
             </div>
         </div>
 
@@ -54,7 +54,7 @@
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
-                Novo produto
+                Novo plano
             </button>
         </div>
     </div>
@@ -85,7 +85,7 @@
             </div>
             <div class="lkb-form-group lkb-filter-search">
                 <label class="lkb-form-label" for="lkb-filter-search">Buscar</label>
-                <input type="text" id="lkb-filter-search" class="lkb-input" placeholder="Nome ou subtipo…" autocomplete="off">
+                <input type="text" id="lkb-filter-search" class="lkb-input" placeholder="Nome ou segmento…" autocomplete="off">
             </div>
         </div>
     </div>
@@ -98,10 +98,10 @@
                     <th>#</th>
                     <th>Nome</th>
                     <th>Tipo</th>
-                    <th>Subtipo</th>
+                    <th>Modalidade / segmento</th>
                     <th>Operadora</th>
                     <th>Status</th>
-                    <th>Criado</th>
+                    <th>Coberturas</th>
                     <th class="text-end">Ações</th>
                 </tr>
             </thead>
@@ -111,7 +111,7 @@
 
 {{-- Modal único de criar/editar --}}
 <div class="modal fade lkb-modal lkb-produto-modal" id="lkb-modal-produto" tabindex="-1" aria-labelledby="lkb-modal-produto-title" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
 
             <div class="lkb-modal-header">
@@ -123,9 +123,9 @@
                     </svg>
                 </div>
                 <div class="lkb-modal-titles">
-                    <span class="lkb-modal-eyebrow">Catálogo · Produtos</span>
-                    <h5 class="lkb-modal-title" id="lkb-modal-produto-title">Novo produto</h5>
-                    <p class="lkb-modal-subtitle">Defina o produto que será oferecido aos clientes</p>
+                    <span class="lkb-modal-eyebrow">Catálogo · Planos</span>
+                    <h5 class="lkb-modal-title" id="lkb-modal-produto-title">Novo plano</h5>
+                    <p class="lkb-modal-subtitle">Defina a modalidade e tudo que estará coberto</p>
                 </div>
                 <button type="button" class="lkb-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -142,13 +142,13 @@
                     <div class="lkb-form-grid">
                         <div class="lkb-form-group lkb-col-12">
                             <label class="lkb-form-label" for="lkb-produto-nome">
-                                Nome <span class="lkb-required">*</span>
+                                Nome do plano <span class="lkb-required">*</span>
                             </label>
-                            <input type="text" name="nome" id="lkb-produto-nome" class="lkb-input" maxlength="120" required autocomplete="off" placeholder="Ex.: Vida Individual Premium">
+                            <input type="text" name="nome" id="lkb-produto-nome" class="lkb-input" maxlength="120" required autocomplete="off" placeholder="Ex.: Omint Ideal">
                             <div class="lkb-field-error" data-error-for="nome"></div>
                         </div>
 
-                        <div class="lkb-form-group lkb-col-6">
+                        <div class="lkb-form-group lkb-col-4">
                             <label class="lkb-form-label" for="lkb-produto-tipo">
                                 Tipo <span class="lkb-required">*</span>
                             </label>
@@ -163,10 +163,23 @@
                             <div class="lkb-field-error" data-error-for="tipo"></div>
                         </div>
 
-                        <div class="lkb-form-group lkb-col-6">
-                            <label class="lkb-form-label" for="lkb-produto-subtipo">Subtipo</label>
+                        <div class="lkb-form-group lkb-col-4">
+                            <label class="lkb-form-label" for="lkb-produto-subtipo">Segmento</label>
                             <input type="text" name="subtipo" id="lkb-produto-subtipo" class="lkb-input" maxlength="80" autocomplete="off" placeholder="Ex.: Individual, Empresarial, PME">
                             <div class="lkb-field-error" data-error-for="subtipo"></div>
+                        </div>
+
+                        <div class="lkb-form-group lkb-col-4" id="lkb-modalidade-group" hidden>
+                            <label class="lkb-form-label" for="lkb-produto-modalidade">Modalidade de vida</label>
+                            <div class="lkb-select-wrap">
+                                <select name="modalidade" id="lkb-produto-modalidade" class="lkb-select">
+                                    <option value="">Selecione…</option>
+                                    @foreach($modalidadesVida as $modalidade)
+                                        <option value="{{ $modalidade['value'] }}">{{ $modalidade['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="lkb-field-error" data-error-for="modalidade"></div>
                         </div>
 
                         <div class="lkb-form-group lkb-col-12">
@@ -187,14 +200,49 @@
 
                         <div class="lkb-form-group lkb-col-12">
                             <label class="lkb-form-label" for="lkb-produto-descricao">Descrição</label>
-                            <textarea name="descricao" id="lkb-produto-descricao" class="lkb-textarea" rows="3" maxlength="1000" placeholder="Resumo do produto, coberturas principais, diferenciais…"></textarea>
+                            <textarea name="descricao" id="lkb-produto-descricao" class="lkb-textarea" rows="2" maxlength="1000" placeholder="Resumo do plano, regras e diferenciais…"></textarea>
                             <div class="lkb-field-error" data-error-for="descricao"></div>
+                        </div>
+
+                        <div class="lkb-form-group lkb-col-12">
+                            <section class="lkb-coverage-panel" aria-labelledby="lkb-coverage-title">
+                                <div class="lkb-coverage-heading">
+                                    <div>
+                                        <h6 id="lkb-coverage-title">Coberturas do plano</h6>
+                                        <p id="lkb-coverage-help">Selecione as coberturas incluídas. Você também pode adicionar opções de outras seguradoras.</p>
+                                    </div>
+                                    <span class="lkb-coverage-counter" id="lkb-coverage-counter" aria-live="polite">0 selecionadas</span>
+                                </div>
+
+                                <div class="lkb-standard-coverages" id="lkb-standard-coverages">
+                                    @foreach($coberturasVida as $index => $cobertura)
+                                        <label class="lkb-coverage-option">
+                                            <input type="checkbox" value="{{ $cobertura }}" data-coverage-standard>
+                                            <span class="lkb-coverage-check" aria-hidden="true">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                            </span>
+                                            <span>{{ $cobertura }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+
+                                <div class="lkb-custom-coverage">
+                                    <label class="lkb-form-label" for="lkb-custom-coverage-input">Outra cobertura</label>
+                                    <div class="lkb-custom-coverage-row">
+                                        <input type="text" id="lkb-custom-coverage-input" class="lkb-input" maxlength="160" autocomplete="off" placeholder="Digite a cobertura oferecida pela seguradora">
+                                        <button type="button" class="lkb-btn" id="lkb-add-coverage">Adicionar</button>
+                                    </div>
+                                </div>
+
+                                <div class="lkb-selected-coverages" id="lkb-selected-coverages" aria-live="polite"></div>
+                                <div class="lkb-field-error" data-error-for="coberturas"></div>
+                            </section>
                         </div>
 
                         <div class="lkb-form-group lkb-col-12">
                             <label class="lkb-toggle-row" for="lkb-produto-ativo">
                                 <span class="lkb-toggle-row-text">
-                                    <strong>Produto ativo</strong>
+                                    <strong>Plano ativo</strong>
                                     <small>Quando inativo, deixa de aparecer nos selects de leads e Base Saúde.</small>
                                 </span>
                                 <span class="lkb-switch">
@@ -216,7 +264,7 @@
                             <polyline points="17 21 17 13 7 13 7 21"/>
                             <polyline points="7 3 7 8 15 8"/>
                         </svg>
-                        Salvar produto
+                        Salvar plano
                     </span>
                     <span class="lkb-btn-spinner" aria-hidden="true">
                         <span class="lkb-spinner"></span>
@@ -244,6 +292,7 @@
         deleteUrlTemplate: @json(route('lk-beneficios.produtos.destroy', ['id' => '__ID__'])),
         csrf: @json(csrf_token()),
         tipos: @json($tipos),
+        coberturasVida: @json($coberturasVida),
     };
 </script>
 @endsection

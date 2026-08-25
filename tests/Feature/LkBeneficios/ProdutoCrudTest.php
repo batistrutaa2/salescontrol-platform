@@ -4,6 +4,7 @@ namespace Tests\Feature\LkBeneficios;
 
 use App\Models\Empresa;
 use App\Models\User;
+use App\Modules\LkBeneficios\Enums\ModalidadeVida;
 use App\Modules\LkBeneficios\Enums\TipoBeneficio;
 use App\Modules\LkBeneficios\Models\Produto;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -76,6 +77,46 @@ class ProdutoCrudTest extends TestCase
         $resp->assertStatus(422)->assertJsonValidationErrors(['tipo']);
     }
 
+    public function test_store_salva_modalidade_e_coberturas_do_plano_de_vida(): void
+    {
+        $resp = $this->actingAs($this->user)->postJson(route('lk-beneficios.produtos.store'), [
+            'nome' => 'Omint Foco',
+            'tipo' => TipoBeneficio::VIDA,
+            'subtipo' => 'Individual',
+            'modalidade' => ModalidadeVida::RESGATAVEL,
+            'coberturas' => [
+                'Morte',
+                'Diagnóstico de câncer',
+                '  morte  ',
+                'Cobertura exclusiva da seguradora',
+            ],
+        ]);
+
+        $resp->assertCreated();
+
+        $produto = Produto::where('empresa_id', $this->empresa->id)
+            ->where('nome', 'Omint Foco')
+            ->firstOrFail();
+
+        $this->assertSame(ModalidadeVida::RESGATAVEL, $produto->modalidade);
+        $this->assertSame([
+            'Morte',
+            'Diagnóstico de câncer',
+            'Cobertura exclusiva da seguradora',
+        ], $produto->coberturas);
+    }
+
+    public function test_store_rejeita_modalidade_de_vida_invalida(): void
+    {
+        $resp = $this->actingAs($this->user)->postJson(route('lk-beneficios.produtos.store'), [
+            'nome' => 'Plano inválido',
+            'tipo' => TipoBeneficio::VIDA,
+            'modalidade' => 'TEMPORARIO',
+        ]);
+
+        $resp->assertStatus(422)->assertJsonValidationErrors(['modalidade']);
+    }
+
     // -----------------------------------------------------------------------
     // DATATABLE / multi-tenant
     // -----------------------------------------------------------------------
@@ -142,6 +183,40 @@ class ProdutoCrudTest extends TestCase
 
         $resp->assertStatus(422);
         $this->assertSame(TipoBeneficio::VIDA, $produto->fresh()->tipo);
+    }
+
+    public function test_update_remove_modalidade_quando_plano_deixa_de_ser_vida(): void
+    {
+        $produto = Produto::factory()->create([
+            'empresa_id' => $this->empresa->id,
+            'tipo' => TipoBeneficio::VIDA,
+            'modalidade' => ModalidadeVida::VITALICIO,
+        ]);
+
+        $resp = $this->actingAs($this->user)->putJson(route('lk-beneficios.produtos.update', $produto->id), [
+            'tipo' => TipoBeneficio::ODONTO,
+        ]);
+
+        $resp->assertOk();
+        $this->assertNull($produto->fresh()->modalidade);
+    }
+
+    public function test_datatable_expoe_quantidade_de_coberturas_e_modalidade(): void
+    {
+        Produto::factory()->create([
+            'empresa_id' => $this->empresa->id,
+            'nome' => 'Omint Vital',
+            'tipo' => TipoBeneficio::VIDA,
+            'modalidade' => ModalidadeVida::VITALICIO,
+            'coberturas' => ['Morte', 'Jazigo'],
+        ]);
+
+        $resp = $this->actingAs($this->user)->getJson(route('lk-beneficios.produtos.datatable'));
+
+        $resp->assertOk();
+        $row = collect($resp->json('data'))->firstWhere('nome', 'Omint Vital');
+        $this->assertSame('Vitalício', $row['modalidade_label']);
+        $this->assertSame(2, $row['coberturas_count']);
     }
 
     public function test_usuario_de_outra_empresa_nao_atualiza_produto(): void

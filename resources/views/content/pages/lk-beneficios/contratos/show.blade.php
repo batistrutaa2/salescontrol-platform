@@ -187,6 +187,24 @@
                     @if($contrato->detalhesVida)
                         <hr style="border-color: var(--dash-card-border);">
                         <h6 class="chart-title mb-3">Detalhes — Seguro de Vida</h6>
+                        @if($contrato->produto?->modalidade || count($contrato->produto?->coberturas ?? []))
+                            <div class="mb-4">
+                                @if($contrato->produto?->modalidade)
+                                    <span class="kpi-label d-block mb-1">Modalidade do plano</span>
+                                    <strong class="d-block mb-3" style="color: var(--dash-text-primary);">
+                                        {{ \App\Modules\LkBeneficios\Enums\ModalidadeVida::label($contrato->produto->modalidade) ?? $contrato->produto->modalidade }}
+                                    </strong>
+                                @endif
+                                @if(count($contrato->produto?->coberturas ?? []))
+                                    <span class="kpi-label d-block mb-2">Coberturas do plano</span>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach($contrato->produto->coberturas as $cobertura)
+                                            <span class="badge bg-label-primary">{{ $cobertura }}</span>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <span class="kpi-label d-block">Capital Segurado</span>

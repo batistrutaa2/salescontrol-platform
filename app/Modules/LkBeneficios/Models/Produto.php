@@ -22,13 +22,16 @@ class Produto extends Model
         'nome',
         'tipo',
         'subtipo',
+        'modalidade',
         'operadora_id',
         'descricao',
+        'coberturas',
         'ativo',
     ];
 
     protected $casts = [
         'ativo' => 'boolean',
+        'coberturas' => 'array',
     ];
 
     public function operadora()

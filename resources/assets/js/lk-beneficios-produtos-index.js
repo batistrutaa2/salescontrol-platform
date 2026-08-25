@@ -22,6 +22,13 @@
 
     const tipoSlug = (tipo) => String(tipo || '').toLowerCase();
 
+    const coberturasPadrao = Array.isArray(cfg.coberturasVida) ? cfg.coberturasVida : [];
+    const coberturasSelecionadas = new Set();
+    const normalizarCobertura = (valor) => String(valor || '').trim().replace(/\s+/g, ' ');
+    const chaveCobertura = (valor) => normalizarCobertura(valor).toLocaleLowerCase('pt-BR');
+    const encontrarCobertura = (valor) => Array.from(coberturasSelecionadas)
+        .find(item => chaveCobertura(item) === chaveCobertura(valor));
+
     // -------------------------------------------------------------------------
     // Toast (réplica do helper canônico do módulo)
     // -------------------------------------------------------------------------
@@ -115,6 +122,15 @@
         `;
     };
 
+    const renderCoberturas = (row) => {
+        const coberturas = Array.isArray(row.coberturas) ? row.coberturas : [];
+        if (!coberturas.length) return '<span class="lkb-cell-muted">Não informadas</span>';
+
+        const resumo = coberturas.slice(0, 3).join(', ');
+        const sufixo = coberturas.length > 3 ? ` e mais ${coberturas.length - 3}` : '';
+        return `<span class="lkb-coverage-count" title="${escapar(resumo + sufixo)}"><strong>${coberturas.length}</strong> ${coberturas.length === 1 ? 'cobertura' : 'coberturas'}</span>`;
+    };
+
     const renderActions = (row) => `
         <div class="lkb-row-actions">
             <button type="button" class="lkb-btn-icon" data-action="edit" data-id="${row.id}" title="Editar">
@@ -138,6 +154,7 @@
         processing: true,
         serverSide: true,
         pageLength: 25,
+        scrollX: true,
         lengthMenu: [10, 25, 50, 100],
         order: [[1, 'asc']],
         language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
@@ -150,10 +167,13 @@
             { data: 'id', render: (id) => `<span class="lkb-cell-id">#${id}</span>`, width: '60px' },
             { data: 'nome', render: (v) => `<span class="lkb-cell-nome">${escapar(v)}</span>` },
             { data: null, orderable: false, render: (row) => renderTipoBadge(row) },
-            { data: 'subtipo', render: (v) => v ? escapar(v) : '<span class="lkb-cell-muted">—</span>' },
+            { data: null, render: (row) => {
+                const valor = row.modalidade_label || row.subtipo;
+                return valor ? escapar(valor) : '<span class="lkb-cell-muted">—</span>';
+            } },
             { data: 'operadora_nome', orderable: false, render: (v) => v ? escapar(v) : '<span class="lkb-cell-muted">—</span>' },
             { data: null, orderable: false, render: (row) => renderStatusSwitch(row) },
-            { data: 'created_at_fmt', render: (v) => v || '—', width: '110px' },
+            { data: null, orderable: false, render: (row) => renderCoberturas(row), width: '130px' },
             { data: null, orderable: false, className: 'text-end', render: (row) => renderActions(row), width: '120px' },
         ],
     });
@@ -178,6 +198,61 @@
     const $title = document.getElementById('lkb-modal-produto-title');
     const $idField = document.getElementById('lkb-produto-id');
     const $btnSalvar = document.getElementById('lkb-btn-salvar-produto');
+    const $tipoField = document.getElementById('lkb-produto-tipo');
+    const $modalidadeGroup = document.getElementById('lkb-modalidade-group');
+    const $modalidadeField = document.getElementById('lkb-produto-modalidade');
+    const $standardCoverages = document.getElementById('lkb-standard-coverages');
+    const $selectedCoverages = document.getElementById('lkb-selected-coverages');
+    const $coverageCounter = document.getElementById('lkb-coverage-counter');
+    const $customCoverageInput = document.getElementById('lkb-custom-coverage-input');
+
+    const isVida = () => $tipoField?.value === 'VIDA';
+
+    const syncCoverageUI = () => {
+        document.querySelectorAll('[data-coverage-standard]').forEach(input => {
+            input.checked = !!encontrarCobertura(input.value);
+        });
+
+        if ($standardCoverages) $standardCoverages.hidden = !isVida();
+        if ($modalidadeGroup) $modalidadeGroup.hidden = !isVida();
+
+        const customizadas = Array.from(coberturasSelecionadas).filter(cobertura => (
+            !isVida() || !coberturasPadrao.some(padrao => chaveCobertura(padrao) === chaveCobertura(cobertura))
+        ));
+
+        if ($selectedCoverages) {
+            $selectedCoverages.innerHTML = customizadas.length
+                ? customizadas.map(cobertura => `
+                    <span class="lkb-selected-coverage">
+                        <span>${escapar(cobertura)}</span>
+                        <button type="button" data-remove-coverage="${escapar(cobertura)}" aria-label="Remover ${escapar(cobertura)}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                    </span>
+                `).join('')
+                : '<span class="lkb-coverage-empty">Nenhuma cobertura adicional.</span>';
+        }
+
+        if ($coverageCounter) {
+            const quantidade = coberturasSelecionadas.size;
+            $coverageCounter.textContent = `${quantidade} ${quantidade === 1 ? 'selecionada' : 'selecionadas'}`;
+        }
+    };
+
+    const adicionarCobertura = (valor) => {
+        const cobertura = normalizarCobertura(valor);
+        if (!cobertura || encontrarCobertura(cobertura)) return false;
+        const padrao = coberturasPadrao.find(item => chaveCobertura(item) === chaveCobertura(cobertura));
+        coberturasSelecionadas.add(padrao || cobertura);
+        syncCoverageUI();
+        return true;
+    };
+
+    const removerCobertura = (valor) => {
+        const encontrada = encontrarCobertura(valor);
+        if (encontrada) coberturasSelecionadas.delete(encontrada);
+        syncCoverageUI();
+    };
 
     const setFormState = (state) => {
         if ($btnSalvar) $btnSalvar.dataset.state = state;
@@ -191,9 +266,10 @@
     const showFieldErrors = (errors) => {
         clearFieldErrors();
         Object.entries(errors || {}).forEach(([field, msgs]) => {
-            const input = $form.querySelector(`[name="${field}"]`);
+            const rootField = field.split('.')[0];
+            const input = $form.querySelector(`[name="${field}"]`) || $form.querySelector(`[name="${rootField}"]`);
             if (input) input.classList.add('is-invalid');
-            const errEl = $form.querySelector(`[data-error-for="${field}"]`);
+            const errEl = $form.querySelector(`[data-error-for="${field}"]`) || $form.querySelector(`[data-error-for="${rootField}"]`);
             if (errEl) errEl.textContent = Array.isArray(msgs) ? msgs[0] : String(msgs);
         });
     };
@@ -203,6 +279,10 @@
         $idField.value = '';
         clearFieldErrors();
         document.getElementById('lkb-produto-ativo').checked = true;
+        coberturasSelecionadas.clear();
+        if ($modalidadeField) $modalidadeField.value = '';
+        if ($customCoverageInput) $customCoverageInput.value = '';
+        syncCoverageUI();
         setFormState('idle');
     };
 
@@ -211,9 +291,13 @@
         document.getElementById('lkb-produto-nome').value = row.nome || '';
         document.getElementById('lkb-produto-tipo').value = row.tipo || '';
         document.getElementById('lkb-produto-subtipo').value = row.subtipo || '';
+        $modalidadeField.value = row.modalidade || '';
         document.getElementById('lkb-produto-operadora').value = row.operadora_id || '';
         document.getElementById('lkb-produto-descricao').value = row.descricao || '';
         document.getElementById('lkb-produto-ativo').checked = !!row.ativo;
+        coberturasSelecionadas.clear();
+        (Array.isArray(row.coberturas) ? row.coberturas : []).forEach(adicionarCobertura);
+        syncCoverageUI();
         clearFieldErrors();
         setFormState('idle');
     };
@@ -221,7 +305,7 @@
     // Botão Novo Produto
     document.getElementById('lkb-btn-novo-produto')?.addEventListener('click', () => {
         resetForm();
-        $title.textContent = 'Novo produto';
+        $title.textContent = 'Novo plano';
         bsModal?.show();
     });
 
@@ -240,7 +324,7 @@
 
         if (action === 'edit') {
             fillForm(row);
-            $title.textContent = 'Editar produto';
+            $title.textContent = 'Editar plano';
             bsModal?.show();
         } else if (action === 'delete') {
             confirmDelete(row);
@@ -264,8 +348,10 @@
             nome: document.getElementById('lkb-produto-nome').value.trim(),
             tipo: document.getElementById('lkb-produto-tipo').value,
             subtipo: document.getElementById('lkb-produto-subtipo').value.trim() || null,
+            modalidade: isVida() ? ($modalidadeField.value || null) : null,
             operadora_id: document.getElementById('lkb-produto-operadora').value || null,
             descricao: document.getElementById('lkb-produto-descricao').value.trim() || null,
+            coberturas: Array.from(coberturasSelecionadas),
             ativo: ativoChecked,
         };
 
@@ -284,12 +370,39 @@
         }
 
         setFormState('success');
-        showModernToast('success', id ? 'Produto atualizado' : 'Produto criado', data.message || (id ? 'Alterações salvas.' : 'Novo produto adicionado ao catálogo.'));
+        showModernToast('success', id ? 'Plano atualizado' : 'Plano criado', data.message || (id ? 'Alterações salvas.' : 'Novo plano adicionado ao catálogo.'));
 
         setTimeout(() => {
             bsModal?.hide();
             table.ajax.reload(null, false);
         }, 700);
+    });
+
+    $tipoField?.addEventListener('change', syncCoverageUI);
+
+    document.querySelectorAll('[data-coverage-standard]').forEach(input => {
+        input.addEventListener('change', () => {
+            if (input.checked) adicionarCobertura(input.value);
+            else removerCobertura(input.value);
+        });
+    });
+
+    const handleAddCustomCoverage = () => {
+        if (!$customCoverageInput) return;
+        if (adicionarCobertura($customCoverageInput.value)) $customCoverageInput.value = '';
+        $customCoverageInput.focus();
+    };
+
+    document.getElementById('lkb-add-coverage')?.addEventListener('click', handleAddCustomCoverage);
+    $customCoverageInput?.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        handleAddCustomCoverage();
+    });
+
+    $selectedCoverages?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-remove-coverage]');
+        if (button) removerCobertura(button.dataset.removeCoverage);
     });
 
     // =========================================================================
@@ -314,7 +427,7 @@
     const confirmDelete = (row) => {
         if (typeof Swal === 'undefined') return;
         Swal.fire({
-            title: 'Excluir produto?',
+            title: 'Excluir plano?',
             html: `Você está prestes a remover <strong>${escapar(row.nome)}</strong>. Esta ação é permanente.`,
             icon: 'warning',
             showCancelButton: true,
@@ -339,7 +452,7 @@
                 }
                 return;
             }
-            showModernToast('success', 'Produto removido', data.message || `“${row.nome}” foi removido do catálogo.`);
+            showModernToast('success', 'Plano removido', data.message || `“${row.nome}” foi removido do catálogo.`);
             table.ajax.reload(null, false);
         });
     };

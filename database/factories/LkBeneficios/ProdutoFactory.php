@@ -16,7 +16,9 @@ class ProdutoFactory extends Factory
             'nome' => fake()->randomElement(['Seguro de Vida Individual', 'Plano Odontológico PF', 'Previdência VGBL']),
             'tipo' => fake()->randomElement(['VIDA', 'ODONTO', 'PREVIDENCIA', 'PATRIMONIAL']),
             'subtipo' => null,
+            'modalidade' => null,
             'operadora_id' => null,
+            'coberturas' => [],
             'ativo' => true,
         ];
     }

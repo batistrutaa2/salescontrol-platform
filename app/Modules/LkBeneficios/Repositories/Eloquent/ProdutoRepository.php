@@ -14,7 +14,7 @@ class ProdutoRepository implements ProdutoRepositoryInterface
         $query = Produto::query()
             ->with('operadora:id,nome')
             ->where('empresa_id', $empresaId)
-            ->select(['id', 'empresa_id', 'nome', 'tipo', 'subtipo', 'operadora_id', 'descricao', 'ativo', 'created_at']);
+            ->select(['id', 'empresa_id', 'nome', 'tipo', 'subtipo', 'modalidade', 'operadora_id', 'descricao', 'coberturas', 'ativo', 'created_at']);
 
         if (! empty($filtros['tipo'])) {
             $query->where('tipo', $filtros['tipo']);
@@ -28,7 +28,8 @@ class ProdutoRepository implements ProdutoRepositoryInterface
             $busca = '%' . $filtros['busca'] . '%';
             $query->where(function ($q) use ($busca) {
                 $q->where('nome', 'like', $busca)
-                    ->orWhere('subtipo', 'like', $busca);
+                    ->orWhere('subtipo', 'like', $busca)
+                    ->orWhere('modalidade', 'like', $busca);
             });
         }
 
@@ -50,8 +51,10 @@ class ProdutoRepository implements ProdutoRepositoryInterface
             'nome' => $data['nome'],
             'tipo' => $data['tipo'],
             'subtipo' => $data['subtipo'] ?? null,
+            'modalidade' => $data['modalidade'] ?? null,
             'operadora_id' => $data['operadora_id'] ?? null,
             'descricao' => $data['descricao'] ?? null,
+            'coberturas' => $data['coberturas'] ?? [],
             'ativo' => array_key_exists('ativo', $data) ? (bool) $data['ativo'] : true,
         ]);
     }
@@ -62,7 +65,7 @@ class ProdutoRepository implements ProdutoRepositoryInterface
             ->where('empresa_id', $empresaId)
             ->firstOrFail();
 
-        $camposAtualizaveis = ['nome', 'tipo', 'subtipo', 'operadora_id', 'descricao', 'ativo'];
+        $camposAtualizaveis = ['nome', 'tipo', 'subtipo', 'modalidade', 'operadora_id', 'descricao', 'coberturas', 'ativo'];
         $payload = array_intersect_key($data, array_flip($camposAtualizaveis));
 
         if (array_key_exists('ativo', $payload)) {
