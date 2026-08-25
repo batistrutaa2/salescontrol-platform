@@ -333,6 +333,10 @@
                                         <label class="pv-form-label">E-mail para envio da procuração *</label>
                                         <input type="email" name="email_procuracao" class="pv-form-input" required>
                                     </div>
+                                    <div class="col-md-6">
+                                        <label class="pv-form-label">Nome do responsável *</label>
+                                        <input type="text" name="nome_responsavel_procuracao" class="pv-form-input" autocomplete="name" maxlength="255" required>
+                                    </div>
                                 </div>
                             </div>
                         </div>

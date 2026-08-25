@@ -213,7 +213,7 @@ class LiminarController extends Controller
                 'beneficiario_nome' => $ben?->nome ?? '—',
                 'beneficiario_tipo' => $row->beneficiario_tipo === 'TITULAR' ? 'Titular' : 'Dependente',
                 'corretor_nome' => $row->venda?->user?->name ?? '—',
-                'responsavel_nome' => $row->responsavel?->name ?? '—',
+                'responsavel_nome' => $row->nome_responsavel_procuracao ?? '—',
                 'fase' => $fase,
                 'data_criacao' => $row->getOriginal('created_at')
                     ? Carbon::parse($row->getOriginal('created_at'))->setTimezone('America/Sao_Paulo')->format('d/m/Y')
@@ -234,6 +234,7 @@ class LiminarController extends Controller
             'cnpj' => 'required|string|max:20',
             'protocolo_cancelamento' => 'required|string|max:255',
             'email_procuracao' => 'required|email|max:255',
+            'nome_responsavel_procuracao' => 'required|string|max:255',
         ];
         foreach (self::DATAS_PROCURACAO as $campo) {
             $rules[$campo] = 'required|date_format:d/m/Y';
@@ -260,6 +261,7 @@ class LiminarController extends Controller
                 'cnpj' => $validated['cnpj'],
                 'protocolo_cancelamento' => $validated['protocolo_cancelamento'],
                 'email_procuracao' => $validated['email_procuracao'],
+                'nome_responsavel_procuracao' => $validated['nome_responsavel_procuracao'],
                 'responsavel_id' => $validated['responsavel_id'] ?? Auth::id(),
                 'status' => 'EM_EXECUCAO',
                 'fase' => 'CANCELAMENTO_ABERTO',

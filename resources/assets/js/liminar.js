@@ -81,11 +81,10 @@
         el.className = 'lim-card';
         el.dataset.id = item.id;
         el.style.setProperty('--lim-card-status-color', grad.start);
-        // Sem venda atrelada, a empresa contratante é o título do card. Beneficiário e
-        // corretor só aparecem em processos antigos que ainda tenham esses dados.
+        // Sem venda atrelada, a empresa contratante é o título do card. O beneficiário
+        // só aparece em processos antigos que ainda tenham esse dado.
         const titulo = item.nome_empresa || item.nome_contrato || '—';
         const temBeneficiario = item.beneficiario_nome && item.beneficiario_nome !== '—';
-        const temCorretor = item.corretor_nome && item.corretor_nome !== '—';
         el.innerHTML = `
             <div class="lim-card-header">
                 <span class="lim-card-contrato">${escapar(titulo)}</span>
@@ -96,7 +95,7 @@
                 ${item.protocolo ? `<span class="lim-card-protocolo">Protocolo: ${escapar(item.protocolo)}</span>` : ''}
             </div>
             <div class="lim-card-footer">
-                <span title="Responsável">${escapar(temCorretor ? item.corretor_nome : (item.responsavel_nome || '—'))}</span>
+                <span title="Responsável do cliente">${escapar(item.responsavel_nome || '—')}</span>
                 <span class="lim-card-data">${escapar(item.data_criacao)}</span>
             </div>
         `;
@@ -410,7 +409,7 @@
                 + infoItem('Protocolo de cancelamento', l.protocolo_cancelamento)) +
             infoGroup('Procuração',
                 infoItem('E-mail de envio', l.email_procuracao)
-                + infoItem('Responsável', l.responsavel?.name));
+                + infoItem('Responsável', l.nome_responsavel_procuracao));
     };
 
     const montarDatas = (l) => {

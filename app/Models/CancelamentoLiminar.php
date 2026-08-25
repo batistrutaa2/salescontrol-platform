@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class CancelamentoLiminar extends Model
 {
@@ -20,6 +20,7 @@ class CancelamentoLiminar extends Model
         'cnpj',
         'protocolo_cancelamento',
         'email_procuracao',
+        'nome_responsavel_procuracao',
         'responsavel_id',
         'status',
         'fase',
@@ -58,7 +59,7 @@ class CancelamentoLiminar extends Model
     // ---------------------------------------------------------------
     private static function formatarDataBr($value): ?string
     {
-        if (!$value) {
+        if (! $value) {
             return null;
         }
         try {
@@ -147,6 +148,7 @@ class CancelamentoLiminar extends Model
         if ($this->beneficiario_tipo === 'TITULAR') {
             return VendaTitular::find($this->beneficiario_id);
         }
+
         return VendaDependente::find($this->beneficiario_id);
     }
 }

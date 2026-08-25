@@ -92,6 +92,7 @@ class LiminarTest extends TestCase
             'cnpj' => '43.685.447/0001-54',
             'protocolo_cancelamento' => '998877',
             'email_procuracao' => 'cliente@example.com',
+            'nome_responsavel_procuracao' => 'Maria da Silva',
             'data_fim_plano' => '31/12/2024',
             'data_contratacao' => '01/01/2023',
             'data_solicitacao_cancelamento' => '15/11/2024',
@@ -129,6 +130,7 @@ class LiminarTest extends TestCase
             // Sem venda: o nome da empresa contratante vira o título do processo.
             'nome_contrato' => 'MD4 Consultoria LTDA',
             'protocolo_cancelamento' => '998877',
+            'nome_responsavel_procuracao' => 'Maria da Silva',
             'data_fim_plano' => '2024-12-31',
         ]);
 
@@ -209,10 +211,11 @@ class LiminarTest extends TestCase
             ->postJson(route('backoffice.liminar.store'), $this->payload([
                 'nome_empresa' => '',
                 'protocolo_cancelamento' => '',
+                'nome_responsavel_procuracao' => '',
                 'data_fim_plano' => '',
             ]))
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['nome_empresa', 'protocolo_cancelamento', 'data_fim_plano']);
+            ->assertJsonValidationErrors(['nome_empresa', 'protocolo_cancelamento', 'nome_responsavel_procuracao', 'data_fim_plano']);
     }
 
     public function test_store_exige_documentos(): void
@@ -226,6 +229,16 @@ class LiminarTest extends TestCase
             ->postJson(route('backoffice.liminar.store'), $payload)
             ->assertStatus(422)
             ->assertJsonValidationErrors(['doc_contrato_social']);
+    }
+
+    public function test_card_exibe_responsavel_da_procuracao_em_vez_do_backoffice(): void
+    {
+        $this->criarLiminar();
+
+        $this->actingAs($this->advogada)
+            ->getJson(route('backoffice.liminar.dados'))
+            ->assertOk()
+            ->assertJsonPath('colunas.CANCELAMENTO_ABERTO.0.responsavel_nome', 'Maria da Silva');
     }
 
     public function test_store_exige_carteirinha(): void
@@ -596,6 +609,7 @@ class LiminarTest extends TestCase
             'beneficiario_tipo' => 'TITULAR',
             'beneficiario_id' => $this->titular->id,
             'nome_contrato' => $this->venda->nome_contrato,
+            'nome_responsavel_procuracao' => 'Maria da Silva',
             'responsavel_id' => $this->backoffice->id,
             'status' => 'EM_EXECUCAO',
             'fase' => 'CANCELAMENTO_ABERTO',
