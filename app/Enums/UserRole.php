@@ -11,6 +11,7 @@ class UserRole
   const SUPERVISOR = 5;
   const BENEFICIOS = 6;
   const ADVOGADA = 7;
+  const FINANCEIRO = 8;
 
   private static array $ids_rules = [
     self::VENDEDOR => 1,
@@ -20,6 +21,7 @@ class UserRole
     self::SUPERVISOR => 5,
     self::BENEFICIOS => 6,
     self::ADVOGADA => 7,
+    self::FINANCEIRO => 8,
   ];
 
   public static function getUserRoleID(string $role): string

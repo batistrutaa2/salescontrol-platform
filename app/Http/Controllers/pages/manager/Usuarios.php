@@ -22,7 +22,7 @@ class Usuarios extends Controller
     'name' => 'required|string',
     'email' => 'required|string|email|max:255|unique:users',
     'whatsapp' => 'nullable|string|max:20',
-    'user_role_id' => 'required|string',
+    'user_role_id' => 'required|integer|exists:user_roles,id',
     'empresa_id' => 'required|string',
     'password' => 'required|string'
   ];

@@ -677,6 +677,11 @@
                 background: rgba(var(--dash-warning-rgb), 0.1);
                 color: var(--dash-warning);
             }
+
+            &.role-financeiro {
+                background: rgba(var(--dash-success-rgb), 0.1);
+                color: var(--dash-success);
+            }
         }
 
         // Status badge

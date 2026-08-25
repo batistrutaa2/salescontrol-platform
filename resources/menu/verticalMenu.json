@@ -69,7 +69,8 @@
       "menuHeader": "Financeiro",
       "rules": [
         "ADMINISTRATIVO",
-        "DEVELOPER"
+        "DEVELOPER",
+        "FINANCEIRO"
       ]
     },
     {
@@ -78,7 +79,8 @@
       "slug": "financeiro",
       "rules": [
         "ADMINISTRATIVO",
-        "DEVELOPER"
+        "DEVELOPER",
+        "FINANCEIRO"
       ],
       "submenu": [
         {

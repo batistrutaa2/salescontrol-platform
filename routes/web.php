@@ -497,6 +497,7 @@ Route::middleware(['auth'])->group(function () {
 
 
   /**FINANCEIRO */
+  Route::middleware('role:' . \App\Enums\UserRole::ADMINISTRATIVO . ',' . \App\Enums\UserRole::DEVELOPER . ',' . \App\Enums\UserRole::FINANCEIRO)->group(function () {
   Route::get('/financeiro/regras-recebimentos', [Financeiro::class, 'regrasRecebimentos'])
       ->name('financeiro.regras-recebimentos');
 
@@ -590,6 +591,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/relatorio-financeiro/fetch', [Financeiro::class, 'relatorioFinanceiroFetch'])
         ->name('financeiro.relatorio.fetch');
+  });
   });
 
   /** ESCOLA LK BROKERS */
