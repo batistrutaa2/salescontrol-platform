@@ -106,6 +106,10 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/mailing/getLeads', [Mailing::class, 'getLeads'])->name('mailing.getLeads');
   Route::get('/mailing/getLeadsLegacy/{idMailing}', [Mailing::class, 'getLeadsLegacy'])->name('mailing.getLeadsLegacy');
   Route::post('/mailing/importaMailing', [Mailing::class, 'importaMailing'])->name('mailing.uploadBase');
+  Route::get('/mailing/importacoes/pendente', [Mailing::class, 'importacaoPendente'])->name('mailing.importacoes.pendente');
+  Route::post('/mailing/importacoes/{importacao}/importar-novos', [Mailing::class, 'importarNovos'])->name('mailing.importacoes.importarNovos');
+  Route::post('/mailing/importacoes/{importacao}/resolver-duplicados', [Mailing::class, 'resolverDuplicados'])->name('mailing.importacoes.resolverDuplicados');
+  Route::delete('/mailing/importacoes/{importacao}', [Mailing::class, 'cancelarImportacao'])->name('mailing.importacoes.cancelar');
   Route::get('/mailing/excluir-lead/{id}', [Mailing::class, 'deleteMailing'])->name('mailing.deleteMailing');
   Route::get('/comercial/leads-ads', [Mailing::class, 'contactsAdvertisement'])->name('mailing.contactsAdvertisement');
   Route::get('/comercial/preditiva', action: [Mailing::class, 'preditiva'])->name('mailing.preditiva');
