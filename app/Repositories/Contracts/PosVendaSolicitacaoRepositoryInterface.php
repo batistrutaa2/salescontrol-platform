@@ -31,8 +31,10 @@ interface PosVendaSolicitacaoRepositoryInterface
      */
     public function registrarAtualizacao(int $id, int $empresaId, int $userId, string $texto): ?PosVendaSolicitacao;
 
-    /** @return bool false se não encontrada na empresa */
-    public function excluir(int $id, int $empresaId): bool;
+    /**
+     * @return string|null null em caso de sucesso; código do impedimento nos demais casos
+     */
+    public function excluir(int $id, int $empresaId): ?string;
 
     /** @return string|null null = sucesso; 'NAO_ENCONTRADA' | 'ETAPA_INVALIDA' em erro */
     public function moverEtapa(int $id, int $empresaId, int $etapaId, int $userId, ?string $observacao = null): ?string;

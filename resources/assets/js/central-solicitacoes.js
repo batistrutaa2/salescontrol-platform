@@ -298,8 +298,8 @@
                     <button type="button" class="spv-acao-btn spv-acao-flag ${r.prioridade ? 'is-active' : ''}" data-acao="prioridade"
                             title="${r.prioridade ? 'Remover prioridade' : 'Marcar como prioridade'}"
                             aria-label="${r.prioridade ? 'Remover prioridade' : 'Marcar como prioridade'}" aria-pressed="${r.prioridade ? 'true' : 'false'}">${SVG.bandeira}</button>
-                    <button type="button" class="spv-acao-btn spv-acao-del" data-acao="excluir"
-                            title="Excluir solicitação" aria-label="Excluir solicitação">${SVG.lixeira}</button>
+                    ${r.status === 'ABERTA' ? '' : `<button type="button" class="spv-acao-btn spv-acao-del" data-acao="excluir"
+                            title="Excluir solicitação encerrada" aria-label="Excluir solicitação encerrada">${SVG.lixeira}</button>`}
                 </div>
             </div>
         `).join('');
@@ -401,14 +401,48 @@
         initDragDrop();
     };
 
+    const confirmarMovimentoFinal = async (item, etapa) => {
+        if (!item || !etapa || etapa.natureza === 'EM_ANDAMENTO') return true;
+
+        const cancelamento = etapa.natureza === 'CANCELADA';
+        const result = await Swal.fire({
+            title: cancelamento ? 'Cancelar esta solicitação?' : 'Concluir esta solicitação?',
+            text: `O card de ${item.nome_contrato || 'cliente'} sairá da fila de tratativas abertas.`,
+            icon: 'warning',
+            showCancelButton: true,
+            reverseButtons: true,
+            confirmButtonText: cancelamento ? 'Sim, cancelar' : 'Sim, concluir',
+            cancelButtonText: 'Manter em aberto',
+            buttonsStyling: false,
+            customClass: { confirmButton: 'pv-btn spv-btn-danger-confirm', cancelButton: 'pv-btn pv-btn-ghost' },
+        });
+
+        return result.isConfirmed;
+    };
+
     const mover = async (id, etapaId, aoTerminar = null) => {
+        const item = registros.find((r) => r.id === id);
+        const etapa = item ? etapaInfo(item.tipo, etapaId) : null;
+        if (!await confirmarMovimentoFinal(item, etapa)) {
+            carregarDados();
+            return false;
+        }
+
         try {
-            await api(`/back-office/solicitacoes/${id}/mover`, { method: 'POST', body: JSON.stringify({ etapa_id: etapaId }) });
+            await api(`/back-office/solicitacoes/${id}/mover`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    etapa_id: etapaId,
+                    confirmar_encerramento: etapa?.natureza !== 'EM_ANDAMENTO',
+                }),
+            });
             showModernToast('success', 'Solicitação movida', 'Etapa atualizada.');
             if (aoTerminar) aoTerminar();
+            return true;
         } catch (err) {
             console.error(err);
             showModernToast('error', 'Erro ao mover', err.message || 'Tente novamente.');
+            return false;
         } finally {
             carregarDados();
         }
@@ -543,6 +577,7 @@
             detalheTipo = r.tipo;
             detalheRegistro = r;
             document.getElementById('btnSpvAbrirRetorno').hidden = r.status !== 'ABERTA';
+            document.getElementById('btnSpvExcluirDetalhe').hidden = r.status === 'ABERTA';
 
             aplicarEtapaNaModal(r.tipo, r.etapa_id);
             atualizarFlagDetalhe(r.prioridade);
@@ -733,11 +768,17 @@
             showModernToast('info', 'Sem alteração', 'A solicitação já está nesta etapa.');
             return;
         }
+        const etapa = etapaInfo(detalheTipo, novaEtapa);
+        if (!await confirmarMovimentoFinal(detalheRegistro, etapa)) return;
+
         btnMover.disabled = true;
         try {
             await api(`/back-office/solicitacoes/${detalheAtualId}/mover`, {
                 method: 'POST',
-                body: JSON.stringify({ etapa_id: novaEtapa }),
+                body: JSON.stringify({
+                    etapa_id: novaEtapa,
+                    confirmar_encerramento: etapa?.natureza !== 'EM_ANDAMENTO',
+                }),
             });
             aplicarEtapaNaModal(detalheTipo, novaEtapa);
             const detalhe = await recarregarDetalhe();

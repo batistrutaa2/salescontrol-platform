@@ -267,17 +267,23 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
         return $solicitacao;
     }
 
-    public function excluir(int $id, int $empresaId): bool
+    public function excluir(int $id, int $empresaId): ?string
     {
         $solicitacao = PosVendaSolicitacao::where('empresa_id', $empresaId)->find($id);
         if (! $solicitacao) {
-            return false;
+            return 'NAO_ENCONTRADA';
+        }
+
+        // Uma tratativa em andamento nunca pode desaparecer da fila. Antes de
+        // ser removida, ela precisa ser encerrada conscientemente pelo fluxo.
+        if ($solicitacao->status === PosVendaSolicitacao::STATUS_ABERTA) {
+            return 'SOLICITACAO_ABERTA';
         }
 
         // O histórico cai junto via FK cascade.
         $solicitacao->delete();
 
-        return true;
+        return null;
     }
 
     public function moverEtapa(int $id, int $empresaId, int $etapaId, int $userId, ?string $observacao = null): ?string

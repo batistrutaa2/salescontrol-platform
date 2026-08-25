@@ -206,8 +206,16 @@ class CentralSolicitacoesController extends Controller
     {
         $this->checkAccess();
 
-        if (! $this->solicitacoes->excluir($id, $this->empresaId())) {
+        $erro = $this->solicitacoes->excluir($id, $this->empresaId());
+
+        if ($erro === 'NAO_ENCONTRADA') {
             abort(404);
+        }
+        if ($erro === 'SOLICITACAO_ABERTA') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Uma solicitação aberta não pode ser excluída. Encerre a tratativa pelo fluxo antes de removê-la.',
+            ], 422);
         }
 
         return response()->json(['success' => true]);
@@ -220,7 +228,22 @@ class CentralSolicitacoesController extends Controller
         $validated = $request->validate([
             'etapa_id' => 'required|integer',
             'observacao' => 'nullable|string|max:500',
+            'confirmar_encerramento' => 'sometimes|boolean',
         ]);
+
+        $novaEtapa = PosVendaFluxoEtapa::where('empresa_id', $this->empresaId())
+            ->find((int) $validated['etapa_id']);
+        $naturezaFinal = in_array($novaEtapa?->natureza, [
+            NaturezaEtapaSolicitacao::CONCLUIDA->value,
+            NaturezaEtapaSolicitacao::CANCELADA->value,
+        ], true);
+
+        if ($naturezaFinal && ! $request->boolean('confirmar_encerramento')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Confirme o encerramento da solicitação antes de movê-la para esta etapa.',
+            ], 422);
+        }
 
         $statusAnterior = PosVendaSolicitacao::where('empresa_id', $this->empresaId())
             ->where('id', $id)

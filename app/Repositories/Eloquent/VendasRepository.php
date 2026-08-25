@@ -980,6 +980,12 @@ class VendasRepository implements VendasRepositoryInterface
             $contract = $this->model::find($id);
 
             if ($contract) {
+                // Solicitações do pós-venda são registros operacionais e não
+                // podem sumir como efeito colateral da exclusão do contrato.
+                if ($contract->solicitacoesPosVenda()->exists()) {
+                    return false;
+                }
+
                 return $contract->delete();
             }
 

@@ -369,7 +369,10 @@ class CentralSolicitacoesTest extends TestCase
 
         $concluida = $this->etapaDoTipo($tipo, NaturezaEtapaSolicitacao::CONCLUIDA->value);
         $this->actingAs($this->backoffice)
-            ->postJson(route('backoffice.solicitacoes.mover', $solicitacao->id), ['etapa_id' => $concluida->id])
+            ->postJson(route('backoffice.solicitacoes.mover', $solicitacao->id), [
+                'etapa_id' => $concluida->id,
+                'confirmar_encerramento' => true,
+            ])
             ->assertOk();
 
         $fresh = $solicitacao->fresh();
@@ -382,7 +385,10 @@ class CentralSolicitacoesTest extends TestCase
         // Cancelada também encerra.
         $cancelada = $this->etapaDoTipo($tipo, NaturezaEtapaSolicitacao::CANCELADA->value);
         $this->actingAs($this->backoffice)
-            ->postJson(route('backoffice.solicitacoes.mover', $solicitacao->id), ['etapa_id' => $cancelada->id])
+            ->postJson(route('backoffice.solicitacoes.mover', $solicitacao->id), [
+                'etapa_id' => $cancelada->id,
+                'confirmar_encerramento' => true,
+            ])
             ->assertOk();
         $this->assertSame(PosVendaSolicitacao::STATUS_CANCELADA, $solicitacao->fresh()->status);
 
@@ -409,6 +415,23 @@ class CentralSolicitacoesTest extends TestCase
             ->assertStatus(422);
 
         $this->assertSame($solicitacao->etapa_id, $solicitacao->fresh()->etapa_id);
+    }
+
+    public function test_etapa_final_exige_confirmacao_explicita_e_mantem_card_aberto(): void
+    {
+        $venda = $this->criarContrato();
+        $solicitacao = $this->criarSolicitacao($venda);
+        $concluida = $this->etapaDoTipo($solicitacao->tipo, NaturezaEtapaSolicitacao::CONCLUIDA->value);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.mover', $solicitacao->id), [
+                'etapa_id' => $concluida->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
+
+        $this->assertSame(PosVendaSolicitacao::STATUS_ABERTA, $solicitacao->fresh()->status);
+        $this->assertNotSame($concluida->id, $solicitacao->fresh()->etapa_id);
     }
 
     // ---------------------------------------------------------------
@@ -621,10 +644,26 @@ class CentralSolicitacoesTest extends TestCase
         $this->assertNull($solicitacao->fresh()->data_retorno);
     }
 
-    public function test_excluir_solicitacao_remove_junto_com_historico(): void
+    public function test_solicitacao_aberta_nao_pode_ser_excluida(): void
     {
         $venda = $this->criarContrato();
         $solicitacao = $this->criarSolicitacao($venda);
+
+        $this->actingAs($this->backoffice)
+            ->deleteJson(route('backoffice.solicitacoes.destroy', $solicitacao->id))
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
+
+        $this->assertDatabaseHas('pos_venda_solicitacoes', ['id' => $solicitacao->id]);
+    }
+
+    public function test_excluir_solicitacao_encerrada_remove_junto_com_historico(): void
+    {
+        $venda = $this->criarContrato();
+        $solicitacao = $this->criarSolicitacao($venda, [
+            'status' => PosVendaSolicitacao::STATUS_CONCLUIDA,
+            'concluida_em' => now(),
+        ]);
 
         DB::table('pos_venda_solicitacao_historico')->insert([
             'solicitacao_id' => $solicitacao->id, 'user_id' => $this->backoffice->id,
@@ -638,6 +677,18 @@ class CentralSolicitacoesTest extends TestCase
 
         $this->assertDatabaseMissing('pos_venda_solicitacoes', ['id' => $solicitacao->id]);
         $this->assertDatabaseMissing('pos_venda_solicitacao_historico', ['solicitacao_id' => $solicitacao->id]);
+    }
+
+    public function test_contrato_com_solicitacao_nao_pode_ser_excluido_em_cascata(): void
+    {
+        $venda = $this->criarContrato();
+        $solicitacao = $this->criarSolicitacao($venda);
+
+        $excluiu = app(\App\Repositories\Contracts\VendasRepositoryInterface::class)->delete($venda->id);
+
+        $this->assertFalse($excluiu);
+        $this->assertDatabaseHas('vendas', ['id' => $venda->id]);
+        $this->assertDatabaseHas('pos_venda_solicitacoes', ['id' => $solicitacao->id]);
     }
 
     // ---------------------------------------------------------------
