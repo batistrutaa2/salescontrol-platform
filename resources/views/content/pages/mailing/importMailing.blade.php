@@ -38,7 +38,7 @@
         <section class="mi-upload-panel" id="upload-panel" aria-labelledby="upload-title">
             <div class="mi-section-heading">
                 <h2 id="upload-title">Selecione a base</h2>
-                <p>O arquivo será analisado antes de qualquer lead ser cadastrado.</p>
+                <p>Os leads novos entram no reservatório. Duplicados continuam seguindo a análise de segurança.</p>
             </div>
 
             <form enctype="multipart/form-data" id="mailing-import-form" novalidate>
@@ -47,24 +47,6 @@
                         <input type="text" class="form-control" id="base" name="base" maxlength="255"
                             placeholder="Base Agosto" required>
                         <label for="base">Nome da base</label>
-                    </div>
-                    <div class="form-floating form-floating-outline">
-                        <select id="mailing-vendedor" class="form-select" name="id_user" required>
-                            <option value="">Selecione</option>
-                            @foreach ($users as $user)
-                                <option value="{{ $user->id }}">{{ strtoupper($user->name) }}</option>
-                            @endforeach
-                        </select>
-                        <label for="mailing-vendedor">Vendedor dos leads novos</label>
-                    </div>
-                    <div class="form-floating form-floating-outline">
-                        <select id="mailing-tabulacao" class="form-select" name="tabulacao" required>
-                            <option value="">Selecione</option>
-                            @foreach ($tabulacoes as $tabulacao)
-                                <option value="{{ $tabulacao->id }}">{{ strtoupper($tabulacao->descricao) }}</option>
-                            @endforeach
-                        </select>
-                        <label for="mailing-tabulacao">Status dos leads novos</label>
                     </div>
                     <div class="form-floating form-floating-outline">
                         <select id="mailing-layout" class="form-select" name="tipo_layout" required>
@@ -114,10 +96,10 @@
 
             <div class="mi-primary-action" id="new-leads-action">
                 <div>
-                    <strong id="new-leads-title">Leads novos prontos para importar</strong>
-                    <span id="new-leads-copy">Os duplicados continuarão disponíveis nesta tela.</span>
+                    <strong id="new-leads-title">Leads novos prontos para o reservatório</strong>
+                    <span id="new-leads-copy">Nenhum vendedor será escolhido nesta etapa. Os duplicados continuarão disponíveis nesta tela.</span>
                 </div>
-                <button type="button" class="btn btn-primary" id="import-new-button">Importar não duplicados</button>
+                <button type="button" class="btn btn-primary" id="import-new-button">Enviar novos ao reservatório</button>
             </div>
 
             <div class="mi-duplicates-heading">

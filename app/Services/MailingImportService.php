@@ -12,6 +12,7 @@ use App\Models\Contatos;
 use App\Models\ContatosCorretores;
 use App\Models\Dependentes;
 use App\Models\LeadAtividade;
+use App\Models\LeadReservatorioItem;
 use App\Models\Ligacoes;
 use App\Models\LogPreditiva;
 use App\Models\MailingImportacao;
@@ -27,17 +28,19 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class MailingImportService
 {
+    public function __construct(private readonly LeadReservatorioService $reservatorio) {}
+
     public function analisar(
         UploadedFile $arquivo,
         int $empresaId,
         int $userId,
         string $nomeBase,
         string $tipoLayout,
-        int $vendedorId,
-        int $tabulacaoId
+        ?int $vendedorId,
+        ?int $tabulacaoId
     ): MailingImportacao {
         $itens = $tipoLayout === 'com_dependentes'
-            ? $this->lerComDependentes($arquivo, $nomeBase, $tabulacaoId, $vendedorId)
+            ? $this->lerComDependentes($arquivo, $nomeBase, $tabulacaoId ?? 0, $vendedorId ?? 0)
             : $this->lerPadrao($arquivo, $empresaId, $userId, $nomeBase);
 
         if ($itens->isEmpty()) {
@@ -466,13 +469,7 @@ class MailingImportService
             ]);
         }
 
-        ContatosCorretores::create([
-            'empresa_id' => $importacao->empresa_id,
-            'contato_id' => $contato->id,
-            'user_id' => $importacao->vendedor_id,
-            'tabulacao_id' => $importacao->tabulacao_id,
-            'temperatura' => 'FRIO',
-        ]);
+        $this->reservatorio->adicionarNovo($contato, LeadReservatorioItem::ORIGEM_IMPORTACAO, $userId);
 
         return $contato;
     }

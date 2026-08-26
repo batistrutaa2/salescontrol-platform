@@ -11,6 +11,7 @@ use App\Http\Controllers\manager\Manager;
 use App\Http\Controllers\pages\pabx\Pabx;
 use App\Http\Controllers\pages\vendas\Vendas;
 use App\Http\Controllers\pages\mailing\Mailing;
+use App\Http\Controllers\pages\mailing\LeadReservatorioController;
 use App\Http\Controllers\pages\manager\Empresa;
 use App\Http\Controllers\pages\manager\Usuarios;
 use App\Http\Controllers\pages\comercial\Comercial;
@@ -155,6 +156,22 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/mailing/bulk-delete-leads', [Mailing::class, 'bulkDeleteLeads'])->name('mailing.bulkDeleteLeads');
   Route::post('/mailing/bulk-discard-leads', [Mailing::class, 'bulkDiscardLeads'])->name('mailing.bulkDiscardLeads');
   Route::post('/mailing/discard-lead', [Mailing::class, 'discardLead'])->name('mailing.discardLead');
+  Route::prefix('/mailing/reservatorio')->name('mailing.reservatorio.')->group(function () {
+    Route::get('/', [LeadReservatorioController::class, 'index'])->name('index');
+    Route::get('/dados', [LeadReservatorioController::class, 'dados'])->name('dados');
+    Route::post('/preview', [LeadReservatorioController::class, 'previewCondicoes'])->name('preview');
+    Route::post('/distribuicao-aleatoria/preview', [LeadReservatorioController::class, 'previewAleatoria'])->name('aleatoria.preview');
+    Route::post('/distribuicao-aleatoria', [LeadReservatorioController::class, 'executarAleatoria'])->name('aleatoria.executar');
+    Route::get('/estrategias', [LeadReservatorioController::class, 'estrategias'])->name('estrategias.index');
+    Route::post('/estrategias', [LeadReservatorioController::class, 'storeEstrategia'])->name('estrategias.store');
+    Route::put('/estrategias/{estrategia}', [LeadReservatorioController::class, 'updateEstrategia'])->name('estrategias.update');
+    Route::delete('/estrategias/{estrategia}', [LeadReservatorioController::class, 'arquivarEstrategia'])->name('estrategias.destroy');
+    Route::post('/estrategias/{estrategia}/preview', [LeadReservatorioController::class, 'previewEstrategia'])->name('estrategias.preview');
+    Route::post('/estrategias/{estrategia}/executar', [LeadReservatorioController::class, 'executarEstrategia'])->name('estrategias.executar');
+    Route::get('/historico', [LeadReservatorioController::class, 'historico'])->name('historico');
+    Route::post('/migracao-inicial/preview', [LeadReservatorioController::class, 'previewMigracao'])->name('migracao.preview');
+    Route::post('/migracao-inicial', [LeadReservatorioController::class, 'migrar'])->name('migracao.executar');
+  });
 
   /** COMERCIAL */
   Route::get('/comercial/kanban', [Comercial::class, 'index'])->name('comercial.kanban');

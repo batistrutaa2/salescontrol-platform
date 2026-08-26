@@ -1183,13 +1183,7 @@ class Comercial extends Controller
 
     public function indexMarketing()
     {
-        $users = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);
-        $tabulations = $this->tabulacoesRepository->getAll(Auth::user()->empresa_id);
-
-        return view('content.pages.comercial.filaMarketing', [
-            'users' => $users,
-            'tabulations' => $tabulations,
-        ]);
+        return redirect()->route('mailing.reservatorio.index', ['origem' => 'MARKETING']);
     }
 
     public function getLeadsmarketing()
@@ -1201,26 +1195,14 @@ class Comercial extends Controller
 
     public function sendLeadMarketing(Request $request)
     {
-        try {
-            $saveLeadBroker = ContatosCorretores::create([
-                'empresa_id' => Auth::user()->empresa_id,
-                'contato_id' => $request->idMailing,
-                'user_id' => $request->user_id,
-                'tabulacao_id' => $request->tabulation_id,
-                'temperatura' => 'QUENTE',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        $message = 'A distribuição de leads de marketing agora é feita pelo Reservatório de Leads.';
+        $redirect = route('mailing.reservatorio.index', ['origem' => 'MARKETING']);
 
-            if ($saveLeadBroker) {
-                return redirect()->back()->with('status', 'success')->with('message', 'Lead Enviado com sucesso');
-            } else {
-                return redirect()->back()->with('status', 'error')->with('message', 'Erro ao enviar lead');
-            }
-
-        } catch (\Throwable $th) {
-            return redirect()->back()->with('status', 'error')->with('message', 'Erro ao enviar lead');
+        if ($request->expectsJson()) {
+            return response()->json(compact('message', 'redirect'), 422);
         }
+
+        return redirect($redirect)->with('status', 'warning')->with('message', $message);
     }
 
     public function sendLeadPredictive(Request $request)

@@ -419,6 +419,11 @@
       ],
       "submenu": [
         {
+          "url": "/mailing/reservatorio",
+          "name": "Reservatório de Leads",
+          "slug": "mailing.reservatorio.index"
+        },
+        {
           "url": "/mailing/importar",
           "name": "Importa Mailing",
           "slug": "pages-mailing-importar"

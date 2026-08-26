@@ -99,6 +99,14 @@ class MailingImportacaoInteligenteTest extends TestCase
             'cpf' => '22222222222',
             'nome_cliente' => 'Lead novo',
         ]);
+        $novoId = Contatos::where('empresa_id', $this->empresa->id)->where('cpf', '22222222222')->value('id');
+        $this->assertDatabaseHas('lead_reservatorio_itens', [
+            'empresa_id' => $this->empresa->id,
+            'contato_id' => $novoId,
+            'origem' => 'IMPORTACAO',
+            'status' => 'DISPONIVEL',
+        ]);
+        $this->assertDatabaseMissing('contatos_corretores', ['contato_id' => $novoId]);
         $this->assertDatabaseHas('mailing_importacoes', [
             'id' => $importacaoId,
             'status' => 'PARCIAL',

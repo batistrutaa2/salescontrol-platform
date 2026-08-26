@@ -6,7 +6,9 @@ use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Helpers\Helpers;
 use App\Models\Contatos;
+use App\Models\LeadReservatorioItem;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
+use App\Services\LeadReservatorioService;
 use Helper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +20,7 @@ class ContatosRepository implements ContatosRepositoryInterface
 
   protected $model;
 
-  public function __construct(Contatos $model)
+  public function __construct(Contatos $model, private readonly LeadReservatorioService $reservatorio)
   {
     $this->model = $model;
   }
@@ -193,21 +195,26 @@ class ContatosRepository implements ContatosRepositoryInterface
   public function importarLeadsAds(array $data)
   {
       try {
-          $lead = $this->model::create([
-              'is_ads'        => 'Y',
-              'tipo_criativo' => $data['tipo_criativo'] ?? null,
-              'nome_cliente'  => $data['nome_cliente'] ?? null,
-              'telefone1'     => $data['telefone1'] ?? null,
-              'email'         => $data['email'] ?? null,
-              'plano_ativo'   => $data['plano_ativo'] ?? 'N',
-              'vidas'         => $data['vidas'] ?? null,
-              'idades'        => $data['idades'] ?? null,
-              'user_import_id'=> 1,
-              'id_operacao' => Helpers::generateUniqueId(),
-              'empresa_id' => 2,
-              'created_at'    => now(),
-              'updated_at'    => now(),
-          ]);
+          $lead = DB::transaction(function () use ($data) {
+              $lead = $this->model::create([
+                  'is_ads'        => 'Y',
+                  'tipo_criativo' => $data['tipo_criativo'] ?? null,
+                  'nome_cliente'  => $data['nome_cliente'] ?? null,
+                  'telefone1'     => $data['telefone1'] ?? null,
+                  'email'         => $data['email'] ?? null,
+                  'plano_ativo'   => $data['plano_ativo'] ?? 'N',
+                  'vidas'         => $data['vidas'] ?? null,
+                  'idades'        => $data['idades'] ?? null,
+                  'user_import_id'=> 1,
+                  'id_operacao' => Helpers::generateUniqueId(),
+                  'empresa_id' => 2,
+                  'created_at'    => now(),
+                  'updated_at'    => now(),
+              ]);
+              $this->reservatorio->adicionarNovo($lead, LeadReservatorioItem::ORIGEM_MARKETING, null);
+
+              return $lead;
+          });
           return response()->json(['message' => 'Lead importado com sucesso!', 'lead' => $lead], 201);
       } catch (\Throwable $th) {
           return response()->json(['error' => 'Erro ao importar lead', 'message' => $th->getMessage()], 500);

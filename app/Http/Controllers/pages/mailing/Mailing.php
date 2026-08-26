@@ -110,12 +110,12 @@ class Mailing extends Controller
                 'file' => ['required', 'file', 'max:5120'],
                 'tipo_layout' => ['required', Rule::in(['padrao', 'com_dependentes'])],
                 'id_user' => [
-                    'required',
+                    'nullable',
                     'integer',
                     Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('ativo', 'Y')),
                 ],
                 'tabulacao' => [
-                    'required',
+                    'nullable',
                     'integer',
                     Rule::exists('tabulacoes', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('status', 'Y')->where('tipo_tabulacao', 'C')),
                 ],
@@ -128,8 +128,8 @@ class Mailing extends Controller
                 (int) Auth::id(),
                 $validated['base'],
                 $validated['tipo_layout'],
-                (int) $validated['id_user'],
-                (int) $validated['tabulacao'],
+                isset($validated['id_user']) ? (int) $validated['id_user'] : null,
+                isset($validated['tabulacao']) ? (int) $validated['tabulacao'] : null,
             );
 
             return response()->json([
