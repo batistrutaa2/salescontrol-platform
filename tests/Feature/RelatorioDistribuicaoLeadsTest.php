@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
@@ -55,6 +56,7 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         $this->assertSame(3, $dados['resumo']['total_leads']);
         $this->assertSame(2, $dados['resumo']['leads_distribuidos']);
         $this->assertSame(1, $dados['resumo']['leads_nao_distribuidos']);
+        $this->assertSame(0, $dados['resumo']['leads_fila_implantacao']);
         $this->assertEquals(66.7, $dados['resumo']['cobertura_distribuicao']);
         $this->assertSame('Ana Comercial', $dados['ranking_vendedores'][0]['name']);
         $this->assertEquals(2, $dados['ranking_vendedores'][0]['total']);
@@ -72,5 +74,88 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         $this->actingAs($admin)->getJson(route('relatorios.distribuicaoLeads.dados', [
             'data_inicial' => '2026-08-05', 'data_final' => '2026-08-04',
         ]))->assertUnprocessable()->assertJsonValidationErrors('data_final');
+    }
+
+    public function test_separa_trabalho_comercial_filas_e_saidas_do_processo_administrativo(): void
+    {
+        DB::table('user_roles')->insert([
+            ['id' => UserRole::ADMINISTRATIVO, 'tipo_usuario' => 'ADMINISTRATIVO', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => UserRole::VENDEDOR, 'tipo_usuario' => 'VENDEDOR', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+        $empresa = Empresa::factory()->create();
+        $admin = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::ADMINISTRATIVO, 'ativo' => 'Y']);
+        $vendedor = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::VENDEDOR, 'ativo' => 'Y', 'name' => 'Vendedor da base']);
+        $agora = now();
+
+        DB::table('tabulacoes')->insert([
+            ['id' => Tabulations::PROSPECCAO, 'empresa_id' => $empresa->id, 'descricao' => 'PROSPECÇÃO', 'tipo_tabulacao' => 'C', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
+            ['id' => Tabulations::REMARKETING, 'empresa_id' => $empresa->id, 'descricao' => 'REMARKETING', 'tipo_tabulacao' => 'C', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
+            ['id' => Tabulations::VENDA, 'empresa_id' => $empresa->id, 'descricao' => 'VENDA', 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
+            ['id' => Tabulations::ESTORNO, 'empresa_id' => $empresa->id, 'descricao' => 'ESTORNO', 'tipo_tabulacao' => 'A', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
+            ['id' => Tabulations::IMPLANTADO, 'empresa_id' => $empresa->id, 'descricao' => 'IMPLANTADO', 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
+            ['id' => Tabulations::DECLINIO, 'empresa_id' => $empresa->id, 'descricao' => 'DECLINADO', 'tipo_tabulacao' => 'A', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
+        ]);
+
+        $nomes = ['Comercial', 'Remarketing', 'Preditiva', 'Sem atribuição', 'Fila administrativa', 'Carteira', 'Declinado', 'Estornado', 'Descartado'];
+        $contatos = collect($nomes)->mapWithKeys(function (string $nome) use ($empresa, $vendedor, $agora): array {
+            $id = DB::table('contatos')->insertGetId([
+                'empresa_id' => $empresa->id,
+                'user_import_id' => $vendedor->id,
+                'nome_cliente' => $nome,
+                'status' => $nome === 'Descartado' ? 'N' : 'Y',
+                'created_at' => $agora,
+                'updated_at' => $agora,
+            ]);
+
+            return [$nome => $id];
+        });
+
+        DB::table('contatos_corretores')->insert([
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Comercial'], 'user_id' => $vendedor->id, 'tabulacao_id' => Tabulations::PROSPECCAO, 'created_at' => $agora, 'updated_at' => $agora],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Remarketing'], 'user_id' => $vendedor->id, 'tabulacao_id' => Tabulations::REMARKETING, 'created_at' => $agora, 'updated_at' => $agora],
+        ]);
+        DB::table('preditiva')->insert([
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Preditiva'], 'status' => 'Y', 'created_at' => $agora, 'updated_at' => $agora],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Preditiva'], 'status' => 'Y', 'created_at' => $agora, 'updated_at' => $agora],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Comercial'], 'status' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
+        ]);
+
+        foreach ([
+            'Fila administrativa' => Tabulations::VENDA,
+            'Carteira' => Tabulations::IMPLANTADO,
+            'Declinado' => Tabulations::DECLINIO,
+            'Estornado' => Tabulations::ESTORNO,
+        ] as $nome => $tabulacaoId) {
+            DB::table('vendas')->insert([
+                'empresa_id' => $empresa->id,
+                'user_id' => $vendedor->id,
+                'contato_id' => $contatos[$nome],
+                'tabulacao_id' => $tabulacaoId,
+                'nome_contrato' => $nome,
+                'data_vigencia' => $agora->toDateString(),
+                'created_at' => $agora,
+                'updated_at' => $agora,
+            ]);
+        }
+
+        $dados = $this->actingAs($admin)->getJson(route('relatorios.distribuicaoLeads.dados', [
+            'data_inicial' => $agora->format('Y-m-d'),
+            'data_final' => $agora->format('Y-m-d'),
+        ]))->assertOk()->json();
+
+        $this->assertSame(9, $dados['resumo']['total_leads']);
+        $this->assertSame(1, $dados['resumo']['leads_comercial']);
+        $this->assertSame(1, $dados['resumo']['leads_preditiva']);
+        $this->assertSame(1, $dados['resumo']['leads_remarketing']);
+        $this->assertSame(1, $dados['resumo']['leads_sem_atribuicao']);
+        $this->assertSame(2, $dados['resumo']['leads_viraram_venda']);
+        $this->assertSame(1, $dados['resumo']['leads_fila_implantacao']);
+        $this->assertSame(1, $dados['resumo']['leads_carteira_clientes']);
+        $this->assertSame(1, $dados['resumo']['leads_declinados']);
+        $this->assertSame(1, $dados['resumo']['leads_estornados']);
+        $this->assertSame('VENDA', $dados['distribuicao_administrativa'][0]['descricao']);
+        $this->assertEquals(1, $dados['ranking_vendedores'][0]['comercial']);
+        $this->assertEquals(1, $dados['ranking_vendedores'][0]['remarketing']);
+        $this->assertSame(1, $dados['ranking_vendedores'][0]['administrativo']);
     }
 }

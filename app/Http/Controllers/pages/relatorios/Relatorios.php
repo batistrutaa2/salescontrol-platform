@@ -1526,73 +1526,111 @@ class Relatorios extends Controller
         $dataInicial = $request->filled('data_inicial') ? Carbon::parse($request->input('data_inicial'))->startOfDay() : null;
         $dataFinal = $request->filled('data_final') ? Carbon::parse($request->input('data_final'))->endOfDay() : null;
 
-        // Total de leads no sistema
+        $aplicarPeriodoDoLead = static function ($query, string $coluna = 'contatos.created_at') use ($dataInicial, $dataFinal): void {
+            if ($dataInicial && $dataFinal) {
+                $query->whereBetween($coluna, [$dataInicial, $dataFinal]);
+            }
+        };
+        $tabulacoesFilaImplantacao = array_values(array_diff(
+            $this->tabulacoesVendaValida(),
+            [Tabulations::IMPLANTADO]
+        ));
+
+        // O filtro representa uma coorte: em todos os blocos abaixo, o período é
+        // aplicado à data de entrada do lead, e não à data da movimentação.
         $totalLeadsQuery = DB::table('contatos')
             ->where('empresa_id', $empresaId);
-
-        if ($dataInicial && $dataFinal) {
-            $totalLeadsQuery->whereBetween('created_at', [$dataInicial, $dataFinal]);
-        }
-
+        $aplicarPeriodoDoLead($totalLeadsQuery, 'created_at');
         $totalLeads = $totalLeadsQuery->count();
 
-        // Leads em contatos_corretores (distribuídos aos vendedores)
+        // Leads que já tiveram atribuição. Remarketing continua sendo uma atribuição,
+        // mas aparece separado de "em trabalho com vendedores" abaixo.
         $leadsDistribuidosQuery = DB::table('contatos_corretores')
             ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
             ->where('contatos_corretores.empresa_id', $empresaId);
-
-        if ($dataInicial && $dataFinal) {
-            $leadsDistribuidosQuery->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
-        }
-
+        $aplicarPeriodoDoLead($leadsDistribuidosQuery);
         $leadsDistribuidos = $leadsDistribuidosQuery->distinct()->count('contatos_corretores.contato_id');
 
-        // Leads sendo trabalhados por vendedores (tipo_tabulacao = 'C')
+        // Em trabalho comercial: lead ativo, com vendedor e em tabulação comercial.
+        // Remarketing não é trabalho ativo e, por isso, não entra neste número.
         $leadsComercialQuery = DB::table('contatos_corretores')
             ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
             ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
             ->where('contatos_corretores.empresa_id', $empresaId)
-            ->where('tabulacoes.tipo_tabulacao', 'C');
-
-        if ($dataInicial && $dataFinal) {
-            $leadsComercialQuery->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
-        }
-
+            ->where('contatos.status', 'Y')
+            ->where('tabulacoes.tipo_tabulacao', 'C')
+            ->where('tabulacoes.id', '!=', Tabulations::REMARKETING);
+        $aplicarPeriodoDoLead($leadsComercialQuery);
         $leadsComercial = $leadsComercialQuery->distinct()->count('contatos_corretores.contato_id');
 
-        // Leads sob custódia administrativa (tipo_tabulacao = 'A')
-        $leadsAdministrativoQuery = DB::table('contatos_corretores')
-            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
-            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
-            ->where('contatos_corretores.empresa_id', $empresaId)
-            ->where('tabulacoes.tipo_tabulacao', 'A');
-
-        if ($dataInicial && $dataFinal) {
-            $leadsAdministrativoQuery->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
-        }
-
-        $leadsAdministrativo = $leadsAdministrativoQuery->distinct()->count('contatos_corretores.contato_id');
-
-        // Leads na preditiva
+        // Preditiva: apenas a fila atual. Registros inativos são históricos e um mesmo
+        // lead é contado uma única vez, ainda que tenha retornado à fila.
         $leadsPreditivaQuery = DB::table('preditiva')
             ->join('contatos', 'preditiva.contato_id', '=', 'contatos.id')
-            ->where('preditiva.empresa_id', $empresaId);
+            ->where('preditiva.empresa_id', $empresaId)
+            ->where('preditiva.status', 'Y');
+        $aplicarPeriodoDoLead($leadsPreditivaQuery);
+        $leadsPreditiva = $leadsPreditivaQuery->distinct()->count('preditiva.contato_id');
 
-        if ($dataInicial && $dataFinal) {
-            $leadsPreditivaQuery->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
-        }
+        $leadsRemarketingQuery = DB::table('contatos_corretores')
+            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('contatos.status', 'Y')
+            ->where('contatos_corretores.tabulacao_id', Tabulations::REMARKETING);
+        $aplicarPeriodoDoLead($leadsRemarketingQuery);
+        $leadsRemarketing = $leadsRemarketingQuery->distinct()->count('contatos_corretores.contato_id');
 
-        $leadsPreditiva = $leadsPreditivaQuery->count();
+        // Sem atribuição é uma fila própria: não possui vendedor, não está na
+        // preditiva e ainda não gerou venda. Assim, não mistura abandono com pós-venda.
+        $leadsSemAtribuicaoQuery = DB::table('contatos')
+            ->where('contatos.empresa_id', $empresaId)
+            ->where('contatos.status', 'Y')
+            ->whereNotExists(function ($query) use ($empresaId) {
+                $query->selectRaw('1')
+                    ->from('contatos_corretores')
+                    ->whereColumn('contatos_corretores.contato_id', 'contatos.id')
+                    ->where('contatos_corretores.empresa_id', $empresaId);
+            })
+            ->whereNotExists(function ($query) use ($empresaId) {
+                $query->selectRaw('1')
+                    ->from('preditiva')
+                    ->whereColumn('preditiva.contato_id', 'contatos.id')
+                    ->where('preditiva.empresa_id', $empresaId)
+                    ->where('preditiva.status', 'Y');
+            })
+            ->whereNotExists(function ($query) use ($empresaId) {
+                $query->selectRaw('1')
+                    ->from('vendas')
+                    ->whereColumn('vendas.contato_id', 'contatos.id')
+                    ->where('vendas.empresa_id', $empresaId);
+            });
+        $aplicarPeriodoDoLead($leadsSemAtribuicaoQuery, 'contatos.created_at');
+        $leadsSemAtribuicao = $leadsSemAtribuicaoQuery->count();
+
+        $contarLeadsPorStatusDaVenda = function (array $tabulacoes) use ($empresaId, $aplicarPeriodoDoLead): int {
+            $query = DB::table('vendas')
+                ->join('contatos', 'contatos.id', '=', 'vendas.contato_id')
+                ->where('vendas.empresa_id', $empresaId)
+                ->whereIn('vendas.tabulacao_id', $tabulacoes);
+            $aplicarPeriodoDoLead($query);
+
+            return $query->distinct()->count('vendas.contato_id');
+        };
+
+        // O status da venda é a fonte de verdade do pós-venda. Administrativo é
+        // somente a fila em implantação; implantado, declinado e estornado são saídas.
+        $leadsAdministrativo = $contarLeadsPorStatusDaVenda($tabulacoesFilaImplantacao);
+        $leadsViraramVenda = $contarLeadsPorStatusDaVenda($this->tabulacoesVendaValida());
+        $leadsCarteiraClientes = $contarLeadsPorStatusDaVenda([Tabulations::IMPLANTADO]);
+        $leadsDeclinados = $contarLeadsPorStatusDaVenda([Tabulations::DECLINIO]);
+        $leadsEstornados = $contarLeadsPorStatusDaVenda([Tabulations::ESTORNO]);
 
         // Leads descartados (status = 'N')
         $leadsDescartadosQuery = DB::table('contatos')
             ->where('empresa_id', $empresaId)
             ->where('status', 'N');
 
-        if ($dataInicial && $dataFinal) {
-            $leadsDescartadosQuery->whereBetween('created_at', [$dataInicial, $dataFinal]);
-        }
-
+        $aplicarPeriodoDoLead($leadsDescartadosQuery, 'created_at');
         $leadsDescartados = $leadsDescartadosQuery->count();
 
         // Distribuição por status (tabulações) - Todos
@@ -1602,9 +1640,7 @@ class Relatorios extends Controller
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
             ->where('contatos_corretores.empresa_id', $empresaId);
 
-        if ($dataInicial && $dataFinal) {
-            $distribuicaoPorStatus->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
-        }
+        $aplicarPeriodoDoLead($distribuicaoPorStatus);
 
         $distribuicaoPorStatus = $distribuicaoPorStatus
             ->groupBy('tabulacoes.descricao')
@@ -1630,42 +1666,22 @@ class Relatorios extends Controller
             ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
             ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('contatos.status', 'Y')
             ->whereIn('tabulacoes.descricao', $tabulacoesComerciais);
-
-        if ($dataInicial && $dataFinal) {
-            $distribuicaoComercial->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
-        }
+        $aplicarPeriodoDoLead($distribuicaoComercial);
 
         $distribuicaoComercial = $distribuicaoComercial
             ->groupBy('tabulacoes.descricao')
             ->orderBy('total', 'desc')
             ->get();
 
-        // Distribuição Administrativa - Tabulações específicas de custódia administrativa
-        $tabulacoesAdministrativas = [
-            'VENDA',
-            'ESTORNO',
-            'IMPLANTADO',
-            'DECLINADO',
-            'ANALISE DE DOCUMENTOS',
-            'PENDENCIA',
-            'CONTR. GERADO - AGUARDANDO ASSINATURA',
-            'REGULARIZADO',
-            'BOLETO DISPONIVEL',
-            'ANALISE OPERADORA',
-            'AGUARD. ASSINATURA DA DS',
-        ];
-
-        $distribuicaoAdministrativa = DB::table('contatos_corretores')
-            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
-            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
-            ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
-            ->where('contatos_corretores.empresa_id', $empresaId)
-            ->whereIn('tabulacoes.descricao', $tabulacoesAdministrativas);
-
-        if ($dataInicial && $dataFinal) {
-            $distribuicaoAdministrativa->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
-        }
+        $distribuicaoAdministrativa = DB::table('vendas')
+            ->join('tabulacoes', 'vendas.tabulacao_id', '=', 'tabulacoes.id')
+            ->join('contatos', 'vendas.contato_id', '=', 'contatos.id')
+            ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT vendas.contato_id) as total'))
+            ->where('vendas.empresa_id', $empresaId)
+            ->whereIn('vendas.tabulacao_id', $tabulacoesFilaImplantacao);
+        $aplicarPeriodoDoLead($distribuicaoAdministrativa);
 
         $distribuicaoAdministrativa = $distribuicaoAdministrativa
             ->groupBy('tabulacoes.descricao')
@@ -1683,9 +1699,7 @@ class Relatorios extends Controller
                     ->orWhere('tabulacoes.descricao', 'REMARKETING');
             });
 
-        if ($dataInicial && $dataFinal) {
-            $distribuicaoDescarte->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
-        }
+        $aplicarPeriodoDoLead($distribuicaoDescarte);
 
         $distribuicaoDescarte = $distribuicaoDescarte
             ->groupBy('tabulacoes.descricao')
@@ -1712,9 +1726,7 @@ class Relatorios extends Controller
                     ->orWhere('tabulacoes.descricao', 'REMARKETING');
             });
 
-        if ($dataInicial && $dataFinal) {
-            $motivosDescarte->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
-        }
+        $aplicarPeriodoDoLead($motivosDescarte);
 
         $motivosDescarte = $motivosDescarte
             ->groupBy('motivo')
@@ -1751,7 +1763,8 @@ class Relatorios extends Controller
             ->orderBy('periodo')
             ->get();
 
-        // Ranking operacional: volume sob custódia e divisão por estágio atual.
+        // Ranking operacional: a coluna administrativa também usa vendas, para ficar
+        // coerente com a fila de implantação exibida no restante do relatório.
         $rankingVendedores = DB::table('contatos_corretores')
             ->join('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
             ->join('users', 'users.id', '=', 'contatos_corretores.user_id')
@@ -1760,13 +1773,25 @@ class Relatorios extends Controller
             ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]))
             ->select('users.id', 'users.name')
             ->selectRaw('COUNT(DISTINCT contatos_corretores.contato_id) as total')
-            ->selectRaw("COUNT(DISTINCT CASE WHEN tabulacoes.tipo_tabulacao = 'C' THEN contatos_corretores.contato_id END) as comercial")
-            ->selectRaw("COUNT(DISTINCT CASE WHEN tabulacoes.tipo_tabulacao = 'A' THEN contatos_corretores.contato_id END) as administrativo")
-            ->selectRaw("COUNT(DISTINCT CASE WHEN tabulacoes.sub_tabulacao = 'Y' OR tabulacoes.descricao = 'REMARKETING' THEN contatos_corretores.contato_id END) as descarte")
+            ->selectRaw("COUNT(DISTINCT CASE WHEN contatos.status = 'Y' AND tabulacoes.tipo_tabulacao = 'C' AND tabulacoes.id <> ? THEN contatos_corretores.contato_id END) as comercial", [Tabulations::REMARKETING])
+            ->selectRaw('COUNT(DISTINCT CASE WHEN tabulacoes.id = ? THEN contatos_corretores.contato_id END) as remarketing', [Tabulations::REMARKETING])
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('total')
             ->limit(20)
             ->get();
+
+        $administrativoPorVendedor = DB::table('vendas')
+            ->join('contatos', 'contatos.id', '=', 'vendas.contato_id')
+            ->where('vendas.empresa_id', $empresaId)
+            ->whereIn('vendas.tabulacao_id', $tabulacoesFilaImplantacao)
+            ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]))
+            ->select('vendas.user_id')
+            ->selectRaw('COUNT(DISTINCT vendas.contato_id) as total')
+            ->groupBy('vendas.user_id')
+            ->pluck('total', 'vendas.user_id');
+        $rankingVendedores->each(function ($vendedor) use ($administrativoPorVendedor): void {
+            $vendedor->administrativo = (int) ($administrativoPorVendedor[$vendedor->id] ?? 0);
+        });
 
         $leadsNaoDistribuidos = max(0, $totalLeads - $leadsDistribuidos);
         $percentual = static fn (int $valor, int $base): float => $base > 0 ? round(($valor / $base) * 100, 1) : 0.0;
@@ -1777,13 +1802,22 @@ class Relatorios extends Controller
                 'leads_distribuidos' => $leadsDistribuidos,
                 'leads_comercial' => $leadsComercial,
                 'leads_administrativo' => $leadsAdministrativo,
+                'leads_fila_implantacao' => $leadsAdministrativo,
                 'leads_preditiva' => $leadsPreditiva,
+                'leads_remarketing' => $leadsRemarketing,
+                'leads_sem_atribuicao' => $leadsSemAtribuicao,
+                'leads_viraram_venda' => $leadsViraramVenda,
+                'leads_carteira_clientes' => $leadsCarteiraClientes,
+                'leads_declinados' => $leadsDeclinados,
+                'leads_estornados' => $leadsEstornados,
                 'leads_descartados' => $leadsDescartados,
                 'tentativas_preditiva' => $tentativasPreditiva,
                 'leads_nao_distribuidos' => $leadsNaoDistribuidos,
                 'cobertura_distribuicao' => $percentual($leadsDistribuidos, $totalLeads),
                 'taxa_comercial' => $percentual($leadsComercial, $leadsDistribuidos),
-                'taxa_administrativo' => $percentual($leadsAdministrativo, $leadsDistribuidos),
+                'taxa_administrativo' => $percentual($leadsAdministrativo, $leadsViraramVenda),
+                'taxa_venda' => $percentual($leadsViraramVenda, $totalLeads),
+                'taxa_implantacao' => $percentual($leadsCarteiraClientes, $leadsViraramVenda),
                 'taxa_descarte' => $percentual($leadsDescartados, $totalLeads),
                 'tentativas_por_lead' => $leadsPreditiva > 0 ? round($tentativasPreditiva / $leadsPreditiva, 1) : 0.0,
             ],

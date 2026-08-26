@@ -56,26 +56,24 @@
             : 'Histórico completo';
         document.getElementById('dl-group-label').textContent = dados.periodo.agrupamento === 'mensal' ? 'Agrupado por mês' : 'Agrupado por dia';
 
-        const kpis = [
-            ['Total recebido', r.total_leads, 'ri-database-2-line', 'purple', `${numero(r.leads_nao_distribuidos)} aguardando distribuição`, ''],
-            ['Cobertura da base', percentual(r.cobertura_distribuicao), 'ri-user-shared-line', 'green', `${numero(r.leads_distribuidos)} leads distribuídos`, percentual(r.cobertura_distribuicao)],
-            ['Sob custódia comercial', r.leads_comercial, 'ri-briefcase-4-line', 'purple', `${percentual(r.taxa_comercial)} dos distribuídos`, percentual(r.taxa_comercial)],
-            ['Administrativo', r.leads_administrativo, 'ri-file-list-3-line', 'amber', `${percentual(r.taxa_administrativo)} dos distribuídos`, percentual(r.taxa_administrativo)],
-            ['Na preditiva', r.leads_preditiva, 'ri-phone-line', 'green', `${numero(r.tentativas_preditiva)} tentativas`, `${r.tentativas_por_lead}×`],
-            ['Descartados', r.leads_descartados, 'ri-close-circle-line', 'red', `${percentual(r.taxa_descarte)} da entrada`, percentual(r.taxa_descarte)],
-            ['Tentativas preditiva', r.tentativas_preditiva, 'ri-phone-find-line', 'purple', 'Volume de chamadas no período', `${r.tentativas_por_lead}×/lead`],
-            ['Sem distribuição', r.leads_nao_distribuidos, 'ri-inbox-unarchive-line', 'amber', 'Leads sem vendedor', percentual(100 - r.cobertura_distribuicao)],
+        const posicoes = [
+            ['Total na base', r.total_leads, 'ri-database-2-line', 'purple', 'Leads recebidos no período', '100%'],
+            ['Em trabalho com vendedores', r.leads_comercial, 'ri-briefcase-4-line', 'green', 'Ativos em etapa comercial; não inclui remarketing', percentual(r.taxa_comercial)],
+            ['Na preditiva', r.leads_preditiva, 'ri-phone-line', 'blue', `${numero(r.tentativas_preditiva)} tentativas realizadas no período`, `${r.tentativas_por_lead}×/lead`],
+            ['No remarketing', r.leads_remarketing, 'ri-recycle-line', 'amber', 'Fora da atuação comercial ativa', 'Fila atual'],
+            ['Sem atribuição', r.leads_sem_atribuicao, 'ri-user-unfollow-line', 'amber', 'Sem vendedor, preditiva ou venda', 'Aguardando'],
+            ['Descartados', r.leads_descartados, 'ri-close-circle-line', 'red', 'Fora do trabalho comercial', percentual(r.taxa_descarte)],
         ];
-        document.getElementById('dl-kpis').innerHTML = kpis.map(k => `<article class="dl-kpi ${k[3]}"><header><i class="${k[2]}"></i><em>${k[5]}</em></header><label>${k[0]}</label><strong>${typeof k[1] === 'number' ? numero(k[1]) : k[1]}</strong><small>${k[4]}</small></article>`).join('');
-
-        const fluxo = [
-            ['Recebidos', r.total_leads, '100% da entrada'],
-            ['Distribuídos', r.leads_distribuidos, percentual(r.cobertura_distribuicao)],
-            ['Comercial', r.leads_comercial, percentual(r.taxa_comercial)],
-            ['Administrativo', r.leads_administrativo, percentual(r.taxa_administrativo)],
-            ['Descartados', r.leads_descartados, percentual(r.taxa_descarte)],
+        const posVenda = [
+            ['Viraram venda', r.leads_viraram_venda, 'ri-hand-coin-line', 'purple', 'Venda válida registrada', percentual(r.taxa_venda)],
+            ['Fila administrativa', r.leads_fila_implantacao, 'ri-file-list-3-line', 'amber', 'Em processo para implantação', percentual(r.taxa_administrativo)],
+            ['Carteira de clientes', r.leads_carteira_clientes, 'ri-shield-check-line', 'green', 'Possuem venda implantada', percentual(r.taxa_implantacao)],
+            ['Declinados', r.leads_declinados, 'ri-file-close-line', 'red', 'Encerrados sem implantação', 'Fora da fila'],
+            ['Estornados', r.leads_estornados, 'ri-arrow-go-back-line', 'red', 'Venda revertida', 'Fora da fila'],
         ];
-        document.getElementById('dl-flow').innerHTML = fluxo.map(item => `<div class="dl-flow-item"><span>${item[0]}</span><strong>${numero(item[1])}</strong><small>${item[2]}</small></div>`).join('');
+        const renderMetricas = itens => itens.map(item => `<article class="dl-kpi ${item[3]}"><header><i class="${item[2]}" aria-hidden="true"></i><em>${item[5]}</em></header><span class="dl-kpi-label">${item[0]}</span><strong>${numero(item[1])}</strong><small>${item[4]}</small></article>`).join('');
+        document.getElementById('dl-kpis-position').innerHTML = renderMetricas(posicoes);
+        document.getElementById('dl-kpis-sales').innerHTML = renderMetricas(posVenda);
 
         renderLista('dl-list-comercial', dados.distribuicao_comercial, 'descricao', '#7367f0');
         renderLista('dl-list-administrativo', dados.distribuicao_administrativa, 'descricao', '#ff9f43');
@@ -96,7 +94,7 @@
         if (!itens?.length) { el.innerHTML = '<tr><td colspan="7" class="dl-empty">Sem vendedores no período</td></tr>'; return; }
         el.innerHTML = itens.map((item, index) => {
             const share = totalDistribuido ? (Number(item.total) / totalDistribuido) * 100 : 0;
-            return `<tr><td>${index + 1}</td><td>${escapar(item.name)}</td><td>${numero(item.total)}</td><td>${numero(item.comercial)}</td><td>${numero(item.administrativo)}</td><td>${numero(item.descarte)}</td><td><div class="dl-share"><i style="--width:${Math.min(100, share)}%"></i><span>${percentual(share)}</span></div></td></tr>`;
+            return `<tr><td>${index + 1}</td><td>${escapar(item.name)}</td><td>${numero(item.total)}</td><td>${numero(item.comercial)}</td><td>${numero(item.remarketing)}</td><td>${numero(item.administrativo)}</td><td><div class="dl-share"><i style="--width:${Math.min(100, share)}%"></i><span>${percentual(share)}</span></div></td></tr>`;
         }).join('');
     }
 
