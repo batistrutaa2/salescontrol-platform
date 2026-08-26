@@ -61,6 +61,13 @@ class LeadReservatorioTest extends TestCase
             'tipo_tabulacao' => 'C',
             'status' => 'Y',
         ]);
+        Tabulacoes::create([
+            'id' => Tabulations::NOVOS_CLIENTES,
+            'empresa_id' => $this->empresa->id,
+            'descricao' => 'NOVOS CLIENTES',
+            'tipo_tabulacao' => 'C',
+            'status' => 'Y',
+        ]);
     }
 
     public function test_distribui_quantidades_exatas_dentro_dos_filtros_e_nao_permita_reentrada(): void
@@ -102,6 +109,8 @@ class LeadReservatorioTest extends TestCase
 
         $this->assertSame(2, ContatosCorretores::where('user_id', $this->vendedorA->id)->count());
         $this->assertSame(1, ContatosCorretores::where('user_id', $this->vendedorB->id)->count());
+        $this->assertSame(3, ContatosCorretores::where('tabulacao_id', Tabulations::NOVOS_CLIENTES)->count());
+        $this->assertSame(0, ContatosCorretores::where('tabulacao_id', '!=', Tabulations::NOVOS_CLIENTES)->count());
         $this->assertSame(3, LeadReservatorioItem::where('status', LeadReservatorioItem::STATUS_DISTRIBUIDO)->count());
         $this->assertSame(3, LeadReservatorioItem::where('status', LeadReservatorioItem::STATUS_DISPONIVEL)->count());
         $this->assertDatabaseHas('lead_reservatorio_itens', [
@@ -169,6 +178,8 @@ class LeadReservatorioTest extends TestCase
 
         $this->assertSame(3, ContatosCorretores::where('user_id', $this->vendedorA->id)->count());
         $this->assertSame(1, ContatosCorretores::where('user_id', $this->vendedorB->id)->count());
+        $this->assertSame(4, ContatosCorretores::where('tabulacao_id', Tabulations::NOVOS_CLIENTES)->count());
+        $this->assertSame(0, ContatosCorretores::where('tabulacao_id', '!=', Tabulations::NOVOS_CLIENTES)->count());
         $this->assertSame(4, LeadReservatorioItem::where('status', LeadReservatorioItem::STATUS_DISTRIBUIDO)->count());
         $this->assertSame(2, LeadReservatorioItem::where('status', LeadReservatorioItem::STATUS_DISPONIVEL)->count());
         $this->assertDatabaseHas('lead_reservatorio_execucoes', [

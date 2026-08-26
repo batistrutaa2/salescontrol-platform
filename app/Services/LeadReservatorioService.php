@@ -195,14 +195,14 @@ class LeadReservatorioService
 
                 $tabulacaoExiste = DB::table('tabulacoes')
                     ->where('empresa_id', $empresaId)
-                    ->where('id', Tabulations::PROSPECCAO)
+                    ->where('id', Tabulations::NOVOS_CLIENTES)
                     ->where('status', 'Y')
                     ->where('tipo_tabulacao', 'C')
                     ->exists();
 
                 if (! $tabulacaoExiste) {
                     throw ValidationException::withMessages([
-                        'tabulacao' => 'A tabulação PROSPECÇÃO não está ativa para esta empresa.',
+                        'tabulacao' => 'A tabulação NOVOS CLIENTES não está ativa para esta empresa.',
                     ]);
                 }
 
@@ -227,7 +227,7 @@ class LeadReservatorioService
                             'empresa_id' => $empresaId,
                             'contato_id' => $item->contato_id,
                             'user_id' => $vendedor->id,
-                            'tabulacao_id' => Tabulations::PROSPECCAO,
+                            'tabulacao_id' => Tabulations::NOVOS_CLIENTES,
                             'temperatura' => 'FRIO',
                         ]);
 
