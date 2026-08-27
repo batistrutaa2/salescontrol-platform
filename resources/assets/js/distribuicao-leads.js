@@ -61,7 +61,7 @@
             ['Em trabalho com vendedores', r.leads_comercial, 'ri-briefcase-4-line', 'green', 'Ativos em etapa comercial; não inclui remarketing', percentual(r.taxa_comercial)],
             ['Na preditiva', r.leads_preditiva, 'ri-phone-line', 'blue', `${numero(r.tentativas_preditiva)} tentativas realizadas no período`, `${r.tentativas_por_lead}×/lead`],
             ['No remarketing', r.leads_remarketing, 'ri-recycle-line', 'amber', 'Fora da atuação comercial ativa', 'Fila atual'],
-            ['Sem atribuição', r.leads_sem_atribuicao, 'ri-user-unfollow-line', 'amber', 'Sem vendedor, preditiva ou venda', 'Aguardando'],
+            ['Reservatório de leads', r.leads_reservatorio, 'ri-inbox-archive-line', 'amber', 'Leads novos, prontos para envio e ainda não distribuídos', 'Prontos para envio'],
             ['Descartados', r.leads_descartados, 'ri-close-circle-line', 'red', 'Fora do trabalho comercial', percentual(r.taxa_descarte)],
         ];
         const posVenda = [
@@ -115,7 +115,7 @@
         chartEvolucao.render();
 
         chartCobertura = new ApexCharts(document.getElementById('dl-chart-cobertura'), {
-            series: [dados.resumo.leads_distribuidos, dados.resumo.leads_nao_distribuidos], labels: ['Distribuídos', 'Aguardando'],
+            series: [dados.resumo.leads_distribuidos, dados.resumo.leads_reservatorio], labels: ['Distribuídos', 'No reservatório'],
             chart: { type: 'donut', height: 275, fontFamily: 'inherit' }, colors: ['#28c76f', '#ff9f43'], stroke: { width: 0 }, dataLabels: { enabled: false },
             legend: { position: 'bottom', labels: { colors: texto } }, tooltip: { theme: tooltip },
             plotOptions: { pie: { donut: { size: '72%', labels: { show: true, total: { show: true, label: 'Cobertura', formatter: () => percentual(dados.resumo.cobertura_distribuicao) } } } } }

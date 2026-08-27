@@ -23,7 +23,7 @@
     <header class="dl-hero">
         <div>
             <h1>Distribuição de Leads</h1>
-            <p>Veja quem está com os vendedores, quem aguarda atuação e o que avançou para implantação ou carteira.</p>
+            <p>Veja quem está com os vendedores, quais leads novos aguardam distribuição no reservatório e o que avançou para implantação ou carteira.</p>
         </div>
         <div class="dl-live"><i></i><span id="dl-period-label">Carregando período...</span></div>
     </header>
@@ -77,9 +77,9 @@
                 <div id="dl-chart-evolucao" class="dl-chart"></div>
             </article>
             <article class="dl-panel">
-                <div class="dl-section-head"><div><span>ATRIBUIÇÃO</span><h2>Leads com e sem vendedor</h2></div></div>
+                <div class="dl-section-head"><div><span>DISTRIBUIÇÃO</span><h2>Leads distribuídos e no reservatório</h2></div></div>
                 <div id="dl-chart-cobertura" class="dl-chart dl-chart-small"></div>
-                <div class="dl-chart-caption">Alguma atribuição a vendedor versus nenhum vínculo</div>
+                <div class="dl-chart-caption">Leads já atribuídos versus novos leads prontos para envio</div>
             </article>
         </section>
 

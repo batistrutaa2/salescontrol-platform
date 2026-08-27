@@ -5,6 +5,7 @@ namespace App\Http\Controllers\pages\relatorios;
 use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\LeadReservatorioItem;
 use App\Models\LogPreditiva;
 use App\Models\User;
 use App\Models\Vendas as VendasModel;
@@ -1531,8 +1532,9 @@ class Relatorios extends Controller
                 $query->whereBetween($coluna, [$dataInicial, $dataFinal]);
             }
         };
+        $tabulacoesVendaValida = $this->tabulacoesVendaValida();
         $tabulacoesFilaImplantacao = array_values(array_diff(
-            $this->tabulacoesVendaValida(),
+            $tabulacoesVendaValida,
             [Tabulations::IMPLANTADO]
         ));
 
@@ -1580,9 +1582,13 @@ class Relatorios extends Controller
         $aplicarPeriodoDoLead($leadsRemarketingQuery);
         $leadsRemarketing = $leadsRemarketingQuery->distinct()->count('contatos_corretores.contato_id');
 
-        // Sem atribuição é uma fila própria: não possui vendedor, não está na
-        // preditiva e ainda não gerou venda. Assim, não mistura abandono com pós-venda.
-        $leadsSemAtribuicaoQuery = DB::table('contatos')
+        // O reservatório é a fonte de verdade dos leads novos prontos para envio
+        // que ainda não foram distribuídos. As salvaguardas abaixo evitam contar
+        // itens disponíveis que tenham ficado obsoletos antes da sincronização da fila.
+        $leadsReservatorioQuery = DB::table('lead_reservatorio_itens as reservatorio')
+            ->join('contatos', 'contatos.id', '=', 'reservatorio.contato_id')
+            ->where('reservatorio.empresa_id', $empresaId)
+            ->where('reservatorio.status', LeadReservatorioItem::STATUS_DISPONIVEL)
             ->where('contatos.empresa_id', $empresaId)
             ->where('contatos.status', 'Y')
             ->whereNotExists(function ($query) use ($empresaId) {
@@ -1598,14 +1604,15 @@ class Relatorios extends Controller
                     ->where('preditiva.empresa_id', $empresaId)
                     ->where('preditiva.status', 'Y');
             })
-            ->whereNotExists(function ($query) use ($empresaId) {
+            ->whereNotExists(function ($query) use ($empresaId, $tabulacoesVendaValida) {
                 $query->selectRaw('1')
                     ->from('vendas')
                     ->whereColumn('vendas.contato_id', 'contatos.id')
-                    ->where('vendas.empresa_id', $empresaId);
+                    ->where('vendas.empresa_id', $empresaId)
+                    ->whereIn('vendas.tabulacao_id', $tabulacoesVendaValida);
             });
-        $aplicarPeriodoDoLead($leadsSemAtribuicaoQuery, 'contatos.created_at');
-        $leadsSemAtribuicao = $leadsSemAtribuicaoQuery->count();
+        $aplicarPeriodoDoLead($leadsReservatorioQuery, 'contatos.created_at');
+        $leadsReservatorio = $leadsReservatorioQuery->distinct()->count('reservatorio.contato_id');
 
         $contarLeadsPorStatusDaVenda = function (array $tabulacoes) use ($empresaId, $aplicarPeriodoDoLead): int {
             $query = DB::table('vendas')
@@ -1620,7 +1627,7 @@ class Relatorios extends Controller
         // O status da venda é a fonte de verdade do pós-venda. Administrativo é
         // somente a fila em implantação; implantado, declinado e estornado são saídas.
         $leadsAdministrativo = $contarLeadsPorStatusDaVenda($tabulacoesFilaImplantacao);
-        $leadsViraramVenda = $contarLeadsPorStatusDaVenda($this->tabulacoesVendaValida());
+        $leadsViraramVenda = $contarLeadsPorStatusDaVenda($tabulacoesVendaValida);
         $leadsCarteiraClientes = $contarLeadsPorStatusDaVenda([Tabulations::IMPLANTADO]);
         $leadsDeclinados = $contarLeadsPorStatusDaVenda([Tabulations::DECLINIO]);
         $leadsEstornados = $contarLeadsPorStatusDaVenda([Tabulations::ESTORNO]);
@@ -1793,7 +1800,8 @@ class Relatorios extends Controller
             $vendedor->administrativo = (int) ($administrativoPorVendedor[$vendedor->id] ?? 0);
         });
 
-        $leadsNaoDistribuidos = max(0, $totalLeads - $leadsDistribuidos);
+        $leadsNaoDistribuidos = $leadsReservatorio;
+        $baseDistribuicao = $leadsDistribuidos + $leadsReservatorio;
         $percentual = static fn (int $valor, int $base): float => $base > 0 ? round(($valor / $base) * 100, 1) : 0.0;
 
         return response()->json([
@@ -1805,7 +1813,9 @@ class Relatorios extends Controller
                 'leads_fila_implantacao' => $leadsAdministrativo,
                 'leads_preditiva' => $leadsPreditiva,
                 'leads_remarketing' => $leadsRemarketing,
-                'leads_sem_atribuicao' => $leadsSemAtribuicao,
+                'leads_reservatorio' => $leadsReservatorio,
+                // Alias temporário para consumidores antigos deste endpoint.
+                'leads_sem_atribuicao' => $leadsReservatorio,
                 'leads_viraram_venda' => $leadsViraramVenda,
                 'leads_carteira_clientes' => $leadsCarteiraClientes,
                 'leads_declinados' => $leadsDeclinados,
@@ -1813,7 +1823,7 @@ class Relatorios extends Controller
                 'leads_descartados' => $leadsDescartados,
                 'tentativas_preditiva' => $tentativasPreditiva,
                 'leads_nao_distribuidos' => $leadsNaoDistribuidos,
-                'cobertura_distribuicao' => $percentual($leadsDistribuidos, $totalLeads),
+                'cobertura_distribuicao' => $percentual($leadsDistribuidos, $baseDistribuicao),
                 'taxa_comercial' => $percentual($leadsComercial, $leadsDistribuidos),
                 'taxa_administrativo' => $percentual($leadsAdministrativo, $leadsViraramVenda),
                 'taxa_venda' => $percentual($leadsViraramVenda, $totalLeads),

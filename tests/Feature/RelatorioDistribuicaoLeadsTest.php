@@ -47,6 +47,16 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
             ['empresa_id' => $empresa->id, 'contato_id' => $contatos[0], 'user_id' => $vendedor->id, 'tabulacao_id' => $comercial, 'created_at' => $data, 'updated_at' => $data],
             ['empresa_id' => $empresa->id, 'contato_id' => $contatos[1], 'user_id' => $vendedor->id, 'tabulacao_id' => $administrativo, 'created_at' => $data, 'updated_at' => $data],
         ]);
+        DB::table('lead_reservatorio_itens')->insert([
+            'empresa_id' => $empresa->id,
+            'contato_id' => $contatos[2],
+            'origem' => 'IMPORTACAO',
+            'status' => 'DISPONIVEL',
+            'entrou_por' => $admin->id,
+            'entrou_em' => $data,
+            'created_at' => $data,
+            'updated_at' => $data,
+        ]);
 
         $dados = $this->actingAs($admin)->getJson(route('relatorios.distribuicaoLeads.dados', [
             'data_inicial' => $data->format('Y-m-d'),
@@ -56,6 +66,7 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         $this->assertSame(3, $dados['resumo']['total_leads']);
         $this->assertSame(2, $dados['resumo']['leads_distribuidos']);
         $this->assertSame(1, $dados['resumo']['leads_nao_distribuidos']);
+        $this->assertSame(1, $dados['resumo']['leads_reservatorio']);
         $this->assertSame(0, $dados['resumo']['leads_fila_implantacao']);
         $this->assertEquals(66.7, $dados['resumo']['cobertura_distribuicao']);
         $this->assertSame('Ana Comercial', $dados['ranking_vendedores'][0]['name']);
@@ -96,7 +107,7 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
             ['id' => Tabulations::DECLINIO, 'empresa_id' => $empresa->id, 'descricao' => 'DECLINADO', 'tipo_tabulacao' => 'A', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
         ]);
 
-        $nomes = ['Comercial', 'Remarketing', 'Preditiva', 'Sem atribuição', 'Fila administrativa', 'Carteira', 'Declinado', 'Estornado', 'Descartado'];
+        $nomes = ['Comercial', 'Remarketing', 'Preditiva', 'Reservatório', 'Órfão fora do reservatório', 'Fila administrativa', 'Carteira', 'Declinado', 'Estornado', 'Descartado'];
         $contatos = collect($nomes)->mapWithKeys(function (string $nome) use ($empresa, $vendedor, $agora): array {
             $id = DB::table('contatos')->insertGetId([
                 'empresa_id' => $empresa->id,
@@ -118,6 +129,16 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
             ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Preditiva'], 'status' => 'Y', 'created_at' => $agora, 'updated_at' => $agora],
             ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Preditiva'], 'status' => 'Y', 'created_at' => $agora, 'updated_at' => $agora],
             ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Comercial'], 'status' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
+        ]);
+        DB::table('lead_reservatorio_itens')->insert([
+            'empresa_id' => $empresa->id,
+            'contato_id' => $contatos['Reservatório'],
+            'origem' => 'IMPORTACAO',
+            'status' => 'DISPONIVEL',
+            'entrou_por' => $admin->id,
+            'entrou_em' => $agora,
+            'created_at' => $agora,
+            'updated_at' => $agora,
         ]);
 
         foreach ([
@@ -143,10 +164,11 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
             'data_final' => $agora->format('Y-m-d'),
         ]))->assertOk()->json();
 
-        $this->assertSame(9, $dados['resumo']['total_leads']);
+        $this->assertSame(10, $dados['resumo']['total_leads']);
         $this->assertSame(1, $dados['resumo']['leads_comercial']);
         $this->assertSame(1, $dados['resumo']['leads_preditiva']);
         $this->assertSame(1, $dados['resumo']['leads_remarketing']);
+        $this->assertSame(1, $dados['resumo']['leads_reservatorio']);
         $this->assertSame(1, $dados['resumo']['leads_sem_atribuicao']);
         $this->assertSame(2, $dados['resumo']['leads_viraram_venda']);
         $this->assertSame(1, $dados['resumo']['leads_fila_implantacao']);
