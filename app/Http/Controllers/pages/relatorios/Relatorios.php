@@ -322,6 +322,25 @@ class Relatorios extends Controller
     }
 
     /**
+     * Status que representam a custódia atual da fila comercial.
+     */
+    private function tabulacoesFilaComercial(): array
+    {
+        return [
+            'PROSPECÇÃO',
+            'REUNIÃO',
+            'NEGOCIAÇÃO',
+            'DOCUMENTO',
+            'NEGOCIO FECHADO',
+            'NEGOCIO NAO FECHADO',
+            'FOLLOW-UP',
+            'SEM CONTATO',
+            'NOVOS CLIENTES',
+            'AGENDAMENTO',
+        ];
+    }
+
+    /**
      * Expressão SQL do valor vendido (contrato + angariação quando aplicável).
      */
     private function valorVendidoExpr(): string
@@ -1655,26 +1674,13 @@ class Relatorios extends Controller
             ->get();
 
         // Distribuição Comercial - Tabulações específicas de custódia do vendedor
-        $tabulacoesComerciais = [
-            'PROSPECÇÃO',
-            'REUNIÃO',
-            'NEGOCIAÇÃO',
-            'DOCUMENTO',
-            'NEGOCIO FECHADO',
-            'NEGOCIO NAO FECHADO',
-            'FOLLOW-UP',
-            'SEM CONTATO',
-            'NOVOS CLIENTES',
-            'AGENDAMENTO',
-        ];
-
         $distribuicaoComercial = DB::table('contatos_corretores')
             ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
             ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
             ->where('contatos_corretores.empresa_id', $empresaId)
             ->where('contatos.status', 'Y')
-            ->whereIn('tabulacoes.descricao', $tabulacoesComerciais);
+            ->whereIn('tabulacoes.descricao', $this->tabulacoesFilaComercial());
         $aplicarPeriodoDoLead($distribuicaoComercial);
 
         $distribuicaoComercial = $distribuicaoComercial
@@ -1843,6 +1849,72 @@ class Relatorios extends Controller
             'motivos_descarte' => $motivosDescarte,
             'evolucao' => $evolucao,
             'ranking_vendedores' => $rankingVendedores,
+        ]);
+    }
+
+    /**
+     * Detalha a fila comercial e as vendas de um vendedor na coorte do relatório.
+     */
+    public function distribuicaoLeadsVendedorDetalhes(Request $request, int $vendedor)
+    {
+        $request->validate([
+            'data_inicial' => 'nullable|date_format:Y-m-d|required_with:data_final',
+            'data_final' => 'nullable|date_format:Y-m-d|required_with:data_inicial|after_or_equal:data_inicial',
+        ]);
+
+        $empresaId = (int) Auth::user()->empresa_id;
+        $dataInicial = $request->filled('data_inicial') ? Carbon::parse($request->input('data_inicial'))->startOfDay() : null;
+        $dataFinal = $request->filled('data_final') ? Carbon::parse($request->input('data_final'))->endOfDay() : null;
+
+        $usuario = User::query()
+            ->where('empresa_id', $empresaId)
+            ->findOrFail($vendedor);
+
+        $aplicarPeriodoDoLead = static function ($query) use ($dataInicial, $dataFinal): void {
+            if ($dataInicial && $dataFinal) {
+                $query->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+            }
+        };
+
+        $filaComercialQuery = DB::table('contatos_corretores')
+            ->join('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
+            ->join('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('contatos_corretores.user_id', $usuario->id)
+            ->where('contatos.empresa_id', $empresaId)
+            ->where('contatos.status', 'Y')
+            ->where('tabulacoes.tipo_tabulacao', 'C')
+            ->whereIn('tabulacoes.descricao', $this->tabulacoesFilaComercial())
+            ->select('tabulacoes.id', 'tabulacoes.descricao')
+            ->selectRaw('COUNT(DISTINCT contatos_corretores.contato_id) as total');
+        $aplicarPeriodoDoLead($filaComercialQuery);
+
+        $filaComercial = $filaComercialQuery
+            ->groupBy('tabulacoes.id', 'tabulacoes.descricao')
+            ->orderByDesc('total')
+            ->orderBy('tabulacoes.descricao')
+            ->get();
+
+        $viraramVendaQuery = DB::table('vendas')
+            ->join('contatos', 'contatos.id', '=', 'vendas.contato_id')
+            ->where('vendas.empresa_id', $empresaId)
+            ->where('vendas.user_id', $usuario->id)
+            ->where('contatos.empresa_id', $empresaId)
+            ->whereIn('vendas.tabulacao_id', $this->tabulacoesVendaValida());
+        $aplicarPeriodoDoLead($viraramVendaQuery);
+
+        return response()->json([
+            'vendedor' => [
+                'id' => $usuario->id,
+                'nome' => $usuario->name,
+            ],
+            'periodo' => [
+                'inicio' => $dataInicial?->format('d/m/Y'),
+                'fim' => $dataFinal?->format('d/m/Y'),
+            ],
+            'fila_comercial' => $filaComercial,
+            'total_fila_comercial' => (int) $filaComercial->sum('total'),
+            'viraram_venda' => $viraramVendaQuery->distinct()->count('vendas.contato_id'),
         ]);
     }
 }

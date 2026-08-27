@@ -179,5 +179,27 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         $this->assertEquals(1, $dados['ranking_vendedores'][0]['comercial']);
         $this->assertEquals(1, $dados['ranking_vendedores'][0]['remarketing']);
         $this->assertSame(1, $dados['ranking_vendedores'][0]['administrativo']);
+
+        $detalhes = $this->actingAs($admin)->getJson(route('relatorios.distribuicaoLeads.vendedorDetalhes', [
+            'vendedor' => $vendedor->id,
+            'data_inicial' => $agora->format('Y-m-d'),
+            'data_final' => $agora->format('Y-m-d'),
+        ]))->assertOk()->json();
+
+        $this->assertSame($vendedor->id, $detalhes['vendedor']['id']);
+        $this->assertSame(1, $detalhes['total_fila_comercial']);
+        $this->assertSame('PROSPECÇÃO', $detalhes['fila_comercial'][0]['descricao']);
+        $this->assertEquals(1, $detalhes['fila_comercial'][0]['total']);
+        $this->assertSame(2, $detalhes['viraram_venda']);
+
+        $outraEmpresa = Empresa::factory()->create();
+        $vendedorOutraEmpresa = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::VENDEDOR,
+            'ativo' => 'Y',
+        ]);
+        $this->actingAs($admin)
+            ->getJson(route('relatorios.distribuicaoLeads.vendedorDetalhes', $vendedorOutraEmpresa->id))
+            ->assertNotFound();
     }
 }

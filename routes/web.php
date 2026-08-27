@@ -443,6 +443,7 @@ Route::middleware(['auth'])->group(function () {
   /** RELATORIOS */
   Route::get('/relatorios/distribuicao-leads', [Relatorios::class, 'distribuicaoLeads'])->name('relatorios.distribuicaoLeads');
   Route::get('/relatorios/distribuicao-leads/dados', [Relatorios::class, 'distribuicaoLeadsData'])->name('relatorios.distribuicaoLeads.dados');
+  Route::get('/relatorios/distribuicao-leads/vendedores/{vendedor}/detalhes', [Relatorios::class, 'distribuicaoLeadsVendedorDetalhes'])->whereNumber('vendedor')->name('relatorios.distribuicaoLeads.vendedorDetalhes');
   Route::get('/relatorios/ligacoes', [Relatorios::class, 'index'])->name('pabx.getLigacoess');
   Route::get('/relatorios/getList/{id_user}/{data_inicial}/{data_final}', [Relatorios::class, 'getLigacoes'])->name('pabx.getLigacoes');
   Route::get('/relatorios/preditiva', [Relatorios::class, 'predictiveReport'])->name('relatorios.preditiva.predictiveReport');

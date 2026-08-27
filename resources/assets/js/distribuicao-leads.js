@@ -9,7 +9,11 @@
     const loading = document.getElementById('dl-loading');
     const dashboard = document.getElementById('dl-dashboard');
     const errorBox = document.getElementById('dl-error');
+    const sellerModalElement = document.getElementById('dl-seller-modal');
+    const sellerModal = new bootstrap.Modal(sellerModalElement);
     const hoje = root.dataset.hoje;
+    let selectedSeller = null;
+    let sellerRequest = null;
     let chartEvolucao = null;
     let chartCobertura = null;
     let chartMotivos = null;
@@ -91,11 +95,72 @@
 
     function renderRanking(itens, totalDistribuido) {
         const el = document.getElementById('dl-ranking');
-        if (!itens?.length) { el.innerHTML = '<tr><td colspan="7" class="dl-empty">Sem vendedores no período</td></tr>'; return; }
+        if (!itens?.length) { el.innerHTML = '<tr><td colspan="8" class="dl-empty">Sem vendedores no período</td></tr>'; return; }
         el.innerHTML = itens.map((item, index) => {
             const share = totalDistribuido ? (Number(item.total) / totalDistribuido) * 100 : 0;
-            return `<tr><td>${index + 1}</td><td>${escapar(item.name)}</td><td>${numero(item.total)}</td><td>${numero(item.comercial)}</td><td>${numero(item.remarketing)}</td><td>${numero(item.administrativo)}</td><td><div class="dl-share"><i style="--width:${Math.min(100, share)}%"></i><span>${percentual(share)}</span></div></td></tr>`;
+            const nome = escapar(item.name);
+            return `<tr class="dl-ranking-row" data-seller-id="${Number(item.id)}" data-seller-name="${nome}"><td>${index + 1}</td><td>${nome}</td><td>${numero(item.total)}</td><td>${numero(item.comercial)}</td><td>${numero(item.remarketing)}</td><td>${numero(item.administrativo)}</td><td><div class="dl-share"><i style="--width:${Math.min(100, share)}%"></i><span>${percentual(share)}</span></div></td><td class="dl-row-action"><button type="button" aria-label="Ver fila comercial de ${nome}"><i class="ri-arrow-right-up-line" aria-hidden="true"></i></button></td></tr>`;
         }).join('');
+    }
+
+    function periodoSelecionado() {
+        if (!inicio.value || !fim.value) return 'Histórico completo';
+        const formatar = valor => valor.split('-').reverse().join('/');
+        return `${formatar(inicio.value)} — ${formatar(fim.value)}`;
+    }
+
+    async function carregarDetalhesVendedor() {
+        if (!selectedSeller) return;
+
+        sellerRequest?.abort();
+        const request = new AbortController();
+        sellerRequest = request;
+        const modalLoading = document.getElementById('dl-seller-modal-loading');
+        const modalError = document.getElementById('dl-seller-modal-error');
+        const modalContent = document.getElementById('dl-seller-modal-content');
+        modalLoading.hidden = false;
+        modalError.hidden = true;
+        modalContent.hidden = true;
+        document.getElementById('dl-seller-modal-title').textContent = selectedSeller.name;
+        document.getElementById('dl-seller-modal-period').textContent = periodoSelecionado();
+
+        const params = new URLSearchParams();
+        if (inicio.value && fim.value) {
+            params.set('data_inicial', inicio.value);
+            params.set('data_final', fim.value);
+        }
+
+        try {
+            const response = await fetch(`${root.dataset.vendedorDetalhesUrl}/${selectedSeller.id}/detalhes?${params}`, {
+                headers: { Accept: 'application/json' },
+                signal: request.signal,
+            });
+            const dados = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(dados.message || 'Não foi possível carregar os detalhes deste vendedor.');
+
+            document.getElementById('dl-seller-sales-total').textContent = numero(dados.viraram_venda);
+            document.getElementById('dl-seller-queue-total').textContent = numero(dados.total_fila_comercial);
+            const statuses = document.getElementById('dl-seller-statuses');
+            if (!dados.fila_comercial?.length) {
+                statuses.innerHTML = '<div class="dl-modal-empty"><i class="ri-inbox-line" aria-hidden="true"></i><p>Nenhum cliente está na fila comercial neste período.</p></div>';
+            } else {
+                const maximo = Math.max(...dados.fila_comercial.map(item => Number(item.total)));
+                statuses.innerHTML = dados.fila_comercial.map(item => `<div class="dl-modal-status"><div><span title="${escapar(item.descricao)}">${escapar(item.descricao)}</span><strong>${numero(item.total)}</strong></div><i style="--width:${maximo ? (Number(item.total) / maximo) * 100 : 0}%"></i></div>`).join('');
+            }
+            modalContent.hidden = false;
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            modalError.querySelector('p').textContent = error.message;
+            modalError.hidden = false;
+        } finally {
+            if (sellerRequest === request) modalLoading.hidden = true;
+        }
+    }
+
+    function abrirDetalhesVendedor(row) {
+        selectedSeller = { id: row.dataset.sellerId, name: row.dataset.sellerName };
+        sellerModal.show();
+        carregarDetalhesVendedor();
     }
 
     function renderGraficos(dados) {
@@ -153,5 +218,8 @@
 
     document.getElementById('dl-aplicar').addEventListener('click', () => { document.querySelectorAll('#dl-presets button').forEach(item => item.classList.remove('is-active')); carregar(); });
     document.getElementById('dl-presets').addEventListener('click', event => { const botao = event.target.closest('button'); if (botao) aplicarPreset(botao); });
+    document.getElementById('dl-ranking').addEventListener('click', event => { const row = event.target.closest('.dl-ranking-row'); if (row) abrirDetalhesVendedor(row); });
+    document.getElementById('dl-seller-modal-retry').addEventListener('click', carregarDetalhesVendedor);
+    sellerModalElement.addEventListener('hidden.bs.modal', () => { sellerRequest?.abort(); selectedSeller = null; });
     carregar();
 }());

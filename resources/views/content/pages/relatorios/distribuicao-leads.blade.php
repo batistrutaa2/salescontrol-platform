@@ -19,7 +19,7 @@
 @endsection
 
 @section('content')
-<main class="dl-page" data-inicio="{{ $inicioMes }}" data-hoje="{{ $hoje }}">
+<main class="dl-page" data-inicio="{{ $inicioMes }}" data-hoje="{{ $hoje }}" data-vendedor-detalhes-url="{{ url('/relatorios/distribuicao-leads/vendedores') }}">
     <header class="dl-hero">
         <div>
             <h1>Distribuição de Leads</h1>
@@ -100,10 +100,10 @@
 
         <section class="dl-grid dl-grid-bottom">
             <article class="dl-panel">
-                <div class="dl-section-head"><div><span>EQUIPE</span><h2>Distribuição por vendedor</h2></div><small>Top 20 no período</small></div>
+                <div class="dl-section-head"><div><span>EQUIPE</span><h2>Distribuição por vendedor</h2></div><small>Selecione uma linha para ver a fila comercial</small></div>
                 <div class="dl-table-wrap">
                     <table class="dl-table">
-                        <thead><tr><th>#</th><th>Vendedor</th><th>Atribuídos</th><th>Em trabalho</th><th>Remarketing</th><th>Fila administrativa</th><th>Participação</th></tr></thead>
+                        <thead><tr><th>#</th><th>Vendedor</th><th>Atribuídos</th><th>Em trabalho</th><th>Remarketing</th><th>Fila administrativa</th><th>Participação</th><th><span class="visually-hidden">Abrir detalhes</span></th></tr></thead>
                         <tbody id="dl-ranking"></tbody>
                     </table>
                 </div>
@@ -113,6 +113,44 @@
                 <div id="dl-chart-motivos" class="dl-chart"></div>
             </article>
         </section>
+    </div>
+
+    <div class="modal fade dl-seller-modal" id="dl-seller-modal" tabindex="-1" aria-labelledby="dl-seller-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="dl-modal-heading">
+                        <span class="dl-modal-icon"><i class="ri-user-star-line" aria-hidden="true"></i></span>
+                        <div>
+                            <h2 class="modal-title" id="dl-seller-modal-title">Detalhes do vendedor</h2>
+                            <p id="dl-seller-modal-period">Carregando período…</p>
+                        </div>
+                    </div>
+                    <button type="button" class="dl-modal-close" data-bs-dismiss="modal" aria-label="Fechar detalhes do vendedor"><i class="ri-close-line" aria-hidden="true"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="dl-modal-loading" id="dl-seller-modal-loading" role="status" aria-live="polite"><span></span>Carregando fila comercial…</div>
+                    <div class="dl-modal-error" id="dl-seller-modal-error" role="alert" hidden>
+                        <p>Não foi possível carregar os detalhes deste vendedor.</p>
+                        <button type="button" id="dl-seller-modal-retry">Tentar novamente</button>
+                    </div>
+                    <div id="dl-seller-modal-content" hidden>
+                        <section class="dl-modal-sale" aria-labelledby="dl-seller-sales-title">
+                            <span><i class="ri-hand-coin-line" aria-hidden="true"></i></span>
+                            <div><p id="dl-seller-sales-title">Viraram venda</p><small>Leads que entraram na base no período e possuem venda válida</small></div>
+                            <strong id="dl-seller-sales-total">0</strong>
+                        </section>
+                        <section class="dl-modal-queue" aria-labelledby="dl-seller-queue-title">
+                            <div class="dl-modal-section-head">
+                                <div><h3 id="dl-seller-queue-title">Fila comercial por status</h3><p>Somente clientes atualmente em status comerciais.</p></div>
+                                <strong id="dl-seller-queue-total">0</strong>
+                            </div>
+                            <div class="dl-modal-statuses" id="dl-seller-statuses"></div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </main>
 @endsection
