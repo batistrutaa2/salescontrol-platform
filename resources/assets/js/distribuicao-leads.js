@@ -82,7 +82,7 @@
         renderLista('dl-list-comercial', dados.distribuicao_comercial, 'descricao', '#7367f0');
         renderLista('dl-list-administrativo', dados.distribuicao_administrativa, 'descricao', '#ff9f43');
         renderLista('dl-list-descarte', dados.distribuicao_descarte, 'descricao', '#ea5455');
-        renderRanking(dados.ranking_vendedores, r.leads_distribuidos);
+        renderRanking(dados.ranking_vendedores, r.leads_atribuidos_vendedores);
         renderGraficos(dados);
     }
 

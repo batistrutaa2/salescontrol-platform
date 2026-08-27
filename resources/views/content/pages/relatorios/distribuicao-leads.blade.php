@@ -100,7 +100,7 @@
 
         <section class="dl-grid dl-grid-bottom">
             <article class="dl-panel">
-                <div class="dl-section-head"><div><span>EQUIPE</span><h2>Distribuição por vendedor</h2></div><small>Selecione uma linha para ver a fila comercial</small></div>
+                <div class="dl-section-head"><div><span>EQUIPE</span><h2>Distribuição por vendedor</h2></div><small>Leads enviados no período. Selecione uma linha para ver os status atuais.</small></div>
                 <div class="dl-table-wrap">
                     <table class="dl-table">
                         <thead><tr><th>#</th><th>Vendedor</th><th>Atribuídos</th><th>Em trabalho</th><th>Remarketing</th><th>Fila administrativa</th><th>Participação</th><th><span class="visually-hidden">Abrir detalhes</span></th></tr></thead>
@@ -137,12 +137,12 @@
                     <div id="dl-seller-modal-content" hidden>
                         <section class="dl-modal-sale" aria-labelledby="dl-seller-sales-title">
                             <span><i class="ri-hand-coin-line" aria-hidden="true"></i></span>
-                            <div><p id="dl-seller-sales-title">Viraram venda</p><small>Leads que entraram na base no período e possuem venda válida</small></div>
+                            <div><p id="dl-seller-sales-title">Viraram venda</p><small>Leads enviados no período com contrato cadastrado pelo vendedor no mesmo período</small></div>
                             <strong id="dl-seller-sales-total">0</strong>
                         </section>
                         <section class="dl-modal-queue" aria-labelledby="dl-seller-queue-title">
                             <div class="dl-modal-section-head">
-                                <div><h3 id="dl-seller-queue-title">Fila comercial por status</h3><p>Somente clientes atualmente em status comerciais.</p></div>
+                                <div><h3 id="dl-seller-queue-title">Fila comercial por status</h3><p>Status atual de todos os leads enviados ao vendedor no período.</p></div>
                                 <strong id="dl-seller-queue-total">0</strong>
                             </div>
                             <div class="dl-modal-statuses" id="dl-seller-statuses"></div>

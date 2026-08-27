@@ -190,7 +190,7 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         $this->assertSame(1, $detalhes['total_fila_comercial']);
         $this->assertSame('PROSPECÇÃO', $detalhes['fila_comercial'][0]['descricao']);
         $this->assertEquals(1, $detalhes['fila_comercial'][0]['total']);
-        $this->assertSame(2, $detalhes['viraram_venda']);
+        $this->assertSame(0, $detalhes['viraram_venda']);
 
         $outraEmpresa = Empresa::factory()->create();
         $vendedorOutraEmpresa = User::factory()->create([
@@ -201,5 +201,103 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         $this->actingAs($admin)
             ->getJson(route('relatorios.distribuicaoLeads.vendedorDetalhes', $vendedorOutraEmpresa->id))
             ->assertNotFound();
+    }
+
+    public function test_detalhe_mostra_status_atual_dos_leads_enviados_e_so_conta_contrato_cadastrado_no_periodo_uma_vez(): void
+    {
+        DB::table('user_roles')->insert([
+            ['id' => UserRole::ADMINISTRATIVO, 'tipo_usuario' => 'ADMINISTRATIVO', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => UserRole::VENDEDOR, 'tipo_usuario' => 'VENDEDOR', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+        $empresa = Empresa::factory()->create();
+        $admin = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::ADMINISTRATIVO, 'ativo' => 'Y']);
+        $vendedor = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::VENDEDOR, 'ativo' => 'Y']);
+        $hoje = now()->startOfDay()->addHours(10);
+        $ontem = $hoje->copy()->subDay();
+        $cadastroAntigo = $hoje->copy()->subMonths(2);
+
+        DB::table('tabulacoes')->insert([
+            ['id' => Tabulations::PROSPECCAO, 'empresa_id' => $empresa->id, 'descricao' => 'PROSPECÇÃO', 'tipo_tabulacao' => 'C', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $hoje, 'updated_at' => $hoje],
+            ['id' => Tabulations::NEGOCIO_FECHADO, 'empresa_id' => $empresa->id, 'descricao' => 'NEGOCIO FECHADO', 'tipo_tabulacao' => 'C', 'efetivo' => 'Y', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $hoje, 'updated_at' => $hoje],
+            ['id' => Tabulations::VENDA, 'empresa_id' => $empresa->id, 'descricao' => 'VENDA', 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $hoje, 'updated_at' => $hoje],
+            ['id' => Tabulations::NOVOS_CLIENTES, 'empresa_id' => $empresa->id, 'descricao' => 'NOVOS CLIENTES', 'tipo_tabulacao' => 'C', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $hoje, 'updated_at' => $hoje],
+        ]);
+        $statusConfiguravel = DB::table('tabulacoes')->insertGetId([
+            'empresa_id' => $empresa->id,
+            'descricao' => 'PROSPECTADO',
+            'tipo_tabulacao' => 'C',
+            'efetivo' => 'N',
+            'status' => 'Y',
+            'sub_tabulacao' => 'N',
+            'created_at' => $hoje,
+            'updated_at' => $hoje,
+        ]);
+
+        $contatos = collect(['Prospectado', 'Novo', 'Fechado sem contrato', 'Enviado fora do período'])
+            ->mapWithKeys(function (string $nome) use ($empresa, $vendedor, $cadastroAntigo): array {
+                $id = DB::table('contatos')->insertGetId([
+                    'empresa_id' => $empresa->id,
+                    'user_import_id' => $vendedor->id,
+                    'nome_cliente' => $nome,
+                    'status' => 'Y',
+                    'created_at' => $cadastroAntigo,
+                    'updated_at' => $cadastroAntigo,
+                ]);
+
+                return [$nome => $id];
+            });
+
+        DB::table('contatos_corretores')->insert([
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Prospectado'], 'user_id' => $vendedor->id, 'tabulacao_id' => $statusConfiguravel, 'created_at' => $hoje, 'updated_at' => $hoje],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Novo'], 'user_id' => $vendedor->id, 'tabulacao_id' => Tabulations::NOVOS_CLIENTES, 'created_at' => $hoje, 'updated_at' => $hoje],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Fechado sem contrato'], 'user_id' => $vendedor->id, 'tabulacao_id' => Tabulations::NEGOCIO_FECHADO, 'created_at' => $hoje, 'updated_at' => $hoje],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Enviado fora do período'], 'user_id' => $vendedor->id, 'tabulacao_id' => Tabulations::PROSPECCAO, 'created_at' => $ontem, 'updated_at' => $ontem],
+        ]);
+
+        foreach ([
+            [$contatos['Prospectado'], $hoje, 'Contrato 1'],
+            [$contatos['Prospectado'], $hoje->copy()->addMinute(), 'Contrato duplicado do mesmo lead'],
+            [$contatos['Novo'], $ontem, 'Contrato fora do período'],
+            [$contatos['Enviado fora do período'], $hoje, 'Lead não enviado no período'],
+        ] as [$contatoId, $criadoEm, $nomeContrato]) {
+            DB::table('vendas')->insert([
+                'empresa_id' => $empresa->id,
+                'user_id' => $vendedor->id,
+                'contato_id' => $contatoId,
+                'tabulacao_id' => Tabulations::VENDA,
+                'nome_contrato' => $nomeContrato,
+                'data_vigencia' => $hoje->toDateString(),
+                'created_at' => $criadoEm,
+                'updated_at' => $criadoEm,
+            ]);
+        }
+
+        $parametros = [
+            'vendedor' => $vendedor->id,
+            'data_inicial' => $hoje->toDateString(),
+            'data_final' => $hoje->toDateString(),
+        ];
+        $detalhes = $this->actingAs($admin)
+            ->getJson(route('relatorios.distribuicaoLeads.vendedorDetalhes', $parametros))
+            ->assertOk()
+            ->json();
+
+        $status = collect($detalhes['fila_comercial'])->pluck('total', 'descricao');
+        $this->assertSame(3, $detalhes['total_fila_comercial']);
+        $this->assertEquals(1, $status['PROSPECTADO']);
+        $this->assertEquals(1, $status['NOVOS CLIENTES']);
+        $this->assertEquals(1, $status['NEGOCIO FECHADO']);
+        $this->assertArrayNotHasKey('PROSPECÇÃO', $status->all());
+        $this->assertSame(1, $detalhes['viraram_venda']);
+
+        $ranking = $this->actingAs($admin)
+            ->getJson(route('relatorios.distribuicaoLeads.dados', [
+                'data_inicial' => $hoje->toDateString(),
+                'data_final' => $hoje->toDateString(),
+            ]))
+            ->assertOk()
+            ->json('ranking_vendedores.0');
+        $this->assertEquals(3, $ranking['total']);
+        $this->assertEquals(3, $ranking['comercial']);
     }
 }

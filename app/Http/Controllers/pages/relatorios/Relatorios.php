@@ -322,25 +322,6 @@ class Relatorios extends Controller
     }
 
     /**
-     * Status que representam a custódia atual da fila comercial.
-     */
-    private function tabulacoesFilaComercial(): array
-    {
-        return [
-            'PROSPECÇÃO',
-            'REUNIÃO',
-            'NEGOCIAÇÃO',
-            'DOCUMENTO',
-            'NEGOCIO FECHADO',
-            'NEGOCIO NAO FECHADO',
-            'FOLLOW-UP',
-            'SEM CONTATO',
-            'NOVOS CLIENTES',
-            'AGENDAMENTO',
-        ];
-    }
-
-    /**
      * Expressão SQL do valor vendido (contrato + angariação quando aplicável).
      */
     private function valorVendidoExpr(): string
@@ -1673,14 +1654,16 @@ class Relatorios extends Controller
             ->orderBy('total', 'desc')
             ->get();
 
-        // Distribuição Comercial - Tabulações específicas de custódia do vendedor
+        // Distribuição comercial: todos os status comerciais atuais, exceto
+        // remarketing, sem depender de uma lista fixa de nomes.
         $distribuicaoComercial = DB::table('contatos_corretores')
             ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
             ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
             ->where('contatos_corretores.empresa_id', $empresaId)
             ->where('contatos.status', 'Y')
-            ->whereIn('tabulacoes.descricao', $this->tabulacoesFilaComercial());
+            ->where('tabulacoes.tipo_tabulacao', 'C')
+            ->where('tabulacoes.id', '!=', Tabulations::REMARKETING);
         $aplicarPeriodoDoLead($distribuicaoComercial);
 
         $distribuicaoComercial = $distribuicaoComercial
@@ -1783,7 +1766,7 @@ class Relatorios extends Controller
             ->join('users', 'users.id', '=', 'contatos_corretores.user_id')
             ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
             ->where('contatos_corretores.empresa_id', $empresaId)
-            ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]))
+            ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('contatos_corretores.created_at', [$dataInicial, $dataFinal]))
             ->select('users.id', 'users.name')
             ->selectRaw('COUNT(DISTINCT contatos_corretores.contato_id) as total')
             ->selectRaw("COUNT(DISTINCT CASE WHEN contatos.status = 'Y' AND tabulacoes.tipo_tabulacao = 'C' AND tabulacoes.id <> ? THEN contatos_corretores.contato_id END) as comercial", [Tabulations::REMARKETING])
@@ -1792,6 +1775,11 @@ class Relatorios extends Controller
             ->orderByDesc('total')
             ->limit(20)
             ->get();
+
+        $totalAtribuidosVendedoresQuery = DB::table('contatos_corretores')
+            ->where('empresa_id', $empresaId)
+            ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('created_at', [$dataInicial, $dataFinal]));
+        $totalAtribuidosVendedores = $totalAtribuidosVendedoresQuery->distinct()->count('contato_id');
 
         $administrativoPorVendedor = DB::table('vendas')
             ->join('contatos', 'contatos.id', '=', 'vendas.contato_id')
@@ -1829,6 +1817,7 @@ class Relatorios extends Controller
                 'leads_descartados' => $leadsDescartados,
                 'tentativas_preditiva' => $tentativasPreditiva,
                 'leads_nao_distribuidos' => $leadsNaoDistribuidos,
+                'leads_atribuidos_vendedores' => $totalAtribuidosVendedores,
                 'cobertura_distribuicao' => $percentual($leadsDistribuidos, $baseDistribuicao),
                 'taxa_comercial' => $percentual($leadsComercial, $leadsDistribuidos),
                 'taxa_administrativo' => $percentual($leadsAdministrativo, $leadsViraramVenda),
@@ -1870,9 +1859,9 @@ class Relatorios extends Controller
             ->where('empresa_id', $empresaId)
             ->findOrFail($vendedor);
 
-        $aplicarPeriodoDoLead = static function ($query) use ($dataInicial, $dataFinal): void {
+        $aplicarPeriodoDaDistribuicao = static function ($query) use ($dataInicial, $dataFinal): void {
             if ($dataInicial && $dataFinal) {
-                $query->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]);
+                $query->whereBetween('contatos_corretores.created_at', [$dataInicial, $dataFinal]);
             }
         };
 
@@ -1884,13 +1873,13 @@ class Relatorios extends Controller
             ->where('contatos.empresa_id', $empresaId)
             ->where('contatos.status', 'Y')
             ->where('tabulacoes.tipo_tabulacao', 'C')
-            ->whereIn('tabulacoes.descricao', $this->tabulacoesFilaComercial())
-            ->select('tabulacoes.id', 'tabulacoes.descricao')
+            ->where('tabulacoes.id', '!=', Tabulations::REMARKETING)
+            ->select('tabulacoes.descricao')
             ->selectRaw('COUNT(DISTINCT contatos_corretores.contato_id) as total');
-        $aplicarPeriodoDoLead($filaComercialQuery);
+        $aplicarPeriodoDaDistribuicao($filaComercialQuery);
 
         $filaComercial = $filaComercialQuery
-            ->groupBy('tabulacoes.id', 'tabulacoes.descricao')
+            ->groupBy('tabulacoes.descricao')
             ->orderByDesc('total')
             ->orderBy('tabulacoes.descricao')
             ->get();
@@ -1900,8 +1889,16 @@ class Relatorios extends Controller
             ->where('vendas.empresa_id', $empresaId)
             ->where('vendas.user_id', $usuario->id)
             ->where('contatos.empresa_id', $empresaId)
-            ->whereIn('vendas.tabulacao_id', $this->tabulacoesVendaValida());
-        $aplicarPeriodoDoLead($viraramVendaQuery);
+            ->whereIn('vendas.tabulacao_id', $this->tabulacoesVendaValida())
+            ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('vendas.created_at', [$dataInicial, $dataFinal]))
+            ->whereExists(function ($query) use ($empresaId, $dataInicial, $dataFinal) {
+                $query->selectRaw('1')
+                    ->from('contatos_corretores as atribuicao')
+                    ->whereColumn('atribuicao.contato_id', 'vendas.contato_id')
+                    ->whereColumn('atribuicao.user_id', 'vendas.user_id')
+                    ->where('atribuicao.empresa_id', $empresaId)
+                    ->when($dataInicial && $dataFinal, fn ($subquery) => $subquery->whereBetween('atribuicao.created_at', [$dataInicial, $dataFinal]));
+            });
 
         return response()->json([
             'vendedor' => [
