@@ -343,6 +343,8 @@ Route::middleware(['auth'])->group(function () {
   Route::post('/back-office/solicitacoes/{id}/prioridade', [CentralSolicitacoesController::class, 'prioridade'])->whereNumber('id')->name('backoffice.solicitacoes.prioridade');
   Route::post('/back-office/solicitacoes/{id}/retorno', [CentralSolicitacoesController::class, 'programarRetorno'])->whereNumber('id')->name('backoffice.solicitacoes.retorno');
   Route::post('/back-office/solicitacoes/{id}/atualizacoes', [CentralSolicitacoesController::class, 'storeAtualizacao'])->whereNumber('id')->name('backoffice.solicitacoes.atualizacoes.store');
+  Route::patch('/back-office/solicitacoes/{id}/atualizacoes/{historicoId}', [CentralSolicitacoesController::class, 'updateAtualizacao'])->whereNumber(['id', 'historicoId'])->name('backoffice.solicitacoes.atualizacoes.update');
+  Route::delete('/back-office/solicitacoes/{id}/atualizacoes/{historicoId}', [CentralSolicitacoesController::class, 'destroyAtualizacao'])->whereNumber(['id', 'historicoId'])->name('backoffice.solicitacoes.atualizacoes.destroy');
   Route::delete('/back-office/solicitacoes/{id}', [CentralSolicitacoesController::class, 'destroy'])->whereNumber('id')->name('backoffice.solicitacoes.destroy');
 
   // Pós-Venda

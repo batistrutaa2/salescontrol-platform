@@ -31,6 +31,12 @@ interface PosVendaSolicitacaoRepositoryInterface
      */
     public function registrarAtualizacao(int $id, int $empresaId, int $userId, string $texto): ?PosVendaSolicitacao;
 
+    /** Edita somente uma atualização manual pertencente à solicitação e à empresa. */
+    public function atualizarAtualizacao(int $id, int $historicoId, int $empresaId, string $texto): bool;
+
+    /** Exclui somente uma atualização manual pertencente à solicitação e à empresa. */
+    public function excluirAtualizacao(int $id, int $historicoId, int $empresaId): bool;
+
     /**
      * @return string|null null em caso de sucesso; código do impedimento nos demais casos
      */

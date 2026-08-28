@@ -50,10 +50,7 @@
     font-weight: 800;
     margin: 0 0 0.5rem 0;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, var(--dash-text-primary) 0%, var(--dash-primary) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--dash-text-primary);
 }
 
 .spv-subtitle {
@@ -644,8 +641,7 @@
 .spv-card {
     --spv-card-status-color: #7C3AED;
     background: var(--dash-card-bg, #fff);
-    border: 1px solid var(--dash-card-border);
-    border-left: 4px solid var(--spv-card-status-color);
+    border: 1px solid color-mix(in srgb, var(--spv-card-status-color) 42%, var(--dash-card-border));
     border-radius: var(--dash-border-radius-sm, 12px);
     padding: 0.8rem 0.9rem;
     cursor: pointer;
@@ -1195,6 +1191,84 @@
     .spv-timeline-text { font-weight: 500; }
 }
 
+.spv-timeline-content { min-width: 0; }
+
+.spv-timeline-main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.spv-timeline-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex: 0 0 auto;
+}
+
+.spv-timeline-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--dash-card-border);
+    border-radius: 8px;
+    background: var(--dash-card-bg);
+    color: var(--dash-text-secondary);
+    cursor: pointer;
+    transition: var(--dash-transition-fast);
+
+    &:hover {
+        color: var(--dash-primary);
+        border-color: rgba(var(--dash-primary-rgb), 0.4);
+        background: rgba(var(--dash-primary-rgb), 0.07);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--dash-primary);
+        outline-offset: 2px;
+    }
+
+    &:disabled { opacity: 0.55; cursor: wait; }
+
+    &--danger:hover {
+        color: var(--dash-danger, #EF4444);
+        border-color: rgba(var(--dash-danger-rgb, 239, 68, 68), 0.4);
+        background: rgba(var(--dash-danger-rgb, 239, 68, 68), 0.07);
+    }
+}
+
+.spv-timeline-edit {
+    .pv-form-textarea {
+        min-height: 88px;
+        font-size: 1rem;
+        resize: vertical;
+    }
+}
+
+.spv-timeline-edit-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+
+    @media (max-width: 575px) {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+.spv-timeline-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 .spv-timeline-dot {
     position: absolute;
     left: -1.1rem;
@@ -1210,6 +1284,7 @@
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--dash-text-primary);
+    overflow-wrap: anywhere;
 }
 
 .spv-timeline-campo {

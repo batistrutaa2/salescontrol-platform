@@ -218,7 +218,10 @@ class DemandaVendedorTest extends TestCase
             ->firstOrFail();
 
         $this->actingAs($this->backoffice)
-            ->postJson(route('backoffice.solicitacoes.mover', $solicitacao->id), ['etapa_id' => $etapaConcluida->id])
+            ->postJson(route('backoffice.solicitacoes.mover', $solicitacao->id), [
+                'etapa_id' => $etapaConcluida->id,
+                'confirmar_encerramento' => true,
+            ])
             ->assertOk();
 
         Notification::assertSentTo($this->vendedor, DemandaVendedorConcluida::class);

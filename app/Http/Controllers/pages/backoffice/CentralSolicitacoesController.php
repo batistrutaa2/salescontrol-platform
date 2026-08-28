@@ -139,6 +139,37 @@ class CentralSolicitacoesController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function updateAtualizacao(Request $request, int $id, int $historicoId): JsonResponse
+    {
+        $this->checkAccess();
+
+        $validated = $request->validate([
+            'texto' => 'required|string|max:500',
+        ]);
+
+        if (! $this->solicitacoes->atualizarAtualizacao(
+            $id,
+            $historicoId,
+            $this->empresaId(),
+            $validated['texto'],
+        )) {
+            abort(404);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    public function destroyAtualizacao(int $id, int $historicoId): JsonResponse
+    {
+        $this->checkAccess();
+
+        if (! $this->solicitacoes->excluirAtualizacao($id, $historicoId, $this->empresaId())) {
+            abort(404);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     /**
      * O vendedor dono do contrato acompanha o andamento pelo mascote, mesmo
      * quando a solicitação foi aberta pelo próprio pós-venda.

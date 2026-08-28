@@ -144,10 +144,12 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
                 'numero_proposta' => $solicitacao->venda?->numero_proposta,
             ],
             'historico' => $solicitacao->historico->map(fn (PosVendaSolicitacaoHistorico $h) => [
+                'id' => $h->id,
                 'campo_alterado' => $h->campo_alterado,
                 'valor_anterior' => $h->valor_anterior,
                 'valor_novo' => $h->valor_novo,
                 'observacao' => $h->observacao,
+                'editavel' => $h->campo_alterado === 'atualizacao',
                 'usuario_nome' => $h->usuario?->name,
                 'created_at' => $h->getRawOriginal('created_at')
                     ? Carbon::parse($h->getRawOriginal('created_at'))->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')
@@ -265,6 +267,26 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
         $this->registrarHistorico($solicitacao->id, $userId, 'atualizacao', null, null, $texto);
 
         return $solicitacao;
+    }
+
+    public function atualizarAtualizacao(int $id, int $historicoId, int $empresaId, string $texto): bool
+    {
+        $historico = $this->buscarAtualizacaoEditavel($id, $historicoId, $empresaId);
+        if (! $historico) {
+            return false;
+        }
+
+        $historico->observacao = $texto;
+        $historico->save();
+
+        return true;
+    }
+
+    public function excluirAtualizacao(int $id, int $historicoId, int $empresaId): bool
+    {
+        $historico = $this->buscarAtualizacaoEditavel($id, $historicoId, $empresaId);
+
+        return $historico ? (bool) $historico->delete() : false;
     }
 
     public function excluir(int $id, int $empresaId): ?string
@@ -567,6 +589,15 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
             'valor_novo' => $novo,
             'observacao' => $observacao,
         ]);
+    }
+
+    private function buscarAtualizacaoEditavel(int $id, int $historicoId, int $empresaId): ?PosVendaSolicitacaoHistorico
+    {
+        return PosVendaSolicitacaoHistorico::where('id', $historicoId)
+            ->where('solicitacao_id', $id)
+            ->where('campo_alterado', 'atualizacao')
+            ->whereHas('solicitacao', fn ($query) => $query->where('empresa_id', $empresaId))
+            ->first();
     }
 
     /**

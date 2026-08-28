@@ -9,6 +9,7 @@ use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\PosVendaFluxoEtapa;
 use App\Models\PosVendaSolicitacao;
+use App\Models\PosVendaSolicitacaoHistorico;
 use App\Models\User;
 use App\Models\Vendas;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -547,6 +548,71 @@ class CentralSolicitacoesTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_atualizacao_manual_pode_ser_editada_e_excluida(): void
+    {
+        $venda = $this->criarContrato();
+        $solicitacao = $this->criarSolicitacao($venda);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.atualizacoes.store', $solicitacao->id), [
+                'texto' => 'Comentário com erro.',
+            ])->assertOk();
+
+        $historico = PosVendaSolicitacaoHistorico::where('solicitacao_id', $solicitacao->id)
+            ->where('campo_alterado', 'atualizacao')
+            ->firstOrFail();
+
+        $this->actingAs($this->backoffice)
+            ->patchJson(route('backoffice.solicitacoes.atualizacoes.update', [$solicitacao->id, $historico->id]), [
+                'texto' => 'Comentário corrigido.',
+            ])->assertOk()->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('pos_venda_solicitacao_historico', [
+            'id' => $historico->id,
+            'observacao' => 'Comentário corrigido.',
+        ]);
+
+        $timeline = $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.solicitacoes.show', $solicitacao->id))
+            ->assertOk()->json('historico');
+        $atualizacao = collect($timeline)->firstWhere('id', $historico->id);
+        $this->assertTrue($atualizacao['editavel']);
+        $this->assertSame('Comentário corrigido.', $atualizacao['observacao']);
+
+        $this->actingAs($this->backoffice)
+            ->deleteJson(route('backoffice.solicitacoes.atualizacoes.destroy', [$solicitacao->id, $historico->id]))
+            ->assertOk()->assertJson(['success' => true]);
+
+        $this->assertDatabaseMissing('pos_venda_solicitacao_historico', ['id' => $historico->id]);
+    }
+
+    public function test_historico_automatico_nao_pode_ser_editado_nem_excluido(): void
+    {
+        $venda = $this->criarContrato();
+        $solicitacao = $this->criarSolicitacao($venda);
+        $historico = PosVendaSolicitacaoHistorico::create([
+            'solicitacao_id' => $solicitacao->id,
+            'user_id' => $this->backoffice->id,
+            'campo_alterado' => 'etapa',
+            'valor_anterior' => 'Aberta',
+            'valor_novo' => 'Em análise',
+        ]);
+
+        $this->actingAs($this->backoffice)
+            ->patchJson(route('backoffice.solicitacoes.atualizacoes.update', [$solicitacao->id, $historico->id]), [
+                'texto' => 'Tentativa de sobrescrever auditoria.',
+            ])->assertStatus(404);
+
+        $this->actingAs($this->backoffice)
+            ->deleteJson(route('backoffice.solicitacoes.atualizacoes.destroy', [$solicitacao->id, $historico->id]))
+            ->assertStatus(404);
+
+        $this->assertDatabaseHas('pos_venda_solicitacao_historico', [
+            'id' => $historico->id,
+            'campo_alterado' => 'etapa',
+        ]);
+    }
+
     // ---------------------------------------------------------------
     // Prioridade e exclusão
     // ---------------------------------------------------------------
@@ -699,6 +765,12 @@ class CentralSolicitacoesTest extends TestCase
     {
         $venda = $this->criarContrato();
         $solicitacao = $this->criarSolicitacao($venda);
+        $historico = PosVendaSolicitacaoHistorico::create([
+            'solicitacao_id' => $solicitacao->id,
+            'user_id' => $this->backoffice->id,
+            'campo_alterado' => 'atualizacao',
+            'observacao' => 'Anotação protegida pelo tenant.',
+        ]);
 
         $outraEmpresa = Empresa::factory()->create();
         $userOutra = $this->criarUsuario(UserRole::ADMINISTRATIVO, $outraEmpresa);
@@ -713,6 +785,12 @@ class CentralSolicitacoesTest extends TestCase
             ->assertStatus(404);
         $this->actingAs($userOutra)
             ->postJson(route('backoffice.solicitacoes.atualizacoes.store', $solicitacao->id), ['texto' => 'Invasão'])
+            ->assertStatus(404);
+        $this->actingAs($userOutra)
+            ->patchJson(route('backoffice.solicitacoes.atualizacoes.update', [$solicitacao->id, $historico->id]), ['texto' => 'Invasão'])
+            ->assertStatus(404);
+        $this->actingAs($userOutra)
+            ->deleteJson(route('backoffice.solicitacoes.atualizacoes.destroy', [$solicitacao->id, $historico->id]))
             ->assertStatus(404);
         $this->actingAs($userOutra)
             ->deleteJson(route('backoffice.solicitacoes.destroy', $solicitacao->id))

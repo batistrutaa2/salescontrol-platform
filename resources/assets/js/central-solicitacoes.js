@@ -53,6 +53,7 @@
         check: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
         relogio: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
         grip: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1.2"/><circle cx="15" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="15" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/><circle cx="15" cy="18" r="1.2"/></svg>`,
+        editar: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
         lixeira: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
         bandeira: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`,
     };
@@ -477,6 +478,7 @@
     let detalheTipo = null;
     let etapaModalAtual = null;
     let detalheRegistro = null;
+    let historicoAtual = [];
 
     const atualizarFlagDetalhe = (prioridade) => {
         const btn = document.getElementById('btnSpvPrioridadeDetalhe');
@@ -510,6 +512,7 @@
 
     const renderTimeline = (hist) => {
         const tl = document.getElementById('spvTimeline');
+        historicoAtual = hist;
         if (!hist.length) {
             tl.innerHTML = '<p class="spv-empty">Sem alterações registradas.</p>';
             return;
@@ -520,10 +523,16 @@
             // Atualização de andamento: o texto livre é o conteúdo principal.
             if (h.campo_alterado === 'atualizacao') {
                 return `
-                <div class="spv-timeline-item spv-timeline-item--atualizacao">
+                <div class="spv-timeline-item spv-timeline-item--atualizacao" data-historico-id="${h.id}">
                     <span class="spv-timeline-dot"></span>
                     <div class="spv-timeline-content">
-                        <div class="spv-timeline-text"><span class="spv-timeline-campo">${escapar(label)}</span> ${escapar(h.observacao || '—')}</div>
+                        <div class="spv-timeline-main">
+                            <div class="spv-timeline-text"><span class="spv-timeline-campo">${escapar(label)}</span> ${escapar(h.observacao || '—')}</div>
+                            ${h.editavel ? `<div class="spv-timeline-actions" aria-label="Ações da anotação">
+                                <button type="button" class="spv-timeline-action" data-atualizacao-action="editar" data-historico-id="${h.id}" title="Editar anotação" aria-label="Editar anotação">${SVG.editar}</button>
+                                <button type="button" class="spv-timeline-action spv-timeline-action--danger" data-atualizacao-action="excluir" data-historico-id="${h.id}" title="Excluir anotação" aria-label="Excluir anotação">${SVG.lixeira}</button>
+                            </div>` : ''}
+                        </div>
                         <div class="spv-timeline-meta">${escapar(h.usuario_nome ?? 'Sistema')} · ${escapar(h.created_at)}</div>
                     </div>
                 </div>`;
@@ -541,6 +550,98 @@
             </div>`;
         }).join('');
     };
+
+    const recarregarTimeline = async () => {
+        const detalhe = await recarregarDetalhe();
+        if (detalhe.historico) renderTimeline(detalhe.historico);
+    };
+
+    const iniciarEdicaoAtualizacao = (historicoId) => {
+        const historico = historicoAtual.find((item) => Number(item.id) === historicoId && item.editavel);
+        const item = document.querySelector(`.spv-timeline-item[data-historico-id="${historicoId}"]`);
+        const content = item?.querySelector('.spv-timeline-content');
+        if (!historico || !content) return;
+
+        content.innerHTML = `
+            <div class="spv-timeline-edit">
+                <label class="visually-hidden" for="spvEditarAtualizacao${historicoId}">Texto da anotação</label>
+                <textarea id="spvEditarAtualizacao${historicoId}" class="pv-form-textarea" rows="3" maxlength="500">${escapar(historico.observacao || '')}</textarea>
+                <div class="spv-timeline-edit-footer">
+                    <small class="spv-hint">Até 500 caracteres</small>
+                    <div class="spv-timeline-edit-actions">
+                        <button type="button" class="pv-btn pv-btn-ghost" data-atualizacao-action="cancelar">Cancelar</button>
+                        <button type="button" class="pv-btn pv-btn-primary" data-atualizacao-action="salvar" data-historico-id="${historicoId}">Salvar anotação</button>
+                    </div>
+                </div>
+            </div>`;
+        const textarea = content.querySelector('textarea');
+        textarea?.focus();
+        textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
+    };
+
+    document.getElementById('spvTimeline')?.addEventListener('click', async (event) => {
+        const botao = event.target.closest('[data-atualizacao-action]');
+        if (!botao) return;
+
+        const acao = botao.dataset.atualizacaoAction;
+        const historicoId = Number(botao.dataset.historicoId || 0);
+
+        if (acao === 'cancelar') {
+            renderTimeline(historicoAtual);
+            return;
+        }
+        if (!detalheAtualId || !historicoId) return;
+        if (acao === 'editar') {
+            iniciarEdicaoAtualizacao(historicoId);
+            return;
+        }
+        if (acao === 'salvar') {
+            const textarea = document.getElementById(`spvEditarAtualizacao${historicoId}`);
+            const texto = textarea?.value.trim() || '';
+            if (!texto) {
+                showModernToast('warning', 'Anotação vazia', 'Escreva o conteúdo antes de salvar.');
+                textarea?.focus();
+                return;
+            }
+
+            botao.disabled = true;
+            try {
+                await api(`/back-office/solicitacoes/${detalheAtualId}/atualizacoes/${historicoId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ texto }),
+                });
+                await recarregarTimeline();
+                showModernToast('success', 'Anotação atualizada', 'A correção já aparece no histórico da solicitação.');
+            } catch (err) {
+                botao.disabled = false;
+                showModernToast('error', 'Não foi possível editar', err.message || 'Tente novamente.');
+            }
+            return;
+        }
+        if (acao === 'excluir') {
+            const result = await Swal.fire({
+                title: 'Excluir esta anotação?',
+                text: 'O comentário será removido do histórico da solicitação. Essa ação não pode ser desfeita.',
+                showCancelButton: true,
+                reverseButtons: true,
+                confirmButtonText: 'Excluir anotação',
+                cancelButtonText: 'Cancelar',
+                buttonsStyling: false,
+                customClass: { confirmButton: 'pv-btn spv-btn-danger-confirm', cancelButton: 'pv-btn pv-btn-ghost' },
+            });
+            if (!result.isConfirmed) return;
+
+            botao.disabled = true;
+            try {
+                await api(`/back-office/solicitacoes/${detalheAtualId}/atualizacoes/${historicoId}`, { method: 'DELETE' });
+                await recarregarTimeline();
+                showModernToast('success', 'Anotação excluída', 'O comentário foi removido da solicitação.');
+            } catch (err) {
+                botao.disabled = false;
+                showModernToast('error', 'Não foi possível excluir', err.message || 'Tente novamente.');
+            }
+        }
+    });
 
     const aplicarEtapaNaModal = (tipo, etapaId) => {
         etapaModalAtual = etapaId;
