@@ -3,11 +3,13 @@
 namespace Tests\Feature\Backoffice;
 
 use App\Enums\UserRole;
+use App\Mail\BoasVindasMail;
 use App\Models\Empresa;
 use App\Models\User;
 use App\Models\Vendas;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
@@ -125,6 +127,35 @@ class BoasVindasTest extends TestCase
             'venda_id' => $venda->id,
             'descricao' => 'Boas Vindas registrado (sem envio).',
         ]);
+    }
+
+    public function test_email_de_boas_vindas_coloca_o_vendedor_em_copia(): void
+    {
+        Mail::fake();
+
+        $vendedor = User::factory()->create([
+            'empresa_id' => $this->user->empresa_id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'ativo' => 'Y',
+            'email' => 'vendedor@lkbrokers.com',
+        ]);
+        $venda = $this->criarVenda(['user_id' => $vendedor->id]);
+
+        $payload = $this->payloadRegistro($venda->id);
+        $payload['canais'] = ['email'];
+        $payload['destinatarios_email'] = [
+            ['nome' => 'Cliente Teste', 'email' => 'cliente@example.com'],
+        ];
+
+        $this->actingAs($this->user)
+            ->postJson(route('backoffice.marcarBoasVindas'), $payload)
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        Mail::assertSent(BoasVindasMail::class, function (BoasVindasMail $mail) {
+            return $mail->hasTo('cliente@example.com')
+                && $mail->hasCc('vendedor@lkbrokers.com');
+        });
     }
 
     public function test_reenvio_atualiza_o_registro_e_preserva_o_historico(): void

@@ -3351,11 +3351,18 @@ class Backoffice extends Controller
                 }
 
                 $dadosEmail = $this->buildDadosEmailPadrao($request, $nomeEmpresa, (string) $venda->operadora, $tipoEnvio);
+                $emailVendedor = trim((string) $venda->user()->value('email'));
                 $erros = [];
 
                 foreach ($destinatariosEmail as $dest) {
                     try {
-                        Mail::to($dest['email'])->send(new BoasVindasMail($dadosEmail));
+                        $email = Mail::to($dest['email']);
+
+                        if ($emailVendedor !== '' && strcasecmp($emailVendedor, $dest['email']) !== 0) {
+                            $email->cc($emailVendedor);
+                        }
+
+                        $email->send(new BoasVindasMail($dadosEmail));
                     } catch (\Throwable $e) {
                         $erros[] = ($dest['nome'] ?? $dest['email']).': '.$e->getMessage();
                     }
