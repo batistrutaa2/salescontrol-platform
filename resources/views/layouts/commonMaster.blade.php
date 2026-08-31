@@ -35,6 +35,16 @@ $contentLayout = (isset($container) ? (($container === 'container-xxl') ? "layou
 </head>
 
 <body>
+  @if (request()->routeIs('dashboard.vendedor'))
+  <!--
+  THESIS: O desempenho comercial funciona como uma temporada legível; recusa o mosaico de KPIs sem hierarquia.
+  OWN-WORLD: Violeta profundo, papel frio, verde de confirmação e âmbar de marco; placares tipográficos, evolução mensal e linhas precisas.
+  STORY: O vendedor alterna ano, mês e trimestre, reconhece sua posição e entende de onde vem o resultado.
+  FIRST VIEWPORT: Filtro global de período, ranking central, total válido à esquerda e maior venda à direita.
+  FORM: Temporada Comercial, sexta estrutura da lista; seed 6704db12.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
+  @endif
 
   <!-- Layout Content -->
   @yield('layoutContent')

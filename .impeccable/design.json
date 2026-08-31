@@ -1,0 +1,656 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-30T01:31:24Z",
+  "title": "Design System: SalesControl — Temporada Comercial",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta Profunda",
+        "canonical": "#17152a",
+        "tonalRamp": [
+          "hsl(246 33% 15%)",
+          "hsl(246 33% 25%)",
+          "hsl(246 33% 35%)",
+          "hsl(246 33% 45%)",
+          "hsl(246 33% 55%)",
+          "hsl(246 33% 65%)",
+          "hsl(246 33% 80%)",
+          "hsl(246 33% 95%)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Grafite Violeta",
+        "canonical": "#696276",
+        "tonalRamp": [
+          "hsl(261 9% 15%)",
+          "hsl(261 9% 25%)",
+          "hsl(261 9% 35%)",
+          "hsl(261 9% 45%)",
+          "hsl(261 9% 55%)",
+          "hsl(261 9% 65%)",
+          "hsl(261 9% 80%)",
+          "hsl(261 9% 95%)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Papel Frio",
+        "canonical": "#f7f6fa",
+        "tonalRamp": [
+          "hsl(255 29% 15%)",
+          "hsl(255 29% 25%)",
+          "hsl(255 29% 35%)",
+          "hsl(255 29% 45%)",
+          "hsl(255 29% 55%)",
+          "hsl(255 29% 65%)",
+          "hsl(255 29% 80%)",
+          "hsl(255 29% 95%)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Superfície Branca",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "hsl(0 0% 15%)",
+          "hsl(0 0% 25%)",
+          "hsl(0 0% 35%)",
+          "hsl(0 0% 45%)",
+          "hsl(0 0% 55%)",
+          "hsl(0 0% 65%)",
+          "hsl(0 0% 80%)",
+          "hsl(0 0% 95%)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Linha de Névoa",
+        "canonical": "#e4e0ec",
+        "tonalRamp": [
+          "hsl(260 24% 15%)",
+          "hsl(260 24% 25%)",
+          "hsl(260 24% 35%)",
+          "hsl(260 24% 45%)",
+          "hsl(260 24% 55%)",
+          "hsl(260 24% 65%)",
+          "hsl(260 24% 80%)",
+          "hsl(260 24% 95%)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Violeta de Temporada",
+        "canonical": "#6845df",
+        "tonalRamp": [
+          "hsl(254 71% 15%)",
+          "hsl(254 71% 25%)",
+          "hsl(254 71% 35%)",
+          "hsl(254 71% 45%)",
+          "hsl(254 71% 55%)",
+          "hsl(254 71% 65%)",
+          "hsl(254 71% 80%)",
+          "hsl(254 71% 95%)"
+        ]
+      },
+      "primary-deep": {
+        "role": "primary",
+        "displayName": "Violeta de Placar",
+        "canonical": "#3d287f",
+        "tonalRamp": [
+          "hsl(254 52% 15%)",
+          "hsl(254 52% 25%)",
+          "hsl(254 52% 35%)",
+          "hsl(254 52% 45%)",
+          "hsl(254 52% 55%)",
+          "hsl(254 52% 65%)",
+          "hsl(254 52% 80%)",
+          "hsl(254 52% 95%)"
+        ]
+      },
+      "primary-soft": {
+        "role": "primary",
+        "displayName": "Lavanda de Seleção",
+        "canonical": "#eee9ff",
+        "tonalRamp": [
+          "hsl(254 100% 15%)",
+          "hsl(254 100% 25%)",
+          "hsl(254 100% 35%)",
+          "hsl(254 100% 45%)",
+          "hsl(254 100% 55%)",
+          "hsl(254 100% 65%)",
+          "hsl(254 100% 80%)",
+          "hsl(254 100% 95%)"
+        ]
+      },
+      "success": {
+        "role": "secondary",
+        "displayName": "Verde de Confirmação",
+        "canonical": "#147d5a",
+        "tonalRamp": [
+          "hsl(160 72% 15%)",
+          "hsl(160 72% 25%)",
+          "hsl(160 72% 35%)",
+          "hsl(160 72% 45%)",
+          "hsl(160 72% 55%)",
+          "hsl(160 72% 65%)",
+          "hsl(160 72% 80%)",
+          "hsl(160 72% 95%)"
+        ]
+      },
+      "success-soft": {
+        "role": "secondary",
+        "displayName": "Verde de Confirmação Suave",
+        "canonical": "#e2f4ec",
+        "tonalRamp": [
+          "hsl(153 45% 15%)",
+          "hsl(153 45% 25%)",
+          "hsl(153 45% 35%)",
+          "hsl(153 45% 45%)",
+          "hsl(153 45% 55%)",
+          "hsl(153 45% 65%)",
+          "hsl(153 45% 80%)",
+          "hsl(153 45% 95%)"
+        ]
+      },
+      "warning": {
+        "role": "secondary",
+        "displayName": "Âmbar de Marco",
+        "canonical": "#a76b08",
+        "tonalRamp": [
+          "hsl(37 91% 15%)",
+          "hsl(37 91% 25%)",
+          "hsl(37 91% 35%)",
+          "hsl(37 91% 45%)",
+          "hsl(37 91% 55%)",
+          "hsl(37 91% 65%)",
+          "hsl(37 91% 80%)",
+          "hsl(37 91% 95%)"
+        ]
+      },
+      "warning-soft": {
+        "role": "secondary",
+        "displayName": "Âmbar de Marco Suave",
+        "canonical": "#fff0ce",
+        "tonalRamp": [
+          "hsl(42 100% 15%)",
+          "hsl(42 100% 25%)",
+          "hsl(42 100% 35%)",
+          "hsl(42 100% 45%)",
+          "hsl(42 100% 55%)",
+          "hsl(42 100% 65%)",
+          "hsl(42 100% 80%)",
+          "hsl(42 100% 95%)"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Vermelho de Estorno",
+        "canonical": "#b74343",
+        "tonalRamp": [
+          "hsl(0 46% 15%)",
+          "hsl(0 46% 25%)",
+          "hsl(0 46% 35%)",
+          "hsl(0 46% 45%)",
+          "hsl(0 46% 55%)",
+          "hsl(0 46% 65%)",
+          "hsl(0 46% 80%)",
+          "hsl(0 46% 95%)"
+        ]
+      },
+      "danger-soft": {
+        "role": "tertiary",
+        "displayName": "Vermelho de Estorno Suave",
+        "canonical": "#fce8e8",
+        "tonalRamp": [
+          "hsl(0 77% 15%)",
+          "hsl(0 77% 25%)",
+          "hsl(0 77% 35%)",
+          "hsl(0 77% 45%)",
+          "hsl(0 77% 55%)",
+          "hsl(0 77% 65%)",
+          "hsl(0 77% 80%)",
+          "hsl(0 77% 95%)"
+        ]
+      },
+      "night-ink": {
+        "role": "neutral",
+        "displayName": "Tinta Noturna",
+        "canonical": "#f4f1fa",
+        "tonalRamp": [
+          "hsl(260 47% 15%)",
+          "hsl(260 47% 25%)",
+          "hsl(260 47% 35%)",
+          "hsl(260 47% 45%)",
+          "hsl(260 47% 55%)",
+          "hsl(260 47% 65%)",
+          "hsl(260 47% 80%)",
+          "hsl(260 47% 95%)"
+        ]
+      },
+      "night-muted": {
+        "role": "neutral",
+        "displayName": "Grafite Noturno",
+        "canonical": "#bdb6d0",
+        "tonalRamp": [
+          "hsl(256 22% 15%)",
+          "hsl(256 22% 25%)",
+          "hsl(256 22% 35%)",
+          "hsl(256 22% 45%)",
+          "hsl(256 22% 55%)",
+          "hsl(256 22% 65%)",
+          "hsl(256 22% 80%)",
+          "hsl(256 22% 95%)"
+        ]
+      },
+      "night-paper": {
+        "role": "neutral",
+        "displayName": "Papel Noturno",
+        "canonical": "#171521",
+        "tonalRamp": [
+          "hsl(250 22% 15%)",
+          "hsl(250 22% 25%)",
+          "hsl(250 22% 35%)",
+          "hsl(250 22% 45%)",
+          "hsl(250 22% 55%)",
+          "hsl(250 22% 65%)",
+          "hsl(250 22% 80%)",
+          "hsl(250 22% 95%)"
+        ]
+      },
+      "night-surface": {
+        "role": "neutral",
+        "displayName": "Superfície Noturna",
+        "canonical": "#211e2c",
+        "tonalRamp": [
+          "hsl(253 19% 15%)",
+          "hsl(253 19% 25%)",
+          "hsl(253 19% 35%)",
+          "hsl(253 19% 45%)",
+          "hsl(253 19% 55%)",
+          "hsl(253 19% 65%)",
+          "hsl(253 19% 80%)",
+          "hsl(253 19% 95%)"
+        ]
+      },
+      "night-line": {
+        "role": "neutral",
+        "displayName": "Linha Noturna",
+        "canonical": "#393447",
+        "tonalRamp": [
+          "hsl(256 15% 15%)",
+          "hsl(256 15% 25%)",
+          "hsl(256 15% 35%)",
+          "hsl(256 15% 45%)",
+          "hsl(256 15% 55%)",
+          "hsl(256 15% 65%)",
+          "hsl(256 15% 80%)",
+          "hsl(256 15% 95%)"
+        ]
+      },
+      "night-primary": {
+        "role": "primary",
+        "displayName": "Violeta Noturno",
+        "canonical": "#a98cff",
+        "tonalRamp": [
+          "hsl(255 100% 15%)",
+          "hsl(255 100% 25%)",
+          "hsl(255 100% 35%)",
+          "hsl(255 100% 45%)",
+          "hsl(255 100% 55%)",
+          "hsl(255 100% 65%)",
+          "hsl(255 100% 80%)",
+          "hsl(255 100% 95%)"
+        ]
+      },
+      "night-primary-deep": {
+        "role": "primary",
+        "displayName": "Placar Noturno",
+        "canonical": "#6d50c4",
+        "tonalRamp": [
+          "hsl(255 50% 15%)",
+          "hsl(255 50% 25%)",
+          "hsl(255 50% 35%)",
+          "hsl(255 50% 45%)",
+          "hsl(255 50% 55%)",
+          "hsl(255 50% 65%)",
+          "hsl(255 50% 80%)",
+          "hsl(255 50% 95%)"
+        ]
+      },
+      "night-primary-soft": {
+        "role": "primary",
+        "displayName": "Lavanda Noturna",
+        "canonical": "#30284d",
+        "tonalRamp": [
+          "hsl(253 32% 15%)",
+          "hsl(253 32% 25%)",
+          "hsl(253 32% 35%)",
+          "hsl(253 32% 45%)",
+          "hsl(253 32% 55%)",
+          "hsl(253 32% 65%)",
+          "hsl(253 32% 80%)",
+          "hsl(253 32% 95%)"
+        ]
+      },
+      "night-success": {
+        "role": "secondary",
+        "displayName": "Verde Noturno",
+        "canonical": "#66d6ae",
+        "tonalRamp": [
+          "hsl(159 58% 15%)",
+          "hsl(159 58% 25%)",
+          "hsl(159 58% 35%)",
+          "hsl(159 58% 45%)",
+          "hsl(159 58% 55%)",
+          "hsl(159 58% 65%)",
+          "hsl(159 58% 80%)",
+          "hsl(159 58% 95%)"
+        ]
+      },
+      "night-success-soft": {
+        "role": "secondary",
+        "displayName": "Verde Noturno Suave",
+        "canonical": "#213f36",
+        "tonalRamp": [
+          "hsl(162 31% 15%)",
+          "hsl(162 31% 25%)",
+          "hsl(162 31% 35%)",
+          "hsl(162 31% 45%)",
+          "hsl(162 31% 55%)",
+          "hsl(162 31% 65%)",
+          "hsl(162 31% 80%)",
+          "hsl(162 31% 95%)"
+        ]
+      },
+      "night-warning": {
+        "role": "secondary",
+        "displayName": "Âmbar Noturno",
+        "canonical": "#f0bd5e",
+        "tonalRamp": [
+          "hsl(39 83% 15%)",
+          "hsl(39 83% 25%)",
+          "hsl(39 83% 35%)",
+          "hsl(39 83% 45%)",
+          "hsl(39 83% 55%)",
+          "hsl(39 83% 65%)",
+          "hsl(39 83% 80%)",
+          "hsl(39 83% 95%)"
+        ]
+      },
+      "night-warning-soft": {
+        "role": "secondary",
+        "displayName": "Âmbar Noturno Suave",
+        "canonical": "#49391e",
+        "tonalRamp": [
+          "hsl(38 42% 15%)",
+          "hsl(38 42% 25%)",
+          "hsl(38 42% 35%)",
+          "hsl(38 42% 45%)",
+          "hsl(38 42% 55%)",
+          "hsl(38 42% 65%)",
+          "hsl(38 42% 80%)",
+          "hsl(38 42% 95%)"
+        ]
+      },
+      "night-danger": {
+        "role": "tertiary",
+        "displayName": "Vermelho Noturno",
+        "canonical": "#ff9797",
+        "tonalRamp": [
+          "hsl(0 100% 15%)",
+          "hsl(0 100% 25%)",
+          "hsl(0 100% 35%)",
+          "hsl(0 100% 45%)",
+          "hsl(0 100% 55%)",
+          "hsl(0 100% 65%)",
+          "hsl(0 100% 80%)",
+          "hsl(0 100% 95%)"
+        ]
+      },
+      "night-danger-soft": {
+        "role": "tertiary",
+        "displayName": "Vermelho Noturno Suave",
+        "canonical": "#492929",
+        "tonalRamp": [
+          "hsl(0 28% 15%)",
+          "hsl(0 28% 25%)",
+          "hsl(0 28% 35%)",
+          "hsl(0 28% 45%)",
+          "hsl(0 28% 55%)",
+          "hsl(0 28% 65%)",
+          "hsl(0 28% 80%)",
+          "hsl(0 28% 95%)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Placar",
+        "purpose": "Posição no período; o único número gigante da página."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Título da temporada."
+      },
+      "title": {
+        "displayName": "Título",
+        "purpose": "Cabeçalhos de seção e insights."
+      },
+      "body": {
+        "displayName": "Corpo",
+        "purpose": "Explicação e contexto operacional."
+      },
+      "label": {
+        "displayName": "Rótulo",
+        "purpose": "Categorias, colunas e metadados compactos."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-primary",
+        "value": "0 14px 38px rgba(36, 25, 68, 0.09)",
+        "purpose": "Placar e superfícies de primeira ordem."
+      },
+      {
+        "name": "panel-support",
+        "value": "0 10px 30px rgba(36, 25, 68, 0.07)",
+        "purpose": "Trilho, insights e ledger."
+      },
+      {
+        "name": "scoreboard-center",
+        "value": "0 18px 44px rgba(61, 40, 127, 0.25)",
+        "purpose": "Somente o ranking do período."
+      },
+      {
+        "name": "panel-night",
+        "value": "0 16px 42px rgba(0, 0, 0, 0.28)",
+        "purpose": "Painéis no tema escuro."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-fast",
+        "value": "160ms ease-out",
+        "purpose": "Borda, fundo e elevação de controles mensais."
+      },
+      {
+        "name": "loading-fade",
+        "value": "180ms ease-out",
+        "purpose": "Opacidade dos conjuntos durante carregamento."
+      },
+      {
+        "name": "chart",
+        "value": "450ms easeout",
+        "purpose": "Entrada e atualização das barras mensais."
+      },
+      {
+        "name": "track-reveal",
+        "value": "520ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Revelação inicial do trilho, desativada com movimento reduzido."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "scoreboard-stack",
+        "value": "1199px"
+      },
+      {
+        "name": "mobile-ledger",
+        "value": "767px"
+      },
+      {
+        "name": "compact-splits",
+        "value": "420px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Filtro de Período",
+      "kind": "button-group",
+      "refersTo": "period-filter",
+      "description": "Controle global para ano atual, mês atual e trimestre.",
+      "html": "<div class=\"ds-period\" role=\"group\"><button class=\"is-active\">Ano atual</button><button>Mês atual</button><button>Trimestre</button></div>",
+      "css": ".ds-period { display:grid; grid-template-columns:repeat(3,max-content); gap:.35rem; padding:.3rem; background:var(--dv-paper,#f7f6fa); border-radius:10px; } .ds-period button { min-height:40px; padding:.5rem .8rem; color:var(--dv-muted,#696276); font:700 .78rem Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif; background:transparent; border:0; border-radius:8px; } .ds-period button.is-active { color:var(--dv-primary-deep,#3d287f); background:var(--dv-surface,#fff); }"
+    },
+    {
+      "name": "Movimento de Ranking",
+      "kind": "feedback",
+      "refersTo": "ranking-panel",
+      "description": "Celebra subida e comunica queda de posição sem bloquear o relatório.",
+      "html": "<div class=\"ds-movement\" role=\"status\"><strong>Você subiu 2 posições!</strong><span>Agora está em 3º no mês atual.</span></div>",
+      "css": ".ds-movement { display:grid; gap:.1rem; padding:.65rem .8rem; color:#fff; background:rgba(255,255,255,.14); border-radius:9px; } .ds-movement span { color:#e5defa; font-size:.72rem; }"
+    },
+    {
+      "name": "Painel de Resultado",
+      "kind": "card",
+      "refersTo": "score-panel",
+      "description": "Superfície principal para valor total, composição ou recorde.",
+      "html": "<article class=\"ds-score\"><span>VALOR VÁLIDO NO ANO</span><strong>R$ 428.450,00</strong><p><b>18</b> vendas válidas · ticket médio <b>R$ 23.802,78</b></p></article>",
+      "css": ".ds-score { min-height:220px; padding:clamp(1.25rem,2vw,1.75rem); color:var(--dv-ink,#17152a); font-family:Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif; background:var(--dv-surface,#fff); border-radius:14px; box-shadow:0 14px 38px rgba(36,25,68,.09); } .ds-score>span { color:var(--dv-muted,#696276); font-size:.78rem; font-weight:720; letter-spacing:.035em; } .ds-score>strong { display:block; margin-top:1.25rem; font-size:clamp(1.7rem,3vw,2.45rem); font-weight:790; letter-spacing:-.035em; line-height:1; font-feature-settings:\"tnum\" 1; } .ds-score p { color:var(--dv-muted,#696276); font-size:.86rem; }"
+    },
+    {
+      "name": "Placar de Ranking",
+      "kind": "card",
+      "refersTo": "ranking-panel",
+      "description": "A única superfície violeta dominante do primeiro viewport.",
+      "html": "<article class=\"ds-ranking\"><header><span>RANKING GLOBAL LK BROKERS</span><span>2026</span></header><div><strong>3</strong><sup>º</sup></div><p>entre 24 vendedores com vendas válidas</p></article>",
+      "css": ".ds-ranking { position:relative; display:flex; min-height:220px; padding:clamp(1.25rem,2vw,1.75rem); flex-direction:column; align-items:center; overflow:hidden; color:#fff; text-align:center; font-family:Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif; background:var(--dv-primary-deep,#3d287f); border-radius:14px; box-shadow:0 18px 44px rgba(61,40,127,.25); } .ds-ranking::after { position:absolute; right:-12%; bottom:-50%; width:210px; height:210px; background:color-mix(in srgb,var(--dv-primary,#6845df) 34%,transparent); border-radius:50%; content:\"\"; } .ds-ranking header { z-index:1; display:flex; width:100%; justify-content:space-between; color:#ddd4ff; font-size:.78rem; font-weight:720; letter-spacing:.035em; } .ds-ranking div { z-index:1; line-height:1; } .ds-ranking strong { font-size:6rem; font-weight:820; letter-spacing:-.04em; font-feature-settings:\"tnum\" 1; } .ds-ranking sup { font-size:1.45rem; font-weight:750; } .ds-ranking p { z-index:1; color:#e5defa; font-size:.84rem; }"
+    },
+    {
+      "name": "Etapa Mensal",
+      "kind": "button",
+      "refersTo": "month-stage",
+      "description": "Unidade repetível do trilho que abre a investigação de um mês.",
+      "html": "<button class=\"ds-month\" type=\"button\"><span>MAR</span><strong>R$ 54,2 mil</strong><small>3 vendas</small><i aria-hidden=\"true\"></i></button>",
+      "css": ".ds-month { position:relative; display:grid; min-width:76px; min-height:98px; padding:.75rem .65rem .65rem; text-align:left; font-family:Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif; background:transparent; border:1px solid var(--dv-line,#e4e0ec); border-radius:10px; overflow:hidden; transition:border-color 160ms ease-out,background 160ms ease-out,transform 160ms ease-out; } .ds-month span { color:var(--dv-muted,#696276); font-size:.68rem; font-weight:750; } .ds-month strong { align-self:end; color:var(--dv-ink,#17152a); font-size:.76rem; } .ds-month small { color:var(--dv-muted,#696276); font-size:.62rem; } .ds-month i { position:absolute; right:0; bottom:0; left:0; height:4px; background:var(--dv-primary,#6845df); } .ds-month:hover { border-color:var(--dv-primary,#6845df); transform:translateY(-2px); } .ds-month:focus-visible { outline:3px solid color-mix(in srgb,var(--dv-primary,#6845df) 42%,transparent); outline-offset:3px; }"
+    },
+    {
+      "name": "Status Positivo",
+      "kind": "chip",
+      "refersTo": "status-positive",
+      "description": "Confirma venda ou implantação sem competir com o total.",
+      "html": "<span class=\"ds-status-positive\">IMPLANTADO</span>",
+      "css": ".ds-status-positive { display:inline-block; padding:.35rem .55rem; color:var(--dv-success,#147d5a); font:720 .66rem/1.25 Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif; background:var(--dv-success-soft,#e2f4ec); border-radius:7px; }"
+    },
+    {
+      "name": "Status Pendente",
+      "kind": "chip",
+      "refersTo": "status-pending",
+      "description": "Marca análise ou espera operacional.",
+      "html": "<span class=\"ds-status-pending\">AGUARDANDO ANÁLISE</span>",
+      "css": ".ds-status-pending { display:inline-block; padding:.35rem .55rem; color:var(--dv-warning,#a76b08); font:720 .66rem/1.25 Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif; background:var(--dv-warning-soft,#fff0ce); border-radius:7px; }"
+    },
+    {
+      "name": "Status de Estorno",
+      "kind": "chip",
+      "refersTo": "status-reversal",
+      "description": "Mantém ESTORNO visualmente crítico mesmo quando o valor segue no total válido.",
+      "html": "<span class=\"ds-status-reversal\">ESTORNO</span>",
+      "css": ".ds-status-reversal { display:inline-block; padding:.35rem .55rem; color:var(--dv-danger,#b74343); font:720 .66rem/1.25 Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif; background:var(--dv-danger-soft,#fce8e8); border-radius:7px; }"
+    },
+    {
+      "name": "Linha de Líder",
+      "kind": "custom",
+      "description": "Posição, vendedor e valor em uma faixa compacta de ranking.",
+      "html": "<div class=\"ds-leader\"><span>3</span><div>Você<small>VOCÊ</small></div><strong>R$ 428 mil</strong></div>",
+      "css": ".ds-leader { display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center; gap:.65rem; min-height:52px; padding:.5rem .65rem; color:var(--dv-ink,#17152a); font-family:Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif; background:var(--dv-primary-soft,#eee9ff); border-radius:9px; } .ds-leader>span { display:grid; width:30px; height:30px; place-items:center; color:var(--dv-primary-deep,#3d287f); font-size:.78rem; font-weight:800; background:var(--dv-surface,#fff); border-radius:50%; } .ds-leader div { display:grid; min-width:0; font-size:.79rem; font-weight:680; } .ds-leader small { color:var(--dv-primary,#6845df); font-size:.62rem; font-weight:700; } .ds-leader>strong { font-size:.76rem; white-space:nowrap; }"
+    },
+    {
+      "name": "Registro de Venda Móvel",
+      "kind": "custom",
+      "description": "Ledger achatado em duas colunas, com rótulos locais e sem tabela rolável.",
+      "html": "<article class=\"ds-ledger\"><div><span>DATA</span>18/08/2026</div><div class=\"ds-wide\"><span>CLIENTE E PRODUTO</span><strong>Marina Souza</strong><small>Plano Executivo · Operadora</small></div><div><span>TOTAL VÁLIDO</span><b>R$ 31.400,00</b></div><div class=\"ds-wide\"><span>STATUS</span><em>ESTORNO</em></div></article>",
+      "css": ".ds-ledger { display:grid; grid-template-columns:1fr 1fr; padding:.75rem; gap:.15rem; color:var(--dv-ink,#17152a); font-family:Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif; background:var(--dv-paper,#f7f6fa); border-radius:10px; } .ds-ledger>div { display:grid; gap:.15rem; padding:.55rem; font-size:.78rem; } .ds-ledger span { color:var(--dv-muted,#696276); font-size:.75rem; font-weight:740; letter-spacing:.035em; } .ds-ledger small { color:var(--dv-muted,#696276); font-size:.75rem; } .ds-ledger .ds-wide { grid-column:span 2; } .ds-ledger em { width:max-content; padding:.35rem .55rem; color:var(--dv-danger,#b74343); font-size:.66rem; font-weight:720; font-style:normal; background:var(--dv-danger-soft,#fce8e8); border-radius:7px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Temporada Comercial",
+    "overview": "O desempenho comercial funciona como uma temporada legível. A interface organiza ano atual, mês atual e trimestre como um placar profissional: o vendedor reconhece sua posição e entende a composição do resultado. Violeta profundo, papel frio, verde de confirmação e âmbar de marco dão caráter sem competir com os números.\n\nA hierarquia recusa o mosaico indiferenciado de KPIs. O ranking do período é o momento de maior autoridade; total válido e maior venda dão contexto lateral, e a evolução mensal explica o horizonte selecionado. Linhas finas, superfícies claras e números tabulares mantêm a operação precisa.",
+    "keyCharacteristics": [
+      "Placar tipográfico com um único número dominante.",
+      "Papel frio, superfícies brancas e violeta profundo como campo de autoridade.",
+      "Um único filtro global para ano atual, mês atual e trimestre.",
+      "Verde para confirmação, âmbar para atenção e vermelho reservado a estorno e falha.",
+      "Densidade operacional que se torna um ledger vertical legível no celular."
+    ],
+    "rules": [
+      {
+        "name": "The Scoreboard Rule",
+        "body": "O violeta profundo forma um único campo de autoridade por primeiro viewport; os demais painéis permanecem em papel e superfície.",
+        "section": "colors"
+      },
+      {
+        "name": "The Semantic Color Rule",
+        "body": "Verde confirma, âmbar chama atenção e vermelho significa estorno, reversão ou erro. Não reutilize essas cores para ornamentação.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Giant Number Rule",
+        "body": "Apenas a posição do período recebe escala de display. Valores monetários são fortes, mas não competem com o ranking.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Score Rule",
+        "body": "Valores, posições e contagens usam algarismos tabulares para que comparações não oscilem visualmente.",
+        "section": "typography"
+      },
+      {
+        "name": "The First Viewport Rule",
+        "body": "Filtro global, ranking do período central, total válido à esquerda e maior venda à direita formam a leitura canônica em desktop.",
+        "section": "layout"
+      },
+      {
+        "name": "The Horizontal Containment Rule",
+        "body": "Nenhuma seção pode alargar a página; somente o trilho mensal e tabelas que ainda precisem dele recebem rolagem interna.",
+        "section": "layout"
+      },
+      {
+        "name": "The Structural Shadow Rule",
+        "body": "Sombra indica nível de informação, não hover genérico. O ranking pode ser mais elevado porque orienta toda a leitura.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Nested Radius Rule",
+        "body": "Superfícies grandes usam o raio de painel; elementos internos reduzem progressivamente para controle, status e círculo.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** conduzir a leitura pela posição, depois pela composição do valor e finalmente pelas vendas que explicam o resultado.",
+      "**Do** aplicar o mesmo período a todos os indicadores, líderes e vendas detalhadas.",
+      "**Do** preservar nomes de plano normalizados como unidade de agregação e mostrar operadora apenas como contexto.",
+      "**Do** manter ESTORNO no total válido quando essa for a regra de negócio, mas sempre com semântica visual vermelha.",
+      "**Do** adaptar dados tabulares para registros rotulados no celular e simplificar eixos antes que rótulos se choquem."
+    ],
+    "donts": [
+      "**Don't** transformar o dashboard em um mosaico de KPIs de peso idêntico.",
+      "**Don't** promover cada insight a um cartão de destaque ou repetir o violeta profundo em múltiplos campos concorrentes.",
+      "**Don't** usar verde, âmbar ou vermelho como cor decorativa.",
+      "**Don't** agrupar produto por combinação de plano e operadora.",
+      "**Don't** resolver mobile apenas com uma tabela larga rolável ou um gráfico cheio de eixos comprimidos."
+    ]
+  }
+}

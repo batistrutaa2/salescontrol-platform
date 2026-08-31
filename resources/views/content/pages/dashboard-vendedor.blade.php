@@ -1,6 +1,6 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'Dashboard Vendedor')
+@section('title', 'Meu desempenho comercial')
 
 @section('vendor-style')
     @vite(['resources/assets/vendor/libs/apex-charts/apex-charts.scss'])
@@ -19,280 +19,173 @@
 @endsection
 
 @section('content')
-<div class="dv-wrapper">
+<main class="dv-season" id="dv-dashboard" aria-busy="true">
+    <header class="dv-season-header">
+        <div>
+            <h1>Seu desempenho em números</h1>
+            <p>Acompanhe vendas válidas, posição no ranking e os contratos que construíram seu resultado.</p>
+        </div>
+        <div class="dv-period-filter" role="group" aria-label="Período do relatório">
+            <button type="button" class="is-active" data-period="year" aria-pressed="true">Ano atual</button>
+            <button type="button" data-period="month" aria-pressed="false">Mês atual</button>
+            <button type="button" data-period="quarter" aria-pressed="false">Trimestre</button>
+        </div>
+    </header>
 
-    <!-- Page Header -->
-    <div class="dv-page-header">
-        <div class="dv-header-content">
-            <div class="dv-header-text">
-                <span class="dv-greeting-label">Meu Dashboard</span>
-                <h1 class="dv-main-title">Meus Resultados</h1>
-                <p class="dv-subtitle">Acompanhe seus resultados e metas</p>
+    <div class="dv-live-region visually-hidden" id="dv-live-region" aria-live="polite"></div>
+
+    <section class="dv-scoreboard" aria-label="Resumo do período">
+        <article class="dv-score-panel dv-score-total">
+            <div class="dv-score-heading">
+                <span>Valor válido no período</span>
+                <button class="dv-info-button" type="button" aria-label="Como o valor válido é calculado" data-bs-toggle="tooltip" title="Contrato mais angariação. Apenas vendas com declínio são excluídas.">
+                    <i class="ri-information-line" aria-hidden="true"></i>
+                </button>
             </div>
-            <div class="dv-header-filters">
-                <div class="dv-filter-group">
-                    <div class="dv-filter-item">
-                        <span class="dv-filter-label">Mês</span>
-                        <select class="dv-filter-select" id="dv-select-month">
-                            <option value="1">Janeiro</option>
-                            <option value="2">Fevereiro</option>
-                            <option value="3">Março</option>
-                            <option value="4">Abril</option>
-                            <option value="5">Maio</option>
-                            <option value="6">Junho</option>
-                            <option value="7">Julho</option>
-                            <option value="8">Agosto</option>
-                            <option value="9">Setembro</option>
-                            <option value="10">Outubro</option>
-                            <option value="11">Novembro</option>
-                            <option value="12">Dezembro</option>
-                        </select>
-                    </div>
-                    <div class="dv-filter-item">
-                        <span class="dv-filter-label">Ano</span>
-                        <select class="dv-filter-select" id="dv-select-year">
-                            <option value="2026">2026</option>
-                            <option value="2025">2025</option>
-                            <option value="2024">2024</option>
-                            <option value="2023">2023</option>
-                        </select>
-                    </div>
+            <strong class="dv-money dv-loading-line" id="dv-valid-value">R$ 0,00</strong>
+            <p><b id="dv-sales-count">0</b> vendas válidas · ticket médio <b id="dv-average-ticket">R$ 0,00</b></p>
+            <div class="dv-value-composition" aria-label="Composição do valor válido">
+                <div><span>Contratos</span><b id="dv-contract-value">R$ 0,00</b></div>
+                <div><span>Angariação</span><b id="dv-fundraising-value">R$ 0,00</b></div>
+            </div>
+        </article>
+
+        <article class="dv-score-panel dv-score-ranking">
+            <div class="dv-ranking-heading">
+                <span>Ranking global LK Brokers</span>
+                <span id="dv-ranking-period">—</span>
+            </div>
+            <div class="dv-position-wrap">
+                <strong id="dv-ranking-position">—</strong>
+                <span id="dv-ranking-suffix">º</span>
+            </div>
+            <p id="dv-ranking-context">Calculando sua posição…</p>
+            <div class="dv-ranking-movement" id="dv-ranking-movement" role="status" aria-live="polite" hidden>
+                <i id="dv-ranking-movement-icon" aria-hidden="true"></i>
+                <div>
+                    <strong id="dv-ranking-movement-title"></strong>
+                    <span id="dv-ranking-movement-copy"></span>
                 </div>
             </div>
-        </div>
+            <div class="dv-ranking-gap" id="dv-ranking-gap" hidden>
+                <i class="ri-arrow-up-line" aria-hidden="true"></i>
+                <span>Faltam <b id="dv-ranking-distance">R$ 0,00</b> para a posição anterior</span>
+            </div>
+        </article>
+
+        <article class="dv-score-panel dv-score-record">
+            <div class="dv-score-heading">
+                <span>Maior venda do período</span>
+                <i class="ri-trophy-line" aria-hidden="true"></i>
+            </div>
+            <strong class="dv-money" id="dv-largest-total">R$ 0,00</strong>
+            <h2 id="dv-largest-client">Nenhuma venda no período</h2>
+            <p id="dv-largest-product">O primeiro grande contrato aparecerá aqui.</p>
+            <dl class="dv-record-split" id="dv-largest-split" hidden>
+                <div><dt>Contrato</dt><dd id="dv-largest-contract">R$ 0,00</dd></div>
+                <div><dt>Angariação</dt><dd id="dv-largest-fundraising">R$ 0,00</dd></div>
+            </dl>
+        </article>
+    </section>
+
+    <div class="dv-rank-celebration" id="dv-rank-celebration" aria-hidden="true" hidden>
+        @for ($particle = 0; $particle < 18; $particle++)
+            <i style="--particle: {{ $particle }}"></i>
+        @endfor
     </div>
 
-    <!-- KPI Cards -->
-    <div class="dv-kpi-grid">
-        <!-- Vendas Cadastradas R$ -->
-        <div class="dv-kpi-card dv-kpi-primary">
-            <div class="dv-kpi-icon-wrapper">
-                <div class="dv-kpi-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                </div>
-                <div class="dv-kpi-pulse"></div>
+    <section class="dv-season-track" aria-labelledby="dv-track-title">
+        <div class="dv-section-heading">
+            <div>
+                <h2 id="dv-track-title">Evolução do período</h2>
+                <p>Distribuição das vendas válidas nos meses selecionados.</p>
             </div>
-            <div class="dv-kpi-content">
-                <span class="dv-kpi-label">Vendas Cadastradas</span>
-                <h2 class="dv-kpi-value" id="dv-sales-registered">R$ 0,00</h2>
-            </div>
-            <div class="dv-kpi-glow"></div>
         </div>
-
-        <!-- Vendas Implantadas R$ -->
-        <div class="dv-kpi-card dv-kpi-success">
-            <div class="dv-kpi-icon-wrapper">
-                <div class="dv-kpi-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
-                </div>
-                <div class="dv-kpi-pulse"></div>
-            </div>
-            <div class="dv-kpi-content">
-                <span class="dv-kpi-label">Vendas Implantadas</span>
-                <h2 class="dv-kpi-value" id="dv-sales-implanted">R$ 0,00</h2>
-            </div>
-            <div class="dv-kpi-glow"></div>
+        <div class="dv-months" id="dv-months" role="list" aria-label="Meses do ano"></div>
+        <div class="dv-chart-wrap" id="dv-chart-wrap">
+            <div id="dvMonthlyChart" aria-label="Gráfico de vendas válidas por mês"></div>
         </div>
+    </section>
 
-        <!-- Ticket Médio -->
-        <div class="dv-kpi-card dv-kpi-info">
-            <div class="dv-kpi-icon-wrapper">
-                <div class="dv-kpi-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="20" x2="18" y2="10"/>
-                        <line x1="12" y1="20" x2="12" y2="4"/>
-                        <line x1="6" y1="20" x2="6" y2="14"/>
-                    </svg>
-                </div>
-                <div class="dv-kpi-pulse"></div>
+    <section class="dv-insights" aria-label="Destaques do ano">
+        <article class="dv-insight-product">
+            <div class="dv-insight-heading">
+                <i class="ri-award-line" aria-hidden="true"></i>
+                <span>Produto mais vendido</span>
             </div>
-            <div class="dv-kpi-content">
-                <span class="dv-kpi-label">Ticket Médio</span>
-                <h2 class="dv-kpi-value" id="dv-ticket-medio">R$ 0,00</h2>
+            <h2 id="dv-top-product">Ainda sem produto líder</h2>
+            <p id="dv-top-product-operator">As vendas válidas do ano definirão o destaque.</p>
+            <div class="dv-product-stats">
+                <div><strong id="dv-top-product-count">0</strong><span>contratos</span></div>
+                <div><strong id="dv-top-product-total">R$ 0,00</strong><span>valor vendido</span></div>
             </div>
-            <div class="dv-kpi-glow"></div>
-        </div>
+        </article>
 
-        <!-- Estornos Pendentes -->
-        <a href="{{ route('sale.meusEstornos') }}" class="dv-kpi-card dv-kpi-estornos" id="dv-card-estornos">
-            <div class="dv-kpi-icon-wrapper">
-                <div class="dv-kpi-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 14 4 9l5-5"/>
-                        <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>
-                    </svg>
-                </div>
-                <div class="dv-kpi-pulse"></div>
-            </div>
-            <div class="dv-kpi-content">
-                <span class="dv-kpi-label">Estornos Pendentes</span>
-                <h2 class="dv-kpi-value" id="dv-estornos-count">0</h2>
-                <span class="dv-kpi-hint" id="dv-estornos-hint">Tudo em dia</span>
-            </div>
-            <div class="dv-kpi-glow"></div>
-        </a>
-    </div>
-
-    <!-- Secondary Cards -->
-    <div class="dv-info-grid">
-        <!-- Ranking Mensal -->
-        <div class="dv-highlight-card dv-ranking-card">
-            <div class="dv-highlight-header">
-                <div class="dv-highlight-icon ranking-mes">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="20" x2="12" y2="10"/>
-                        <line x1="18" y1="20" x2="18" y2="4"/>
-                        <line x1="6" y1="20" x2="6" y2="16"/>
-                    </svg>
-                </div>
+        <article class="dv-insight-health">
+            <div class="dv-section-heading compact">
                 <div>
-                    <h3 class="dv-highlight-title">Ranking do Mês</h3>
-                    <span class="dv-highlight-subtitle" id="dv-ranking-mes-label">Sua posição este mês</span>
+                    <h2>Qualidade da temporada</h2>
+                    <p>Indicadores que ajudam a interpretar o valor total.</p>
                 </div>
             </div>
-            <div class="dv-ranking-position">
-                <span class="dv-ranking-number" id="dv-ranking-mes-pos">—</span>
-                <span class="dv-ranking-suffix" id="dv-ranking-mes-suffix">º</span>
-            </div>
-            <div class="dv-highlight-detail" id="dv-ranking-mes-detail"></div>
-        </div>
+            <dl class="dv-health-list">
+                <div><dt>Vendas implantadas</dt><dd><b id="dv-implanted-count">0</b><span id="dv-implanted-value">R$ 0,00</span></dd></div>
+                <div><dt>Taxa de implantação</dt><dd><b id="dv-implantation-rate">0%</b><span>sobre vendas válidas</span></dd></div>
+                <div><dt>Melhor mês</dt><dd><b id="dv-best-month">—</b><span id="dv-best-month-value">Sem vendas</span></dd></div>
+            </dl>
+            <a href="{{ route('sale.meusEstornos') }}" class="dv-reversal-link" id="dv-reversal-link">
+                <span><i class="ri-arrow-go-back-line" aria-hidden="true"></i> Estornos aguardando tratativa</span>
+                <b id="dv-pending-reversals">0</b>
+            </a>
+        </article>
 
-        <!-- Ranking Trimestral -->
-        <div class="dv-highlight-card dv-ranking-card">
-            <div class="dv-highlight-header">
-                <div class="dv-highlight-icon ranking-tri">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                        <polyline points="17 6 23 6 23 12"/>
-                    </svg>
-                </div>
+        <article class="dv-insight-ranking">
+            <div class="dv-section-heading compact">
                 <div>
-                    <h3 class="dv-highlight-title">Ranking do Trimestre</h3>
-                    <span class="dv-highlight-subtitle" id="dv-ranking-tri-label">Sua posição no trimestre</span>
+                    <h2>Líderes</h2>
+                    <p>Top 3 da LK Brokers e a sua posição.</p>
                 </div>
             </div>
-            <div class="dv-ranking-position">
-                <span class="dv-ranking-number" id="dv-ranking-tri-pos">—</span>
-                <span class="dv-ranking-suffix" id="dv-ranking-tri-suffix">º</span>
-            </div>
-            <div class="dv-highlight-detail" id="dv-ranking-tri-detail"></div>
-        </div>
+            <ol class="dv-leaders" id="dv-leaders">
+                <li class="dv-empty-inline">O ranking será exibido aqui.</li>
+            </ol>
+        </article>
+    </section>
 
-        <!-- Operadora Mais Vendida -->
-        <div class="dv-highlight-card">
-            <div class="dv-highlight-header">
-                <div class="dv-highlight-icon operadora">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="8" r="7"/>
-                        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="dv-highlight-title">Operadora Mais Vendida</h3>
-                    <span class="dv-highlight-subtitle">Dados do ano inteiro</span>
-                </div>
+    <section class="dv-sales-ledger" aria-labelledby="dv-ledger-title">
+        <div class="dv-section-heading">
+            <div>
+                <h2 id="dv-ledger-title">Vendas que formam o resultado</h2>
+                <p id="dv-ledger-subtitle">Últimas vendas válidas do ano inteiro.</p>
             </div>
-            <div class="dv-highlight-value" id="dv-operadora-nome">—</div>
-            <div class="dv-highlight-detail" id="dv-operadora-detail"></div>
-            <div class="dv-progress-bar">
-                <div class="dv-progress-fill" id="dv-operadora-progress" style="width: 0%"></div>
+            <div class="dv-ledger-actions">
+                <span class="dv-result-count" id="dv-detail-count">0 vendas</span>
+                <a href="{{ route('sale.listSale') }}">Ver todas <i class="ri-arrow-right-line" aria-hidden="true"></i></a>
             </div>
         </div>
-
-        <!-- Taxa de Conversão -->
-        <div class="dv-highlight-card">
-            <div class="dv-highlight-header">
-                <div class="dv-highlight-icon conversao">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
-                        <path d="M22 12A10 10 0 0 0 12 2v10z"/>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="dv-highlight-title">Taxa de Conversão</h3>
-                    <span class="dv-highlight-subtitle">Leads vs Vendas</span>
-                </div>
-            </div>
-            <div class="dv-highlight-value" id="dv-taxa-conversao">0%</div>
-            <div class="dv-conversion-breakdown">
-                <div class="dv-breakdown-item">
-                    <span class="dv-breakdown-label">Leads Trabalhados</span>
-                    <span class="dv-breakdown-value" id="dv-leads-trabalhados">0</span>
-                </div>
-                <div class="dv-breakdown-item">
-                    <span class="dv-breakdown-label">Vendas Realizadas</span>
-                    <span class="dv-breakdown-value" id="dv-vendas-realizadas">0</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts -->
-    <div class="dv-chart-card" style="margin-bottom: 2rem;">
-        <div class="dv-chart-header">
-            <div class="dv-chart-title-group">
-                <h3 class="dv-chart-title">Evolução Mensal</h3>
-                <span class="dv-chart-subtitle">Vendas cadastradas por mês</span>
-            </div>
-            <div class="dv-chart-legend">
-                <span class="dv-legend-item">
-                    <span class="dv-legend-dot primary"></span>
-                    Vendas (R$)
-                </span>
-            </div>
-        </div>
-        <div class="dv-chart-body">
-            <div id="dvMonthlyChart"></div>
-        </div>
-    </div>
-
-    <!-- Recent Sales Table -->
-    <div class="dv-table-card">
-        <div class="dv-table-header">
-            <div class="dv-table-title-group">
-                <div class="dv-table-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                        <polyline points="10 9 9 9 8 9"/>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="dv-table-title">Últimas Vendas</h3>
-                    <span class="dv-table-subtitle">Vendas mais recentes</span>
-                </div>
-            </div>
-            <div class="dv-table-badge" id="dv-table-count">
-                <span>0</span> vendas
-            </div>
-        </div>
-        <div class="dv-table-body">
-            <table class="dv-table">
+        <div class="dv-table-wrap">
+            <table class="dv-sales-table">
                 <thead>
                     <tr>
                         <th>Data</th>
-                        <th>Cliente</th>
-                        <th>Operadora</th>
-                        <th>Plano</th>
-                        <th>Valor</th>
+                        <th>Cliente e produto</th>
+                        <th>Contrato</th>
+                        <th>Angariação</th>
+                        <th>Total válido</th>
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody id="dv-recent-sales-body">
-                    <tr>
-                        <td colspan="6" class="dv-empty-state">Carregando...</td>
-                    </tr>
+                <tbody id="dv-sales-body">
+                    <tr><td colspan="6" class="dv-table-state">Carregando suas vendas…</td></tr>
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
 
-</div>
+    <section class="dv-error" id="dv-error" role="alert" hidden>
+        <i class="ri-wifi-off-line" aria-hidden="true"></i>
+        <div><b>Não foi possível carregar seus números.</b><span>Verifique a conexão e tente novamente.</span></div>
+        <button type="button" id="dv-retry">Tentar novamente</button>
+    </section>
+</main>
 @endsection
