@@ -3357,9 +3357,16 @@ class Backoffice extends Controller
                 foreach ($destinatariosEmail as $dest) {
                     try {
                         $email = Mail::to($dest['email']);
+                        $emailsCopia = collect([
+                            $emailVendedor,
+                            'implantacao@lkbrokers.com',
+                        ])->filter(fn (string $endereco) => $endereco !== '' && strcasecmp($endereco, $dest['email']) !== 0)
+                            ->unique(fn (string $endereco) => mb_strtolower($endereco))
+                            ->values()
+                            ->all();
 
-                        if ($emailVendedor !== '' && strcasecmp($emailVendedor, $dest['email']) !== 0) {
-                            $email->cc($emailVendedor);
+                        if ($emailsCopia !== []) {
+                            $email->cc($emailsCopia);
                         }
 
                         $email->send(new BoasVindasMail($dadosEmail));

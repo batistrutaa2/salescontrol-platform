@@ -129,7 +129,7 @@ class BoasVindasTest extends TestCase
         ]);
     }
 
-    public function test_email_de_boas_vindas_coloca_o_vendedor_em_copia(): void
+    public function test_emails_de_boas_vindas_colocam_vendedor_e_implantacao_em_copia(): void
     {
         Mail::fake();
 
@@ -145,6 +145,7 @@ class BoasVindasTest extends TestCase
         $payload['canais'] = ['email'];
         $payload['destinatarios_email'] = [
             ['nome' => 'Cliente Teste', 'email' => 'cliente@example.com'],
+            ['nome' => 'Dependente Teste', 'email' => 'dependente@example.com'],
         ];
 
         $this->actingAs($this->user)
@@ -152,10 +153,15 @@ class BoasVindasTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true);
 
-        Mail::assertSent(BoasVindasMail::class, function (BoasVindasMail $mail) {
-            return $mail->hasTo('cliente@example.com')
-                && $mail->hasCc('vendedor@lkbrokers.com');
-        });
+        Mail::assertSent(BoasVindasMail::class, 2);
+
+        foreach (['cliente@example.com', 'dependente@example.com'] as $destinatario) {
+            Mail::assertSent(BoasVindasMail::class, function (BoasVindasMail $mail) use ($destinatario) {
+                return $mail->hasTo($destinatario)
+                    && $mail->hasCc('vendedor@lkbrokers.com')
+                    && $mail->hasCc('implantacao@lkbrokers.com');
+            });
+        }
     }
 
     public function test_reenvio_atualiza_o_registro_e_preserva_o_historico(): void
