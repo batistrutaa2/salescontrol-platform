@@ -2038,7 +2038,7 @@ class Backoffice extends Controller
 
     /**
      * Contratos que casam a busca mas estão em status que não têm raia na fila
-     * (IMPLANTADO, ESTORNO...). Sem esse aviso, procurar um contrato implantado
+     * (IMPLANTADO, por exemplo). Sem esse aviso, procurar um contrato implantado
      * na fila devolve "nenhum resultado" como se ele não existisse.
      */
     private function contratosForaDaFila(?string $busca, int $empresaId, $idsKanban): array
@@ -2167,6 +2167,7 @@ class Backoffice extends Controller
                 'VENDA',
                 'ANALISE DE DOCUMENTOS',
                 'AGUARD. ASSINATURA DA DS',
+                'ESTORNO',
                 'PENDENCIA',
                 'ANALISE OPERADORA',
                 'CONTR. GERADO - AGUARDANDO ASSINATURA',

@@ -41,11 +41,21 @@ class FilaContratosBuscaTest extends TestCase
             'ativo' => 'Y',
         ]);
 
-        // VENDA tem raia na fila; IMPLANTADO não (contrato já concluído).
+        // VENDA, ESTORNO e PENDENCIA têm raia; IMPLANTADO não (contrato já concluído).
         DB::table('tabulacoes')->insert([
             [
                 'id' => Tabulations::VENDA, 'empresa_id' => $this->empresa->id, 'descricao' => 'VENDA',
                 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'ordem_kanban' => 1,
+                'created_at' => now(), 'updated_at' => now(),
+            ],
+            [
+                'id' => Tabulations::ESTORNO, 'empresa_id' => $this->empresa->id, 'descricao' => 'ESTORNO',
+                'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'ordem_kanban' => 8,
+                'created_at' => now(), 'updated_at' => now(),
+            ],
+            [
+                'id' => Tabulations::PENDENCIA, 'empresa_id' => $this->empresa->id, 'descricao' => 'PENDENCIA',
+                'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'ordem_kanban' => 3,
                 'created_at' => now(), 'updated_at' => now(),
             ],
             [
@@ -104,6 +114,36 @@ class FilaContratosBuscaTest extends TestCase
                 "Busca por \"{$termo}\" deveria achar o contrato na fila."
             );
         }
+    }
+
+    public function test_estorno_aparece_imediatamente_antes_de_pendencia_na_fila(): void
+    {
+        $estornado = $this->criarContrato('CLIENTE ESTORNADO', Tabulations::ESTORNO);
+        $pendente = $this->criarContrato('CLIENTE PENDENTE', Tabulations::PENDENCIA);
+
+        DB::table('vendas')->where('id', $estornado->id)->update([
+            'motivo_pendencia' => 'Documentação precisa ser corrigida pelo vendedor.',
+        ]);
+
+        $response = $this->pipeline()->assertOk();
+        $pipeline = collect($response->json('pipeline'));
+        $nomes = $pipeline->pluck('nome')->values();
+
+        $this->assertSame(
+            $nomes->search('PENDENCIA') - 1,
+            $nomes->search('ESTORNO'),
+            'A raia ESTORNO deve ficar imediatamente antes de PENDENCIA.'
+        );
+
+        $colunaEstorno = $pipeline->firstWhere('nome', 'ESTORNO');
+        $this->assertSame([$estornado->id], collect($colunaEstorno['contratos'])->pluck('id')->all());
+        $this->assertSame(
+            'Documentação precisa ser corrigida pelo vendedor.',
+            $colunaEstorno['contratos'][0]['motivo_pendencia']
+        );
+
+        $colunaPendencia = $pipeline->firstWhere('nome', 'PENDENCIA');
+        $this->assertSame([$pendente->id], collect($colunaPendencia['contratos'])->pluck('id')->all());
     }
 
     public function test_contrato_fora_da_fila_e_sinalizado_em_vez_de_sumir(): void

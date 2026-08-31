@@ -181,8 +181,8 @@ $(function () {
             }
         },
 
-        // A fila só tem raia para os status em andamento. Quando a busca casa um
-        // contrato que já saiu dela (implantado, estornado), avisa onde ele está
+        // A fila só tem raia para os status acompanhados. Quando a busca casa um
+        // contrato que já saiu dela (implantado, por exemplo), avisa onde ele está
         // em vez de deixar o board vazio.
         renderForaDaFila(contratos) {
             const box = $('#kanban-fora-fila');
@@ -277,9 +277,9 @@ $(function () {
                 .join('') || '?';
             const vendedorTone = sellerToneFromName(vendedorNome);
 
-            // Motivo pendência - só exibir se o status for PENDENCIA
+            // Pendência e estorno precisam expor o motivo diretamente no card.
             let motivoHtml = '';
-            if (contract.motivo_pendencia && statusName === 'PENDENCIA') {
+            if (contract.motivo_pendencia && ['PENDENCIA', 'ESTORNO'].includes(statusName)) {
                 motivoHtml = `
                     <div class="motivo-badge js-view-motivo" data-motivo="${escapeHtml(contract.motivo_pendencia)}" title="Clique para ver o motivo">
                         <i class="ri-error-warning-line"></i>
@@ -456,8 +456,8 @@ $(function () {
             });
         },
 
-        // IDs dos status que requerem modal (IMPLANTADO=18, PENDENCIA=55)
-        statusComModal: [18, 55],
+        // IDs dos status que requerem modal (ESTORNO=17, IMPLANTADO=18, PENDENCIA=55)
+        statusComModal: [17, 18, 55],
 
         handleDrop(evt) {
             const cardId = evt.item.dataset.id;
@@ -527,8 +527,8 @@ $(function () {
                     self.statusConfirmed = true;
                     self.updateColumnCounts();
 
-                    // Card saiu de PENDENCIA: a badge de motivo só faz sentido nesse status.
-                    // Quick change nunca tem PENDENCIA como destino (cai no modal), então remoção é incondicional.
+                    // Card saiu de PENDENCIA/ESTORNO: os destinos com motivo sempre abrem o modal,
+                    // então uma mudança rápida nunca deve conservar a badge anterior.
                     const motivoBadge = evt.item.querySelector('.motivo-badge');
                     if (motivoBadge) motivoBadge.remove();
 
@@ -1240,284 +1240,6 @@ $(function () {
     };
 
     // =============================================================================
-    // Painel de Estornos — propostas devolvidas ao vendedor, do estorno mais
-    // recente para o mais antigo: o que acabou de voltar ainda dá para captar.
-    // O tempo parado continua visível no card porque é ele que mede o risco.
-    // =============================================================================
-    const PainelEstornos = {
-        estornos: [],
-        termo: '',
-        carregando: false,
-
-        init() {
-            if (!document.getElementById('modalEstornos')) return;
-            this.bind();
-            this.carregar();
-        },
-
-        bind() {
-            const self = this;
-
-            $('#btn-abrir-estornos').on('click', () => {
-                $('#modalEstornos').modal('show');
-                self.carregar();
-            });
-
-            $('#modalEstornos').on('shown.bs.modal', () => {
-                $('#estornos-busca').trigger('focus');
-            });
-
-            $('#modalEstornos').on('hidden.bs.modal', () => {
-                self.termo = '';
-                $('#estornos-busca').val('');
-                self.render();
-            });
-
-            $('#estornos-busca').on('input', function () {
-                self.termo = this.value.trim().toLowerCase();
-                self.render();
-            });
-
-            // Esc limpa a busca antes de fechar o modal
-            $('#estornos-busca').on('keydown', function (e) {
-                if (e.key === 'Escape' && this.value) {
-                    e.stopPropagation();
-                    this.value = '';
-                    self.termo = '';
-                    self.render();
-                }
-            });
-
-            $(document).on('click', '.js-estorno-limpar-busca', () => {
-                $('#estornos-busca').val('').trigger('input').trigger('focus');
-            });
-
-            // O card vira o formulário de confirmação — nada de modal sobre modal.
-            $(document).on('click', '.js-estorno-retomar', function () {
-                const card = $(this).closest('.est-card');
-                card.addClass('is-confirming');
-                card.find('.est-justificativa').trigger('focus');
-            });
-
-            $(document).on('click', '.js-estorno-cancelar', function () {
-                $(this).closest('.est-card').removeClass('is-confirming');
-            });
-
-            $(document).on('click', '.js-estorno-confirmar', function () {
-                const card = $(this).closest('.est-card');
-                self.retomar(card, card.find('.est-justificativa').val());
-            });
-        },
-
-        async carregar() {
-            if (this.carregando) return;
-            this.carregando = true;
-
-            try {
-                const response = await fetch('/back-office/estornos', {
-                    headers: { Accept: 'application/json' },
-                });
-                const result = await response.json();
-
-                if (!result.success) throw new Error(result.message || 'Falha ao carregar estornos.');
-
-                this.estornos = result.estornos || [];
-                this.atualizarContador();
-                this.render();
-            } catch (error) {
-                console.error('Erro ao carregar estornos:', error);
-                $('#estornos-lista').html(`
-                    <div class="est-empty">
-                        <div class="est-empty-title">Não foi possível carregar os estornos</div>
-                        <p class="est-empty-text">Recarregue a página e tente de novo.</p>
-                    </div>
-                `);
-            } finally {
-                this.carregando = false;
-            }
-        },
-
-        atualizarContador() {
-            const total = this.estornos.length;
-            const badge = $('#estornos-count');
-
-            badge.text(total);
-            $('#btn-abrir-estornos').toggleClass('has-estornos', total > 0);
-            badge.toggleClass('d-none', total === 0);
-        },
-
-        filtrados() {
-            if (!this.termo) return this.estornos;
-
-            return this.estornos.filter(e => {
-                const alvo = [e.nome_contrato, e.cpf_cnpj, e.numero_proposta, e.vendedor, e.operadora]
-                    .join(' ')
-                    .toLowerCase();
-                return alvo.includes(this.termo);
-            });
-        },
-
-        // Faixas de urgência: o que passa de um mês parado virou venda morta.
-        nivelUrgencia(dias) {
-            if (dias >= 30) return 3;
-            if (dias >= 15) return 2;
-            if (dias >= 7) return 1;
-            return 0;
-        },
-
-        render() {
-            const lista = this.filtrados();
-            const container = $('#estornos-lista');
-            const total = this.estornos.length;
-
-            // Resumo: quantidade e, se houver, quantas já passaram de 30 dias.
-            const criticos = this.estornos.filter(e => e.dias_parado >= 30).length;
-            $('#estornos-resumo').html(
-                total === 0
-                    ? 'Nenhuma proposta estornada'
-                    : `${total} ${total === 1 ? 'proposta estornada' : 'propostas estornadas'}` +
-                      (criticos > 0 ? ` <span class="est-resumo-critico">${criticos} parada${criticos === 1 ? '' : 's'} há mais de 30 dias</span>` : '')
-            );
-
-            if (total === 0) {
-                container.html(`
-                    <div class="est-empty">
-                        <div class="est-empty-title">Nada estornado por aqui</div>
-                        <p class="est-empty-text">Quando uma proposta for devolvida ao vendedor, ela aparece nesta lista até voltar para a fila.</p>
-                    </div>
-                `);
-                return;
-            }
-
-            if (lista.length === 0) {
-                container.html(`
-                    <div class="est-empty">
-                        <div class="est-empty-title">Nenhum resultado para “${escapeHtml(this.termo)}”</div>
-                        <p class="est-empty-text">Busque por cliente, CPF/CNPJ, nº da proposta, vendedor ou operadora.</p>
-                        <button type="button" class="est-btn est-btn-ghost js-estorno-limpar-busca">Limpar busca</button>
-                    </div>
-                `);
-                return;
-            }
-
-            container.html(lista.map((e, i) => this.renderCard(e, i)).join(''));
-        },
-
-        renderCard(e, index) {
-            const nivel = this.nivelUrgencia(e.dias_parado);
-            const diasLabel = e.dias_parado === 0 ? 'hoje' : (e.dias_parado === 1 ? 'dia parado' : 'dias parados');
-
-            const meta = [
-                e.numero_proposta ? `<span class="est-meta-item est-meta-num">#${escapeHtml(e.numero_proposta)}</span>` : '',
-                e.cpf_cnpj ? `<span class="est-meta-item est-meta-num">${escapeHtml(e.cpf_cnpj)}</span>` : '',
-                e.operadora ? `<span class="est-meta-item">${escapeHtml(e.operadora)}</span>` : '',
-                `<span class="est-meta-item est-meta-num">${formatCurrency(e.valor)}</span>`,
-            ].filter(Boolean).join('');
-
-            const motivo = e.motivo
-                ? `<p class="est-motivo">${escapeHtml(e.motivo)}</p>`
-                : '<p class="est-motivo est-motivo-vazio">Estorno registrado sem motivo.</p>';
-
-            const rodapeInfo = [
-                e.vendedor ? `com <strong>${escapeHtml(e.vendedor)}</strong>` : 'sem vendedor',
-                e.estornado_em ? `desde ${escapeHtml(e.estornado_em)}` : '',
-            ].filter(Boolean).join(' · ');
-
-            const acao = e.pode_retomar
-                ? `<button type="button" class="est-btn est-btn-retomar js-estorno-retomar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 14 4 9 9 4"/>
-                            <path d="M20 20v-7a4 4 0 0 0-4-4H4"/>
-                        </svg>
-                        Trazer para a fila
-                   </button>`
-                : `<span class="est-bloqueado" title="Só ${escapeHtml(e.backoffice_nome || 'o responsável')} ou um administrador pode retomar">
-                        Sob responsabilidade de ${escapeHtml(e.backoffice_nome || 'outro backoffice')}
-                   </span>`;
-
-            return `
-                <article class="est-card" data-id="${e.id}" data-nivel="${nivel}" style="--est-delay: ${Math.min(index, 8) * 45}ms">
-                    <div class="est-card-head">
-                        <div class="est-cliente">
-                            <h6 class="est-nome">${escapeHtml(e.nome_contrato || 'Sem nome')}</h6>
-                            <div class="est-meta">${meta}</div>
-                        </div>
-                        <div class="est-tempo" title="Parado com o vendedor desde ${escapeHtml(e.estornado_em || 'data não registrada')}">
-                            <span class="est-tempo-num">${e.dias_parado === 0 ? '' : e.dias_parado}</span>
-                            <span class="est-tempo-label">${diasLabel}</span>
-                        </div>
-                    </div>
-
-                    ${motivo}
-
-                    <div class="est-card-foot">
-                        <span class="est-rodape-info">${rodapeInfo}</span>
-                        <div class="est-acao">${acao}</div>
-                    </div>
-
-                    <div class="est-confirm">
-                        <div class="est-confirm-inner">
-                            <label class="est-confirm-label" for="est-just-${e.id}">Justificativa (opcional)</label>
-                            <textarea id="est-just-${e.id}" class="est-justificativa" rows="2" maxlength="500"
-                                      placeholder="Ex.: alinhado por telefone, documento já recebido."></textarea>
-                            <div class="est-confirm-actions">
-                                <span class="est-confirm-hint">O vendedor é avisado e a proposta sai de “Meus Estornos”.</span>
-                                <div class="est-confirm-buttons">
-                                    <button type="button" class="est-btn est-btn-ghost js-estorno-cancelar">Cancelar</button>
-                                    <button type="button" class="est-btn est-btn-confirmar js-estorno-confirmar">Confirmar retomada</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-            `;
-        },
-
-        async retomar(card, observacao) {
-            const vendaId = card.data('id');
-            card.addClass('is-loading');
-            card.find('button').prop('disabled', true);
-
-            try {
-                const response = await fetch('/back-office/retomar-estorno', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        Accept: 'application/json',
-                    },
-                    body: JSON.stringify({
-                        venda_id: vendaId,
-                        observacao: observacao || null,
-                    }),
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    // A ficha sai da lista literalmente indo embora.
-                    card.addClass('is-leaving');
-                    setTimeout(() => {
-                        this.estornos = this.estornos.filter(e => e.id !== vendaId);
-                        this.atualizarContador();
-                        this.render();
-                    }, 320);
-
-                    showModernToast('success', 'Proposta na fila', result.message || 'O contrato voltou para a fila do backoffice.');
-                    KanbanContratos.loadContratos();
-                } else {
-                    card.removeClass('is-loading is-confirming').find('button').prop('disabled', false);
-                    showModernToast('error', 'Não foi possível retomar', result.message || 'Tente novamente.');
-                }
-            } catch (error) {
-                console.error('Erro ao retomar estorno:', error);
-                card.removeClass('is-loading is-confirming').find('button').prop('disabled', false);
-                showModernToast('error', 'Erro de conexão', 'Verifique sua internet e tente novamente.');
-            }
-        },
-    };
-
-    // =============================================================================
     // Modal Status Change Logic (Existing)
     // =============================================================================
     $(document).on('change', '#label', function () {
@@ -1663,5 +1385,4 @@ $(function () {
     // Initialize Kanban
     // =============================================================================
     KanbanContratos.init();
-    PainelEstornos.init();
 });
