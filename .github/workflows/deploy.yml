@@ -290,100 +290,15 @@ jobs:
             $COMPOSE stop evolution evolution-db || true
             $COMPOSE rm -f evolution evolution-db || true
 
-            clamav_health() {
-              CLAMAV_ID="$(timeout --signal=TERM --kill-after=2s 5s $COMPOSE ps -q clamav 2>/dev/null || true)"
-              if [ -z "$CLAMAV_ID" ]; then
-                echo "missing"
-                return
-              fi
-
-              CLAMAV_HEALTH="$(timeout --signal=TERM --kill-after=2s 5s docker inspect \
-                --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' \
-                "$CLAMAV_ID" 2>/dev/null || true)"
-              echo "${CLAMAV_HEALTH:-missing}"
-            }
-
-            wait_for_clamav() {
-              CLAMAV_DEADLINE=$(($(date +%s) + 300))
-              ATTEMPT=0
-              while [ "$(date +%s)" -lt "$CLAMAV_DEADLINE" ]; do
-                ATTEMPT=$((ATTEMPT + 1))
-                CLAMAV_HEALTH="$(clamav_health)"
-                if [ "$CLAMAV_HEALTH" = "healthy" ]; then
-                  echo "==> ClamAV saudável."
-                  return 0
-                fi
-
-                if [ "$ATTEMPT" -eq 1 ] || [ $((ATTEMPT % 6)) -eq 0 ]; then
-                  echo "==> Aguardando ClamAV (${CLAMAV_HEALTH}, tentativa ${ATTEMPT}, limite 300s)..."
-                fi
-
-                CLAMAV_REMAINING=$((CLAMAV_DEADLINE - $(date +%s)))
-                [ "$CLAMAV_REMAINING" -le 0 ] && break
-                [ "$CLAMAV_REMAINING" -lt 5 ] && sleep "$CLAMAV_REMAINING" || sleep 5
-              done
-
-              return 1
-            }
-
-            dump_clamav_diagnostics() {
-              echo "==> Diagnóstico do ClamAV:"
-              if ! timeout --signal=TERM --kill-after=5s 15s $COMPOSE ps clamav; then
-                echo "AVISO: consulta de status do ClamAV excedeu 15 segundos."
-              fi
-              CLAMAV_ID="$(timeout --signal=TERM --kill-after=2s 5s $COMPOSE ps -q clamav 2>/dev/null || true)"
-              if [ -n "$CLAMAV_ID" ]; then
-                timeout --signal=TERM --kill-after=5s 15s docker inspect \
-                  --format='status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} restarts={{.RestartCount}} oom={{.State.OOMKilled}} exit={{.State.ExitCode}}' \
-                  "$CLAMAV_ID" || true
-                timeout --signal=TERM --kill-after=5s 15s docker inspect --format='{{if .State.Health}}{{range .State.Health.Log}}{{.End}} exit={{.ExitCode}} {{printf "%q" .Output}}{{println}}{{end}}{{end}}' \
-                  "$CLAMAV_ID" || true
-              fi
-              if ! timeout --signal=TERM --kill-after=5s 15s $COMPOSE logs --no-color --tail=100 clamav; then
-                echo "AVISO: coleta de logs do ClamAV excedeu 15 segundos; o deploy continuará a recuperação."
-              fi
-            }
-
-            # O Compose avalia depends_on antes de o script chegar às migrations.
-            # Por isso Redis e ClamAV precisam passar pelo preflight antes dos
-            # serviços dependentes. Uma recriação troca só o container e preserva
-            # o volume clamav-data com as assinaturas já baixadas.
-            echo "==> Preparando Redis e ClamAV..."
-            $COMPOSE up -d redis clamav
-            if [ "$(clamav_health)" = "unhealthy" ]; then
-              echo "AVISO: ClamAV já estava unhealthy; coletando diagnóstico e recriando o container uma vez."
-              dump_clamav_diagnostics
-              $COMPOSE up -d --no-deps --force-recreate clamav
-            fi
-            if ! wait_for_clamav; then
-              echo "ERRO: ClamAV não ficou saudável após o preflight."
-              dump_clamav_diagnostics
-              exit 1
-            fi
-
-            echo "==> Validando limites de recursos do ClamAV..."
-            for SETTING in \
-              "ConcurrentDatabaseReload no" \
-              "MaxThreads 1" \
-              "MaxQueue 2" \
-              "StreamMaxLength 30M" \
-              "MaxFileSize 30M" \
-              "MaxScanSize 100M" \
-              "AlertExceedsMax yes" \
-              "ForceToDisk yes"; do
-              $COMPOSE exec -T clamav grep -qxF "$SETTING" /etc/clamav/clamd.conf || {
-                echo "ERRO: configuração ausente no ClamAV: $SETTING"
-                exit 1
-              }
-            done
-
             # Subir/atualizar serviços (reverb, queue e scheduler).
             # Em produção NÃO existe COMPOSE_PROFILES=dev, então mysql/mailpit
             # do compose ficam de fora (o banco é o MySQL externo do host).
             echo "==> Atualizando containers..."
             # Workers documentais só voltam após migration/cache para não executar
             # código novo contra um schema antigo durante o deploy.
-            $COMPOSE up -d --remove-orphans --scale documentos-queue=0 --scale documentos-scan=0
+            # --remove-orphans encerra os antigos containers clamav e
+            # documentos-scan sem apagar volumes nem dados persistentes.
+            $COMPOSE up -d --remove-orphans --scale documentos-queue=0
 
             for EXTENSION in openssl sodium gmp; do
               $COMPOSE exec -T laravel.test php -r \
@@ -405,14 +320,6 @@ jobs:
             echo "==> Executando migrações..."
             $COMPOSE exec -T laravel.test php artisan migrate --force --no-interaction
 
-            # O pipeline documental só pode receber jobs com ClamAV saudável.
-            echo "==> Verificando serviço de documentos..."
-            if ! wait_for_clamav; then
-              echo "ERRO: ClamAV não está saudável."
-              dump_clamav_diagnostics
-              exit 1
-            fi
-
             # Garantir o symlink public/storage (mídias do WhatsApp)
             $COMPOSE exec -T laravel.test php artisan storage:link || true
 
@@ -426,8 +333,7 @@ jobs:
 
             echo "==> Sincronizando catálogo de pastas documentais..."
             $COMPOSE exec -T laravel.test php artisan documentos:sincronizar-diretorios
-            # O antivírus processa um documento por vez para preservar RAM/CPU.
-            $COMPOSE up -d --scale documentos-queue=2 --scale documentos-scan=1
+            $COMPOSE up -d --scale documentos-queue=2
             $COMPOSE exec -T laravel.test php artisan documentos:processar-pendentes --limit=5000
 
             # Workers de fila recarregam o código novo (o container reinicia sozinho via restart policy)

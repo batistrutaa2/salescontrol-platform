@@ -56,7 +56,13 @@ class TransferirDocumentosVenda implements ShouldQueue
             $local = Storage::disk('local');
 
             foreach ($documentos as $doc) {
-                $doc->update(['status' => 'ENVIANDO', 'ultima_tentativa_em' => now(), 'erro' => null]);
+                $doc->update([
+                    'status' => 'ENVIANDO',
+                    'tentativas' => $doc->tentativas + 1,
+                    'processamento_iniciado_em' => $doc->processamento_iniciado_em ?? now(),
+                    'ultima_tentativa_em' => now(),
+                    'erro' => null,
+                ]);
                 event(new VendaDocumentoAtualizado($doc->venda_id, $doc->empresa_id));
 
                 if (! $doc->caminho_temporario || ! $local->exists($doc->caminho_temporario)) {

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
 use App\Jobs\ExcluirVendaDocumentoRemoto;
-use App\Jobs\VerificarVendaDocumento;
+use App\Jobs\TransferirDocumentosVenda;
 use App\Models\VendaDocumento;
 use App\Models\Vendas;
 use App\Services\Documentos\RegistrarVendaDocumentoService;
@@ -75,9 +75,9 @@ class VendaDocumentoController extends Controller
             ]);
         }
 
-        $documento->update(['status' => 'RECEBIDO', 'erro' => null]);
+        $documento->update(['status' => 'AGUARDANDO_ENVIO', 'erro' => null]);
         $venda->update(['documentacao_status' => 'PROCESSANDO']);
-        VerificarVendaDocumento::dispatch($documento->id);
+        TransferirDocumentosVenda::dispatch($venda->id);
 
         return response()->json($this->payload($documento->fresh()));
     }
@@ -144,7 +144,7 @@ class VendaDocumentoController extends Controller
             'verificado_em' => $doc->verificado_em?->toIso8601String(),
             'etapa' => match ($doc->status) {
                 'RECEBIDO' => 'Recebido pelo CRM',
-                'VERIFICANDO' => 'Verificando segurança',
+                'VERIFICANDO' => 'Preparando transferência',
                 'AGUARDANDO_ENVIO' => 'Aguardando transferência',
                 'ENVIANDO' => 'Transferindo ao servidor',
                 'DISPONIVEL' => 'Disponível no servidor',

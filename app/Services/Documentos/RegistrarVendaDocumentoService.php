@@ -2,7 +2,7 @@
 
 namespace App\Services\Documentos;
 
-use App\Jobs\VerificarVendaDocumento;
+use App\Jobs\TransferirDocumentosVenda;
 use App\Models\Operadora;
 use App\Models\VendaDocumento;
 use App\Models\Vendas;
@@ -104,12 +104,12 @@ class RegistrarVendaDocumentoService
                     'caminho_temporario' => $temporario,
                     'diretorio_remoto' => $diretorio,
                     'caminho_remoto' => "{$diretorio}/{$nomeRemoto}",
-                    'status' => 'RECEBIDO',
+                    'status' => config('documentos.processamento_ativo') ? 'AGUARDANDO_ENVIO' : 'RECEBIDO',
                 ]);
 
                 if (config('documentos.processamento_ativo')) {
                     $bloqueada->update(['documentacao_status' => 'PROCESSANDO']);
-                    VerificarVendaDocumento::dispatch($documento->id)->afterCommit();
+                    TransferirDocumentosVenda::dispatch($bloqueada->id)->afterCommit();
                 } else {
                     $bloqueada->update(['documentacao_status' => 'PENDENTE']);
                 }

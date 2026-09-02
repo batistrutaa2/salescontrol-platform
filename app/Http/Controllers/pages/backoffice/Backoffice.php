@@ -640,7 +640,7 @@ class Backoffice extends Controller
             ->whereIn('status', ['RECEBIDO', 'VERIFICANDO', 'AGUARDANDO_ENVIO', 'ENVIANDO'])
             ->oldest()->value('created_at');
 
-        $filas = ['documentos-scan' => null, 'documentos-transfer' => null];
+        $filas = ['documentos-transfer' => null];
         try {
             if (config('queue.default') === 'database') {
                 foreach (array_keys($filas) as $fila) {

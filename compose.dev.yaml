@@ -45,44 +45,13 @@ services:
     profiles: [queue]
     restart: unless-stopped
 
-  documentos-scan:
-    <<: *base
-    command: php artisan queue:work --queue=documentos-scan --tries=5 --timeout=180 --max-time=21600
-    profiles: [queue]
-    restart: unless-stopped
-    depends_on:
-      clamav:
-        condition: service_healthy
-    mem_limit: 256m
-
   documentos-queue:
     <<: *base
-    command: php artisan queue:work --queue=documentos-transfer,documentos --tries=5 --timeout=600 --max-time=21600
+    # Compatibilidade temporária com jobs antigos ainda serializados nessa fila.
+    command: php artisan queue:work --queue=documentos-transfer,documentos,documentos-scan --tries=5 --timeout=600 --max-time=21600
     profiles: [queue]
     restart: unless-stopped
     mem_limit: 256m
-
-  clamav:
-    image: clamav/clamav:1.4
-    profiles: [queue]
-    restart: unless-stopped
-    environment:
-      CLAMD_CONF_ConcurrentDatabaseReload: "no"
-      CLAMD_CONF_MaxThreads: "1"
-      CLAMD_CONF_MaxQueue: "2"
-      CLAMD_CONF_MaxConnectionQueueLength: "4"
-      CLAMD_CONF_StreamMaxLength: "30M"
-      CLAMD_CONF_MaxFileSize: "30M"
-      CLAMD_CONF_MaxScanSize: "100M"
-      CLAMD_CONF_MaxRecursion: "12"
-      CLAMD_CONF_MaxFiles: "5000"
-      CLAMD_CONF_AlertExceedsMax: "yes"
-      CLAMD_CONF_ForceToDisk: "yes"
-    volumes:
-      - clamav-data:/var/lib/clamav
-    mem_limit: 2g
-    mem_reservation: 1g
-    cpus: "0.75"
 
   scheduler:
     <<: *base
@@ -101,6 +70,3 @@ services:
 networks:
   brsolutions:
     external: true
-
-volumes:
-  clamav-data:

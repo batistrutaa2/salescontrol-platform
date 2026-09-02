@@ -10,7 +10,6 @@ use App\Models\Operadora;
 use App\Models\User;
 use App\Models\VendaDocumento;
 use App\Models\Vendas;
-use App\Services\Documentos\ClamAvService;
 use App\Services\Documentos\DocumentoStatusService;
 use App\Services\Documentos\RegistrarVendaDocumentoService;
 use App\Services\Documentos\VendaDocumentoPermissionPolicy;
@@ -77,13 +76,13 @@ class VendaDocumentoTest extends TestCase
             ['arquivo' => $arquivo, 'client_upload_id' => 'upload-1']
         );
 
-        $response->assertCreated()->assertJsonPath('status', 'RECEBIDO');
+        $response->assertCreated()->assertJsonPath('status', 'AGUARDANDO_ENVIO');
         $this->assertDatabaseHas('venda_documentos', [
             'venda_id' => $this->venda->id,
             'nome_original' => 'documento.png',
             'diretorio_remoto' => 'EmAnalise/Amil/Caragi Participacoes',
         ]);
-        Queue::assertPushed(VerificarVendaDocumento::class);
+        Queue::assertPushed(TransferirDocumentosVenda::class, fn ($job) => $job->vendaId === $this->venda->id);
     }
 
     public function test_vendedor_reenvia_documento_com_falha_e_job_e_enfileirado(): void
@@ -110,11 +109,11 @@ class VendaDocumentoTest extends TestCase
         $this->actingAs($this->vendedor)
             ->postJson(route('vendas.documentos.retry', [$this->venda, $documento]))
             ->assertOk()
-            ->assertJsonPath('status', 'RECEBIDO')
+            ->assertJsonPath('status', 'AGUARDANDO_ENVIO')
             ->assertJsonPath('erro', null);
 
         $this->assertSame('PROCESSANDO', $this->venda->fresh()->documentacao_status);
-        Queue::assertPushed(VerificarVendaDocumento::class, fn ($job) => $job->documentoId === $documento->id);
+        Queue::assertPushed(TransferirDocumentosVenda::class, fn ($job) => $job->vendaId === $this->venda->id);
     }
 
     public function test_rejeita_nome_repetido_normalizado_sem_criar_efeitos_colaterais(): void
@@ -143,7 +142,7 @@ class VendaDocumentoTest extends TestCase
             );
         $this->assertSame(1, VendaDocumento::where('venda_id', $this->venda->id)->count());
         $this->assertCount(1, Storage::disk('local')->allFiles("venda-documentos/{$this->venda->empresa_id}/{$this->venda->id}"));
-        Queue::assertPushed(VerificarVendaDocumento::class, 1);
+        Queue::assertPushed(TransferirDocumentosVenda::class, 1);
     }
 
     public function test_mesmo_client_upload_id_e_arquivo_retorna_o_registro_sem_repetir_job(): void
@@ -168,7 +167,7 @@ class VendaDocumentoTest extends TestCase
         $this->assertSame($primeira->json('id'), $segunda->json('id'));
         $this->assertSame(1, VendaDocumento::where('venda_id', $this->venda->id)->count());
         $this->assertCount(1, Storage::disk('local')->allFiles("venda-documentos/{$this->venda->empresa_id}/{$this->venda->id}"));
-        Queue::assertPushed(VerificarVendaDocumento::class, 1);
+        Queue::assertPushed(TransferirDocumentosVenda::class, 1);
     }
 
     public function test_rejeita_reuso_do_client_upload_id_por_outro_arquivo_antes_da_duplicidade(): void
@@ -191,7 +190,7 @@ class VendaDocumentoTest extends TestCase
             ->assertJsonValidationErrors('client_upload_id');
 
         $this->assertSame(1, VendaDocumento::where('venda_id', $this->venda->id)->count());
-        Queue::assertPushed(VerificarVendaDocumento::class, 1);
+        Queue::assertPushed(TransferirDocumentosVenda::class, 1);
     }
 
     public function test_colisoes_distintas_apos_sanitizacao_recebem_sufixo_remoto(): void
@@ -357,7 +356,7 @@ class VendaDocumentoTest extends TestCase
         $this->actingAs($outro)->getJson(route('vendas.documentos.index', $this->venda))->assertForbidden();
     }
 
-    public function test_scan_e_transferencia_concluem_sem_reler_o_arquivo_remoto(): void
+    public function test_upload_e_transferencia_direta_concluem_sem_reler_o_arquivo_remoto(): void
     {
         $this->configureCollaborativeDocumentDisk();
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
@@ -367,11 +366,6 @@ class VendaDocumentoTest extends TestCase
         ])->assertCreated();
 
         $doc = VendaDocumento::firstOrFail();
-        $clamAv = new class extends ClamAvService
-        {
-            public function scan(string $absolutePath): void {}
-        };
-        (new VerificarVendaDocumento($doc->id))->handle($clamAv, app(DocumentoStatusService::class));
         $this->assertSame('AGUARDANDO_ENVIO', $doc->fresh()->status);
 
         (new TransferirDocumentosVenda($this->venda->id))->handle(
@@ -380,12 +374,70 @@ class VendaDocumentoTest extends TestCase
         );
         $doc->refresh();
         $this->assertSame('DISPONIVEL', $doc->status);
+        $this->assertSame(1, $doc->tentativas);
+        $this->assertNotNull($doc->processamento_iniciado_em);
         Storage::disk('documentos_test')->assertExists($doc->caminho_remoto);
         $absolutePath = Storage::disk('documentos_test')->path($doc->caminho_remoto);
         clearstatcache(true, $absolutePath);
         $this->assertSame(0660, fileperms($absolutePath) & 0777);
         $this->assertNotSame(0, fileperms(dirname($absolutePath)) & 0110, 'O reparo de arquivo não pode remover a travessia do diretório.');
         $this->assertSame(02770, config('filesystems.disks.documentos_test.permissions.dir.private'));
+    }
+
+    public function test_job_legado_de_scan_encaminha_documento_sem_antivirus(): void
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+        $this->actingAs($this->vendedor)->postJson(route('vendas.documentos.store', $this->venda), [
+            'arquivo' => UploadedFile::fake()->createWithContent('legado.png', $png),
+            'client_upload_id' => 'pipeline-legado',
+        ])->assertCreated();
+
+        $doc = VendaDocumento::firstOrFail();
+        $doc->update(['status' => 'VERIFICANDO']);
+        Queue::fake();
+
+        (new VerificarVendaDocumento($doc->id))->handle(app(DocumentoStatusService::class));
+
+        $this->assertSame('AGUARDANDO_ENVIO', $doc->fresh()->status);
+        Queue::assertPushed(TransferirDocumentosVenda::class, fn ($job) => $job->vendaId === $this->venda->id);
+    }
+
+    public function test_processar_pendentes_recupera_documento_em_verificacao(): void
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+        $this->actingAs($this->vendedor)->postJson(route('vendas.documentos.store', $this->venda), [
+            'arquivo' => UploadedFile::fake()->createWithContent('interrompido.png', $png),
+            'client_upload_id' => 'pipeline-interrompido',
+        ])->assertCreated();
+
+        $doc = VendaDocumento::firstOrFail();
+        $doc->update(['status' => 'VERIFICANDO']);
+        $falhaAntivirus = $doc->replicate()->fill([
+            'client_upload_id' => 'falha-antivirus',
+            'nome_original' => 'falha-antivirus.png',
+            'nome_remoto' => 'falha-antivirus.png',
+            'caminho_remoto' => $doc->diretorio_remoto.'/falha-antivirus.png',
+            'status' => 'FALHA',
+            'erro' => 'Antivírus indisponível. O documento será tentado novamente.',
+        ]);
+        $falhaAntivirus->save();
+        $falhaSftp = $doc->replicate()->fill([
+            'client_upload_id' => 'falha-sftp',
+            'nome_original' => 'falha-sftp.png',
+            'nome_remoto' => 'falha-sftp.png',
+            'caminho_remoto' => $doc->diretorio_remoto.'/falha-sftp.png',
+            'status' => 'FALHA',
+            'erro' => 'Falha ao transferir documento para o SFTP.',
+        ]);
+        $falhaSftp->save();
+        Queue::fake();
+
+        $this->artisan('documentos:processar-pendentes')->assertSuccessful();
+
+        $this->assertSame('AGUARDANDO_ENVIO', $doc->fresh()->status);
+        $this->assertSame('AGUARDANDO_ENVIO', $falhaAntivirus->fresh()->status);
+        $this->assertSame('FALHA', $falhaSftp->fresh()->status);
+        Queue::assertPushed(TransferirDocumentosVenda::class, fn ($job) => $job->vendaId === $this->venda->id);
     }
 
     public function test_transferencia_bloqueia_identidade_vazia_antes_de_abrir_o_disco_sftp(): void
@@ -464,7 +516,7 @@ class VendaDocumentoTest extends TestCase
         $this->assertDatabaseHas('venda_documentos', [
             'venda_id' => $this->venda->id,
             'diretorio_remoto' => 'EmAnalise/Amil/Caragi Participacoes',
-            'status' => 'RECEBIDO',
+            'status' => 'AGUARDANDO_ENVIO',
         ]);
     }
 

@@ -7,7 +7,7 @@
   const statusLabel = {
     AGUARDANDO: 'Recebido',
     RECEBIDO: 'Recebido pelo CRM',
-    VERIFICANDO: 'Verificando segurança',
+    VERIFICANDO: 'Preparando transferência',
     AGUARDANDO_ENVIO: 'Aguardando transferência',
     ENVIANDO: 'Transferindo',
     DISPONIVEL: 'Disponível no servidor',
