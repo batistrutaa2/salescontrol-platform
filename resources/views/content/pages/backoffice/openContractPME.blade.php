@@ -296,6 +296,100 @@
             </div>
         </div>
 
+        {{-- Resumo operacional: o que o backoffice mais consulta fica na primeira dobra. --}}
+        <section class="pme-overview" aria-label="Resumo operacional do contrato">
+            <div class="pme-observation-panel">
+                <div class="pme-overview-heading">
+                    <span class="pme-overview-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            <path d="M8 8h8M8 12h5"></path>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2 id="pme-observacoes-title">Observações do contrato</h2>
+                        <p>Contexto importante para análise, implantação e próximos contatos.</p>
+                    </div>
+                </div>
+                <label class="visually-hidden" for="obs_contrato">Observações do contrato</label>
+                <textarea id="obs_contrato" name="obs_contrato" class="pme-input pme-observation-input" rows="4"
+                    form="form-empresa" placeholder="Registre aqui particularidades, pendências ou orientações para o backoffice."
+                    @disabled(!($canEdit ?? true))>{{ $contract->obs_contrato }}</textarea>
+            </div>
+
+            <div class="pme-quick-data">
+                <div class="pme-overview-heading">
+                    <span class="pme-overview-icon is-neutral" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                            <path d="M7 9h4M7 13h7M17 9h.01"></path>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2>Dados para consulta rápida</h2>
+                        <p>Copie sem precisar localizar ou selecionar o campo.</p>
+                    </div>
+                </div>
+
+                <dl class="pme-quick-list">
+                    <div class="pme-quick-row">
+                        <div>
+                            <dt>{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'CPF' : 'CNPJ' }}</dt>
+                            <dd>{{ $contract->cpf_cnpj ?: 'Não informado' }}</dd>
+                        </div>
+                        @if($contract->cpf_cnpj)
+                            <button type="button" class="pme-copy-button" data-contract-copy="{{ $contract->cpf_cnpj }}"
+                                data-copy-label="{{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'CPF' : 'CNPJ' }}"
+                                aria-label="Copiar {{ ($contract->tipo_contrato ?? 'PME') === 'ADESAO' ? 'CPF' : 'CNPJ' }}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <span class="copy-button-label">Copiar</span>
+                            </button>
+                        @endif
+                    </div>
+                    <div class="pme-quick-row">
+                        <div>
+                            <dt>E-mail</dt>
+                            <dd>{{ $contract->email ?: 'Não informado' }}</dd>
+                        </div>
+                        @if($contract->email)
+                            <button type="button" class="pme-copy-button" data-contract-copy="{{ $contract->email }}" data-copy-label="E-mail" aria-label="Copiar e-mail">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                <span class="copy-button-label">Copiar</span>
+                            </button>
+                        @endif
+                    </div>
+                    <div class="pme-quick-row">
+                        <div>
+                            <dt>Telefone principal</dt>
+                            <dd>{{ $contract->telefone1 ? $formatTelefone($contract->telefone1) : 'Não informado' }}</dd>
+                        </div>
+                        @if($contract->telefone1)
+                            <button type="button" class="pme-copy-button" data-contract-copy="{{ preg_replace('/\D/', '', $contract->telefone1) }}" data-copy-label="Telefone principal" aria-label="Copiar telefone principal">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                <span class="copy-button-label">Copiar</span>
+                            </button>
+                        @endif
+                    </div>
+                    @if($contract->telefone2)
+                        <div class="pme-quick-row">
+                            <div>
+                                <dt>Telefone alternativo</dt>
+                                <dd>{{ $formatTelefone($contract->telefone2) }}</dd>
+                            </div>
+                            <button type="button" class="pme-copy-button" data-contract-copy="{{ preg_replace('/\D/', '', $contract->telefone2) }}" data-copy-label="Telefone alternativo" aria-label="Copiar telefone alternativo">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                <span class="copy-button-label">Copiar</span>
+                            </button>
+                        </div>
+                    @endif
+                </dl>
+                <p class="visually-hidden" id="pme-copy-status" aria-live="polite"></p>
+            </div>
+        </section>
+
         {{-- Layout Principal --}}
         <div class="pme-layout">
 
@@ -434,11 +528,6 @@
                             </div>
                         </div>
 
-                        {{-- Observacoes --}}
-                        <div class="pme-field" style="margin-top: 0.75rem;">
-                            <label>Observacoes</label>
-                            <textarea name="obs_contrato" class="pme-input" rows="2" form="form-empresa">{{ $contract->obs_contrato }}</textarea>
-                        </div>
                     </div>
                 </div>
 

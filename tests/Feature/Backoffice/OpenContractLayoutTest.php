@@ -109,6 +109,31 @@ class OpenContractLayoutTest extends TestCase
         $response->assertSee('pv-tabnav', false);
     }
 
+    public function test_resumo_operacional_prioriza_observacoes_e_dados_copiaveis(): void
+    {
+        $venda = $this->criarContratoLegado('NOVO');
+        $venda->update([
+            'email' => 'implantacao@cliente.test',
+            'telefone1' => '11987654321',
+            'telefone2' => '1133445566',
+            'obs_contrato' => 'Validar carência antes da implantação.',
+        ]);
+
+        $response = $this->actingAs($this->admin)->get(route('backoffice.openContract', $venda->id));
+
+        $response->assertOk()
+            ->assertSee('Resumo operacional do contrato')
+            ->assertSee('Observações do contrato')
+            ->assertSee('Validar carência antes da implantação.')
+            ->assertSee('data-contract-copy="11222333000144"', false)
+            ->assertSee('data-contract-copy="implantacao@cliente.test"', false)
+            ->assertSee('data-contract-copy="11987654321"', false)
+            ->assertSee('data-contract-copy="1133445566"', false);
+
+        $html = $response->getContent();
+        $this->assertLessThan(strpos($html, 'Dados da Empresa'), strpos($html, 'Observações do contrato'));
+    }
+
     public function test_documentos_do_contrato_abrem_em_modal_sem_ocupar_o_conteudo_principal(): void
     {
         $venda = $this->criarContratoLegado('NOVO');

@@ -36,10 +36,60 @@
                 el.disabled = true;
             });
         });
+        document.querySelectorAll('[form="form-empresa"]').forEach(function (el) {
+            el.disabled = true;
+        });
         document.querySelectorAll('.btn-add-dep, .btn-edit, .btn-add-port, .btn-add-acesso, [data-bs-target="#modalAddAcesso"], .pme-btn-save').forEach(function (el) {
             el.style.display = 'none';
         });
     }
+
+    // ============================================
+    // Copia de dados operacionais
+    // ============================================
+    async function copyContractValue(value) {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(value);
+            return;
+        }
+
+        const fallback = document.createElement('textarea');
+        fallback.value = value;
+        fallback.setAttribute('readonly', '');
+        fallback.style.position = 'fixed';
+        fallback.style.opacity = '0';
+        document.body.appendChild(fallback);
+        fallback.select();
+        const copied = document.execCommand('copy');
+        fallback.remove();
+        if (!copied) throw new Error('copy_failed');
+    }
+
+    document.addEventListener('click', async function (event) {
+        const button = event.target.closest('[data-contract-copy]');
+        if (!button) return;
+
+        const label = button.querySelector('.copy-button-label');
+        const status = document.getElementById('pme-copy-status');
+        const originalLabel = 'Copiar';
+
+        try {
+            await copyContractValue(button.dataset.contractCopy || '');
+            button.classList.add('is-copied');
+            if (label) label.textContent = 'Copiado';
+            if (status) status.textContent = `${button.dataset.copyLabel || 'Dado'} copiado.`;
+        } catch (error) {
+            button.classList.add('has-error');
+            if (label) label.textContent = 'Tente novamente';
+            if (status) status.textContent = 'Não foi possível copiar o dado.';
+        }
+
+        window.clearTimeout(button.copyFeedbackTimer);
+        button.copyFeedbackTimer = window.setTimeout(function () {
+            button.classList.remove('is-copied', 'has-error');
+            if (label) label.textContent = originalLabel;
+        }, 1800);
+    });
 
     var readonlyForms = document.querySelectorAll('form[data-readonly="true"]');
     if (readonlyForms.length) {
