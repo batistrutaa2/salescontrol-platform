@@ -696,6 +696,7 @@ class Comercial extends Controller
                 'contato_id' => 'required|integer',
                 'tipo_contrato' => 'required|in:PME,ADESAO',
                 'nome_contrato' => 'required|string|max:255',
+                'obs_contrato' => 'nullable|string|max:10000',
                 'cpf_cnpj' => ['required', 'string', function ($attribute, $value, $fail) use ($request) {
                     $digitos = DocumentoFiscal::somenteDigitos($value);
                     $tamanhoEsperado = $request->input('tipo_contrato') === 'ADESAO' ? 11 : 14;
@@ -774,6 +775,7 @@ class Comercial extends Controller
             $messages = [
                 'contato_id.required' => 'Contato não identificado.',
                 'nome_contrato.required' => 'Razão Social é obrigatória.',
+                'obs_contrato.max' => 'As observações podem ter no máximo 10.000 caracteres.',
                 'cpf_cnpj.required' => 'CNPJ é obrigatório.',
                 'tipo_empresa.required_if' => 'Selecione o tipo da empresa.',
                 'operadora_id.required' => 'Selecione uma operadora.',

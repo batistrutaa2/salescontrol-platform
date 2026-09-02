@@ -422,7 +422,8 @@ class CreateSaleValidationTest extends TestCase
             ->assertOk()
             ->assertSee('Produto vendido')
             ->assertSee('Valores da venda')
-            ->assertSee('Observações para o pós-venda');
+            ->assertSee('Observações para o pós-venda')
+            ->assertSee('maxlength="10000"', false);
 
         $html = $response->getContent();
         $produto = strpos($html, 'id="np-product-card-title"');
@@ -503,6 +504,31 @@ class CreateSaleValidationTest extends TestCase
             'plano_id' => $this->planoId,
             'coparticipacao' => 'Y',
         ]);
+    }
+
+    public function test_cadastro_preserva_observacao_maior_que_255_caracteres(): void
+    {
+        $observacao = "O plano sul america engloba MARCOS - MAURO E PATRICIA\n\n"
+            ."Faremos ativação do Mauro e familia\n"
+            ."E portabilidade do Marcos e Patricia\n\n"
+            ."Inseri os documentos neste primeiro momento apenas da ativação.\n"
+            .'problema com a carta de permanencia do grupo que esta na porto, esposa e filhos do Mauro, ela caiu na retenção e n conseguiu obter.';
+
+        $this->assertGreaterThan(255, mb_strlen($observacao));
+
+        $this->postVenda($this->payloadValido(['obs_contrato' => $observacao]))
+            ->assertRedirect(route('sale.listSale'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($observacao, Vendas::firstOrFail()->obs_contrato);
+    }
+
+    public function test_cadastro_rejeita_observacao_acima_do_limite_documentado(): void
+    {
+        $this->postVenda($this->payloadValido(['obs_contrato' => str_repeat('a', 10001)]))
+            ->assertSessionHasErrors(['obs_contrato']);
+
+        $this->assertDatabaseCount('vendas', 0);
     }
 
     public function test_valor_e_angariacao_condicional_sao_obrigatorios(): void

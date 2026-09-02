@@ -87,8 +87,8 @@
 
                         <div class="col-12 col-md-12">
                             <div class="form-floating form-floating-outline">
-                                <input type="text" id="obs_contrato" name="obs_contrato" class="form-control"
-                                    placeholder="Observação de contrato" />
+                                <textarea id="obs_contrato" name="obs_contrato" class="form-control" rows="4"
+                                    maxlength="10000" placeholder="Observação de contrato"></textarea>
                                 <label for="obs_contrato">Observação de contrato</label>
                             </div>
                         </div>
