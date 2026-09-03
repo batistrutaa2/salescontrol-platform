@@ -766,7 +766,7 @@
                                 @if($titular->data_nascimento)
                                 <div class="info-row">
                                     <span class="info-label">Data Nasc.</span>
-                                    <span class="info-value">{{ $titular->data_nascimento->format('d/m/Y') }} <span class="text-muted">({{ $calcularIdade($titular->data_nascimento) }} anos)</span></span>
+                                    <span class="info-value">{{ $titular->data_nascimento->format('d/m/Y') }} <span>({{ $calcularIdade($titular->data_nascimento) }} anos)</span></span>
                                 </div>
                                 @endif
                                 @if($titular->email)
@@ -784,7 +784,7 @@
                                 @if($titular->plano)
                                 <div class="info-row">
                                     <span class="info-label">Plano</span>
-                                    <span class="info-value info-highlight">{{ strtoupper($titular->plano->nome) }}@if($titular->plano->acomodacao) <span class="text-muted">| {{ $titular->plano->acomodacao }}</span>@endif</span>
+                                    <span class="info-value info-highlight">{{ strtoupper($titular->plano->nome) }}@if($titular->plano->acomodacao) <span>| {{ $titular->plano->acomodacao }}</span>@endif</span>
                                 </div>
                                 @endif
                                 @if($titular->coparticipacao)
@@ -853,7 +853,7 @@
                                         @if($dep->data_nascimento)
                                         <div class="info-row">
                                             <span class="info-label">Data Nasc.</span>
-                                            <span class="info-value">{{ $dep->data_nascimento->format('d/m/Y') }} <span class="text-muted">({{ $calcularIdade($dep->data_nascimento) }} anos)</span></span>
+                                            <span class="info-value">{{ $dep->data_nascimento->format('d/m/Y') }} <span>({{ $calcularIdade($dep->data_nascimento) }} anos)</span></span>
                                         </div>
                                         @endif
                                         @if($dep->email)
@@ -871,7 +871,7 @@
                                         @if($dep->plano)
                                         <div class="info-row">
                                             <span class="info-label">Plano</span>
-                                            <span class="info-value info-highlight">{{ strtoupper($dep->plano->nome) }}@if($dep->plano->acomodacao) <span class="text-muted">| {{ $dep->plano->acomodacao }}</span>@endif</span>
+                                            <span class="info-value info-highlight">{{ strtoupper($dep->plano->nome) }}@if($dep->plano->acomodacao) <span>| {{ $dep->plano->acomodacao }}</span>@endif</span>
                                         </div>
                                         @endif
                                         @if($dep->coparticipacao)
