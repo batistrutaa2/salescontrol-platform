@@ -31,7 +31,7 @@
     "glob": "10.3.14",
     "laravel-echo": "^1.19.0",
     "lodash": "4.17.21",
-    "postcss": "8.4.38",
+    "postcss": "8.5.28",
     "prettier": "3.2.2",
     "pusher-js": "^8.4.0",
     "resolve-url-loader": "5.0.0",
