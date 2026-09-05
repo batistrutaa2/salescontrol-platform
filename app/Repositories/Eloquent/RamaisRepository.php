@@ -3,70 +3,49 @@
 namespace App\Repositories\Eloquent;
 
 use App\Models\Ramais;
-use App\Enums\UserRole;
-use Illuminate\Support\Facades\DB;
 use App\Repositories\Contracts\RamaisRepositoryInterface;
 use Carbon\Carbon;
-
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class RamaisRepository implements RamaisRepositoryInterface
 {
+    public function __construct(private readonly Ramais $model) {}
 
-  protected $model;
-
-  public function __construct(Ramais $model)
-  {
-    $this->model = $model;
-  }
-
-  public function create(array $data)
-  {
-    try {
-      return $this->model->updateOrCreate([
-        'user_id' => $data['usuario_id']
-      ], $data);
-    } catch (\Throwable $th) {
-      throw $th;
+    public function create(int $empresaId, int $userId, string $ramal): Ramais
+    {
+        return $this->model->updateOrCreate(
+            ['empresa_id' => $empresaId, 'user_id' => $userId],
+            ['ramal' => $ramal]
+        );
     }
-  }
 
-  public function getRamais($typeUser, $empresa_id)
-  {
-    if ($typeUser === UserRole::DEVELOPER) {
-      $resultados = DB::table('ramais as a')
-        ->select('a.id', 'b.name', 'a.ramal', 'a.created_at')
-        ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
-        ->get();
+    public function getRamais(int $empresaId): Collection
+    {
+        return DB::table('ramais as ramal')
+            ->leftJoin('users as usuario', function ($join) {
+                $join->on('usuario.id', '=', 'ramal.user_id')
+                    ->on('usuario.empresa_id', '=', 'ramal.empresa_id')
+                    ->where('usuario.is_platform_admin', false);
+            })
+            ->where('ramal.empresa_id', $empresaId)
+            ->select('ramal.id', 'usuario.name', 'ramal.ramal', 'ramal.created_at')
+            ->orderBy('usuario.name')
+            ->get()
+            ->map(function ($registro) {
+                $registro->created_at = $registro->created_at
+                    ? Carbon::parse($registro->created_at)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s')
+                    : null;
 
-      // Formatar as datas manualmente
-      $resultados = $resultados->map(function ($registro) {
-        $registro->created_at = $registro->created_at
-          ? Carbon::parse($registro->created_at)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s')
-          : null;
-        return $registro;
-      });
-      return $resultados;
-    } elseif ($typeUser === UserRole::ADMINISTRATIVO || $typeUser === UserRole::BACKOFFICE) {
-      $resultados = DB::table('ramais as a')
-        ->select('a.id', 'b.name', 'a.ramal', 'a.created_at')
-        ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
-        ->where('a.empresa_id', $empresa_id)
-        ->get();
-
-      // Formatar as datas manualmente
-      $resultados = $resultados->map(function ($registro) {
-        $registro->created_at = $registro->created_at
-          ? Carbon::parse($registro->created_at)->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s')
-          : null;
-        return $registro;
-      });
-      return $resultados;
+                return $registro;
+            });
     }
-  }
 
-
-  public function getRamal($idUser)
-  {
-    return $this->model->where('user_id', $idUser)->first();
-  }
+    public function getRamal(int $empresaId, int $userId): ?Ramais
+    {
+        return $this->model
+            ->where('empresa_id', $empresaId)
+            ->where('user_id', $userId)
+            ->first();
+    }
 }

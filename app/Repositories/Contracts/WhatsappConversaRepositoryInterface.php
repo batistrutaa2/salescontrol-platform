@@ -13,11 +13,11 @@ interface WhatsappConversaRepositoryInterface
 
     public function findParaUsuario(int $conversaId, int $empresaId, ?int $userId): ?WhatsappConversa;
 
-    public function changeStatusConversa(int $conversaId, int $tabulacaoId): bool;
+    public function changeStatusConversa(int $conversaId, int $empresaId, int $tabulacaoId): bool;
 
-    public function vincularContato(int $conversaId, ?int $contatoId): bool;
+    public function vincularContato(int $conversaId, int $empresaId, ?int $contatoId): bool;
 
-    public function zerarNaoLidas(int $conversaId): void;
+    public function zerarNaoLidas(int $conversaId, int $empresaId): void;
 
-    public function setArquivada(int $conversaId, bool $arquivada): bool;
+    public function setArquivada(int $conversaId, int $empresaId, bool $arquivada): bool;
 }

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\VendaDemanda;
 use App\Models\Vendas;
 use App\Services\PosVendaDemandaService;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -40,6 +41,7 @@ class PosVendaDemandaServiceTest extends TestCase
             'user_role_id' => UserRole::BACKOFFICE,
             'ativo' => 'Y',
         ]);
+        app(TenantContext::class)->set($this->empresa->id);
     }
 
     private function criarVenda(): Vendas

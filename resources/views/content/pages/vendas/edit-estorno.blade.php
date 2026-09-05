@@ -232,7 +232,7 @@ $cpfClienteData = $cliente->cpf ?? $venda->cpf_cnpj ?? '';
                                 <select id="operadora" name="operadora_id" class="np-input @error('operadora_id') is-invalid @enderror" required>
                                     <option value="">Selecione...</option>
                                     @foreach ($operadoras as $op)
-                                        <option value="{{ $op->id }}" data-nome="{{ strtoupper($op->nome) }}" {{ (string) $operadoraIdAtual === (string) $op->id ? 'selected' : '' }}>{{ strtoupper($op->nome) }}</option>
+                                        <option value="{{ $op->id }}" data-coparticipacao-formato="{{ $op->coparticipacao_formato }}" data-angariacao-padrao="{{ $op->angariacao_padrao ? '1' : '0' }}" {{ (string) $operadoraIdAtual === (string) $op->id ? 'selected' : '' }}>{{ strtoupper($op->nome) }}</option>
                                     @endforeach
                                 </select>
                             </div>

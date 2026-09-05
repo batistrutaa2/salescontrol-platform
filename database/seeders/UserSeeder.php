@@ -2,35 +2,38 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Enums\UserRole;
+use App\Models\Empresa;
+use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class UserSeeder extends Seeder
 {
-  /**
-   * Run the database seeds.
-   */
-  public function run(): void
-  {
+    public function run(): void
+    {
+        $password = config('tenancy.bootstrap.admin_password');
 
-    $currentDateTime = Carbon::now()->format('Y-m-d H:i:s');
+        if (! is_string($password) || $password === '') {
+            throw new RuntimeException('Defina PLATFORM_ADMIN_PASSWORD antes de executar o seeder da plataforma.');
+        }
 
-    DB::table('users')->insert([
-      [
-        'id' => 1,
-        'empresa_id' => 1,
-        'user_role_id' => 4,
-        'name' => 'CELSO ROMAO BATISTA JUNIOR',
-        'email' => 'admin@admin.com.br',
-        'email_verified_at' => $currentDateTime,
-        'password' => Hash::make("47633852836"),
-        'created_at' => now(),
-        'updated_at' => now(),
-        'ativo' => 'Y'
-      ],
-    ]);
-  }
+        $empresa = Empresa::query()
+            ->where('email', config('tenancy.bootstrap.company_email'))
+            ->firstOrFail();
+
+        User::query()->updateOrCreate(
+            ['email' => config('tenancy.bootstrap.admin_email')],
+            [
+                'empresa_id' => $empresa->id,
+                'user_role_id' => UserRole::DEVELOPER,
+                'name' => config('tenancy.bootstrap.admin_name'),
+                'email_verified_at' => now(),
+                'password' => Hash::make($password),
+                'ativo' => 'Y',
+                'is_platform_admin' => true,
+            ]
+        );
+    }
 }

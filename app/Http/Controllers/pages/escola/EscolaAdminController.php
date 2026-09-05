@@ -4,17 +4,21 @@ namespace App\Http\Controllers\pages\escola;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\Empresa;
 use App\Models\EscolaAula;
 use App\Models\EscolaAulaMaterial;
 use App\Models\EscolaAulaProgresso;
 use App\Models\EscolaModulo;
 use App\Models\User;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class EscolaAdminController extends Controller
 {
@@ -33,7 +37,7 @@ class EscolaAdminController extends Controller
 
     private function empresaId(): int
     {
-        return Auth::user()->empresa_id;
+        return app(TenantContext::class)->id();
     }
 
     // ----------------------------------------------------------------- Módulos
@@ -48,7 +52,11 @@ class EscolaAdminController extends Controller
             ->orderBy('titulo')
             ->get();
 
-        return view('content.pages.escola.gestao.index', ['modulos' => $modulos]);
+        $percentualConclusao = (int) (Empresa::query()
+            ->whereKey($this->empresaId())
+            ->value('escola_percentual_conclusao') ?? 90);
+
+        return view('content.pages.escola.gestao.index', compact('modulos', 'percentualConclusao'));
     }
 
     public function storeModulo(Request $request): JsonResponse
@@ -139,16 +147,23 @@ class EscolaAdminController extends Controller
         $this->checkAccess();
 
         $validated = $request->validate([
-            'ordens' => 'required|array',
-            'ordens.*.id' => 'required|integer',
+            'ordens' => 'required|array|min:1|max:500',
+            'ordens.*.id' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('escola_modulos', 'id')->where('empresa_id', $this->empresaId()),
+            ],
             'ordens.*.ordem' => 'required|integer|min:0',
         ]);
 
-        foreach ($validated['ordens'] as $item) {
-            EscolaModulo::where('empresa_id', $this->empresaId())
-                ->where('id', $item['id'])
-                ->update(['ordem' => $item['ordem']]);
-        }
+        DB::transaction(function () use ($validated): void {
+            foreach ($validated['ordens'] as $item) {
+                EscolaModulo::where('empresa_id', $this->empresaId())
+                    ->where('id', $item['id'])
+                    ->update(['ordem' => $item['ordem']]);
+            }
+        });
 
         return response()->json(['success' => true]);
     }
@@ -235,16 +250,23 @@ class EscolaAdminController extends Controller
         $this->checkAccess();
 
         $validated = $request->validate([
-            'ordens' => 'required|array',
-            'ordens.*.id' => 'required|integer',
+            'ordens' => 'required|array|min:1|max:500',
+            'ordens.*.id' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('escola_aulas', 'id')->where('empresa_id', $this->empresaId()),
+            ],
             'ordens.*.ordem' => 'required|integer|min:0',
         ]);
 
-        foreach ($validated['ordens'] as $item) {
-            EscolaAula::where('empresa_id', $this->empresaId())
-                ->where('id', $item['id'])
-                ->update(['ordem' => $item['ordem']]);
-        }
+        DB::transaction(function () use ($validated): void {
+            foreach ($validated['ordens'] as $item) {
+                EscolaAula::where('empresa_id', $this->empresaId())
+                    ->where('id', $item['id'])
+                    ->update(['ordem' => $item['ordem']]);
+            }
+        });
 
         return response()->json(['success' => true]);
     }
@@ -385,7 +407,7 @@ class EscolaAdminController extends Controller
             ->orderBy('titulo')
             ->get(['id', 'titulo']);
 
-        $vendedores = User::where('empresa_id', $this->empresaId())
+        $vendedores = User::query()->tenantMember($this->empresaId())
             ->orderBy('name')
             ->get(['id', 'name']);
 
@@ -400,8 +422,14 @@ class EscolaAdminController extends Controller
         $this->checkAccess();
 
         $empresaId = $this->empresaId();
-        $moduloId = $request->integer('modulo_id') ?: null;
-        $userId = $request->integer('user_id') ?: null;
+        $validated = $request->validate([
+            'modulo_id' => ['nullable', 'integer', Rule::exists('escola_modulos', 'id')->where('empresa_id', $empresaId)],
+            'user_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query
+                ->where('empresa_id', $empresaId)
+                ->where('is_platform_admin', false))],
+        ]);
+        $moduloId = isset($validated['modulo_id']) ? (int) $validated['modulo_id'] : null;
+        $userId = isset($validated['user_id']) ? (int) $validated['user_id'] : null;
 
         // Total de aulas ativas (por escopo de módulo, se filtrado)
         $totalAulasQuery = EscolaAula::where('empresa_id', $empresaId)->where('ativo', true);
@@ -413,8 +441,15 @@ class EscolaAdminController extends Controller
         // Progresso agregado por usuário
         $query = EscolaAulaProgresso::query()
             ->where('escola_aula_progresso.empresa_id', $empresaId)
-            ->join('escola_aulas', 'escola_aulas.id', '=', 'escola_aula_progresso.escola_aula_id')
-            ->join('users', 'users.id', '=', 'escola_aula_progresso.user_id')
+            ->join('escola_aulas', function ($join) {
+                $join->on('escola_aulas.id', '=', 'escola_aula_progresso.escola_aula_id')
+                    ->on('escola_aulas.empresa_id', '=', 'escola_aula_progresso.empresa_id');
+            })
+            ->join('users', function ($join) {
+                $join->on('users.id', '=', 'escola_aula_progresso.user_id')
+                    ->on('users.empresa_id', '=', 'escola_aula_progresso.empresa_id')
+                    ->where('users.is_platform_admin', false);
+            })
             ->where('escola_aulas.ativo', true);
 
         if ($moduloId) {
@@ -451,6 +486,24 @@ class EscolaAdminController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    public function updateConfiguracoes(Request $request): JsonResponse
+    {
+        $this->checkAccess();
+
+        $validated = $request->validate([
+            'escola_percentual_conclusao' => ['required', 'integer', 'between:1,100'],
+        ]);
+
+        Empresa::query()
+            ->whereKey($this->empresaId())
+            ->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'escola_percentual_conclusao' => $validated['escola_percentual_conclusao'],
+        ]);
+    }
+
     // ----------------------------------------------------------- Liberar acesso
 
     /** Tela para liberar/bloquear o acesso de usuários à área do aluno. */
@@ -460,7 +513,7 @@ class EscolaAdminController extends Controller
 
         $busca = trim((string) $request->get('q', ''));
 
-        $usuarios = User::where('empresa_id', $this->empresaId())
+        $usuarios = User::query()->tenantMember($this->empresaId())
             ->whereNotIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])
             ->when($busca !== '', function ($q) use ($busca) {
                 $q->where(function ($sub) use ($busca) {
@@ -488,7 +541,7 @@ class EscolaAdminController extends Controller
             'habilitada' => 'required|boolean',
         ]);
 
-        $user = User::where('empresa_id', $this->empresaId())
+        $user = User::query()->tenantMember($this->empresaId())
             ->whereNotIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])
             ->findOrFail($usuario);
 

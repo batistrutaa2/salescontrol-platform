@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VendaHistorico extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
     use HasFactory;
 
     protected $table = 'vendas_historico';
@@ -98,7 +99,7 @@ class VendaHistorico extends Model
             ->orderBy('id', 'desc')
             ->first();
 
-        if (!$registroAnterior) {
+        if (! $registroAnterior) {
             return null;
         }
 
@@ -115,18 +116,18 @@ class VendaHistorico extends Model
     {
         $diff = $this->tempo_no_status_anterior;
 
-        if (!$diff) {
+        if (! $diff) {
             return 'Início';
         }
 
         if ($diff->days > 0) {
-            return $diff->days . ' dia' . ($diff->days > 1 ? 's' : '');
+            return $diff->days.' dia'.($diff->days > 1 ? 's' : '');
         }
 
         if ($diff->h > 0) {
-            return $diff->h . ' hora' . ($diff->h > 1 ? 's' : '');
+            return $diff->h.' hora'.($diff->h > 1 ? 's' : '');
         }
 
-        return $diff->i . ' minuto' . ($diff->i > 1 ? 's' : '');
+        return $diff->i.' minuto'.($diff->i > 1 ? 's' : '');
     }
 }

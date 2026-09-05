@@ -1,12 +1,12 @@
 @php
     /**
-     * E-mail de Boas-Vindas — LK Brokers.
+     * E-mail de boas-vindas com identidade da empresa ativa.
      * Recebe $dados (array) do BoasVindasMail. Layout table-based + estilos
      * inline para máxima compatibilidade com clientes de e-mail.
      */
     $modo            = $dados['modo'] ?? 'padrao';
     $nomeContrato    = trim($dados['nomeContrato'] ?? '');
-    $nomeEmpresa     = $dados['nomeEmpresa'] ?? 'LK Brokers';
+    $nomeEmpresa     = $dados['nomeEmpresa'] ?? 'SalesControl';
     $operadora       = $dados['operadora'] ?? '';
     $beneficiarios   = $dados['beneficiarios'] ?? [];
     $loginApp        = $dados['loginApp'] ?? '';
@@ -20,7 +20,7 @@
     $portalUser      = $dados['portalUser'] ?? '';
     $portalSenha     = $dados['portalSenha'] ?? '';
     $corpoLivre      = $dados['corpoPersonalizado'] ?? '';
-    $logoUrl         = rtrim(config('app.url'), '/') . '/assets/img/branding/logo-brokers-email.jpeg';
+    $logoUrl         = rtrim(config('app.url'), '/') . '/assets/img/branding/salescontrol-mark.svg';
 
     $roxo      = '#7C3AED';
     $roxoClaro = '#A78BFA';
@@ -53,7 +53,7 @@
                     {{-- ====================== HEADER (logo em fundo branco) ====================== --}}
                     <tr>
                         <td style="background:#ffffff;padding:26px 40px 20px;" align="center">
-                            <img src="{{ $logoUrl }}" alt="LK Broker's — Consultoria de Seguros" height="58" style="height:58px;width:auto;display:block;margin:0 auto;">
+                            <img src="{{ $logoUrl }}" alt="{{ $nomeEmpresa }}" height="58" style="height:58px;width:auto;display:block;margin:0 auto;">
                         </td>
                     </tr>
                     {{-- Faixa de acento da marca --}}
@@ -70,7 +70,7 @@
                             @if($modo === 'personalizado')
                                 <div style="font-family:{{ $fontUI }};font-size:15px;line-height:1.7;color:{{ $texto }};">{!! nl2br(e($corpoLivre)) !!}</div>
                             @else
-                                <p style="margin:0 0 14px;font-family:{{ $fontUI }};font-size:17px;font-weight:700;color:{{ $texto }};">Sejam muito bem-vindos à LK Brokers Consultoria de Seguros!</p>
+                                <p style="margin:0 0 14px;font-family:{{ $fontUI }};font-size:17px;font-weight:700;color:{{ $texto }};">Sejam muito bem-vindos à {{ $nomeEmpresa }}!</p>
                                 <p style="margin:0 0 14px;font-family:{{ $fontUI }};font-size:15px;line-height:1.7;color:{{ $textoSec }};">
                                     É uma satisfação tê-los como nossos clientes. Agradecemos pela confiança e reforçamos que, a partir de agora, vocês contam com o nosso Concierge de Pós-Vendas, um atendimento dedicado para oferecer suporte durante toda a utilização do plano de saúde.
                                 </p>
@@ -202,7 +202,7 @@
                     {{-- Assinatura --}}
                     <tr>
                         <td style="padding:26px 40px 36px;">
-                            <p style="margin:0;font-family:{{ $fontUI }};font-size:16px;font-weight:700;color:{{ $roxo }};">Equipe LK Brokers | Concierge de Pós-Vendas</p>
+                            <p style="margin:0;font-family:{{ $fontUI }};font-size:16px;font-weight:700;color:{{ $roxo }};">Equipe {{ $nomeEmpresa }} | Concierge de Pós-Vendas</p>
                             <p style="margin:10px 0 0;font-family:{{ $fontUI }};font-size:14px;line-height:1.6;color:{{ $textoSec }};">🤝 Seu plano de saúde com acompanhamento de quem realmente cuida de você</p>
                         </td>
                     </tr>

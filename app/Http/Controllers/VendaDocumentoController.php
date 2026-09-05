@@ -8,6 +8,7 @@ use App\Jobs\TransferirDocumentosVenda;
 use App\Models\VendaDocumento;
 use App\Models\Vendas;
 use App\Services\Documentos\RegistrarVendaDocumentoService;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -110,7 +111,7 @@ class VendaDocumentoController extends Controller
 
     private function autorizar(Vendas $venda): void
     {
-        abort_unless($venda->empresa_id === Auth::user()->empresa_id, 404);
+        abort_unless($venda->empresa_id === app(TenantContext::class)->id(), 404);
         $role = (int) Auth::user()->user_role_id;
         abort_unless(in_array($role, [UserRole::VENDEDOR, UserRole::BACKOFFICE, UserRole::ADMINISTRATIVO, UserRole::DEVELOPER], true), 403);
         if ($role === UserRole::VENDEDOR) {

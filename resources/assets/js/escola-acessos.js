@@ -1,5 +1,5 @@
 /**
- * Escola LK Brokers — Liberar acesso de usuários à área do aluno.
+ * Academia Comercial — Liberar acesso de usuários à área do aluno.
  */
 'use strict';
 

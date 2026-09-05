@@ -7,8 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class ContaPagamento extends Model
 {
-        use HasFactory;
-    protected $table = "contas_pagamento";
+    use \App\Models\Concerns\BelongsToTenantThrough;
+    use HasFactory;
+
+    protected $table = 'contas_pagamento';
+
     protected $fillable = [
         'id',
         'user_id',

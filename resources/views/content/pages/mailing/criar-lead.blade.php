@@ -92,22 +92,14 @@
                 @csrf
                 <div class="edit-form-body">
 
-                    {{-- Campanha Alice Toggle --}}
-                    <div class="campanha-alice-toggle" id="campanhaAliceContainer">
-                        <div class="campanha-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
-                                <path d="M22 12A10 10 0 0 0 12 2v10z"/>
-                            </svg>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label" for="nome_base">Origem ou nome da base</label>
+                            <input type="text" class="form-control" id="nome_base" name="nome_base"
+                                maxlength="255" placeholder="Ex.: Indicação, evento ou campanha de setembro"
+                                value="{{ old('nome_base') }}" aria-describedby="nome_base_help" />
+                            <small id="nome_base_help" class="form-text">Opcional. Use um nome que identifique a origem dentro desta empresa.</small>
                         </div>
-                        <div class="campanha-text">
-                            <span class="campanha-label">Campanha Alice</span>
-                            <span class="campanha-description">Ativar para marcar este lead como parte da Campanha Alice</span>
-                        </div>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" id="campanhaAlice">
-                        </div>
-                        <input type="hidden" id="nome_base" name="nome_base" value="">
                     </div>
 
                     {{-- Secao: Dados Pessoais --}}

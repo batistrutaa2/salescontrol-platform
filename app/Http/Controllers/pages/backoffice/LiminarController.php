@@ -7,8 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Models\CancelamentoLiminar;
 use App\Models\CancelamentoLiminarDocumento;
 use App\Models\CancelamentoLiminarHistorico;
+use App\Models\User;
 use App\Models\Vendas;
 use App\Notifications\LiminarStatusAlterado;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +19,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class LiminarController extends Controller
 {
@@ -55,19 +58,19 @@ class LiminarController extends Controller
     // Documentos opcionais na abertura: campo do form => tipo_documento.
     private const DOCUMENTOS_OPCIONAIS = [
         'doc_print_protocolo' => 'PRINT_PROTOCOLO',
-        'doc_audio_hapvida' => 'AUDIO_HAPVIDA',
+        'doc_audio_operadora' => 'AUDIO_OPERADORA',
     ];
 
     // Todos os tipos aceitos no upload avulso (modal de detalhe).
     private const TIPOS_DOCUMENTO = [
         'CARTEIRINHA', 'CARTAO_CNPJ', 'COMPROVANTE_PAGAMENTO', 'CONTRATO_SOCIAL',
-        'RETORNO_CANCELAMENTO', 'RG_CLIENTE', 'PRINT_PROTOCOLO', 'AUDIO_HAPVIDA',
+        'RETORNO_CANCELAMENTO', 'RG_CLIENTE', 'PRINT_PROTOCOLO', 'AUDIO_OPERADORA',
         'CONCLUSAO_LIMINAR',
     ];
 
     // Regras de mime/tamanho por natureza do arquivo.
     // Áudio via mimetypes (o mime real do upload) — `mimes:mp3` falharia porque o
-    // Symfony adivinha 'mpga' para audio/mpeg. Cobre os formatos comuns (WhatsApp/Hapvida).
+    // Symfony adivinha 'mpga' para audio/mpeg. Cobre os formatos comuns enviados pelas operadoras.
     private const MIME_IMAGEM_PDF = 'mimes:pdf,jpg,jpeg,png|max:10240';
 
     private const MIME_AUDIO = 'mimetypes:audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/ogg,audio/opus,audio/mp4,audio/x-m4a,audio/aac,audio/webm,audio/3gpp|max:25600';
@@ -100,7 +103,7 @@ class LiminarController extends Controller
 
     private function empresaId(): int
     {
-        return Auth::user()->empresa_id;
+        return app(TenantContext::class)->id();
     }
 
     private function isAdvogada(): bool
@@ -190,9 +193,13 @@ class LiminarController extends Controller
     public function dados(Request $request): JsonResponse
     {
         $this->checkAccess();
+        $empresaId = $this->empresaId();
 
-        $registros = CancelamentoLiminar::with(['venda.user', 'responsavel'])
-            ->where('cancelamentos_liminares.empresa_id', $this->empresaId())
+        $registros = CancelamentoLiminar::with([
+            'venda.user' => fn ($query) => $query->where('users.empresa_id', $empresaId),
+            'responsavel' => fn ($query) => $query->where('users.empresa_id', $empresaId),
+        ])
+            ->where('cancelamentos_liminares.empresa_id', $empresaId)
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -229,7 +236,7 @@ class LiminarController extends Controller
         $this->checkBackoffice();
 
         $rules = [
-            'responsavel_id' => 'nullable|integer|exists:users,id',
+            'responsavel_id' => ['nullable', 'integer', $this->responsavelExistsRule()],
             'nome_empresa' => 'required|string|max:255',
             'cnpj' => 'required|string|max:20',
             'protocolo_cancelamento' => 'required|string|max:255',
@@ -242,9 +249,9 @@ class LiminarController extends Controller
         foreach (array_keys(self::DOCUMENTOS_ABERTURA) as $campo) {
             $rules[$campo] = 'required|file|'.self::MIME_IMAGEM_PDF;
         }
-        // Opcionais: print do protocolo (imagem/pdf) e áudio Hapvida (áudio).
+        // Opcionais: print do protocolo (imagem/pdf) e áudio da operadora.
         $rules['doc_print_protocolo'] = 'nullable|file|'.self::MIME_IMAGEM_PDF;
-        $rules['doc_audio_hapvida'] = 'nullable|file|'.self::MIME_AUDIO;
+        $rules['doc_audio_operadora'] = 'nullable|file|'.self::MIME_AUDIO;
 
         $validated = $request->validate($rules);
 
@@ -262,7 +269,8 @@ class LiminarController extends Controller
                 'protocolo_cancelamento' => $validated['protocolo_cancelamento'],
                 'email_procuracao' => $validated['email_procuracao'],
                 'nome_responsavel_procuracao' => $validated['nome_responsavel_procuracao'],
-                'responsavel_id' => $validated['responsavel_id'] ?? Auth::id(),
+                'responsavel_id' => $validated['responsavel_id']
+                    ?? (Auth::user()->isPlatformAdmin() ? null : Auth::id()),
                 'status' => 'EM_EXECUCAO',
                 'fase' => 'CANCELAMENTO_ABERTO',
             ];
@@ -304,14 +312,15 @@ class LiminarController extends Controller
     public function show(int $id): JsonResponse
     {
         $this->checkAccess();
+        $empresaId = $this->empresaId();
 
         $liminar = CancelamentoLiminar::with([
-            'documentos.uploadedBy',
-            'historico.usuario',
-            'venda.user',
-            'responsavel',
+            'documentos.uploadedBy' => fn ($query) => $query->where('users.empresa_id', $empresaId),
+            'historico.usuario' => fn ($query) => $query->where('users.empresa_id', $empresaId),
+            'venda.user' => fn ($query) => $query->where('users.empresa_id', $empresaId),
+            'responsavel' => fn ($query) => $query->where('users.empresa_id', $empresaId),
         ])
-            ->where('empresa_id', $this->empresaId())
+            ->where('empresa_id', $empresaId)
             ->findOrFail($id);
 
         $beneficiario = $liminar->getBeneficiario();
@@ -421,7 +430,7 @@ class LiminarController extends Controller
             'status_honorarios' => 'nullable|in:PENDENTE,PAGO,NAO_SE_APLICA',
             'status_recebimento' => 'nullable|in:BOLETO_GERADO,PAGO,PENDENTE',
             'valor_recebimento' => 'nullable|numeric|min:0',
-            'responsavel_id' => 'nullable|integer|exists:users,id',
+            'responsavel_id' => ['nullable', 'integer', $this->responsavelExistsRule()],
             'observacoes' => 'nullable|string|max:2000',
         ]);
 
@@ -498,10 +507,16 @@ class LiminarController extends Controller
     private function notificarAlteracao(CancelamentoLiminar $liminar, string $campo, ?string $anterior, string $novo, bool $incluirVendedor = true): void
     {
         $nomeBeneficiario = $liminar->getBeneficiario()?->nome ?? '—';
+        $empresaId = (int) $liminar->empresa_id;
 
-        $destinatarios = [$liminar->responsavel];
+        $destinatarios = [
+            User::query()->tenantMember($empresaId)->find($liminar->responsavel_id),
+        ];
         if ($incluirVendedor) {
-            $destinatarios[] = $liminar->venda?->user;
+            $vendedorId = Vendas::where('empresa_id', $empresaId)
+                ->whereKey($liminar->venda_id)
+                ->value('user_id');
+            $destinatarios[] = User::query()->tenantMember($empresaId)->find($vendedorId);
         }
 
         $alvos = collect($destinatarios)
@@ -520,6 +535,14 @@ class LiminarController extends Controller
                 alteradoPorNome: Auth::user()->name,
             ));
         }
+    }
+
+    private function responsavelExistsRule()
+    {
+        return Rule::exists('users', 'id')->where(fn ($query) => $query
+            ->where('empresa_id', $this->empresaId())
+            ->where('is_platform_admin', false)
+            ->whereIn('user_role_id', self::BACKOFFICE_ROLES));
     }
 
     // ---------------------------------------------------------------
@@ -601,8 +624,8 @@ class LiminarController extends Controller
     {
         $this->checkBackoffice();
 
-        // Áudio (Hapvida) aceita formatos de áudio; os demais tipos seguem imagem/pdf.
-        $regraArquivo = $request->input('tipo_documento') === 'AUDIO_HAPVIDA'
+        // O áudio da operadora aceita formatos de áudio; os demais tipos seguem imagem/pdf.
+        $regraArquivo = $request->input('tipo_documento') === 'AUDIO_OPERADORA'
             ? self::MIME_AUDIO
             : self::MIME_IMAGEM_PDF;
 

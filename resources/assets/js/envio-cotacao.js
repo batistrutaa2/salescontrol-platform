@@ -3,8 +3,8 @@
 /**
  * Envio de Cotação por E-mail — composição + preview ao vivo.
  *
- * O remetente é o e-mail do vendedor logado (validado no backend: precisa ser
- * @lkbrokers.com). Reaproveita Quill (editor) e SweetAlert2 (toasts).
+ * O remetente é o e-mail do vendedor logado, validado contra o domínio
+ * corporativo da empresa ativa. Reaproveita Quill e SweetAlert2.
  */
 (function () {
     const cfg = window.envioCotacao || {};
@@ -149,7 +149,10 @@
     // -------------------------------------------------- envio
     async function enviar() {
         if (cfg.emailValido === false) {
-            alerta('Envio bloqueado', 'Seu e-mail de acesso não é @lkbrokers.com.');
+            const detalhe = cfg.dominioPermitido
+                ? `Seu e-mail de acesso não pertence a @${cfg.dominioPermitido}.`
+                : 'A empresa ativa não possui domínio corporativo configurado.';
+            alerta('Envio bloqueado', detalhe);
             return;
         }
 

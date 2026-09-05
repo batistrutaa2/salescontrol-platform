@@ -3,7 +3,7 @@
 namespace Tests\Feature\Backoffice;
 
 use App\Enums\NaturezaEtapaSolicitacao;
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\TipoSolicitacaoPosVenda;
 use App\Enums\UserRole;
 use App\Models\Empresa;
@@ -12,6 +12,8 @@ use App\Models\PosVendaSolicitacao;
 use App\Models\PosVendaSolicitacaoHistorico;
 use App\Models\User;
 use App\Models\Vendas;
+use App\Services\TabulationCatalog;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -30,6 +32,8 @@ class CentralSolicitacoesTest extends TestCase
 
     private User $vendedor;
 
+    private TabulationCatalog $tabulationCatalog;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -42,24 +46,14 @@ class CentralSolicitacoesTest extends TestCase
             ['id' => UserRole::VENDEDOR, 'tipo_usuario' => 'VENDEDOR', 'created_at' => now(), 'updated_at' => now()],
         ]);
 
+        $this->tabulationCatalog = app(TabulationCatalog::class);
+        $empresaAnterior = Empresa::factory()->create();
+        $this->tabulationCatalog->provision($empresaAnterior->id);
         $this->empresa = Empresa::factory()->create();
+        $this->tabulationCatalog->provision($this->empresa->id);
         $this->backoffice = $this->criarUsuario(UserRole::BACKOFFICE);
         $this->vendedor = $this->criarUsuario(UserRole::VENDEDOR);
-
-        DB::table('tabulacoes')->insert([
-            [
-                'id' => Tabulations::IMPLANTADO, 'empresa_id' => $this->empresa->id, 'descricao' => 'IMPLANTADO',
-                'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
-            ],
-            [
-                'id' => Tabulations::ANALISE_OPERADORA, 'empresa_id' => $this->empresa->id, 'descricao' => 'ANÁLISE NA OPERADORA',
-                'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
-            ],
-            [
-                'id' => Tabulations::NEGOCIAÇÃO, 'empresa_id' => $this->empresa->id, 'descricao' => 'NEGOCIAÇÃO',
-                'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
-            ],
-        ]);
+        app(TenantContext::class)->set($this->empresa->id);
     }
 
     private function criarUsuario(int $role, ?Empresa $empresa = null): User
@@ -71,43 +65,52 @@ class CentralSolicitacoesTest extends TestCase
         ]);
     }
 
-    private function criarContrato(?Empresa $empresa = null, ?User $dono = null, int $tabulacaoId = Tabulations::IMPLANTADO): Vendas
+    private function criarContrato(?Empresa $empresa = null, ?User $dono = null, string $tabulacaoCode = TabulationCode::IMPLANTADO): Vendas
     {
         $empresa = $empresa ?? $this->empresa;
 
-        $contatoId = DB::table('contatos')->insertGetId([
-            'empresa_id' => $empresa->id, 'user_import_id' => $this->backoffice->id,
-            'nome_cliente' => 'Cliente '.uniqid(), 'cpf' => (string) random_int(10000000000, 99999999999),
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
+        return app(TenantContext::class)->run($empresa->id, function () use ($empresa, $dono, $tabulacaoCode) {
+            $this->tabulationCatalog->provision($empresa->id);
+            $dono ??= $empresa->is($this->empresa)
+                ? $this->backoffice
+                : $this->criarUsuario(UserRole::BACKOFFICE, $empresa);
 
-        return Vendas::create([
-            'empresa_id' => $empresa->id, 'user_id' => ($dono ?? $this->backoffice)->id,
-            'contato_id' => $contatoId, 'tabulacao_id' => $tabulacaoId,
-            'nome_contrato' => 'Contrato '.uniqid(), 'cpf_cnpj' => (string) random_int(10000000000000, 99999999999999),
-            'operadora' => 'AMIL', 'valor_contrato' => 500.00, 'vidas' => 1,
-            'data_vigencia' => now(), 'data_implantacao' => now(),
-        ]);
+            $contatoId = DB::table('contatos')->insertGetId([
+                'empresa_id' => $empresa->id, 'user_import_id' => $dono->id,
+                'nome_cliente' => 'Cliente '.uniqid(), 'cpf' => (string) random_int(10000000000, 99999999999),
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+
+            return Vendas::create([
+                'empresa_id' => $empresa->id, 'user_id' => $dono->id,
+                'contato_id' => $contatoId, 'tabulacao_id' => $this->tabulationCatalog->id($empresa->id, $tabulacaoCode),
+                'nome_contrato' => 'Contrato '.uniqid(), 'cpf_cnpj' => (string) random_int(10000000000000, 99999999999999),
+                'operadora' => 'AMIL', 'valor_contrato' => 500.00, 'vidas' => 1,
+                'data_vigencia' => now(), 'data_implantacao' => now(),
+            ]);
+        });
     }
 
     private function criarSolicitacao(Vendas $venda, array $overrides = []): PosVendaSolicitacao
     {
-        PosVendaFluxoEtapa::seedDefaults($venda->empresa_id);
+        return app(TenantContext::class)->run((int) $venda->empresa_id, function () use ($venda, $overrides) {
+            PosVendaFluxoEtapa::seedDefaults($venda->empresa_id);
 
-        $tipo = $overrides['tipo'] ?? TipoSolicitacaoPosVenda::ENVIO_BOLETO->value;
-        $etapaId = $overrides['etapa_id'] ?? PosVendaFluxoEtapa::where('empresa_id', $venda->empresa_id)
-            ->where('tipo', $tipo)->orderBy('ordem')->value('id');
+            $tipo = $overrides['tipo'] ?? TipoSolicitacaoPosVenda::ENVIO_BOLETO->value;
+            $etapaId = $overrides['etapa_id'] ?? PosVendaFluxoEtapa::where('empresa_id', $venda->empresa_id)
+                ->where('tipo', $tipo)->orderBy('ordem')->value('id');
 
-        return PosVendaSolicitacao::create(array_merge([
-            'venda_id' => $venda->id,
-            'empresa_id' => $venda->empresa_id,
-            'tipo' => $tipo,
-            'etapa_id' => $etapaId,
-            'titulo' => 'Solicitação teste',
-            'status' => PosVendaSolicitacao::STATUS_ABERTA,
-            'origem' => PosVendaSolicitacao::ORIGEM_BACKOFFICE,
-            'created_by' => $this->backoffice->id,
-        ], $overrides));
+            return PosVendaSolicitacao::create(array_merge([
+                'venda_id' => $venda->id,
+                'empresa_id' => $venda->empresa_id,
+                'tipo' => $tipo,
+                'etapa_id' => $etapaId,
+                'titulo' => 'Solicitação teste',
+                'status' => PosVendaSolicitacao::STATUS_ABERTA,
+                'origem' => PosVendaSolicitacao::ORIGEM_BACKOFFICE,
+                'created_by' => $this->backoffice->id,
+            ], $overrides));
+        });
     }
 
     private function etapaDoTipo(string $tipo, string $natureza): PosVendaFluxoEtapa
@@ -200,6 +203,7 @@ class CentralSolicitacoesTest extends TestCase
 
         // Multi-tenant: outra empresa não enxerga.
         $outra = Empresa::factory()->create();
+        $this->tabulationCatalog->provision($outra->id);
         $userOutra = $this->criarUsuario(UserRole::ADMINISTRATIVO, $outra);
         $this->actingAs($userOutra)
             ->getJson(route('backoffice.solicitacoes.buscarContratos', ['q' => substr($venda->nome_contrato, 0, 10)]))
@@ -208,13 +212,13 @@ class CentralSolicitacoesTest extends TestCase
 
     public function test_busca_e_abertura_aceitam_contrato_em_processo_de_implantacao(): void
     {
-        $venda = $this->criarContrato(tabulacaoId: Tabulations::ANALISE_OPERADORA);
+        $venda = $this->criarContrato(tabulacaoCode: TabulationCode::ANALISE_OPERADORA);
 
         $this->actingAs($this->backoffice)
             ->getJson(route('backoffice.solicitacoes.buscarContratos', ['q' => substr($venda->nome_contrato, 0, 10)]))
             ->assertOk()
             ->assertJsonPath('contratos.0.id', $venda->id)
-            ->assertJsonPath('contratos.0.status', 'ANÁLISE NA OPERADORA');
+            ->assertJsonPath('contratos.0.status', 'ANÁLISE DA OPERADORA');
 
         $this->actingAs($this->backoffice)
             ->postJson(route('backoffice.solicitacoes.store'), [
@@ -228,7 +232,7 @@ class CentralSolicitacoesTest extends TestCase
 
     public function test_busca_e_abertura_rejeitam_contrato_ainda_em_negociacao(): void
     {
-        $venda = $this->criarContrato(tabulacaoId: Tabulations::NEGOCIAÇÃO);
+        $venda = $this->criarContrato(tabulacaoCode: TabulationCode::NEGOCIACAO);
 
         $this->actingAs($this->backoffice)
             ->getJson(route('backoffice.solicitacoes.buscarContratos', ['q' => substr($venda->nome_contrato, 0, 10)]))
@@ -275,6 +279,30 @@ class CentralSolicitacoesTest extends TestCase
         ]);
     }
 
+    public function test_master_global_nao_pode_ser_atribuido_como_responsavel_operacional(): void
+    {
+        $venda = $this->criarContrato();
+        $master = User::factory()->create([
+            'empresa_id' => $this->empresa->id,
+            'user_role_id' => UserRole::DEVELOPER,
+            'is_platform_admin' => true,
+            'ativo' => 'Y',
+        ]);
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.store'), [
+                'venda_id' => $venda->id,
+                'tipo' => TipoSolicitacaoPosVenda::CANCELAMENTO->value,
+                'responsavel_id' => $master->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('responsavel_id');
+
+        $this->assertDatabaseMissing('pos_venda_solicitacoes', [
+            'responsavel_id' => $master->id,
+        ]);
+    }
+
     public function test_store_validacoes(): void
     {
         $venda = $this->criarContrato();
@@ -291,7 +319,10 @@ class CentralSolicitacoesTest extends TestCase
 
         // Venda de outra empresa.
         $outraEmpresa = Empresa::factory()->create();
-        $vendaOutra = $this->criarContrato($outraEmpresa);
+        $vendaOutra = app(TenantContext::class)->run(
+            $outraEmpresa->id,
+            fn () => $this->criarContrato($outraEmpresa)
+        );
         $this->actingAs($this->backoffice)->postJson(route('backoffice.solicitacoes.store'), [
             'venda_id' => $vendaOutra->id, 'tipo' => TipoSolicitacaoPosVenda::OUTROS->value,
         ])->assertStatus(422);
@@ -475,6 +506,33 @@ class CentralSolicitacoesTest extends TestCase
 
         $this->assertSame($solicitacao->id, $resp->json('registro.id'));
         $this->assertIsArray($resp->json('historico'));
+    }
+
+    public function test_show_nao_resolve_responsavel_criador_ou_autor_de_outro_tenant(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $usuarioExterno = $this->criarUsuario(UserRole::BACKOFFICE, $outraEmpresa);
+        $usuarioExterno->forceFill(['name' => 'Usuário externo confidencial'])->save();
+        $venda = $this->criarContrato();
+        $solicitacao = $this->criarSolicitacao($venda);
+        DB::table('pos_venda_solicitacoes')->where('id', $solicitacao->id)->update([
+            'responsavel_id' => $usuarioExterno->id,
+            'created_by' => $usuarioExterno->id,
+        ]);
+        PosVendaSolicitacaoHistorico::create([
+            'solicitacao_id' => $solicitacao->id,
+            'user_id' => $usuarioExterno->id,
+            'campo_alterado' => 'atualizacao',
+            'observacao' => 'Registro local com autor adulterado.',
+        ]);
+
+        $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.solicitacoes.show', $solicitacao->id))
+            ->assertOk()
+            ->assertJsonPath('registro.responsavel_nome', null)
+            ->assertJsonPath('registro.criado_por_nome', null)
+            ->assertJsonPath('historico.0.usuario_nome', null)
+            ->assertDontSee('Usuário externo confidencial');
     }
 
     // ---------------------------------------------------------------

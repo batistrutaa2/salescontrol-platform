@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class RegrasComissionamentoParcela extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
     use HasFactory;
 
     protected $table = 'regras_comissionamento_parcelas';

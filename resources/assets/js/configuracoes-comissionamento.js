@@ -46,6 +46,17 @@
                 }
             },
             {
+                data: 'percentual_angariacao',
+                className: 'text-end',
+                render: (data, type) => {
+                    const value = num(data);
+                    if (type === 'display' || type === 'filter') {
+                        return `<span class="cell-percent">${value.toFixed(2)} %</span>`;
+                    }
+                    return value;
+                }
+            },
+            {
                 data: 'imposto',
                 className: 'text-end',
                 render: (data, type) => {
@@ -186,6 +197,7 @@
         // Preencher campos
         $('#user_id').val(row.user?.id || '').trigger('change');
         $('#percentual').val(num(row.percentual).toFixed(2));
+        $('#percentual_angariacao').val(num(row.percentual_angariacao).toFixed(2));
         $('#imposto').val(num(row.imposto).toFixed(2));
         $('#grade').val((row.grade || '').toUpperCase());
 

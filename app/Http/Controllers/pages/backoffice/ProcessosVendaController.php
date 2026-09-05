@@ -36,16 +36,16 @@ class ProcessosVendaController extends Controller
 
         return response()->json([
             'success' => true,
-            'resultados' => $this->processos->buscarContratos($termo, Auth::user()->empresa_id, 20),
+            'resultados' => $this->processos->buscarContratos($termo, $this->tenantId(), 20),
         ]);
     }
 
     public function dados(int $vendaId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
-            $venda = Vendas::with('tabulacao:id,descricao')
+            $venda = Vendas::with('tabulacao:id,descricao,codigo')
                 ->where('id', $vendaId)
                 ->where('empresa_id', $empresaId)
                 ->first();
@@ -92,6 +92,7 @@ class ProcessosVendaController extends Controller
                     'cpf_cnpj' => $venda->cpf_cnpj,
                     'operadora' => $venda->operadora,
                     'status' => $venda->tabulacao->descricao ?? '—',
+                    'status_codigo' => $venda->tabulacao?->codigo,
                     'data_vigencia' => optional($venda->data_vigencia)->format('d/m/Y'),
                 ],
                 'resumo' => $this->processos->resumo($vendaId, $empresaId),
@@ -105,9 +106,11 @@ class ProcessosVendaController extends Controller
                 'fases' => FaseCancelamento::fluxo(),
             ]);
         } catch (\Throwable $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao carregar processos: '.$e->getMessage(),
+                'message' => 'Não foi possível carregar os processos neste momento.',
             ], 500);
         }
     }
@@ -122,7 +125,7 @@ class ProcessosVendaController extends Controller
                 'protocolo' => ['nullable', 'string', 'max:120'],
             ]);
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $demanda = \App\Models\VendaDemanda::with('venda:id,empresa_id,backoffice_id')
                 ->where('id', $id)
@@ -147,7 +150,9 @@ class ProcessosVendaController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['success' => false, 'message' => 'Erro de validação.', 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => 'Erro ao atualizar: '.$e->getMessage()], 500);
+            report($e);
+
+            return response()->json(['success' => false, 'message' => 'Não foi possível atualizar o cancelamento neste momento.'], 500);
         }
     }
 
@@ -162,7 +167,7 @@ class ProcessosVendaController extends Controller
                 'fase' => ['required', 'string', 'in:'.implode(',', array_column(\App\Enums\FasePortabilidade::fluxo(), 'value'))],
             ]);
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $port = \App\Models\VendaPortabilidade::with('venda:id,empresa_id,backoffice_id')
                 ->where('id', $id)
@@ -189,7 +194,9 @@ class ProcessosVendaController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['success' => false, 'message' => 'Erro de validação.', 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => 'Erro ao atualizar: '.$e->getMessage()], 500);
+            report($e);
+
+            return response()->json(['success' => false, 'message' => 'Não foi possível atualizar a portabilidade neste momento.'], 500);
         }
     }
 
@@ -218,7 +225,7 @@ class ProcessosVendaController extends Controller
         return $this->executarEmailCriado(function () use ($request, $id) {
             $registro = \App\Models\VendaEmailCriado::with('venda:id,empresa_id,backoffice_id')
                 ->where('id', $id)
-                ->where('empresa_id', Auth::user()->empresa_id)
+                ->where('empresa_id', $this->tenantId())
                 ->first();
 
             if (! $registro || ! $registro->venda) {
@@ -240,7 +247,7 @@ class ProcessosVendaController extends Controller
         return $this->executarEmailCriado(function () use ($id) {
             $registro = \App\Models\VendaEmailCriado::with('venda:id,empresa_id,backoffice_id')
                 ->where('id', $id)
-                ->where('empresa_id', Auth::user()->empresa_id)
+                ->where('empresa_id', $this->tenantId())
                 ->first();
 
             if (! $registro || ! $registro->venda) {
@@ -260,7 +267,7 @@ class ProcessosVendaController extends Controller
     private function vendaEditavel(int $vendaId)
     {
         $venda = Vendas::where('id', $vendaId)
-            ->where('empresa_id', Auth::user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->first();
 
         if (! $venda) {
@@ -293,7 +300,9 @@ class ProcessosVendaController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['success' => false, 'message' => 'Erro de validação.', 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => 'Erro: '.$e->getMessage()], 500);
+            report($e);
+
+            return response()->json(['success' => false, 'message' => 'Não foi possível processar o e-mail neste momento.'], 500);
         }
     }
 

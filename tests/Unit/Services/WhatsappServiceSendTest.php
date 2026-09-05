@@ -14,13 +14,14 @@ class WhatsappServiceSendTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['services.whatsapp.endpoint' => 'https://whatsapp.example.test/backend/api/messages/send']);
         $this->service = new WhatsappService();
     }
 
     public function test_por_padrao_nao_abre_ticket(): void
     {
         Http::fake([
-            '*lkbrokers.com*' => Http::response(['ok' => true], 200),
+            '*example.test*' => Http::response(['ok' => true], 200),
         ]);
 
         $this->service->send('tok', '(85) 99999-8888', 'Notificação interna');
@@ -35,7 +36,7 @@ class WhatsappServiceSendTest extends TestCase
     public function test_abre_ticket_quando_save_on_ticket_true(): void
     {
         Http::fake([
-            '*lkbrokers.com*' => Http::response(['ok' => true], 200),
+            '*example.test*' => Http::response(['ok' => true], 200),
         ]);
 
         $this->service->send('tok', '(85) 99999-8888', 'Boas-vindas', saveOnTicket: true);
@@ -48,5 +49,17 @@ class WhatsappServiceSendTest extends TestCase
                 && $payload['body'] === 'Boas-vindas'
                 && $request->hasHeader('Authorization', 'Bearer tok');
         });
+    }
+
+    public function test_falha_fechado_sem_endpoint_configurado(): void
+    {
+        config(['services.whatsapp.endpoint' => null]);
+        Http::fake();
+
+        $response = $this->service->send('tok', '5585999998888', 'Mensagem');
+
+        $this->assertFalse($response['success']);
+        $this->assertStringContainsString('não configurada', $response['message']);
+        Http::assertNothingSent();
     }
 }

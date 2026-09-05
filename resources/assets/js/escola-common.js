@@ -1,5 +1,5 @@
 /**
- * Escola LK Brokers — helpers compartilhados.
+ * Academia Comercial — helpers compartilhados.
  * Toast no padrão do design system (glass) — replica showModernToast do projeto.
  */
 'use strict';

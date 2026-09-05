@@ -82,11 +82,12 @@ class CredenciaisAcessoTest extends TestCase
         $this->assertDatabaseHas('credenciais_acesso', [
             'empresa_id' => $this->empresa->id,
             'nome' => 'MD4 CONSULTORIA',
-            'senha' => '7075263f',
             'created_by' => $this->admin->id,
         ]);
 
         $credencial = CredencialAcesso::first();
+        $this->assertSame('7075263f', $credencial->senha);
+        $this->assertNotSame('7075263f', DB::table('credenciais_acesso')->where('id', $credencial->id)->value('senha'));
         $this->assertDatabaseHas('credenciais_acesso_historico', [
             'credencial_id' => $credencial->id,
             'acao' => 'CRIACAO',
@@ -182,8 +183,11 @@ class CredenciaisAcessoTest extends TestCase
 
         $resp->assertStatus(201)->assertJson(['success' => true, 'quantidade' => 2]);
         // Nome em maiúsculas (mutator), contexto compartilhado replicado em cada acesso.
-        $this->assertDatabaseHas('credenciais_acesso', ['empresa_id' => $this->empresa->id, 'nome' => 'ROFER MASTER', 'senha' => 'a1', 'tipo' => 'Empresa', 'observacao' => 'mesmo portal']);
-        $this->assertDatabaseHas('credenciais_acesso', ['nome' => 'ROFER SUBMASTER', 'senha' => 'a2', 'observacao' => 'mesmo portal']);
+        $this->assertDatabaseHas('credenciais_acesso', ['empresa_id' => $this->empresa->id, 'nome' => 'ROFER MASTER', 'tipo' => 'Empresa', 'observacao' => 'mesmo portal']);
+        $this->assertDatabaseHas('credenciais_acesso', ['nome' => 'ROFER SUBMASTER', 'observacao' => 'mesmo portal']);
+        $this->assertSame('a1', CredencialAcesso::where('nome', 'ROFER MASTER')->sole()->senha);
+        $this->assertSame('a2', CredencialAcesso::where('nome', 'ROFER SUBMASTER')->sole()->senha);
+        $this->assertNotSame('a1', DB::table('credenciais_acesso')->where('nome', 'ROFER MASTER')->value('senha'));
         // Histórico de criação para cada uma.
         $this->assertDatabaseCount('credenciais_acesso_historico', 2);
     }
@@ -280,14 +284,15 @@ class CredenciaisAcessoTest extends TestCase
             'credencial_id' => $credencial->id,
             'acao' => 'EDICAO',
             'campo' => 'Senha',
-            'valor_anterior' => '7075263f',
-            'valor_novo' => 'NovaSenha@1',
+            'valor_anterior' => null,
+            'valor_novo' => null,
         ]);
         $this->assertDatabaseHas('credenciais_acesso', [
             'id' => $credencial->id,
-            'senha' => 'NovaSenha@1',
             'updated_by' => $this->admin->id,
         ]);
+        $this->assertSame('NovaSenha@1', $credencial->fresh()->senha);
+        $this->assertNotSame('NovaSenha@1', DB::table('credenciais_acesso')->where('id', $credencial->id)->value('senha'));
     }
 
     public function test_destroy_gera_historico_de_exclusao(): void
@@ -359,10 +364,12 @@ class CredenciaisAcessoTest extends TestCase
             'operadora_id' => $this->operadora->id,
             'nome' => 'MD4 CONSULTORIA',
             'login' => '43.685.447/0001-54',
-            'senha' => '7075263f',
             'observacao' => 'Dia 08',
             'created_by' => $this->admin->id,
         ]);
+        $credencial = CredencialAcesso::where('nome', 'MD4 CONSULTORIA')->sole();
+        $this->assertSame('7075263f', $credencial->senha);
+        $this->assertNotSame('7075263f', DB::table('credenciais_acesso')->where('id', $credencial->id)->value('senha'));
         $this->assertSame(2, CredencialAcessoHistorico::where('acao', 'CRIACAO')->count());
     }
 
@@ -393,9 +400,39 @@ class CredenciaisAcessoTest extends TestCase
                 'arquivo' => $this->csvAcessos(),
                 'mapping' => ['nome' => 0],
             ])
-            ->assertNotFound();
+            ->assertSessionHasErrors('operadora_id');
 
         $this->assertSame(0, CredencialAcesso::count());
+    }
+
+    public function test_historico_nao_expoe_usuario_de_outra_empresa_em_vinculo_adulterado(): void
+    {
+        $credencial = CredencialAcesso::create($this->payload() + [
+            'empresa_id' => $this->empresa->id,
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+        $outraEmpresa = Empresa::factory()->create();
+        $usuarioExterno = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'name' => 'Auditor externo confidencial',
+            'ativo' => 'Y',
+        ]);
+        CredencialAcessoHistorico::create([
+            'empresa_id' => $this->empresa->id,
+            'credencial_id' => $credencial->id,
+            'user_id' => $usuarioExterno->id,
+            'acao' => 'EDICAO',
+            'campo' => 'Senha',
+            'created_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('backoffice.credenciais.historico', $credencial->id))
+            ->assertOk()
+            ->assertJsonPath('historico.0.usuario', 'Sistema')
+            ->assertDontSee('Auditor externo confidencial');
     }
 
     public function test_multitenant_nao_acessa_credencial_de_outra_empresa(): void

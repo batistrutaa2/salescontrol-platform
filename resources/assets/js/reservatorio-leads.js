@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const page = payload.itens;
       state.lastPage = page.last_page;
       document.getElementById('metric-available').textContent = number(payload.metricas.disponiveis);
-      document.getElementById('metric-entered').textContent = number(payload.metricas.entradas_30_dias);
+      document.getElementById('metric-entered').textContent = number(payload.metricas.entradas_na_janela);
       document.getElementById('metric-distributed').textContent = number(payload.metricas.distribuidos_mes);
       document.getElementById('metric-blocked').textContent = number(payload.metricas.bloqueados);
       hydrateBases(payload.bases, base);

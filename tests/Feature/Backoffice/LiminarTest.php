@@ -4,11 +4,14 @@ namespace Tests\Feature\Backoffice;
 
 use App\Enums\UserRole;
 use App\Models\CancelamentoLiminar;
+use App\Models\CancelamentoLiminarDocumento;
+use App\Models\CancelamentoLiminarHistorico;
 use App\Models\Empresa;
 use App\Models\User;
 use App\Models\Vendas;
 use App\Models\VendaTitular;
 use App\Notifications\LiminarStatusAlterado;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -158,7 +161,7 @@ class LiminarTest extends TestCase
         $resp = $this->actingAs($this->admin)
             ->post(route('backoffice.liminar.store'), $this->payload([
                 'doc_print_protocolo' => UploadedFile::fake()->create('print.png', 80, 'image/png'),
-                'doc_audio_hapvida' => UploadedFile::fake()->create('ligacao.mp3', 300, 'audio/mpeg'),
+                'doc_audio_operadora' => UploadedFile::fake()->create('ligacao.mp3', 300, 'audio/mpeg'),
             ]));
 
         $resp->assertOk()->assertJson(['success' => true]);
@@ -167,26 +170,26 @@ class LiminarTest extends TestCase
         // 5 obrigatórios + 2 opcionais.
         $this->assertSame(7, $liminar->documentos()->count());
         Storage::disk('s3')->assertExists("liminares/{$this->empresa->id}/{$liminar->id}/print_protocolo.png");
-        Storage::disk('s3')->assertExists("liminares/{$this->empresa->id}/{$liminar->id}/audio_hapvida.mp3");
+        Storage::disk('s3')->assertExists("liminares/{$this->empresa->id}/{$liminar->id}/audio_operadora.mp3");
         $this->assertDatabaseHas('cancelamentos_liminares_documentos', [
             'cancelamento_liminar_id' => $liminar->id,
-            'tipo_documento' => 'AUDIO_HAPVIDA',
+            'tipo_documento' => 'AUDIO_OPERADORA',
         ]);
     }
 
-    public function test_upload_avulso_aceita_audio_no_tipo_hapvida(): void
+    public function test_upload_avulso_aceita_audio_da_operadora(): void
     {
         Storage::fake('s3');
         $liminar = $this->criarLiminar();
 
         $this->actingAs($this->admin)
             ->post(route('backoffice.liminar.uploadDocumento', $liminar->id), [
-                'tipo_documento' => 'AUDIO_HAPVIDA',
+                'tipo_documento' => 'AUDIO_OPERADORA',
                 'arquivo' => UploadedFile::fake()->create('audio.mp3', 200, 'audio/mpeg'),
             ])
             ->assertOk();
 
-        Storage::disk('s3')->assertExists("liminares/{$this->empresa->id}/{$liminar->id}/audio_hapvida.mp3");
+        Storage::disk('s3')->assertExists("liminares/{$this->empresa->id}/{$liminar->id}/audio_operadora.mp3");
     }
 
     public function test_upload_avulso_rejeita_audio_em_tipo_de_imagem(): void
@@ -458,6 +461,87 @@ class LiminarTest extends TestCase
             ->getJson(route('backoffice.liminar.buscarConcluidas', ['q' => 'MD4']))
             ->assertOk()
             ->assertJsonPath('liminares', []);
+    }
+
+    public function test_master_visualiza_somente_liminares_da_empresa_ativa(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $master = User::factory()->create([
+            'empresa_id' => $this->empresa->id,
+            'user_role_id' => UserRole::DEVELOPER,
+            'is_platform_admin' => true,
+            'ativo' => 'Y',
+        ]);
+
+        CancelamentoLiminar::create([
+            'empresa_id' => $this->empresa->id,
+            'nome_empresa' => 'Empresa de origem',
+            'nome_contrato' => 'Contrato A',
+            'cnpj' => '11.111.111/0001-11',
+            'status' => 'EM_EXECUCAO',
+            'fase' => 'CANCELAMENTO_ABERTO',
+        ]);
+        $liminarAtiva = CancelamentoLiminar::create([
+            'empresa_id' => $outraEmpresa->id,
+            'nome_empresa' => 'Empresa selecionada',
+            'nome_contrato' => 'Contrato B',
+            'cnpj' => '22.222.222/0001-22',
+            'status' => 'EM_EXECUCAO',
+            'fase' => 'CANCELAMENTO_ABERTO',
+        ]);
+
+        $this->actingAs($master)
+            ->withSession([TenantContext::SESSION_KEY => $outraEmpresa->id])
+            ->getJson(route('backoffice.liminar.dados'))
+            ->assertOk()
+            ->assertJsonCount(1, 'colunas.CANCELAMENTO_ABERTO')
+            ->assertJsonPath('colunas.CANCELAMENTO_ABERTO.0.id', $liminarAtiva->id)
+            ->assertJsonPath('colunas.CANCELAMENTO_ABERTO.0.nome_empresa', 'Empresa selecionada');
+    }
+
+    public function test_relacoes_inconsistentes_nao_vazam_usuarios_nem_recebem_notificacao(): void
+    {
+        Notification::fake();
+        $outraEmpresa = Empresa::factory()->create();
+        $usuarioExterno = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::BACKOFFICE,
+            'ativo' => 'Y',
+        ]);
+        $liminar = $this->criarLiminar();
+
+        DB::table('vendas')->where('id', $this->venda->id)->update(['user_id' => $usuarioExterno->id]);
+        DB::table('cancelamentos_liminares')->where('id', $liminar->id)->update(['responsavel_id' => $usuarioExterno->id]);
+        CancelamentoLiminarDocumento::create([
+            'cancelamento_liminar_id' => $liminar->id,
+            'empresa_id' => $this->empresa->id,
+            'tipo_documento' => 'CONTRATO_SOCIAL',
+            'nome_original' => 'documento.pdf',
+            'path_s3' => "liminares/{$this->empresa->id}/{$liminar->id}/documento.pdf",
+            'uploaded_by' => $usuarioExterno->id,
+        ]);
+        CancelamentoLiminarHistorico::create([
+            'cancelamento_liminar_id' => $liminar->id,
+            'user_id' => $usuarioExterno->id,
+            'campo_alterado' => 'fase',
+            'valor_novo' => 'Cancelamento Aberto',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson(route('backoffice.liminar.show', $liminar->id));
+
+        $response->assertOk()
+            ->assertJsonPath('liminar.responsavel', null)
+            ->assertJsonPath('liminar.venda.user', null)
+            ->assertJsonPath('documentos.0.uploaded_by_nome', null)
+            ->assertJsonPath('historico.0.usuario_nome', null)
+            ->assertDontSee($usuarioExterno->name);
+
+        $this->postJson(route('backoffice.liminar.mover', $liminar->id), [
+            'fase' => 'PROCURACAO_ENVIADA',
+        ])->assertOk();
+
+        Notification::assertNotSentTo($usuarioExterno, LiminarStatusAlterado::class);
     }
 
     public function test_mover_valida_fase_invalida(): void

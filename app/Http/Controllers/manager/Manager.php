@@ -3,36 +3,41 @@
 namespace App\Http\Controllers\manager;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Providers\MenuServiceProvider;
+use App\Models\Empresa;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class Manager extends Controller
 {
-    public function changeCompany($companyId)
+    public function changeCompany(Request $request)
     {
-        $user = User::find(Auth::user()->id);
-        $user->empresa_id = $companyId;
-        $user->save();
-        return redirect()->route('home.dashboard')
-            ->with('status', 'success')
-            ->with('message', 'Empresa Atualizada');
-    }
-
-    public function switchModule(Request $request)
-    {
-        $request->validate([
-            'mode' => 'required|in:' . MenuServiceProvider::MODE_SAUDE . ',' . MenuServiceProvider::MODE_BENEFICIOS,
+        $data = $request->validate([
+            'empresa_id' => ['required', 'integer', 'exists:empresas,id'],
         ]);
 
-        $mode = $request->input('mode');
-        $request->session()->put(MenuServiceProvider::SESSION_KEY, $mode);
+        $user = $request->user();
+        abort_unless($user->isPlatformAdmin(), 403);
 
-        $target = $mode === MenuServiceProvider::MODE_BENEFICIOS
-            ? route('lk-beneficios.dashboard')
-            : route('home.dashboard');
+        $empresa = Empresa::query()->findOrFail($data['empresa_id']);
+        $fromEmpresaId = (int) $request->session()->get(
+            TenantContext::SESSION_KEY,
+            $user->getRawOriginal('empresa_id')
+        );
 
-        return redirect($target)->with('status', 'success');
+        DB::table('tenant_context_switches')->insert([
+            'user_id' => $user->id,
+            'from_empresa_id' => $fromEmpresaId ?: null,
+            'to_empresa_id' => $empresa->id,
+            'ip_address' => $request->ip(),
+            'user_agent' => mb_substr((string) $request->userAgent(), 0, 500),
+            'created_at' => now(),
+        ]);
+
+        $request->session()->put(TenantContext::SESSION_KEY, $empresa->id);
+
+        return redirect()->route('home.dashboard')
+            ->with('status', 'success')
+            ->with('message', "Empresa ativa alterada para {$empresa->nome_fantasia}.");
     }
 }

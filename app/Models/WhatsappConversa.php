@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use LogicException;
 
 class WhatsappConversa extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'whatsapp_conversas';
 
     protected $fillable = [
@@ -30,6 +33,28 @@ class WhatsappConversa extends Model
     protected $casts = [
         'last_message_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $conversa): void {
+            $instanciaValida = WhatsappInstancia::query()
+                ->whereKey($conversa->instancia_id)
+                ->where('empresa_id', $conversa->empresa_id)
+                ->where('user_id', $conversa->user_id)
+                ->exists();
+
+            if (! $instanciaValida) {
+                throw new LogicException('A instância do WhatsApp não pertence à empresa e ao usuário da conversa.');
+            }
+
+            foreach ([Contatos::class => 'contato_id', Tabulacoes::class => 'tabulacao_id'] as $model => $foreignKey) {
+                if ($conversa->{$foreignKey} !== null
+                    && ! $model::query()->whereKey($conversa->{$foreignKey})->where('empresa_id', $conversa->empresa_id)->exists()) {
+                    throw new LogicException('O vínculo da conversa não pertence à empresa ativa.');
+                }
+            }
+        });
+    }
 
     public function instancia(): BelongsTo
     {

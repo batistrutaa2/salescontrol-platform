@@ -4,16 +4,27 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ClaudeAIService
 {
     private string $apiKey;
-    private string $baseUrl = 'https://api.anthropic.com/v1';
-    private string $model = 'claude-3-haiku-20240307'; // Modelo mais econômico
+
+    private string $baseUrl;
+
+    private string $model;
+
+    private string $apiVersion;
+
+    private int $maxTokens;
 
     public function __construct()
     {
         $this->apiKey = config('services.anthropic.api_key') ?? '';
+        $this->baseUrl = rtrim((string) config('services.anthropic.base_url'), '/');
+        $this->model = (string) config('services.anthropic.model');
+        $this->apiVersion = (string) config('services.anthropic.version');
+        $this->maxTokens = (int) config('services.anthropic.max_tokens');
     }
 
     /**
@@ -24,7 +35,7 @@ class ClaudeAIService
         if (empty($this->apiKey)) {
             return [
                 'success' => false,
-                'error' => 'API Key da Anthropic não configurada. Adicione ANTHROPIC_API_KEY no arquivo .env'
+                'error' => 'Integração de IA não configurada.',
             ];
         }
 
@@ -41,15 +52,15 @@ class ClaudeAIService
         try {
             $response = Http::withHeaders([
                 'x-api-key' => $this->apiKey,
-                'anthropic-version' => '2023-06-01',
+                'anthropic-version' => $this->apiVersion,
                 'Content-Type' => 'application/json',
             ])->timeout(30)->post("{$this->baseUrl}/messages", [
                 'model' => $this->model,
-                'max_tokens' => 1024,
+                'max_tokens' => $this->maxTokens,
                 'system' => $systemPrompt,
                 'messages' => [
-                    ['role' => 'user', 'content' => $userPrompt]
-                ]
+                    ['role' => 'user', 'content' => $userPrompt],
+                ],
             ]);
 
             if ($response->successful()) {
@@ -62,26 +73,24 @@ class ClaudeAIService
                     'tokens_usados' => [
                         'input' => $data['usage']['input_tokens'] ?? 0,
                         'output' => $data['usage']['output_tokens'] ?? 0,
-                    ]
+                    ],
                 ];
             }
 
             Log::error('Claude API Error', [
                 'status' => $response->status(),
-                'body' => $response->body()
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Erro na API: ' . ($response->json()['error']['message'] ?? 'Erro desconhecido')
+                'error' => 'Não foi possível gerar a análise neste momento.',
             ];
-
-        } catch (\Exception $e) {
-            Log::error('Claude API Exception', ['message' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            Log::error('Claude API Exception', ['exception' => $e::class]);
 
             return [
                 'success' => false,
-                'error' => 'Erro de conexão: ' . $e->getMessage()
+                'error' => 'Não foi possível gerar a análise neste momento.',
             ];
         }
     }
@@ -89,24 +98,24 @@ class ClaudeAIService
     private function prepararContextoCliente(array $cliente): string
     {
         $contexto = "## Dados do Cliente\n";
-        $contexto .= "- **Nome**: " . ($cliente['nome_cliente'] ?? 'Não informado') . "\n";
+        $contexto .= '- **Nome**: '.($cliente['nome_cliente'] ?? 'Não informado')."\n";
 
-        if (!empty($cliente['plano'])) {
+        if (! empty($cliente['plano'])) {
             $contexto .= "- **Plano Atual**: {$cliente['plano']}\n";
         }
-        if (!empty($cliente['valor_plano_atual'])) {
-            $contexto .= "- **Valor Atual**: R$ " . number_format($cliente['valor_plano_atual'], 2, ',', '.') . "\n";
+        if (! empty($cliente['valor_plano_atual'])) {
+            $contexto .= '- **Valor Atual**: R$ '.number_format($cliente['valor_plano_atual'], 2, ',', '.')."\n";
         }
-        if (!empty($cliente['categoria'])) {
+        if (! empty($cliente['categoria'])) {
             $contexto .= "- **Categoria**: {$cliente['categoria']}\n";
         }
-        if (!empty($cliente['entidade'])) {
+        if (! empty($cliente['entidade'])) {
             $contexto .= "- **Entidade**: {$cliente['entidade']}\n";
         }
-        if (!empty($cliente['idades'])) {
+        if (! empty($cliente['idades'])) {
             $contexto .= "- **Idades dos beneficiários**: {$cliente['idades']}\n";
         }
-        if (!empty($cliente['cidade'])) {
+        if (! empty($cliente['cidade'])) {
             $contexto .= "- **Cidade**: {$cliente['cidade']}\n";
         }
 
@@ -116,7 +125,7 @@ class ClaudeAIService
     private function prepararHistoricoComentarios(array $comentarios): string
     {
         if (empty($comentarios)) {
-            return "Nenhum comentário registrado ainda.";
+            return 'Nenhum comentário registrado ainda.';
         }
 
         $historico = "## Histórico de Interações\n\n";
@@ -131,7 +140,9 @@ class ClaudeAIService
             $texto = html_entity_decode($texto);
             $texto = trim($texto);
 
-            if (empty($texto)) continue;
+            if (empty($texto)) {
+                continue;
+            }
 
             $historico .= "**[{$numero}] {$data} - {$autor}:**\n";
             $historico .= "{$texto}\n\n";
@@ -142,7 +153,7 @@ class ClaudeAIService
 
     private function getSystemPrompt(): string
     {
-        return <<<PROMPT
+        return <<<'PROMPT'
 Você é um especialista em vendas de planos de saúde no Brasil. Sua função é analisar o histórico de interações com um cliente potencial e sugerir estratégias personalizadas para fechar a venda.
 
 ## Suas responsabilidades:
@@ -185,32 +196,31 @@ PROMPT;
         if (empty($this->apiKey)) {
             return [
                 'success' => false,
-                'error' => 'API Key não configurada'
+                'error' => 'Integração de IA não configurada.',
             ];
         }
 
         try {
             $response = Http::withHeaders([
                 'x-api-key' => $this->apiKey,
-                'anthropic-version' => '2023-06-01',
+                'anthropic-version' => $this->apiVersion,
                 'Content-Type' => 'application/json',
             ])->timeout(10)->post("{$this->baseUrl}/messages", [
                 'model' => $this->model,
                 'max_tokens' => 10,
                 'messages' => [
-                    ['role' => 'user', 'content' => 'Teste de conexão. Responda apenas: OK']
-                ]
+                    ['role' => 'user', 'content' => 'Teste de conexão. Responda apenas: OK'],
+                ],
             ]);
 
             return [
                 'success' => $response->successful(),
-                'status' => $response->status()
+                'status' => $response->status(),
             ];
-
-        } catch (\Exception $e) {
+        } catch (Throwable) {
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'Não foi possível verificar a integração de IA.',
             ];
         }
     }

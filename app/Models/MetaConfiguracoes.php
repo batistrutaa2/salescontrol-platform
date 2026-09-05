@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MetaConfiguracoes extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
     use HasFactory;
-
 
     protected $table = 'meta_configuracoes';
 

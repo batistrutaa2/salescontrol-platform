@@ -22,7 +22,7 @@ $contentLayout = (isset($container) ? (($container === 'container-xxl') ? "layou
   <!-- Canonical SEO -->
   <link rel="canonical" href="{{ config('variables.productPage') ? config('variables.productPage') : '' }}">
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="{{ asset('assets/img/branding/logo1.png') }}" />
+  <link rel="icon" type="image/svg+xml" href="{{ asset('assets/img/branding/salescontrol-mark.svg') }}" />
 
 
   <!-- Include Styles -->
@@ -35,6 +35,16 @@ $contentLayout = (isset($container) ? (($container === 'container-xxl') ? "layou
 </head>
 
 <body>
+  @if (request()->routeIs('login'))
+  <!--
+  THESIS: O acesso começa no trabalho real do corretor; recusa a tela institucional genérica centrada na marca de uma única empresa.
+  OWN-WORLD: Fotografia editorial quente, tinta violeta profunda, papel claro e controles precisos com o símbolo modular do SalesControl.
+  STORY: O corretor reconhece seu contexto de trabalho, entende que está no SalesControl e entra com as credenciais já conhecidas.
+  FIRST VIEWPORT: Corretor em atendimento ocupa o campo visual à esquerda; mensagem curta sobre a rotina comercial repousa no espaço escuro; formulário permanece inteiro e dominante à direita.
+  FORM: Retrato de trabalho editorial dentro do mundo visual estabelecido; direção fixada pelo usuário e registrada sob a seed fb3b32c9.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
+  @endif
   @if (request()->routeIs('dashboard.vendedor'))
   <!--
   THESIS: O desempenho comercial funciona como uma temporada legível; recusa o mosaico de KPIs sem hierarquia.
@@ -42,6 +52,16 @@ $contentLayout = (isset($container) ? (($container === 'container-xxl') ? "layou
   STORY: O vendedor alterna ano, mês e trimestre, reconhece sua posição e entende de onde vem o resultado.
   FIRST VIEWPORT: Filtro global de período, ranking central, total válido à esquerda e maior venda à direita.
   FORM: Temporada Comercial, sexta estrutura da lista; seed 6704db12.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
+  @endif
+  @if (request()->routeIs('manager.funis.*'))
+  <!--
+  THESIS: Cada corretora enxerga e governa um único fluxo operacional; recusa a configuração abstrata que esconde o tenant e os efeitos da mudança.
+  OWN-WORLD: Papel frio, tinta violeta, linhas precisas e um campo violeta de autoridade; etapas são uma sequência, não um mosaico de cartões.
+  STORY: O gestor confirma a empresa ativa, entende quais etapas sustentam regras do sistema e configura nomes, prazos, atividade e ordem com segurança.
+  FIRST VIEWPORT: Identidade da empresa e ação de criar etapa à esquerda; resumo de segurança à direita; os dois fluxos aparecem abaixo como ledgers ordenados.
+  FORM: Ledger operacional dentro do mundo visual estabelecido; extensão direta registrada sob a seed f4c9382a.
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
   -->
   @endif

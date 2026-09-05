@@ -4,6 +4,7 @@ namespace App\Http\Controllers\pages\comercial;
 
 use App\Http\Controllers\Controller;
 use App\Mail\CotacaoMail;
+use App\Models\Empresa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -11,27 +12,28 @@ use Illuminate\Support\Str;
 
 class EnvioCotacaoController extends Controller
 {
-    /** Domínio obrigatório do remetente (Resend autoriza por domínio). */
-    private const DOMINIO_PERMITIDO = '@lkbrokers.com';
-
     /**
      * Tela de composição/envio de cotação por e-mail.
      */
     public function index()
     {
         $seller = Auth::user();
+        $empresa = Empresa::find($this->tenantId());
+        $dominioPermitido = $this->dominioPermitido($empresa?->email);
 
         return view('content.pages.comercial.envio-cotacao', [
             'vendedorNome' => $seller->name,
             'vendedorEmail' => $seller->email,
             'vendedorWhatsapp' => $seller->whatsapp,
-            'emailValido' => Str::endsWith(Str::lower((string) $seller->email), self::DOMINIO_PERMITIDO),
+            'nomeEmpresa' => $empresa?->nome_fantasia ?: 'SalesControl',
+            'dominioPermitido' => $dominioPermitido,
+            'emailValido' => $this->emailPertenceAoDominio((string) $seller->email, $dominioPermitido),
         ]);
     }
 
     /**
      * Envia a cotação para um ou mais destinatários, a partir do e-mail do
-     * próprio vendedor logado. Bloqueia se o e-mail dele não for @lkbrokers.com.
+     * próprio vendedor logado. Bloqueia se o domínio não for o da empresa ativa.
      */
     public function enviar(Request $request)
     {
@@ -49,13 +51,15 @@ class EnvioCotacaoController extends Controller
         ]);
 
         $seller = Auth::user();
+        $empresa = Empresa::find($this->tenantId());
+        $dominioPermitido = $this->dominioPermitido($empresa?->email);
 
-        // Regra inegociável: só envia se o remetente for do domínio LK.
-        if (! Str::endsWith(Str::lower((string) $seller->email), self::DOMINIO_PERMITIDO)) {
+        if (! $this->emailPertenceAoDominio((string) $seller->email, $dominioPermitido)) {
             return response()->json([
                 'success' => false,
-                'message' => "Seu e-mail de acesso ({$seller->email}) não é do domínio {$this->dominioLabel()}. "
-                    .'Não é possível enviar cotações por este recurso.',
+                'message' => $dominioPermitido
+                    ? "Seu e-mail de acesso ({$seller->email}) não pertence ao domínio configurado para a empresa ({$dominioPermitido})."
+                    : 'Configure um e-mail corporativo válido no cadastro da empresa antes de enviar cotações.',
             ], 422);
         }
 
@@ -70,6 +74,7 @@ class EnvioCotacaoController extends Controller
             'vendedorNome' => $seller->name,
             'vendedorEmail' => $seller->email,
             'vendedorWhatsapp' => $seller->whatsapp,
+            'nomeEmpresa' => $empresa?->nome_fantasia ?: 'SalesControl',
             'temAnexo' => true,
             'anexoNome' => $anexoNome,
         ];
@@ -81,15 +86,17 @@ class EnvioCotacaoController extends Controller
             try {
                 Mail::to($email)->send(new CotacaoMail($dados, $anexoPath, $anexoNome));
             } catch (\Throwable $e) {
-                $erros[] = "{$email}: ".$e->getMessage();
+                report($e);
+                $erros[] = $email;
             }
         }
 
         if (! empty($erros) && count($erros) === count($destinatarios)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao enviar a cotação: '.implode('; ', $erros),
-            ], 422);
+                'message' => 'Não foi possível enviar a cotação neste momento.',
+                'nao_enviados' => $erros,
+            ], 502);
         }
 
         $enviados = count($destinatarios) - count($erros);
@@ -99,13 +106,29 @@ class EnvioCotacaoController extends Controller
             'message' => $enviados === 1
                 ? 'Cotação enviada com sucesso!'
                 : "Cotação enviada para {$enviados} destinatários!",
+            // Compatibilidade com a interface atual: contém somente os e-mails
+            // que falharam, nunca mensagens técnicas do provedor.
             'parciais' => $erros,
         ]);
     }
 
-    private function dominioLabel(): string
+    private function dominioPermitido(?string $emailEmpresa): ?string
     {
-        return ltrim(self::DOMINIO_PERMITIDO, '@');
+        $emailEmpresa = trim((string) $emailEmpresa);
+        $posicaoArroba = strrpos($emailEmpresa, '@');
+
+        if ($posicaoArroba === false) {
+            return null;
+        }
+
+        $dominio = Str::lower(substr($emailEmpresa, $posicaoArroba + 1));
+
+        return filter_var('contato@'.$dominio, FILTER_VALIDATE_EMAIL) ? $dominio : null;
+    }
+
+    private function emailPertenceAoDominio(string $email, ?string $dominio): bool
+    {
+        return $dominio !== null && Str::endsWith(Str::lower($email), '@'.$dominio);
     }
 
     /**

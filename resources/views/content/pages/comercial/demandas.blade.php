@@ -34,13 +34,21 @@
                 <p class="dm-subtitle">Gerencie suas tarefas e acompanhe o progresso</p>
             </div>
         </div>
-        <button id="btn-nova" class="dm-btn dm-btn-primary">
+        <div class="d-flex gap-2 flex-wrap">
+        @if ($canManageDemandSettings)
+        <button id="btn-config-demandas" type="button" class="dm-btn dm-btn-outline" data-bs-toggle="modal" data-bs-target="#modal-config-demandas">
+            <i class="ri-settings-3-line" aria-hidden="true"></i>
+            Configurar histórico
+        </button>
+        @endif
+        <button id="btn-nova" type="button" class="dm-btn dm-btn-primary">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             Nova Demanda
         </button>
+        </div>
     </div>
 
     {{-- Abas: demandas internas do setor x solicitações dos vendedores --}}
@@ -192,6 +200,34 @@
         @endforeach
     </div>
 </div>
+
+@if ($canManageDemandSettings)
+<div class="modal fade dm-modal" id="modal-config-demandas" tabindex="-1" aria-labelledby="modal-config-demandas-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="form-config-demandas" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title" id="modal-config-demandas-title">Histórico de demandas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <label class="dm-label" for="demandas_concluidas_janela_dias">Exibir demandas concluídas por</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="demandas_concluidas_janela_dias"
+                        name="demandas_concluidas_janela_dias" min="1" max="3650" required
+                        value="{{ $demandasConcluidasJanelaDias }}">
+                    <span class="input-group-text">dias</span>
+                </div>
+                <div class="form-text">A regra vale somente para {{ auth()->user()->isPlatformAdmin() ? 'a empresa ativa' : 'sua empresa' }}.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="dm-btn dm-btn-outline" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="dm-btn dm-btn-primary">Salvar configuração</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 
 {{-- Modal de Cadastro/Edição --}}
 <div class="modal fade dm-modal" id="modal-demanda" tabindex="-1" aria-hidden="true">

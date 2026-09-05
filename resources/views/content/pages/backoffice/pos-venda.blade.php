@@ -24,6 +24,25 @@
                     <h1 class="main-title">Pós-Venda</h1>
                     <p class="subtitle">Gerencie seus contratos implantados e acompanhe aniversários de apólice</p>
                 </div>
+                @if($podeConfigurar)
+                    <form method="POST" action="{{ route('backoffice.posVenda.settings') }}" class="d-flex flex-wrap align-items-end gap-2">
+                        @csrf
+                        @method('PATCH')
+                        <div>
+                            <label for="pos-venda-aniversarios-janela" class="form-label mb-1">Janela de aniversários</label>
+                            <div class="input-group input-group-sm">
+                                <input id="pos-venda-aniversarios-janela" name="pos_venda_aniversarios_janela_dias" type="number"
+                                       class="form-control @error('pos_venda_aniversarios_janela_dias') is-invalid @enderror"
+                                       min="1" max="365" value="{{ old('pos_venda_aniversarios_janela_dias', $empresa->pos_venda_aniversarios_janela_dias) }}" required>
+                                <span class="input-group-text">dias</span>
+                            </div>
+                            @error('pos_venda_aniversarios_janela_dias')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary btn-sm">Salvar janela</button>
+                    </form>
+                @endif
             </div>
         </div>
 
@@ -82,7 +101,7 @@
                     <div class="kpi-pulse"></div>
                 </div>
                 <div class="kpi-content">
-                    <span class="kpi-label">Próximos 30 Dias</span>
+                    <span class="kpi-label">Próximos {{ $empresa->pos_venda_aniversarios_janela_dias }} Dias</span>
                     <h2 class="kpi-value" id="kpi-proximos">0</h2>
                     <span class="kpi-subtitle">aniversários próximos</span>
                 </div>

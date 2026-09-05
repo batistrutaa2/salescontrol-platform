@@ -28,7 +28,8 @@
 <div class="esc-page esc-gestao-page"
      data-store-url="{{ route('escola.gestao.modulos.store') }}"
      data-update-url="{{ url('escola/gestao/modulos') }}"
-     data-aulas-url="{{ url('escola/gestao/modulos') }}">
+     data-aulas-url="{{ url('escola/gestao/modulos') }}"
+     data-settings-url="{{ route('escola.gestao.configuracoes.update') }}">
 
     <div class="esc-header">
         <div class="esc-header-main">
@@ -45,6 +46,24 @@
             <button class="esc-btn esc-btn-primary" id="btn-novo-modulo">+ Novo módulo</button>
         </div>
     </div>
+
+    <section class="esc-completion-setting" aria-labelledby="esc-completion-title">
+        <div class="esc-completion-copy">
+            <h5 id="esc-completion-title">Conclusão das aulas</h5>
+            <p>Defina quanto do vídeo um aluno precisa assistir para concluir uma aula nesta empresa.</p>
+        </div>
+        <form id="form-escola-configuracoes" class="esc-completion-form">
+            <label for="escola-percentual-conclusao">Percentual mínimo</label>
+            <div class="esc-percentage-control">
+                <input type="number" id="escola-percentual-conclusao" name="escola_percentual_conclusao"
+                    min="1" max="100" step="1" value="{{ $percentualConclusao }}" required
+                    aria-describedby="escola-configuracoes-status">
+                <span aria-hidden="true">%</span>
+            </div>
+            <button type="submit" class="esc-btn esc-btn-primary">Salvar critério</button>
+            <span id="escola-configuracoes-status" class="esc-inline-status" role="status" aria-live="polite"></span>
+        </form>
+    </section>
 
     <div class="esc-admin-list">
         <table class="table esc-admin-table">

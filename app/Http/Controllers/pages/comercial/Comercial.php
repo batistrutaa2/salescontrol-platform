@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\pages\comercial;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\TipoDemandaContrato;
 use App\Enums\TipoSolicitacaoPosVenda;
 use App\Enums\UserRole;
@@ -13,6 +13,7 @@ use App\Models\Contatos;
 use App\Models\ContatosCorretores;
 use App\Models\Demanda;
 use App\Models\Dependentes;
+use App\Models\Empresa;
 use App\Models\Faq;
 use App\Models\LogPreditiva;
 use App\Models\Operadora;
@@ -23,11 +24,9 @@ use App\Models\PreditivaConfiguracao;
 use App\Models\PreditivaTabulacaoHard;
 use App\Models\User;
 use App\Models\Vendas;
-use App\Modules\Ranking\Ranking;
 use App\Notifications\DemandaVendedorConcluida;
 use App\Notifications\DemandaVendedorCriada;
 use App\Repositories\Contracts\AgendamentoRepositoryInterface;
-use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
@@ -41,7 +40,6 @@ use App\Repositories\Contracts\TransferenciaContatoRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Eloquent\AgendamentoRepository;
-use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ComentariosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\ContatosRepository;
@@ -50,6 +48,8 @@ use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\TransferenciaContatoRepository;
 use App\Repositories\Eloquent\UsuariosRepository;
 use App\Repositories\Eloquent\VendasRepository;
+use App\Services\ClaudeAIService;
+use App\Services\TabulationCatalog;
 use App\Support\DocumentoFiscal;
 use App\UseCases\ComercialUseCase;
 use App\UseCases\MailingUseCase;
@@ -79,8 +79,6 @@ class Comercial extends Controller
 
     protected VendasRepository $vendasRepository;
 
-    protected ComentariosLegadosRepository $comentariosLegadosRepository;
-
     protected LeadAtividadeRepository $leadAtividadeRepository;
 
     protected ComercialUseCase $comercialUseCase;
@@ -91,11 +89,13 @@ class Comercial extends Controller
 
     protected AgendamentoRepository $agendamentoRepository;
 
-    protected Ranking $ranking;
-
     protected TransferenciaContatoRepository $transferenciaContatoRepository;
 
     protected PreditivaPriorizacaoUseCase $preditivaPriorizacaoUseCase;
+
+    protected TabulationCatalog $tabulationCatalog;
+
+    protected ClaudeAIService $claudeAIService;
 
     public function __construct(
         ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
@@ -103,7 +103,6 @@ class Comercial extends Controller
         ContatosRepositoryInterface $contatosRepositoryInterface,
         ComentariosRepositoryInterface $comentariosRepositoryInterface,
         UsuariosRepositoryInterface $usuariosRepositoryInterface,
-        ComentariosLegadosRepositoryInterface $comentariosLegadosRepositoryInterface,
         VendasRepositoryInterface $vendasRepositoryInterface,
         LeadAtividadeRepositoryInterface $leadAtividadeRepositoryInterface,
         AgendamentoRepositoryInterface $agendamentoRepositoryInterface,
@@ -111,6 +110,8 @@ class Comercial extends Controller
         PreditivaRepositoryInterface $preditivaRepositoryInterface,
         LogPreditivaRepositoryInterface $logPreditivaRepositoryInterface,
         PreditivaRegraRepositoryInterface $preditivaRegraRepositoryInterface,
+        TabulationCatalog $tabulationCatalog,
+        ClaudeAIService $claudeAIService,
 
     ) {
         //Repositories
@@ -119,7 +120,6 @@ class Comercial extends Controller
         $this->contatosRepository = $contatosRepositoryInterface;
         $this->comentariosRepository = $comentariosRepositoryInterface;
         $this->usuariosRepository = $usuariosRepositoryInterface;
-        $this->comentariosLegadosRepository = $comentariosLegadosRepositoryInterface;
         $this->vendasRepository = $vendasRepositoryInterface;
         $this->leadAtividadeRepository = $leadAtividadeRepositoryInterface;
         $this->agendamentoRepository = $agendamentoRepositoryInterface;
@@ -127,32 +127,39 @@ class Comercial extends Controller
 
         //UseCases
         $this->comercialUseCase = new ComercialUseCase($contatosRepositoryInterface, $contatosCorretoresRepositoryInterface, $comentariosRepositoryInterface, $leadAtividadeRepositoryInterface);
-        $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
+        $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface, $tabulationCatalog);
         $this->preditivaUseCase = new PreditivaUseCase($preditivaRepositoryInterface, $logPreditivaRepositoryInterface, $contatosCorretoresRepositoryInterface);
         $this->preditivaPriorizacaoUseCase = new PreditivaPriorizacaoUseCase($preditivaRegraRepositoryInterface);
-        //raking de vendas
-        $this->ranking = new Ranking();
+        $this->tabulationCatalog = $tabulationCatalog;
+        $this->claudeAIService = $claudeAIService;
     }
 
     public function index()
     {
-        $vendedores = $this->usuariosRepository->getUsersFilterType(Auth::user()->empresa_id, UserRole::VENDEDOR);
+        $empresaId = $this->tenantId();
+        $vendedores = $this->usuariosRepository->getUsersFilterType($empresaId, UserRole::VENDEDOR);
 
-        $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
+        $subTabulacoes = $this->tabulacoesRepository->getSubTabulations($empresaId);
 
-        $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
+        $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial($empresaId);
+        $config = PreditivaConfiguracao::getOrDefault($empresaId);
 
         return view('content.pages.comercial.index', [
             'vendedores' => $vendedores,
             'typeUserLogeed' => Auth::user()->role->tipo_usuario,
             'subTabulacoes' => $subTabulacoes,
             'tabulacoes' => $tabulacoes,
+            'kanbanInatividade' => [
+                'alerta' => (int) $config->kanban_inatividade_alerta_dias,
+                'urgente' => (int) $config->kanban_inatividade_urgente_dias,
+                'critica' => (int) $config->kanban_inatividade_critica_dias,
+            ],
         ]);
     }
 
     public function getClientComercial()
     {
-        $contacts = $this->repositoryContatosCorretores->getClientComercial(Auth::user()->user_role_id, Auth::user()->empresa_id);
+        $contacts = $this->repositoryContatosCorretores->getClientComercial(Auth::user()->user_role_id, $this->tenantId());
         $structuredData = $this->structureBoardData($contacts);
 
         return response()->json($structuredData);
@@ -160,7 +167,7 @@ class Comercial extends Controller
 
     protected function structureBoardData($contacts)
     {
-        $status = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
+        $status = $this->tabulacoesRepository->getTabulationsCompanieCommercial($this->tenantId());
 
         $boardData = [];
 
@@ -189,6 +196,7 @@ class Comercial extends Controller
                     'telefone2' => $contact->telefone2,
                     'telefone3' => $contact->telefone3,
                     'tabulacao-id' => $tabulation['id'],
+                    'tabulacao-codigo' => $tabulation['codigo'],
                     'email' => $contact->email,
                     'idades' => $contact->idades,
                     'temperatura' => $contact->temperatura,
@@ -216,6 +224,7 @@ class Comercial extends Controller
 
             $boardData[] = [
                 'id' => Helpers::normalizeStatusName($tabulation['id']),
+                'codigo' => $tabulation['codigo'],
                 'title' => $tabulation['descricao'],
                 'order' => $tabulation['ordem_kanban'],
                 'item' => $items,
@@ -236,26 +245,6 @@ class Comercial extends Controller
         }
 
         return false;
-    }
-
-    public function arriveExpirationTime(string $dateTimeUpdate, string $tabulationId, string $dateTimeCreated)
-    {
-        $dataCreatedLead = Carbon::createFromFormat('d/m/Y H:i:s', $dateTimeCreated)->startOfDay();
-        $dataUpdateLead = Carbon::createFromFormat('d/m/Y H:i:s', $dateTimeUpdate)->startOfDay();
-        $dataCurrent = Carbon::now()->startOfDay();
-
-        $differenceInDaysCreated = (int) $dataCreatedLead->diffInDays($dataCurrent);
-        $differenceInDaysUpdate = (int) $dataUpdateLead->diffInDays($dataCurrent);
-
-        if ($tabulationId == Tabulations::PROSPECCAO) {
-            return $differenceInDaysCreated > 5;
-        } elseif ($tabulationId == Tabulations::NEGOCIAÇÃO) {
-            return $differenceInDaysCreated > 10;
-        } elseif ($tabulationId == Tabulations::DOCUMENTO) {
-            return $differenceInDaysUpdate > 15;
-        } else {
-            return false;
-        }
     }
 
     public function changeStatusLead(Request $request)
@@ -298,9 +287,9 @@ class Comercial extends Controller
     private function marcoNegociacao(int $tabulacaoId, int $contatoId): ?array
     {
         $etapas = [
-            Tabulations::REUNIÃO => 'Reunião',
-            Tabulations::NEGOCIAÇÃO => 'Negociação',
-            Tabulations::DOCUMENTO => 'Documentos',
+            $this->tabulationCatalog->id((int) $this->tenantId(), TabulationCode::REUNIAO) => 'Reunião',
+            $this->tabulationCatalog->id((int) $this->tenantId(), TabulationCode::NEGOCIACAO) => 'Negociação',
+            $this->tabulationCatalog->id((int) $this->tenantId(), TabulationCode::DOCUMENTO) => 'Documentos',
         ];
 
         if (! isset($etapas[$tabulacaoId])) {
@@ -309,7 +298,7 @@ class Comercial extends Controller
 
         $contato = DB::table('contatos')
             ->where('id', $contatoId)
-            ->where('empresa_id', Auth::user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->first(['nome_cliente', 'created_at']);
 
         if (! $contato) {
@@ -342,7 +331,8 @@ class Comercial extends Controller
     public function updateClientDependecies(Request $request)
     {
         try {
-            $dependencies = Dependentes::find($request->id_dependente);
+            $dependencies = Dependentes::where('empresa_id', $this->tenantId())
+                ->findOrFail($request->id_dependente);
 
             $dependencies->nome = $request->dependentes[$request->index_array]['nome'];
             $dependencies->cpf = $request->dependentes[$request->index_array]['cpf'];
@@ -364,7 +354,8 @@ class Comercial extends Controller
     public function saveNoteMailing(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'id_mailing' => 'required|integer',
+            'id_mailing' => ['required', 'integer', Rule::exists('contatos', 'id')->where('empresa_id', $this->tenantId())],
+            'id_tabulacao' => ['required', 'integer', Rule::exists('tabulacoes', 'id')->where('empresa_id', $this->tenantId())],
         ]);
 
         if ($validator->fails()) {
@@ -394,25 +385,28 @@ class Comercial extends Controller
     {
         $dependentes = '';
         $clientInfo = $this->repositoryContatosCorretores->getClientInfo($id_mailing);
+        abort_unless($clientInfo, 404);
         $totalFamilyPlan = $clientInfo->valor_plano_atual ?? 0;
         if ($clientInfo->tipo_layout != 'padrao') {
-            $dependentes = Dependentes::where('contato_id', $clientInfo->id)->get();
+            $dependentes = Dependentes::where('contato_id', $clientInfo->id)
+                ->where('empresa_id', $this->tenantId())
+                ->get();
             foreach ($dependentes as $dependente) {
                 $totalFamilyPlan += $dependente->valor_plano ?? 0;
             }
         }
 
         $commentsMailing = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
-        $tabulations = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
+        $tabulations = $this->tabulacoesRepository->getTabulationsCompanieCommercial($this->tenantId());
         $tabulationCurrent = $this->repositoryContatosCorretores->getTabulationId($id_mailing);
-        $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
+        $subTabulacoes = $this->tabulacoesRepository->getSubTabulations($this->tenantId());
 
         $permiteEdition = false;
         if (Auth::user()->role->id === UserRole::ADMINISTRATIVO || Auth::user()->role->id === UserRole::DEVELOPER || Auth::user()->role->id === UserRole::SUPERVISOR || Auth::user()->role->id === UserRole::VENDEDOR) {
             $permiteEdition = true;
         }
         $cotacoes = [];
-        $cotacoesPath = 'cotacoes/'.Auth::user()->empresa_id.'/'.$id_mailing;
+        $cotacoesPath = 'cotacoes/'.$this->tenantId().'/'.$id_mailing;
         if (Storage::disk('public')->exists($cotacoesPath)) {
             foreach (Storage::disk('public')->files($cotacoesPath) as $file) {
                 $cotacoes[] = [
@@ -422,11 +416,12 @@ class Comercial extends Controller
             }
         }
 
-        $operadoras = Operadora::where('status', 'Y')
+        $operadoras = Operadora::where('empresa_id', $this->tenantId())
+            ->where('status', 'Y')
             ->orderBy('nome')
-            ->get(['id', 'nome']);
+            ->get(['id', 'nome', 'coparticipacao_formato', 'angariacao_padrao']);
 
-        if (Auth::user()->empresa_id != $clientInfo->empresa_id) {
+        if ($this->tenantId() != $clientInfo->empresa_id) {
             return redirect()->route('comercial.kanban')->with('status', 'error')->with('message', 'Sem permissao de acesso');
         } else {
             return view('content.pages.comercial.openClient', [
@@ -436,7 +431,7 @@ class Comercial extends Controller
                 'comments' => $commentsMailing,
                 'editingPermission' => $permiteEdition,
                 'tabulations' => $tabulations,
-                'tabulationCurrent' => $tabulationCurrent->tabulacao_id,
+                'tabulationCurrent' => $tabulationCurrent?->tabulacao_id,
                 'subTabulacoes' => $subTabulacoes,
                 'cotacoes' => $cotacoes,
                 'operadoras' => $operadoras,
@@ -450,7 +445,8 @@ class Comercial extends Controller
             'file' => 'required|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
 
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
+        abort_unless(Contatos::where('empresa_id', $empresaId)->whereKey($id_mailing)->exists(), 404);
         $path = "cotacoes/{$empresaId}/{$id_mailing}";
 
         if ($request->filled('replace')) {
@@ -469,7 +465,8 @@ class Comercial extends Controller
 
     public function deleteCotacao($id_mailing, $filename)
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
+        abort_unless(Contatos::where('empresa_id', $empresaId)->whereKey($id_mailing)->exists(), 404);
         $path = "cotacoes/{$empresaId}/{$id_mailing}/{$filename}";
 
         if (Storage::disk('public')->exists($path)) {
@@ -481,18 +478,25 @@ class Comercial extends Controller
 
     public function saveComment(Request $request)
     {
+        $request->validate([
+            'id_mailing' => ['required', 'integer', Rule::exists('contatos', 'id')->where('empresa_id', $this->tenantId())],
+            'id_tabulacao' => ['required', 'integer', Rule::exists('tabulacoes', 'id')->where('empresa_id', $this->tenantId())],
+            'anotacao' => ['required', 'string'],
+        ]);
         $this->leadAtividadeRepository->create($request->all());
 
         $saveComment = $this->comentariosRepository->createComment(
-            Auth::user()->empresa_id,
+            $this->tenantId(),
             Auth::user()->id,
             $request->anotacao,
             $request->id_mailing
         );
 
-        ContatosCorretores::where('contato_id', $request->id_mailing)->update([
-            'updated_at' => now(),
-        ]);
+        ContatosCorretores::where('contato_id', $request->id_mailing)
+            ->where('empresa_id', $this->tenantId())
+            ->update([
+                'updated_at' => now(),
+            ]);
 
         if ($saveComment) {
             return response()->json(
@@ -558,8 +562,8 @@ class Comercial extends Controller
 
     public function remarketing()
     {
-        $users = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);
-        $tabulations = $this->tabulacoesRepository->getAll(Auth::user()->empresa_id);
+        $users = $this->usuariosRepository->getUserByCompany($this->tenantId());
+        $tabulations = $this->tabulacoesRepository->getAll($this->tenantId());
 
         return view('content.pages.comercial.remarketing', [
             'users' => $users,
@@ -569,7 +573,7 @@ class Comercial extends Controller
 
     public function getRemarketingLeads()
     {
-        $contatos = $this->repositoryContatosCorretores->getRemarketingLeads(Auth::user()->empresa_id);
+        $contatos = $this->repositoryContatosCorretores->getRemarketingLeads($this->tenantId());
 
         return response()->json($contatos);
     }
@@ -578,7 +582,8 @@ class Comercial extends Controller
     {
         $comments = $this->comentariosRepository->getCommentsMailingAll($id_mailing);
         $contact = $this->contatosRepository->find($id_mailing);
-        $user = $this->usuariosRepository->usersAccordingToPermission(Auth::user()->role->id, Auth::user()->empresa_id, Auth::user()->id);
+        abort_unless($contact, 404);
+        $user = $this->usuariosRepository->usersAccordingToPermission(Auth::user()->role->id, $this->tenantId(), Auth::user()->id);
 
         return view('content.pages.comercial.openRemarketing', [
             'comments' => $comments,
@@ -589,14 +594,23 @@ class Comercial extends Controller
 
     public function transferContact(Request $request)
     {
+        $empresaId = (int) $this->tenantId();
+        $request->validate([
+            'idMailing' => ['required', 'integer', Rule::exists('contatos', 'id')->where('empresa_id', $empresaId)],
+            'user_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('is_platform_admin', false)->where('ativo', 'Y'))],
+            'tabulation_id' => ['required', 'integer', Rule::exists('tabulacoes', 'id')->where('empresa_id', $empresaId)],
+        ]);
+
         try {
             $existePreditiva = DB::table('preditiva')
                 ->where('contato_id', $request->idMailing)
+                ->where('empresa_id', $empresaId)
                 ->exists();
 
             if ($existePreditiva) {
                 DB::table('preditiva')
                     ->where('contato_id', $request->idMailing)
+                    ->where('empresa_id', $empresaId)
                     ->delete();
             }
 
@@ -604,7 +618,7 @@ class Comercial extends Controller
             $clearComments = $this->comentariosRepository->clearCommentsOne($request->idMailing);
             $updateLead = $this->repositoryContatosCorretores->transferContact($request->all());
             $saveTranfer = $this->transferenciaContatoRepository->saveTransfer(
-                Auth::user()->empresa_id,
+                $this->tenantId(),
                 $request->idMailing,
                 $fromUser ? $fromUser->user_id : null,
                 $request->user_id,
@@ -635,15 +649,25 @@ class Comercial extends Controller
 
     public function transferContactInNulk(Request $request)
     {
+        $empresaId = (int) $this->tenantId();
+        $request->validate([
+            'selectedLeadIds' => ['required', 'string'],
+            'user_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('is_platform_admin', false)->where('ativo', 'Y'))],
+            'tabulation_id' => ['required', 'integer', Rule::exists('tabulacoes', 'id')->where('empresa_id', $empresaId)],
+        ]);
+        $leadIds = explode(',', $request->selectedLeadIds);
+        $leadIds = array_values(array_unique(array_filter(array_map('intval', $leadIds))));
+        $tenantLeadCount = Contatos::where('empresa_id', $empresaId)->whereIn('id', $leadIds)->count();
+        abort_unless($leadIds !== [] && $tenantLeadCount === count($leadIds), 404);
+
         try {
-            $leadIds = explode(',', $request->selectedLeadIds);
-            array_map(function ($leadId) use ($request) {
+            array_map(function ($leadId) use ($request, $empresaId) {
                 // Limpar preditiva se existir
-                DB::table('preditiva')->where('contato_id', $leadId)->delete();
+                DB::table('preditiva')->where('contato_id', $leadId)->where('empresa_id', $empresaId)->delete();
 
                 $fromUser = $this->repositoryContatosCorretores->getContactOwner($leadId);
                 $this->transferenciaContatoRepository->saveTransfer(
-                    Auth::user()->empresa_id,
+                    $this->tenantId(),
                     $leadId,
                     $fromUser->user_id == null ? $request->user_id : $fromUser->user_id,
                     $request->user_id,
@@ -675,22 +699,14 @@ class Comercial extends Controller
         }
     }
 
-    public function getCommentsLegacy(string $cpf)
-    {
-        if (Auth::user()->empresa_id === 2) {
-            $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy(Helpers::cleanSpecialCharacters($cpf));
-
-            return response()->json($commentsLegacy);
-        } else {
-            $commentsLegacy = $this->comentariosLegadosRepository->getCommentsLegacy(Helpers::cleanSpecialCharacters(''));
-
-            return response()->json($commentsLegacy);
-        }
-    }
-
     public function createSale(Request $request)
     {
         try {
+            $operadoraConfigurada = Operadora::where('empresa_id', $this->tenantId())
+                ->where('status', 'Y')
+                ->find($request->integer('operadora_id'));
+            $valoresCoparticipacao = $operadoraConfigurada?->valoresCoparticipacao() ?? ['Y', 'N'];
+
             // Validação dos campos
             $rules = [
                 'contato_id' => 'required|integer',
@@ -707,7 +723,7 @@ class Comercial extends Controller
                 'tipo_empresa' => 'required_if:tipo_contrato,PME|nullable|in:MEI,ME,EPP,LTDA,SA,EIRELI,SLU',
                 'operadora_id' => [
                     'required', 'integer',
-                    Rule::exists('operadoras', 'id')->where('empresa_id', Auth::user()->empresa_id)->where('status', 'Y'),
+                    Rule::exists('operadoras', 'id')->where('empresa_id', $this->tenantId())->where('status', 'Y'),
                 ],
                 'valor_contrato' => ['required', function ($attribute, $value, $fail) {
                     if (Helpers::converterParaDecimal($value) <= 0) {
@@ -729,7 +745,7 @@ class Comercial extends Controller
                 'titulares.*.telefone1' => 'required|string|min:14',
                 'titulares.*.cargo' => 'required_if:tipo_contrato,PME',
                 'titulares.*.plano_id' => 'required|integer',
-                'titulares.*.coparticipacao' => 'required',
+                'titulares.*.coparticipacao' => ['required', Rule::in($valoresCoparticipacao)],
                 'titulares.*.plano_anterior' => 'nullable|in:SIM,NAO',
                 'titulares.*.operadora_anterior_id' => 'nullable|integer|required_if:titulares.*.plano_anterior,SIM',
 
@@ -741,7 +757,7 @@ class Comercial extends Controller
                 'titulares.*.dependentes.*.telefone1' => 'required|string|min:14',
                 'titulares.*.dependentes.*.parentesco' => 'required|string',
                 'titulares.*.dependentes.*.plano_id' => 'required|integer',
-                'titulares.*.dependentes.*.coparticipacao' => 'required|in:Y,N,PARCIAL,COMPLETA',
+                'titulares.*.dependentes.*.coparticipacao' => ['required', Rule::in($valoresCoparticipacao)],
                 'titulares.*.dependentes.*.plano_anterior' => 'nullable|in:SIM,NAO',
                 'titulares.*.dependentes.*.operadora_anterior_id' => 'nullable|integer|required_if:titulares.*.dependentes.*.plano_anterior,SIM',
 
@@ -754,20 +770,20 @@ class Comercial extends Controller
                 }],
                 'portabilidades.*.operadora_anterior_id' => [
                     'required', 'integer',
-                    Rule::exists('operadoras', 'id')->where('empresa_id', Auth::user()->empresa_id),
+                    Rule::exists('operadoras', 'id')->where('empresa_id', $this->tenantId()),
                 ],
                 'portabilidades.*.operadora_destino_id' => [
                     'required',
                     'integer',
                     Rule::exists('operadoras', 'id')
-                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('empresa_id', $this->tenantId())
                         ->where('status', 'Y'),
                 ],
                 'portabilidades.*.plano_destino_id' => [
                     'required',
                     'integer',
                     Rule::exists('planos', 'id')
-                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('empresa_id', $this->tenantId())
                         ->where('status', 'Y'),
                 ],
             ];
@@ -826,9 +842,21 @@ class Comercial extends Controller
             // Telefones de titulares não podem se repetir; compara só os dígitos
             // porque a máscara pode variar entre restores de old input.
             $validator->after(function ($v) use ($request) {
-                $contatoValido = ContatosCorretores::where('contato_id', $request->integer('contato_id'))
-                    ->where('empresa_id', Auth::user()->empresa_id)
-                    ->where('user_id', Auth::id())
+                $empresaId = (int) $this->tenantId();
+                $contatoValido = ContatosCorretores::query()
+                    ->where('contato_id', $request->integer('contato_id'))
+                    ->where('empresa_id', $empresaId)
+                    ->when(
+                        Auth::user()->isPlatformAdmin(),
+                        fn ($query) => $query->whereExists(fn ($users) => $users
+                            ->selectRaw('1')
+                            ->from('users')
+                            ->whereColumn('users.id', 'contatos_corretores.user_id')
+                            ->whereColumn('users.empresa_id', 'contatos_corretores.empresa_id')
+                            ->where('users.is_platform_admin', false)
+                            ->where('users.ativo', 'Y')),
+                        fn ($query) => $query->where('user_id', Auth::id()),
+                    )
                     ->exists();
                 if (! $contatoValido) {
                     $v->errors()->add('contato_id', 'Contato inválido ou sem permissão de acesso.');
@@ -854,7 +882,7 @@ class Comercial extends Controller
                     }
 
                     $planoTitular = Plano::whereKey((int) ($titular['plano_id'] ?? 0))
-                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('empresa_id', $this->tenantId())
                         ->where('operadora_id', $request->integer('operadora_id'))->exists();
                     if (! $planoTitular) {
                         $v->errors()->add("titulares.$i.plano_id", 'O plano do titular não pertence à operadora selecionada.');
@@ -865,7 +893,7 @@ class Comercial extends Controller
                             $v->errors()->add("titulares.$i.dependentes.$j.cpf", 'Informe um CPF válido para o dependente.');
                         }
                         $planoDependente = Plano::whereKey((int) ($dependente['plano_id'] ?? 0))
-                            ->where('empresa_id', Auth::user()->empresa_id)
+                            ->where('empresa_id', $this->tenantId())
                             ->where('operadora_id', $request->integer('operadora_id'))->exists();
                         if (! $planoDependente) {
                             $v->errors()->add("titulares.$i.dependentes.$j.plano_id", 'O plano do dependente não pertence à operadora selecionada.');
@@ -881,7 +909,7 @@ class Comercial extends Controller
                     }
 
                     $planoValido = Plano::whereKey($planoId)
-                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('empresa_id', $this->tenantId())
                         ->where('operadora_id', $operadoraId)
                         ->exists();
 
@@ -914,7 +942,7 @@ class Comercial extends Controller
 
             $arrayData = [
                 'contato_id' => $request->contato_id,
-                'tabulacao_id' => Tabulations::VENDA,
+                'tabulacao_id' => $this->tabulationCatalog->id((int) $this->tenantId(), TabulationCode::VENDA),
             ];
             $updateStatus = $this->repositoryContatosCorretores->changeStatusLead($arrayData);
 
@@ -947,16 +975,16 @@ class Comercial extends Controller
                 ->with('status', 'error')
                 ->with('message', 'Verifique os campos obrigatórios.');
         } catch (\Throwable $th) {
-            if ($request->expectsJson()) {
-                report($th);
+            report($th);
 
+            if ($request->expectsJson()) {
                 return response()->json(['message' => 'Falha ao cadastrar a venda.'], 500);
             }
 
             return redirect()->back()
                 ->withInput()
                 ->with('status', 'error')
-                ->with('message', 'Falha ao Cadastrar Venda: '.$th->getMessage());
+                ->with('message', 'Falha ao cadastrar a venda. Tente novamente.');
         }
     }
 
@@ -964,18 +992,18 @@ class Comercial extends Controller
     {
         $clientInfo = $this->repositoryContatosCorretores->getClientInfo($contato_id);
 
-        if (! $clientInfo || Auth::user()->empresa_id != $clientInfo->empresa_id) {
+        if (! $clientInfo || $this->tenantId() != $clientInfo->empresa_id) {
             return redirect()->route('comercial.kanban')
                 ->with('status', 'error')
                 ->with('message', 'Sem permissão de acesso');
         }
 
-        $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)
+        $operadoras = Operadora::where('empresa_id', $this->tenantId())
             ->where('status', 'Y')
             ->orderBy('nome')
-            ->get(['id', 'nome']);
+            ->get(['id', 'nome', 'coparticipacao_formato', 'angariacao_padrao']);
 
-        $planosPortabilidade = Plano::where('empresa_id', Auth::user()->empresa_id)
+        $planosPortabilidade = Plano::where('empresa_id', $this->tenantId())
             ->where('status', 'Y')
             ->orderBy('nome')
             ->get(['id', 'operadora_id', 'nome']);
@@ -994,7 +1022,27 @@ class Comercial extends Controller
 
     public function createLead(Request $request)
     {
-        $response = $this->mailingUseCase->createLead($request->all());
+        $validated = $request->validate([
+            'nome_base' => ['nullable', 'string', 'max:255'],
+            'nome_cliente' => ['required', 'string', 'max:255'],
+            'cpf' => ['required', 'string', 'max:20', function (string $attribute, mixed $value, \Closure $fail) {
+                if (! DocumentoFiscal::valido((string) $value)) {
+                    $fail('Informe um CPF ou CNPJ válido.');
+                }
+            }],
+            'data_nascimento' => ['nullable', 'date'],
+            'telefone1' => ['required', 'string', 'max:30'],
+            'telefone2' => ['nullable', 'string', 'max:30'],
+            'telefone3' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'plano' => ['nullable', 'string', 'max:255'],
+            'categoria' => ['nullable', 'string', 'max:255'],
+            'entidade' => ['nullable', 'string', 'max:255'],
+            'idades' => ['nullable', 'string', 'max:255'],
+            'valor_plano_atual' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $response = $this->mailingUseCase->createLead($validated);
 
         if ($response['error']) {
             return redirect()
@@ -1009,38 +1057,60 @@ class Comercial extends Controller
 
     public function sendRemaketing(Request $request)
     {
-        $this->agendamentoRepository->deleteSchedule($request->contato_id);
-        $updateContact = $this->repositoryContatosCorretores->sendRemaketing($request->contato_id, $request->sub_tabulacao_id);
+        $this->authorizeContatoOperavel($request, (int) $request->contato_id);
 
-        if ($updateContact) {
+        try {
+            DB::transaction(function () use ($request): void {
+                $this->agendamentoRepository->deleteSchedule($request->contato_id);
+
+                if (! $this->repositoryContatosCorretores->sendRemaketing($request->contato_id, $request->sub_tabulacao_id)) {
+                    throw new \RuntimeException('Não foi possível mover o contato para remarketing.');
+                }
+            });
+
             return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', 'Contato descartado com sucesso');
-        } else {
+        } catch (\Throwable) {
             return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', 'Erro ao descartado com sucesso');
         }
     }
 
     public function sendSchedule(Request $request)
     {
-        try {
-            $updateContact = $this->repositoryContatosCorretores->sendSchedule($request->contato_id);
-            $sendSchecule = $this->agendamentoRepository->updateOrCreate($request->contato_id, $request->horario_agendamento, $request->observacao);
+        $this->tenantMemberOrAbort($request->user());
+        $validated = $request->validate([
+            'contato_id' => 'required|integer',
+            'horario_agendamento' => 'required|date',
+            'observacao' => 'nullable|string|max:2000',
+        ]);
+        $this->authorizeContatoOperavel($request, (int) $validated['contato_id']);
 
-            if ($updateContact && $sendSchecule) {
-                return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', 'Agendamento efetuado com sucesso');
-            } else {
-                return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', 'Erro ao salvar agendamento');
-            }
-        } catch (\Throwable $th) {
+        try {
+            DB::transaction(function () use ($validated): void {
+                if (! $this->repositoryContatosCorretores->sendSchedule($validated['contato_id'])) {
+                    throw new \RuntimeException('Não foi possível atualizar o estágio do contato.');
+                }
+
+                if (! $this->agendamentoRepository->updateOrCreate(
+                    $validated['contato_id'],
+                    $validated['horario_agendamento'],
+                    $validated['observacao'] ?? null
+                )) {
+                    throw new \RuntimeException('Não foi possível salvar o agendamento.');
+                }
+            });
+
+            return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', 'Agendamento efetuado com sucesso');
+        } catch (\Throwable) {
             return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', 'Erro ao Agendar contato');
         }
     }
 
     public function schedules()
     {
-        $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
-        $subTabulacoes = $this->tabulacoesRepository->getSubTabulations(Auth::user()->empresa_id);
+        $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial($this->tenantId());
+        $subTabulacoes = $this->tabulacoesRepository->getSubTabulations($this->tenantId());
 
-        $idNegocioFechado = Tabulations::NEGOCIO_FECHADO;
+        $idNegocioFechado = $this->tabulationCatalog->id((int) $this->tenantId(), TabulationCode::NEGOCIO_FECHADO);
         $tabulacoes = $tabulacoes->reject(function ($item) use ($idNegocioFechado) {
             return $item->id === $idNegocioFechado;
         });
@@ -1090,16 +1160,13 @@ class Comercial extends Controller
             return response()->json(['data' => []]);
         }
 
-        $dias = (int) request()->integer('dias', 5);
-        if ($dias < 1) {
-            $dias = 5;
-        }
+        $config = PreditivaConfiguracao::getOrDefault($this->tenantId());
 
         $sugestoes = $this->contatosRepository->getSugestoesContato(
             Auth::user()->id,
-            Auth::user()->empresa_id,
-            $dias,
-            10
+            $this->tenantId(),
+            (int) $config->mascote_dias_sem_atividade,
+            (int) $config->mascote_limite_sugestoes,
         );
 
         return response()->json(['data' => $sugestoes]);
@@ -1160,26 +1227,35 @@ class Comercial extends Controller
 
     public function backQueue(Request $request)
     {
+        $request->validate([
+            'contato_id' => 'required|integer',
+            'tabulacao_id' => 'required|integer',
+            'anotacao' => 'nullable|string|max:2000',
+        ]);
+        $this->authorizeContatoOperavel($request, (int) $request->contato_id);
+
         try {
-            if ($request->filled('anotacao')) {
-                $this->comentariosRepository->createComment(
-                    Auth::user()->empresa_id,
-                    Auth::user()->id,
-                    $request->anotacao,
-                    $request->contato_id
-                );
-            }
+            DB::transaction(function () use ($request): void {
+                if ($request->filled('anotacao')) {
+                    $this->comentariosRepository->createComment(
+                        $this->tenantId(),
+                        Auth::user()->id,
+                        $request->anotacao,
+                        $request->contato_id
+                    );
+                }
 
-            $deleteSchedule = $this->agendamentoRepository->deleteSchedule($request->contato_id);
-            $backQueueLead = $this->repositoryContatosCorretores->changeStatusLead($request->all());
+                if (! $this->agendamentoRepository->deleteSchedule($request->contato_id)
+                    || ! $this->repositoryContatosCorretores->changeStatusLead($request->all())) {
+                    throw new \RuntimeException('Não foi possível concluir o retorno ao funil.');
+                }
+            });
 
-            if ($deleteSchedule && $backQueueLead) {
-                return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', 'Contato concluído e retornado ao funil com sucesso');
-            } else {
-                return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', 'Erro ao enviar para fila, contate nosso suporte.');
-            }
+            return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', 'Contato concluído e retornado ao funil com sucesso');
         } catch (\Throwable $th) {
-            return redirect()->back()->with('status', 'error')->with('message', 'Erro ao enviar para fila: '.$th->getMessage());
+            report($th);
+
+            return redirect()->back()->with('status', 'error')->with('message', 'Não foi possível retornar o contato ao funil.');
         }
     }
 
@@ -1188,9 +1264,31 @@ class Comercial extends Controller
         return redirect()->route('mailing.reservatorio.index', ['origem' => 'MARKETING']);
     }
 
+    private function authorizeContatoOperavel(Request $request, int $contatoId): void
+    {
+        $user = $request->user();
+        $empresaId = (int) $this->tenantId();
+
+        abort_unless(
+            Contatos::query()->where('empresa_id', $empresaId)->whereKey($contatoId)->exists(),
+            404
+        );
+
+        if (! $user->isPlatformAdmin() && (int) $user->user_role_id === UserRole::VENDEDOR) {
+            abort_unless(
+                ContatosCorretores::query()
+                    ->where('empresa_id', $empresaId)
+                    ->where('contato_id', $contatoId)
+                    ->where('user_id', $user->id)
+                    ->exists(),
+                403
+            );
+        }
+    }
+
     public function getLeadsmarketing()
     {
-        $leads = $this->contatosRepository->getLeadsmarketing(Auth::user()->empresa_id);
+        $leads = $this->contatosRepository->getLeadsmarketing($this->tenantId());
 
         return response()->json($leads);
     }
@@ -1209,8 +1307,13 @@ class Comercial extends Controller
 
     public function sendLeadPredictive(Request $request)
     {
+        $empresaId = (int) $this->tenantId();
+        $data = $request->validate([
+            'id' => ['required', 'integer', Rule::exists('contatos', 'id')->where('empresa_id', $empresaId)],
+        ]);
+
         try {
-            $respose = $this->preditivaUseCase->sendMailingPredictive($request->id);
+            $respose = $this->preditivaUseCase->sendMailingPredictive((int) $data['id']);
             if ($respose) {
                 return redirect()->back()->with('status', 'success')->with('message', 'Lead Enviado com sucesso');
             } else {
@@ -1223,15 +1326,14 @@ class Comercial extends Controller
 
     public function sendMultipleLeadsPredictive(Request $request)
     {
-        try {
-            $ids = $request->input('ids', []);
+        $empresaId = (int) $this->tenantId();
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:1000'],
+            'ids.*' => ['required', 'integer', 'distinct', Rule::exists('contatos', 'id')->where('empresa_id', $empresaId)],
+        ]);
 
-            if (empty($ids)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Nenhum lead selecionado',
-                ]);
-            }
+        try {
+            $ids = array_map('intval', $data['ids']);
 
             $successCount = 0;
             $errorCount = 0;
@@ -1266,25 +1368,28 @@ class Comercial extends Controller
                 ]);
             }
         } catch (\Throwable $th) {
+            report($th);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao processar: '.$th->getMessage(),
+                'message' => 'Não foi possível processar os leads neste momento.',
             ], 500);
         }
     }
 
     public function getClientesPreditiva(Request $request)
     {
-        $userId = Auth::id();
-        $empresaId = Auth::user()->empresa_id;
+        $userId = (int) $this->tenantMemberOrAbort($request->user())->getAuthIdentifier();
+        $empresaId = $this->tenantId();
+        $config = PreditivaConfiguracao::getOrDefault($empresaId);
 
-        // Liberar locks expirados deste usuário (mais de 2h sem ação)
+        // Liberar locks expirados deste usuário conforme a regra da empresa.
         Preditiva::where('user_id', $userId)
-            ->where('data_atribuicao', '<', now()->subHours(2))
+            ->where('empresa_id', $empresaId)
+            ->where('data_atribuicao', '<', now()->subHours((int) $config->lock_expiracao_horas))
             ->update(['user_id' => null, 'data_atribuicao' => null]);
 
         $scoreExpression = $this->preditivaPriorizacaoUseCase->getScoreExpression($empresaId);
-        $config = PreditivaConfiguracao::getOrDefault($empresaId);
         $maxTentativas = 20;
 
         for ($tentativa = 0; $tentativa < $maxTentativas; $tentativa++) {
@@ -1292,7 +1397,10 @@ class Comercial extends Controller
             $cooldownHoras = (int) $config->cooldown_horas;
 
             $cliente = DB::table('preditiva as p')
-                ->join('contatos as c', 'p.contato_id', '=', 'c.id')
+                ->join('contatos as c', function ($join) {
+                    $join->on('p.contato_id', '=', 'c.id')
+                        ->on('p.empresa_id', '=', 'c.empresa_id');
+                })
                 ->leftJoin(DB::raw("(
                   SELECT
                     contato_id,
@@ -1326,6 +1434,7 @@ class Comercial extends Controller
           END AS em_cooldown")
                 )
                 ->where('p.empresa_id', $empresaId)
+                ->where('c.empresa_id', $empresaId)
                 ->where('p.status', 'Y')
                 ->where(function ($q) use ($userId) {
                     $q->whereNull('p.user_id')->orWhere('p.user_id', $userId);
@@ -1412,6 +1521,7 @@ class Comercial extends Controller
             }
 
             $dependentes = Dependentes::where('contato_id', $cliente->id)
+                ->where('empresa_id', $empresaId)
                 ->select('id', 'nome', 'cpf', 'idade', 'parentesco', 'telefone_1', 'telefone_2', 'telefone_3', 'valor_plano')
                 ->get();
 
@@ -1426,10 +1536,14 @@ class Comercial extends Controller
 
     public function descartarClientePreditiva(Request $request)
     {
-        $userId = Auth::id();
-        $empresaId = Auth::user()->empresa_id;
-        $contatoId = $request->contato_id;
-        $tabulacao = strtoupper(trim($request->tabulacao ?? 'SEM TABULACAO'));
+        $userId = (int) $this->tenantMemberOrAbort($request->user())->getAuthIdentifier();
+        $empresaId = (int) $this->tenantId();
+        $data = $request->validate([
+            'contato_id' => ['required', 'integer', Rule::exists('contatos', 'id')->where('empresa_id', $empresaId)],
+            'tabulacao' => ['nullable', 'string', 'max:120'],
+        ]);
+        $contatoId = (int) $data['contato_id'];
+        $tabulacao = strtoupper(trim($data['tabulacao'] ?? 'SEM TABULACAO'));
 
         // Carrega configurações da empresa (com defaults seguros se não existir)
         $config = PreditivaConfiguracao::getOrDefault($empresaId);
@@ -1501,6 +1615,7 @@ class Comercial extends Controller
 
         // Libera o lock — o cooldown é aplicado na próxima busca, não aqui
         Preditiva::where('contato_id', $contatoId)
+            ->where('empresa_id', $empresaId)
             ->update(['user_id' => null, 'data_atribuicao' => null]);
 
         $restantes = $config->limite_descartes_soft - $totalSoft;
@@ -1515,15 +1630,19 @@ class Comercial extends Controller
 
     public function converterClientePreditiva(Request $request)
     {
-        $userId = Auth::id();
-        $empresaId = Auth::user()->empresa_id;
-        $contatoId = $request->contato_id;
+        $userId = (int) $this->tenantMemberOrAbort($request->user())->getAuthIdentifier();
+        $empresaId = (int) $this->tenantId();
+        $data = $request->validate([
+            'contato_id' => ['required', 'integer', Rule::exists('contatos', 'id')->where('empresa_id', $empresaId)],
+            'tabulacao' => ['nullable', 'string', 'max:120'],
+        ]);
+        $contatoId = (int) $data['contato_id'];
 
         LogPreditiva::create([
             'empresa_id' => $empresaId,
             'user_id' => $userId,
             'contato_id' => $contatoId,
-            'tabulacao' => $request->tabulacao ?? 'CONVERTIDO',
+            'tabulacao' => $data['tabulacao'] ?? 'CONVERTIDO',
             'acao' => 'CONVERSAO',
         ]);
 
@@ -1535,6 +1654,7 @@ class Comercial extends Controller
         $existingRecord = DB::table('contatos_corretores')
             ->where('contato_id', $contatoId)
             ->where('user_id', $userId)
+            ->where('empresa_id', $empresaId)
             ->first();
 
         if (! $existingRecord) {
@@ -1542,7 +1662,7 @@ class Comercial extends Controller
                 'empresa_id' => $empresaId,
                 'contato_id' => $contatoId,
                 'user_id' => $userId,
-                'tabulacao_id' => Tabulations::PROSPECCAO,
+                'tabulacao_id' => $this->tabulationCatalog->id($empresaId, TabulationCode::PROSPECCAO),
                 'sub_tabulacao_id' => null,
                 'temperatura' => 'FRIO',
                 'created_at' => now(),
@@ -1552,7 +1672,7 @@ class Comercial extends Controller
             \App\Jobs\Whatsapp\RevincularConversasContato::dispatch((int) $contatoId, (int) $userId);
         }
 
-        Preditiva::where('contato_id', $contatoId)->delete();
+        Preditiva::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
 
         Comentarios::where('user_id', $userId)
             ->where('contato_id', $contatoId)
@@ -1566,6 +1686,9 @@ class Comercial extends Controller
 
     public function descartarCliente($id_mailing)
     {
+        $empresaId = (int) $this->tenantId();
+        abort_unless(Contatos::where('empresa_id', $empresaId)->whereKey($id_mailing)->exists(), 404);
+
         try {
             DB::beginTransaction();
 
@@ -1575,7 +1698,7 @@ class Comercial extends Controller
                 throw new \Exception('Erro ao excluir mailing.');
             }
 
-            $updateCustomer = Contatos::where('id', $id_mailing)->update([
+            $updateCustomer = Contatos::where('id', $id_mailing)->where('empresa_id', $empresaId)->update([
                 'status' => 'N',
                 'updated_at' => now(),
             ]);
@@ -1596,9 +1719,14 @@ class Comercial extends Controller
 
     public function discardMultipleLeads(Request $request)
     {
-        $ids = $request->input('ids');
-        $clearPreditiva = $request->input('clearPreditiva');
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = (int) $this->tenantId();
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:1000'],
+            'ids.*' => ['required', 'integer', 'distinct', Rule::exists('contatos', 'id')->where('empresa_id', $empresaId)],
+            'clearPreditiva' => ['nullable', 'boolean'],
+        ]);
+        $ids = array_map('intval', $data['ids']);
+        $clearPreditiva = (bool) ($data['clearPreditiva'] ?? false);
 
         try {
             DB::transaction(function () use ($ids, $clearPreditiva, $empresaId) {
@@ -1635,7 +1763,7 @@ class Comercial extends Controller
     public function getPlansByOperator($operadora_id)
     {
         $planos = Plano::where('operadora_id', $operadora_id)
-            ->where('empresa_id', Auth::user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->where('status', 'Y')
             ->orderBy('created_at', 'desc')
             ->get(['id', 'nome', 'acomodacao']);
@@ -1645,20 +1773,40 @@ class Comercial extends Controller
 
     public function demands()
     {
-        $users = User::select('id', 'name')
+        $empresa = Empresa::query()->findOrFail($this->tenantId());
+        $users = User::query()->tenantMember($this->tenantId())
+            ->select('id', 'name')
             ->wherein('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER, UserRole::BACKOFFICE])
-            ->where('empresa_id', Auth::user()->empresa_id)
             ->where('ativo', 'Y')
             ->orderBy('name')->get();
 
         return view('content.pages.comercial.demandas', [
             'users' => $users,
+            'demandasConcluidasJanelaDias' => (int) $empresa->demandas_concluidas_janela_dias,
+            'canManageDemandSettings' => in_array(Auth::user()->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER], true),
+        ]);
+    }
+
+    public function updateDemandSettings(Request $request)
+    {
+        $data = $request->validate([
+            'demandas_concluidas_janela_dias' => ['required', 'integer', 'min:1', 'max:3650'],
+        ]);
+
+        Empresa::query()
+            ->whereKey($this->tenantId())
+            ->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Configuração de demandas atualizada.',
         ]);
     }
 
     public function deletarDependente(Request $request)
     {
-        $dependente = Dependentes::find($request->id_dependente);
+        $dependente = Dependentes::where('empresa_id', $this->tenantId())
+            ->find($request->id_dependente);
         if ($dependente) {
             $dependente->delete();
 
@@ -1672,18 +1820,26 @@ class Comercial extends Controller
     {
         // Origem: TODOS (default), INTERNA (tarefas do setor) ou VENDEDOR (solicitações de pós-venda).
         $origem = $request->input('origem', 'TODOS');
+        $empresaId = (int) $this->tenantId();
+        $janelaConcluidas = (int) Empresa::query()
+            ->whereKey($empresaId)
+            ->value('demandas_concluidas_janela_dias');
 
-        $q = Demanda::with(['criador:id,name', 'responsavel:id,name', 'venda:id,nome_contrato,numero_proposta'])
-            ->where('empresa_id', Auth::user()->empresa_id)
+        $q = Demanda::with([
+            'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+            'responsavel' => fn ($query) => $query->select('id', 'name')->tenantMember($empresaId),
+            'venda' => fn ($query) => $query->select('id', 'nome_contrato', 'numero_proposta')->where('vendas.empresa_id', $empresaId),
+        ])
+            ->where('empresa_id', $empresaId)
             ->when($origem === 'INTERNA' || $origem === 'VENDEDOR', fn ($s) => $s->where('origem', $origem))
             ->when($request->has('status') && $request->status !== 'TODOS', fn ($s) => $s->where('status', $request->status))
             ->when($request->has('prioridade') && $request->prioridade !== 'TODAS', fn ($s) => $s->where('prioridade', $request->prioridade))
             ->when($request->has('assigned_to') && $request->assigned_to, fn ($s) => $s->where('assigned_to', $request->assigned_to))
-            ->where(function ($query) {
+            ->where(function ($query) use ($janelaConcluidas) {
                 $query->where('status', '!=', 'CONCLUIDA')
-                    ->orWhere(function ($q) {
+                    ->orWhere(function ($q) use ($janelaConcluidas) {
                         $q->where('status', 'CONCLUIDA')
-                            ->where('concluida_em', '>=', now()->subDays(30));
+                            ->where('concluida_em', '>=', now()->subDays($janelaConcluidas));
                     });
             })
             ->orderByDesc('created_at');
@@ -1717,11 +1873,11 @@ class Comercial extends Controller
             'titulo' => 'required|string|max:255',
             'descricao' => 'nullable|string',
             'prioridade' => 'required|in:BAIXA,MEDIA,ALTA',
-            'assigned_to' => 'nullable|exists:users,id',
+            'assigned_to' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $this->tenantId())->where('is_platform_admin', false))],
             'data_limite' => 'nullable|date',
         ]);
 
-        $data['empresa_id'] = auth()->user()->empresa_id;
+        $data['empresa_id'] = $this->tenantId();
         $data['created_by'] = auth()->id();
 
         $d = Demanda::create($data);
@@ -1731,12 +1887,12 @@ class Comercial extends Controller
 
     public function update($id, Request $r)
     {
-        $d = Demanda::where('empresa_id', Auth::user()->empresa_id)->findOrFail($id);
+        $d = Demanda::where('empresa_id', $this->tenantId())->findOrFail($id);
         $data = $r->validate([
             'titulo' => 'required|string|max:255',
             'descricao' => 'nullable|string',
             'prioridade' => 'required|in:BAIXA,MEDIA,ALTA',
-            'assigned_to' => 'nullable|exists:users,id',
+            'assigned_to' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $this->tenantId())->where('is_platform_admin', false))],
             'data_limite' => 'nullable|date',
         ]);
         $d->update($data);
@@ -1746,7 +1902,7 @@ class Comercial extends Controller
 
     public function updateStatus($id, Request $r)
     {
-        $d = Demanda::where('empresa_id', Auth::user()->empresa_id)->findOrFail($id);
+        $d = Demanda::where('empresa_id', $this->tenantId())->findOrFail($id);
         $r->validate(['status' => 'required|in:ABERTA,EM_ANDAMENTO,CONCLUIDA,CANCELADA']);
 
         $eraConcluida = $d->status === 'CONCLUIDA';
@@ -1765,7 +1921,7 @@ class Comercial extends Controller
 
     public function destroy($id)
     {
-        Demanda::where('empresa_id', Auth::user()->empresa_id)->whereKey($id)->delete();
+        Demanda::where('empresa_id', $this->tenantId())->whereKey($id)->delete();
 
         return response()->json(['ok' => true]);
     }
@@ -1775,7 +1931,7 @@ class Comercial extends Controller
      */
     private function notificarVendedorDemandaConcluida(Demanda $d): void
     {
-        $vendedor = User::find($d->created_by);
+        $vendedor = User::query()->tenantActor((int) $d->empresa_id)->find($d->created_by);
         if (! $vendedor) {
             return;
         }
@@ -1813,8 +1969,15 @@ class Comercial extends Controller
      */
     public function listMinhasDemandas()
     {
-        $demandas = PosVendaSolicitacao::with(['venda:id,nome_contrato,numero_proposta,user_id', 'etapa:id,nome', 'historico.usuario:id,name'])
-            ->where('empresa_id', Auth::user()->empresa_id)
+        $empresaId = (int) $this->tenantId();
+        $demandas = PosVendaSolicitacao::with([
+            'venda' => fn ($query) => $query->select('id', 'nome_contrato', 'numero_proposta', 'user_id')->where('vendas.empresa_id', $empresaId),
+            'etapa' => fn ($query) => $query->select('id', 'nome')->where('pos_venda_fluxo_etapas.empresa_id', $empresaId),
+            'historico' => fn ($query) => $query->with([
+                'usuario' => fn ($userQuery) => $userQuery->select('id', 'name')->tenantActor($empresaId),
+            ]),
+        ])
+            ->where('empresa_id', $empresaId)
             ->where(function ($q) {
                 $q->where('created_by', Auth::id())
                     ->orWhereHas('venda', fn ($v) => $v->where('user_id', Auth::id()));
@@ -1860,9 +2023,12 @@ class Comercial extends Controller
         $termo = trim((string) $request->input('termo', ''));
 
         $contratos = Vendas::query()
-            ->where('empresa_id', Auth::user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->where('user_id', Auth::id())
-            ->whereIn('tabulacao_id', Tabulations::STATUS_ELEGIVEIS_SOLICITACAO_POS_VENDA)
+            ->whereIn('tabulacao_id', array_values($this->tabulationCatalog->requiredIds(
+                (int) $this->tenantId(),
+                TabulationCode::POS_VENDA_ELEGIVEIS
+            )))
             ->when($termo !== '', function ($q) use ($termo) {
                 $q->where(function ($sub) use ($termo) {
                     $sub->where('nome_contrato', 'like', "%{$termo}%")
@@ -1893,19 +2059,22 @@ class Comercial extends Controller
         $tipos = array_map(fn ($t) => $t->value, TipoSolicitacaoPosVenda::cases());
 
         $data = $request->validate([
-            'venda_id' => 'required|integer|exists:vendas,id',
+            'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
             'tipo' => ['required', 'string', \Illuminate\Validation\Rule::in($tipos)],
             'titulo' => 'required|string|max:255',
             'descricao' => 'nullable|string|max:1000',
         ]);
 
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         // Garante que o contrato é do próprio vendedor, da empresa e já entrou na implantação.
         $venda = Vendas::where('id', $data['venda_id'])
             ->where('empresa_id', $empresaId)
             ->where('user_id', Auth::id())
-            ->whereIn('tabulacao_id', Tabulations::STATUS_ELEGIVEIS_SOLICITACAO_POS_VENDA)
+            ->whereIn('tabulacao_id', array_values($this->tabulationCatalog->requiredIds(
+                $empresaId,
+                TabulationCode::POS_VENDA_ELEGIVEIS
+            )))
             ->first();
 
         if (! $venda) {
@@ -1937,7 +2106,7 @@ class Comercial extends Controller
      */
     private function notificarAdminsDemandaVendedor(PosVendaSolicitacao $solicitacao, Vendas $venda): void
     {
-        $admins = User::where('empresa_id', $solicitacao->empresa_id)
+        $admins = User::query()->tenantMember((int) $solicitacao->empresa_id)
             ->whereIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER, UserRole::BACKOFFICE])
             ->where('ativo', 'Y')
             ->get();
@@ -1968,7 +2137,7 @@ class Comercial extends Controller
             ]);
 
             $contatoId = $request->contato_id;
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             // Buscar dados do cliente
             $cliente = Contatos::where('id', $contatoId)
@@ -1984,8 +2153,15 @@ class Comercial extends Controller
 
             // Buscar comentários
             $comentarios = Comentarios::select('comentarios.anotacao', 'comentarios.created_at', 'users.name')
-                ->leftJoin('users', 'comentarios.user_id', '=', 'users.id')
+                ->leftJoin('users', function ($join) {
+                    $join->on('comentarios.user_id', '=', 'users.id')
+                        ->where(function ($visibility) {
+                            $visibility->whereColumn('comentarios.empresa_id', 'users.empresa_id')
+                                ->orWhere('users.is_platform_admin', true);
+                        });
+                })
                 ->where('comentarios.contato_id', $contatoId)
+                ->where('comentarios.empresa_id', $empresaId)
                 ->where('comentarios.visivel', 'Y')
                 ->orderBy('comentarios.created_at', 'asc')
                 ->get();
@@ -1997,26 +2173,26 @@ class Comercial extends Controller
                 ]);
             }
 
-            // Chamar o serviço de IA
-            $claudeService = new \App\Services\ClaudeAIService();
-            $resultado = $claudeService->analisarClienteESugerirEstrategias(
+            $resultado = $this->claudeAIService->analisarClienteESugerirEstrategias(
                 $cliente->toArray(),
                 $comentarios->toArray()
             );
 
             return response()->json($resultado);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
-                'error' => 'Erro ao processar análise: '.$e->getMessage(),
+                'error' => 'Não foi possível processar a análise neste momento.',
             ], 500);
         }
     }
 
     public function faqsVendedor()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         $faqs = Faq::with('operadora')
             ->where('empresa_id', $empresaId)

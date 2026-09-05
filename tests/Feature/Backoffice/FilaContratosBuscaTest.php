@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Backoffice;
 
+use App\Enums\TabulationCode;
 use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
 use App\Models\Vendas;
+use App\Services\TabulationCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -44,22 +46,22 @@ class FilaContratosBuscaTest extends TestCase
         // VENDA, ESTORNO e PENDENCIA têm raia; IMPLANTADO não (contrato já concluído).
         DB::table('tabulacoes')->insert([
             [
-                'id' => Tabulations::VENDA, 'empresa_id' => $this->empresa->id, 'descricao' => 'VENDA',
+                'id' => Tabulations::VENDA, 'empresa_id' => $this->empresa->id, 'codigo' => TabulationCode::VENDA, 'descricao' => 'VENDA',
                 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'ordem_kanban' => 1,
                 'created_at' => now(), 'updated_at' => now(),
             ],
             [
-                'id' => Tabulations::ESTORNO, 'empresa_id' => $this->empresa->id, 'descricao' => 'ESTORNO',
+                'id' => Tabulations::ESTORNO, 'empresa_id' => $this->empresa->id, 'codigo' => TabulationCode::ESTORNO, 'descricao' => 'ESTORNO',
                 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'ordem_kanban' => 8,
                 'created_at' => now(), 'updated_at' => now(),
             ],
             [
-                'id' => Tabulations::PENDENCIA, 'empresa_id' => $this->empresa->id, 'descricao' => 'PENDENCIA',
+                'id' => Tabulations::PENDENCIA, 'empresa_id' => $this->empresa->id, 'codigo' => TabulationCode::PENDENCIA, 'descricao' => 'PENDENCIA',
                 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'ordem_kanban' => 3,
                 'created_at' => now(), 'updated_at' => now(),
             ],
             [
-                'id' => Tabulations::IMPLANTADO, 'empresa_id' => $this->empresa->id, 'descricao' => 'IMPLANTADO',
+                'id' => Tabulations::IMPLANTADO, 'empresa_id' => $this->empresa->id, 'codigo' => TabulationCode::IMPLANTADO, 'descricao' => 'IMPLANTADO',
                 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'ordem_kanban' => 9,
                 'created_at' => now(), 'updated_at' => now(),
             ],
@@ -69,10 +71,22 @@ class FilaContratosBuscaTest extends TestCase
     private function criarContrato(string $nome, int $tabulacaoId, ?Empresa $empresa = null): Vendas
     {
         $empresa = $empresa ?? $this->empresa;
+        $usuario = $this->admin;
+
+        if (! $empresa->is($this->empresa)) {
+            $usuario = User::factory()->create([
+                'empresa_id' => $empresa->id,
+                'user_role_id' => UserRole::ADMINISTRATIVO,
+                'ativo' => 'Y',
+            ]);
+            $codigo = DB::table('tabulacoes')->where('empresa_id', $this->empresa->id)->where('id', $tabulacaoId)->value('codigo');
+            app(TabulationCatalog::class)->provision($empresa->id);
+            $tabulacaoId = app(TabulationCatalog::class)->id($empresa->id, $codigo);
+        }
 
         $contatoId = DB::table('contatos')->insertGetId([
             'empresa_id' => $empresa->id,
-            'user_import_id' => $this->admin->id,
+            'user_import_id' => $usuario->id,
             'nome_cliente' => 'Cliente '.uniqid(),
             'cpf' => (string) random_int(10000000000, 99999999999),
             'created_at' => now(),
@@ -81,7 +95,7 @@ class FilaContratosBuscaTest extends TestCase
 
         return Vendas::create([
             'empresa_id' => $empresa->id,
-            'user_id' => $this->admin->id,
+            'user_id' => $usuario->id,
             'contato_id' => $contatoId,
             'tabulacao_id' => $tabulacaoId,
             'nome_contrato' => $nome,
@@ -104,6 +118,50 @@ class FilaContratosBuscaTest extends TestCase
             ->flatMap(fn ($coluna) => collect($coluna['contratos'])->pluck('id'));
     }
 
+    public function test_listagem_por_status_rejeita_etapa_de_outra_empresa(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $tabulacaoExterna = DB::table('tabulacoes')->insertGetId([
+            'empresa_id' => $outraEmpresa->id,
+            'descricao' => 'ETAPA EXTERNA',
+            'tipo_tabulacao' => 'A',
+            'efetivo' => 'Y',
+            'status' => 'Y',
+            'ordem_kanban' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('backoffice.contratosPorStatus', $tabulacaoExterna))
+            ->assertNotFound()
+            ->assertJsonPath('message', 'Etapa não encontrada.');
+    }
+
+    public function test_modal_de_status_entrega_codigos_semanticos_com_ids_proprios_do_tenant(): void
+    {
+        $empresa = Empresa::factory()->create();
+        $admin = User::factory()->create([
+            'empresa_id' => $empresa->id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'ativo' => 'Y',
+        ]);
+        $catalog = app(TabulationCatalog::class);
+        $catalog->provision($empresa->id);
+        $implantadoId = $catalog->id($empresa->id, TabulationCode::IMPLANTADO);
+
+        $this->assertNotSame(Tabulations::IMPLANTADO, $implantadoId);
+        $this->actingAs($admin)
+            ->get(route('backoffice.index'))
+            ->assertOk()
+            ->assertSee('value="'.$implantadoId.'" data-codigo="IMPLANTADO"', false);
+
+        $script = file_get_contents(resource_path('assets/js/backoffice.js'));
+        $this->assertStringNotContainsString("val === '18'", $script);
+        $this->assertStringNotContainsString("val === '55'", $script);
+        $this->assertStringContainsString('codigo === STATUS.IMPLANTADO', $script);
+    }
+
     public function test_filtro_da_fila_casa_palavras_soltas_fora_de_ordem(): void
     {
         $x10 = $this->criarContrato('X10 COMERCIO E AUTOMACAO LTDA', Tabulations::VENDA);
@@ -121,6 +179,9 @@ class FilaContratosBuscaTest extends TestCase
         $estornado = $this->criarContrato('CLIENTE ESTORNADO', Tabulations::ESTORNO);
         $pendente = $this->criarContrato('CLIENTE PENDENTE', Tabulations::PENDENCIA);
 
+        DB::table('tabulacoes')->where('id', Tabulations::ESTORNO)->update(['descricao' => 'Retorno ao comercial']);
+        DB::table('tabulacoes')->where('id', Tabulations::PENDENCIA)->update(['descricao' => 'Documentação pendente']);
+
         DB::table('vendas')->where('id', $estornado->id)->update([
             'motivo_pendencia' => 'Documentação precisa ser corrigida pelo vendedor.',
         ]);
@@ -130,20 +191,22 @@ class FilaContratosBuscaTest extends TestCase
         $nomes = $pipeline->pluck('nome')->values();
 
         $this->assertSame(
-            $nomes->search('PENDENCIA') - 1,
-            $nomes->search('ESTORNO'),
+            $nomes->search('Documentação pendente') - 1,
+            $nomes->search('Retorno ao comercial'),
             'A raia ESTORNO deve ficar imediatamente antes de PENDENCIA.'
         );
 
-        $colunaEstorno = $pipeline->firstWhere('nome', 'ESTORNO');
+        $colunaEstorno = $pipeline->firstWhere('nome', 'Retorno ao comercial');
+        $this->assertSame(TabulationCode::ESTORNO, $colunaEstorno['codigo']);
         $this->assertSame([$estornado->id], collect($colunaEstorno['contratos'])->pluck('id')->all());
         $this->assertSame(
             'Documentação precisa ser corrigida pelo vendedor.',
             $colunaEstorno['contratos'][0]['motivo_pendencia']
         );
 
-        $colunaPendencia = $pipeline->firstWhere('nome', 'PENDENCIA');
+        $colunaPendencia = $pipeline->firstWhere('nome', 'Documentação pendente');
         $this->assertSame([$pendente->id], collect($colunaPendencia['contratos'])->pluck('id')->all());
+        $this->assertSame(1, $response->json('kpis.perdidos'));
     }
 
     public function test_contrato_fora_da_fila_e_sinalizado_em_vez_de_sumir(): void

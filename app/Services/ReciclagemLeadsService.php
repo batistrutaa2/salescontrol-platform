@@ -21,9 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ReciclagemLeadsService
 {
-    public function __construct(private ContatosRepository $contatosRepository)
-    {
-    }
+    public function __construct(private ContatosRepository $contatosRepository) {}
 
     /**
      * Envia um unico lead para a preditiva, gravando o log duravel em preditiva_envios.
@@ -31,14 +29,30 @@ class ReciclagemLeadsService
      */
     public function enviarParaPreditiva(int $contatoId, int $empresaId, string $origem, ?int $userId, int $dias): bool
     {
-        $eleg = $this->contatosRepository->getElegibilidadeLead($contatoId, $empresaId, $dias);
-        if (!$eleg) {
+        $elegibilidadeInicial = $this->contatosRepository->getElegibilidadeLead($contatoId, $empresaId, $dias);
+        if (! $elegibilidadeInicial) {
             // virou COM VENDEDOR / ganhou venda / ja esta na preditiva / esquentou
             return false;
         }
 
         try {
-            DB::transaction(function () use ($contatoId, $empresaId, $origem, $userId, $eleg) {
+            return DB::transaction(function () use ($contatoId, $empresaId, $origem, $userId, $dias): bool {
+                $contatoExiste = Contatos::query()
+                    ->where('id', $contatoId)
+                    ->where('empresa_id', $empresaId)
+                    ->lockForUpdate()
+                    ->exists();
+                if (! $contatoExiste) {
+                    return false;
+                }
+
+                // Outra execução pode ter reciclado ou atribuído o lead enquanto
+                // aguardávamos o lock. Revalide toda a regra dentro da transação.
+                $eleg = $this->contatosRepository->getElegibilidadeLead($contatoId, $empresaId, $dias);
+                if (! $eleg) {
+                    return false;
+                }
+
                 // Reativa contato descartado
                 Contatos::where('id', $contatoId)
                     ->where('empresa_id', $empresaId)
@@ -58,23 +72,24 @@ class ReciclagemLeadsService
                 Preditiva::create([
                     'empresa_id' => $empresaId,
                     'contato_id' => $contatoId,
-                    'status'     => 'Y',
+                    'status' => 'Y',
                 ]);
 
                 PreditivaEnvio::create([
-                    'empresa_id'      => $empresaId,
-                    'contato_id'      => $contatoId,
-                    'enviado_em'      => now(),
-                    'origem'          => $origem,
-                    'enviado_por'     => $userId,
+                    'empresa_id' => $empresaId,
+                    'contato_id' => $contatoId,
+                    'enviado_em' => now(),
+                    'origem' => $origem,
+                    'enviado_por' => $userId,
                     'situacao_origem' => $eleg->situacao,
-                    'dias_inativo'    => (int) $eleg->dias_parado,
+                    'dias_inativo' => (int) $eleg->dias_parado,
                 ]);
-            });
 
-            return true;
+                return true;
+            });
         } catch (\Throwable $th) {
-            return false;
+            report($th);
+            throw $th;
         }
     }
 
@@ -84,7 +99,7 @@ class ReciclagemLeadsService
     public function enviarElegiveisEmLote(int $empresaId, ?array $ids, string $origem, ?int $userId, ?int $limite = null): array
     {
         $config = PreditivaConfiguracao::getOrDefault($empresaId);
-        $dias   = (int) $config->dias_sem_contato_reenvio;
+        $dias = (int) $config->dias_sem_contato_reenvio;
 
         if ($ids === null) {
             $cap = $limite ?? (int) $config->limite_envio_diario;
@@ -113,10 +128,10 @@ class ReciclagemLeadsService
         }
 
         return [
-            'enviados'  => $enviados,
+            'enviados' => $enviados,
             'ignorados' => $ignorados,
-            'erros'     => $erros,
-            'total'     => count($ids),
+            'erros' => $erros,
+            'total' => count($ids),
         ];
     }
 }

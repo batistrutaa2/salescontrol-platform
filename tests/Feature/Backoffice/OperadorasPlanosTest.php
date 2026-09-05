@@ -3,12 +3,11 @@
 namespace Tests\Feature\Backoffice;
 
 use App\Enums\UserRole;
-use App\Models\Empresa;
 use App\Models\DocumentoDiretorio;
+use App\Models\Empresa;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -109,6 +108,114 @@ class OperadorasPlanosTest extends TestCase
         // Aparece no data agregado.
         $ops = collect($this->actingAs($this->admin)->getJson(route('backoffice.operadorasPlanos.data'))->json('operadoras'));
         $this->assertSame(1, $ops->firstWhere('nome', 'SULAMERICA')['planos'] ? count($ops->firstWhere('nome', 'SULAMERICA')['planos']) : 0);
+    }
+
+    public function test_configura_regras_comerciais_sem_inferir_pelo_nome_e_respeita_tenant(): void
+    {
+        $operadora = $this->criarOperadora($this->empresa->id, 'OPERADORA PERSONALIZADA');
+        $outraEmpresa = Empresa::factory()->create();
+        $operadoraExterna = $this->criarOperadora($outraEmpresa->id, 'OUTRA OPERADORA');
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('backoffice.operadoras.updateRegrasComerciais', $operadora), [
+                'coparticipacao_formato' => 'PARCIAL_COMPLETA',
+                'angariacao_padrao' => true,
+                'iof_percentual' => 1.75,
+                'cor_marca' => '#123ABC',
+                'logo_path' => 'assets/img/logos/operadora.png',
+                'app_ios_url' => 'https://apps.apple.com/app/id123456',
+                'app_android_url' => 'https://play.google.com/store/apps/details?id=example.app',
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('operadoras', [
+            'id' => $operadora,
+            'empresa_id' => $this->empresa->id,
+            'coparticipacao_formato' => 'PARCIAL_COMPLETA',
+            'angariacao_padrao' => 1,
+            'iof_percentual' => 1.75,
+            'cor_marca' => '#123ABC',
+            'logo_path' => 'assets/img/logos/operadora.png',
+            'app_ios_url' => 'https://apps.apple.com/app/id123456',
+            'app_android_url' => 'https://play.google.com/store/apps/details?id=example.app',
+        ]);
+
+        $item = collect($this->actingAs($this->admin)
+            ->getJson(route('backoffice.operadorasPlanos.data'))
+            ->json('operadoras'))
+            ->firstWhere('id', $operadora);
+        $this->assertSame('PARCIAL_COMPLETA', $item['coparticipacao_formato']);
+        $this->assertTrue($item['angariacao_padrao']);
+        $this->assertSame('1.75', $item['iof_percentual']);
+        $this->assertSame('#123ABC', $item['cor_marca']);
+        $this->assertSame('https://apps.apple.com/app/id123456', $item['app_ios_url']);
+        $this->assertSame('https://play.google.com/store/apps/details?id=example.app', $item['app_android_url']);
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('backoffice.operadoras.updateRegrasComerciais', $operadoraExterna), [
+                'coparticipacao_formato' => 'PARCIAL_COMPLETA',
+                'angariacao_padrao' => true,
+            ])
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('operadoras', [
+            'id' => $operadoraExterna,
+            'coparticipacao_formato' => 'SIM_NAO',
+            'angariacao_padrao' => 0,
+        ]);
+    }
+
+    public function test_rejeita_logo_insegura_na_configuracao_da_operadora(): void
+    {
+        $operadora = $this->criarOperadora($this->empresa->id, 'OPERADORA SEGURA');
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('backoffice.operadoras.updateRegrasComerciais', $operadora), [
+                'coparticipacao_formato' => 'SIM_NAO',
+                'angariacao_padrao' => false,
+                'iof_percentual' => 0,
+                'cor_marca' => '#334155',
+                'logo_path' => 'javascript:alert(1)',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['logo_path']);
+    }
+
+    public function test_rejeita_link_de_aplicativo_sem_https(): void
+    {
+        $operadora = $this->criarOperadora($this->empresa->id, 'OPERADORA SEGURA');
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('backoffice.operadoras.updateRegrasComerciais', $operadora), [
+                'coparticipacao_formato' => 'SIM_NAO',
+                'angariacao_padrao' => false,
+                'app_ios_url' => 'http://apps.example.test/inseguro',
+                'app_android_url' => 'javascript:alert(1)',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['app_ios_url', 'app_android_url']);
+    }
+
+    public function test_cadastro_de_plano_rejeita_operadora_de_outra_empresa(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $operadoraExterna = $this->criarOperadora($outraEmpresa->id, 'OPERADORA EXTERNA');
+
+        $this->actingAs($this->admin)
+            ->postJson(route('backoffice.createPlan'), [
+                'operadora_id' => $operadoraExterna,
+                'nome' => 'Plano invasor',
+                'status' => 'Y',
+                'acomodacao' => 'APARTAMENTO',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['operadora_id']);
+
+        $this->assertDatabaseMissing('planos', [
+            'empresa_id' => $this->empresa->id,
+            'operadora_id' => $operadoraExterna,
+        ]);
     }
 
     public function test_toggle_status_operadora_e_plano(): void

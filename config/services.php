@@ -9,16 +9,8 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
-    'voip' => [
-        'maisvoip' => [
-            'url' => 'http://painelpabx.maisvoip.com.br:5000/api/v1/clicktocall',
-            'token' => '$2y$10$BfEpiUWL5iCghZtuMKOT2ur1hXA1yfhtAhWobY9jzahuNz.xd2WG2',
-        ],
-    ],
-
-    'rankingdevendas' => [
-        'token' => '1578RYEHXOUJDXBWMF4W5G7OACJQTU',
-        'url' => 'https://integration.rankingdevendas.com.br/v2/',
+    'whatsapp' => [
+        'endpoint' => env('WHATSAPP_API_ENDPOINT'),
     ],
 
     'ses' => [
@@ -36,12 +28,15 @@ return [
 
     'anthropic' => [
         'api_key' => env('ANTHROPIC_API_KEY'),
+        'base_url' => env('ANTHROPIC_BASE_URL', 'https://api.anthropic.com/v1'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-3-haiku-20240307'),
+        'version' => env('ANTHROPIC_VERSION', '2023-06-01'),
+        'max_tokens' => (int) env('ANTHROPIC_MAX_TOKENS', 2048),
     ],
 
     'lemit' => [
         'api_key' => env('LEMIT_API_TOKEN'),
         'base_url' => env('LEMIT_BASE_URL', 'https://api.lemit.com.br/api/v1/consulta'),
-        'cache_months' => (int) env('LEMIT_CACHE_MONTHS', 3),
     ],
 
     'assertiva' => [

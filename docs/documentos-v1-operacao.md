@@ -194,9 +194,9 @@ estão sob `DOCUMENTOS_ROOT`. Sem `--apply`, ele apenas informa quantos registro
 
 ```bash
 docker compose -f docker-compose.yml exec -T laravel.test \
-  php artisan documentos:reparar-permissoes
+  php artisan documentos:reparar-permissoes EMPRESA_ID
 docker compose -f docker-compose.yml exec -T laravel.test \
-  php artisan documentos:reparar-permissoes --apply
+  php artisan documentos:reparar-permissoes EMPRESA_ID --apply
 ```
 
 Esse comando reaplica `0660` via SFTP somente nos arquivos catalogados. O adaptador SFTP não deve
@@ -221,7 +221,7 @@ Após corrigir a causa, reative a variável, suba os workers e execute:
 ```bash
 docker compose -f docker-compose.yml exec -T laravel.test php artisan documentos:testar-conexao
 docker compose -f docker-compose.yml exec -T laravel.test php artisan documentos:sincronizar-diretorios
-docker compose -f docker-compose.yml exec -T laravel.test php artisan documentos:processar-pendentes --limit=5000
+docker compose -f docker-compose.yml exec -T laravel.test php artisan documentos:processar-pendentes EMPRESA_ID --limit=5000
 ```
 
 Nunca sobrescrever arquivos remotos, excluir `.part` em massa ou mover pastas do Samba sem

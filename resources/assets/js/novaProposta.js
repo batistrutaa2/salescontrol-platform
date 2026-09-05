@@ -6,7 +6,7 @@
     // ============================================
     let planosDaOperadoraAtual = [];
     let titularIndex = 0;
-    let isOperadoraAmil = false;
+    let usaCoparticipacaoDetalhada = false;
     let currentPropostaType = document.getElementById('tipo_contrato')?.value || 'PME';
     let cnpjCleaveInstance = null;
     let portabilidades = [];
@@ -142,7 +142,7 @@
     // Coparticipacao Options (dynamic based on operadora)
     // ============================================
     function getCoparticipacaoOptions() {
-        if (isOperadoraAmil) {
+        if (usaCoparticipacaoDetalhada) {
             return `
                 <option value="">Coparticipacao... *</option>
                 <option value="PARCIAL">Parcial</option>
@@ -1057,10 +1057,14 @@
         planosDaOperadoraAtual = [];
         updateAllPlanSelects();
 
-        // Detectar se é AMIL
         const selectedOption = this.options[this.selectedIndex];
-        const nomeOperadora = (selectedOption?.dataset?.nome || selectedOption?.text || '').toUpperCase().trim();
-        isOperadoraAmil = nomeOperadora.startsWith('AMIL');
+        usaCoparticipacaoDetalhada = selectedOption?.dataset?.coparticipacaoFormato === 'PARCIAL_COMPLETA';
+
+        const angariacao = document.getElementById('angariacao_status');
+        if (angariacao) {
+            angariacao.value = selectedOption?.dataset?.angariacaoPadrao === '1' ? 'SIM' : 'NAO';
+            angariacao.dispatchEvent(new Event('change'));
+        }
 
         // Atualizar selects de coparticipação com as opções corretas
         updateAllCoparticipacaoSelects();
@@ -1713,10 +1717,8 @@
         if (oldOperadoraId) {
             const operadoraSelect = document.getElementById('operadora');
             if (operadoraSelect && operadoraSelect.value) {
-                // Detectar se é AMIL antes de restaurar titulares
                 const selectedOption = operadoraSelect.options[operadoraSelect.selectedIndex];
-                const nomeOperadora = (selectedOption?.dataset?.nome || selectedOption?.text || '').toUpperCase().trim();
-                isOperadoraAmil = nomeOperadora.startsWith('AMIL');
+                usaCoparticipacaoDetalhada = selectedOption?.dataset?.coparticipacaoFormato === 'PARCIAL_COMPLETA';
 
                 // Fetch plans first, then restore titulares
                 fetch(`/comercial/getPlansByOperator/${operadoraSelect.value}`)
@@ -2407,6 +2409,8 @@
         document.documentElement.dataset.novaPropostaInitialized = '1';
 
         const container = document.getElementById('titulares-container');
+        const operadoraSelecionada = document.getElementById('operadora')?.selectedOptions?.[0];
+        usaCoparticipacaoDetalhada = operadoraSelecionada?.dataset?.coparticipacaoFormato === 'PARCIAL_COMPLETA';
 
         initDependenteModal();
 

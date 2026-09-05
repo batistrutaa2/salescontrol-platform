@@ -2,22 +2,29 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\ValidatesTenantUserReferences;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use LogicException;
 
 class LancamentoDebitoCredito extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
     use HasFactory;
+    use ValidatesTenantUserReferences;
 
     protected $table = 'lancamentos_debito_credito';
 
     // Constantes auxiliares
-    public const NAT_DEBITO  = 'DEBITO';
+    public const NAT_DEBITO = 'DEBITO';
+
     public const NAT_CREDITO = 'CREDITO';
 
     public const ST_PENDENTE = 'pendente';
-    public const ST_PAGO     = 'pago';
-    public const ST_CANCEL   = 'cancelado';
+
+    public const ST_PAGO = 'pago';
+
+    public const ST_CANCEL = 'cancelado';
 
     protected $fillable = [
         'empresa_id',
@@ -42,15 +49,15 @@ class LancamentoDebitoCredito extends Model
     ];
 
     protected $casts = [
-        'valor_bruto'        => 'decimal:2',
-        'imposto_perc'       => 'decimal:2',
-        'imposto_valor'      => 'decimal:2',
-        'valor_liquido'      => 'decimal:2',
+        'valor_bruto' => 'decimal:2',
+        'imposto_perc' => 'decimal:2',
+        'imposto_valor' => 'decimal:2',
+        'valor_liquido' => 'decimal:2',
         'valor_total_original' => 'decimal:2',
-        'parcelado'          => 'boolean',
-        'pago_em'            => 'datetime',
-        'created_at'         => 'datetime',
-        'updated_at'         => 'datetime',
+        'parcelado' => 'boolean',
+        'pago_em' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /* -----------------------------------------------------------------
@@ -151,13 +158,39 @@ class LancamentoDebitoCredito extends Model
     protected static function booted(): void
     {
         static::saving(function (self $m) {
+            if (self::shouldValidateTenantReference($m, 'vendedor_id')) {
+                self::assertTenantMember((int) $m->empresa_id, $m->vendedor_id, 'lançamento financeiro');
+            }
+
+            if (self::shouldValidateTenantReference($m, 'created_by')) {
+                self::assertTenantActor((int) $m->empresa_id, $m->created_by, 'lançamento financeiro');
+            }
+
+            if (self::shouldValidateTenantReference($m, 'comissao_pagamento_id')
+                && $m->comissao_pagamento_id
+                && ! ComissaoPagamento::query()
+                    ->whereKey($m->comissao_pagamento_id)
+                    ->where('empresa_id', $m->empresa_id)
+                    ->exists()) {
+                throw new LogicException('O pagamento do lançamento não pertence à empresa ativa.');
+            }
+
+            if (self::shouldValidateTenantReference($m, 'lancamento_principal_id')
+                && $m->lancamento_principal_id
+                && ! self::query()
+                    ->whereKey($m->lancamento_principal_id)
+                    ->where('empresa_id', $m->empresa_id)
+                    ->exists()) {
+                throw new LogicException('O lançamento principal não pertence à empresa ativa.');
+            }
+
             // defaults defensivos
-            $bruto   = (float) ($m->valor_bruto ?? 0);
+            $bruto = (float) ($m->valor_bruto ?? 0);
             $impPerc = (float) ($m->imposto_perc ?? 0);
 
             // calcula snapshots
-            $impVal  = round($bruto * ($impPerc / 100), 2);
-            $liqPos  = round($bruto - $impVal, 2);
+            $impVal = round($bruto * ($impPerc / 100), 2);
+            $liqPos = round($bruto - $impVal, 2);
 
             $m->imposto_valor = $impVal;
 
@@ -165,14 +198,14 @@ class LancamentoDebitoCredito extends Model
             $m->valor_liquido = ($m->natureza === self::NAT_DEBITO) ? -$liqPos : $liqPos;
 
             // normaliza status padrão
-            if (!$m->status) {
+            if (! $m->status) {
                 $m->status = self::ST_PENDENTE;
             }
 
             // normaliza mes (YYYY-MM) se vier vazio
-            if (!$m->mes && $m->created_at) {
+            if (! $m->mes && $m->created_at) {
                 $m->mes = $m->created_at->format('Y-m');
-            } elseif (!$m->mes) {
+            } elseif (! $m->mes) {
                 $m->mes = now()->format('Y-m');
             }
         });
@@ -191,7 +224,7 @@ class LancamentoDebitoCredito extends Model
         return $this->natureza === self::NAT_DEBITO;
     }
 
-    public function marcarComoPago(int $pagamentoId = null): void
+    public function marcarComoPago(?int $pagamentoId = null): void
     {
         $this->status = self::ST_PAGO;
         $this->pago_em = now();
@@ -218,6 +251,7 @@ class LancamentoDebitoCredito extends Model
 
         if ($this->isParcelado() && $this->parcela_atual && $this->parcelas_total) {
             $parcela = sprintf('Parcela %d/%d', $this->parcela_atual, $this->parcelas_total);
+
             return $desc ? "{$desc} - {$parcela}" : $parcela;
         }
 
@@ -226,7 +260,7 @@ class LancamentoDebitoCredito extends Model
 
     public function getParcelaFormatada(): ?string
     {
-        if (!$this->isParcelado() || !$this->parcela_atual || !$this->parcelas_total) {
+        if (! $this->isParcelado() || ! $this->parcela_atual || ! $this->parcelas_total) {
             return null;
         }
 

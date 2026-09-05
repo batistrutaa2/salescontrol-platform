@@ -2,10 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
+use App\Services\TabulationCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -13,6 +14,14 @@ use Tests\TestCase;
 class RelatorioDistribuicaoLeadsTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function catalogo(Empresa $empresa): array
+    {
+        $catalogo = app(TabulationCatalog::class);
+        $catalogo->provision($empresa->id);
+
+        return $catalogo->requiredIds($empresa->id, array_keys(TabulationCode::defaults()));
+    }
 
     public function test_consolida_cobertura_e_ranking_sem_vazar_ou_cortar_o_ultimo_dia(): void
     {
@@ -22,17 +31,13 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         ]);
         $empresa = Empresa::factory()->create();
         $outraEmpresa = Empresa::factory()->create();
+        $this->catalogo($outraEmpresa);
+        $tabs = $this->catalogo($empresa);
         $admin = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::ADMINISTRATIVO, 'ativo' => 'Y']);
         $vendedor = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::VENDEDOR, 'ativo' => 'Y', 'name' => 'Ana Comercial']);
 
-        $comercial = DB::table('tabulacoes')->insertGetId([
-            'empresa_id' => $empresa->id, 'descricao' => 'PROSPECÇÃO', 'tipo_tabulacao' => 'C',
-            'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        $administrativo = DB::table('tabulacoes')->insertGetId([
-            'empresa_id' => $empresa->id, 'descricao' => 'VENDA', 'tipo_tabulacao' => 'A',
-            'efetivo' => 'Y', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => now(), 'updated_at' => now(),
-        ]);
+        $comercial = $tabs[TabulationCode::PROSPECCAO];
+        $administrativo = $tabs[TabulationCode::VENDA];
 
         $data = now()->setTime(23, 30);
         $contatos = collect(['Lead comercial', 'Lead administrativo', 'Lead sem distribuição'])->map(fn ($nome) => DB::table('contatos')->insertGetId([
@@ -87,6 +92,51 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         ]))->assertUnprocessable()->assertJsonValidationErrors('data_final');
     }
 
+    public function test_relatorio_de_ligacoes_rejeita_usuario_de_outra_empresa(): void
+    {
+        DB::table('user_roles')->insert([
+            ['id' => UserRole::ADMINISTRATIVO, 'tipo_usuario' => 'ADMINISTRATIVO', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => UserRole::VENDEDOR, 'tipo_usuario' => 'VENDEDOR', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+        $empresa = Empresa::factory()->create();
+        $outraEmpresa = Empresa::factory()->create();
+        $tabs = $this->catalogo($empresa);
+        $tabsOutra = $this->catalogo($outraEmpresa);
+        $admin = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::ADMINISTRATIVO, 'ativo' => 'Y']);
+        $vendedor = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::VENDEDOR, 'ativo' => 'Y']);
+        $vendedorOutro = User::factory()->create(['empresa_id' => $outraEmpresa->id, 'user_role_id' => UserRole::VENDEDOR, 'ativo' => 'Y']);
+        $contato = DB::table('contatos')->insertGetId([
+            'empresa_id' => $empresa->id, 'user_import_id' => $vendedor->id,
+            'nome_cliente' => 'Contato local', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $contatoOutro = DB::table('contatos')->insertGetId([
+            'empresa_id' => $outraEmpresa->id, 'user_import_id' => $vendedorOutro->id,
+            'nome_cliente' => 'Contato externo', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('ligacoes')->insert([
+            [
+                'empresa_id' => $empresa->id, 'user_id' => $vendedor->id, 'contato_id' => $contato,
+                'tabulacao_id' => $tabs[TabulationCode::PROSPECCAO], 'telefone' => '11999999999',
+                'created_at' => now(), 'updated_at' => now(),
+            ],
+            [
+                'empresa_id' => $outraEmpresa->id, 'user_id' => $vendedorOutro->id, 'contato_id' => $contatoOutro,
+                'tabulacao_id' => $tabsOutra[TabulationCode::PROSPECCAO], 'telefone' => '11888888888',
+                'created_at' => now(), 'updated_at' => now(),
+            ],
+        ]);
+
+        $periodo = [now()->subDay()->toDateString(), now()->addDay()->toDateString()];
+        $this->actingAs($admin)
+            ->getJson(route('pabx.getLigacoes', [$vendedorOutro->id, ...$periodo]))
+            ->assertNotFound();
+
+        $this->actingAs($admin)
+            ->getJson(route('pabx.getLigacoes', [$vendedor->id, ...$periodo]))
+            ->assertOk()
+            ->assertJsonPath('ligacoes.0.total_ligacoes', 1);
+    }
+
     public function test_separa_trabalho_comercial_filas_e_saidas_do_processo_administrativo(): void
     {
         DB::table('user_roles')->insert([
@@ -94,18 +144,10 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
             ['id' => UserRole::VENDEDOR, 'tipo_usuario' => 'VENDEDOR', 'created_at' => now(), 'updated_at' => now()],
         ]);
         $empresa = Empresa::factory()->create();
+        $tabs = $this->catalogo($empresa);
         $admin = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::ADMINISTRATIVO, 'ativo' => 'Y']);
         $vendedor = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::VENDEDOR, 'ativo' => 'Y', 'name' => 'Vendedor da base']);
         $agora = now();
-
-        DB::table('tabulacoes')->insert([
-            ['id' => Tabulations::PROSPECCAO, 'empresa_id' => $empresa->id, 'descricao' => 'PROSPECÇÃO', 'tipo_tabulacao' => 'C', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
-            ['id' => Tabulations::REMARKETING, 'empresa_id' => $empresa->id, 'descricao' => 'REMARKETING', 'tipo_tabulacao' => 'C', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
-            ['id' => Tabulations::VENDA, 'empresa_id' => $empresa->id, 'descricao' => 'VENDA', 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
-            ['id' => Tabulations::ESTORNO, 'empresa_id' => $empresa->id, 'descricao' => 'ESTORNO', 'tipo_tabulacao' => 'A', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
-            ['id' => Tabulations::IMPLANTADO, 'empresa_id' => $empresa->id, 'descricao' => 'IMPLANTADO', 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
-            ['id' => Tabulations::DECLINIO, 'empresa_id' => $empresa->id, 'descricao' => 'DECLINADO', 'tipo_tabulacao' => 'A', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $agora, 'updated_at' => $agora],
-        ]);
 
         $nomes = ['Comercial', 'Remarketing', 'Preditiva', 'Reservatório', 'Órfão fora do reservatório', 'Fila administrativa', 'Carteira', 'Declinado', 'Estornado', 'Descartado'];
         $contatos = collect($nomes)->mapWithKeys(function (string $nome) use ($empresa, $vendedor, $agora): array {
@@ -122,9 +164,13 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         });
 
         DB::table('contatos_corretores')->insert([
-            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Comercial'], 'user_id' => $vendedor->id, 'tabulacao_id' => Tabulations::PROSPECCAO, 'created_at' => $agora, 'updated_at' => $agora],
-            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Remarketing'], 'user_id' => $vendedor->id, 'tabulacao_id' => Tabulations::REMARKETING, 'created_at' => $agora, 'updated_at' => $agora],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Comercial'], 'user_id' => $vendedor->id, 'tabulacao_id' => $tabs[TabulationCode::PROSPECCAO], 'created_at' => $agora, 'updated_at' => $agora],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Remarketing'], 'user_id' => $vendedor->id, 'tabulacao_id' => $tabs[TabulationCode::REMARKETING], 'created_at' => $agora, 'updated_at' => $agora],
         ]);
+        DB::table('tabulacoes')
+            ->where('empresa_id', $empresa->id)
+            ->where('id', $tabs[TabulationCode::REMARKETING])
+            ->update(['descricao' => 'Recuperação personalizada']);
         DB::table('preditiva')->insert([
             ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Preditiva'], 'status' => 'Y', 'created_at' => $agora, 'updated_at' => $agora],
             ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Preditiva'], 'status' => 'Y', 'created_at' => $agora, 'updated_at' => $agora],
@@ -142,10 +188,10 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         ]);
 
         foreach ([
-            'Fila administrativa' => Tabulations::VENDA,
-            'Carteira' => Tabulations::IMPLANTADO,
-            'Declinado' => Tabulations::DECLINIO,
-            'Estornado' => Tabulations::ESTORNO,
+            'Fila administrativa' => $tabs[TabulationCode::VENDA],
+            'Carteira' => $tabs[TabulationCode::IMPLANTADO],
+            'Declinado' => $tabs[TabulationCode::DECLINADO],
+            'Estornado' => $tabs[TabulationCode::ESTORNO],
         ] as $nome => $tabulacaoId) {
             DB::table('vendas')->insert([
                 'empresa_id' => $empresa->id,
@@ -176,6 +222,8 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         $this->assertSame(1, $dados['resumo']['leads_declinados']);
         $this->assertSame(1, $dados['resumo']['leads_estornados']);
         $this->assertSame('VENDA', $dados['distribuicao_administrativa'][0]['descricao']);
+        $this->assertEquals(1, collect($dados['distribuicao_descarte'])->firstWhere('descricao', 'Recuperação personalizada')['total']);
+        $this->assertEquals(1, collect($dados['motivos_descarte'])->firstWhere('motivo', 'Recuperação personalizada')['total']);
         $this->assertEquals(1, $dados['ranking_vendedores'][0]['comercial']);
         $this->assertEquals(1, $dados['ranking_vendedores'][0]['remarketing']);
         $this->assertSame(1, $dados['ranking_vendedores'][0]['administrativo']);
@@ -210,18 +258,13 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
             ['id' => UserRole::VENDEDOR, 'tipo_usuario' => 'VENDEDOR', 'created_at' => now(), 'updated_at' => now()],
         ]);
         $empresa = Empresa::factory()->create();
+        $tabs = $this->catalogo($empresa);
         $admin = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::ADMINISTRATIVO, 'ativo' => 'Y']);
         $vendedor = User::factory()->create(['empresa_id' => $empresa->id, 'user_role_id' => UserRole::VENDEDOR, 'ativo' => 'Y']);
         $hoje = now()->startOfDay()->addHours(10);
         $ontem = $hoje->copy()->subDay();
         $cadastroAntigo = $hoje->copy()->subMonths(2);
 
-        DB::table('tabulacoes')->insert([
-            ['id' => Tabulations::PROSPECCAO, 'empresa_id' => $empresa->id, 'descricao' => 'PROSPECÇÃO', 'tipo_tabulacao' => 'C', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $hoje, 'updated_at' => $hoje],
-            ['id' => Tabulations::NEGOCIO_FECHADO, 'empresa_id' => $empresa->id, 'descricao' => 'NEGOCIO FECHADO', 'tipo_tabulacao' => 'C', 'efetivo' => 'Y', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $hoje, 'updated_at' => $hoje],
-            ['id' => Tabulations::VENDA, 'empresa_id' => $empresa->id, 'descricao' => 'VENDA', 'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $hoje, 'updated_at' => $hoje],
-            ['id' => Tabulations::NOVOS_CLIENTES, 'empresa_id' => $empresa->id, 'descricao' => 'NOVOS CLIENTES', 'tipo_tabulacao' => 'C', 'efetivo' => 'N', 'status' => 'Y', 'sub_tabulacao' => 'N', 'created_at' => $hoje, 'updated_at' => $hoje],
-        ]);
         $statusConfiguravel = DB::table('tabulacoes')->insertGetId([
             'empresa_id' => $empresa->id,
             'descricao' => 'PROSPECTADO',
@@ -249,9 +292,9 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
 
         DB::table('contatos_corretores')->insert([
             ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Prospectado'], 'user_id' => $vendedor->id, 'tabulacao_id' => $statusConfiguravel, 'created_at' => $hoje, 'updated_at' => $hoje],
-            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Novo'], 'user_id' => $vendedor->id, 'tabulacao_id' => Tabulations::NOVOS_CLIENTES, 'created_at' => $hoje, 'updated_at' => $hoje],
-            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Fechado sem contrato'], 'user_id' => $vendedor->id, 'tabulacao_id' => Tabulations::NEGOCIO_FECHADO, 'created_at' => $hoje, 'updated_at' => $hoje],
-            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Enviado fora do período'], 'user_id' => $vendedor->id, 'tabulacao_id' => Tabulations::PROSPECCAO, 'created_at' => $ontem, 'updated_at' => $ontem],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Novo'], 'user_id' => $vendedor->id, 'tabulacao_id' => $tabs[TabulationCode::NOVOS_CLIENTES], 'created_at' => $hoje, 'updated_at' => $hoje],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Fechado sem contrato'], 'user_id' => $vendedor->id, 'tabulacao_id' => $tabs[TabulationCode::NEGOCIO_FECHADO], 'created_at' => $hoje, 'updated_at' => $hoje],
+            ['empresa_id' => $empresa->id, 'contato_id' => $contatos['Enviado fora do período'], 'user_id' => $vendedor->id, 'tabulacao_id' => $tabs[TabulationCode::PROSPECCAO], 'created_at' => $ontem, 'updated_at' => $ontem],
         ]);
 
         foreach ([
@@ -264,7 +307,7 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
                 'empresa_id' => $empresa->id,
                 'user_id' => $vendedor->id,
                 'contato_id' => $contatoId,
-                'tabulacao_id' => Tabulations::VENDA,
+                'tabulacao_id' => $tabs[TabulationCode::VENDA],
                 'nome_contrato' => $nomeContrato,
                 'data_vigencia' => $hoje->toDateString(),
                 'created_at' => $criadoEm,
@@ -286,7 +329,7 @@ class RelatorioDistribuicaoLeadsTest extends TestCase
         $this->assertSame(3, $detalhes['total_fila_comercial']);
         $this->assertEquals(1, $status['PROSPECTADO']);
         $this->assertEquals(1, $status['NOVOS CLIENTES']);
-        $this->assertEquals(1, $status['NEGOCIO FECHADO']);
+        $this->assertEquals(1, $status['NEGÓCIO FECHADO']);
         $this->assertArrayNotHasKey('PROSPECÇÃO', $status->all());
         $this->assertSame(1, $detalhes['viraram_venda']);
 

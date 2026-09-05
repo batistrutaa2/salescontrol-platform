@@ -13,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 /**
  * E-mail de Cotação enviado pelo vendedor ao cliente.
  *
- * O remetente (from) é o e-mail do próprio vendedor (@lkbrokers.com), com
+ * O remetente (from) é o e-mail corporativo do próprio vendedor, com
  * reply-to apontando para ele. O corpo é a mensagem escrita pelo vendedor
  * (HTML do editor), embrulhada num template padronizado com assinatura.
  * Um anexo PDF (a cotação) é opcional.

@@ -3,6 +3,8 @@
 namespace App\Jobs\Whatsapp;
 
 use App\Events\Whatsapp\NovaMensagemWhatsapp;
+use App\Jobs\Concerns\RunsTenantFailureCallback;
+use App\Jobs\Concerns\UsesWhatsappTenantContext;
 use App\Models\WhatsappMensagem;
 use App\Services\Evolution\EvolutionApiService;
 use Illuminate\Bus\Queueable;
@@ -15,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
 
 class EnviarMensagemWhatsapp implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, RunsTenantFailureCallback, SerializesModels, UsesWhatsappTenantContext;
 
     public int $tries = 5;
 
@@ -62,23 +64,25 @@ class EnviarMensagemWhatsapp implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        $mensagem = WhatsappMensagem::with('conversa')->find($this->mensagemId);
+        $this->runTenantFailureCallback(WhatsappMensagem::class, $this->mensagemId, function () use ($exception): void {
+            $mensagem = WhatsappMensagem::with('conversa')->find($this->mensagemId);
 
-        if (! $mensagem) {
-            return;
-        }
+            if (! $mensagem) {
+                return;
+            }
 
-        Log::error('Whatsapp: falha definitiva no envio de mensagem', [
-            'mensagem_id' => $mensagem->id,
-            'erro' => $exception->getMessage(),
-        ]);
+            Log::error('Whatsapp: falha definitiva no envio de mensagem', [
+                'mensagem_id' => $mensagem->id,
+                'erro' => $exception->getMessage(),
+            ]);
 
-        $mensagem->update([
-            'status_envio' => 'ERRO',
-            'erro_envio' => mb_substr($exception->getMessage(), 0, 1000),
-        ]);
+            $mensagem->update([
+                'status_envio' => 'ERRO',
+                'erro_envio' => 'Não foi possível enviar a mensagem pelo provedor.',
+            ]);
 
-        broadcast(new NovaMensagemWhatsapp($mensagem->fresh(), $mensagem->conversa->user_id));
+            broadcast(new NovaMensagemWhatsapp($mensagem->fresh(), $mensagem->conversa->user_id));
+        });
     }
 
     private function mediaBase64(WhatsappMensagem $mensagem): string

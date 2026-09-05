@@ -1,4 +1,4 @@
-# Ambiente Docker enxuto de desenvolvimento do SalesControl.
+# Ambiente Docker enxuto de desenvolvimento do SalesControl Platform.
 # Pré-requisito: infra compartilhada de pé (MySQL brsolutions):
 #   docker compose -f ../docker-compose.yml up -d
 #
@@ -8,12 +8,11 @@
 #   docker compose -f compose.dev.yaml --profile scheduler up -d # + agendador
 #   docker compose -f compose.dev.yaml --profile reverb up -d    # + websockets
 #
-# Portas deslocadas (8001/5174/8082) para conviver com o bloo (8000/5173/8080)
-# se ambos rodarem ao mesmo tempo.
-name: salescontrol-dev
+# Portas próprias (8003/5176/8086) para não colidir com outros produtos locais.
+name: salescontrol-platform-dev
 
 x-base: &base
-  image: salescontrol-dev
+  image: salescontrol-platform-dev
   build:
     context: .
     dockerfile: Dockerfile.dev
@@ -29,14 +28,14 @@ services:
     <<: *base
     command: php artisan serve --host=0.0.0.0 --port=8000
     ports:
-      - "8001:8000"
+      - "8003:8000"
     mem_limit: 768m
 
   vite:
     <<: *base
     command: npm run dev
     ports:
-      - "5174:5174"
+      - "5176:5176"
     mem_limit: 1g
 
   queue:
@@ -64,7 +63,7 @@ services:
     command: php artisan reverb:start --host=0.0.0.0 --port=8081
     profiles: [reverb]
     ports:
-      - "8082:8081"
+      - "8086:8081"
     mem_limit: 256m
 
 networks:

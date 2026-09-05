@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class EstudoVidas extends Model
 {
+    use \App\Models\Concerns\BelongsToTenantThrough;
     use HasFactory;
 
-    protected $table = "estudo_vidas";
+    protected $table = 'estudo_vidas';
 
     protected $fillable = [
         'id',
@@ -19,7 +20,7 @@ class EstudoVidas extends Model
         'valor_unitario',
         'total',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     public function item()

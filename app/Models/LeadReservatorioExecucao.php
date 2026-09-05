@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class LeadReservatorioExecucao extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'lead_reservatorio_execucoes';
 
     protected $fillable = [

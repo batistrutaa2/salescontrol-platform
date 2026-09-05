@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class VendaEmailCriado extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
     use HasFactory;
 
     protected $table = 'venda_emails_criados';

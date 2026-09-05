@@ -1,6 +1,6 @@
 @extends('layouts/layoutMaster')
 
-@section('title', $modulo->titulo . ' — Escola LK Brokers')
+@section('title', $modulo->titulo . ' — Academia Comercial')
 
 @section('page-style')
     @vite('resources/assets/vendor/scss/pages/escola.scss')

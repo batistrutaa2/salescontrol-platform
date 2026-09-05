@@ -3,6 +3,7 @@
     use Illuminate\Support\Facades\Auth;
     $configData = Helper::appClasses();
     $rules = Auth::user()->role->tipo_usuario;
+    $tenantResolved = app(\App\Support\TenantContext::class)->isResolved();
 @endphp
 
 <aside id="layout-menu" class="layout-menu menu-vertical menu">
@@ -47,6 +48,11 @@
                     $u = Auth::user();
                     $passaGate = in_array($u->user_role_id, [\App\Enums\UserRole::ADMINISTRATIVO, \App\Enums\UserRole::DEVELOPER])
                         || (bool) $u->escola_habilitada;
+                } elseif (isset($menu->gate) && $menu->gate === 'platform_admin') {
+                    $passaGate = Auth::user()->isPlatformAdmin();
+                }
+                if (!$tenantResolved && empty($menu->tenantOptional)) {
+                    $passaGate = false;
                 }
             @endphp
 

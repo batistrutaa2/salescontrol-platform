@@ -33,7 +33,6 @@
     <div id="comissionamento-root"
         data-url="{{ route('comissionamento.faturamento') }}"
         data-pay-url="{{ route('comissionamento.pagar') }}"
-        data-empresa-id="{{ auth()->user()->empresa_id }}"
         data-ajuste-url="{{ route('comissionamento.ajuste.store') }}">
     </div>
 

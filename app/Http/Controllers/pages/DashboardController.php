@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\pages;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Http\Controllers\Controller;
+use App\Services\TabulationCatalog;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    public function __construct(private readonly TabulationCatalog $tabulations) {}
+
     public function index()
     {
         return view('content.pages.dashboard-vendedor');
@@ -34,12 +37,17 @@ class DashboardController extends Controller
             default => [1, 12],
         };
         $user = Auth::user();
-        $empresaId = (int) $user->empresa_id;
+        $empresaId = (int) $this->tenantId();
+        $implantadoId = $this->tabulations->id($empresaId, TabulationCode::IMPLANTADO);
+        $estornoId = $this->tabulations->id($empresaId, TabulationCode::ESTORNO);
 
         $sales = $this->validSalesQuery($empresaId, $year)
             ->whereRaw('MONTH(v.created_at) BETWEEN ? AND ?', [$startMonth, $endMonth])
             ->where('v.user_id', $user->id)
-            ->leftJoin('tabulacoes as t', 't.id', '=', 'v.tabulacao_id')
+            ->leftJoin('tabulacoes as t', function ($join) {
+                $join->on('t.id', '=', 'v.tabulacao_id')
+                    ->on('t.empresa_id', '=', 'v.empresa_id');
+            })
             ->select([
                 'v.id', 'v.nome_contrato', 'v.operadora', 'v.nome_plano',
                 'v.valor_contrato', 'v.angariacao_status', 'v.angariacao_valor',
@@ -63,8 +71,8 @@ class DashboardController extends Controller
         $totalContracts = (float) $sales->sum('valor_contrato');
         $totalFundraising = (float) $sales->sum('angariacao');
         $salesCount = $sales->count();
-        $implanted = $sales->where('tabulacao_id', Tabulations::IMPLANTADO);
-        $reversed = $sales->where('tabulacao_id', Tabulations::ESTORNO);
+        $implanted = $sales->where('tabulacao_id', $implantadoId);
+        $reversed = $sales->where('tabulacao_id', $estornoId);
 
         $monthly = collect(range($startMonth, $endMonth))->map(function (int $month) use ($sales) {
             $monthSales = $sales->where('month', $month);
@@ -188,19 +196,21 @@ class DashboardController extends Controller
                 ->where('user_id', $user->id)
                 ->whereYear('created_at', $year)
                 ->whereRaw('MONTH(created_at) BETWEEN ? AND ?', [$startMonth, $endMonth])
-                ->where('tabulacao_id', Tabulations::ESTORNO)
+                ->where('tabulacao_id', $estornoId)
                 ->count(),
         ]);
     }
 
     private function validSalesQuery(int $empresaId, int $year): Builder
     {
+        $declinadoId = $this->tabulations->id($empresaId, TabulationCode::DECLINADO);
+
         return DB::table('vendas as v')
             ->where('v.empresa_id', $empresaId)
             ->whereYear('v.created_at', $year)
-            ->where(function (Builder $status) {
+            ->where(function (Builder $status) use ($declinadoId) {
                 $status->whereNull('v.tabulacao_id')
-                    ->orWhere('v.tabulacao_id', '!=', Tabulations::DECLINIO);
+                    ->orWhere('v.tabulacao_id', '!=', $declinadoId);
             });
     }
 
@@ -212,16 +222,21 @@ class DashboardController extends Controller
         ?int $startMonth = null,
         ?int $endMonth = null
     ): array {
+        $implantadoId = $this->tabulations->id($empresaId, TabulationCode::IMPLANTADO);
         $valueSql = "COALESCE(v.valor_contrato, 0) + CASE WHEN v.angariacao_status = 'SIM' THEN COALESCE(v.angariacao_valor, 0) ELSE 0 END";
         $rows = $this->validSalesQuery($empresaId, $year)
             ->when($startMonth, fn (Builder $query) => $query->whereRaw('MONTH(v.created_at) BETWEEN ? AND ?', [$startMonth, $endMonth]))
-            ->join('users as u', 'u.id', '=', 'v.user_id')
+            ->join('users as u', function ($join) {
+                $join->on('u.id', '=', 'v.user_id')
+                    ->on('u.empresa_id', '=', 'v.empresa_id')
+                    ->where('u.is_platform_admin', false);
+            })
             ->where(function (Builder $query) {
                 $query->whereNull('u.excluir_ranking')->orWhere('u.excluir_ranking', false);
             })
             ->select('u.id', 'u.name')
             ->selectRaw("SUM($valueSql) as valid_value")
-            ->selectRaw('SUM(CASE WHEN v.tabulacao_id = ? THEN '.$valueSql.' ELSE 0 END) as implanted_value', [Tabulations::IMPLANTADO])
+            ->selectRaw('SUM(CASE WHEN v.tabulacao_id = ? THEN '.$valueSql.' ELSE 0 END) as implanted_value', [$implantadoId])
             ->groupBy('u.id', 'u.name')
             ->get()
             ->sort(function ($a, $b) {

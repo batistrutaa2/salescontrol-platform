@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CancelamentoLiminarDocumento extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'cancelamentos_liminares_documentos';
 
     protected $fillable = [
@@ -44,7 +46,7 @@ class CancelamentoLiminarDocumento extends Model
             'RETORNO_CANCELAMENTO' => 'Retorno do Cancelamento',
             'RG_CLIENTE' => 'RG da Cliente',
             'PRINT_PROTOCOLO' => 'Print do Protocolo',
-            'AUDIO_HAPVIDA' => 'Áudio (Hapvida)',
+            'AUDIO_OPERADORA' => 'Áudio da operadora',
             'CONCLUSAO_LIMINAR' => 'Decisão da Liminar',
             default => $this->tipo_documento,
         };

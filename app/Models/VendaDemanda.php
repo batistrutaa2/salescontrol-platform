@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class VendaDemanda extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
     use HasFactory;
 
     protected $table = 'venda_demandas';

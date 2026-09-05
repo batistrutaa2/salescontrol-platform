@@ -3,6 +3,7 @@
 namespace App\Jobs\Whatsapp;
 
 use App\Events\Whatsapp\ConversaWhatsappAtualizada;
+use App\Jobs\Concerns\UsesWhatsappTenantContext;
 use App\Models\WhatsappConversa;
 use App\Services\Evolution\EvolutionApiService;
 use Illuminate\Bus\Queueable;
@@ -13,7 +14,7 @@ use Illuminate\Queue\SerializesModels;
 
 class AtualizarFotoPerfilConversa implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, UsesWhatsappTenantContext;
 
     public int $tries = 2;
 

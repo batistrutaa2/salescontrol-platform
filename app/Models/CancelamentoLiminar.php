@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ValidatesTenantUserReferences;
 use Carbon\Carbon;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
+use LogicException;
 
 class CancelamentoLiminar extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+    use ValidatesTenantUserReferences;
+
     protected $table = 'cancelamentos_liminares';
 
     protected $fillable = [
@@ -42,6 +47,21 @@ class CancelamentoLiminar extends Model
     protected $casts = [
         'valor_recebimento' => 'decimal:2',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $liminar): void {
+            if (self::shouldValidateTenantReference($liminar, 'responsavel_id')) {
+                self::assertTenantMember((int) $liminar->empresa_id, $liminar->responsavel_id, 'responsável da liminar', true);
+            }
+
+            if (self::shouldValidateTenantReference($liminar, 'venda_id')
+                && $liminar->venda_id !== null
+                && ! Vendas::query()->withoutGlobalScope('tenant')->whereKey($liminar->venda_id)->where('empresa_id', $liminar->empresa_id)->exists()) {
+                throw new LogicException('A venda da liminar não pertence à empresa ativa.');
+            }
+        });
+    }
 
     /**
      * Formata todas as datas do model para o padrão BR ao serializar (toArray/toJson).

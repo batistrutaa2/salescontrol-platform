@@ -59,7 +59,7 @@
                         <div class="col-12 col-md-4">
                             <div class="form-floating form-floating-outline">
                                 <input type="text" id="operadora" name="operadora" class="form-control"
-                                    placeholder="Sulamerica" />
+                                    placeholder="Nome da operadora" />
                                 <label for="operadora">Operadora</label>
                             </div>
                         </div>

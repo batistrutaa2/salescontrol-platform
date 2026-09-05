@@ -10,6 +10,7 @@
     const $assigned = $('#assigned_to');
     const $dataLimite = $('#data_limite');
     const $demandaId = $('#demanda_id');
+    const $configForm = $('#form-config-demandas');
 
     const $fStatus = $('#filtro-status');
     const $fPrio = $('#filtro-prioridade');
@@ -438,6 +439,25 @@
                 loadBoard();
             },
             error: (xhr) => showAjaxError(xhr, 'Erro ao salvar. Verifique os dados.')
+        });
+    });
+
+    $configForm.on('submit', function (e) {
+        e.preventDefault();
+
+        $.ajax({
+            url: '/comercial/demandas/configuracao',
+            type: 'PATCH',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                demandas_concluidas_janela_dias: Number($('#demandas_concluidas_janela_dias').val())
+            }),
+            success: (response) => {
+                toastr.success(response?.message || 'Configuração atualizada.');
+                $('#modal-config-demandas').modal('hide');
+                loadBoard();
+            },
+            error: (xhr) => showAjaxError(xhr, 'Não foi possível salvar a configuração.')
         });
     });
 

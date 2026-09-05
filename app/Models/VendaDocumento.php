@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class VendaDocumento extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'venda_documentos';
 
     protected $fillable = [

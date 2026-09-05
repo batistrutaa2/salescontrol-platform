@@ -20,13 +20,8 @@
         $selectedOperadoraId = $selectedOperadoraId ?? optional(($operadoras ?? collect())->firstWhere('nome', $contract->operadora))->id;
         $planosDaOperadora = $planosDaOperadora ?? collect();
 
-        $isAmil = false;
-        if ($selectedOperadoraId) {
-            $nomeOpSel = optional(($operadoras ?? collect())->firstWhere('id', $selectedOperadoraId))->nome;
-            $isAmil = stripos((string) $nomeOpSel, 'AMIL') !== false;
-        } else {
-            $isAmil = stripos((string) $contract->operadora, 'AMIL') !== false;
-        }
+        $operadoraSelecionada = ($operadoras ?? collect())->firstWhere('id', $selectedOperadoraId);
+        $coparticipacaoDetalhada = optional($operadoraSelecionada)->coparticipacao_formato === \App\Models\Operadora::COPARTICIPACAO_PARCIAL_COMPLETA;
 
         // Funções de formatação
         $formatCpf = function($cpf) {
@@ -209,10 +204,15 @@
     <div class="pv-switcher-host"></div>
     @php
         $statusDesc = $contract->tabulacao->descricao ?? '—';
-        $s = mb_strtoupper($statusDesc, 'UTF-8');
-        $statusCls = (str_contains($s, 'IMPLANT') || str_contains($s, 'REGULAR')) ? 'st-ok'
-            : ((str_contains($s, 'ESTORNO') || str_contains($s, 'DECLIN') || str_contains($s, 'CANCEL')) ? 'st-perdido'
-            : (str_contains($s, 'PENDENC') ? 'st-atencao' : 'st-andamento'));
+        $statusCodigo = $contract->tabulacao?->codigo;
+        $statusCls = match ($statusCodigo) {
+            \App\Enums\TabulationCode::IMPLANTADO,
+            \App\Enums\TabulationCode::REGULARIZADO => 'st-ok',
+            \App\Enums\TabulationCode::ESTORNO,
+            \App\Enums\TabulationCode::DECLINADO => 'st-perdido',
+            \App\Enums\TabulationCode::PENDENCIA => 'st-atencao',
+            default => 'st-andamento',
+        };
     @endphp
     <div class="pv-tabnav">
         <button type="button" class="pv-tab active" data-pane="contrato">Contrato</button>
@@ -481,7 +481,7 @@
                                 <select id="operadoraSelect" name="operadora" class="pme-input" form="form-empresa">
                                     <option value="">Selecione</option>
                                     @foreach ($operadoras ?? collect() as $op)
-                                        <option value="{{ $op->id }}" data-nome="{{ strtoupper($op->nome) }}" {{ (int) $selectedOperadoraId === (int) $op->id ? 'selected' : '' }}>
+                                        <option value="{{ $op->id }}" data-coparticipacao-formato="{{ $op->coparticipacao_formato }}" data-angariacao-padrao="{{ $op->angariacao_padrao ? '1' : '0' }}" {{ (int) $selectedOperadoraId === (int) $op->id ? 'selected' : '' }}>
                                             {{ $op->nome }}
                                         </option>
                                     @endforeach
@@ -1073,7 +1073,7 @@
                                     <label>Coparticipacao <span class="required">*</span></label>
                                     <select name="coparticipacao" id="add_titular_coparticipacao" class="pme-input" required>
                                         <option value="">Selecione...</option>
-                                        @if($isAmil)
+                                        @if($coparticipacaoDetalhada)
                                             <option value="PARCIAL">Parcial</option>
                                             <option value="COMPLETA">Completa</option>
                                         @else
@@ -1230,7 +1230,7 @@
                                 <div class="pme-field">
                                     <label>Coparticipacao</label>
                                     <select name="coparticipacao" id="edit_titular_coparticipacao" class="pme-input">
-                                        @if($isAmil)
+                                        @if($coparticipacaoDetalhada)
                                             <option value="PARCIAL">Parcial</option>
                                             <option value="COMPLETA">Completa</option>
                                         @else
@@ -1394,7 +1394,7 @@
                                     <label>Coparticipacao</label>
                                     <select name="coparticipacao" id="edit_dependente_coparticipacao" class="pme-input">
                                         <option value="">Mesmo do titular</option>
-                                        @if($isAmil)
+                                        @if($coparticipacaoDetalhada)
                                             <option value="PARCIAL">Parcial</option>
                                             <option value="COMPLETA">Completa</option>
                                         @else

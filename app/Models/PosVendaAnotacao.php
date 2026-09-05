@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PosVendaAnotacao extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'pos_venda_anotacoes';
 
     protected $fillable = [

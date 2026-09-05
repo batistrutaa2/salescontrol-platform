@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Wrapper Docker de desenvolvimento do SalesControl.
+# Wrapper Docker de desenvolvimento do SalesControl Platform.
 # Uso: ./dev <comando> [args...]
 set -euo pipefail
 
@@ -33,17 +33,17 @@ case "$cmd" in
   test)     ensure_infra; $COMPOSE run --rm --no-deps app php artisan test "$@" ;;
   pint|lint) $COMPOSE run --rm --no-deps app ./vendor/bin/pint "$@" ;;
   shell|sh) $COMPOSE run --rm --no-deps -it app bash ;;
-  mysql)    ensure_infra; docker exec -it brsolutions-mysql mysql -udev -psecret salescontrol ;;
+  mysql)    ensure_infra; docker exec -it brsolutions-mysql mysql -udev -psecret salescontrol_platform ;;
   help|*)
     cat <<'EOF'
 Uso: ./dev <comando>
 
-  up              Sobe app (:8001) + vite (:5174), e o MySQL se preciso
+  up              Sobe app (:8003) + vite (:5176), e o MySQL se preciso
   down            Derruba todos os containers do SalesControl
   queue           Sobe também o worker de fila (profile opcional)
   scheduler       Sobe o agendador/cron Laravel (profile opcional)
   cron            Alias de scheduler
-  reverb          Sobe também o servidor websocket (:8082, profile opcional)
+  reverb          Sobe também o servidor websocket (:8086, profile opcional)
   artisan <...>   Roda comando artisan            (ex.: ./dev artisan migrate)
   test [...]      Roda a suíte de testes          (ex.: ./dev test --filter=X)
   pint            Formata o PHP (Laravel Pint)
@@ -51,7 +51,7 @@ Uso: ./dev <comando>
   npm <...>       Roda npm                        (ex.: ./dev npm run build)
   tinker          Abre o tinker
   shell           Abre um bash no container
-  mysql           Abre o client MySQL no database salescontrol
+  mysql           Abre o client MySQL no database salescontrol_platform
   logs [serviço]  Segue os logs
   ps              Lista containers
   build           Reconstrói a imagem dev

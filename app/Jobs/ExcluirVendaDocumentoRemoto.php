@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Events\VendaDocumentoAtualizado;
+use App\Jobs\Concerns\UsesTenantContext;
 use App\Models\VendaDocumento;
 use App\Services\Documentos\DocumentoStatusService;
 use App\Services\Documentos\VendaDocumentoPermissionPolicy;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ExcluirVendaDocumentoRemoto implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, UsesTenantContext;
 
     public int $tries = 5;
 

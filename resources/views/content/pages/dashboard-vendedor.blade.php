@@ -52,7 +52,7 @@
 
         <article class="dv-score-panel dv-score-ranking">
             <div class="dv-ranking-heading">
-                <span>Ranking global LK Brokers</span>
+                <span>Ranking da corretora</span>
                 <span id="dv-ranking-period">—</span>
             </div>
             <div class="dv-position-wrap">
@@ -143,7 +143,7 @@
             <div class="dv-section-heading compact">
                 <div>
                     <h2>Líderes</h2>
-                    <p>Top 3 da LK Brokers e a sua posição.</p>
+                    <p>Top 3 da corretora e a sua posição.</p>
                 </div>
             </div>
             <ol class="dv-leaders" id="dv-leaders">

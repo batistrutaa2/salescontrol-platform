@@ -16,7 +16,7 @@ class EnsureUserRole
     {
         $user = $request->user();
 
-        if (! $user || ! in_array((string) $user->user_role_id, $roles, true)) {
+        if (! $user || (! $user->isPlatformAdmin() && ! in_array((string) $user->user_role_id, $roles, true))) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Acesso não autorizado.'], 403);
             }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class AcessoEmpresa extends Model
 {
+    use \App\Models\Concerns\BelongsToTenantThrough;
     use HasFactory;
 
     protected $table = 'acesso_empresas';

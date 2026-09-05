@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Models\Contatos;
 use App\Models\ContatosCorretores;
@@ -18,18 +18,6 @@ use Illuminate\Validation\ValidationException;
 
 class LeadReservatorioService
 {
-    public const VENDA_VALIDA = [
-        Tabulations::VENDA,
-        Tabulations::IMPLANTADO,
-        Tabulations::PENDENCIA,
-        Tabulations::ANALISE_OPERADORA,
-        Tabulations::BOLETO_DISPONIVEL,
-        Tabulations::REGULARIZADO,
-        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-        Tabulations::ANALISE_DOCUMENTOS,
-        Tabulations::AGUARD_ASSINATURA_DS,
-    ];
-
     private const CAMPOS = [
         'origem' => ['coluna' => 'l.origem', 'tipo' => 'lista'],
         'nome_base' => ['coluna' => 'c.nome_base', 'tipo' => 'texto'],
@@ -47,6 +35,8 @@ class LeadReservatorioService
         'valor_negociacao' => ['coluna' => 'c.valor_negociacao', 'tipo' => 'numero'],
         'entrou_em' => ['coluna' => 'l.entrou_em', 'tipo' => 'data'],
     ];
+
+    public function __construct(private readonly TabulationCatalog $tabulations) {}
 
     public function adicionarNovo(Contatos $contato, string $origem, ?int $userId): LeadReservatorioItem
     {
@@ -83,8 +73,12 @@ class LeadReservatorioService
 
     public function queryDisponiveis(int $empresaId, array $condicoes = []): Builder
     {
+        $vendaValidaIds = $this->vendaValidaIds($empresaId);
         $query = DB::table('lead_reservatorio_itens as l')
-            ->join('contatos as c', 'c.id', '=', 'l.contato_id')
+            ->join('contatos as c', function ($join) {
+                $join->on('c.id', '=', 'l.contato_id')
+                    ->on('c.empresa_id', '=', 'l.empresa_id');
+            })
             ->where('l.empresa_id', $empresaId)
             ->where('l.status', LeadReservatorioItem::STATUS_DISPONIVEL)
             ->where('c.empresa_id', $empresaId)
@@ -102,7 +96,7 @@ class LeadReservatorioService
                 ->from('vendas as v')
                 ->whereColumn('v.contato_id', 'c.id')
                 ->where('v.empresa_id', $empresaId)
-                ->whereIn('v.tabulacao_id', self::VENDA_VALIDA));
+                ->whereIn('v.tabulacao_id', $vendaValidaIds));
 
         return $this->aplicarCondicoes($query, $condicoes);
     }
@@ -193,9 +187,10 @@ class LeadReservatorioService
                     ]);
                 }
 
+                $novosClientesId = $this->tabulations->id($empresaId, TabulationCode::NOVOS_CLIENTES);
                 $tabulacaoExiste = DB::table('tabulacoes')
                     ->where('empresa_id', $empresaId)
-                    ->where('id', Tabulations::NOVOS_CLIENTES)
+                    ->where('id', $novosClientesId)
                     ->where('status', 'Y')
                     ->where('tipo_tabulacao', 'C')
                     ->exists();
@@ -227,17 +222,20 @@ class LeadReservatorioService
                             'empresa_id' => $empresaId,
                             'contato_id' => $item->contato_id,
                             'user_id' => $vendedor->id,
-                            'tabulacao_id' => Tabulations::NOVOS_CLIENTES,
+                            'tabulacao_id' => $novosClientesId,
                             'temperatura' => 'FRIO',
                         ]);
 
-                        LeadReservatorioItem::query()->whereKey($item->id)->update([
-                            'status' => LeadReservatorioItem::STATUS_DISTRIBUIDO,
-                            'distribuido_para' => $vendedor->id,
-                            'distribuido_por' => $userId,
-                            'distribuido_em' => now(),
-                            'updated_at' => now(),
-                        ]);
+                        LeadReservatorioItem::query()
+                            ->whereKey($item->id)
+                            ->where('empresa_id', $empresaId)
+                            ->update([
+                                'status' => LeadReservatorioItem::STATUS_DISTRIBUIDO,
+                                'distribuido_para' => $vendedor->id,
+                                'distribuido_por' => $userId,
+                                'distribuido_em' => now(),
+                                'updated_at' => now(),
+                            ]);
 
                         LeadReservatorioExecucaoItem::create([
                             'execucao_id' => $execucao->id,
@@ -262,15 +260,18 @@ class LeadReservatorioService
 
     public function previewMigracao(int $empresaId, int $vendedorId): array
     {
+        $remarketingId = $this->tabulations->id($empresaId, TabulationCode::REMARKETING);
+        $negocioFechadoId = $this->tabulations->id($empresaId, TabulationCode::NEGOCIO_FECHADO);
+        $vendaValidaIds = $this->vendaValidaIds($empresaId);
         $this->vendedorDaEmpresa($empresaId, $vendedorId, false);
         $base = $this->queryCarteiraOrigem($empresaId, $vendedorId);
         $total = (clone $base)->distinct()->count('c.id');
         $descartados = (clone $base)->where('c.status', '!=', 'Y')->distinct()->count('c.id');
-        $remarketing = (clone $base)->where('cc.tabulacao_id', Tabulations::REMARKETING)->distinct()->count('c.id');
-        $fechados = (clone $base)->where('cc.tabulacao_id', Tabulations::NEGOCIO_FECHADO)->distinct()->count('c.id');
+        $remarketing = (clone $base)->where('cc.tabulacao_id', $remarketingId)->distinct()->count('c.id');
+        $fechados = (clone $base)->where('cc.tabulacao_id', $negocioFechadoId)->distinct()->count('c.id');
         $vendidos = (clone $base)->whereExists(fn ($q) => $q->selectRaw('1')->from('vendas as v')
             ->whereColumn('v.contato_id', 'c.id')->where('v.empresa_id', $empresaId)
-            ->whereIn('v.tabulacao_id', self::VENDA_VALIDA))->distinct()->count('c.id');
+            ->whereIn('v.tabulacao_id', $vendaValidaIds))->distinct()->count('c.id');
         $preditiva = (clone $base)->whereExists(fn ($q) => $q->selectRaw('1')->from('preditiva as p')
             ->whereColumn('p.contato_id', 'c.id')->where('p.empresa_id', $empresaId)->where('p.status', 'Y'))
             ->distinct()->count('c.id');
@@ -354,6 +355,8 @@ class LeadReservatorioService
 
     private function contatoPodeEntrar(int $empresaId, int $contatoId): bool
     {
+        $vendaValidaIds = $this->vendaValidaIds($empresaId);
+
         return DB::table('contatos as c')
             ->where('c.id', $contatoId)
             ->where('c.empresa_id', $empresaId)
@@ -364,17 +367,21 @@ class LeadReservatorioService
                 ->whereColumn('p.contato_id', 'c.id')->where('p.empresa_id', $empresaId)->where('p.status', 'Y'))
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('vendas as v')
                 ->whereColumn('v.contato_id', 'c.id')->where('v.empresa_id', $empresaId)
-                ->whereIn('v.tabulacao_id', self::VENDA_VALIDA))
+                ->whereIn('v.tabulacao_id', $vendaValidaIds))
             ->exists();
     }
 
     public function sincronizarBloqueados(int $empresaId): int
     {
+        $vendaValidaIds = $this->vendaValidaIds($empresaId);
         $agora = now();
         $bloqueados = 0;
 
         $bloqueados += DB::table('lead_reservatorio_itens as l')
-            ->join('contatos as c', 'c.id', '=', 'l.contato_id')
+            ->join('contatos as c', function ($join) {
+                $join->on('c.id', '=', 'l.contato_id')
+                    ->on('c.empresa_id', '=', 'l.empresa_id');
+            })
             ->where('l.empresa_id', $empresaId)
             ->where('l.status', LeadReservatorioItem::STATUS_DISPONIVEL)
             ->where('c.status', '!=', 'Y')
@@ -411,7 +418,7 @@ class LeadReservatorioService
             ->where('l.status', LeadReservatorioItem::STATUS_DISPONIVEL)
             ->whereExists(fn ($q) => $q->selectRaw('1')->from('vendas as v')
                 ->whereColumn('v.contato_id', 'l.contato_id')->where('v.empresa_id', $empresaId)
-                ->whereIn('v.tabulacao_id', self::VENDA_VALIDA))
+                ->whereIn('v.tabulacao_id', $vendaValidaIds))
             ->update([
                 'status' => LeadReservatorioItem::STATUS_BLOQUEADO,
                 'bloqueado_motivo' => 'VENDA_EXISTENTE',
@@ -497,7 +504,7 @@ class LeadReservatorioService
     private function vendedorDaEmpresa(int $empresaId, int $vendedorId, bool $ativo): User
     {
         $query = User::query()
-            ->where('empresa_id', $empresaId)
+            ->tenantMember($empresaId)
             ->where('user_role_id', UserRole::VENDEDOR);
         if ($ativo) {
             $query->where('ativo', 'Y');
@@ -514,7 +521,10 @@ class LeadReservatorioService
     private function queryCarteiraOrigem(int $empresaId, int $vendedorId): Builder
     {
         return DB::table('contatos_corretores as cc')
-            ->join('contatos as c', 'c.id', '=', 'cc.contato_id')
+            ->join('contatos as c', function ($join) {
+                $join->on('c.id', '=', 'cc.contato_id')
+                    ->on('c.empresa_id', '=', 'cc.empresa_id');
+            })
             ->where('cc.empresa_id', $empresaId)
             ->where('c.empresa_id', $empresaId)
             ->where('cc.user_id', $vendedorId);
@@ -522,12 +532,18 @@ class LeadReservatorioService
 
     private function queryCarteiraElegivel(int $empresaId, int $vendedorId): Builder
     {
+        $idsExcluidos = array_values($this->tabulations->ids($empresaId, [
+            TabulationCode::REMARKETING,
+            TabulationCode::NEGOCIO_FECHADO,
+        ]));
+        $vendaValidaIds = $this->vendaValidaIds($empresaId);
+
         return $this->queryCarteiraOrigem($empresaId, $vendedorId)
             ->where('c.status', 'Y')
-            ->whereNotIn('cc.tabulacao_id', [Tabulations::REMARKETING, Tabulations::NEGOCIO_FECHADO])
+            ->whereNotIn('cc.tabulacao_id', $idsExcluidos)
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('vendas as v')
                 ->whereColumn('v.contato_id', 'c.id')->where('v.empresa_id', $empresaId)
-                ->whereIn('v.tabulacao_id', self::VENDA_VALIDA))
+                ->whereIn('v.tabulacao_id', $vendaValidaIds))
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('preditiva as p')
                 ->whereColumn('p.contato_id', 'c.id')->where('p.empresa_id', $empresaId)->where('p.status', 'Y'))
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('lead_reservatorio_itens as l')
@@ -548,5 +564,10 @@ class LeadReservatorioService
         }
 
         return 'N';
+    }
+
+    private function vendaValidaIds(int $empresaId): array
+    {
+        return array_values($this->tabulations->requiredIds($empresaId, TabulationCode::POS_VENDA_ELEGIVEIS));
     }
 }

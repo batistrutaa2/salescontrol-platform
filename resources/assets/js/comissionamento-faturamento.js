@@ -4,17 +4,16 @@
   // ======== DOM refs ========
   const $root = document.getElementById('comissionamento-root');
   if (!$root) {
-    console.error('[comissionamento] Root não encontrado. Adicione o div #comissionamento-root com data-url e data-empresa-id.');
+    console.error('[comissionamento] Root não encontrado. Adicione o div #comissionamento-root com data-url.');
     return;
   }
 
   const API_URL   = $root.dataset.url;
-  const EMPRESA_ID= $root.dataset.empresaId;
   const PAY_URL   = $root.dataset.payUrl;
   const AJUSTE_URL= $root.dataset.ajusteUrl || ''; // opcional (defina no Blade p/ salvar backend)
 
-  if (!API_URL || !EMPRESA_ID) {
-    console.error('[comissionamento] data-url ou data-empresa-id ausentes no #comissionamento-root.');
+  if (!API_URL) {
+    console.error('[comissionamento] data-url ausente no #comissionamento-root.');
     return;
   }
 
@@ -48,7 +47,7 @@
   }
 
   async function fetchFaturamento({ dataInicio, dataFim, vendedorId = '', grade = '' }) {
-    const params = new URLSearchParams({ empresa_id: EMPRESA_ID });
+    const params = new URLSearchParams();
     if (dataInicio) params.set('data_inicio', dataInicio);
     if (dataFim) params.set('data_fim', dataFim);
     if (vendedorId) params.set('vendedor_id', vendedorId);
@@ -77,12 +76,7 @@
   function renderVendedores(payload, gradeFiltro) {
     let vendedores = (payload && payload.vendedores) || [];
 
-    // Filtro por grade via percentual (30 = junior, 100 = senior)
-    if (gradeFiltro === 'junior') {
-      vendedores = vendedores.filter(v => Number(v.percentual) === 30);
-    } else if (gradeFiltro === 'senior') {
-      vendedores = vendedores.filter(v => Number(v.percentual) === 100);
-    }
+    // O filtro de grade já é aplicado no servidor sobre a configuração do tenant.
 
     // KPIs filtrados
     const kpiVendedores = vendedores.length;
@@ -117,7 +111,7 @@
     }
 
     vendedores.forEach(v => {
-      const percPerfil = Number(v.percentual) || 0; // 30 ou 100
+      const percPerfil = Number(v.percentual) || 0;
       const lista = v.contratos || [];
 
       // Totais (fallback)
@@ -720,7 +714,7 @@
   // Carregar lista de vendedores para o select
   async function carregarVendedoresAvulso() {
     try {
-      const res = await fetch(`/comissionamento/vendedores?empresa_id=${EMPRESA_ID}`, {
+      const res = await fetch('/comissionamento/vendedores', {
         headers: { 'Accept': 'application/json' }
       });
 

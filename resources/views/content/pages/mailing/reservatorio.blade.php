@@ -74,7 +74,7 @@
 
         <section class="lv-metrics" aria-label="Indicadores do reservatório">
             <article><span>Disponíveis agora</span><strong id="metric-available">—</strong><small>aptos para estratégia</small></article>
-            <article><span>Entradas em 30 dias</span><strong id="metric-entered">—</strong><small>mailing, marketing e carga</small></article>
+            <article><span>Entradas em {{ $indicadoresJanelaDias }} dias</span><strong id="metric-entered">—</strong><small>mailing, marketing e carga</small></article>
             <article><span>Distribuídos no mês</span><strong id="metric-distributed">—</strong><small>saídas concluídas</small></article>
             <article><span>Bloqueados</span><strong id="metric-blocked">—</strong><small>retidos pelas regras</small></article>
         </section>

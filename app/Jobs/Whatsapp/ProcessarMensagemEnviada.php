@@ -4,6 +4,7 @@ namespace App\Jobs\Whatsapp;
 
 use App\Events\Whatsapp\ConversaWhatsappAtualizada;
 use App\Events\Whatsapp\NovaMensagemWhatsapp;
+use App\Jobs\Concerns\UsesWhatsappTenantContext;
 use App\Models\WhatsappInstancia;
 use App\Models\WhatsappMensagem;
 use App\Services\Whatsapp\ConversaService;
@@ -20,7 +21,7 @@ use Illuminate\Queue\SerializesModels;
 
 class ProcessarMensagemEnviada implements ShouldBeUnique, ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, UsesWhatsappTenantContext;
 
     public int $tries = 5;
 

@@ -58,7 +58,7 @@ enum TipoSolicitacaoPosVenda: string
         return match ($tipo) {
             TipoDemandaContrato::CANCELAMENTO->value,
             TipoDemandaContrato::CANCELAMENTO_OPERADORA_ANTERIOR->value,
-            TipoDemandaContrato::CANCELAMENTO_QUALICORP->value,
+            TipoDemandaContrato::CANCELAMENTO_INTERMEDIADORA->value,
             TipoDemandaContrato::CANCELAMENTO_LIMITAR->value => self::CANCELAMENTO,
             TipoDemandaContrato::PORTABILIDADE->value => self::PORTABILIDADE,
             TipoDemandaContrato::ENVIO_BOLETO->value => self::ENVIO_BOLETO,

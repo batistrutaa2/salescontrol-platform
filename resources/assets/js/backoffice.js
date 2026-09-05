@@ -6,6 +6,14 @@
  */
 
 $(function () {
+    const STATUS = Object.freeze({
+        IMPLANTADO: 'IMPLANTADO',
+        PENDENCIA: 'PENDENCIA',
+        ESTORNO: 'ESTORNO',
+        DECLINADO: 'DECLINADO',
+        BOLETO_DISPONIVEL: 'BOLETO_DISPONIVEL'
+    });
+
     // =============================================================================
     // Helpers
     // =============================================================================
@@ -222,7 +230,8 @@ $(function () {
             this.sortableInstances = [];
 
             pipeline.forEach(status => {
-                const isExit = ['ESTORNO', 'DECLINADO'].includes(status.nome);
+                const statusCode = String(status.codigo || '').toUpperCase();
+                const isExit = [STATUS.ESTORNO, STATUS.DECLINADO].includes(statusCode);
                 const columnClass = isExit ? 'column-exit' : '';
 
                 const columnHtml = `
@@ -230,14 +239,14 @@ $(function () {
                         <div class="kanban-column-header">
                             <div class="column-header-content">
                                 <span class="status-indicator" style="background: ${status.cor}; box-shadow: 0 0 8px ${status.cor};"></span>
-                                <span class="status-name" title="${escapeHtml(status.nome)}">${this.formatStatusName(status.nome)}</span>
+                                <span class="status-name" title="${escapeHtml(status.nome)}">${escapeHtml(status.nome)}</span>
                                 <span class="status-value">${formatCurrency(status.valor_total)}</span>
                                 <span class="status-count" title="${status.quantidade} contrato(s)">${status.quantidade}</span>
                             </div>
                         </div>
                         <div class="kanban-column-body" data-status="${status.id}">
                             ${status.contratos && status.contratos.length > 0
-                        ? status.contratos.map(c => this.renderCard(c, status.cor, status.nome)).join('')
+                        ? status.contratos.map(c => this.renderCard(c, status.cor, statusCode)).join('')
                         : `<div class="kanban-column-empty">
                                         <i class="ri-inbox-line"></i>
                                         <span>Nenhum contrato</span>
@@ -251,18 +260,7 @@ $(function () {
             });
         },
 
-        formatStatusName(name) {
-            const shortNames = {
-                'ANALISE DE DOCUMENTOS': 'ANÁLISE DOCS',
-                'ANALISE OPERADORA': 'ANÁLISE OPER.',
-                'CONTR. GERADO - AGUARDANDO ASSINATURA': 'CONTR. GERADO',
-                'AGUARD. ASSINATURA DA DS': 'AGUARD. DS',
-                'BOLETO DISPONIVEL': 'BOLETO DISP.',
-            };
-            return shortNames[name] || name;
-        },
-
-        renderCard(contract, statusColor, statusName) {
+        renderCard(contract, statusColor, statusCode) {
             const diasNaFila = Math.floor(contract.dias_na_fila || 0);
             const tempoLabel = diasNaFila === 0
                 ? 'hoje'
@@ -279,7 +277,7 @@ $(function () {
 
             // Pendência e estorno precisam expor o motivo diretamente no card.
             let motivoHtml = '';
-            if (contract.motivo_pendencia && ['PENDENCIA', 'ESTORNO'].includes(statusName)) {
+            if (contract.motivo_pendencia && [STATUS.PENDENCIA, STATUS.ESTORNO].includes(statusCode)) {
                 motivoHtml = `
                     <div class="motivo-badge js-view-motivo" data-motivo="${escapeHtml(contract.motivo_pendencia)}" title="Clique para ver o motivo">
                         <i class="ri-error-warning-line"></i>
@@ -667,7 +665,7 @@ $(function () {
                 'ACESSO_EMPRESA': 'Acesso Empresa',
                 'LOGIN_APPS': 'Login Apps',
                 'TROCA_EMAIL': 'Alterar E-mail',
-                'CANCELAMENTO_QUALICORP': 'Cancel. Qualicorp',
+                'CANCELAMENTO_INTERMEDIADORA': 'Cancel. intermediadora',
                 'CANCELAMENTO_LIMITAR': 'Cancel. Limitar',
                 'BOAS_VINDAS': 'Boas-vindas',
                 'ENVIO_BOLETO': 'Envio Boleto',
@@ -683,7 +681,7 @@ $(function () {
                 'ACESSO_EMPRESA': 'tipo-primary',
                 'LOGIN_APPS': 'tipo-primary',
                 'TROCA_EMAIL': 'tipo-primary',
-                'CANCELAMENTO_QUALICORP': 'tipo-danger',
+                'CANCELAMENTO_INTERMEDIADORA': 'tipo-danger',
                 'CANCELAMENTO_LIMITAR': 'tipo-danger',
                 'BOAS_VINDAS': 'tipo-info',
                 'ENVIO_BOLETO': 'tipo-warning',
@@ -927,9 +925,27 @@ $(function () {
                     },
                     buttonsStyling: false,
                     reverseButtons: true
-                }).then((result) => {
+                }).then(async (result) => {
                     if (result.isConfirmed) {
-                        window.location.href = href;
+                        try {
+                            const response = await fetch(href, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            const data = await response.json();
+
+                            if (!response.ok || !data.success) {
+                                throw new Error(data.message || 'Não foi possível excluir o contrato.');
+                            }
+
+                            toastr.success(data.message || 'Contrato excluído com sucesso.');
+                            self.loadContracts();
+                        } catch (error) {
+                            toastr.error(error.message || 'Não foi possível excluir o contrato.');
+                        }
                     }
                 });
             });
@@ -1243,10 +1259,10 @@ $(function () {
     // Modal Status Change Logic (Existing)
     // =============================================================================
     $(document).on('change', '#label', function () {
-        const val = $(this).val();
+        const codigo = String($(this).find(':selected').data('codigo') || '').toUpperCase();
 
-        // IMPLANTADO (ID 18) — modal expande para 2 colunas (implantação + demandas)
-        if (val === '18') {
+        // IMPLANTADO — modal expande para 2 colunas (implantação + demandas)
+        if (codigo === STATUS.IMPLANTADO) {
             $('#proof-group').show();
             $('#comprovante').prop('required', true);
             $('#proof-group-data-implantacao').show();
@@ -1270,18 +1286,17 @@ $(function () {
             $('#modalcommentsDialog').removeClass('kb-dialog-wide');
         }
 
-        // PENDÊNCIA, ESTORNO, DECLINADO (IDs 55, 17, 53)
-        if (val === '55' || val === '17' || val === '53') {
+        if ([STATUS.PENDENCIA, STATUS.ESTORNO, STATUS.DECLINADO].includes(codigo)) {
             $('#proof-group-data-pendencia').show();
             $('#data_pendencia').prop('required', true);
 
-            if (val === '17') {
+            if (codigo === STATUS.ESTORNO) {
                 $('#label-motivo-pendencia').text('Motivo do Estorno');
                 $('#data_pendencia').attr('placeholder', 'Descreva o motivo do estorno (mínimo 10 caracteres). O vendedor receberá esta mensagem.');
                 $('#data_pendencia').attr('minlength', '10');
                 $('#hint-motivo-estorno').removeClass('d-none');
                 $('#proof-group-observacao-estorno').show();
-            } else if (val === '55') {
+            } else if (codigo === STATUS.PENDENCIA) {
                 $('#label-motivo-pendencia').text('Motivo da Pendência');
                 $('#data_pendencia').attr('placeholder', 'Descreva o motivo da pendência...');
                 $('#data_pendencia').removeAttr('minlength');
@@ -1305,8 +1320,7 @@ $(function () {
             $('#observacao_estorno').val('');
         }
 
-        // BOLETO DISPONÍVEL (ID 58)
-        if (val === '58') {
+        if (codigo === STATUS.BOLETO_DISPONIVEL) {
             $('#proof-group-boleto-disponivel').show();
             $('#boleto_disponivel').prop('required', true);
         } else {

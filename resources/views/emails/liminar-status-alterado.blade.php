@@ -1,6 +1,6 @@
 @php
     /**
-     * E-mail de atualização de Cancelamento via Liminar — identidade LK Brokers.
+     * E-mail de atualização de cancelamento via liminar.
      * Variáveis: usuario, nomeContrato, nomeBeneficiario, campoLabel,
      *            valorAnterior, valorNovo, alteradoPorNome, linkSistema.
      */
@@ -12,7 +12,8 @@
     $valorNovo        = $valorNovo ?? '—';
     $alteradoPorNome  = $alteradoPorNome ?? null;
     $linkSistema      = $linkSistema ?? '#';
-    $logoUrl          = rtrim(config('app.url'), '/') . '/assets/img/branding/logo-brokers-email.jpeg';
+    $nomeEmpresa      = config('app.name', 'SalesControl');
+    $logoUrl          = rtrim(config('app.url'), '/') . '/assets/img/branding/salescontrol-mark.svg';
 
     $roxo      = '#7C3AED';
     $roxoClaro = '#A78BFA';
@@ -28,7 +29,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="x-apple-disable-message-reformatting">
-    <title>Cancelamento via Liminar — LK Brokers</title>
+    <title>Cancelamento via Liminar — {{ $nomeEmpresa }}</title>
     <!--[if mso]><style>table,td,div,h1,p{font-family:Arial,sans-serif;}</style><![endif]-->
 </head>
 <body style="margin:0;padding:0;background:#eef0f5;-webkit-text-size-adjust:100%;">
@@ -40,7 +41,7 @@
                     {{-- ====================== HEADER (logo em fundo branco) ====================== --}}
                     <tr>
                         <td style="background:#ffffff;padding:26px 40px 20px;" align="center">
-                            <img src="{{ $logoUrl }}" alt="LK Broker's — Consultoria de Seguros" height="58" style="height:58px;width:auto;display:block;margin:0 auto;">
+                            <img src="{{ $logoUrl }}" alt="{{ $nomeEmpresa }}" height="58" style="height:58px;width:auto;display:block;margin:0 auto;">
                         </td>
                     </tr>
                     {{-- Faixa de acento da marca --}}
@@ -117,7 +118,7 @@
                         <td style="padding:20px 40px;background:{{ $fundoSec }};border-top:1px solid {{ $borda }};" align="center">
                             <p style="margin:0;font-family:{{ $fontUI }};font-size:12px;line-height:1.6;color:#94a3b8;">
                                 Notificação automática do módulo de Cancelamento via Liminar.<br>
-                                © {{ date('Y') }} LK Brokers. Todos os direitos reservados.
+                                © {{ date('Y') }} {{ $nomeEmpresa }}. Todos os direitos reservados.
                             </p>
                         </td>
                     </tr>

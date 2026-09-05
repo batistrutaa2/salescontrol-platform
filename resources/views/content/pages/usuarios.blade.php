@@ -261,39 +261,22 @@
                     </div>
                     <div class="form-floating form-floating-outline mb-5">
                         <select id="tipo_user" class="form-select" name="user_role_id">
-                            <option value="1">VENDEDOR</option>
-                            <option value="2">ADMINISTRATIVO</option>
-                            <option value="3">BACKOFFICE</option>
+                            <option value="{{ \App\Enums\UserRole::VENDEDOR }}">VENDEDOR</option>
+                            <option value="{{ \App\Enums\UserRole::ADMINISTRATIVO }}">ADMINISTRATIVO</option>
+                            <option value="{{ \App\Enums\UserRole::BACKOFFICE }}">BACKOFFICE</option>
                             @if ($tipo_usuario === 'DEVELOPER')
-                                <option value="4">DEVELOPER</option>
+                                <option value="{{ \App\Enums\UserRole::DEVELOPER }}">DEVELOPER</option>
                             @endif
-                            <option value="5">SUPERVISOR</option>
-                            <option value="7">ADVOGADA</option>
-                            <option value="8">FINANCEIRO</option>
+                            <option value="{{ \App\Enums\UserRole::SUPERVISOR }}">SUPERVISOR</option>
+                            <option value="{{ \App\Enums\UserRole::ADVOGADA }}">ADVOGADA</option>
+                            <option value="{{ \App\Enums\UserRole::FINANCEIRO }}">FINANCEIRO</option>
                         </select>
                         <label for="tipo_user">Tipo de Acesso</label>
                     </div>
                     <div class="form-floating form-floating-outline mb-5">
-                        @if (is_iterable($companies) && count($companies) > 0)
-                            <select id="empresas" class="form-select" {{ count($companies) == 1 ? 'disabled' : '' }}
-                                name="empresa_id">
-                                @foreach ($companies as $companie)
-                                    <option value="{{ $companie->id }}" {{ count($companies) == 1 ? 'selected' : '' }}>
-                                        {{ $companie->nome_fantasia }}</option>
-                                @endforeach
-                            </select>
-                            <label for="empresas">Empresa</label>
-                        @elseif(is_object($companies))
-                            <select id="empresas" class="form-select" disabled name="empresa_id">
-                                <option value="{{ $companies->id }}" selected>{{ $companies->nome_fantasia }}</option>
-                            </select>
-                            <label for="empresas">Empresa</label>
-                        @else
-                            <select id="empresas" class="form-select" disabled name="empresa_id">
-                                <option value="">Nenhuma empresa disponivel</option>
-                            </select>
-                            <label for="empresas">Empresa</label>
-                        @endif
+                        <input id="empresa-ativa" class="form-control" type="text"
+                            value="{{ $companies->nome_fantasia ?? 'Nenhuma empresa ativa' }}" readonly>
+                        <label for="empresa-ativa">Empresa ativa</label>
                     </div>
                     <div class="form-floating form-floating-outline mb-5">
                         <input type="password" id="ecommerce-customer-add-password" class="form-control"

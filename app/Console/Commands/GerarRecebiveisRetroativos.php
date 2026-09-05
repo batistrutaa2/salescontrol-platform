@@ -2,15 +2,16 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\Vendas;
-use App\Models\Recebivel;
 use App\Jobs\GerarRecebiveisJob;
+use App\Models\Vendas;
+use App\Support\TenantContext;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class GerarRecebiveisRetroativos extends Command
 {
     protected $signature = 'recebiveis:retroativos
-        {--empresa_id= : Filtrar por empresa}
+        {empresa_id : Empresa para a qual os recebíveis serão gerados}
         {--limite=500 : Tamanho do chunk}
         {--dry-run : Apenas listar vendas sem gerar nada}';
 
@@ -18,7 +19,18 @@ class GerarRecebiveisRetroativos extends Command
 
     public function handle(): int
     {
-        $empresaId = $this->option('empresa_id');
+        $empresaId = (int) $this->argument('empresa_id');
+        if (! DB::table('empresas')->where('id', $empresaId)->exists()) {
+            $this->error('Empresa inválida.');
+
+            return self::FAILURE;
+        }
+
+        return app(TenantContext::class)->run($empresaId, fn () => $this->processar($empresaId));
+    }
+
+    private function processar(int $empresaId): int
+    {
         $limite = (int) $this->option('limite');
         $dryRun = $this->option('dry-run');
 
@@ -27,21 +39,20 @@ class GerarRecebiveisRetroativos extends Command
             ->whereNotNull('data_implantacao')
             ->whereDoesntHave('recebiveis');
 
-        if ($empresaId) {
-            $query->where('empresa_id', $empresaId);
-        }
+        $query->where('empresa_id', $empresaId);
 
         $total = $query->count();
 
         if ($total === 0) {
             $this->info('Nenhuma venda pendente de recebiveis encontrada.');
+
             return self::SUCCESS;
         }
 
         $totalJaLancadas = Vendas::query()
             ->whereNotNull('data_implantacao')
             ->whereHas('recebiveis')
-            ->when($empresaId, fn($q) => $q->where('empresa_id', $empresaId))
+            ->where('empresa_id', $empresaId)
             ->count();
 
         $this->info("Vendas implantadas sem recebiveis: {$total}");
@@ -51,23 +62,25 @@ class GerarRecebiveisRetroativos extends Command
             $this->warn('Modo dry-run: nenhum recebivel sera gerado.');
             $this->table(
                 ['ID', 'Empresa', 'Contrato', 'Operadora', 'Valor', 'Implantacao'],
-                $query->orderBy('id')->limit(50)->get()->map(fn($v) => [
+                $query->orderBy('id')->limit(50)->get()->map(fn ($v) => [
                     $v->id,
                     $v->empresa_id,
                     mb_substr($v->nome_contrato, 0, 30),
                     $v->operadora,
-                    'R$ ' . number_format((float) $v->valor_contrato, 2, ',', '.'),
+                    'R$ '.number_format((float) $v->valor_contrato, 2, ',', '.'),
                     $v->data_implantacao?->format('d/m/Y'),
                 ])
             );
             if ($total > 50) {
-                $this->info("... e mais " . ($total - 50) . " vendas.");
+                $this->info('... e mais '.($total - 50).' vendas.');
             }
+
             return self::SUCCESS;
         }
 
-        if (!$this->confirm("Deseja gerar recebiveis para {$total} vendas?")) {
+        if (! $this->confirm("Deseja gerar recebiveis para {$total} vendas?")) {
             $this->info('Operacao cancelada.');
+
             return self::SUCCESS;
         }
 

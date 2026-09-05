@@ -2,10 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ValidatesTenantUserReferences;
 use Illuminate\Database\Eloquent\Model;
+use LogicException;
 
 class PosVendaSolicitacao extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+    use ValidatesTenantUserReferences;
+
     protected $table = 'pos_venda_solicitacoes';
 
     public const STATUS_ABERTA = 'ABERTA';
@@ -41,6 +46,25 @@ class PosVendaSolicitacao extends Model
         'data_retorno' => 'date',
         'concluida_em' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $solicitacao): void {
+            if (self::shouldValidateTenantReference($solicitacao, 'created_by')) {
+                self::assertTenantActor((int) $solicitacao->empresa_id, $solicitacao->created_by, 'autor da solicitação');
+            }
+            if (self::shouldValidateTenantReference($solicitacao, 'responsavel_id')) {
+                self::assertTenantMember((int) $solicitacao->empresa_id, $solicitacao->responsavel_id, 'responsável da solicitação', true);
+            }
+
+            if ((self::shouldValidateTenantReference($solicitacao, 'venda_id')
+                    && ! Vendas::query()->withoutGlobalScope('tenant')->whereKey($solicitacao->venda_id)->where('empresa_id', $solicitacao->empresa_id)->exists())
+                || (self::shouldValidateTenantReference($solicitacao, 'etapa_id')
+                    && ! PosVendaFluxoEtapa::query()->withoutGlobalScope('tenant')->whereKey($solicitacao->etapa_id)->where('empresa_id', $solicitacao->empresa_id)->exists())) {
+                throw new LogicException('A venda ou etapa da solicitação não pertence à empresa ativa.');
+            }
+        });
+    }
 
     public function venda()
     {

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PreditivaEnvio extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'preditiva_envios';
 
     protected $fillable = [
@@ -19,7 +21,7 @@ class PreditivaEnvio extends Model
     ];
 
     protected $casts = [
-        'enviado_em'   => 'datetime',
+        'enviado_em' => 'datetime',
         'dias_inativo' => 'integer',
     ];
 

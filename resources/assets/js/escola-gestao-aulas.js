@@ -1,5 +1,5 @@
 /**
- * Escola LK Brokers — Gestão de aulas: CRUD, upload de vídeo (presigned S3) e materiais.
+ * Academia Comercial — Gestão de aulas: CRUD, upload de vídeo e materiais.
  */
 'use strict';
 

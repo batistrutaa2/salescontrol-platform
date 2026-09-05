@@ -3,18 +3,33 @@
 namespace App\Console\Commands;
 
 use App\Services\RecebiveisImportacaoSysService;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class GerarRecebiveisImportacaoSys extends Command
 {
     protected $signature = 'recebiveis:importacao-sys
+                            {empresa_id : Empresa cujas vendas importadas serão processadas}
                             {--data-corte=2026-01-01 : Data limite para marcar como pago (formato: YYYY-MM-DD)}
                             {--dry-run : Simula a execução sem salvar no banco}';
 
     protected $description = 'Gera recebíveis para vendas importadas do SYS e marca como pagos até a data de corte';
 
     public function handle(): int
+    {
+        $empresaId = (int) $this->argument('empresa_id');
+        if (! DB::table('empresas')->where('id', $empresaId)->exists()) {
+            $this->error('Empresa inválida.');
+
+            return self::FAILURE;
+        }
+
+        return app(TenantContext::class)->run($empresaId, fn () => $this->processar($empresaId));
+    }
+
+    private function processar(int $empresaId): int
     {
         $dataCorteString = $this->option('data-corte');
         $dryRun = $this->option('dry-run');
@@ -42,6 +57,7 @@ class GerarRecebiveisImportacaoSys extends Command
         $service = new RecebiveisImportacaoSysService($dataCorte, $dryRun);
 
         $totalVendas = \App\Models\Vendas::where('layout_venda', 'IMPORTACAO_SYS')
+            ->where('empresa_id', $empresaId)
             ->whereDoesntHave('recebiveis')
             ->count();
 

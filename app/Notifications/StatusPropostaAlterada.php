@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
@@ -16,7 +16,7 @@ class StatusPropostaAlterada extends Notification
         public readonly string $novoStatus,
         public readonly ?int $alteradoPorId = null,
         public readonly ?string $alteradoPorNome = null,
-        public readonly ?int $tabulacaoId = null,
+        public readonly ?string $tabulacaoCode = null,
     ) {}
 
     public function via($notifiable)
@@ -26,7 +26,7 @@ class StatusPropostaAlterada extends Notification
 
     public function toDatabase($notifiable)
     {
-        $isEstorno = $this->tabulacaoId === Tabulations::ESTORNO;
+        $isEstorno = $this->tabulacaoCode === TabulationCode::ESTORNO;
 
         return [
             'tipo' => $isEstorno ? 'venda_estornada' : 'status_venda',

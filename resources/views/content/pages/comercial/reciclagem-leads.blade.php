@@ -93,9 +93,9 @@
             <div class="rl-kpi-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </div>
-            <span class="rl-kpi-label">Enviados (30d)</span>
-            <h2 class="rl-kpi-value" id="kpiEnviados">{{ number_format($resumo['enviados_30d'], 0, ',', '.') }}</h2>
-            <span class="rl-kpi-hint">reciclados no mês</span>
+            <span class="rl-kpi-label">Enviados ({{ $resumo['indicadores_janela_dias'] }}d)</span>
+            <h2 class="rl-kpi-value" id="kpiEnviados">{{ number_format($resumo['enviados_na_janela'], 0, ',', '.') }}</h2>
+            <span class="rl-kpi-hint">reciclados na janela</span>
         </div>
     </div>
 
@@ -172,18 +172,61 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Configuração do reenvio automático</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label">Dias sem contato para reenviar</label>
+                    <label class="form-label" for="cfgDias">Dias sem contato para reenviar</label>
                     <input type="number" min="1" max="3650" class="form-control" id="cfgDias">
                     <small class="text-muted">Um lead frio acima desse limite fica elegível à reciclagem.</small>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Limite por execução</label>
+                    <label class="form-label" for="cfgLimite">Limite por execução</label>
                     <input type="number" min="1" max="100000" class="form-control" id="cfgLimite">
                     <small class="text-muted">Teto de leads enviados por rodada da rotina automática.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="cfgIndicadoresJanela">Janela dos indicadores</label>
+                    <div class="input-group">
+                        <input type="number" min="1" max="3650" class="form-control" id="cfgIndicadoresJanela">
+                        <span class="input-group-text">dias</span>
+                    </div>
+                    <small class="text-muted">Período usado nos totais recentes de reciclagem e do reservatório.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Alertas de inatividade no Kanban</label>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <input type="number" min="1" max="3650" class="form-control" id="cfgKanbanAlerta" aria-label="Alerta inicial em dias">
+                            <small class="text-muted">Alerta</small>
+                        </div>
+                        <div class="col-4">
+                            <input type="number" min="2" max="3650" class="form-control" id="cfgKanbanUrgente" aria-label="Alerta urgente em dias">
+                            <small class="text-muted">Urgente</small>
+                        </div>
+                        <div class="col-4">
+                            <input type="number" min="3" max="3650" class="form-control" id="cfgKanbanCritica" aria-label="Alerta crítico em dias">
+                            <small class="text-muted">Crítico</small>
+                        </div>
+                    </div>
+                    <small class="text-muted">Os limites devem ser crescentes e valem somente para esta empresa.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="cfgMascoteDias">Mascote: dias sem atividade</label>
+                    <input type="number" min="1" max="3650" class="form-control" id="cfgMascoteDias">
+                    <small class="text-muted">Tempo sem atividade para o mascote sugerir um contato ao vendedor.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="cfgMascoteLimite">Mascote: máximo de sugestões</label>
+                    <input type="number" min="1" max="100" class="form-control" id="cfgMascoteLimite">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="cfgLockHoras">Expiração da reserva na preditiva</label>
+                    <div class="input-group">
+                        <input type="number" min="1" max="168" class="form-control" id="cfgLockHoras">
+                        <span class="input-group-text">horas</span>
+                    </div>
+                    <small class="text-muted">Após esse período sem ação, o lead reservado volta a ficar disponível.</small>
                 </div>
                 <div class="form-check form-switch mb-1">
                     <input class="form-check-input" type="checkbox" id="cfgAutomatico">

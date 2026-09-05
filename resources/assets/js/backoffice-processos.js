@@ -275,11 +275,11 @@
   }
 
   // Cor semântica do status do contrato (verde = ativo, vermelho = perdido, âmbar = pendente).
-  function statusClasse(status) {
-    const s = String(status || '').toUpperCase();
-    if (s.includes('IMPLANTADO') || s.includes('REGULARIZADO')) return 'st-ok';
-    if (s.includes('ESTORNO') || s.includes('DECLINIO') || s.includes('CANCEL')) return 'st-perdido';
-    if (s.includes('PENDENCIA')) return 'st-atencao';
+  function statusClasse(codigo) {
+    const code = String(codigo || '').toUpperCase();
+    if (['IMPLANTADO', 'REGULARIZADO'].includes(code)) return 'st-ok';
+    if (['ESTORNO', 'DECLINADO'].includes(code)) return 'st-perdido';
+    if (code === 'PENDENCIA') return 'st-atencao';
     return 'st-andamento';
   }
 
@@ -295,7 +295,7 @@
             <span class="pv-cli-op">${esc(c.operadora || 'Contrato')}</span>
             ${c.nome_plano ? `<span class="pv-cli-plano">${esc(c.nome_plano)}</span>` : ''}
           </div>
-          <span class="pv-status ${statusClasse(c.status)}">${esc(c.status)}</span>
+          <span class="pv-status ${statusClasse(c.status_codigo)}">${esc(c.status)}</span>
         </div>
         <div class="pv-cli-grid">
           ${campo('Valor do contrato', c.valor_contrato, 'mono destaque')}

@@ -147,6 +147,58 @@
         ${badgeStatus(o.status)}
       </div>
 
+      <section class="op-rules" aria-labelledby="op-rules-title">
+        <div class="op-rules-heading">
+          <div>
+            <h6 id="op-rules-title">Regras comerciais</h6>
+            <p>Estas regras pertencem a esta operadora nesta empresa. O nome da operadora não altera o comportamento.</p>
+          </div>
+          <span class="op-folder-badge is-ready"><i class="ri-shield-check-line" aria-hidden="true"></i> Por empresa</span>
+        </div>
+        <form class="op-rules-form" id="op-rules-form" autocomplete="off">
+          <div class="op-rules-field">
+            <label for="op-rules-coparticipacao">Formato de coparticipação</label>
+            <select class="op-input" id="op-rules-coparticipacao">
+              <option value="SIM_NAO" ${o.coparticipacao_formato === 'SIM_NAO' ? 'selected' : ''}>Sim / Não</option>
+              <option value="PARCIAL_COMPLETA" ${o.coparticipacao_formato === 'PARCIAL_COMPLETA' ? 'selected' : ''}>Parcial / Completa</option>
+            </select>
+          </div>
+          <label class="op-check op-rules-check" for="op-rules-angariacao">
+            <input type="checkbox" id="op-rules-angariacao" ${o.angariacao_padrao ? 'checked' : ''}>
+            <span>Ativar angariação por padrão nas novas vendas</span>
+          </label>
+          <div class="op-rules-field">
+            <label for="op-rules-iof">IOF sobre a mensalidade (%)</label>
+            <input class="op-input" type="number" id="op-rules-iof" value="${esc(o.iof_percentual || 0)}" min="0" max="100" step="0.01" inputmode="decimal" aria-describedby="op-rules-iof-help">
+            <small id="op-rules-iof-help">Use 0 para não aplicar IOF.</small>
+          </div>
+          <div class="op-rules-field">
+            <label for="op-rules-color">Cor da marca</label>
+            <div class="op-color-field">
+              <input type="color" id="op-rules-color-picker" value="${esc(o.cor_marca || '#334155')}" aria-label="Selecionar cor da marca">
+              <input class="op-input" type="text" id="op-rules-color" value="${esc(o.cor_marca || '#334155')}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" placeholder="#334155">
+            </div>
+          </div>
+          <div class="op-rules-field op-rules-logo-field">
+            <label for="op-rules-logo">Logo no estudo comercial</label>
+            <input class="op-input" type="text" id="op-rules-logo" value="${esc(o.logo_path || '')}" maxlength="500" placeholder="assets/img/logos/operadora.png" aria-describedby="op-rules-logo-help">
+            <small id="op-rules-logo-help">Caminho em assets/ ou URL HTTPS. Deixe vazio para exibir apenas o nome.</small>
+          </div>
+          <div class="op-rules-field">
+            <label for="op-rules-app-ios">Aplicativo para iPhone</label>
+            <input class="op-input" type="url" id="op-rules-app-ios" value="${esc(o.app_ios_url || '')}" maxlength="500" placeholder="https://apps.apple.com/..." inputmode="url" aria-describedby="op-rules-app-ios-help">
+            <small id="op-rules-app-ios-help">Link oficial exibido nas boas-vindas.</small>
+          </div>
+          <div class="op-rules-field">
+            <label for="op-rules-app-android">Aplicativo para Android</label>
+            <input class="op-input" type="url" id="op-rules-app-android" value="${esc(o.app_android_url || '')}" maxlength="500" placeholder="https://play.google.com/..." inputmode="url" aria-describedby="op-rules-app-android-help">
+            <small id="op-rules-app-android-help">Use somente uma URL HTTPS oficial.</small>
+          </div>
+          <button type="submit" class="op-btn op-btn-primary" id="op-rules-save">Salvar regras</button>
+          <p class="op-rules-feedback" id="op-rules-feedback" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
       <section class="op-directory" aria-labelledby="op-directory-title">
         <div class="op-directory-icon" aria-hidden="true"><i class="ri-folder-shield-2-line"></i></div>
         <div class="op-directory-content">
@@ -168,7 +220,7 @@
                 <input type="text" id="op-directory-name" list="op-directory-options" value="${esc(o.diretorio_documentos || '')}" maxlength="120" required aria-describedby="op-directory-help">
                 <datalist id="op-directory-options">${(saudeDocumentos.diretorios || []).map(nome => `<option value="${esc(nome)}"></option>`).join('')}</datalist>
               </div>
-              <small id="op-directory-help">Respeite espaços e letras maiúsculas/minúsculas, por exemplo: Bradesco.</small>
+              <small id="op-directory-help">Use exatamente o nome da pasta existente, respeitando espaços e letras maiúsculas/minúsculas.</small>
               <p class="op-directory-feedback" id="op-directory-feedback" role="status" aria-live="polite"></p>
             </div>
             <button type="submit" class="op-btn op-btn-primary" id="op-directory-save">Salvar vínculo</button>
@@ -196,6 +248,11 @@
       ${planosHtml}`;
 
     $('op-plano-form').addEventListener('submit', salvarPlano);
+    $('op-rules-form').addEventListener('submit', salvarRegrasComerciais);
+    $('op-rules-color-picker').addEventListener('input', (event) => { $('op-rules-color').value = event.target.value.toUpperCase(); });
+    $('op-rules-color').addEventListener('input', (event) => {
+      if (/^#[0-9A-Fa-f]{6}$/.test(event.target.value)) $('op-rules-color-picker').value = event.target.value;
+    });
     $('op-directory-form').addEventListener('submit', salvarDiretorioDocumentos);
   }
 
@@ -204,16 +261,63 @@
     e.preventDefault();
     const nome = $('op-nome').value.trim();
     if (!nome) return;
-    const json = await api('/back-office/createOperation', 'POST', { nome, status: $('op-status').value });
+    const json = await api('/back-office/createOperation', 'POST', {
+      nome,
+      status: $('op-status').value,
+      coparticipacao_formato: $('op-coparticipacao-formato').value,
+      angariacao_padrao: $('op-angariacao-padrao').checked,
+    });
     if (json.success) {
       toast('Operadora cadastrada.');
       $('op-nome').value = '';
+      $('op-coparticipacao-formato').value = 'SIM_NAO';
+      $('op-angariacao-padrao').checked = false;
       $('op-form').hidden = true;
       await load();
       const nova = operadoras.find((o) => o.nome === nome.toUpperCase());
       if (nova) { selecionada = nova; renderMaster(); renderDetail(); }
     } else {
       toast(json.message || 'Erro ao cadastrar operadora.', 'err');
+    }
+  }
+
+  async function salvarRegrasComerciais(e) {
+    e.preventDefault();
+    if (!selecionada) return;
+
+    const button = $('op-rules-save');
+    const feedback = $('op-rules-feedback');
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = 'Salvando…';
+    feedback.className = 'op-rules-feedback';
+    feedback.textContent = 'Salvando regras desta empresa…';
+
+    const json = await api(`/back-office/operadoras/${selecionada.id}/regras-comerciais`, 'PATCH', {
+      coparticipacao_formato: $('op-rules-coparticipacao').value,
+      angariacao_padrao: $('op-rules-angariacao').checked,
+      iof_percentual: Number.parseFloat($('op-rules-iof').value || '0'),
+      cor_marca: $('op-rules-color').value.trim(),
+      logo_path: $('op-rules-logo').value.trim() || null,
+      app_ios_url: $('op-rules-app-ios').value.trim() || null,
+      app_android_url: $('op-rules-app-android').value.trim() || null,
+    });
+
+    if (json.success) {
+      feedback.classList.add('is-success');
+      feedback.textContent = 'Regras salvas para esta operadora.';
+      toast('Regras comerciais atualizadas.');
+      await load();
+    } else {
+      feedback.classList.add('is-error');
+      feedback.textContent = json.message || 'Não foi possível salvar as regras.';
+      toast(json.message || 'Não foi possível salvar as regras.', 'err');
+    }
+
+    if (document.body.contains(button)) {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.textContent = 'Salvar regras';
     }
   }
 

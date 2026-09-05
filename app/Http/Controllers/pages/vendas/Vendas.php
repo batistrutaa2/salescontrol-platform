@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\pages\vendas;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Operadora;
@@ -18,9 +18,11 @@ use App\Repositories\Contracts\VendasRepositoryInterface;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\UsuariosRepository;
 use App\Repositories\Eloquent\VendasRepository;
+use App\Services\TabulationCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -33,27 +35,31 @@ class Vendas extends Controller
 
     protected ContatosCorretoresRepository $contatosCorretoresRepository;
 
+    protected TabulationCatalog $tabulationCatalog;
+
     public function __construct(
         VendasRepositoryInterface $vendasRepositoryInterface,
         UsuariosRepositoryInterface $usuariosRepositoryInterface,
-        ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface
+        ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
+        TabulationCatalog $tabulationCatalog
     ) {
 
         $this->repositoryVendas = $vendasRepositoryInterface;
         $this->usuariosRepository = $usuariosRepositoryInterface;
         $this->contatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
+        $this->tabulationCatalog = $tabulationCatalog;
     }
 
     public function index()
     {
         return view('content.pages.vendas.index', [
-            'anosDisponiveis' => $this->getAnosDisponiveis(Auth::user()->empresa_id),
+            'anosDisponiveis' => $this->getAnosDisponiveis($this->tenantId()),
         ]);
     }
 
     public function salesOfTheMonth()
     {
-        $vendas = $this->repositoryVendas->vendasDoMesAnoAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+        $vendas = $this->repositoryVendas->vendasDoMesAnoAtual(Auth::user()->id, $this->tenantId(), Auth::user()->user_role_id);
 
         return response()->json(['data' => $vendas]);
     }
@@ -63,11 +69,11 @@ class Vendas extends Controller
         try {
 
             if (is_null($name_user)) {
-                $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-                $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-                $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-                $percentualConversaoMes = $this->repositoryVendas->conversaoMensal(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
-                $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes(Auth::user()->id, Auth::user()->empresa_id, Auth::user()->user_role_id);
+                $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual(Auth::user()->id, $this->tenantId(), Auth::user()->user_role_id);
+                $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual(Auth::user()->id, $this->tenantId(), Auth::user()->user_role_id);
+                $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual(Auth::user()->id, $this->tenantId(), Auth::user()->user_role_id);
+                $percentualConversaoMes = $this->repositoryVendas->conversaoMensal(Auth::user()->id, $this->tenantId(), Auth::user()->user_role_id);
+                $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes(Auth::user()->id, $this->tenantId(), Auth::user()->user_role_id);
             } else {
                 $user = $this->usuariosRepository->getUserSearchName($name_user);
 
@@ -75,11 +81,11 @@ class Vendas extends Controller
                     return response()->json(['error' => true]);
                 }
 
-                $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
-                $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
-                $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual($user->id, $user->empresa_id, $user->user_role_id);
-                $percentualConversaoMes = $this->repositoryVendas->conversaoMensal($user->id, $user->empresa_id, $user->user_role_id);
-                $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes($user->id, $user->empresa_id, $user->user_role_id);
+                $vendasCadastradasMes = $this->repositoryVendas->totalVendasCadastradasAnoMesAtual($user->id, $this->tenantId(), $user->user_role_id);
+                $vendasImplantadasMes = $this->repositoryVendas->totalVendasImplantadasAnoMesAtual($user->id, $this->tenantId(), $user->user_role_id);
+                $vendasEstornadasMes = $this->repositoryVendas->totalVendasEstornadasAnoMesAtual($user->id, $this->tenantId(), $user->user_role_id);
+                $percentualConversaoMes = $this->repositoryVendas->conversaoMensal($user->id, $this->tenantId(), $user->user_role_id);
+                $totalContatosMes = $this->repositoryVendas->quantidadeContatosMes($user->id, $this->tenantId(), $user->user_role_id);
             }
 
             $response = [
@@ -127,8 +133,7 @@ class Vendas extends Controller
     public function listarVendas(Request $request)
     {
         $filtros = $this->aplicarFiltros($request);
-        $filtros['status'] = $request->get('status'); // Filtro de status apenas para listagem
-        $perPage = $request->get('per_page', 20);
+        $perPage = $filtros['per_page'] ?? 20;
 
         $vendas = $this->getVendasTotais($filtros, $perPage);
 
@@ -160,7 +165,15 @@ class Vendas extends Controller
 
     public function downloadBoleto($id)
     {
-        $venda = VendasModel::findOrFail($id);
+        $user = Auth::user();
+        $venda = VendasModel::where('empresa_id', $this->tenantId())->findOrFail($id);
+
+        abort_unless(
+            $user->isPlatformAdmin()
+                || in_array((int) $user->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::BACKOFFICE, UserRole::SUPERVISOR, UserRole::DEVELOPER], true)
+                || ((int) $user->user_role_id === UserRole::VENDEDOR && (int) $venda->user_id === (int) $user->id),
+            403
+        );
 
         $path = trim($venda->path_boleto_disponivel ?? '', '/');
         if ($path === '') {
@@ -177,34 +190,58 @@ class Vendas extends Controller
 
     private function aplicarFiltros($request)
     {
+        $empresaId = (int) $this->tenantId();
+        $dados = $request->validate([
+            'ano' => ['nullable', 'integer', 'min:2000', 'max:'.(now()->year + 1)],
+            'mes' => ['nullable', 'integer', 'between:1,12'],
+            'vendedor_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($query) => $query
+                    ->where('empresa_id', $empresaId)
+                    ->where('is_platform_admin', false)
+                    ->where('user_role_id', UserRole::VENDEDOR)),
+            ],
+            'operadora' => ['nullable', 'string', 'max:255'],
+            'data_inicio' => ['nullable', 'date_format:Y-m-d', 'required_with:data_fim'],
+            'data_fim' => ['nullable', 'date_format:Y-m-d', 'required_with:data_inicio', 'after_or_equal:data_inicio'],
+            'status' => [
+                'nullable',
+                'integer',
+                Rule::exists('tabulacoes', 'id')->where('empresa_id', $empresaId),
+            ],
+            'per_page' => ['nullable', 'integer', 'between:1,100'],
+        ]);
+
         return [
-            'ano' => $request->get('ano'),
-            'mes' => $request->get('mes'),
-            'vendedor_id' => $request->get('vendedor_id'),
-            'operadora' => $request->get('operadora'),
-            'data_inicio' => $request->get('data_inicio'),
-            'data_fim' => $request->get('data_fim'),
-            'empresa_id' => Auth::user()->empresa_id, // Filtro automático por empresa
+            'ano' => $dados['ano'] ?? null,
+            'mes' => $dados['mes'] ?? null,
+            'vendedor_id' => $dados['vendedor_id'] ?? null,
+            'operadora' => $dados['operadora'] ?? null,
+            'data_inicio' => $dados['data_inicio'] ?? null,
+            'data_fim' => $dados['data_fim'] ?? null,
+            'status' => $dados['status'] ?? null,
+            'per_page' => $dados['per_page'] ?? null,
+            'empresa_id' => $empresaId,
         ];
     }
 
     private function aplicarFiltroEmpresa($query)
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
-        // Filtrar vendas apenas da empresa do usuário logado
-        $query->whereHas('user', function ($q) use ($empresaId) {
-            $q->where('empresa_id', $empresaId);
-        });
+        $query->where('vendas.empresa_id', $empresaId);
 
         return $query;
     }
 
     private function getVendasTotais($filtros, $perPage = null)
     {
+        $empresaId = (int) $this->tenantId();
         $query = VendasModel::with([
-            'user' => function ($query) {
-                $query->select('id', 'name', 'empresa_id');
+            'user' => function ($query) use ($empresaId) {
+                $query->select('id', 'name', 'empresa_id')
+                    ->where('empresa_id', $empresaId);
             },
             'tabulacao',
         ]);
@@ -253,7 +290,7 @@ class Vendas extends Controller
             DB::raw('MONTH(created_at) as mes'),
             DB::raw('YEAR(created_at) as ano'),
             DB::raw('COUNT(*) as total_vendas'),
-            DB::raw("SUM(CASE WHEN YEAR(created_at) >= 2026 THEN valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END ELSE valor_contrato END) as valor_total"),
+            DB::raw("SUM(valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END) as valor_total"),
             DB::raw('SUM(vidas) as total_vidas')
         );
 
@@ -285,7 +322,7 @@ class Vendas extends Controller
 
     private function getVendasPorVendedor($filtros)
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         $query = VendasModel::select(
             'users.name as vendedor',
@@ -294,8 +331,13 @@ class Vendas extends Controller
             DB::raw("SUM(vendas.valor_contrato + CASE WHEN vendas.angariacao_status = 'SIM' THEN COALESCE(vendas.angariacao_valor, 0) ELSE 0 END) as valor_total"),
             DB::raw("SUM(CASE WHEN vendas.angariacao_status = 'SIM' THEN COALESCE(vendas.angariacao_valor, 0) ELSE 0 END) as valor_angariacao"),
             DB::raw('SUM(vidas) as total_vidas')
-        )->join('users', 'vendas.user_id', '=', 'users.id')
-            ->where('users.empresa_id', $empresaId); // Filtro por empresa
+        )->join('users', function ($join) {
+            $join->on('vendas.user_id', '=', 'users.id')
+                ->on('vendas.empresa_id', '=', 'users.empresa_id')
+                ->where('users.is_platform_admin', false);
+        })
+            ->where('vendas.empresa_id', $empresaId)
+            ->where('users.empresa_id', $empresaId);
 
         if ($filtros['ano']) {
             $query->whereYear('vendas.created_at', $filtros['ano']);
@@ -325,7 +367,7 @@ class Vendas extends Controller
         $query = VendasModel::select(
             'operadora',
             DB::raw('COUNT(*) as total_vendas'),
-            DB::raw("SUM(CASE WHEN YEAR(created_at) >= 2026 THEN valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END ELSE valor_contrato END) as valor_total"),
+            DB::raw("SUM(valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END) as valor_total"),
             DB::raw('SUM(vidas) as total_vidas')
         );
 
@@ -360,7 +402,7 @@ class Vendas extends Controller
         $query = VendasModel::select(
             'nome_plano',
             DB::raw('COUNT(*) as total_vendas'),
-            DB::raw("SUM(CASE WHEN YEAR(created_at) >= 2026 THEN valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END ELSE valor_contrato END) as valor_total")
+            DB::raw("SUM(valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END) as valor_total")
         );
 
         // Aplicar filtro por empresa
@@ -395,31 +437,29 @@ class Vendas extends Controller
 
     private function getVendasPorEntidade($filtros)
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         $query = VendasModel::select(
             DB::raw("COALESCE(NULLIF(TRIM(contatos.entidade), ''), 'NÃO INFORMADO') as entidade"),
             DB::raw('COUNT(*) as total_vendas'),
-            DB::raw("SUM(CASE WHEN YEAR(vendas.created_at) >= 2026 THEN vendas.valor_contrato + CASE WHEN vendas.angariacao_status = 'SIM' THEN COALESCE(vendas.angariacao_valor, 0) ELSE 0 END ELSE vendas.valor_contrato END) as valor_total"),
+            DB::raw("SUM(vendas.valor_contrato + CASE WHEN vendas.angariacao_status = 'SIM' THEN COALESCE(vendas.angariacao_valor, 0) ELSE 0 END) as valor_total"),
             DB::raw('SUM(vendas.vidas) as total_vidas')
         )
-            ->join('contatos', 'vendas.contato_id', '=', 'contatos.id')
-            ->join('users', 'vendas.user_id', '=', 'users.id')
-            ->where('users.empresa_id', $empresaId);
+            ->join('contatos', function ($join) {
+                $join->on('vendas.contato_id', '=', 'contatos.id')
+                    ->on('vendas.empresa_id', '=', 'contatos.empresa_id');
+            })
+            ->join('users', function ($join) {
+                $join->on('vendas.user_id', '=', 'users.id')
+                    ->on('vendas.empresa_id', '=', 'users.empresa_id')
+                    ->where('users.is_platform_admin', false);
+            })
+            ->where('vendas.empresa_id', $empresaId)
+            ->where('users.empresa_id', $empresaId)
+            ->where('contatos.empresa_id', $empresaId);
 
         // Aplicar filtro de status de venda
-        $query->whereIn('vendas.tabulacao_id', [
-            Tabulations::VENDA,
-            Tabulations::IMPLANTADO,
-            Tabulations::ESTORNO,
-            Tabulations::PENDENCIA,
-            Tabulations::ANALISE_OPERADORA,
-            Tabulations::BOLETO_DISPONIVEL,
-            Tabulations::REGULARIZADO,
-            Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-            Tabulations::ANALISE_DOCUMENTOS,
-            Tabulations::AGUARD_ASSINATURA_DS,
-        ]);
+        $query->whereIn('vendas.tabulacao_id', $this->reportableSaleStatusIds());
 
         if ($filtros['ano']) {
             $query->whereYear('vendas.created_at', $filtros['ano']);
@@ -476,7 +516,7 @@ class Vendas extends Controller
 
         // Query para vendas implantadas
         $queryImplantadas = clone $query;
-        $queryImplantadas->where('vendas.tabulacao_id', Tabulations::IMPLANTADO);
+        $queryImplantadas->where('vendas.tabulacao_id', $this->tabulationId(TabulationCode::IMPLANTADO));
 
         // Calcular angariação total
         $valorAngariacao = (clone $query)->where('angariacao_status', 'SIM')
@@ -505,10 +545,10 @@ class Vendas extends Controller
 
     private function getVendedoresPorEmpresa()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
-        return User::where('ativo', 'Y')
-            ->where('empresa_id', $empresaId)
+        return User::query()->tenantMember($empresaId)
+            ->where('ativo', 'Y')
             ->where('user_role_id', UserRole::VENDEDOR)
             ->select('id', 'name')
             ->orderBy('name')
@@ -539,18 +579,8 @@ class Vendas extends Controller
 
     private function getStatusDisponiveis()
     {
-        return Tabulacoes::whereIn('id', [
-            Tabulations::VENDA,
-            Tabulations::IMPLANTADO,
-            Tabulations::ESTORNO,
-            Tabulations::PENDENCIA,
-            Tabulations::ANALISE_OPERADORA,
-            Tabulations::BOLETO_DISPONIVEL,
-            Tabulations::REGULARIZADO,
-            Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-            Tabulations::ANALISE_DOCUMENTOS,
-            Tabulations::AGUARD_ASSINATURA_DS,
-        ])
+        return Tabulacoes::where('empresa_id', $this->tenantId())
+            ->whereIn('id', $this->reportableSaleStatusIds())
             ->select('id', 'descricao')
             ->orderBy('descricao')
             ->get();
@@ -558,66 +588,74 @@ class Vendas extends Controller
 
     public function getSalesAnalytical(Request $request)
     {
-        $month = $request->query('month');
-        $year = $request->query('year');
+        $dados = $request->validate([
+            'month' => ['nullable', 'integer', 'between:1,12'],
+            'year' => ['nullable', 'integer', 'min:2000', 'max:'.(now()->year + 1)],
+        ]);
+        $month = $dados['month'] ?? null;
+        $year = $dados['year'] ?? null;
 
-        $sales = $this->repositoryVendas->getSalesAnalytical(Auth::user()->empresa_id, $month, $year);
+        $sales = $this->repositoryVendas->getSalesAnalytical($this->tenantId(), $month, $year);
 
         return response()->json($sales);
     }
 
     private function aplicarFiltroStatusVenda($query)
     {
-        return $query->whereIn('vendas.tabulacao_id', [
-            Tabulations::VENDA,
-            Tabulations::IMPLANTADO,
-            Tabulations::ESTORNO,
-            Tabulations::PENDENCIA,
-            Tabulations::ANALISE_OPERADORA,
-            Tabulations::BOLETO_DISPONIVEL,
-            Tabulations::REGULARIZADO,
-            Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-            Tabulations::ANALISE_DOCUMENTOS,
-            Tabulations::AGUARD_ASSINATURA_DS,
-        ]);
+        return $query->whereIn('vendas.tabulacao_id', $this->reportableSaleStatusIds());
     }
 
     public function getResultsBroker(Request $request)
     {
-        $dataInicio = $request->data_inicio;
-        $dataFim = $request->data_fim;
+        $dados = $request->validate([
+            'data_inicio' => ['nullable', 'date_format:Y-m-d', 'required_with:data_fim'],
+            'data_fim' => ['nullable', 'date_format:Y-m-d', 'required_with:data_inicio', 'after_or_equal:data_inicio'],
+        ]);
+        $dataInicio = $dados['data_inicio'] ?? null;
+        $dataFim = $dados['data_fim'] ?? null;
 
         $vendasCadastradasMes = VendasModel::where('user_id', Auth::user()->id)
-            ->where('empresa_id', Auth::user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->when($dataInicio && $dataFim, fn ($q) => $q->whereBetween('created_at', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']))
             ->selectRaw("SUM(valor_contrato + CASE WHEN angariacao_status = 'SIM' THEN COALESCE(angariacao_valor, 0) ELSE 0 END) as total")
             ->value('total') ?? 0;
 
         $vendasImplantadasMes = DB::table('vendas as a')
-            ->where('a.tabulacao_id', Tabulations::IMPLANTADO)
+            ->where('a.tabulacao_id', $this->tabulationId(TabulationCode::IMPLANTADO))
             ->where('a.user_id', Auth::user()->id)
-            ->where('a.empresa_id', Auth::user()->empresa_id)
+            ->where('a.empresa_id', $this->tenantId())
             ->when($dataInicio && $dataFim, fn ($q) => $q->whereBetween('a.created_at', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']))
             ->selectRaw("SUM(a.valor_contrato + CASE WHEN a.angariacao_status = 'SIM' THEN COALESCE(a.angariacao_valor, 0) ELSE 0 END) as total")
             ->value('total') ?? 0;
 
         $quantidadeContatosMes = DB::table('contatos as a')
-            ->leftJoin('contatos_corretores as b', 'a.id', '=', 'b.contato_id')
+            ->leftJoin('contatos_corretores as b', function ($join) {
+                $join->on('a.id', '=', 'b.contato_id')
+                    ->on('a.empresa_id', '=', 'b.empresa_id');
+            })
             ->where('b.user_id', auth()->user()->id)
-            ->where('b.empresa_id', Auth::user()->empresa_id)
+            ->where('a.empresa_id', $this->tenantId())
+            ->where('b.empresa_id', $this->tenantId())
             ->when($dataInicio && $dataFim, fn ($q) => $q->whereBetween('a.created_at', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']))
             ->count();
 
         $quantidadeVendasMes = VendasModel::where('user_id', Auth::user()->id)
-            ->where('empresa_id', Auth::user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->when($dataInicio && $dataFim, fn ($q) => $q->whereBetween('created_at', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']))
             ->count();
 
         $conversao = $this->calculoConversao($quantidadeContatosMes, $quantidadeVendasMes);
 
         $vendas = DB::table('vendas as a')
-            ->leftJoin('tabulacoes as c', 'c.id', '=', 'a.tabulacao_id')
-            ->leftJoin('users as backoffice', 'backoffice.id', '=', 'a.backoffice_id')
+            ->leftJoin('tabulacoes as c', function ($join) {
+                $join->on('c.id', '=', 'a.tabulacao_id')
+                    ->on('c.empresa_id', '=', 'a.empresa_id');
+            })
+            ->leftJoin('users as backoffice', function ($join) {
+                $join->on('backoffice.id', '=', 'a.backoffice_id')
+                    ->on('backoffice.empresa_id', '=', 'a.empresa_id')
+                    ->where('backoffice.is_platform_admin', false);
+            })
             ->leftJoinSub(
                 DB::table('venda_documentos')
                     ->selectRaw('venda_id, COUNT(*) as documentos_count')
@@ -629,12 +667,13 @@ class Vendas extends Controller
                 'a.id'
             )
             ->where('a.user_id', auth()->user()->id)
-            ->where('a.empresa_id', Auth::user()->empresa_id)
+            ->where('a.empresa_id', $this->tenantId())
             ->when($dataInicio && $dataFim, fn ($q) => $q->whereBetween('a.created_at', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']))
             ->select(
                 'a.id',
                 'a.nome_contrato',
                 'c.descricao',
+                'c.codigo',
                 'a.valor_contrato',
                 'a.angariacao_status',
                 'a.angariacao_valor',
@@ -676,11 +715,12 @@ class Vendas extends Controller
     public function detalhesVenda($id)
     {
         try {
+            $empresaId = (int) $this->tenantId();
             $venda = VendasModel::query()
                 ->with([
-                    'user:id,name',
-                    'backoffice:id,name',
-                    'tabulacao:id,descricao',
+                    'user' => fn ($query) => $query->select('id', 'name')->tenantMember($empresaId),
+                    'backoffice' => fn ($query) => $query->select('id', 'name')->tenantMember($empresaId),
+                    'tabulacao:id,descricao,codigo',
                     'titulares' => fn ($query) => $query->with([
                         'plano:id,nome,acomodacao',
                         'operadoraAnterior:id,nome',
@@ -689,7 +729,7 @@ class Vendas extends Controller
                     ])->orderBy('id'),
                 ])
                 ->whereKey($id)
-                ->where('empresa_id', Auth::user()->empresa_id)
+                ->where('empresa_id', $empresaId)
                 ->where('user_id', Auth::id())
                 ->first();
 
@@ -701,10 +741,17 @@ class Vendas extends Controller
             $dados['vendedor_nome'] = $venda->user?->name;
             $dados['backoffice_nome'] = $venda->backoffice?->name;
             $dados['descricao'] = $venda->tabulacao?->descricao;
+            $dados['codigo'] = $venda->tabulacao?->codigo;
 
             return response()->json($dados);
         } catch (\Throwable $th) {
-            return response()->json(['error' => 'Erro ao buscar detalhes da venda: '.$th->getMessage()], 500);
+            Log::error('Falha ao buscar detalhes da venda do vendedor.', [
+                'empresa_id' => $this->tenantId(),
+                'venda_id' => $id,
+                'exception' => $th,
+            ]);
+
+            return response()->json(['error' => 'Não foi possível buscar os detalhes da venda.'], 500);
         }
     }
 
@@ -739,10 +786,18 @@ class Vendas extends Controller
                 'users.name as vendedor_nome',
                 'backoffice.name as backoffice_nome',
             ])
-            ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
-            ->leftJoin('users as backoffice', 'backoffice.id', '=', 'vendas.backoffice_id')
-            ->where('vendas.empresa_id', $user->empresa_id)
-            ->where('vendas.tabulacao_id', Tabulations::ESTORNO);
+            ->leftJoin('users', function ($join) {
+                $join->on('users.id', '=', 'vendas.user_id')
+                    ->on('users.empresa_id', '=', 'vendas.empresa_id')
+                    ->where('users.is_platform_admin', false);
+            })
+            ->leftJoin('users as backoffice', function ($join) {
+                $join->on('backoffice.id', '=', 'vendas.backoffice_id')
+                    ->on('backoffice.empresa_id', '=', 'vendas.empresa_id')
+                    ->where('backoffice.is_platform_admin', false);
+            })
+            ->where('vendas.empresa_id', $this->tenantId())
+            ->where('vendas.tabulacao_id', $this->tabulationId(TabulationCode::ESTORNO));
 
         if ($user->user_role_id === UserRole::VENDEDOR) {
             $query->where('vendas.user_id', $user->id);
@@ -753,7 +808,8 @@ class Vendas extends Controller
         // Anexa data e responsável do estorno via último registro de histórico para tabulacao_nova_id = ESTORNO.
         $vendaIds = $vendas->pluck('id')->all();
         $historicos = VendaHistorico::whereIn('venda_id', $vendaIds)
-            ->where('tabulacao_nova_id', Tabulations::ESTORNO)
+            ->where('empresa_id', $this->tenantId())
+            ->where('tabulacao_nova_id', $this->tabulationId(TabulationCode::ESTORNO))
             ->orderBy('id', 'desc')
             ->get()
             ->groupBy('venda_id');
@@ -779,7 +835,7 @@ class Vendas extends Controller
 
         $venda = VendasModel::with('contatoCorretor')
             ->where('id', $vendaId)
-            ->where('empresa_id', $user->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->firstOrFail();
 
         // ADM e DEVELOPER editam qualquer venda em estorno; VENDEDOR só a própria.
@@ -792,7 +848,7 @@ class Vendas extends Controller
         }
 
         abort_unless(
-            (int) $venda->tabulacao_id === Tabulations::ESTORNO,
+            (int) $venda->tabulacao_id === $this->tabulationId(TabulationCode::ESTORNO),
             403,
             'Esta venda não está em estorno.'
         );
@@ -813,14 +869,19 @@ class Vendas extends Controller
             'contatoCorretor',
         ]);
 
-        $cliente = DB::table('contatos')->where('id', $venda->contato_id)->first();
+        $cliente = DB::table('contatos')
+            ->where('id', $venda->contato_id)
+            ->where('empresa_id', $this->tenantId())
+            ->first();
+
+        abort_if(! $cliente, 404, 'Contato não encontrado.');
 
         $operadoras = Operadora::where('status', 'Y')
-            ->where('empresa_id', Auth::user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->orderBy('nome')
-            ->get(['id', 'nome']);
+            ->get(['id', 'nome', 'coparticipacao_formato', 'angariacao_padrao']);
 
-        $planosPortabilidade = Plano::where('empresa_id', Auth::user()->empresa_id)
+        $planosPortabilidade = Plano::where('empresa_id', $this->tenantId())
             ->where('status', 'Y')
             ->orderBy('nome')
             ->get(['id', 'operadora_id', 'nome']);
@@ -836,6 +897,11 @@ class Vendas extends Controller
     public function reenviarEstorno(Request $request, $id)
     {
         $venda = $this->gateEstorno((int) $id);
+        $empresaId = (int) $this->tenantId();
+        $operadoraConfigurada = Operadora::where('empresa_id', $empresaId)
+            ->where('status', 'Y')
+            ->find($request->integer('operadora_id'));
+        $valoresCoparticipacao = $operadoraConfigurada?->valoresCoparticipacao() ?? ['Y', 'N'];
 
         // Mesmo conjunto de validações da nova proposta. Observação do reenvio é opcional —
         // alinhamentos podem acontecer por canais internos (telefone/whatsapp) e o vendedor
@@ -844,24 +910,48 @@ class Vendas extends Controller
             'observacao_reenvio' => 'nullable|string|max:500',
             'nome_contrato' => 'required|string|max:255',
             'cpf_cnpj' => 'required|string',
-            'operadora_id' => 'required|integer|exists:operadoras,id',
+            'operadora_id' => [
+                'required',
+                'integer',
+                Rule::exists('operadoras', 'id')
+                    ->where('empresa_id', $this->tenantId())
+                    ->where('status', 'Y'),
+            ],
             'titulares' => 'required|array|min:1',
             'titulares.*.nome' => 'required|string|max:100',
-            'titulares.*.plano_id' => 'required|integer|exists:planos,id',
+            'titulares.*.plano_id' => [
+                'required',
+                'integer',
+                Rule::exists('planos', 'id')
+                    ->where('empresa_id', $empresaId)
+                    ->where('operadora_id', $request->integer('operadora_id'))
+                    ->where('status', 'Y'),
+            ],
+            'titulares.*.coparticipacao' => ['required', Rule::in($valoresCoparticipacao)],
+            'titulares.*.dependentes' => ['sometimes', 'array'],
+            'titulares.*.dependentes.*.plano_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('planos', 'id')
+                    ->where('empresa_id', $empresaId)
+                    ->where('operadora_id', $request->integer('operadora_id'))
+                    ->where('status', 'Y'),
+            ],
+            'titulares.*.dependentes.*.coparticipacao' => ['nullable', Rule::in($valoresCoparticipacao)],
             'portabilidades' => 'nullable|array|max:50',
             'portabilidades.*.nome' => 'required|string|max:100',
             'portabilidades.*.operadora_destino_id' => [
                 'required',
                 'integer',
                 Rule::exists('operadoras', 'id')
-                    ->where('empresa_id', Auth::user()->empresa_id)
+                    ->where('empresa_id', $this->tenantId())
                     ->where('status', 'Y'),
             ],
             'portabilidades.*.plano_destino_id' => [
                 'required',
                 'integer',
                 Rule::exists('planos', 'id')
-                    ->where('empresa_id', Auth::user()->empresa_id)
+                    ->where('empresa_id', $this->tenantId())
                     ->where('status', 'Y'),
             ],
         ], [
@@ -879,7 +969,7 @@ class Vendas extends Controller
 
         foreach ($validated['portabilidades'] ?? [] as $index => $portabilidade) {
             $planoValido = Plano::whereKey((int) $portabilidade['plano_destino_id'])
-                ->where('empresa_id', Auth::user()->empresa_id)
+                ->where('empresa_id', $this->tenantId())
                 ->where('operadora_id', (int) $portabilidade['operadora_destino_id'])
                 ->exists();
 
@@ -901,7 +991,7 @@ class Vendas extends Controller
             // 2) Move status da VENDA: ESTORNO → VENDA + grava histórico.
             $ok = $this->repositoryVendas->alterStatusVenda(
                 $venda->id,
-                Tabulations::VENDA,
+                $this->tabulationId(TabulationCode::VENDA),
                 $observacaoReenvio,
                 null
             );
@@ -924,16 +1014,19 @@ class Vendas extends Controller
             DB::commit();
         } catch (\Throwable $th) {
             DB::rollBack();
+            report($th);
 
             return redirect()->back()
                 ->withInput()
                 ->with('status', 'error')
-                ->with('message', 'Erro ao reenviar venda: '.$th->getMessage());
+                ->with('message', 'Não foi possível reenviar a venda neste momento.');
         }
 
         // 4) Notifica o backoffice dono.
         if ($venda->backoffice_id) {
-            $bo = User::find($venda->backoffice_id);
+            $bo = User::query()
+                ->tenantMember($this->tenantId())
+                ->find($venda->backoffice_id);
             if ($bo) {
                 $bo->notify(new VendaReenviadaNotification(
                     vendaId: $venda->id,
@@ -947,5 +1040,20 @@ class Vendas extends Controller
         return redirect()->route('sale.meusEstornos')
             ->with('status', 'success')
             ->with('message', 'Venda corrigida e reenviada para o backoffice.');
+    }
+
+    private function tabulationId(string $code): int
+    {
+        return $this->tabulationCatalog->id((int) $this->tenantId(), $code);
+    }
+
+    private function reportableSaleStatusIds(): array
+    {
+        $codes = [...TabulationCode::POS_VENDA_ELEGIVEIS, TabulationCode::ESTORNO];
+
+        return array_values($this->tabulationCatalog->requiredIds(
+            (int) $this->tenantId(),
+            $codes
+        ));
     }
 }

@@ -132,4 +132,3 @@ Lemit e Assertiva são controles secundários de pesquisa em par, não chamadas 
 ## Unresolved
 
 - Validar com a operação os textos finais de abordagem no WhatsApp.
-- Confirmar se a conversão de Seguro de Vida deve criar automaticamente um lead no módulo LK Benefícios em uma próxima fase.

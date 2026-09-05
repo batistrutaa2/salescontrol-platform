@@ -2,14 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
-
 
 class Operadora extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
+
+    public const COPARTICIPACAO_SIM_NAO = 'SIM_NAO';
+
+    public const COPARTICIPACAO_PARCIAL_COMPLETA = 'PARCIAL_COMPLETA';
+
     protected $table = 'operadoras';
 
     protected $fillable = [
@@ -17,10 +22,32 @@ class Operadora extends Model
         'empresa_id',
         'nome',
         'diretorio_documentos',
+        'coparticipacao_formato',
+        'angariacao_padrao',
+        'iof_percentual',
+        'cor_marca',
+        'logo_path',
+        'app_ios_url',
+        'app_android_url',
         'status',
         'created_at',
         'updated_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'angariacao_padrao' => 'boolean',
+            'iof_percentual' => 'decimal:2',
+        ];
+    }
+
+    public function valoresCoparticipacao(): array
+    {
+        return $this->coparticipacao_formato === self::COPARTICIPACAO_PARCIAL_COMPLETA
+            ? ['PARCIAL', 'COMPLETA']
+            : ['Y', 'N'];
+    }
 
     public function getCreatedAtAttribute($value)
     {

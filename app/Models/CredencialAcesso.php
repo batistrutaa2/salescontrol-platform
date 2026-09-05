@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CredencialAcesso extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
     use HasFactory;
 
     protected $table = 'credenciais_acesso';
@@ -26,6 +27,13 @@ class CredencialAcesso extends Model
         'created_by',
         'updated_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'senha' => 'encrypted',
+        ];
+    }
 
     // Padroniza o nome da empresa/pessoa sempre em MAIÚSCULAS (e sem espaços nas pontas).
     // Centraliza a regra para criação, edição, importação por tela e comando.

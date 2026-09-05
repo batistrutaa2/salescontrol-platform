@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class EscolaModulo extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'escola_modulos';
 
     protected $fillable = [

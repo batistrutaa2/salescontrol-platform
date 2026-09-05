@@ -10,13 +10,12 @@ use Tests\TestCase;
 
 class WhatsappServiceSendMediaTest extends TestCase
 {
-    private const ENDPOINT = 'https://whats.lkbrokers.com:443/backend/api/messages/send';
-
     private WhatsappService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
+        config(['services.whatsapp.endpoint' => 'https://whatsapp.example.test/backend/api/messages/send']);
         $this->service = new WhatsappService();
     }
 
@@ -31,7 +30,7 @@ class WhatsappServiceSendMediaTest extends TestCase
     public function test_envia_midia_com_caption_com_sucesso(): void
     {
         Http::fake([
-            '*lkbrokers.com*' => Http::response(['ok' => true], 200),
+            '*example.test*' => Http::response(['ok' => true], 200),
         ]);
 
         $file = $this->tempPdf();
@@ -43,7 +42,7 @@ class WhatsappServiceSendMediaTest extends TestCase
             $this->assertStringContainsString('sucesso', $resp['message']);
 
             Http::assertSent(function (Request $request) {
-                return str_contains($request->url(), 'lkbrokers.com')
+                return str_contains($request->url(), 'example.test')
                     && str_contains($request->url(), '/backend/api/messages/send')
                     && $request->method() === 'POST'
                     && $request->hasHeader('Authorization', 'Bearer tok123');
@@ -56,7 +55,7 @@ class WhatsappServiceSendMediaTest extends TestCase
     public function test_envia_midia_inclui_campos_e_arquivo_no_multipart(): void
     {
         Http::fake([
-            '*lkbrokers.com*' => Http::response(['ok' => true], 200),
+            '*example.test*' => Http::response(['ok' => true], 200),
         ]);
 
         $file = $this->tempPdf('payload-pdf');
@@ -94,7 +93,7 @@ class WhatsappServiceSendMediaTest extends TestCase
     public function test_resposta_nao_2xx_retorna_falha_com_status(): void
     {
         Http::fake([
-            '*lkbrokers.com*' => Http::response('server error', 500),
+            '*example.test*' => Http::response('server error', 500),
         ]);
 
         $file = $this->tempPdf();
@@ -130,7 +129,7 @@ class WhatsappServiceSendMediaTest extends TestCase
     public function test_normaliza_numero_sem_prefixo_55(): void
     {
         Http::fake([
-            '*lkbrokers.com*' => Http::response(['ok' => true], 200),
+            '*example.test*' => Http::response(['ok' => true], 200),
         ]);
 
         $file = $this->tempPdf();
@@ -149,7 +148,7 @@ class WhatsappServiceSendMediaTest extends TestCase
     public function test_omite_body_quando_caption_nula(): void
     {
         Http::fake([
-            '*lkbrokers.com*' => Http::response(['ok' => true], 200),
+            '*example.test*' => Http::response(['ok' => true], 200),
         ]);
 
         $file = $this->tempPdf();
@@ -168,7 +167,7 @@ class WhatsappServiceSendMediaTest extends TestCase
     public function test_omite_body_quando_caption_vazia(): void
     {
         Http::fake([
-            '*lkbrokers.com*' => Http::response(['ok' => true], 200),
+            '*example.test*' => Http::response(['ok' => true], 200),
         ]);
 
         $file = $this->tempPdf();

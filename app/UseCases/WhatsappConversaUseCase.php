@@ -25,18 +25,23 @@ class WhatsappConversaUseCase
     ) {}
 
     /**
-     * Conversas de WhatsApp são individuais do vendedor: o escopo é sempre o
-     * próprio usuário. Nunca retornar null (null = todas as conversas da empresa).
+     * Conversas de WhatsApp são individuais do vendedor. O administrador da
+     * plataforma enxerga todas, mas somente dentro da empresa ativa.
      */
     public function escopoUsuario(User $user): ?int
     {
-        return $user->id;
+        return $user->isPlatformAdmin() ? null : $user->id;
     }
 
     public function podeInteragir(User $user, WhatsappConversa $conversa): bool
     {
-        return (int) $user->user_role_id === UserRole::VENDEDOR
-          && (int) $conversa->user_id === (int) $user->id;
+        if ((int) $conversa->empresa_id !== (int) app(\App\Support\TenantContext::class)->id()) {
+            return false;
+        }
+
+        return $user->isPlatformAdmin()
+            || ((int) $user->user_role_id === UserRole::VENDEDOR
+                && (int) $conversa->user_id === (int) $user->id);
     }
 
     /**
@@ -45,8 +50,8 @@ class WhatsappConversaUseCase
      */
     public function getBoardData(User $user): array
     {
-        $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial($user->empresa_id);
-        $conversas = $this->conversaRepository->getConversasKanban($user->empresa_id, $this->escopoUsuario($user));
+        $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(app(\App\Support\TenantContext::class)->id());
+        $conversas = $this->conversaRepository->getConversasKanban(app(\App\Support\TenantContext::class)->id(), $this->escopoUsuario($user));
 
         $boardData = [];
 
@@ -88,18 +93,18 @@ class WhatsappConversaUseCase
 
     public function changeStatus(User $user, int $conversaId, int $tabulacaoId): bool
     {
-        $conversa = $this->conversaRepository->findParaUsuario($conversaId, $user->empresa_id, $this->escopoUsuario($user));
+        $conversa = $this->conversaRepository->findParaUsuario($conversaId, app(\App\Support\TenantContext::class)->id(), $this->escopoUsuario($user));
 
         if (! $conversa) {
             return false;
         }
 
-        return $this->conversaRepository->changeStatusConversa($conversa->id, $tabulacaoId);
+        return $this->conversaRepository->changeStatusConversa($conversa->id, (int) $conversa->empresa_id, $tabulacaoId);
     }
 
     public function vincularContato(User $user, int $conversaId, ?int $contatoId): bool
     {
-        $conversa = $this->conversaRepository->findParaUsuario($conversaId, $user->empresa_id, $this->escopoUsuario($user));
+        $conversa = $this->conversaRepository->findParaUsuario($conversaId, app(\App\Support\TenantContext::class)->id(), $this->escopoUsuario($user));
 
         if (! $conversa) {
             return false;
@@ -108,9 +113,13 @@ class WhatsappConversaUseCase
         // Segurança: o contato precisa estar atribuído ao vendedor da conversa
         if ($contatoId !== null) {
             $atribuido = \Illuminate\Support\Facades\DB::table('contatos_corretores')
-                ->where('empresa_id', $user->empresa_id)
-                ->where('user_id', $conversa->user_id)
-                ->where('contato_id', $contatoId)
+                ->join('contatos', function ($join) {
+                    $join->on('contatos.id', '=', 'contatos_corretores.contato_id')
+                        ->on('contatos.empresa_id', '=', 'contatos_corretores.empresa_id');
+                })
+                ->where('contatos_corretores.empresa_id', app(\App\Support\TenantContext::class)->id())
+                ->where('contatos_corretores.user_id', $conversa->user_id)
+                ->where('contatos_corretores.contato_id', $contatoId)
                 ->exists();
 
             if (! $atribuido) {
@@ -118,7 +127,7 @@ class WhatsappConversaUseCase
             }
         }
 
-        return $this->conversaRepository->vincularContato($conversa->id, $contatoId);
+        return $this->conversaRepository->vincularContato($conversa->id, (int) $conversa->empresa_id, $contatoId);
     }
 
     /**
@@ -129,7 +138,7 @@ class WhatsappConversaUseCase
      */
     public function novaConversa(User $user, string $numeroBruto, ?string $nome, bool $criarLead): array
     {
-        $instancia = $this->instanciaRepository->findByUser($user->empresa_id, $user->id);
+        $instancia = $this->instanciaRepository->findByUser(app(\App\Support\TenantContext::class)->id(), $user->id);
 
         if (! $instancia || $instancia->status !== 'CONECTADA') {
             return ['erro' => 'Conecte o seu WhatsApp antes de iniciar conversas.'];
@@ -154,17 +163,17 @@ class WhatsappConversaUseCase
         if ($criarLead) {
             // Telefones em contatos seguem a convenção do projeto: dígitos sem o 55
             $contato = Contatos::create([
-                'empresa_id' => $user->empresa_id,
+                'empresa_id' => app(\App\Support\TenantContext::class)->id(),
                 'user_import_id' => $user->id,
                 'nome_cliente' => $nome ?: 'Contato WhatsApp',
                 'telefone1' => $semPais,
             ]);
 
             ContatosCorretores::create([
-                'empresa_id' => $user->empresa_id,
+                'empresa_id' => app(\App\Support\TenantContext::class)->id(),
                 'contato_id' => $contato->id,
                 'user_id' => $user->id,
-                'tabulacao_id' => $this->conversaService->primeiraTabulacaoComercial($user->empresa_id),
+                'tabulacao_id' => $this->conversaService->primeiraTabulacaoComercial(app(\App\Support\TenantContext::class)->id()),
                 'temperatura' => 'FRIO',
             ]);
 
@@ -174,7 +183,7 @@ class WhatsappConversaUseCase
         $conversa = $this->conversaService->resolverConversa($instancia, $remoteJid, $nome);
 
         if ($contatoId && ! $conversa->contato_id) {
-            $this->conversaRepository->vincularContato($conversa->id, $contatoId);
+            $this->conversaRepository->vincularContato($conversa->id, (int) $conversa->empresa_id, $contatoId);
         }
 
         return ['conversa_id' => $conversa->id];
@@ -185,7 +194,7 @@ class WhatsappConversaUseCase
      */
     public function limparConversa(User $user, int $conversaId): bool
     {
-        $conversa = $this->conversaRepository->findParaUsuario($conversaId, $user->empresa_id, $this->escopoUsuario($user));
+        $conversa = $this->conversaRepository->findParaUsuario($conversaId, app(\App\Support\TenantContext::class)->id(), $this->escopoUsuario($user));
 
         if (! $conversa || ! $this->podeInteragir($user, $conversa)) {
             return false;
@@ -207,7 +216,7 @@ class WhatsappConversaUseCase
      */
     public function apagarConversa(User $user, int $conversaId): bool
     {
-        $conversa = $this->conversaRepository->findParaUsuario($conversaId, $user->empresa_id, $this->escopoUsuario($user));
+        $conversa = $this->conversaRepository->findParaUsuario($conversaId, app(\App\Support\TenantContext::class)->id(), $this->escopoUsuario($user));
 
         if (! $conversa || ! $this->podeInteragir($user, $conversa)) {
             return false;

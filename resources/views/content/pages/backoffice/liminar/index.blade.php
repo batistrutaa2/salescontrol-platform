@@ -186,7 +186,7 @@
                                 <option value="RETORNO_CANCELAMENTO">Retorno do Cancelamento</option>
                                 <option value="RG_CLIENTE">RG/CPF do Responsável</option>
                                 <option value="PRINT_PROTOCOLO">Print do Protocolo</option>
-                                <option value="AUDIO_HAPVIDA">Áudio (Hapvida)</option>
+                                <option value="AUDIO_OPERADORA">Áudio da operadora</option>
                                 <option value="CONCLUSAO_LIMINAR">Decisão da Liminar</option>
                             </select>
                             <div class="lim-file-drop" id="fileDropZone">
@@ -404,7 +404,7 @@
                                         ['name' => 'doc_rg_cliente',             'label' => 'RG/CPF do Responsável',           'req' => true,  'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'PDF, JPG ou PNG · até 10MB'],
                                         ['name' => 'doc_comprovante_pagamento',  'label' => 'Último Comprovante de Pagamento',  'req' => true,  'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'PDF, JPG ou PNG · até 10MB'],
                                         ['name' => 'doc_print_protocolo',        'label' => 'Print do Protocolo',              'req' => false, 'accept' => '.pdf,.jpg,.jpeg,.png', 'icon' => 'doc',   'hint' => 'Foto ou print do protocolo'],
-                                        ['name' => 'doc_audio_hapvida',          'label' => 'Áudio — Hapvida',                 'req' => false, 'accept' => 'audio/*',              'icon' => 'audio', 'hint' => 'MP3, WAV ou M4A · até 25MB'],
+                                        ['name' => 'doc_audio_operadora',        'label' => 'Áudio da operadora',             'req' => false, 'accept' => 'audio/*',              'icon' => 'audio', 'hint' => 'MP3, WAV ou M4A · até 25MB'],
                                     ];
                                 @endphp
                                 <div class="lim-upload-grid">

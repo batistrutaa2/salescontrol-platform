@@ -2,8 +2,8 @@
 
 namespace Tests\Unit\Services;
 
-use App\Modules\LkBeneficios\Services\LemitService;
 use App\Services\Comercial\PropostaEnriquecimentoService;
+use App\Services\Enrichment\LemitService;
 use Mockery;
 use Tests\TestCase;
 

@@ -60,7 +60,7 @@
   const URL_ESTORNO_BASE = String($root.data('estornar-url') || '');
   const URL_CONTAS_BY_USER_BASE = String($root.data('contas-base') || '');
   const URL_PAGAR_BASE = String($root.data('pagar-base') || '');
-  const USER_ROLE = String($root.data('role') || '');
+  const CAN_MANAGE_PAYMENTS = String($root.data('can-manage-payments') || '') === '1';
 
   const CSRF = (document.querySelector('meta[name="csrf-token"]') &&
                document.querySelector('meta[name="csrf-token"]').getAttribute('content')) || '';
@@ -264,7 +264,7 @@
 
     // Botoes de acao
     let btnPagar = '';
-    if (!isPago && estornoUrl && USER_ROLE !== '1') {
+    if (!isPago && estornoUrl && CAN_MANAGE_PAYMENTS) {
       btnPagar = `
         <button type="button" class="btn-dash btn-success js-pagar"
                 data-id="${p.id}" data-user="${userId}">
@@ -278,7 +278,7 @@
     }
 
     let btnEstornar = '';
-    if (estornoUrl && USER_ROLE !== '1') {
+    if (estornoUrl && CAN_MANAGE_PAYMENTS) {
       btnEstornar = `
         <button type="button" class="btn-dash btn-outline-danger js-estornar"
                 data-url="${estornoUrl}">

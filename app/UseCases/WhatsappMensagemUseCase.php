@@ -86,7 +86,7 @@ class WhatsappMensagemUseCase
 
     public function marcarComoLida(WhatsappConversa $conversa): void
     {
-        $this->conversaRepository->zerarNaoLidas($conversa->id);
+        $this->conversaRepository->zerarNaoLidas($conversa->id, (int) $conversa->empresa_id);
 
         // Best-effort: sinaliza leitura no WhatsApp (✓✓ azul para o cliente)
         try {

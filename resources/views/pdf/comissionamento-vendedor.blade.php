@@ -10,7 +10,7 @@ $liquido = $totais['liquido'] ?? 0;
 $grade      = strtoupper($perfil['grade'] ?? '—');
 $percentual = $perfil['percentual'] ?? null;
 $salario    = 0; // não usamos salário aqui
-$impPerc    = $perfil['imposto'] ?? 10;
+$impPerc    = $perfil['imposto'] ?? 0;
 
 $totalReceber = isset($totalReceber) ? (float) $totalReceber : (float) $liquido;
 
@@ -139,7 +139,7 @@ $totAjustes = $totAjustes ?? ['bruto'=>0,'imposto'=>0,'liquido'=>0,'creditos'=>0
       <div class="ctx-lines" style="margin-top:4px;">
         <div class="line">
           <span class="ctx-label">Empresa:</span>
-          <span class="ctx-value">{{ $empresaNome ?? 'LK Brokers' }}</span>
+          <span class="ctx-value">{{ $empresaNome ?? 'SalesControl' }}</span>
         </div>
         <div class="line">
           <span class="ctx-label">CNPJ:</span>
@@ -313,7 +313,7 @@ $totAjustes = $totAjustes ?? ['bruto'=>0,'imposto'=>0,'liquido'=>0,'creditos'=>0
 
   <!-- Rodapé -->
   <div class="footer">
-    © {{ date('Y') }} LK Brokers — Todos os direitos reservados · Página <span class="page"></span> de <span class="pages"></span>
+    © {{ date('Y') }} {{ $empresaNome ?? 'SalesControl' }} — Todos os direitos reservados · Página <span class="page"></span> de <span class="pages"></span>
   </div>
 
 </body>

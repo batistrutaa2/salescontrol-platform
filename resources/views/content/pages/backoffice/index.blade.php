@@ -191,7 +191,7 @@
                             <select class="kb-form-select" id="label" name="tabulacao_id" required>
                                 <option value="">Selecione o Status</option>
                                 @foreach ($tabulacoes as $tabulation)
-                                    <option value="{{ $tabulation->id }}">{{ strtoupper($tabulation->descricao) }}</option>
+                                    <option value="{{ $tabulation->id }}" data-codigo="{{ $tabulation->codigo }}">{{ strtoupper($tabulation->descricao) }}</option>
                                 @endforeach
                             </select>
                         </div>

@@ -4,11 +4,15 @@ namespace App\Console\Commands;
 
 use App\Jobs\TransferirDocumentosVenda;
 use App\Models\VendaDocumento;
+use App\Support\TenantContext;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class ProcessarVendaDocumentosPendentes extends Command
 {
-    protected $signature = 'documentos:processar-pendentes {--limit=500}';
+    protected $signature = 'documentos:processar-pendentes
+        {empresa_id : ID da empresa cujos documentos serão processados}
+        {--limit=500}';
 
     protected $description = 'Enfileira documentos aguardando após a ativação da integração SFTP';
 
@@ -20,6 +24,18 @@ class ProcessarVendaDocumentosPendentes extends Command
             return self::FAILURE;
         }
 
+        $empresaId = (int) $this->argument('empresa_id');
+        if (! DB::table('empresas')->where('id', $empresaId)->exists()) {
+            $this->error('Empresa inválida.');
+
+            return self::FAILURE;
+        }
+
+        return app(TenantContext::class)->run($empresaId, fn () => $this->processar());
+    }
+
+    private function processar(): int
+    {
         $limite = max(1, min(5000, (int) $this->option('limit')));
         $ids = VendaDocumento::where(function ($query) {
             $query->whereIn('status', ['AGUARDANDO', 'RECEBIDO', 'VERIFICANDO'])

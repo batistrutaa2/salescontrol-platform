@@ -149,13 +149,44 @@ O projeto não mantém um MySQL próprio.
 ./dev down        # encerre os containers ociosos ao terminar
 ```
 
-O servidor e o Vite já são iniciados por `./dev up`, nas portas 8001 e 5174.
+O servidor e o Vite já são iniciados por `./dev up`, nas portas 8003 e 5176.
 
 ### Documentos de vendas
 
 A arquitetura, os pré-requisitos secretos, o procedimento de deploy de final de semana e a
 contingência do pipeline SFTP estão registrados em
 [`docs/documentos-v1-operacao.md`](docs/documentos-v1-operacao.md).
+
+### Importação posicional de credenciais
+
+O importador do cofre não possui operadoras ou colunas predefinidas. Informe a
+empresa e um layout JSON com IDs de operadoras pertencentes a ela:
+
+```bash
+./dev artisan credenciais:importar arquivo.xlsx 42 --layout=layout-credenciais.json --user=7
+```
+
+```json
+{
+  "header_rows": 1,
+  "blocos": [
+    {
+      "operadora_id": 101,
+      "colunas": {
+        "tipo": 0,
+        "nome": 1,
+        "login": 2,
+        "senha": 3,
+        "observacao": [4, 5]
+      }
+    }
+  ]
+}
+```
+
+Os índices de coluna começam em zero. O comando falha antes da leitura da
+planilha se a empresa, o autor ou qualquer operadora não pertencer ao contexto
+informado. Um master da plataforma pode ser usado como autor explícito.
 
 ## 🚀 Como Usar
 

@@ -214,7 +214,7 @@
                     <div class="col-md-12">
                         <label class="form-label">Descrição</label>
                         <input type="text" class="form-control" name="descricao" id="regraDescricao"
-                            placeholder="Ex.: Pago pela Amil">
+                            placeholder="Ex.: Pagamento pela operadora">
                     </div>
                 </div>
             </div>
@@ -334,7 +334,7 @@
                     <div class="col-md-4">
                         <label class="form-label required">Pagador</label>
                         <input type="text" class="form-control" name="payer" id="parcelaPagador" required
-                            placeholder="Ex.: Amil, Brazil Health">
+                            placeholder="Ex.: Operadora ou administradora">
                     </div>
                 </div>
             </div>

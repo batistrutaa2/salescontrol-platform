@@ -75,23 +75,5 @@ document.addEventListener('DOMContentLoaded', function (e) {
       });
     }
 
-    // ============================================
-    // Campanha Alice Toggle
-    // ============================================
-    const campanhaAliceCheckbox = document.getElementById('campanhaAlice');
-    const campanhaAliceContainer = document.getElementById('campanhaAliceContainer');
-    const nomeBaseInput = document.getElementById('nome_base');
-
-    if (campanhaAliceCheckbox && nomeBaseInput) {
-      campanhaAliceCheckbox.addEventListener('change', function () {
-        if (this.checked) {
-          nomeBaseInput.value = 'CAMPANHA_ALICE';
-          campanhaAliceContainer.classList.add('active');
-        } else {
-          nomeBaseInput.value = '';
-          campanhaAliceContainer.classList.remove('active');
-        }
-      });
-    }
   })();
 });

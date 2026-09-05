@@ -4,8 +4,6 @@ namespace App\Providers;
 
 use App\Models\Agendamento;
 use App\Repositories\Contracts\AgendamentoRepositoryInterface;
-use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
-use App\Repositories\Contracts\ComentariosLegadosRepositoryInterface;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
@@ -25,8 +23,6 @@ use App\Repositories\Contracts\WhatsappConversaRepositoryInterface;
 use App\Repositories\Contracts\WhatsappInstanciaRepositoryInterface;
 use App\Repositories\Contracts\WhatsappMensagemRepositoryInterface;
 use App\Repositories\Eloquent\AgendamentoRepository;
-use App\Repositories\Eloquent\BaseLegaceRespository;
-use App\Repositories\Eloquent\ComentariosLegadosRepository;
 use App\Repositories\Eloquent\ComentariosRepository;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\ContatosRepository;
@@ -45,6 +41,7 @@ use App\Repositories\Eloquent\VendasRepository;
 use App\Repositories\Eloquent\WhatsappConversaRepository;
 use App\Repositories\Eloquent\WhatsappInstanciaRepository;
 use App\Repositories\Eloquent\WhatsappMensagemRepository;
+use App\Support\TenantContext;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -62,15 +59,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->scoped(TenantContext::class, fn () => new TenantContext());
         $this->app->bind(EmpresaRepositoryInterface::class, EmpresaRepository::class);
         $this->app->bind(UsuariosRepositoryInterface::class, UsuariosRepository::class);
         $this->app->bind(ContatosRepositoryInterface::class, ContatosRepository::class);
         $this->app->bind(ContatosCorretoresRepositoryInterface::class, ContatosCorretoresRepository::class);
         $this->app->bind(TabulacoesRepositoryInterface::class, TabulacoesRepository::class);
         $this->app->bind(ComentariosRepositoryInterface::class, ComentariosRepository::class);
-        $this->app->bind(ComentariosLegadosRepositoryInterface::class, ComentariosLegadosRepository::class);
         $this->app->bind(VendasRepositoryInterface::class, VendasRepository::class);
-        $this->app->bind(BaseLegaceRespositoryInterface::class, BaseLegaceRespository::class);
         $this->app->bind(LeadAtividadeRepositoryInterface::class, LeadAtividadeRepository::class);
         $this->app->bind(AgendamentoRepositoryInterface::class, AgendamentoRepository::class);
         $this->app->bind(RamaisRepositoryInterface::class, RamaisRepository::class);
@@ -110,19 +106,6 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Remover esse bloco de redirecionamento forçado
-        // Isso impede que funcione em outros domínios
-        /*
-        if (
-            app()->environment('production') &&
-            request()->getHost() !== 'brsolution.tech' &&
-            !app()->runningInConsole()
-        ) {
-            redirect()->to('https://brsolution.tech' . request()->getRequestUri())->send();
-            exit;
-        }
-        */
-
         // Em ambiente não-produção, redireciona todos os e-mails para um único
         // endereço de testes (config mail.dev_redirect / MAIL_DEV_REDIRECT).
         $devRedirect = config('mail.dev_redirect');
@@ -137,7 +120,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('*', function ($view) {
-            if (Auth::check()) {
+            if (Auth::check() && app(\App\Support\TenantContext::class)->isResolved()) {
                 $modelAgendamento = new Agendamento();
                 $repositoryAgendamento = new AgendamentoRepository($modelAgendamento);
                 $agendamentosAtrasados = $repositoryAgendamento->LateAppointments();

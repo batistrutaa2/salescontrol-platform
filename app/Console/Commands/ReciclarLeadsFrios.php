@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\PreditivaConfiguracao;
 use App\Repositories\Eloquent\ContatosRepository;
 use App\Services\ReciclagemLeadsService;
+use App\Support\TenantContext;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
@@ -18,46 +19,59 @@ class ReciclarLeadsFrios extends Command
 
     public function handle(ReciclagemLeadsService $service, ContatosRepository $repo): int
     {
-        $dryRun     = (bool) $this->option('dry-run');
+        $dryRun = (bool) $this->option('dry-run');
         $empresaOpt = $this->option('empresa');
 
         $this->info($dryRun ? '🔍 Dry-run — nenhuma alteracao sera feita' : '⚙️  Execucao — leads serao enviados a preditiva');
 
-        $configs = PreditivaConfiguracao::query()
-            ->when($empresaOpt, fn($q) => $q->where('empresa_id', (int) $empresaOpt))
-            ->when(!$empresaOpt, fn($q) => $q->where('envio_automatico_ativo', true))
+        $configs = PreditivaConfiguracao::query()->withoutGlobalScope('tenant')
+            ->when($empresaOpt, fn ($q) => $q->where('empresa_id', (int) $empresaOpt))
+            ->when(! $empresaOpt, fn ($q) => $q->where('envio_automatico_ativo', true))
             ->get();
 
         if ($configs->isEmpty()) {
             $this->warn('Nenhuma empresa elegivel (envio automatico desligado ou empresa inexistente).');
+
             return self::SUCCESS;
         }
 
-        foreach ($configs as $config) {
-            $empresaId = (int) $config->empresa_id;
-            $dias      = (int) $config->dias_sem_contato_reenvio;
-            $limite    = (int) $config->limite_envio_diario;
+        $context = app(TenantContext::class);
+        $context->clear();
 
-            $lock = Cache::lock("reciclar-frios:{$empresaId}", 600);
-            if (!$lock->get()) {
-                $this->warn("Empresa {$empresaId}: execucao ja em andamento, pulando.");
-                continue;
-            }
+        try {
+            foreach ($configs as $config) {
+                $empresaId = (int) $config->empresa_id;
+                $dias = (int) $config->dias_sem_contato_reenvio;
+                $limite = (int) $config->limite_envio_diario;
+                $janelaIndicadores = (int) $config->indicadores_janela_dias;
 
-            try {
-                $elegiveis = $repo->getResumoReciclagem($empresaId, $dias)['elegiveis_agora'];
-                $this->info("Empresa {$empresaId} | dias={$dias} | limite={$limite} | elegiveis agora: {$elegiveis}");
+                $lock = Cache::lock("reciclar-frios:{$empresaId}", 600);
+                if (! $lock->get()) {
+                    $this->warn("Empresa {$empresaId}: execucao ja em andamento, pulando.");
 
-                if ($dryRun) {
-                    $this->line("  [dry-run] enviaria ate " . min($limite, $elegiveis) . " leads.");
                     continue;
                 }
 
-                $r = $service->enviarElegiveisEmLote($empresaId, null, 'AUTOMATICO', null, $limite);
-                $this->info("  Enviados: {$r['enviados']} | Ignorados: {$r['ignorados']} | Erros: {$r['erros']}");
-            } finally {
-                $lock->release();
+                try {
+                    $context->run($empresaId, function () use ($repo, $service, $empresaId, $dias, $limite, $janelaIndicadores, $dryRun): void {
+                        $elegiveis = $repo->getResumoReciclagem($empresaId, $dias, $janelaIndicadores)['elegiveis_agora'];
+                        $this->info("Empresa {$empresaId} | dias={$dias} | limite={$limite} | elegiveis agora: {$elegiveis}");
+
+                        if ($dryRun) {
+                            $this->line('  [dry-run] enviaria ate '.min($limite, $elegiveis).' leads.');
+
+                            return;
+                        }
+
+                        $r = $service->enviarElegiveisEmLote($empresaId, null, 'AUTOMATICO', null, $limite);
+                        $this->info("  Enviados: {$r['enviados']} | Ignorados: {$r['ignorados']} | Erros: {$r['erros']}");
+                    });
+                } finally {
+                    $lock->release();
+                }
             }
+        } finally {
+            $context->clear();
         }
 
         return self::SUCCESS;

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MailingImportacaoItem extends Model
 {
+    use \App\Models\Concerns\BelongsToTenantThrough;
+
     protected $table = 'mailing_importacao_itens';
 
     protected $fillable = [

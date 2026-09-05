@@ -197,7 +197,9 @@
             $('#kpiElegiveis').text(formatNumber(r.elegiveis_agora));
             $('#kpiAguardando').text(formatNumber(r.aguardando));
             $('#kpiVitrine').text(formatNumber(r.na_vitrine));
-            $('#kpiEnviados').text(formatNumber(r.enviados_30d));
+            $('#kpiEnviados').text(formatNumber(r.enviados_na_janela));
+            $('.rl-kpi-label').filter(function () { return this.textContent.trim().startsWith('Enviados ('); })
+                .text(`Enviados (${r.indicadores_janela_dias}d)`);
         });
     }
 
@@ -211,6 +213,13 @@
             if (!resp.success) return;
             $('#cfgDias').val(resp.config.dias_sem_contato_reenvio);
             $('#cfgLimite').val(resp.config.limite_envio_diario);
+            $('#cfgMascoteDias').val(resp.config.mascote_dias_sem_atividade);
+            $('#cfgMascoteLimite').val(resp.config.mascote_limite_sugestoes);
+            $('#cfgLockHoras').val(resp.config.lock_expiracao_horas);
+            $('#cfgIndicadoresJanela').val(resp.config.indicadores_janela_dias);
+            $('#cfgKanbanAlerta').val(resp.config.kanban_inatividade_alerta_dias);
+            $('#cfgKanbanUrgente').val(resp.config.kanban_inatividade_urgente_dias);
+            $('#cfgKanbanCritica').val(resp.config.kanban_inatividade_critica_dias);
             $('#cfgAutomatico').prop('checked', resp.config.envio_automatico_ativo);
         });
     }
@@ -224,6 +233,13 @@
         const payload = {
             dias_sem_contato_reenvio: parseInt($('#cfgDias').val(), 10),
             limite_envio_diario: parseInt($('#cfgLimite').val(), 10),
+            mascote_dias_sem_atividade: parseInt($('#cfgMascoteDias').val(), 10),
+            mascote_limite_sugestoes: parseInt($('#cfgMascoteLimite').val(), 10),
+            lock_expiracao_horas: parseInt($('#cfgLockHoras').val(), 10),
+            indicadores_janela_dias: parseInt($('#cfgIndicadoresJanela').val(), 10),
+            kanban_inatividade_alerta_dias: parseInt($('#cfgKanbanAlerta').val(), 10),
+            kanban_inatividade_urgente_dias: parseInt($('#cfgKanbanUrgente').val(), 10),
+            kanban_inatividade_critica_dias: parseInt($('#cfgKanbanCritica').val(), 10),
             envio_automatico_ativo: $('#cfgAutomatico').is(':checked') ? 1 : 0,
             _token: csrf
         };
@@ -238,7 +254,10 @@
                 Swal.fire({ icon: 'success', title: 'Salvo!', timer: 1800, showConfirmButton: false });
             },
             error: function (xhr) {
-                const msg = xhr.responseJSON?.message || 'Erro ao salvar configurações.';
+                const errors = xhr.responseJSON?.errors;
+                const msg = errors
+                    ? Object.values(errors).flat()[0]
+                    : (xhr.responseJSON?.message || 'Erro ao salvar configurações.');
                 Swal.fire({ icon: 'error', title: 'Erro', text: msg });
             }
         });

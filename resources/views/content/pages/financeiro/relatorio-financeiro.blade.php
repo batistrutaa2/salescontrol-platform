@@ -47,6 +47,40 @@
                 <p class="subtitle">Painel estratégico de faturamento, inadimplência e projeções</p>
             </div>
             <div class="header-actions">
+                @if($podeConfigurar)
+                    <form method="POST" action="{{ route('financeiro.relatorio.configuracao') }}" class="d-flex flex-wrap align-items-end gap-2">
+                        @csrf
+                        @method('PATCH')
+                        <div>
+                            <label for="financeiro-mrr-janela" class="form-label mb-1">Janela MRR</label>
+                            <div class="input-group input-group-sm">
+                                <input id="financeiro-mrr-janela" name="financeiro_mrr_janela_meses" type="number" class="form-control @error('financeiro_mrr_janela_meses') is-invalid @enderror"
+                                       min="1" max="24" value="{{ old('financeiro_mrr_janela_meses', $empresa->financeiro_mrr_janela_meses) }}" required>
+                                <span class="input-group-text">meses</span>
+                            </div>
+                            @error('financeiro_mrr_janela_meses')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+                        <div>
+                            <label for="financeiro-historico-meses" class="form-label mb-1">Histórico</label>
+                            <div class="input-group input-group-sm">
+                                <input id="financeiro-historico-meses" name="financeiro_historico_meses" type="number" class="form-control @error('financeiro_historico_meses') is-invalid @enderror"
+                                       min="1" max="60" value="{{ old('financeiro_historico_meses', $empresa->financeiro_historico_meses) }}" required>
+                                <span class="input-group-text">meses</span>
+                            </div>
+                            @error('financeiro_historico_meses')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+                        <div>
+                            <label for="financeiro-previsao-meses" class="form-label mb-1">Previsão</label>
+                            <div class="input-group input-group-sm">
+                                <input id="financeiro-previsao-meses" name="financeiro_previsao_meses" type="number" class="form-control @error('financeiro_previsao_meses') is-invalid @enderror"
+                                       min="1" max="36" value="{{ old('financeiro_previsao_meses', $empresa->financeiro_previsao_meses) }}" required>
+                                <span class="input-group-text">meses</span>
+                            </div>
+                            @error('financeiro_previsao_meses')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary btn-sm">Salvar parâmetros</button>
+                    </form>
+                @endif
                 <button type="button" class="btn-export" id="btnExportar">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -221,7 +255,7 @@
                 <div class="kpi-pulse"></div>
             </div>
             <div class="kpi-content">
-                <span class="kpi-label">MRR (Receita Recorrente)</span>
+                <span class="kpi-label">MRR (média de {{ $empresa->financeiro_mrr_janela_meses }} meses)</span>
                 <h2 class="kpi-value" id="kpiMrr">R$ 0,00</h2>
                 <div class="kpi-trend trend-neutral" id="trendMrrVariacao">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -502,7 +536,7 @@
                         </div>
                         <div>
                             <h3 class="chart-title">Previsão de Receita</h3>
-                            <span class="chart-subtitle">Realizado (12 meses) + Previsão (6 meses)</span>
+                            <span class="chart-subtitle">Realizado ({{ $empresa->financeiro_historico_meses }} meses) + Previsão ({{ $empresa->financeiro_previsao_meses }} meses)</span>
                         </div>
                     </div>
                     <div class="chart-legend">

@@ -334,7 +334,6 @@ $(function () {
           name: document.querySelector('[name="customerName"]').value,
           email: document.querySelector('[name="customerEmail"]').value,
           user_role_id: document.querySelector('[name="user_role_id"]').value,
-          empresa_id: document.querySelector('[name="empresa_id"]').value,
           password: document.querySelector('[name="customerPassword"]').value
         };
 

@@ -3,6 +3,21 @@
 $(document).ready(function () {
   const endpoint = '/vendas/getResultsBroker';
   let faseCarteira = 'todos';
+  const STATUS = Object.freeze({
+    VENDA: 'VENDA',
+    ANALISE_DOCUMENTOS: 'ANALISE_DOCUMENTOS',
+    PENDENCIA: 'PENDENCIA',
+    ANALISE_OPERADORA: 'ANALISE_OPERADORA',
+    CONTRATO_GERADO_AGUARDANDO_ASSINATURA: 'CONTRATO_GERADO_AGUARDANDO_ASSINATURA',
+    AGUARDANDO_ASSINATURA_DS: 'AGUARDANDO_ASSINATURA_DS',
+    BOLETO_DISPONIVEL: 'BOLETO_DISPONIVEL',
+    REGULARIZADO: 'REGULARIZADO',
+    IMPLANTADO: 'IMPLANTADO',
+    ESTORNO: 'ESTORNO',
+    DECLINADO: 'DECLINADO'
+  });
+
+  const normalizeStatusCode = value => String(value || '').trim().toUpperCase();
 
   const formatMoeda = (valor) => new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -44,26 +59,29 @@ $(document).ready(function () {
         $('.js-conversao').text(res.conversao ?? '0%');
 
         const renderStatus = function (data, type, row) {
-          const label = (data || '').toString().toUpperCase();
+          const label = String(data || 'N/D');
+          const labelEsc = escapeHtml(label);
+          const code = normalizeStatusCode(row.codigo);
+          if (type !== 'display') return label;
           const motivoFull = row.motivo_pendencia || 'Motivo não informado';
           const motivoEsc = escapeHtml(motivoFull);
           const resumoEsc = escapeHtml(truncate(motivoFull, 140));
 
           const icons = {
-            'PENDENCIA': '<i class="ri-error-warning-line ri-22px text-warning me-2"></i>',
-            'DECLINADO': '<i class="ri-close-circle-line ri-22px text-danger me-2"></i>',
-            'ESTORNO': '<i class="ri-computer-line ri-22px text-danger me-2"></i>',
-            'VENDA': '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
-            'IMPLANTADO': '<i class="ri-user-line ri-22px text-primary me-2"></i>',
-            'ANALISE DOCUMENTO': '<i class="ri-file-search-line ri-22px me-2"></i>',
-            'ANALISE OPERADORA': '<i class="ri-building-line ri-22px me-2"></i>',
-            'BOLETO DISPONIVEL': '<i class="ri-bill-line ri-22px text-info me-2"></i>'
+            [STATUS.PENDENCIA]: '<i class="ri-error-warning-line ri-22px text-warning me-2"></i>',
+            [STATUS.DECLINADO]: '<i class="ri-close-circle-line ri-22px text-danger me-2"></i>',
+            [STATUS.ESTORNO]: '<i class="ri-computer-line ri-22px text-danger me-2"></i>',
+            [STATUS.VENDA]: '<i class="ri-pie-chart-line ri-22px text-success me-2"></i>',
+            [STATUS.IMPLANTADO]: '<i class="ri-user-line ri-22px text-primary me-2"></i>',
+            [STATUS.ANALISE_DOCUMENTOS]: '<i class="ri-file-search-line ri-22px me-2"></i>',
+            [STATUS.ANALISE_OPERADORA]: '<i class="ri-building-line ri-22px me-2"></i>',
+            [STATUS.BOLETO_DISPONIVEL]: '<i class="ri-bill-line ri-22px text-info me-2"></i>'
           };
           const defaultIcon = '<i class="ri-time-line ri-22px text-secondary me-2"></i>';
-          const icon = icons[label] || defaultIcon;
+          const icon = icons[code] || defaultIcon;
 
           // PENDÊNCIA / DECLINADO / ESTORNO: botão com tooltip do motivo
-          if (label === 'PENDENCIA' || label === 'DECLINADO' || label === 'ESTORNO') {
+          if ([STATUS.PENDENCIA, STATUS.DECLINADO, STATUS.ESTORNO].includes(code)) {
             return `
       <span class="d-flex align-items-center text-heading">
         <button type="button"
@@ -75,12 +93,12 @@ $(document).ready(function () {
                 title="${resumoEsc}">
           ${icon}
         </button>
-        <span class="ms-1">${label}</span>
+        <span class="ms-1">${labelEsc}</span>
       </span>`;
           }
 
           // BOLETO DISPONIVEL: mostra botão de download quando houver path
-          if (label === 'BOLETO DISPONIVEL' && row.path_boleto_disponivel) {
+          if (code === STATUS.BOLETO_DISPONIVEL && row.path_boleto_disponivel) {
             // Opção A (via rota backend segura): /vendas/boletos/{id}
             const href = `/vendas/boletos/${row.id}`;
 
@@ -89,7 +107,7 @@ $(document).ready(function () {
 
             return `
             <span class="d-flex align-items-center text-heading">
-              ${icon}<span class="me-2">${label}</span>
+              ${icon}<span class="me-2">${labelEsc}</span>
               <a href="${href}"
                 class="btn btn-sm btn-outline-primary"
                 target="_blank" rel="noopener"
@@ -102,7 +120,7 @@ $(document).ready(function () {
           }
 
           // IMPLANTADO: mostra flag de boas vindas
-          if (label === 'IMPLANTADO') {
+          if (code === STATUS.IMPLANTADO) {
             const boasVindasEnviado = row.boas_vindas_enviado_em;
             const boasVindasFlag = boasVindasEnviado
               ? `<span class="badge bg-label-success ms-2" data-bs-toggle="tooltip" title="Boas Vindas enviado">
@@ -111,11 +129,11 @@ $(document).ready(function () {
               : `<span class="badge bg-label-warning ms-2" data-bs-toggle="tooltip" title="Boas Vindas pendente">
                    <i class="ri-mail-close-line me-1"></i>BV Pendente
                  </span>`;
-            return `<span class="d-flex align-items-center text-heading">${icon}${label}${boasVindasFlag}</span>`;
+            return `<span class="d-flex align-items-center text-heading">${icon}${labelEsc}${boasVindasFlag}</span>`;
           }
 
           // Demais: ícone estático + texto
-          return `<span class="d-flex align-items-center text-heading">${icon}${label}</span>`;
+          return `<span class="d-flex align-items-center text-heading">${icon}${labelEsc}</span>`;
         };
 
         const renderDocumentacao = function (data, type, row) {
@@ -168,7 +186,7 @@ $(document).ready(function () {
                 render: function (d, type, row) {
                   let valor = parseFloat(d) || 0;
                   const ano = row.created_at ? new Date(row.created_at).getFullYear() : 0;
-                  if (ano >= 2026 && row.angariacao_status === 'SIM') {
+                  if (row.angariacao_status === 'SIM') {
                     valor += parseFloat(row.angariacao_valor) || 0;
                   }
                   return formatMoeda(valor);
@@ -302,7 +320,7 @@ $(document).ready(function () {
   $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
     if (settings.nTable.id !== 'tabela-vendas-detalhadas' || faseCarteira === 'todos') return true;
     const row = settings.aoData[dataIndex]?._aData;
-    const implantado = Number(row?.tabulacao_id) === 18 || String(row?.descricao || '').toUpperCase() === 'IMPLANTADO';
+    const implantado = normalizeStatusCode(row?.codigo) === STATUS.IMPLANTADO;
     return faseCarteira === 'implantados' ? implantado : !implantado;
   });
 
@@ -372,25 +390,24 @@ $(document).ready(function () {
 
     // Status badge com novo estilo clean
     const statusBadge = $('#venda-status-badge');
-    const statusText = (venda.descricao || 'N/D').toUpperCase();
+    const statusText = String(venda.descricao || 'N/D');
+    const statusCode = normalizeStatusCode(venda.codigo);
     statusBadge.removeClass('lv-status-badge success warning danger primary');
     statusBadge.addClass('lv-status-badge');
 
-    switch (statusText) {
-      case 'IMPLANTADO':
-      case 'REGULARIZADO':
+    switch (statusCode) {
+      case STATUS.IMPLANTADO:
+      case STATUS.REGULARIZADO:
         statusBadge.addClass('success');
         break;
-      case 'PENDENTE':
-      case 'PENDENCIA':
-      case 'ANALISE OPERADORA':
-      case 'ANALISE DOCUMENTO':
-      case 'BOLETO DISPONIVEL':
+      case STATUS.PENDENCIA:
+      case STATUS.ANALISE_OPERADORA:
+      case STATUS.ANALISE_DOCUMENTOS:
+      case STATUS.BOLETO_DISPONIVEL:
         statusBadge.addClass('warning');
         break;
-      case 'CANCELADO':
-      case 'ESTORNO':
-      case 'DECLINADO':
+      case STATUS.ESTORNO:
+      case STATUS.DECLINADO:
         statusBadge.addClass('danger');
         break;
       default:
@@ -493,7 +510,7 @@ $(document).ready(function () {
     $('#historico-content').addClass('d-none');
 
     $.ajax({
-      url: `/back-office/historico/${vendaId}`,
+      url: `/vendas/historico/${vendaId}`,
       method: 'GET',
       success: function (response) {
         $('#historico-loading').addClass('d-none');
@@ -526,9 +543,9 @@ $(document).ready(function () {
     const historicoOrdenado = [...historico].reverse();
 
     historicoOrdenado.forEach((item, index) => {
-      const statusClass = getStatusClass(item.status_novo);
-      const statusIcon = getStatusIcon(item.status_novo);
-      const statusBadgeColor = getStatusBadgeColor(item.status_novo);
+      const statusClass = getStatusClass(item.status_novo_codigo);
+      const statusIcon = getStatusIcon(item.status_novo_codigo);
+      const statusBadgeColor = getStatusBadgeColor(item.status_novo_codigo);
 
       let html = `
         <div class="lv-timeline-item ${statusClass}">
@@ -586,56 +603,51 @@ $(document).ready(function () {
   }
 
   // Função para obter classe CSS baseada no status
-  function getStatusClass(status) {
-    if (!status) return '';
-    const statusUpper = status.toUpperCase();
-
-    if (statusUpper.includes('IMPLANTADO')) return 'status-implantado';
-    if (statusUpper.includes('PENDENCIA') || statusUpper.includes('PENDÊNCIA')) return 'status-pendencia';
-    if (statusUpper.includes('ESTORNO')) return 'status-estorno';
-    if (statusUpper.includes('DECLINADO')) return 'status-declinado';
-    if (statusUpper.includes('VENDA')) return 'status-venda';
-    if (statusUpper.includes('ANALISE') || statusUpper.includes('ANÁLISE')) return 'status-analise';
-    if (statusUpper.includes('BOLETO')) return 'status-boleto';
-    if (statusUpper.includes('REGULARIZADO')) return 'status-regularizado';
-
-    return '';
+  function getStatusClass(code) {
+    return {
+      [STATUS.IMPLANTADO]: 'status-implantado',
+      [STATUS.PENDENCIA]: 'status-pendencia',
+      [STATUS.ESTORNO]: 'status-estorno',
+      [STATUS.DECLINADO]: 'status-declinado',
+      [STATUS.VENDA]: 'status-venda',
+      [STATUS.ANALISE_DOCUMENTOS]: 'status-analise',
+      [STATUS.ANALISE_OPERADORA]: 'status-analise',
+      [STATUS.BOLETO_DISPONIVEL]: 'status-boleto',
+      [STATUS.REGULARIZADO]: 'status-regularizado'
+    }[normalizeStatusCode(code)] || '';
   }
 
   // Função para obter ícone do status
-  function getStatusIcon(status) {
-    if (!status) return 'ri-checkbox-blank-circle-line';
-    const statusUpper = status.toUpperCase();
-
-    if (statusUpper.includes('IMPLANTADO')) return 'ri-checkbox-circle-line text-success';
-    if (statusUpper.includes('PENDENCIA') || statusUpper.includes('PENDÊNCIA')) return 'ri-error-warning-line text-danger';
-    if (statusUpper.includes('ESTORNO')) return 'ri-arrow-go-back-line text-danger';
-    if (statusUpper.includes('DECLINADO')) return 'ri-close-circle-line text-danger';
-    if (statusUpper.includes('VENDA')) return 'ri-shopping-cart-2-line text-primary';
-    if (statusUpper.includes('ANALISE DOCUMENTO')) return 'ri-file-search-line text-warning';
-    if (statusUpper.includes('ANALISE OPERADORA') || statusUpper.includes('ANÁLISE OPERADORA')) return 'ri-building-2-line text-warning';
-    if (statusUpper.includes('BOLETO')) return 'ri-bill-line text-info';
-    if (statusUpper.includes('REGULARIZADO')) return 'ri-checkbox-line text-success';
-    if (statusUpper.includes('CONTR') || statusUpper.includes('ASSINATURA')) return 'ri-file-text-line text-secondary';
-
-    return 'ri-checkbox-blank-circle-line text-secondary';
+  function getStatusIcon(code) {
+    return {
+      [STATUS.IMPLANTADO]: 'ri-checkbox-circle-line text-success',
+      [STATUS.PENDENCIA]: 'ri-error-warning-line text-danger',
+      [STATUS.ESTORNO]: 'ri-arrow-go-back-line text-danger',
+      [STATUS.DECLINADO]: 'ri-close-circle-line text-danger',
+      [STATUS.VENDA]: 'ri-shopping-cart-2-line text-primary',
+      [STATUS.ANALISE_DOCUMENTOS]: 'ri-file-search-line text-warning',
+      [STATUS.ANALISE_OPERADORA]: 'ri-building-2-line text-warning',
+      [STATUS.BOLETO_DISPONIVEL]: 'ri-bill-line text-info',
+      [STATUS.REGULARIZADO]: 'ri-checkbox-line text-success',
+      [STATUS.CONTRATO_GERADO_AGUARDANDO_ASSINATURA]: 'ri-file-text-line text-secondary',
+      [STATUS.AGUARDANDO_ASSINATURA_DS]: 'ri-file-text-line text-secondary'
+    }[normalizeStatusCode(code)] || 'ri-checkbox-blank-circle-line text-secondary';
   }
 
   // Função para obter cor do badge do status
-  function getStatusBadgeColor(status) {
-    if (!status) return '#6c757d';
-    const statusUpper = status.toUpperCase();
-
-    if (statusUpper.includes('IMPLANTADO')) return '#28a745';
-    if (statusUpper.includes('PENDENCIA') || statusUpper.includes('PENDÊNCIA')) return '#dc3545';
-    if (statusUpper.includes('ESTORNO')) return '#dc3545';
-    if (statusUpper.includes('DECLINADO')) return '#6c757d';
-    if (statusUpper.includes('VENDA')) return '#696cff';
-    if (statusUpper.includes('ANALISE') || statusUpper.includes('ANÁLISE')) return '#ffab00';
-    if (statusUpper.includes('BOLETO')) return '#20c997';
-    if (statusUpper.includes('REGULARIZADO')) return '#71dd37';
-    if (statusUpper.includes('CONTR') || statusUpper.includes('ASSINATURA')) return '#8c57ff';
-
-    return '#6c757d';
+  function getStatusBadgeColor(code) {
+    return {
+      [STATUS.IMPLANTADO]: '#28a745',
+      [STATUS.PENDENCIA]: '#dc3545',
+      [STATUS.ESTORNO]: '#dc3545',
+      [STATUS.DECLINADO]: '#6c757d',
+      [STATUS.VENDA]: '#696cff',
+      [STATUS.ANALISE_DOCUMENTOS]: '#ffab00',
+      [STATUS.ANALISE_OPERADORA]: '#ffab00',
+      [STATUS.BOLETO_DISPONIVEL]: '#20c997',
+      [STATUS.REGULARIZADO]: '#71dd37',
+      [STATUS.CONTRATO_GERADO_AGUARDANDO_ASSINATURA]: '#8c57ff',
+      [STATUS.AGUARDANDO_ASSINATURA_DS]: '#8c57ff'
+    }[normalizeStatusCode(code)] || '#6c757d';
   }
 });

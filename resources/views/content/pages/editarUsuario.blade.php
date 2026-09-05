@@ -75,6 +75,7 @@
         <div class="table-body">
             <form action="{{ route('usuarios.updateUser') }}" method="POST">
                 @csrf
+                <input type="hidden" name="user_id" value="{{ $user->id }}">
                 <div class="edit-form-body">
                     <div class="row g-4">
                         {{-- Nome --}}

@@ -45,9 +45,13 @@ class RegistrarVendaDocumentoService
                 $uploadedBy,
                 &$temporario
             ) {
-                $bloqueada = Vendas::whereKey($venda->id)->lockForUpdate()->firstOrFail();
+                $bloqueada = Vendas::whereKey($venda->id)
+                    ->where('empresa_id', $venda->empresa_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
                 $existente = VendaDocumento::where('venda_id', $bloqueada->id)
+                    ->where('empresa_id', $bloqueada->empresa_id)
                     ->where('client_upload_id', $clientId)
                     ->first();
                 if ($existente) {

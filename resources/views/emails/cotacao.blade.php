@@ -1,6 +1,6 @@
 @php
     /**
-     * E-mail de Cotação — template padronizado LK Brokers.
+     * E-mail de cotação com identidade da empresa ativa.
      * $dados: assunto, mensagemHtml (HTML do editor, já sanitizado no controller),
      *         vendedorNome, vendedorEmail, vendedorWhatsapp, temAnexo, anexoNome.
      */
@@ -10,7 +10,9 @@
     $vendedorZap    = $dados['vendedorWhatsapp'] ?? '';
     $temAnexo       = ! empty($dados['temAnexo']);
     $anexoNome      = $dados['anexoNome'] ?? 'cotacao.pdf';
-    $iniciais       = strtoupper(mb_substr(trim($vendedorNome), 0, 1) ?: 'L');
+    $nomeEmpresa    = $dados['nomeEmpresa'] ?? 'SalesControl';
+    $iniciais       = strtoupper(mb_substr(trim($vendedorNome), 0, 1) ?: 'S');
+    $iniciaisEmpresa = collect(preg_split('/\s+/', trim($nomeEmpresa)))->filter()->take(2)->map(fn ($parte) => mb_substr($parte, 0, 1))->implode('');
 
     $roxo      = '#7C3AED';
     $roxoClaro = '#A78BFA';
@@ -26,7 +28,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="x-apple-disable-message-reformatting">
-    <title>Cotação — LK Brokers</title>
+    <title>Cotação — {{ $nomeEmpresa }}</title>
     <!--[if mso]><style>table,td,div,h1,p{font-family:Arial,sans-serif;}</style><![endif]-->
 </head>
 <body style="margin:0;padding:0;background:#eef0f5;-webkit-text-size-adjust:100%;">
@@ -38,8 +40,8 @@
                     {{-- ====================== HEADER ====================== --}}
                     <tr>
                         <td style="background:linear-gradient(135deg,{{ $roxo }} 0%,{{ $roxoClaro }} 100%);background-color:{{ $roxo }};padding:28px 40px;" align="left">
-                            <span style="display:inline-block;width:46px;height:46px;line-height:46px;border-radius:13px;background:rgba(255,255,255,0.18);font-family:{{ $fontUI }};font-size:22px;font-weight:800;color:#ffffff;letter-spacing:.5px;text-align:center;vertical-align:middle;">LK</span>
-                            <span style="display:inline-block;vertical-align:middle;margin-left:12px;font-family:{{ $fontUI }};font-size:18px;font-weight:800;color:#ffffff;">LK Brokers</span>
+                            <span style="display:inline-block;width:46px;height:46px;line-height:46px;border-radius:13px;background:rgba(255,255,255,0.18);font-family:{{ $fontUI }};font-size:22px;font-weight:800;color:#ffffff;letter-spacing:.5px;text-align:center;vertical-align:middle;">{{ $iniciaisEmpresa ?: 'SC' }}</span>
+                            <span style="display:inline-block;vertical-align:middle;margin-left:12px;font-family:{{ $fontUI }};font-size:18px;font-weight:800;color:#ffffff;">{{ $nomeEmpresa }}</span>
                         </td>
                     </tr>
 
@@ -79,7 +81,7 @@
                                     </td>
                                     <td style="padding-top:20px;" valign="top">
                                         <p style="margin:0;font-family:{{ $fontUI }};font-size:15px;font-weight:700;color:{{ $texto }};">{{ $vendedorNome }}</p>
-                                        <p style="margin:1px 0 8px;font-family:{{ $fontUI }};font-size:12px;color:{{ $roxo }};font-weight:600;">Consultor(a) de Benefícios · LK Brokers</p>
+                                        <p style="margin:1px 0 8px;font-family:{{ $fontUI }};font-size:12px;color:{{ $roxo }};font-weight:600;">Consultor(a) de Benefícios · {{ $nomeEmpresa }}</p>
                                         @if($vendedorEmail)
                                             <p style="margin:0;font-family:{{ $fontUI }};font-size:13px;color:{{ $textoSec }};">✉&nbsp; <a href="mailto:{{ $vendedorEmail }}" style="color:{{ $textoSec }};text-decoration:none;">{{ $vendedorEmail }}</a></p>
                                         @endif
@@ -96,8 +98,8 @@
                     <tr>
                         <td style="padding:20px 40px;background:{{ $fundoSec }};border-top:1px solid {{ $borda }};" align="center">
                             <p style="margin:0;font-family:{{ $fontUI }};font-size:12px;line-height:1.6;color:#94a3b8;">
-                                Esta mensagem foi enviada por {{ $vendedorNome ?: 'um consultor' }} da LK Brokers.<br>
-                                © {{ date('Y') }} LK Brokers. Todos os direitos reservados.
+                                Esta mensagem foi enviada por {{ $vendedorNome ?: 'um consultor' }} da {{ $nomeEmpresa }}.<br>
+                                © {{ date('Y') }} {{ $nomeEmpresa }}. Todos os direitos reservados.
                             </p>
                         </td>
                     </tr>

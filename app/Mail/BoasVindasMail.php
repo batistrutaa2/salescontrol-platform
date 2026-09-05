@@ -9,7 +9,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * E-mail de Boas-Vindas ao cliente (LK Brokers).
+ * E-mail de boas-vindas da empresa ativa ao cliente.
  *
  * Recebe um array de dados montado no Backoffice::buildDadosEmailPadrao().
  * Suporta dois modos:
@@ -24,7 +24,7 @@ class BoasVindasMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $empresa = $this->dados['nomeEmpresa'] ?? 'LK Brokers';
+        $empresa = $this->dados['nomeEmpresa'] ?? 'SalesControl';
 
         return new Envelope(
             subject: $this->dados['assunto'] ?? "Boas-vindas à {$empresa}",

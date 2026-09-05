@@ -3,6 +3,7 @@
 namespace Tests\Feature\Comercial;
 
 use App\Enums\NaturezaEtapaSolicitacao;
+use App\Enums\TabulationCode;
 use App\Enums\Tabulations;
 use App\Enums\TipoDemandaContrato;
 use App\Enums\TipoSolicitacaoPosVenda;
@@ -15,6 +16,7 @@ use App\Models\User;
 use App\Models\Vendas;
 use App\Notifications\DemandaVendedorConcluida;
 use App\Notifications\DemandaVendedorCriada;
+use App\Services\TabulationCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -75,6 +77,7 @@ class DemandaVendedorTest extends TestCase
             [
                 'id' => Tabulations::IMPLANTADO,
                 'empresa_id' => $this->empresa->id,
+                'codigo' => TabulationCode::IMPLANTADO,
                 'descricao' => 'IMPLANTADO',
                 'tipo_tabulacao' => 'A',
                 'efetivo' => 'Y',
@@ -85,6 +88,7 @@ class DemandaVendedorTest extends TestCase
             [
                 'id' => Tabulations::ANALISE_OPERADORA,
                 'empresa_id' => $this->empresa->id,
+                'codigo' => TabulationCode::ANALISE_OPERADORA,
                 'descricao' => 'ANÁLISE NA OPERADORA',
                 'tipo_tabulacao' => 'A',
                 'efetivo' => 'Y',
@@ -95,6 +99,7 @@ class DemandaVendedorTest extends TestCase
             [
                 'id' => self::TAB_NAO_IMPLANTADO,
                 'empresa_id' => $this->empresa->id,
+                'codigo' => TabulationCode::PROSPECCAO,
                 'descricao' => 'EM ANALISE',
                 'tipo_tabulacao' => 'A',
                 'efetivo' => 'N',
@@ -103,6 +108,8 @@ class DemandaVendedorTest extends TestCase
                 'updated_at' => now(),
             ],
         ]);
+
+        app(TabulationCatalog::class)->provision($this->empresa->id);
     }
 
     private function criarVenda(User $dono, int $tabulacaoId = Tabulations::IMPLANTADO, ?Empresa $empresa = null): Vendas
@@ -384,6 +391,84 @@ class DemandaVendedorTest extends TestCase
         $this->assertSame('VENDEDOR', $data[0]['origem']);
         $this->assertSame('Cancelamento', $data[0]['tipo_label']);
         $this->assertSame($venda->nome_contrato, $data[0]['cliente']);
+    }
+
+    public function test_janela_de_concluidas_e_configurada_somente_na_empresa_ativa(): void
+    {
+        $outraEmpresa = Empresa::factory()->create([
+            'demandas_concluidas_janela_dias' => 90,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('demandas.settings.update'), [
+                'empresa_id' => $outraEmpresa->id,
+                'demandas_concluidas_janela_dias' => 10,
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('empresas', [
+            'id' => $this->empresa->id,
+            'demandas_concluidas_janela_dias' => 10,
+        ]);
+        $this->assertDatabaseHas('empresas', [
+            'id' => $outraEmpresa->id,
+            'demandas_concluidas_janela_dias' => 90,
+        ]);
+
+        $this->actingAs($this->vendedor)
+            ->patchJson(route('demandas.settings.update'), [
+                'demandas_concluidas_janela_dias' => 20,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_lista_aplica_janela_de_concluidas_sem_vazar_outra_empresa(): void
+    {
+        $this->empresa->update(['demandas_concluidas_janela_dias' => 10]);
+        $outraEmpresa = Empresa::factory()->create();
+        $autorExterno = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'ativo' => 'Y',
+        ]);
+
+        foreach ([
+            [$this->empresa->id, $this->admin->id, 'Concluída recente', 'CONCLUIDA', now()->subDays(9)],
+            [$this->empresa->id, $this->admin->id, 'Concluída antiga', 'CONCLUIDA', now()->subDays(11)],
+            [$this->empresa->id, $this->admin->id, 'Ainda aberta', 'ABERTA', null],
+            [$outraEmpresa->id, $autorExterno->id, 'Concluída externa', 'CONCLUIDA', now()->subDay()],
+        ] as [$empresaId, $autorId, $titulo, $status, $concluidaEm]) {
+            Demanda::create([
+                'empresa_id' => $empresaId,
+                'created_by' => $autorId,
+                'titulo' => $titulo,
+                'prioridade' => 'MEDIA',
+                'status' => $status,
+                'concluida_em' => $concluidaEm,
+            ]);
+        }
+
+        $this->actingAs($this->admin)
+            ->getJson(route('demandas.list'))
+            ->assertOk()
+            ->assertJsonFragment(['titulo' => 'Concluída recente'])
+            ->assertJsonFragment(['titulo' => 'Ainda aberta'])
+            ->assertJsonMissing(['titulo' => 'Concluída antiga'])
+            ->assertJsonMissing(['titulo' => 'Concluída externa']);
+    }
+
+    public function test_vendedor_nao_acessa_crud_gerencial_de_demandas(): void
+    {
+        $this->actingAs($this->vendedor)
+            ->getJson(route('demandas.list'))
+            ->assertForbidden();
+
+        $this->postJson(route('demandas.store'), [
+            'titulo' => 'Não autorizada',
+            'prioridade' => 'MEDIA',
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('demandas', ['titulo' => 'Não autorizada']);
     }
 
     public function test_listar_minhas_demandas_retorna_apenas_do_vendedor(): void

@@ -3,6 +3,7 @@
 namespace App\Jobs\Whatsapp;
 
 use App\Events\Whatsapp\AckMensagemAtualizado;
+use App\Jobs\Concerns\UsesWhatsappTenantContext;
 use App\Models\WhatsappMensagem;
 use App\Services\Whatsapp\MessagePayloadParser;
 use Illuminate\Bus\Queueable;
@@ -13,7 +14,7 @@ use Illuminate\Queue\SerializesModels;
 
 class AtualizarAckMensagem implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, UsesWhatsappTenantContext;
 
     public int $tries = 3;
 

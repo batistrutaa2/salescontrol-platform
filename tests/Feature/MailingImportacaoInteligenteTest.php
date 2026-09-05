@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Models\Contatos;
 use App\Models\Dependentes;
@@ -10,6 +11,7 @@ use App\Models\MailingImportacao;
 use App\Models\Preditiva;
 use App\Models\Tabulacoes;
 use App\Models\User;
+use App\Services\TabulationCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -50,10 +52,12 @@ class MailingImportacaoInteligenteTest extends TestCase
         ]);
         $this->tabulacao = Tabulacoes::create([
             'empresa_id' => $this->empresa->id,
+            'codigo' => TabulationCode::PROSPECCAO,
             'descricao' => 'PROSPECÇÃO',
             'tipo_tabulacao' => 'C',
             'status' => 'Y',
         ]);
+        app(TabulationCatalog::class)->provision($this->empresa->id);
     }
 
     public function test_analisa_importa_apenas_novos_e_mantem_duplicado_pendente(): void

@@ -2,6 +2,7 @@
 
 namespace App\Services\Evolution;
 
+use App\Exceptions\EvolutionApiException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -35,6 +36,10 @@ class EvolutionApiService
 
     private function request(string $method, string $path, array $data = []): array
     {
+        if (! filter_var($this->baseUrl, FILTER_VALIDATE_URL) || $this->apiKey === '') {
+            throw new EvolutionApiException;
+        }
+
         $response = $this->http()->{$method}("{$this->baseUrl}{$path}", $data);
 
         if ($response->failed()) {
@@ -42,9 +47,9 @@ class EvolutionApiService
                 'method' => $method,
                 'path' => $path,
                 'status' => $response->status(),
-                'body' => $response->body(),
             ]);
-            $response->throw();
+
+            throw new EvolutionApiException($response->status());
         }
 
         return $response->json() ?? [];

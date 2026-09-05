@@ -9,6 +9,10 @@
     const container = document.getElementById('estudosContainer');
     const tpl = document.getElementById('estudoCardTemplate');
 
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[char]));
+
     // --------- Helpers ---------
     function moneyBR(n) {
         return Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -37,7 +41,7 @@
     function montarLinhaFaixa(faixa, qtde = 0, valor = 0) {
         return `
       <tr>
-        <td>${faixa}</td>
+        <td>${esc(faixa)}</td>
         <td><input type="number" class="form-control qtde" min="0" value="${qtde}"></td>
         <td><input type="number" class="form-control valor" step="0.01" min="0" value="${valor}"></td>
         <td class="total">0,00</td>
@@ -48,8 +52,11 @@
     // titulo = header do card (será salvo como estudo_itens.operadora_plano)
     // reembolso = reembolso_consulta
     // faixas = array [{faixa, qtde, valor_unitario}]
-    function criarCard({ titulo, coparticipacao = '', categoria = '', reembolso = 0, faixas = [] }) {
+    function criarCard({ operadoraId, planoId, titulo, coparticipacao = '', categoria = '', reembolso = 0, faixas = [] }) {
         const node = tpl.content.cloneNode(true);
+        const wrapper = node.querySelector('.estudo-wrapper');
+        wrapper.dataset.operadoraId = operadoraId;
+        wrapper.dataset.planoId = planoId;
 
         // Título no header do card
         node.querySelector('.titulo-estudo').textContent = titulo;
@@ -87,10 +94,11 @@
                 .then(res => res.json())
                 .then(planos => {
                     planoSelect.innerHTML = "<option value=''>Selecione</option>";
-                    planos.forEach(plano => {
-                        planoSelect.innerHTML += `<option value="${plano.id}">${plano.nome}</option>`;
-                    });
+                    planos.forEach(plano => planoSelect.add(new Option(plano.nome, plano.id)));
                     planoSelect.disabled = false;
+                })
+                .catch(() => {
+                    planoSelect.innerHTML = "<option value=''>Não foi possível carregar</option>";
                 });
         }
     });
@@ -106,6 +114,8 @@
         }
 
         criarCard({
+            operadoraId: operadora.value,
+            planoId: plano.value,
             titulo: `${operadora.options[operadora.selectedIndex].text} - ${plano.options[plano.selectedIndex].text}`,
             coparticipacao: '',
             reembolso: 0,
@@ -143,6 +153,8 @@
 
                 (data.estudos || []).forEach(item => {
                     criarCard({
+                        operadoraId: item.operadora_id,
+                        planoId: item.plano_id,
                         titulo: item.operadora_plano,
                         categoria: item.categoria,
                         coparticipacao: item.coparticipacao,
@@ -173,9 +185,6 @@
 
         // Use o wrapper raiz de cada card
         container.querySelectorAll('.estudo-wrapper').forEach(wrapper => {
-            // titulo no header
-            const operadora_plano = wrapper.querySelector('.titulo-estudo')?.textContent.trim() || '';
-
             // campos do topo (podem estar fora de .estudo, então busque no wrapper)
             const coparticipacao = (wrapper.querySelector('.coparticipacao')?.value || '').trim();
             const categoria = (wrapper.querySelector('.categoria')?.value || '').trim();
@@ -192,8 +201,20 @@
                 vidas.push({ faixa, qtde, valor_unitario, total });
             });
 
-            estudos.push({ operadora_plano, coparticipacao, categoria, reembolso_consulta, vidas });
+            estudos.push({
+                operadora_id: Number.parseInt(wrapper.dataset.operadoraId, 10),
+                plano_id: Number.parseInt(wrapper.dataset.planoId, 10),
+                coparticipacao,
+                categoria,
+                reembolso_consulta,
+                vidas
+            });
         });
+
+        if (!estudos.length) {
+            alert('Mantenha ao menos um plano no estudo.');
+            return;
+        }
 
         fetch(`/estudos/${estudoId}`, {
             method: 'PUT',
@@ -203,13 +224,14 @@
             },
             body: JSON.stringify({ titulo: tituloEstudo, estudos })
         })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
+            .then(async res => ({ ok: res.ok, data: await res.json() }))
+            .then(({ ok, data }) => {
+                if (ok && data.success) {
                     alert('Estudo atualizado com sucesso!');
                     window.location.href = "/estudo-lista";
                 } else {
-                    alert(data.message || 'Erro ao atualizar estudo.');
+                    const errors = data.errors ? Object.values(data.errors).flat() : [];
+                    alert(errors[0] || data.message || 'Erro ao atualizar estudo.');
                 }
             })
             .catch(err => {

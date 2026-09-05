@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\pages\whatsapp;
 
 use App\Http\Controllers\Controller;
+use App\Support\TenantContext;
 use App\UseCases\WhatsappConexaoUseCase;
 use App\UseCases\WhatsappConversaUseCase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class WhatsappKanbanController extends Controller
 {
@@ -37,7 +39,7 @@ class WhatsappKanbanController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'conversa_id' => 'required|integer',
-            'tabulacao_id' => 'required|integer|exists:tabulacoes,id',
+            'tabulacao_id' => ['required', 'integer', Rule::exists('tabulacoes', 'id')->where('empresa_id', app(TenantContext::class)->id())],
         ]);
 
         if ($validator->fails()) {

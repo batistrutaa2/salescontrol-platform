@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\pages\financeiro;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\Empresa;
 use App\Models\Operadora;
 use App\Models\Plano;
 use App\Models\Recebivel;
@@ -12,20 +14,24 @@ use App\Models\RegrasComissionamentoParcela;
 use App\Models\User;
 use App\Models\Vendas;
 use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Services\TabulationCatalog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 
 class Financeiro extends Controller
 {
+    public function __construct(private readonly TabulationCatalog $tabulationCatalog) {}
+
     // ------------------------------
     // View principal
     // ------------------------------
     public function regrasRecebimentos()
     {
-        $operadoras = Operadora::where('empresa_id', auth()->user()->empresa_id)->get();
+        $operadoras = Operadora::where('empresa_id', $this->tenantId())->get();
 
         return view('content.pages.financeiro.regras-recebimentos', compact('operadoras'));
     }
@@ -37,7 +43,7 @@ class Financeiro extends Controller
     {
         if ($request->ajax()) {
             $query = RegrasComissionamento::with('operadoras')->select('regras_comissionamento.*')
-                ->where('regras_comissionamento.empresa_id', auth()->user()->empresa_id);
+                ->where('regras_comissionamento.empresa_id', $this->tenantId());
 
             return DataTables::of($query)
                 ->addColumn('operadora_nome', function ($row) {
@@ -52,7 +58,7 @@ class Financeiro extends Controller
     public function regrasStore(Request $request)
     {
         $data = $request->validate([
-            'operadora_id' => 'required|exists:operadoras,id',
+            'operadora_id' => ['required', Rule::exists('operadoras', 'id')->where('empresa_id', $this->tenantId())],
             'categoria' => 'required|in:PME,ADESAO',
             'total_percentual' => 'nullable|numeric',
             'descricao' => 'nullable|string|max:255',
@@ -61,7 +67,7 @@ class Financeiro extends Controller
         ]);
 
         $rule = RegrasComissionamento::create([
-            'empresa_id' => auth()->user()->empresa_id,
+            'empresa_id' => $this->tenantId(),
             'operadora_id' => $data['operadora_id'],
             'categoria' => $data['categoria'],
             'total_percentual' => $data['total_percentual'] ?? null,
@@ -75,10 +81,10 @@ class Financeiro extends Controller
 
     public function regrasUpdate(Request $request, $id)
     {
-        $rule = RegrasComissionamento::findOrFail($id);
+        $rule = RegrasComissionamento::where('empresa_id', $this->tenantId())->findOrFail($id);
 
         $data = $request->validate([
-            'operadora_id' => 'required|exists:operadoras,id',
+            'operadora_id' => ['required', Rule::exists('operadoras', 'id')->where('empresa_id', $this->tenantId())],
             'categoria' => 'required|in:PME,ADESAO',
             'total_percentual' => 'nullable|numeric',
             'descricao' => 'nullable|string|max:255',
@@ -100,7 +106,7 @@ class Financeiro extends Controller
 
     public function regrasDestroy($id)
     {
-        $rule = RegrasComissionamento::findOrFail($id);
+        $rule = RegrasComissionamento::where('empresa_id', $this->tenantId())->findOrFail($id);
         $rule->delete();
 
         return response()->json(['success' => true]);
@@ -111,15 +117,17 @@ class Financeiro extends Controller
     // ------------------------------
     public function parcelasIndex($ruleId)
     {
+        RegrasComissionamento::where('empresa_id', $this->tenantId())->findOrFail($ruleId);
+
         return RegrasComissionamentoParcela::where('regra_id', $ruleId)
-            ->where('empresa_id', auth()->user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->get();
     }
 
     public function parcelasStore(Request $request)
     {
         $data = $request->validate([
-            'commission_rule_id' => 'required|exists:regras_comissionamento,id',
+            'commission_rule_id' => ['required', Rule::exists('regras_comissionamento', 'id')->where('empresa_id', $this->tenantId())],
             'installment_number' => 'required|integer|min:1',
             'percent' => 'required|numeric|min:0',
             'payer' => 'nullable|string|max:255',
@@ -127,7 +135,7 @@ class Financeiro extends Controller
         ]);
 
         $parcela = RegrasComissionamentoParcela::create([
-            'empresa_id' => auth()->user()->empresa_id,
+            'empresa_id' => $this->tenantId(),
             'regra_id' => $data['commission_rule_id'],
             'parcela' => $data['installment_number'],
             'percentual' => $data['percent'],
@@ -139,7 +147,7 @@ class Financeiro extends Controller
 
     public function parcelasUpdate(Request $request, $id)
     {
-        $parcela = RegrasComissionamentoParcela::findOrFail($id);
+        $parcela = RegrasComissionamentoParcela::where('empresa_id', $this->tenantId())->findOrFail($id);
 
         $data = $request->validate([
             'installment_number' => 'required|integer|min:1',
@@ -159,7 +167,7 @@ class Financeiro extends Controller
 
     public function parcelasDestroy($id)
     {
-        $parcela = RegrasComissionamentoParcela::findOrFail($id);
+        $parcela = RegrasComissionamentoParcela::where('empresa_id', $this->tenantId())->findOrFail($id);
         $parcela->delete();
 
         return response()->json(['success' => true]);
@@ -170,14 +178,20 @@ class Financeiro extends Controller
      */
     public function indexRecebiveis(Request $request)
     {
-        $empresaId = auth()->user()->empresa_id;
+        $empresaId = $this->tenantId();
         $anoSelecionado = $request->ano;
 
         // Agrupar contratos via SQL — somente parcelas fixas (vitalicio = false)
         $contratosQuery = Recebivel::where('recebiveis.empresa_id', $empresaId)
             ->where('recebiveis.vitalicio', false)
-            ->join('vendas', 'recebiveis.venda_id', '=', 'vendas.id')
-            ->join('users', 'recebiveis.vendedor_id', '=', 'users.id')
+            ->join('vendas', function ($join) {
+                $join->on('recebiveis.venda_id', '=', 'vendas.id')->on('recebiveis.empresa_id', '=', 'vendas.empresa_id');
+            })
+            ->join('users', function ($join) {
+                $join->on('recebiveis.vendedor_id', '=', 'users.id')
+                    ->on('recebiveis.empresa_id', '=', 'users.empresa_id')
+                    ->where('users.is_platform_admin', false);
+            })
             ->select([
                 'recebiveis.venda_id',
                 'recebiveis.operadora',
@@ -222,7 +236,9 @@ class Financeiro extends Controller
             ->where('recebiveis.vitalicio', false);
 
         if ($anoSelecionado) {
-            $kpisQuery->join('vendas as v_kpi', 'recebiveis.venda_id', '=', 'v_kpi.id')
+            $kpisQuery->join('vendas as v_kpi', function ($join) {
+                $join->on('recebiveis.venda_id', '=', 'v_kpi.id')->on('recebiveis.empresa_id', '=', 'v_kpi.empresa_id');
+            })
                 ->whereYear('v_kpi.data_implantacao', $anoSelecionado);
         }
 
@@ -238,7 +254,9 @@ class Financeiro extends Controller
         // Resumo por ano — parcelas fixas (vitalicio = false)
         $resumoPorAno = Recebivel::where('recebiveis.empresa_id', $empresaId)
             ->where('recebiveis.vitalicio', false)
-            ->join('vendas as v_resumo', 'recebiveis.venda_id', '=', 'v_resumo.id')
+            ->join('vendas as v_resumo', function ($join) {
+                $join->on('recebiveis.venda_id', '=', 'v_resumo.id')->on('recebiveis.empresa_id', '=', 'v_resumo.empresa_id');
+            })
             ->selectRaw("
                 YEAR(v_resumo.data_implantacao) as ano,
                 COUNT(DISTINCT recebiveis.venda_id) as total_contratos,
@@ -280,15 +298,21 @@ class Financeiro extends Controller
      */
     public function indexVitalicios(Request $request)
     {
-        $empresaId = auth()->user()->empresa_id;
+        $empresaId = $this->tenantId();
         $dataInicial = $request->input('data_inicial');
         $dataFinal = $request->input('data_final');
 
         // Contratos com vitalícios (filtro opcional por data de implantação)
         $contratosQuery = Recebivel::where('recebiveis.empresa_id', $empresaId)
             ->where('recebiveis.vitalicio', true)
-            ->join('vendas', 'recebiveis.venda_id', '=', 'vendas.id')
-            ->join('users', 'recebiveis.vendedor_id', '=', 'users.id');
+            ->join('vendas', function ($join) {
+                $join->on('recebiveis.venda_id', '=', 'vendas.id')->on('recebiveis.empresa_id', '=', 'vendas.empresa_id');
+            })
+            ->join('users', function ($join) {
+                $join->on('recebiveis.vendedor_id', '=', 'users.id')
+                    ->on('recebiveis.empresa_id', '=', 'users.empresa_id')
+                    ->where('users.is_platform_admin', false);
+            });
 
         if ($dataInicial && $dataFinal) {
             $contratosQuery->whereBetween('vendas.data_implantacao', [$dataInicial, $dataFinal]);
@@ -339,7 +363,9 @@ class Financeiro extends Controller
             ->where('recebiveis.vitalicio', true);
 
         if ($dataInicial && $dataFinal) {
-            $kpisQuery->join('vendas as v_kpi', 'recebiveis.venda_id', '=', 'v_kpi.id')
+            $kpisQuery->join('vendas as v_kpi', function ($join) {
+                $join->on('recebiveis.venda_id', '=', 'v_kpi.id')->on('recebiveis.empresa_id', '=', 'v_kpi.empresa_id');
+            })
                 ->whereBetween('v_kpi.data_implantacao', [$dataInicial, $dataFinal]);
         }
 
@@ -365,11 +391,11 @@ class Financeiro extends Controller
      */
     public function getParcelasVitalicias($vendaId)
     {
-        $venda = Vendas::find($vendaId);
+        $venda = Vendas::where('empresa_id', $this->tenantId())->find($vendaId);
         $percentualVitalicio = null;
 
         if ($venda) {
-            $operadora = Operadora::where('nome', $venda->operadora)->first();
+            $operadora = Operadora::where('empresa_id', $venda->empresa_id)->where('nome', $venda->operadora)->first();
             if ($operadora) {
                 $regra = RegrasComissionamento::where('empresa_id', $venda->empresa_id)
                     ->where('operadora_id', $operadora->id)
@@ -381,6 +407,7 @@ class Financeiro extends Controller
         }
 
         $parcelas = Recebivel::where('venda_id', $vendaId)
+            ->where('empresa_id', $this->tenantId())
             ->where('vitalicio', true)
             ->orderBy('parcela')
             ->get()
@@ -411,16 +438,16 @@ class Financeiro extends Controller
      */
     public function excluirTodosVitalicios(int $vendaId)
     {
-        $venda = Vendas::findOrFail($vendaId);
+        $venda = $this->vendaDoTenant($vendaId);
 
-        if ($venda->empresa_id !== auth()->user()->empresa_id) {
+        if ($venda->empresa_id !== $this->tenantId()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Acesso negado.',
             ], 403);
         }
 
-        $totalExcluido = Recebivel::where('venda_id', $vendaId)->where('vitalicio', true)->count();
+        $totalExcluido = Recebivel::where('empresa_id', $venda->empresa_id)->where('venda_id', $vendaId)->where('vitalicio', true)->count();
 
         if ($totalExcluido === 0) {
             return response()->json([
@@ -429,7 +456,7 @@ class Financeiro extends Controller
             ], 404);
         }
 
-        Recebivel::where('venda_id', $vendaId)->where('vitalicio', true)->delete();
+        Recebivel::where('empresa_id', $venda->empresa_id)->where('venda_id', $vendaId)->where('vitalicio', true)->delete();
 
         Log::info("Todos os vitalícios ({$totalExcluido}) da venda {$vendaId} foram excluídos pelo usuário ".auth()->user()->id);
 
@@ -444,9 +471,9 @@ class Financeiro extends Controller
      */
     public function toggleVitalicioAtivo(int $vendaId)
     {
-        $venda = Vendas::findOrFail($vendaId);
+        $venda = $this->vendaDoTenant($vendaId);
 
-        if ($venda->empresa_id !== auth()->user()->empresa_id) {
+        if ($venda->empresa_id !== $this->tenantId()) {
             return response()->json(['success' => false, 'message' => 'Acesso negado.'], 403);
         }
 
@@ -469,9 +496,10 @@ class Financeiro extends Controller
      */
     public function showContratoRecebiveis(int $vendaId)
     {
-        $venda = Vendas::findOrFail($vendaId);
+        $venda = $this->vendaDoTenant($vendaId);
 
         $parcelas = Recebivel::where('venda_id', $vendaId)
+            ->where('empresa_id', $venda->empresa_id)
             ->orderBy('parcela', 'asc')
             ->get();
 
@@ -496,6 +524,7 @@ class Financeiro extends Controller
      */
     public function pagarRecebivel(Request $request, Recebivel $recebivel)
     {
+        abort_unless((int) $recebivel->empresa_id === (int) $this->tenantId(), 404);
         $recebivel->update([
             'status' => 'PAGO',
             'data_recebimento' => now(),
@@ -509,6 +538,7 @@ class Financeiro extends Controller
      */
     public function cancelarRecebivel(Request $request, Recebivel $recebivel)
     {
+        abort_unless((int) $recebivel->empresa_id === (int) $this->tenantId(), 404);
         $recebivel->update([
             'status' => 'CANCELADO',
         ]);
@@ -518,8 +548,11 @@ class Financeiro extends Controller
 
     public function getParcelas($vendaId)
     {
+        $this->vendaDoTenant((int) $vendaId);
+
         // Retorna somente parcelas fixas (vitalicio = false) — vitalícios são gerenciados em tela separada
         $parcelas = Recebivel::where('venda_id', $vendaId)
+            ->where('empresa_id', $this->tenantId())
             ->where('vitalicio', false)
             ->orderBy('parcela')
             ->get()
@@ -539,7 +572,7 @@ class Financeiro extends Controller
 
     public function pagarParcela($id)
     {
-        $parcela = Recebivel::findOrFail($id);
+        $parcela = $this->recebivelDoTenant((int) $id);
         $parcela->update(['status' => 'PAGO', 'data_recebimento' => now()]);
 
         // Verificar se deve gerar próxima parcela vitalícia
@@ -556,7 +589,7 @@ class Financeiro extends Controller
      */
     private function gerarProximaParcelaVitalicia(Recebivel $parcelaPaga): bool
     {
-        $venda = Vendas::find($parcelaPaga->venda_id);
+        $venda = Vendas::where('empresa_id', $parcelaPaga->empresa_id)->find($parcelaPaga->venda_id);
         if (! $venda) {
             return false;
         }
@@ -567,7 +600,7 @@ class Financeiro extends Controller
         }
 
         // Buscar operadora
-        $operadora = Operadora::where('nome', $venda->operadora)->first();
+        $operadora = Operadora::where('empresa_id', $venda->empresa_id)->where('nome', $venda->operadora)->first();
         if (! $operadora) {
             return false;
         }
@@ -583,10 +616,10 @@ class Financeiro extends Controller
         }
 
         // Verificar qual a última parcela normal da regra
-        $ultimaParcelaNormal = $regra->parcelas()->max('parcela') ?? 0;
+        $ultimaParcelaNormal = $regra->parcelas()->where('empresa_id', $venda->empresa_id)->max('parcela') ?? 0;
 
         // Verificar a última parcela existente para esta venda
-        $ultimaParcelaExistente = Recebivel::where('venda_id', $venda->id)->max('parcela') ?? 0;
+        $ultimaParcelaExistente = Recebivel::where('empresa_id', $venda->empresa_id)->where('venda_id', $venda->id)->max('parcela') ?? 0;
 
         // Se a parcela paga é a última existente, gerar a próxima
         if ($parcelaPaga->parcela == $ultimaParcelaExistente) {
@@ -595,7 +628,7 @@ class Financeiro extends Controller
             // Resolver nome do plano
             $planoNome = 'N/A';
             if (! empty($venda->plano_id)) {
-                $plano = Plano::find($venda->plano_id);
+                $plano = Plano::where('empresa_id', $venda->empresa_id)->find($venda->plano_id);
                 $planoNome = $plano?->nome ?? $venda->nome_plano ?? 'N/A';
             } elseif (! empty($venda->nome_plano)) {
                 $planoNome = $venda->nome_plano;
@@ -641,10 +674,10 @@ class Financeiro extends Controller
             'valor' => 'nullable|numeric|min:0',
         ]);
 
-        $parcela = Recebivel::findOrFail($id);
+        $parcela = $this->recebivelDoTenant((int) $id);
 
         // Verificar se pertence à empresa do usuário
-        if ($parcela->empresa_id !== auth()->user()->empresa_id) {
+        if ($parcela->empresa_id !== $this->tenantId()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Acesso negado.',
@@ -688,10 +721,10 @@ class Financeiro extends Controller
      */
     public function excluirParcela($id)
     {
-        $parcela = Recebivel::findOrFail($id);
+        $parcela = $this->recebivelDoTenant((int) $id);
 
         // Verificar permissão (empresa_id)
-        if ($parcela->empresa_id !== auth()->user()->empresa_id) {
+        if ($parcela->empresa_id !== $this->tenantId()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Acesso negado.',
@@ -718,11 +751,11 @@ class Financeiro extends Controller
     {
         $request->validate([
             'parcela_ids' => 'required|array|min:1',
-            'parcela_ids.*' => 'integer|exists:recebiveis,id',
+            'parcela_ids.*' => ['integer', Rule::exists('recebiveis', 'id')->where('empresa_id', $this->tenantId())],
         ]);
 
         $parcelaIds = $request->parcela_ids;
-        $empresaId = auth()->user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         // Verificar se todas as parcelas pertencem à empresa do usuário
         $parcelas = Recebivel::whereIn('id', $parcelaIds)
@@ -763,11 +796,11 @@ class Financeiro extends Controller
     {
         $request->validate([
             'parcela_ids' => 'required|array|min:1',
-            'parcela_ids.*' => 'integer|exists:recebiveis,id',
+            'parcela_ids.*' => ['integer', Rule::exists('recebiveis', 'id')->where('empresa_id', $this->tenantId())],
         ]);
 
         $parcelaIds = $request->parcela_ids;
-        $empresaId = auth()->user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         $parcelas = Recebivel::whereIn('id', $parcelaIds)
             ->where('empresa_id', $empresaId)
@@ -825,7 +858,7 @@ class Financeiro extends Controller
     {
         $request->validate([
             'parcela_ids' => 'required|array|min:1',
-            'parcela_ids.*' => 'integer|exists:recebiveis,id',
+            'parcela_ids.*' => ['integer', Rule::exists('recebiveis', 'id')->where('empresa_id', $this->tenantId())],
             'valor' => 'required|numeric|min:0',
             'data_pagamento' => 'required|date',
         ]);
@@ -833,7 +866,7 @@ class Financeiro extends Controller
         $parcelaIds = $request->parcela_ids;
         $valor = $request->valor;
         $dataPagamentoBase = Carbon::parse($request->data_pagamento);
-        $empresaId = auth()->user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         // Verificar se todas as parcelas pertencem à empresa do usuário
         $parcelas = Recebivel::whereIn('id', $parcelaIds)
@@ -880,17 +913,17 @@ class Financeiro extends Controller
      */
     public function excluirTodosRecebiveis(int $vendaId)
     {
-        $venda = Vendas::findOrFail($vendaId);
+        $venda = $this->vendaDoTenant($vendaId);
 
         // Verificar permissão (empresa_id)
-        if ($venda->empresa_id !== auth()->user()->empresa_id) {
+        if ($venda->empresa_id !== $this->tenantId()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Acesso negado.',
             ], 403);
         }
 
-        $totalExcluido = Recebivel::where('venda_id', $vendaId)->where('vitalicio', false)->count();
+        $totalExcluido = Recebivel::where('empresa_id', $venda->empresa_id)->where('venda_id', $vendaId)->where('vitalicio', false)->count();
 
         if ($totalExcluido === 0) {
             return response()->json([
@@ -899,7 +932,7 @@ class Financeiro extends Controller
             ], 404);
         }
 
-        Recebivel::where('venda_id', $vendaId)->where('vitalicio', false)->delete();
+        Recebivel::where('empresa_id', $venda->empresa_id)->where('venda_id', $vendaId)->where('vitalicio', false)->delete();
 
         Log::info("Todos os recebíveis ({$totalExcluido}) da venda {$vendaId} foram excluídos pelo usuário ".auth()->user()->id);
 
@@ -915,16 +948,16 @@ class Financeiro extends Controller
      */
     public function excluirLancamentoCompleto(int $vendaId)
     {
-        $venda = Vendas::findOrFail($vendaId);
+        $venda = $this->vendaDoTenant($vendaId);
 
-        if ($venda->empresa_id !== auth()->user()->empresa_id) {
+        if ($venda->empresa_id !== $this->tenantId()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Acesso negado.',
             ], 403);
         }
 
-        $totalExcluido = Recebivel::where('venda_id', $vendaId)->count();
+        $totalExcluido = Recebivel::where('empresa_id', $venda->empresa_id)->where('venda_id', $vendaId)->count();
 
         if ($totalExcluido === 0) {
             return response()->json([
@@ -933,12 +966,12 @@ class Financeiro extends Controller
             ], 404);
         }
 
-        Recebivel::where('venda_id', $vendaId)->delete();
+        Recebivel::where('empresa_id', $venda->empresa_id)->where('venda_id', $vendaId)->delete();
 
         // Declina apenas ESTA venda — o contato pode ter outras vendas ativas.
         app(VendasRepositoryInterface::class)->alterStatusVenda(
             $venda->id,
-            Tabulations::DECLINIO,
+            $this->tabulationCatalog->id($this->tenantId(), TabulationCode::DECLINADO),
             'Lançamento financeiro excluído',
             null
         );
@@ -953,16 +986,52 @@ class Financeiro extends Controller
 
     public function relatorioFinanceiro()
     {
-        $empresaId = auth()->user()->empresa_id;
+        $empresaId = $this->tenantId();
+        $empresa = Empresa::query()->findOrFail($empresaId);
         $operadoras = Operadora::where('empresa_id', $empresaId)->orderBy('nome')->get();
-        $vendedores = User::where('empresa_id', $empresaId)->where('ativo', 'Y')->orderBy('name')->get();
+        $vendedores = User::query()->tenantMember($empresaId)->where('ativo', 'Y')->orderBy('name')->get();
+        $podeConfigurar = auth()->user()->isPlatformAdmin()
+            || in_array((int) auth()->user()->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER], true);
 
-        return view('content.pages.financeiro.relatorio-financeiro', compact('operadoras', 'vendedores'));
+        return view('content.pages.financeiro.relatorio-financeiro', compact('empresa', 'operadoras', 'vendedores', 'podeConfigurar'));
+    }
+
+    public function atualizarConfiguracaoRelatorio(Request $request)
+    {
+        $user = $request->user();
+        abort_unless(
+            $user->isPlatformAdmin()
+                || in_array((int) $user->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER], true),
+            403,
+        );
+
+        $validated = $request->validate([
+            'financeiro_mrr_janela_meses' => ['required', 'integer', 'between:1,24'],
+            'financeiro_historico_meses' => ['required', 'integer', 'between:1,60'],
+            'financeiro_previsao_meses' => ['required', 'integer', 'between:1,36'],
+        ]);
+
+        Empresa::query()->whereKey($this->tenantId())->update($validated);
+
+        return redirect()->route('financeiro.relatorio')
+            ->with('success', 'Parâmetros do relatório financeiro atualizados para esta empresa.');
     }
 
     public function relatorioFinanceiroFetch(Request $request)
     {
-        $empresaId = auth()->user()->empresa_id;
+        $empresaId = $this->tenantId();
+        $empresa = Empresa::query()->findOrFail($empresaId);
+        $mrrJanelaMeses = (int) $empresa->financeiro_mrr_janela_meses;
+        $historicoMeses = (int) $empresa->financeiro_historico_meses;
+        $previsaoMeses = (int) $empresa->financeiro_previsao_meses;
+
+        $request->validate([
+            'data_inicial' => ['nullable', 'date_format:Y-m-d'],
+            'data_final' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:data_inicial'],
+            'operadora_id' => ['nullable', Rule::exists('operadoras', 'id')->where('empresa_id', $empresaId)],
+            'vendedor_id' => ['nullable', Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('is_platform_admin', false))],
+            'tipo_receita' => ['nullable', Rule::in(['todas', 'fixa', 'vitalicio'])],
+        ]);
 
         // ── Filtros ──
         $dataInicial = $request->input('data_inicial');
@@ -973,7 +1042,7 @@ class Financeiro extends Controller
 
         $operadoraNome = null;
         if ($operadoraId) {
-            $operadoraNome = Operadora::find($operadoraId)?->nome;
+            $operadoraNome = Operadora::where('empresa_id', $empresaId)->find($operadoraId)?->nome;
         }
 
         // Closure para aplicar filtros comuns
@@ -1028,7 +1097,7 @@ class Financeiro extends Controller
         $receitaVitalicioPercentual = $receitaRecebida > 0 ? round(($receitaVitalicio / $receitaRecebida) * 100, 1) : 0;
         $taxaCancelamento = $totalGeral > 0 ? round(($receitaCancelada / $totalGeral) * 100, 1) : 0;
 
-        // ── MRR (últimos 3 meses, vitalicio, PAGO) — ignora filtro de data ──
+        // ── MRR (janela da empresa, vitalício, PAGO) — ignora filtro de data ──
         $mrrBaseFilter = function ($query) use ($empresaId, $operadoraNome, $vendedorId) {
             $query->where('empresa_id', $empresaId);
             if ($operadoraNome) {
@@ -1039,20 +1108,22 @@ class Financeiro extends Controller
             }
         };
 
-        $mrr3Meses = Recebivel::query()->tap($mrrBaseFilter)
+        $mrrJanelaAtual = Recebivel::query()->tap($mrrBaseFilter)
             ->where('vitalicio', true)
             ->where('status', 'PAGO')
-            ->where('data_recebimento', '>=', Carbon::now()->subMonths(3)->startOfMonth())
+            ->where('data_recebimento', '>=', Carbon::now()->subMonths($mrrJanelaMeses - 1)->startOfMonth())
             ->sum('valor');
-        $mrr = round((float) $mrr3Meses / 3, 2);
+        $mrr = round((float) $mrrJanelaAtual / $mrrJanelaMeses, 2);
 
-        $mrrAnterior3Meses = Recebivel::query()->tap($mrrBaseFilter)
+        $inicioJanelaAtual = Carbon::now()->subMonths($mrrJanelaMeses - 1)->startOfMonth();
+        $inicioJanelaAnterior = $inicioJanelaAtual->copy()->subMonths($mrrJanelaMeses);
+        $mrrJanelaAnterior = Recebivel::query()->tap($mrrBaseFilter)
             ->where('vitalicio', true)
             ->where('status', 'PAGO')
-            ->where('data_recebimento', '>=', Carbon::now()->subMonths(6)->startOfMonth())
-            ->where('data_recebimento', '<', Carbon::now()->subMonths(3)->startOfMonth())
+            ->where('data_recebimento', '>=', $inicioJanelaAnterior)
+            ->where('data_recebimento', '<', $inicioJanelaAtual)
             ->sum('valor');
-        $mrrAnterior = round((float) $mrrAnterior3Meses / 3, 2);
+        $mrrAnterior = round((float) $mrrJanelaAnterior / $mrrJanelaMeses, 2);
         $mrrVariacao = $mrrAnterior > 0 ? round((($mrr - $mrrAnterior) / $mrrAnterior) * 100, 1) : 0;
 
         // ── Contratos ativos (DISTINCT venda_id com parcela PENDENTE) ──
@@ -1079,7 +1150,7 @@ class Financeiro extends Controller
         })->where('status', 'PENDENTE')->distinct()->pluck('venda_id');
 
         $valorCarteira = $vendaIds->isNotEmpty()
-            ? (float) Vendas::whereIn('id', $vendaIds)->sum('valor_contrato')
+            ? (float) Vendas::where('empresa_id', $empresaId)->whereIn('id', $vendaIds)->sum('valor_contrato')
             : 0;
 
         // ── Variação anual (comparar mesmo período ano anterior) ──
@@ -1201,7 +1272,7 @@ class Financeiro extends Controller
         // ══════════════════════════════════════════
         $historico = Recebivel::where('empresa_id', $empresaId)
             ->where('status', 'PAGO')
-            ->where('data_recebimento', '>=', Carbon::now()->subMonths(12)->startOfMonth())
+            ->where('data_recebimento', '>=', Carbon::now()->subMonths($historicoMeses - 1)->startOfMonth())
             ->when($operadoraNome, fn ($q) => $q->where('operadora', $operadoraNome))
             ->when($vendedorId, fn ($q) => $q->where('vendedor_id', $vendedorId))
             ->when($tipoReceita === 'fixa', fn ($q) => $q->where('vitalicio', false))
@@ -1215,7 +1286,7 @@ class Financeiro extends Controller
         $previsao = Recebivel::where('empresa_id', $empresaId)
             ->where('status', 'PENDENTE')
             ->where('data_prevista', '>=', Carbon::now()->startOfMonth())
-            ->where('data_prevista', '<=', Carbon::now()->addMonths(6)->endOfMonth())
+            ->where('data_prevista', '<=', Carbon::now()->addMonths($previsaoMeses - 1)->endOfMonth())
             ->when($operadoraNome, fn ($q) => $q->where('operadora', $operadoraNome))
             ->when($vendedorId, fn ($q) => $q->where('vendedor_id', $vendedorId))
             ->when($tipoReceita === 'fixa', fn ($q) => $q->where('vitalicio', false))
@@ -1235,7 +1306,9 @@ class Financeiro extends Controller
         // 9. Análise de Coorte por Ano de Implantação
         // ══════════════════════════════════════════
         $cohort = Recebivel::where('recebiveis.empresa_id', $empresaId)
-            ->join('vendas', 'recebiveis.venda_id', '=', 'vendas.id')
+            ->join('vendas', function ($join) {
+                $join->on('recebiveis.venda_id', '=', 'vendas.id')->on('recebiveis.empresa_id', '=', 'vendas.empresa_id');
+            })
             ->when($operadoraNome, fn ($q) => $q->where('recebiveis.operadora', $operadoraNome))
             ->when($vendedorId, fn ($q) => $q->where('recebiveis.vendedor_id', $vendedorId))
             ->selectRaw("
@@ -1303,7 +1376,8 @@ class Financeiro extends Controller
      */
     public function getContratoResumo(int $vendaId)
     {
-        $empresaId = auth()->user()->empresa_id;
+        $empresaId = $this->tenantId();
+        $this->vendaDoTenant($vendaId);
 
         // Verificar permissão e calcular tudo em uma única query — somente parcelas fixas (vitalicio = false)
         $resumo = Recebivel::where('venda_id', $vendaId)
@@ -1365,10 +1439,10 @@ class Financeiro extends Controller
      */
     public function recalcularRecebiveis(int $vendaId)
     {
-        $venda = Vendas::findOrFail($vendaId);
+        $venda = $this->vendaDoTenant($vendaId);
 
         // Verificar permissão (empresa_id)
-        if ($venda->empresa_id !== auth()->user()->empresa_id) {
+        if ($venda->empresa_id !== $this->tenantId()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Sem permissão para acessar este contrato.',
@@ -1376,7 +1450,7 @@ class Financeiro extends Controller
         }
 
         // Buscar operadora pelo nome
-        $operadora = Operadora::where('nome', $venda->operadora)->first();
+        $operadora = Operadora::where('empresa_id', $venda->empresa_id)->where('nome', $venda->operadora)->first();
 
         if (! $operadora) {
             return response()->json([
@@ -1399,7 +1473,7 @@ class Financeiro extends Controller
         }
 
         // Buscar parcelas da regra
-        $parcelasRegra = $regra->parcelas()->orderBy('parcela')->get()->keyBy('parcela');
+        $parcelasRegra = $regra->parcelas()->where('empresa_id', $venda->empresa_id)->orderBy('parcela')->get()->keyBy('parcela');
 
         if ($parcelasRegra->isEmpty()) {
             return response()->json([
@@ -1410,6 +1484,7 @@ class Financeiro extends Controller
 
         // Buscar recebíveis atuais do contrato (indexados por número da parcela)
         $recebiveisAtuais = Recebivel::where('venda_id', $vendaId)
+            ->where('empresa_id', $venda->empresa_id)
             ->orderBy('parcela')
             ->get()
             ->keyBy('parcela');
@@ -1417,7 +1492,7 @@ class Financeiro extends Controller
         // Resolver nome do plano
         $planoNome = 'N/A';
         if (! empty($venda->plano_id)) {
-            $plano = Plano::find($venda->plano_id);
+            $plano = Plano::where('empresa_id', $venda->empresa_id)->find($venda->plano_id);
             $planoNome = $plano?->nome ?? $venda->nome_plano ?? 'N/A';
         } elseif (! empty($venda->nome_plano)) {
             $planoNome = $venda->nome_plano;
@@ -1515,12 +1590,12 @@ class Financeiro extends Controller
             DB::rollBack();
             Log::error('Erro ao recalcular recebíveis', [
                 'venda_id' => $vendaId,
-                'error' => $e->getMessage(),
+                'exception' => $e,
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao recalcular valores: '.$e->getMessage(),
+                'message' => 'Não foi possível recalcular os recebíveis neste momento.',
             ], 500);
         }
     }
@@ -1536,10 +1611,10 @@ class Financeiro extends Controller
             'valor' => 'nullable|numeric|min:0',
         ]);
 
-        $venda = Vendas::findOrFail($vendaId);
+        $venda = $this->vendaDoTenant($vendaId);
 
         // Verificar permissão (empresa_id)
-        if ($venda->empresa_id !== auth()->user()->empresa_id) {
+        if ($venda->empresa_id !== $this->tenantId()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Sem permissão para acessar este contrato.',
@@ -1551,7 +1626,7 @@ class Financeiro extends Controller
         $valorCustom = $request->valor;
 
         // Buscar operadora
-        $operadora = Operadora::where('nome', $venda->operadora)->first();
+        $operadora = Operadora::where('empresa_id', $venda->empresa_id)->where('nome', $venda->operadora)->first();
 
         // Resolver valor por parcela
         $valorParcela = $valorCustom;
@@ -1574,12 +1649,12 @@ class Financeiro extends Controller
         }
 
         // Buscar última parcela existente
-        $ultimaParcela = Recebivel::where('venda_id', $venda->id)->max('parcela') ?? 0;
+        $ultimaParcela = Recebivel::where('empresa_id', $venda->empresa_id)->where('venda_id', $venda->id)->max('parcela') ?? 0;
 
         // Resolver nome do plano
         $planoNome = 'N/A';
         if (! empty($venda->plano_id)) {
-            $plano = Plano::find($venda->plano_id);
+            $plano = Plano::where('empresa_id', $venda->empresa_id)->find($venda->plano_id);
             $planoNome = $plano?->nome ?? $venda->nome_plano ?? 'N/A';
         } elseif (! empty($venda->nome_plano)) {
             $planoNome = $venda->nome_plano;
@@ -1627,13 +1702,23 @@ class Financeiro extends Controller
             DB::rollBack();
             Log::error('Erro ao gerar recebíveis manuais', [
                 'venda_id' => $vendaId,
-                'error' => $e->getMessage(),
+                'exception' => $e,
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao gerar parcelas: '.$e->getMessage(),
+                'message' => 'Não foi possível gerar as parcelas neste momento.',
             ], 500);
         }
+    }
+
+    private function vendaDoTenant(int $vendaId): Vendas
+    {
+        return Vendas::where('empresa_id', $this->tenantId())->findOrFail($vendaId);
+    }
+
+    private function recebivelDoTenant(int $recebivelId): Recebivel
+    {
+        return Recebivel::where('empresa_id', $this->tenantId())->findOrFail($recebivelId);
     }
 }

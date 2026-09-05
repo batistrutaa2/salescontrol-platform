@@ -52,7 +52,7 @@ return [
   |
   */
 
-  'url' => env('APP_URL', 'https://brsolution.tech'),
+  'url' => env('APP_URL', 'http://localhost'),
 
   /*
   |--------------------------------------------------------------------------

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LeadReservatorioEstrategia;
 use App\Models\LeadReservatorioExecucao;
 use App\Models\LeadReservatorioItem;
+use App\Models\PreditivaConfiguracao;
 use App\Models\User;
 use App\Services\LeadReservatorioService;
 use Illuminate\Http\JsonResponse;
@@ -21,7 +22,8 @@ class LeadReservatorioController extends Controller
     public function index(Request $request): View
     {
         $this->garantirAcesso($request);
-        $empresaId = (int) $request->user()->empresa_id;
+        $empresaId = $this->tenantId();
+        $config = PreditivaConfiguracao::getOrDefault($empresaId);
         $this->service->sincronizarBloqueados($empresaId);
 
         return view('content.pages.mailing.reservatorio', [
@@ -34,13 +36,15 @@ class LeadReservatorioController extends Controller
             'migracaoConcluida' => LeadReservatorioExecucao::query()
                 ->where('chave_idempotencia', "MIGRACAO_INICIAL:{$empresaId}")
                 ->exists(),
+            'indicadoresJanelaDias' => (int) $config->indicadores_janela_dias,
         ]);
     }
 
     public function dados(Request $request): JsonResponse
     {
         $this->garantirAcesso($request);
-        $empresaId = (int) $request->user()->empresa_id;
+        $empresaId = $this->tenantId();
+        $indicadoresJanelaDias = (int) PreditivaConfiguracao::getOrDefault($empresaId)->indicadores_janela_dias;
         $this->service->sincronizarBloqueados($empresaId);
         $query = $this->service->queryDisponiveis($empresaId)
             ->select([
@@ -76,13 +80,17 @@ class LeadReservatorioController extends Controller
 
         $metricas = [
             'disponiveis' => $this->service->queryDisponiveis($empresaId)->count(),
-            'entradas_30_dias' => DB::table('lead_reservatorio_itens')->where('empresa_id', $empresaId)->where('entrou_em', '>=', now()->subDays(30))->count(),
+            'entradas_na_janela' => DB::table('lead_reservatorio_itens')->where('empresa_id', $empresaId)->where('entrou_em', '>=', now()->subDays($indicadoresJanelaDias))->count(),
+            'indicadores_janela_dias' => $indicadoresJanelaDias,
             'distribuidos_mes' => DB::table('lead_reservatorio_itens')->where('empresa_id', $empresaId)->where('status', LeadReservatorioItem::STATUS_DISTRIBUIDO)->where('distribuido_em', '>=', now()->startOfMonth())->count(),
             'bloqueados' => DB::table('lead_reservatorio_itens')->where('empresa_id', $empresaId)->where('status', LeadReservatorioItem::STATUS_BLOQUEADO)->count(),
         ];
 
         $bases = DB::table('lead_reservatorio_itens as l')
-            ->join('contatos as c', 'c.id', '=', 'l.contato_id')
+            ->join('contatos as c', function ($join) {
+                $join->on('c.id', '=', 'l.contato_id')
+                    ->on('c.empresa_id', '=', 'l.empresa_id');
+            })
             ->where('l.empresa_id', $empresaId)
             ->whereNotNull('c.nome_base')
             ->where('c.nome_base', '!=', '')
@@ -95,7 +103,7 @@ class LeadReservatorioController extends Controller
     {
         $this->garantirAcesso($request);
         $estrategias = LeadReservatorioEstrategia::query()
-            ->where('empresa_id', $request->user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->orderByDesc('ativo')->orderBy('nome')->get();
 
         return response()->json(['data' => $estrategias]);
@@ -111,9 +119,9 @@ class LeadReservatorioController extends Controller
             'condicoes.*.operador' => ['required', 'string'],
             'condicoes.*.valor' => ['nullable'],
         ]);
-        $this->service->preview((int) $request->user()->empresa_id, $validated['condicoes']);
+        $this->service->preview($this->tenantId(), $validated['condicoes']);
         $estrategia = LeadReservatorioEstrategia::create([
-            'empresa_id' => $request->user()->empresa_id,
+            'empresa_id' => $this->tenantId(),
             'nome' => $validated['nome'],
             'condicoes' => $validated['condicoes'],
             'ativo' => true,
@@ -135,7 +143,7 @@ class LeadReservatorioController extends Controller
             'condicoes.*.valor' => ['nullable'],
             'ativo' => ['sometimes', 'boolean'],
         ]);
-        $this->service->preview((int) $request->user()->empresa_id, $validated['condicoes']);
+        $this->service->preview($this->tenantId(), $validated['condicoes']);
         $registro->update([
             ...$validated,
             'updated_by' => $request->user()->id,
@@ -158,7 +166,7 @@ class LeadReservatorioController extends Controller
         $this->garantirAcesso($request);
         $registro = $this->estrategiaDaEmpresa($request, $estrategia);
 
-        return response()->json($this->service->preview((int) $request->user()->empresa_id, $registro->condicoes));
+        return response()->json($this->service->preview($this->tenantId(), $registro->condicoes));
     }
 
     public function previewCondicoes(Request $request): JsonResponse
@@ -172,7 +180,7 @@ class LeadReservatorioController extends Controller
         ]);
 
         return response()->json($this->service->preview(
-            (int) $request->user()->empresa_id,
+            $this->tenantId(),
             $validated['condicoes'],
         ));
     }
@@ -186,7 +194,7 @@ class LeadReservatorioController extends Controller
             'distribuicoes.*.quantidade' => ['required', 'integer', 'min:1', 'max:1000'],
         ]);
         $execucao = $this->service->executar(
-            (int) $request->user()->empresa_id,
+            $this->tenantId(),
             $estrategia,
             $validated['distribuicoes'],
             (int) $request->user()->id,
@@ -203,7 +211,7 @@ class LeadReservatorioController extends Controller
         $this->garantirAcesso($request);
 
         return response()->json($this->service->previewAleatoria(
-            (int) $request->user()->empresa_id,
+            $this->tenantId(),
         ));
     }
 
@@ -216,7 +224,7 @@ class LeadReservatorioController extends Controller
             'distribuicoes.*.quantidade' => ['required', 'integer', 'min:1', 'max:1000'],
         ]);
         $execucao = $this->service->executarAleatoria(
-            (int) $request->user()->empresa_id,
+            $this->tenantId(),
             $validated['distribuicoes'],
             (int) $request->user()->id,
         );
@@ -230,11 +238,24 @@ class LeadReservatorioController extends Controller
     public function historico(Request $request): JsonResponse
     {
         $this->garantirAcesso($request);
-        $empresaId = (int) $request->user()->empresa_id;
+        $empresaId = $this->tenantId();
         $execucoes = DB::table('lead_reservatorio_execucoes as e')
-            ->leftJoin('lead_reservatorio_estrategias as s', 's.id', '=', 'e.estrategia_id')
-            ->leftJoin('users as autor', 'autor.id', '=', 'e.created_by')
-            ->leftJoin('users as origem', 'origem.id', '=', 'e.vendedor_origem_id')
+            ->leftJoin('lead_reservatorio_estrategias as s', function ($join) {
+                $join->on('s.id', '=', 'e.estrategia_id')
+                    ->on('s.empresa_id', '=', 'e.empresa_id');
+            })
+            ->leftJoin('users as autor', function ($join) {
+                $join->on('autor.id', '=', 'e.created_by')
+                    ->where(function ($visibility) {
+                        $visibility->whereColumn('autor.empresa_id', 'e.empresa_id')
+                            ->orWhere('autor.is_platform_admin', true);
+                    });
+            })
+            ->leftJoin('users as origem', function ($join) {
+                $join->on('origem.id', '=', 'e.vendedor_origem_id')
+                    ->on('origem.empresa_id', '=', 'e.empresa_id')
+                    ->where('origem.is_platform_admin', false);
+            })
             ->where('e.empresa_id', $empresaId)
             ->select('e.*', 's.nome as estrategia_nome', 'autor.name as autor_nome', 'origem.name as vendedor_origem_nome')
             ->orderByDesc('e.id')->paginate(20);
@@ -248,7 +269,7 @@ class LeadReservatorioController extends Controller
         $validated = $request->validate(['vendedor_id' => ['required', 'integer']]);
 
         return response()->json($this->service->previewMigracao(
-            (int) $request->user()->empresa_id,
+            $this->tenantId(),
             (int) $validated['vendedor_id'],
         ));
     }
@@ -258,7 +279,7 @@ class LeadReservatorioController extends Controller
         $this->garantirAcesso($request);
         $validated = $request->validate(['vendedor_id' => ['required', 'integer']]);
         $execucao = $this->service->migrarCarteiraInicial(
-            (int) $request->user()->empresa_id,
+            $this->tenantId(),
             (int) $validated['vendedor_id'],
             (int) $request->user()->id,
         );
@@ -281,7 +302,7 @@ class LeadReservatorioController extends Controller
     private function estrategiaDaEmpresa(Request $request, int $id): LeadReservatorioEstrategia
     {
         return LeadReservatorioEstrategia::query()
-            ->where('empresa_id', $request->user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->findOrFail($id);
     }
 }

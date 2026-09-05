@@ -14,8 +14,10 @@ class WhatsappConexaoController extends Controller
 
     public function conectar(): JsonResponse
     {
+        $user = $this->tenantMemberOrAbort(Auth::user());
+
         try {
-            $resultado = $this->conexaoUseCase->conectar(Auth::user());
+            $resultado = $this->conexaoUseCase->conectar($user);
 
             return response()->json(['success' => true, 'data' => $resultado]);
         } catch (\Throwable $e) {
@@ -33,17 +35,17 @@ class WhatsappConexaoController extends Controller
 
     public function status(): JsonResponse
     {
-        return response()->json(['success' => true, 'data' => $this->conexaoUseCase->status(Auth::user())]);
+        return response()->json(['success' => true, 'data' => $this->conexaoUseCase->status($this->tenantMemberOrAbort(Auth::user()))]);
     }
 
     public function qr(): JsonResponse
     {
-        return response()->json(['success' => true, 'data' => ['qrcode' => $this->conexaoUseCase->qrAtual(Auth::user())]]);
+        return response()->json(['success' => true, 'data' => ['qrcode' => $this->conexaoUseCase->qrAtual($this->tenantMemberOrAbort(Auth::user()))]]);
     }
 
     public function desconectar(): JsonResponse
     {
-        $this->conexaoUseCase->desconectar(Auth::user());
+        $this->conexaoUseCase->desconectar($this->tenantMemberOrAbort(Auth::user()));
 
         return response()->json(['success' => true]);
     }

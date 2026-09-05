@@ -19,9 +19,10 @@ class ComentariosRepository implements ComentariosRepositoryInterface
     public function clearComments(array $data)
     {
         try {
+            $empresaId = (int) app(\App\Support\TenantContext::class)->id();
             $leadIds = explode(',', $data['selectedLeadIds']);
-            array_map(function ($leadId) {
-                $this->model->where('contato_id', $leadId)->update([
+            array_map(function ($leadId) use ($empresaId) {
+                $this->model->where('contato_id', $leadId)->where('empresa_id', $empresaId)->update([
                     'visivel' => 'N',
                 ]);
             }, $leadIds);
@@ -35,9 +36,11 @@ class ComentariosRepository implements ComentariosRepositoryInterface
     public function clearCommentsOne($idMailing)
     {
         try {
-            $this->model->where('contato_id', $idMailing)->update([
-                'visivel' => 'N',
-            ]);
+            $this->model->where('contato_id', $idMailing)
+                ->where('empresa_id', app(\App\Support\TenantContext::class)->id())
+                ->update([
+                    'visivel' => 'N',
+                ]);
 
             return true;
         } catch (\Throwable $th) {
@@ -71,6 +74,7 @@ class ComentariosRepository implements ComentariosRepositoryInterface
         $user = Auth::user();
 
         return $this->model->where('contato_id', $contato_id)
+            ->where('empresa_id', app(\App\Support\TenantContext::class)->id())
             ->when($user->user_role_id == UserRole::VENDEDOR, function ($query) use ($user) {
                 $query->where(function ($subQuery) use ($user) {
                     $subQuery->where(function ($q) use ($user) {
@@ -90,9 +94,16 @@ class ComentariosRepository implements ComentariosRepositoryInterface
     {
         $user = Auth::user();
 
-        $comentarios = $this->model->leftJoin('users', 'users.id', '=', 'comentarios.user_id')
+        $comentarios = $this->model->leftJoin('users', function ($join) {
+            $join->on('users.id', '=', 'comentarios.user_id')
+                ->where(function ($visibility) {
+                    $visibility->whereColumn('users.empresa_id', 'comentarios.empresa_id')
+                        ->orWhere('users.is_platform_admin', true);
+                });
+        })
             ->leftJoin('user_roles', 'users.user_role_id', '=', 'user_roles.id')
             ->where('comentarios.contato_id', $contato_id)
+            ->where('comentarios.empresa_id', app(\App\Support\TenantContext::class)->id())
             ->when($user->user_role_id == UserRole::VENDEDOR, function ($query) use ($user) {
                 $query->where(function ($subQuery) use ($user) {
                     $subQuery->where(function ($q) use ($user) {
@@ -129,7 +140,7 @@ class ComentariosRepository implements ComentariosRepositoryInterface
 
         $comentario = $this->model
             ->where('id', $comentarioId)
-            ->where('empresa_id', $user->empresa_id)
+            ->where('empresa_id', app(\App\Support\TenantContext::class)->id())
             ->where('user_id', $user->id)
             ->first();
 
@@ -151,7 +162,7 @@ class ComentariosRepository implements ComentariosRepositoryInterface
 
         $comentario = $this->model
             ->where('id', $comentarioId)
-            ->where('empresa_id', $user->empresa_id)
+            ->where('empresa_id', app(\App\Support\TenantContext::class)->id())
             ->where('user_id', $user->id)
             ->first();
 

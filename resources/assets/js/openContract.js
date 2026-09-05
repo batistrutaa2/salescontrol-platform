@@ -41,18 +41,15 @@ $(function () {
       el.value = out;
     });
   }
-  function isOperadoraAmil() {
-    const $sel = $('#operadoraSelect');
-    const nome = ($sel.find(':selected').data('nome') || $sel.find(':selected').text() || '')
-      .toString().trim().toUpperCase();
-    return nome.includes('AMIL'); // considera qualquer variação
+  function usaCoparticipacaoDetalhada() {
+    return $('#operadoraSelect').find(':selected').attr('data-coparticipacao-formato') === 'PARCIAL_COMPLETA';
   }
-  function copartOptionsHtml(isAmil, current) {
-    const opts = isAmil ? ['PARCIAL', 'COMPLETA'] : ['Y', 'N'];
+  function copartOptionsHtml(detalhada, current) {
+    const opts = detalhada ? ['PARCIAL', 'COMPLETA'] : ['Y', 'N'];
     let html = '<option value="">Selecione...</option>';
     opts.forEach(v => {
       const sel = (current && current.toString().toUpperCase() === v) ? 'selected' : '';
-      html += `<option value="${v}" ${sel}>${isAmil ? v : (v === 'Y' ? 'SIM' : 'NÃO')}</option>`;
+      html += `<option value="${v}" ${sel}>${detalhada ? v : (v === 'Y' ? 'SIM' : 'NÃO')}</option>`;
     });
     return html;
   }
@@ -235,13 +232,13 @@ $(function () {
 
   // ===== Coparticipação por titular =====
   function atualizarCoparticipacaoTitulares() {
-    const amil = isOperadoraAmil();
+    const detalhada = usaCoparticipacaoDetalhada();
     $('.form-titular-update').each(function () {
       const $form = $(this);
       const $sel = $form.find('.select-coparticipacao');
       const current = ($sel.data('current') || $sel.val() || '').toString().toUpperCase();
-      $sel.html(copartOptionsHtml(amil, current));
-      $form.find('.label-coparticipacao').text(amil ? 'Coparticipação (Amil)' : 'Coparticipação');
+      $sel.html(copartOptionsHtml(detalhada, current));
+      $form.find('.label-coparticipacao').text('Coparticipação');
     });
   }
 
@@ -270,11 +267,11 @@ $(function () {
   }
 
   function atualizarCoparticipacaoModal() {
-    const amil = isOperadoraAmil();
+    const detalhada = usaCoparticipacaoDetalhada();
     const $selCop = $('#modalAddTitular .select-coparticipacao-modal');
     const $label = $('#modalAddTitular .label-coparticipacao-modal');
-    $selCop.html(copartOptionsHtml(amil, null));
-    $label.text(amil ? 'Coparticipação (Amil)' : 'Coparticipação');
+    $selCop.html(copartOptionsHtml(detalhada, null));
+    $label.text('Coparticipação');
   }
 
   // Ao abrir a modal, aplica máscara no telefone e carrega planos/copa
@@ -312,12 +309,10 @@ $(function () {
 
     atualizarCoparticipacaoTitulares();
 
-    // Auto-selecionar angariação para Supermed
-    const selectedName = ($(this).find(':selected').data('nome') || '').toString().trim().toUpperCase();
-    const isSupermed = selectedName === 'AMIL - SUPERMED';
+    const angariacaoPadrao = $(this).find(':selected').attr('data-angariacao-padrao') === '1';
     const $angariacaoSelect = $('#angariacao_status');
     if ($angariacaoSelect.length) {
-      $angariacaoSelect.val(isSupermed ? 'SIM' : 'NAO').trigger('change');
+      $angariacaoSelect.val(angariacaoPadrao ? 'SIM' : 'NAO').trigger('change');
     }
 
     // Se a modal estiver aberta, atualiza também

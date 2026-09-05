@@ -7,7 +7,7 @@ enum TipoDemandaContrato: string
     case ACESSO_EMPRESA = 'ACESSO_EMPRESA';
     case LOGIN_APPS = 'LOGIN_APPS';
     case TROCA_EMAIL = 'TROCA_EMAIL';
-    case CANCELAMENTO_QUALICORP = 'CANCELAMENTO_QUALICORP';
+    case CANCELAMENTO_INTERMEDIADORA = 'CANCELAMENTO_INTERMEDIADORA';
     case CANCELAMENTO_LIMITAR = 'CANCELAMENTO_LIMITAR';
     case BOAS_VINDAS = 'BOAS_VINDAS';
     case ENVIO_BOLETO = 'ENVIO_BOLETO';
@@ -29,7 +29,7 @@ enum TipoDemandaContrato: string
             self::ACESSO_EMPRESA => 'Acesso da Empresa',
             self::LOGIN_APPS => 'Login de Apps',
             self::TROCA_EMAIL => 'Alteração de E-mail',
-            self::CANCELAMENTO_QUALICORP => 'Cancelamento Qualicorp',
+            self::CANCELAMENTO_INTERMEDIADORA => 'Cancelamento na Intermediadora',
             self::CANCELAMENTO_LIMITAR => 'Cancelamento via Limitar',
             self::BOAS_VINDAS => 'Boas-vindas',
             self::ENVIO_BOLETO => 'Envio de Boleto',
@@ -57,7 +57,7 @@ enum TipoDemandaContrato: string
     {
         $cancelamentos = [
             self::CANCELAMENTO, self::CANCELAMENTO_OPERADORA_ANTERIOR,
-            self::CANCELAMENTO_QUALICORP, self::CANCELAMENTO_LIMITAR, self::CARTA_PERMANENCIA,
+            self::CANCELAMENTO_INTERMEDIADORA, self::CANCELAMENTO_LIMITAR, self::CARTA_PERMANENCIA,
         ];
         $acessos = [self::ACESSO_EMPRESA, self::LOGIN_APPS, self::ACESSO_BENEFICIARIO];
 

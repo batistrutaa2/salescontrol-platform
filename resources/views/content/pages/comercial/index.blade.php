@@ -769,7 +769,10 @@
         </div>
 
         <!-- Kanban Wrapper -->
-        <div class="kanban-wrapper"></div>
+        <div class="kanban-wrapper"
+             data-inatividade-alerta-dias="{{ $kanbanInatividade['alerta'] }}"
+             data-inatividade-urgente-dias="{{ $kanbanInatividade['urgente'] }}"
+             data-inatividade-critica-dias="{{ $kanbanInatividade['critica'] }}"></div>
 
 
 

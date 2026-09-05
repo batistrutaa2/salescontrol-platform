@@ -31,7 +31,6 @@
         3 => 'Backoffice',
         4 => 'Developer',
         5 => 'Supervisor',
-        6 => 'Benefícios',
     ];
 @endphp
 
@@ -52,7 +51,7 @@
             </div>
             <div class="esc-title-text">
                 <h4>Liberar Acesso</h4>
-                <span>Escolha quais usuários podem acessar a Escola LK Brokers.</span>
+                <span>Escolha quais usuários podem acessar a Academia Comercial.</span>
             </div>
         </div>
 

@@ -175,11 +175,15 @@
   function buildStaleBadge(dataUpdateStr) {
     const dt = parseDateBRorISO(dataUpdateStr);
     const diff = daysSince(dt);
-    if (diff === null || diff < 7) return '';
+    const alerta = Number(kanbanWrapper?.dataset.inatividadeAlertaDias);
+    const urgente = Number(kanbanWrapper?.dataset.inatividadeUrgenteDias);
+    const critica = Number(kanbanWrapper?.dataset.inatividadeCriticaDias);
+    if (!Number.isInteger(alerta) || !Number.isInteger(urgente) || !Number.isInteger(critica)) return '';
+    if (diff === null || diff < alerta) return '';
 
-    let staleClass = 'stale-warning';     // 7–13
-    if (diff >= 14 && diff < 20) staleClass = 'stale-danger'; // 14–19
-    if (diff >= 20) staleClass = 'stale-critical';            // 20+
+    let staleClass = 'stale-warning';
+    if (diff >= urgente && diff < critica) staleClass = 'stale-danger';
+    if (diff >= critica) staleClass = 'stale-critical';
 
     return `<span class="stale-badge ${staleClass}"><i class="ri-time-line"></i>${diff}d</span>`;
   }
@@ -247,10 +251,9 @@
 
   // Colunas onde o badge de "dias parado" não faz sentido (etapas por
   // agendamento ou processamento, não estagnação):
-  //  - FOLLOW-UP (13): tratativa futura agendada
-  //  - REUNIÃO (2): aguardando reunião
-  //  - DOCUMENTO (4): aguardando documentação
-  const STALE_EXEMPT_TABULACAO_IDS = new Set(['13', '2', '4']);
+  // As exceções são identificadas pelo código estável da etapa, nunca pelo ID
+  // local que cada empresa recebeu ao provisionar o próprio funil.
+  const STALE_EXEMPT_TABULACAO_CODES = new Set(['FOLLOW_UP', 'REUNIAO', 'DOCUMENTO']);
 
   // Formata telefone para "(11) 91234-5678" se vier só com dígitos.
   function formatPhoneBr(raw) {
@@ -280,8 +283,8 @@
     const userName = d['user-name'] || '';
     const showNameCard = d['show-name-card'] === true || d['show-name-card'] === 'true';
     const telefone = formatPhoneBr(d.telefone1);
-    const tabulacaoId = String(d['tabulacao-id'] || '');
-    const staleExempt = STALE_EXEMPT_TABULACAO_IDS.has(tabulacaoId);
+    const tabulacaoCodigo = String(d['tabulacao-codigo'] || '');
+    const staleExempt = STALE_EXEMPT_TABULACAO_CODES.has(tabulacaoCodigo);
     const staleBadge = staleExempt ? '' : buildStaleBadge(dataUpdate);
 
     const safeName = escapeHtml(nameOnCard);
@@ -499,8 +502,9 @@
     dropEl: function (el, target, source, sibling) {
       const contato_id = el.dataset.eid;
       const tabulacao_id = target.parentElement.dataset.id;
+      const tabulacaoCodigo = boards.find(board => String(board.id) === String(tabulacao_id))?.codigo;
 
-      if (tabulacao_id == 6) {
+      if (tabulacaoCodigo === 'NEGOCIO_NAO_FECHADO') {
         Swal.fire({
           title: 'Tem Certeza?',
           text: 'Esse cliente será descartado da sua lista de clientes!',
@@ -534,7 +538,7 @@
             });
           }
         });
-      } else if (tabulacao_id == 5) {
+      } else if (tabulacaoCodigo === 'NEGOCIO_FECHADO') {
         Swal.fire({
           title: '🎉 Parabéns Pela Venda.',
           text: 'Agora é importante emitir o contrato com as informações pessoais do cliente.',

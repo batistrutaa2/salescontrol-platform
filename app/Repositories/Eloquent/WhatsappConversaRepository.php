@@ -38,7 +38,11 @@ class WhatsappConversaRepository implements WhatsappConversaRepositoryInterface
     public function getConversasLista(int $empresaId, ?int $userId, ?string $busca = null, string $modo = 'ativas'): Collection
     {
         return $this->model
-            ->with(['contato:id,nome_cliente,plano,categoria', 'vendedor:id,name', 'tabulacao:id,descricao'])
+            ->with([
+                'contato' => fn ($query) => $query->select('id', 'nome_cliente', 'plano', 'categoria')->where('contatos.empresa_id', $empresaId),
+                'vendedor' => fn ($query) => $query->select('id', 'name')->tenantMember($empresaId),
+                'tabulacao' => fn ($query) => $query->select('id', 'descricao')->where('tabulacoes.empresa_id', $empresaId),
+            ])
             ->where('empresa_id', $empresaId)
             ->when($userId !== null, fn ($q) => $q->where('user_id', $userId))
             ->when($busca, function ($q) use ($busca) {
@@ -66,10 +70,14 @@ class WhatsappConversaRepository implements WhatsappConversaRepositoryInterface
     public function getConversasKanban(int $empresaId, ?int $userId): Collection
     {
         return $this->model
-            ->with(['contato:id,nome_cliente,telefone1', 'vendedor:id,name'])
+            ->with([
+                'contato' => fn ($query) => $query->select('id', 'nome_cliente', 'telefone1')->where('contatos.empresa_id', $empresaId),
+                'vendedor' => fn ($query) => $query->select('id', 'name')->tenantMember($empresaId),
+            ])
             ->leftJoin('contatos_corretores as cc', function ($join) {
                 $join->on('cc.contato_id', '=', 'whatsapp_conversas.contato_id')
-                    ->on('cc.user_id', '=', 'whatsapp_conversas.user_id');
+                    ->on('cc.user_id', '=', 'whatsapp_conversas.user_id')
+                    ->on('cc.empresa_id', '=', 'whatsapp_conversas.empresa_id');
             })
             ->select('whatsapp_conversas.*', 'cc.temperatura as lead_temperatura')
             ->where('whatsapp_conversas.empresa_id', $empresaId)
@@ -84,30 +92,49 @@ class WhatsappConversaRepository implements WhatsappConversaRepositoryInterface
     public function findParaUsuario(int $conversaId, int $empresaId, ?int $userId): ?WhatsappConversa
     {
         return $this->model
-            ->with(['contato', 'vendedor:id,name', 'instancia'])
+            ->with([
+                'contato' => fn ($query) => $query->where('contatos.empresa_id', $empresaId),
+                'vendedor' => fn ($query) => $query->select('id', 'name')->tenantMember($empresaId),
+                'instancia' => fn ($query) => $query->where('whatsapp_instancias.empresa_id', $empresaId),
+            ])
             ->where('id', $conversaId)
             ->where('empresa_id', $empresaId)
             ->when($userId !== null, fn ($q) => $q->where('user_id', $userId))
             ->first();
     }
 
-    public function changeStatusConversa(int $conversaId, int $tabulacaoId): bool
+    public function changeStatusConversa(int $conversaId, int $empresaId, int $tabulacaoId): bool
     {
-        return (bool) $this->model->where('id', $conversaId)->update(['tabulacao_id' => $tabulacaoId]);
+        $conversa = $this->model->where('id', $conversaId)->where('empresa_id', $empresaId)->first();
+        if (! $conversa) {
+            return false;
+        }
+
+        $conversa->tabulacao_id = $tabulacaoId;
+
+        return $conversa->save();
     }
 
-    public function vincularContato(int $conversaId, ?int $contatoId): bool
+    public function vincularContato(int $conversaId, int $empresaId, ?int $contatoId): bool
     {
-        return (bool) $this->model->where('id', $conversaId)->update(['contato_id' => $contatoId]);
+        $conversa = $this->model->where('id', $conversaId)->where('empresa_id', $empresaId)->first();
+        if (! $conversa) {
+            return false;
+        }
+
+        $conversa->contato_id = $contatoId;
+
+        return $conversa->save();
     }
 
-    public function zerarNaoLidas(int $conversaId): void
+    public function zerarNaoLidas(int $conversaId, int $empresaId): void
     {
-        $this->model->where('id', $conversaId)->update(['unread_count' => 0]);
+        $this->model->where('id', $conversaId)->where('empresa_id', $empresaId)->update(['unread_count' => 0]);
     }
 
-    public function setArquivada(int $conversaId, bool $arquivada): bool
+    public function setArquivada(int $conversaId, int $empresaId, bool $arquivada): bool
     {
-        return (bool) $this->model->where('id', $conversaId)->update(['arquivada' => $arquivada ? 'Y' : 'N']);
+        return (bool) $this->model->where('id', $conversaId)->where('empresa_id', $empresaId)
+            ->update(['arquivada' => $arquivada ? 'Y' : 'N']);
     }
 }

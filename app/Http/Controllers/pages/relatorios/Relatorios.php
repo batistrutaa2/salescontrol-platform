@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\pages\relatorios;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\LeadReservatorioItem;
@@ -15,10 +15,13 @@ use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Eloquent\ContatosCorretoresRepository;
 use App\Repositories\Eloquent\LigacoesRepository;
 use App\Repositories\Eloquent\UsuariosRepository;
+use App\Services\TabulationCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Throwable;
 
 class Relatorios extends Controller
 {
@@ -28,19 +31,23 @@ class Relatorios extends Controller
 
     protected ContatosCorretoresRepository $contatosCorretoresRepository;
 
+    protected TabulationCatalog $tabulationCatalog;
+
     public function __construct(
         LigacoesRepositoryInterface $ligacoesRepositoryInterface,
         UsuariosRepositoryInterface $usuariosRepositoryInterface,
-        ContatosCorretoresRepositoryInterface $ContatosCorretoresRepositoryInterface
+        ContatosCorretoresRepositoryInterface $ContatosCorretoresRepositoryInterface,
+        TabulationCatalog $tabulationCatalog
     ) {
         $this->ligacoesRepository = $ligacoesRepositoryInterface;
         $this->usuariosRepository = $usuariosRepositoryInterface;
         $this->contatosCorretoresRepository = $ContatosCorretoresRepositoryInterface;
+        $this->tabulationCatalog = $tabulationCatalog;
     }
 
     public function index()
     {
-        $user = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);
+        $user = $this->usuariosRepository->getUserByCompany($this->tenantId());
 
         return view('content.pages.relatorios.ligacoes', [
             'users' => $user,
@@ -49,6 +56,10 @@ class Relatorios extends Controller
 
     public function getLigacoes($id_user, $data_inicial, $data_final)
     {
+        User::query()
+            ->tenantMember($this->tenantId())
+            ->findOrFail($id_user);
+
         $ligacoes = $this->ligacoesRepository->getLigacoes($id_user, $data_inicial, $data_final);
         $filaAtual = $this->contatosCorretoresRepository->getQueueCurrent($id_user);
 
@@ -60,7 +71,7 @@ class Relatorios extends Controller
 
     public function predictiveReport()
     {
-        $users = $this->usuariosRepository->getUserByCompany(Auth::user()->empresa_id);
+        $users = $this->usuariosRepository->getUserByCompany($this->tenantId());
 
         return view('content.pages.relatorios.preditiva', [
             'usuarios' => $users,
@@ -69,10 +80,19 @@ class Relatorios extends Controller
 
     public function get(Request $request)
     {
-        $dataInicio = Carbon::parse($request->data_inicio)->startOfDay();
-        $dataFim = Carbon::parse($request->data_fim)->endOfDay();
-        $usuarioId = $request->usuario_id;
-        $empresaId = auth()->user()->empresa_id; // Assumindo que o usuário logado tem empresa_id
+        $empresaId = $this->tenantId();
+        $dados = $request->validate([
+            'data_inicio' => ['required', 'date_format:Y-m-d'],
+            'data_fim' => ['required', 'date_format:Y-m-d', 'after_or_equal:data_inicio'],
+            'usuario_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('is_platform_admin', false)),
+            ],
+        ]);
+        $dataInicio = Carbon::parse($dados['data_inicio'])->startOfDay();
+        $dataFim = Carbon::parse($dados['data_fim'])->endOfDay();
+        $usuarioId = $dados['usuario_id'] ?? null;
 
         // Consulta base nos logs de preditiva
         $query = LogPreditiva::whereBetween('created_at', [$dataInicio, $dataFim])
@@ -83,7 +103,13 @@ class Relatorios extends Controller
         }
 
         // Obter logs com relacionamentos
-        $logs = $query->with(['user', 'contato'])->get();
+        $logs = $query->with([
+            'user' => fn ($userQuery) => $userQuery->where(function ($tenantQuery) use ($empresaId) {
+                $tenantQuery->where('empresa_id', $empresaId)
+                    ->orWhere('is_platform_admin', true);
+            }),
+            'contato',
+        ])->get();
 
         // Preparar dados para a tabela
         $dadosTabela = $logs->map(function ($log) {
@@ -210,11 +236,11 @@ class Relatorios extends Controller
 
     public function performanceVendedor()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
-        $vendedores = User::where('empresa_id', $empresaId)
+        $vendedores = User::query()->tenantMember($empresaId)
             ->select('id', 'name')
-            ->where('user_role_id', 1)
+            ->where('user_role_id', UserRole::VENDEDOR)
             ->where('ativo', 'Y')
             ->orderBy('name')
             ->get();
@@ -226,28 +252,24 @@ class Relatorios extends Controller
 
     public function performanceVendedorData(Request $request)
     {
+        $empresaId = $this->tenantId();
+        $dados = $request->validate([
+            'vendedor_id' => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($query) => $query
+                    ->where('empresa_id', $empresaId)
+                    ->where('is_platform_admin', false)
+                    ->where('user_role_id', UserRole::VENDEDOR)),
+            ],
+            'ano' => ['nullable', 'integer', 'min:2020', 'max:'.(now()->year + 1)],
+        ]);
+
         try {
-            $empresaId = Auth::user()->empresa_id;
-            $vendedorId = $request->get('vendedor_id');
-
-            if (! $vendedorId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vendedor não informado.',
-                ], 422);
-            }
-
-            $vendedor = User::where('empresa_id', $empresaId)->find($vendedorId);
-
-            if (! $vendedor) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vendedor não encontrado.',
-                ], 404);
-            }
+            $vendedorId = (int) $dados['vendedor_id'];
 
             $anoAtual = (int) date('Y');
-            $anoFoco = (int) $request->get('ano', $anoAtual);
+            $anoFoco = (int) ($dados['ano'] ?? $anoAtual);
 
             // Tempo de casa derivado dos dados (1ª venda/atividade -> ano atual)
             $primeiroAno = $this->getPrimeiroAnoAtividade($empresaId, $vendedorId, $anoFoco);
@@ -293,10 +315,16 @@ class Relatorios extends Controller
                     'diagnostico' => $diagnostico,
                 ],
             ]);
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Falha ao carregar performance do vendedor.', [
+                'empresa_id' => $empresaId,
+                'vendedor_id' => $dados['vendedor_id'],
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao carregar dados: '.$e->getMessage(),
+                'message' => 'Não foi possível carregar os dados de performance.',
             ], 500);
         }
     }
@@ -306,19 +334,25 @@ class Relatorios extends Controller
      * ESTORNO (17) e DECLINADO (53) ficam de fora de propósito: o próprio enum os
      * classifica como "não conta como cadastrado", então não inflam a performance.
      */
-    private function tabulacoesVendaValida(): array
+    private function tabulacaoId(int $empresaId, string $code): int
     {
-        return [
-            Tabulations::VENDA,
-            Tabulations::IMPLANTADO,
-            Tabulations::PENDENCIA,
-            Tabulations::ANALISE_OPERADORA,
-            Tabulations::BOLETO_DISPONIVEL,
-            Tabulations::REGULARIZADO,
-            Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-            Tabulations::ANALISE_DOCUMENTOS,
-            Tabulations::AGUARD_ASSINATURA_DS,
-        ];
+        return $this->tabulationCatalog->id($empresaId, $code);
+    }
+
+    private function tabulacoesVendaValida(int $empresaId): array
+    {
+        return array_values($this->tabulationCatalog->requiredIds(
+            $empresaId,
+            TabulationCode::POS_VENDA_ELEGIVEIS
+        ));
+    }
+
+    private function tabulacoesCicloVenda(int $empresaId): array
+    {
+        return array_values($this->tabulationCatalog->requiredIds(
+            $empresaId,
+            [...TabulationCode::POS_VENDA_ELEGIVEIS, TabulationCode::ESTORNO]
+        ));
     }
 
     /**
@@ -344,6 +378,7 @@ class Relatorios extends Controller
     private function getPrimeiroAnoAtividade($empresaId, $vendedorId, $fallbackAno): int
     {
         $anoVenda = DB::table('vendas')
+            ->where('empresa_id', $empresaId)
             ->where('user_id', $vendedorId)
             ->min(DB::raw('YEAR(created_at)'));
 
@@ -359,12 +394,13 @@ class Relatorios extends Controller
 
     private function getEvolucaoAnualVendedor($empresaId, $vendedorId, $primeiroAno, $ultimoAno, ?string $cutoffMesDia = null): array
     {
-        $tabs = $this->tabulacoesVendaValida();
+        $tabs = $this->tabulacoesVendaValida((int) $empresaId);
         $valorExpr = $this->valorVendidoExpr();
 
         $vendasQuery = VendasModel::query()
+            ->where('empresa_id', $empresaId)
             ->where('user_id', $vendedorId)
-            ->whereHas('contatoCorretor', fn ($q) => $q->whereIn('tabulacao_id', $tabs));
+            ->whereIn('tabulacao_id', $tabs);
         $this->aplicarCutoffMesDia($vendasQuery, $cutoffMesDia);
 
         $vendasPorAno = $vendasQuery
@@ -479,13 +515,14 @@ class Relatorios extends Controller
 
     private function getComparativoMensal($empresaId, $vendedorId, int $anoFoco, ?int $mesLimiteFoco = null): array
     {
-        $tabs = $this->tabulacoesVendaValida();
+        $tabs = $this->tabulacoesVendaValida((int) $empresaId);
         $valorExpr = $this->valorVendidoExpr();
         $anoAnterior = $anoFoco - 1;
 
         $vendas = VendasModel::query()
+            ->where('empresa_id', $empresaId)
             ->where('user_id', $vendedorId)
-            ->whereHas('contatoCorretor', fn ($q) => $q->whereIn('tabulacao_id', $tabs))
+            ->whereIn('tabulacao_id', $tabs)
             ->whereRaw('YEAR(created_at) IN (?, ?)', [$anoFoco, $anoAnterior])
             ->selectRaw("YEAR(created_at) as ano, MONTH(created_at) as mes, COUNT(*) as total_vendas, SUM($valorExpr) as valor")
             ->groupBy(DB::raw('YEAR(created_at)'), DB::raw('MONTH(created_at)'))
@@ -676,7 +713,7 @@ class Relatorios extends Controller
     public function implantacoesList(Request $request)
     {
         $filtros = $this->aplicarFiltrosImplantacao($request);
-        $perPage = $request->get('per_page', 20);
+        $perPage = $filtros['per_page'] ?? 20;
         $vendas = $this->getImplantacoesTotais($filtros, $perPage);
 
         return response()->json([
@@ -695,49 +732,57 @@ class Relatorios extends Controller
 
     private function aplicarFiltrosImplantacao($request)
     {
+        $empresaId = $this->tenantId();
+        $dados = $request->validate([
+            'ano' => ['nullable', 'integer', 'min:2020', 'max:'.(now()->year + 1)],
+            'mes' => ['nullable', 'integer', 'between:1,12'],
+            'vendedor_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($query) => $query
+                    ->where('empresa_id', $empresaId)
+                    ->where('is_platform_admin', false)
+                    ->where('user_role_id', UserRole::VENDEDOR)),
+            ],
+            'operadora' => ['nullable', 'string', 'max:255'],
+            'data_inicio' => ['nullable', 'date_format:Y-m-d', 'required_with:data_fim'],
+            'data_fim' => ['nullable', 'date_format:Y-m-d', 'required_with:data_inicio', 'after_or_equal:data_inicio'],
+            'per_page' => ['nullable', 'integer', 'between:1,100'],
+        ]);
+
         return [
-            'ano' => $request->get('ano'),
-            'mes' => $request->get('mes'),
-            'vendedor_id' => $request->get('vendedor_id'),
-            'operadora' => $request->get('operadora'),
-            'data_inicio' => $request->get('data_inicio'),
-            'data_fim' => $request->get('data_fim'),
-            'empresa_id' => Auth::user()->empresa_id,
+            'ano' => $dados['ano'] ?? null,
+            'mes' => $dados['mes'] ?? null,
+            'vendedor_id' => $dados['vendedor_id'] ?? null,
+            'operadora' => $dados['operadora'] ?? null,
+            'data_inicio' => $dados['data_inicio'] ?? null,
+            'data_fim' => $dados['data_fim'] ?? null,
+            'per_page' => $dados['per_page'] ?? null,
+            'empresa_id' => $empresaId,
         ];
     }
 
     private function aplicarFiltroEmpresa($query)
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
-        return $query->whereHas('user', function ($q) use ($empresaId) {
-            $q->where('empresa_id', $empresaId);
-        });
+        return $query->where('vendas.empresa_id', $empresaId);
     }
 
     private function aplicarFiltroStatusImplantado($query)
     {
-        return $query->whereHas('contatoCorretor', function ($q) {
-            $q->where('tabulacao_id', Tabulations::IMPLANTADO);
-        });
+        return $query->where(
+            'vendas.tabulacao_id',
+            $this->tabulacaoId($this->tenantId(), TabulationCode::IMPLANTADO)
+        );
     }
 
     private function aplicarFiltroStatusVenda($query)
     {
-        return $query->whereHas('contatoCorretor', function ($q) {
-            $q->whereIn('tabulacao_id', [
-                Tabulations::VENDA,
-                Tabulations::IMPLANTADO,
-                Tabulations::ESTORNO,
-                Tabulations::PENDENCIA,
-                Tabulations::ANALISE_OPERADORA,
-                Tabulations::BOLETO_DISPONIVEL,
-                Tabulations::REGULARIZADO,
-                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                Tabulations::ANALISE_DOCUMENTOS,
-                Tabulations::AGUARD_ASSINATURA_DS,
-            ]);
-        });
+        return $query->whereIn(
+            'vendas.tabulacao_id',
+            $this->tabulacoesCicloVenda($this->tenantId())
+        );
     }
 
     private function getImplantacoesTotais($filtros, $perPage = null)
@@ -818,15 +863,20 @@ class Relatorios extends Controller
 
     private function getImplantacoesPorVendedor($filtros)
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         $query = VendasModel::select(
             'users.name as vendedor',
             DB::raw('COUNT(*) as total_vendas'),
             DB::raw('SUM(valor_contrato) as valor_total'),
             DB::raw('SUM(vidas) as total_vidas')
-        )->join('users', 'vendas.user_id', '=', 'users.id')
-            ->where('users.empresa_id', $empresaId);
+        )->join('users', function ($join) {
+            $join->on('vendas.user_id', '=', 'users.id')
+                ->on('users.empresa_id', '=', 'vendas.empresa_id')
+                ->where('users.is_platform_admin', false);
+        })
+            ->where('users.empresa_id', $empresaId)
+            ->where('vendas.empresa_id', $empresaId);
 
         if ($filtros['ano']) {
             $query->whereYear('vendas.data_implantacao', $filtros['ano']);
@@ -986,7 +1036,7 @@ class Relatorios extends Controller
 
     private function getVendedoresPorEmpresa()
     {
-        return User::where('empresa_id', Auth::user()->empresa_id)
+        return User::query()->tenantMember($this->tenantId())
             ->where('user_role_id', UserRole::VENDEDOR)
             ->select('id', 'name')
             ->orderBy('name')
@@ -1022,20 +1072,18 @@ class Relatorios extends Controller
 
     public function desempenhoAnual()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         // Buscar vendedores da empresa
-        $vendedores = User::where('empresa_id', $empresaId)
+        $vendedores = User::query()->tenantMember($empresaId)
             ->select('id', 'name')
-            ->where('user_role_id', 1)
+            ->where('user_role_id', UserRole::VENDEDOR)
             ->where('ativo', 'Y')
             ->orderBy('name')
             ->get();
 
         // Buscar anos disponíveis
-        $anos = VendasModel::whereHas('user', function ($q) use ($empresaId) {
-            $q->where('empresa_id', $empresaId);
-        })
+        $anos = VendasModel::where('empresa_id', $empresaId)
             ->select(DB::raw('YEAR(created_at) as ano'))
             ->distinct()
             ->orderBy('ano', 'desc')
@@ -1049,14 +1097,22 @@ class Relatorios extends Controller
 
     public function desempenhoAnualData(Request $request)
     {
-        try {
-            $empresaId = Auth::user()->empresa_id;
-            $ano = $request->get('ano', date('Y'));
-            $vendedorId = $request->get('vendedor_id');
+        $empresaId = $this->tenantId();
+        $dados = $request->validate([
+            'ano' => ['nullable', 'integer', 'min:2020', 'max:'.(now()->year + 1)],
+            'vendedor_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($query) => $query
+                    ->where('empresa_id', $empresaId)
+                    ->where('is_platform_admin', false)
+                    ->where('user_role_id', UserRole::VENDEDOR)),
+            ],
+        ]);
 
-            // Definir intervalo do ano
-            $dataInicio = Carbon::create($ano, 1, 1)->startOfDay();
-            $dataFim = Carbon::create($ano, 12, 31)->endOfDay();
+        try {
+            $ano = (int) ($dados['ano'] ?? date('Y'));
+            $vendedorId = $dados['vendedor_id'] ?? null;
 
             // 1. Estatísticas gerais do ano
             $estatisticasGerais = $this->getEstatisticasGeraisAno($empresaId, $ano, $vendedorId);
@@ -1103,10 +1159,16 @@ class Relatorios extends Controller
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Falha ao carregar relatório de desempenho anual.', [
+                'empresa_id' => $empresaId,
+                'vendedor_id' => $dados['vendedor_id'] ?? null,
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao carregar dados: '.$e->getMessage(),
+                'message' => 'Não foi possível carregar os dados do relatório.',
             ], 500);
         }
     }
@@ -1115,8 +1177,12 @@ class Relatorios extends Controller
     {
         // Leads únicos trabalhados no ano
         $queryLeads = DB::table('lead_atividades as la')
-            ->join('contatos as c', 'c.id', '=', 'la.contato_id')
+            ->join('contatos as c', function ($join) {
+                $join->on('c.id', '=', 'la.contato_id')
+                    ->on('c.empresa_id', '=', 'la.empresa_id');
+            })
             ->where('la.empresa_id', $empresaId)
+            ->where('c.empresa_id', $empresaId)
             ->whereYear('la.created_at', $ano);
 
         if ($vendedorId) {
@@ -1126,23 +1192,8 @@ class Relatorios extends Controller
         $totalLeadsUnicos = $queryLeads->distinct('la.contato_id')->count('la.contato_id');
 
         // Vendas realizadas
-        $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
-            $q->where('empresa_id', $empresaId);
-        })
-            ->whereHas('contatoCorretor', function ($q) {
-                $q->whereIn('tabulacao_id', [
-                    Tabulations::VENDA,
-                    Tabulations::IMPLANTADO,
-                    Tabulations::ESTORNO,
-                    Tabulations::PENDENCIA,
-                    Tabulations::ANALISE_OPERADORA,
-                    Tabulations::BOLETO_DISPONIVEL,
-                    Tabulations::REGULARIZADO,
-                    Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                    Tabulations::ANALISE_DOCUMENTOS,
-                    Tabulations::AGUARD_ASSINATURA_DS,
-                ]);
-            })
+        $queryVendas = VendasModel::where('empresa_id', $empresaId)
+            ->whereIn('tabulacao_id', $this->tabulacoesCicloVenda((int) $empresaId))
             ->whereYear('vendas.created_at', $ano);
 
         if ($vendedorId) {
@@ -1186,23 +1237,8 @@ class Relatorios extends Controller
             $leadsUnicos = $queryLeads->distinct('la.contato_id')->count('la.contato_id');
 
             // Vendas do trimestre
-            $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
-                $q->where('empresa_id', $empresaId);
-            })
-                ->whereHas('contatoCorretor', function ($q) {
-                    $q->whereIn('tabulacao_id', [
-                        Tabulations::VENDA,
-                        Tabulations::IMPLANTADO,
-                        Tabulations::ESTORNO,
-                        Tabulations::PENDENCIA,
-                        Tabulations::ANALISE_OPERADORA,
-                        Tabulations::BOLETO_DISPONIVEL,
-                        Tabulations::REGULARIZADO,
-                        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                        Tabulations::ANALISE_DOCUMENTOS,
-                        Tabulations::AGUARD_ASSINATURA_DS,
-                    ]);
-                })
+            $queryVendas = VendasModel::where('empresa_id', $empresaId)
+                ->whereIn('tabulacao_id', $this->tabulacoesCicloVenda((int) $empresaId))
                 ->whereYear('vendas.created_at', $ano)
                 ->whereRaw('MONTH(vendas.created_at) BETWEEN ? AND ?', [$mesInicio, $mesFim]);
 
@@ -1250,23 +1286,8 @@ class Relatorios extends Controller
             $leadsUnicos = $queryLeads->distinct('la.contato_id')->count('la.contato_id');
 
             // Vendas do mês
-            $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
-                $q->where('empresa_id', $empresaId);
-            })
-                ->whereHas('contatoCorretor', function ($q) {
-                    $q->whereIn('tabulacao_id', [
-                        Tabulations::VENDA,
-                        Tabulations::IMPLANTADO,
-                        Tabulations::ESTORNO,
-                        Tabulations::PENDENCIA,
-                        Tabulations::ANALISE_OPERADORA,
-                        Tabulations::BOLETO_DISPONIVEL,
-                        Tabulations::REGULARIZADO,
-                        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                        Tabulations::ANALISE_DOCUMENTOS,
-                        Tabulations::AGUARD_ASSINATURA_DS,
-                    ]);
-                })
+            $queryVendas = VendasModel::where('empresa_id', $empresaId)
+                ->whereIn('tabulacao_id', $this->tabulacoesCicloVenda((int) $empresaId))
                 ->whereYear('vendas.created_at', $ano)
                 ->whereMonth('vendas.created_at', $mes);
 
@@ -1297,23 +1318,8 @@ class Relatorios extends Controller
             DB::raw('COUNT(*) as total_vendas'),
             DB::raw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as valor_total')
         )
-            ->whereHas('user', function ($q) use ($empresaId) {
-                $q->where('empresa_id', $empresaId);
-            })
-            ->whereHas('contatoCorretor', function ($q) {
-                $q->whereIn('tabulacao_id', [
-                    Tabulations::VENDA,
-                    Tabulations::IMPLANTADO,
-                    Tabulations::ESTORNO,
-                    Tabulations::PENDENCIA,
-                    Tabulations::ANALISE_OPERADORA,
-                    Tabulations::BOLETO_DISPONIVEL,
-                    Tabulations::REGULARIZADO,
-                    Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                    Tabulations::ANALISE_DOCUMENTOS,
-                    Tabulations::AGUARD_ASSINATURA_DS,
-                ]);
-            })
+            ->where('empresa_id', $empresaId)
+            ->whereIn('tabulacao_id', $this->tabulacoesCicloVenda((int) $empresaId))
             ->whereYear('vendas.created_at', $ano);
 
         if ($vendedorId) {
@@ -1335,23 +1341,8 @@ class Relatorios extends Controller
             DB::raw('SUM(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as valor_total'),
             DB::raw('AVG(valor_contrato + CASE WHEN angariacao_status = "SIM" THEN angariacao_valor ELSE 0 END) as ticket_medio')
         )
-            ->whereHas('user', function ($q) use ($empresaId) {
-                $q->where('empresa_id', $empresaId);
-            })
-            ->whereHas('contatoCorretor', function ($q) {
-                $q->whereIn('tabulacao_id', [
-                    Tabulations::VENDA,
-                    Tabulations::IMPLANTADO,
-                    Tabulations::ESTORNO,
-                    Tabulations::PENDENCIA,
-                    Tabulations::ANALISE_OPERADORA,
-                    Tabulations::BOLETO_DISPONIVEL,
-                    Tabulations::REGULARIZADO,
-                    Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                    Tabulations::ANALISE_DOCUMENTOS,
-                    Tabulations::AGUARD_ASSINATURA_DS,
-                ]);
-            })
+            ->where('empresa_id', $empresaId)
+            ->whereIn('tabulacao_id', $this->tabulacoesCicloVenda((int) $empresaId))
             ->whereYear('vendas.created_at', $ano);
 
         if ($vendedorId) {
@@ -1380,23 +1371,8 @@ class Relatorios extends Controller
 
             $leadsUnicos = $queryLeads->distinct('la.contato_id')->count('la.contato_id');
 
-            $queryVendas = VendasModel::whereHas('user', function ($q) use ($empresaId) {
-                $q->where('empresa_id', $empresaId);
-            })
-                ->whereHas('contatoCorretor', function ($q) {
-                    $q->whereIn('tabulacao_id', [
-                        Tabulations::VENDA,
-                        Tabulations::IMPLANTADO,
-                        Tabulations::ESTORNO,
-                        Tabulations::PENDENCIA,
-                        Tabulations::ANALISE_OPERADORA,
-                        Tabulations::BOLETO_DISPONIVEL,
-                        Tabulations::REGULARIZADO,
-                        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                        Tabulations::ANALISE_DOCUMENTOS,
-                        Tabulations::AGUARD_ASSINATURA_DS,
-                    ]);
-                })
+            $queryVendas = VendasModel::where('empresa_id', $empresaId)
+                ->whereIn('tabulacao_id', $this->tabulacoesCicloVenda((int) $empresaId))
                 ->whereYear('vendas.created_at', $ano)
                 ->whereMonth('vendas.created_at', $mes);
 
@@ -1437,18 +1413,7 @@ class Relatorios extends Controller
             )
             ->where('v.empresa_id', $empresaId)
             ->whereYear('v.created_at', $ano)
-            ->whereIn('v.tabulacao_id', [
-                Tabulations::VENDA,
-                Tabulations::IMPLANTADO,
-                Tabulations::ESTORNO,
-                Tabulations::PENDENCIA,
-                Tabulations::ANALISE_OPERADORA,
-                Tabulations::BOLETO_DISPONIVEL,
-                Tabulations::REGULARIZADO,
-                Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-                Tabulations::ANALISE_DOCUMENTOS,
-                Tabulations::AGUARD_ASSINATURA_DS,
-            ])
+            ->whereIn('v.tabulacao_id', $this->tabulacoesCicloVenda((int) $empresaId))
             ->groupBy('v.user_id');
 
         return DB::table('users as u')
@@ -1460,7 +1425,7 @@ class Relatorios extends Controller
             })
             ->where('u.empresa_id', $empresaId)
             ->where('u.ativo', 'Y')
-            ->where('u.user_role_id', 1)
+            ->where('u.user_role_id', UserRole::VENDEDOR)
             ->select(
                 'u.id',
                 'u.name as vendedor',
@@ -1476,7 +1441,7 @@ class Relatorios extends Controller
 
     private function getDetalhesVendedor($empresaId, $ano, $vendedorId)
     {
-        $vendedor = User::find($vendedorId);
+        $vendedor = User::query()->tenantMember((int) $empresaId)->find($vendedorId);
 
         if (! $vendedor) {
             return null;
@@ -1488,6 +1453,7 @@ class Relatorios extends Controller
             'operadora',
             DB::raw('COUNT(*) as total')
         )
+            ->where('empresa_id', $empresaId)
             ->where('user_id', $vendedorId)
             ->whereYear('created_at', $ano)
             ->whereNotNull('nome_plano')
@@ -1523,7 +1489,7 @@ class Relatorios extends Controller
             'data_final' => 'nullable|date_format:Y-m-d|required_with:data_inicial|after_or_equal:data_inicial',
         ]);
 
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
         $dataInicial = $request->filled('data_inicial') ? Carbon::parse($request->input('data_inicial'))->startOfDay() : null;
         $dataFinal = $request->filled('data_final') ? Carbon::parse($request->input('data_final'))->endOfDay() : null;
 
@@ -1532,10 +1498,12 @@ class Relatorios extends Controller
                 $query->whereBetween($coluna, [$dataInicial, $dataFinal]);
             }
         };
-        $tabulacoesVendaValida = $this->tabulacoesVendaValida();
+        $tabulacoesVendaValida = $this->tabulacoesVendaValida((int) $empresaId);
+        $implantadoId = $this->tabulacaoId((int) $empresaId, TabulationCode::IMPLANTADO);
+        $remarketingId = $this->tabulacaoId((int) $empresaId, TabulationCode::REMARKETING);
         $tabulacoesFilaImplantacao = array_values(array_diff(
             $tabulacoesVendaValida,
-            [Tabulations::IMPLANTADO]
+            [$implantadoId]
         ));
 
         // O filtro representa uma coorte: em todos os blocos abaixo, o período é
@@ -1548,37 +1516,57 @@ class Relatorios extends Controller
         // Leads que já tiveram atribuição. Remarketing continua sendo uma atribuição,
         // mas aparece separado de "em trabalho com vendedores" abaixo.
         $leadsDistribuidosQuery = DB::table('contatos_corretores')
-            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
-            ->where('contatos_corretores.empresa_id', $empresaId);
+            ->join('contatos', function ($join) {
+                $join->on('contatos_corretores.contato_id', '=', 'contatos.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'contatos.empresa_id');
+            })
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('contatos.empresa_id', $empresaId);
         $aplicarPeriodoDoLead($leadsDistribuidosQuery);
         $leadsDistribuidos = $leadsDistribuidosQuery->distinct()->count('contatos_corretores.contato_id');
 
         // Em trabalho comercial: lead ativo, com vendedor e em tabulação comercial.
         // Remarketing não é trabalho ativo e, por isso, não entra neste número.
         $leadsComercialQuery = DB::table('contatos_corretores')
-            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
-            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+            ->join('contatos', function ($join) {
+                $join->on('contatos_corretores.contato_id', '=', 'contatos.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'contatos.empresa_id');
+            })
+            ->join('tabulacoes', function ($join) {
+                $join->on('contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'tabulacoes.empresa_id');
+            })
             ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('contatos.empresa_id', $empresaId)
+            ->where('tabulacoes.empresa_id', $empresaId)
             ->where('contatos.status', 'Y')
             ->where('tabulacoes.tipo_tabulacao', 'C')
-            ->where('tabulacoes.id', '!=', Tabulations::REMARKETING);
+            ->where('tabulacoes.id', '!=', $remarketingId);
         $aplicarPeriodoDoLead($leadsComercialQuery);
         $leadsComercial = $leadsComercialQuery->distinct()->count('contatos_corretores.contato_id');
 
         // Preditiva: apenas a fila atual. Registros inativos são históricos e um mesmo
         // lead é contado uma única vez, ainda que tenha retornado à fila.
         $leadsPreditivaQuery = DB::table('preditiva')
-            ->join('contatos', 'preditiva.contato_id', '=', 'contatos.id')
+            ->join('contatos', function ($join) {
+                $join->on('preditiva.contato_id', '=', 'contatos.id')
+                    ->on('preditiva.empresa_id', '=', 'contatos.empresa_id');
+            })
             ->where('preditiva.empresa_id', $empresaId)
+            ->where('contatos.empresa_id', $empresaId)
             ->where('preditiva.status', 'Y');
         $aplicarPeriodoDoLead($leadsPreditivaQuery);
         $leadsPreditiva = $leadsPreditivaQuery->distinct()->count('preditiva.contato_id');
 
         $leadsRemarketingQuery = DB::table('contatos_corretores')
-            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->join('contatos', function ($join) {
+                $join->on('contatos_corretores.contato_id', '=', 'contatos.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'contatos.empresa_id');
+            })
             ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('contatos.empresa_id', $empresaId)
             ->where('contatos.status', 'Y')
-            ->where('contatos_corretores.tabulacao_id', Tabulations::REMARKETING);
+            ->where('contatos_corretores.tabulacao_id', $remarketingId);
         $aplicarPeriodoDoLead($leadsRemarketingQuery);
         $leadsRemarketing = $leadsRemarketingQuery->distinct()->count('contatos_corretores.contato_id');
 
@@ -1586,7 +1574,10 @@ class Relatorios extends Controller
         // que ainda não foram distribuídos. As salvaguardas abaixo evitam contar
         // itens disponíveis que tenham ficado obsoletos antes da sincronização da fila.
         $leadsReservatorioQuery = DB::table('lead_reservatorio_itens as reservatorio')
-            ->join('contatos', 'contatos.id', '=', 'reservatorio.contato_id')
+            ->join('contatos', function ($join) {
+                $join->on('contatos.id', '=', 'reservatorio.contato_id')
+                    ->on('contatos.empresa_id', '=', 'reservatorio.empresa_id');
+            })
             ->where('reservatorio.empresa_id', $empresaId)
             ->where('reservatorio.status', LeadReservatorioItem::STATUS_DISPONIVEL)
             ->where('contatos.empresa_id', $empresaId)
@@ -1616,8 +1607,12 @@ class Relatorios extends Controller
 
         $contarLeadsPorStatusDaVenda = function (array $tabulacoes) use ($empresaId, $aplicarPeriodoDoLead): int {
             $query = DB::table('vendas')
-                ->join('contatos', 'contatos.id', '=', 'vendas.contato_id')
+                ->join('contatos', function ($join) {
+                    $join->on('contatos.id', '=', 'vendas.contato_id')
+                        ->on('contatos.empresa_id', '=', 'vendas.empresa_id');
+                })
                 ->where('vendas.empresa_id', $empresaId)
+                ->where('contatos.empresa_id', $empresaId)
                 ->whereIn('vendas.tabulacao_id', $tabulacoes);
             $aplicarPeriodoDoLead($query);
 
@@ -1628,9 +1623,13 @@ class Relatorios extends Controller
         // somente a fila em implantação; implantado, declinado e estornado são saídas.
         $leadsAdministrativo = $contarLeadsPorStatusDaVenda($tabulacoesFilaImplantacao);
         $leadsViraramVenda = $contarLeadsPorStatusDaVenda($tabulacoesVendaValida);
-        $leadsCarteiraClientes = $contarLeadsPorStatusDaVenda([Tabulations::IMPLANTADO]);
-        $leadsDeclinados = $contarLeadsPorStatusDaVenda([Tabulations::DECLINIO]);
-        $leadsEstornados = $contarLeadsPorStatusDaVenda([Tabulations::ESTORNO]);
+        $leadsCarteiraClientes = $contarLeadsPorStatusDaVenda([$implantadoId]);
+        $leadsDeclinados = $contarLeadsPorStatusDaVenda([
+            $this->tabulacaoId((int) $empresaId, TabulationCode::DECLINADO),
+        ]);
+        $leadsEstornados = $contarLeadsPorStatusDaVenda([
+            $this->tabulacaoId((int) $empresaId, TabulationCode::ESTORNO),
+        ]);
 
         // Leads descartados (status = 'N')
         $leadsDescartadosQuery = DB::table('contatos')
@@ -1642,10 +1641,18 @@ class Relatorios extends Controller
 
         // Distribuição por status (tabulações) - Todos
         $distribuicaoPorStatus = DB::table('contatos_corretores')
-            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
-            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->join('tabulacoes', function ($join) {
+                $join->on('contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'tabulacoes.empresa_id');
+            })
+            ->join('contatos', function ($join) {
+                $join->on('contatos_corretores.contato_id', '=', 'contatos.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'contatos.empresa_id');
+            })
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
-            ->where('contatos_corretores.empresa_id', $empresaId);
+            ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('contatos.empresa_id', $empresaId)
+            ->where('tabulacoes.empresa_id', $empresaId);
 
         $aplicarPeriodoDoLead($distribuicaoPorStatus);
 
@@ -1657,13 +1664,21 @@ class Relatorios extends Controller
         // Distribuição comercial: todos os status comerciais atuais, exceto
         // remarketing, sem depender de uma lista fixa de nomes.
         $distribuicaoComercial = DB::table('contatos_corretores')
-            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
-            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->join('tabulacoes', function ($join) {
+                $join->on('contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'tabulacoes.empresa_id');
+            })
+            ->join('contatos', function ($join) {
+                $join->on('contatos_corretores.contato_id', '=', 'contatos.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'contatos.empresa_id');
+            })
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
             ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('contatos.empresa_id', $empresaId)
+            ->where('tabulacoes.empresa_id', $empresaId)
             ->where('contatos.status', 'Y')
             ->where('tabulacoes.tipo_tabulacao', 'C')
-            ->where('tabulacoes.id', '!=', Tabulations::REMARKETING);
+            ->where('tabulacoes.id', '!=', $remarketingId);
         $aplicarPeriodoDoLead($distribuicaoComercial);
 
         $distribuicaoComercial = $distribuicaoComercial
@@ -1672,10 +1687,18 @@ class Relatorios extends Controller
             ->get();
 
         $distribuicaoAdministrativa = DB::table('vendas')
-            ->join('tabulacoes', 'vendas.tabulacao_id', '=', 'tabulacoes.id')
-            ->join('contatos', 'vendas.contato_id', '=', 'contatos.id')
+            ->join('tabulacoes', function ($join) {
+                $join->on('vendas.tabulacao_id', '=', 'tabulacoes.id')
+                    ->on('vendas.empresa_id', '=', 'tabulacoes.empresa_id');
+            })
+            ->join('contatos', function ($join) {
+                $join->on('vendas.contato_id', '=', 'contatos.id')
+                    ->on('vendas.empresa_id', '=', 'contatos.empresa_id');
+            })
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT vendas.contato_id) as total'))
             ->where('vendas.empresa_id', $empresaId)
+            ->where('contatos.empresa_id', $empresaId)
+            ->where('tabulacoes.empresa_id', $empresaId)
             ->whereIn('vendas.tabulacao_id', $tabulacoesFilaImplantacao);
         $aplicarPeriodoDoLead($distribuicaoAdministrativa);
 
@@ -1686,13 +1709,21 @@ class Relatorios extends Controller
 
         // Distribuição de Descarte - sub_tabulacao = 'Y' + REMARKETING
         $distribuicaoDescarte = DB::table('contatos_corretores')
-            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
-            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
+            ->join('tabulacoes', function ($join) {
+                $join->on('contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'tabulacoes.empresa_id');
+            })
+            ->join('contatos', function ($join) {
+                $join->on('contatos_corretores.contato_id', '=', 'contatos.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'contatos.empresa_id');
+            })
             ->select('tabulacoes.descricao', DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total'))
             ->where('contatos_corretores.empresa_id', $empresaId)
-            ->where(function ($query) {
+            ->where('contatos.empresa_id', $empresaId)
+            ->where('tabulacoes.empresa_id', $empresaId)
+            ->where(function ($query) use ($remarketingId) {
                 $query->where('tabulacoes.sub_tabulacao', 'Y')
-                    ->orWhere('tabulacoes.descricao', 'REMARKETING');
+                    ->orWhere('tabulacoes.id', $remarketingId);
             });
 
         $aplicarPeriodoDoLead($distribuicaoDescarte);
@@ -1704,22 +1735,31 @@ class Relatorios extends Controller
 
         // Motivos de Descarte - distribuição por subtabulação dos leads descartados
         $motivosDescarte = DB::table('contatos_corretores')
-            ->join('tabulacoes', 'contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
-            ->join('contatos', 'contatos_corretores.contato_id', '=', 'contatos.id')
-            ->leftJoin('tabulacoes as sub_tab', 'contatos_corretores.sub_tabulacao_id', '=', 'sub_tab.id')
-            ->select(
-                DB::raw('CASE
+            ->join('tabulacoes', function ($join) {
+                $join->on('contatos_corretores.tabulacao_id', '=', 'tabulacoes.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'tabulacoes.empresa_id');
+            })
+            ->join('contatos', function ($join) {
+                $join->on('contatos_corretores.contato_id', '=', 'contatos.id')
+                    ->on('contatos_corretores.empresa_id', '=', 'contatos.empresa_id');
+            })
+            ->leftJoin('tabulacoes as sub_tab', function ($join) {
+                $join->on('contatos_corretores.sub_tabulacao_id', '=', 'sub_tab.id')
+                    ->on('sub_tab.empresa_id', '=', 'contatos_corretores.empresa_id');
+            })
+            ->selectRaw('CASE
                     WHEN sub_tab.descricao IS NOT NULL THEN sub_tab.descricao
-                    WHEN tabulacoes.descricao = "REMARKETING" THEN "REMARKETING"
+                    WHEN tabulacoes.id = ? THEN tabulacoes.descricao
                     WHEN tabulacoes.sub_tabulacao = "Y" THEN "Sem motivo especificado"
                     ELSE "Sem motivo"
-                END as motivo'),
-                DB::raw('COUNT(DISTINCT contatos_corretores.contato_id) as total')
-            )
+                END as motivo', [$remarketingId])
+            ->selectRaw('COUNT(DISTINCT contatos_corretores.contato_id) as total')
             ->where('contatos_corretores.empresa_id', $empresaId)
-            ->where(function ($query) {
+            ->where('contatos.empresa_id', $empresaId)
+            ->where('tabulacoes.empresa_id', $empresaId)
+            ->where(function ($query) use ($remarketingId) {
                 $query->where('tabulacoes.sub_tabulacao', 'Y')
-                    ->orWhere('tabulacoes.descricao', 'REMARKETING');
+                    ->orWhere('tabulacoes.id', $remarketingId);
             });
 
         $aplicarPeriodoDoLead($motivosDescarte);
@@ -1762,15 +1802,28 @@ class Relatorios extends Controller
         // Ranking operacional: a coluna administrativa também usa vendas, para ficar
         // coerente com a fila de implantação exibida no restante do relatório.
         $rankingVendedores = DB::table('contatos_corretores')
-            ->join('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
-            ->join('users', 'users.id', '=', 'contatos_corretores.user_id')
-            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+            ->join('contatos', function ($join) {
+                $join->on('contatos.id', '=', 'contatos_corretores.contato_id')
+                    ->on('contatos.empresa_id', '=', 'contatos_corretores.empresa_id');
+            })
+            ->join('users', function ($join) {
+                $join->on('users.id', '=', 'contatos_corretores.user_id')
+                    ->on('users.empresa_id', '=', 'contatos_corretores.empresa_id')
+                    ->where('users.is_platform_admin', false);
+            })
+            ->leftJoin('tabulacoes', function ($join) {
+                $join->on('tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+                    ->on('tabulacoes.empresa_id', '=', 'contatos_corretores.empresa_id');
+            })
             ->where('contatos_corretores.empresa_id', $empresaId)
+            ->where('contatos.empresa_id', $empresaId)
+            ->where('users.empresa_id', $empresaId)
+            ->where('tabulacoes.empresa_id', $empresaId)
             ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('contatos_corretores.created_at', [$dataInicial, $dataFinal]))
             ->select('users.id', 'users.name')
             ->selectRaw('COUNT(DISTINCT contatos_corretores.contato_id) as total')
-            ->selectRaw("COUNT(DISTINCT CASE WHEN contatos.status = 'Y' AND tabulacoes.tipo_tabulacao = 'C' AND tabulacoes.id <> ? THEN contatos_corretores.contato_id END) as comercial", [Tabulations::REMARKETING])
-            ->selectRaw('COUNT(DISTINCT CASE WHEN tabulacoes.id = ? THEN contatos_corretores.contato_id END) as remarketing', [Tabulations::REMARKETING])
+            ->selectRaw("COUNT(DISTINCT CASE WHEN contatos.status = 'Y' AND tabulacoes.tipo_tabulacao = 'C' AND tabulacoes.id <> ? THEN contatos_corretores.contato_id END) as comercial", [$remarketingId])
+            ->selectRaw('COUNT(DISTINCT CASE WHEN tabulacoes.id = ? THEN contatos_corretores.contato_id END) as remarketing', [$remarketingId])
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('total')
             ->limit(20)
@@ -1782,8 +1835,12 @@ class Relatorios extends Controller
         $totalAtribuidosVendedores = $totalAtribuidosVendedoresQuery->distinct()->count('contato_id');
 
         $administrativoPorVendedor = DB::table('vendas')
-            ->join('contatos', 'contatos.id', '=', 'vendas.contato_id')
+            ->join('contatos', function ($join) {
+                $join->on('contatos.id', '=', 'vendas.contato_id')
+                    ->on('contatos.empresa_id', '=', 'vendas.empresa_id');
+            })
             ->where('vendas.empresa_id', $empresaId)
+            ->where('contatos.empresa_id', $empresaId)
             ->whereIn('vendas.tabulacao_id', $tabulacoesFilaImplantacao)
             ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('contatos.created_at', [$dataInicial, $dataFinal]))
             ->select('vendas.user_id')
@@ -1851,12 +1908,13 @@ class Relatorios extends Controller
             'data_final' => 'nullable|date_format:Y-m-d|required_with:data_inicial|after_or_equal:data_inicial',
         ]);
 
-        $empresaId = (int) Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
+        $remarketingId = $this->tabulacaoId($empresaId, TabulationCode::REMARKETING);
         $dataInicial = $request->filled('data_inicial') ? Carbon::parse($request->input('data_inicial'))->startOfDay() : null;
         $dataFinal = $request->filled('data_final') ? Carbon::parse($request->input('data_final'))->endOfDay() : null;
 
         $usuario = User::query()
-            ->where('empresa_id', $empresaId)
+            ->tenantMember($empresaId)
             ->findOrFail($vendedor);
 
         $aplicarPeriodoDaDistribuicao = static function ($query) use ($dataInicial, $dataFinal): void {
@@ -1866,14 +1924,21 @@ class Relatorios extends Controller
         };
 
         $filaComercialQuery = DB::table('contatos_corretores')
-            ->join('contatos', 'contatos.id', '=', 'contatos_corretores.contato_id')
-            ->join('tabulacoes', 'tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+            ->join('contatos', function ($join) {
+                $join->on('contatos.id', '=', 'contatos_corretores.contato_id')
+                    ->on('contatos.empresa_id', '=', 'contatos_corretores.empresa_id');
+            })
+            ->join('tabulacoes', function ($join) {
+                $join->on('tabulacoes.id', '=', 'contatos_corretores.tabulacao_id')
+                    ->on('tabulacoes.empresa_id', '=', 'contatos_corretores.empresa_id');
+            })
             ->where('contatos_corretores.empresa_id', $empresaId)
             ->where('contatos_corretores.user_id', $usuario->id)
             ->where('contatos.empresa_id', $empresaId)
+            ->where('tabulacoes.empresa_id', $empresaId)
             ->where('contatos.status', 'Y')
             ->where('tabulacoes.tipo_tabulacao', 'C')
-            ->where('tabulacoes.id', '!=', Tabulations::REMARKETING)
+            ->where('tabulacoes.id', '!=', $remarketingId)
             ->select('tabulacoes.descricao')
             ->selectRaw('COUNT(DISTINCT contatos_corretores.contato_id) as total');
         $aplicarPeriodoDaDistribuicao($filaComercialQuery);
@@ -1885,11 +1950,14 @@ class Relatorios extends Controller
             ->get();
 
         $viraramVendaQuery = DB::table('vendas')
-            ->join('contatos', 'contatos.id', '=', 'vendas.contato_id')
+            ->join('contatos', function ($join) {
+                $join->on('contatos.id', '=', 'vendas.contato_id')
+                    ->on('contatos.empresa_id', '=', 'vendas.empresa_id');
+            })
             ->where('vendas.empresa_id', $empresaId)
             ->where('vendas.user_id', $usuario->id)
             ->where('contatos.empresa_id', $empresaId)
-            ->whereIn('vendas.tabulacao_id', $this->tabulacoesVendaValida())
+            ->whereIn('vendas.tabulacao_id', $this->tabulacoesVendaValida($empresaId))
             ->when($dataInicial && $dataFinal, fn ($query) => $query->whereBetween('vendas.created_at', [$dataInicial, $dataFinal]))
             ->whereExists(function ($query) use ($empresaId, $dataInicial, $dataFinal) {
                 $query->selectRaw('1')

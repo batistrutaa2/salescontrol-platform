@@ -20,8 +20,8 @@ class ResumoOperacionalRepository implements ResumoOperacionalRepositoryInterfac
             ->first();
 
         return [
-            'count'        => (int) ($row->cnt ?? 0),
-            'valor_total'  => (float) ($row->valor_total ?? 0),
+            'count' => (int) ($row->cnt ?? 0),
+            'valor_total' => (float) ($row->valor_total ?? 0),
             'ticket_medio' => (float) ($row->ticket_medio ?? 0),
         ];
     }
@@ -34,9 +34,9 @@ class ResumoOperacionalRepository implements ResumoOperacionalRepositoryInterfac
             ->first();
 
         return [
-            'count'       => (int) ($row->cnt ?? 0),
+            'count' => (int) ($row->cnt ?? 0),
             'valor_total' => (float) ($row->valor_total ?? 0),
-            'vidas'       => (int) ($row->vidas ?? 0),
+            'vidas' => (int) ($row->vidas ?? 0),
         ];
     }
 
@@ -53,7 +53,11 @@ class ResumoOperacionalRepository implements ResumoOperacionalRepositoryInterfac
         return Vendas::where('vendas.empresa_id', $empresaId)
             ->whereDate('vendas.created_at', $data->toDateString())
             ->whereNotNull('vendas.user_id')
-            ->join('users', 'users.id', '=', 'vendas.user_id')
+            ->join('users', function ($join) {
+                $join->on('users.id', '=', 'vendas.user_id')
+                    ->on('users.empresa_id', '=', 'vendas.empresa_id')
+                    ->where('users.is_platform_admin', false);
+            })
             ->groupBy('vendas.user_id', 'users.name')
             ->selectRaw('vendas.user_id as user_id, users.name as nome, COALESCE(SUM(vendas.valor_contrato), 0) as total')
             ->orderByDesc('total')
@@ -61,8 +65,8 @@ class ResumoOperacionalRepository implements ResumoOperacionalRepositoryInterfac
             ->get()
             ->map(fn ($row) => [
                 'user_id' => (int) $row->user_id,
-                'nome'    => $row->nome,
-                'total'   => (float) $row->total,
+                'nome' => $row->nome,
+                'total' => (float) $row->total,
             ])
             ->all();
     }
@@ -84,7 +88,8 @@ class ResumoOperacionalRepository implements ResumoOperacionalRepositoryInterfac
             ->whereNotExists(function ($query) {
                 $query->select(DB::raw(1))
                     ->from('vendas')
-                    ->whereColumn('vendas.contato_id', 'agendamentos.contato_id');
+                    ->whereColumn('vendas.contato_id', 'agendamentos.contato_id')
+                    ->whereColumn('vendas.empresa_id', 'agendamentos.empresa_id');
             })
             ->count();
     }
@@ -96,15 +101,19 @@ class ResumoOperacionalRepository implements ResumoOperacionalRepositoryInterfac
         return ComercialReunioes::where('comercial_reunioes.empresa_id', $empresaId)
             ->whereDate('comercial_reunioes.data_inicio', $amanha)
             ->where('comercial_reunioes.status', 'scheduled')
-            ->join('users', 'users.id', '=', 'comercial_reunioes.manager_id')
+            ->join('users', function ($join) {
+                $join->on('users.id', '=', 'comercial_reunioes.manager_id')
+                    ->on('users.empresa_id', '=', 'comercial_reunioes.empresa_id')
+                    ->where('users.is_platform_admin', false);
+            })
             ->groupBy('comercial_reunioes.manager_id', 'users.name')
             ->selectRaw('comercial_reunioes.manager_id as manager_id, users.name as nome, COUNT(*) as total')
             ->orderByDesc('total')
             ->get()
             ->map(fn ($row) => [
                 'manager_id' => (int) $row->manager_id,
-                'nome'       => $row->nome,
-                'total'      => (int) $row->total,
+                'nome' => $row->nome,
+                'total' => (int) $row->total,
             ])
             ->all();
     }

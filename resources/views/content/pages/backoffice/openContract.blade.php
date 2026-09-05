@@ -22,14 +22,8 @@
 
         $planosDaOperadora = $planosDaOperadora ?? collect();
 
-        // AMIL: considera qualquer variação que contenha "AMIL"
-        $isAmil = false;
-        if ($selectedOperadoraId) {
-            $nomeOpSel = optional(($operadoras ?? collect())->firstWhere('id', $selectedOperadoraId))->nome;
-            $isAmil = stripos((string) $nomeOpSel, 'AMIL') !== false;
-        } else {
-            $isAmil = stripos((string) $contract->operadora, 'AMIL') !== false;
-        }
+        $operadoraSelecionada = ($operadoras ?? collect())->firstWhere('id', $selectedOperadoraId);
+        $coparticipacaoDetalhada = optional($operadoraSelecionada)->coparticipacao_formato === \App\Models\Operadora::COPARTICIPACAO_PARCIAL_COMPLETA;
     @endphp
 
     {{-- Flash de sucesso/erro --}}
@@ -171,7 +165,7 @@
                             <select id="operadoraSelect" class="form-select" name="operadora" required>
                                 <option value="">Selecione</option>
                                 @foreach ($operadoras ?? collect() as $op)
-                                    <option value="{{ $op->id }}" data-nome="{{ strtoupper($op->nome) }}"
+                                    <option value="{{ $op->id }}" data-coparticipacao-formato="{{ $op->coparticipacao_formato }}" data-angariacao-padrao="{{ $op->angariacao_padrao ? '1' : '0' }}"
                                         {{ (int) $selectedOperadoraId === (int) $op->id ? 'selected' : '' }}>
                                         {{ $op->nome }}
                                     </option>
@@ -310,19 +304,6 @@
                                             <option value="SIM" {{ ($contract->angariacao_status ?? '') === 'SIM' ? 'selected' : '' }}>SIM</option>
                                         </select>
                                     </div>
-                                    <div class="field-group">
-                                        <label class="field-label">
-                                            <span class="field-icon">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <circle cx="12" cy="12" r="10"></circle>
-                                                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                                                </svg>
-                                            </span>
-                                            Tipo de Comissão
-                                        </label>
-                                        <input type="text" class="form-control" value="Regra Supermed / Administrativa" readonly disabled>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -437,13 +418,13 @@
                                     readonly>
                             </div>
 
-                            {{-- Coparticipação por titular (AMIL => PARCIAL/COMPLETA; demais => SIM/NÃO) --}}
+                            {{-- Formato de coparticipação configurado na operadora do tenant. --}}
                             <div class="col-md-4">
                                 <label
-                                    class="form-label label-coparticipacao">{{ $isAmil ? 'Coparticipação (Amil)' : 'Coparticipação' }}</label>
+                                    class="form-label label-coparticipacao">Coparticipação</label>
                                 <select class="form-select select-coparticipacao" name="coparticipacao"
                                     data-current="{{ strtoupper((string) $titular->coparticipacao) }}" required>
-                                    @if ($isAmil)
+                                    @if ($coparticipacaoDetalhada)
                                         <option value="">Selecione...</option>
                                         <option value="PARCIAL"
                                             {{ strtoupper((string) $titular->coparticipacao) === 'PARCIAL' ? 'selected' : '' }}>
@@ -580,10 +561,10 @@
 
                                         <div class="col-md-4">
                                             <label
-                                                class="form-label label-coparticipacao-modal">{{ $isAmil ? 'Coparticipação (Amil)' : 'Coparticipação' }}</label>
+                                                class="form-label label-coparticipacao-modal">Coparticipação</label>
                                             <select name="coparticipacao" class="form-select select-coparticipacao-modal"
                                                 required>
-                                                @if ($isAmil)
+                                                @if ($coparticipacaoDetalhada)
                                                     <option value="">Selecione...</option>
                                                     <option value="PARCIAL">PARCIAL</option>
                                                     <option value="COMPLETA">COMPLETA</option>

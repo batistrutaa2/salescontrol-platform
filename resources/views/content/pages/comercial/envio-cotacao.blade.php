@@ -38,9 +38,11 @@
             'vendedorNome' => $vendedorNome,
             'vendedorEmail' => $vendedorEmail,
             'vendedorWhatsapp' => $vendedorWhatsapp,
+            'dominioPermitido' => $dominioPermitido,
             'emailValido' => $emailValido,
         ];
-        $inicial = strtoupper(mb_substr(trim($vendedorNome), 0, 1) ?: 'L');
+        $inicial = strtoupper(mb_substr(trim($vendedorNome), 0, 1) ?: 'S');
+        $iniciaisEmpresa = collect(preg_split('/\s+/', trim($nomeEmpresa)))->filter()->take(2)->map(fn ($parte) => mb_substr($parte, 0, 1))->implode('');
     @endphp
     <script>window.envioCotacao = @json($configEnvioCotacao);</script>
 
@@ -76,8 +78,12 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <div>
                 <strong>Envio bloqueado.</strong>
-                Seu e-mail de acesso (<code>{{ $vendedorEmail }}</code>) não é do domínio <strong>&#64;lkbrokers.com</strong>.
-                O envio de cotações exige um e-mail corporativo LK. Procure o administrador.
+                @if($dominioPermitido)
+                    Seu e-mail de acesso (<code>{{ $vendedorEmail }}</code>) não pertence ao domínio corporativo <strong>&#64;{{ $dominioPermitido }}</strong>.
+                @else
+                    A empresa ativa ainda não possui um e-mail corporativo válido configurado.
+                @endif
+                Procure o administrador da empresa.
             </div>
         </div>
     @endunless
@@ -166,8 +172,8 @@
                 <div class="ec-preview-frame">
                     {{-- Header do e-mail --}}
                     <div class="ec-mail-header">
-                        <span class="ec-mail-logo">LK</span>
-                        <span class="ec-mail-brand">LK Brokers</span>
+                        <span class="ec-mail-logo">{{ $iniciaisEmpresa ?: 'SC' }}</span>
+                        <span class="ec-mail-brand">{{ $nomeEmpresa }}</span>
                     </div>
                     {{-- Corpo --}}
                     <div class="ec-mail-body" id="ec-preview-body">
@@ -183,7 +189,7 @@
                         <span class="ec-sign-avatar">{{ $inicial }}</span>
                         <div class="ec-sign-info">
                             <span class="ec-sign-name">{{ $vendedorNome }}</span>
-                            <span class="ec-sign-role">Consultor(a) de Benefícios · LK Brokers</span>
+                            <span class="ec-sign-role">Consultor(a) de Benefícios · {{ $nomeEmpresa }}</span>
                             <span class="ec-sign-contact">✉ {{ $vendedorEmail }}</span>
                             @if($vendedorWhatsapp)
                                 <span class="ec-sign-contact">📱 {{ $vendedorWhatsapp }}</span>
@@ -192,7 +198,7 @@
                     </div>
                     {{-- Footer --}}
                     <div class="ec-mail-footer">
-                        © {{ date('Y') }} LK Brokers. Todos os direitos reservados.
+                        © {{ date('Y') }} {{ $nomeEmpresa }}. Todos os direitos reservados.
                     </div>
                 </div>
             </div>

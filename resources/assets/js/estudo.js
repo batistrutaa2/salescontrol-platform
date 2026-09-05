@@ -2,6 +2,10 @@
 
 (function () {
 
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[char]));
+
     // Função para atualizar totais (igual à sua)
     function atualizarTotais() {
         document.querySelectorAll(".estudo").forEach(estudo => {
@@ -37,10 +41,11 @@
                 .then(res => res.json())
                 .then(planos => {
                     planoSelect.innerHTML = "<option value=''>Selecione</option>";
-                    planos.forEach(plano => {
-                        planoSelect.innerHTML += `<option value="${plano.id}">${plano.nome}</option>`;
-                    });
+                    planos.forEach(plano => planoSelect.add(new Option(plano.nome, plano.id)));
                     planoSelect.disabled = false;
+                })
+                .catch(() => {
+                    planoSelect.innerHTML = "<option value=''>Não foi possível carregar</option>";
                 });
         }
     });
@@ -60,9 +65,10 @@
         const faixas = ['0 a 18', '19 a 23', '24 a 28', '29 a 33', '34 a 38', '39 a 43', '44 a 48', '49 a 53', '54 a 58', '59+'];
 
         let html = `
+        <div class="col-md-4 estudo-wrapper" data-operadora-id="${esc(operadora.value)}" data-plano-id="${esc(plano.value)}">
         <div class="card mb-4 estudo" id="${estudoId}">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">${operadora.options[operadora.selectedIndex].text} - ${plano.options[plano.selectedIndex].text}</h6>
+                <h6 class="mb-0">${esc(operadora.options[operadora.selectedIndex].text)} - ${esc(plano.options[plano.selectedIndex].text)}</h6>
                 <button type="button" class="btn btn-sm btn-danger remover-estudo">Remover</button>
             </div>
             <div class="card-body">
@@ -113,9 +119,9 @@
                     </tfoot>
                 </table>
             </div>
-        </div>`;
+        </div></div>`;
 
-        container.insertAdjacentHTML("beforeend", `<div class="col-md-4">${html}</div>`);
+        container.insertAdjacentHTML("beforeend", html);
 
         atualizarTotais();
     });
@@ -129,7 +135,7 @@
 
     document.addEventListener("click", function (e) {
         if (e.target.classList.contains("remover-estudo")) {
-            e.target.closest(".col-md-6").remove();
+            e.target.closest(".estudo-wrapper")?.remove();
         }
     });
 
@@ -147,8 +153,8 @@
         }
 
         const estudos = [];
-        document.querySelectorAll('.estudo').forEach(card => {
-            const titulo = card.querySelector('h6').textContent;
+        document.querySelectorAll('.estudo-wrapper').forEach(wrapper => {
+            const card = wrapper.querySelector('.estudo');
             const coparticipacao = card.querySelector('.coparticipacao').value;
             const categoria = card.querySelector('.categoria').value;
             const reembolso = parseFloat(card.querySelector('.reembolso').value) || 0;
@@ -164,13 +170,19 @@
             });
 
             estudos.push({
-                titulo,
+                operadora_id: Number.parseInt(wrapper.dataset.operadoraId, 10),
+                plano_id: Number.parseInt(wrapper.dataset.planoId, 10),
                 coparticipacao,
                 categoria,
                 reembolso,
                 faixas
             });
         });
+
+        if (!estudos.length) {
+            alert('Adicione ao menos um plano ao estudo.');
+            return;
+        }
 
         fetch('/estudos', {
             method: 'POST',
@@ -183,16 +195,20 @@
                 estudos
             })
         })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
+            .then(async res => ({ ok: res.ok, data: await res.json() }))
+            .then(({ ok, data }) => {
+                if (ok && data.success) {
                     alert('Estudo salvo com sucesso!');
                     window.location.href = "/estudo-lista";
                 } else {
-                    alert('Erro ao salvar estudo.');
+                    const errors = data.errors ? Object.values(data.errors).flat() : [];
+                    alert(errors[0] || data.message || 'Erro ao salvar estudo.');
                 }
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                console.error(err);
+                alert('Não foi possível conectar ao servidor. Tente novamente.');
+            });
     });
 
 })();

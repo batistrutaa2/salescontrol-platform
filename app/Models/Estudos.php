@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class Estudos extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
-    protected $table = "estudos";
+    protected $table = 'estudos';
 
     protected $fillable = [
         'id',
@@ -19,7 +20,7 @@ class Estudos extends Model
         'titulo',
         'link_unico',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     // Um estudo tem muitos itens

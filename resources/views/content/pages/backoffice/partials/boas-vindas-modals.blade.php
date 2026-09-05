@@ -370,7 +370,7 @@
                 <div class="mailcli-avatar">LK</div>
                 <div class="mailcli-meta-text">
                     <span class="mailcli-subject" id="mailcli-subject">Boas-vindas</span>
-                    <span class="mailcli-row"><strong>De</strong> <span id="mailcli-from">Equipe LK Brokers</span></span>
+                    <span class="mailcli-row"><strong>De</strong> <span id="mailcli-from">Equipe da corretora</span></span>
                     <span class="mailcli-row"><strong>Para</strong> <span id="mailcli-to">cliente@email.com</span></span>
                 </div>
             </div>

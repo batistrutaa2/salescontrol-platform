@@ -5,7 +5,8 @@ namespace App\Http\Controllers\pages\relatorios;
 use App\Http\Controllers\Controller;
 use App\Services\RelatorioAproveitamentoService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class RelatorioAproveitamento extends Controller
 {
@@ -27,7 +28,7 @@ class RelatorioAproveitamento extends Controller
         return view('content.pages.relatorios.aproveitamento-ia', [
             'anos' => $anos,
             'anoAtual' => $anoAtual,
-            'temApiKey' => !empty(config('services.anthropic.api_key')),
+            'temApiKey' => ! empty(config('services.anthropic.api_key')),
         ]);
     }
 
@@ -37,7 +38,7 @@ class RelatorioAproveitamento extends Controller
     public function getDados(Request $request)
     {
         $request->validate([
-            'ano' => 'required|integer|min:2020|max:' . (now()->year + 1),
+            'ano' => 'required|integer|min:2020|max:'.(now()->year + 1),
             'mes_inicio' => 'nullable|integer|min:1|max:12',
             'mes_fim' => 'nullable|integer|min:1|max:12',
         ]);
@@ -58,10 +59,15 @@ class RelatorioAproveitamento extends Controller
                 'success' => true,
                 'dados' => $dados,
             ]);
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Falha ao coletar dados do relatório de aproveitamento.', [
+                'empresa_id' => $this->tenantId(),
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'success' => false,
-                'error' => 'Erro ao coletar dados: ' . $e->getMessage(),
+                'error' => 'Não foi possível coletar os dados do relatório.',
             ], 500);
         }
     }
@@ -72,7 +78,7 @@ class RelatorioAproveitamento extends Controller
     public function gerarAnalise(Request $request)
     {
         $request->validate([
-            'ano' => 'required|integer|min:2020|max:' . (now()->year + 1),
+            'ano' => 'required|integer|min:2020|max:'.(now()->year + 1),
             'mes_inicio' => 'nullable|integer|min:1|max:12',
             'mes_fim' => 'nullable|integer|min:1|max:12',
         ]);
@@ -93,10 +99,15 @@ class RelatorioAproveitamento extends Controller
             $analise = $this->service->gerarAnaliseIA($dados);
 
             return response()->json($analise);
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Falha ao gerar análise do relatório de aproveitamento.', [
+                'empresa_id' => $this->tenantId(),
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'success' => false,
-                'error' => 'Erro ao gerar análise: ' . $e->getMessage(),
+                'error' => 'Não foi possível gerar a análise do relatório.',
             ], 500);
         }
     }

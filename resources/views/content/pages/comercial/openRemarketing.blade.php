@@ -62,7 +62,7 @@
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
                                         <input type="email" class="form-control" id="ecommerce-product-sku"
-                                            value="{{ $client->email }}" placeholder="admin@admin.com.br" name="email"
+                                            value="{{ $client->email }}" placeholder="cliente@exemplo.com.br" name="email"
                                             aria-label="Email Cliente">
                                         <label for="ecommerce-product-sku">E-mail</label>
                                     </div>
@@ -106,7 +106,7 @@
                                 <div class="col">
                                     <div class="form-floating form-floating-outline">
                                         <input type="text" class="form-control" id="ecommerce-product-barcode"
-                                            value="{{ $client->entidade }}" placeholder="Sulamerica" name="entidade"
+                                            value="{{ $client->entidade }}" placeholder="Nome da entidade" name="entidade"
                                             aria-label="Product barcode">
                                         <label for="ecommerce-product-name">Entidade</label>
                                     </div>

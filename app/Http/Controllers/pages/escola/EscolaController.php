@@ -4,10 +4,12 @@ namespace App\Http\Controllers\pages\escola;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\Empresa;
 use App\Models\EscolaAula;
 use App\Models\EscolaAulaMaterial;
 use App\Models\EscolaAulaProgresso;
 use App\Models\EscolaModulo;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +23,7 @@ class EscolaController extends Controller
 
     private function empresaId(): int
     {
-        return Auth::user()->empresa_id;
+        return app(TenantContext::class)->id();
     }
 
     /**
@@ -35,7 +37,7 @@ class EscolaController extends Controller
             return;
         }
         if (! $user->escola_habilitada) {
-            abort(403, 'Você ainda não tem acesso à Escola LK Brokers.');
+            abort(403, 'Você ainda não tem acesso à Academia Comercial.');
         }
     }
 
@@ -81,7 +83,10 @@ class EscolaController extends Controller
             ->where('escola_aula_progresso.empresa_id', $empresaId)
             ->where('escola_aula_progresso.user_id', Auth::id())
             ->where('escola_aula_progresso.concluida', true)
-            ->join('escola_aulas', 'escola_aulas.id', '=', 'escola_aula_progresso.escola_aula_id')
+            ->join('escola_aulas', function ($join) {
+                $join->on('escola_aulas.id', '=', 'escola_aula_progresso.escola_aula_id')
+                    ->on('escola_aulas.empresa_id', '=', 'escola_aula_progresso.empresa_id');
+            })
             ->where('escola_aulas.ativo', true)
             ->selectRaw('escola_aulas.escola_modulo_id as modulo_id, count(*) as total')
             ->groupBy('escola_aulas.escola_modulo_id')
@@ -152,6 +157,7 @@ class EscolaController extends Controller
     public function salvarProgresso(Request $request, int $aula): JsonResponse
     {
         $this->checkAlunoAccess();
+        $this->tenantMemberOrAbort($request->user());
 
         $empresaId = $this->empresaId();
 
@@ -164,14 +170,20 @@ class EscolaController extends Controller
             ->where('ativo', true)
             ->findOrFail($aula);
 
-        $posicao = (int) floor($validated['posicao']);
-        $duracao = (int) floor($validated['duracao'] ?? $aula->duracao_segundos ?? 0);
+        $duracao = max(0, (int) ($aula->duracao_segundos ?? 0));
+        $posicao = max(0, (int) floor($validated['posicao']));
+        if ($duracao > 0) {
+            $posicao = min($posicao, $duracao);
+        }
 
         $percentual = 0;
         if ($duracao > 0) {
             $percentual = (int) min(100, round(($posicao / $duracao) * 100));
         }
-        $concluida = $percentual >= 90;
+        $percentualConclusao = (int) (Empresa::query()
+            ->whereKey($empresaId)
+            ->value('escola_percentual_conclusao') ?? 90);
+        $concluida = $duracao > 0 && $percentual >= $percentualConclusao;
 
         $progresso = EscolaAulaProgresso::firstOrNew([
             'user_id' => Auth::id(),

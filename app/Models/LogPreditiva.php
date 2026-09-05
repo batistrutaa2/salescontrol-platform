@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class LogPreditiva extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'log_preditiva';
 
     protected $fillable = [

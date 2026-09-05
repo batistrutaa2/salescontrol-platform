@@ -26,14 +26,7 @@
     let bvModoConteudo = 'padrao'; // 'padrao' | 'personalizado'
     let bvTitulares = [];
     let bvVendaInfo = {};
-    let bvNomeEmpresa = 'LK Brokers';
-
-    const LINKS_APP_OPERADORAS = {
-        amil: {
-            ios: 'https://apps.apple.com/br/app/amil-clientes/id471890526',
-            android: 'https://play.google.com/store/apps/details?id=br.com.amil.beneficiarios&hl=pt_BR',
-        },
-    };
+    let bvNomeEmpresa = 'SalesControl';
 
     function csrf() {
         return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -78,14 +71,6 @@
                     </button>
                 </div>`,
         });
-    }
-
-    function getLinksAppPorOperadora(operadora) {
-        const key = (operadora || '').toLowerCase().trim();
-        for (const [nome, links] of Object.entries(LINKS_APP_OPERADORAS)) {
-            if (key.includes(nome)) return links;
-        }
-        return { ios: '', android: '' };
     }
 
     function applyPhoneMask(el) {
@@ -156,7 +141,7 @@
 
             bvVendaInfo = data.venda;
             bvTitulares = data.titulares || [];
-            bvNomeEmpresa = data.nome_empresa || 'LK Brokers';
+            bvNomeEmpresa = data.nome_empresa || 'SalesControl';
 
             document.getElementById('bv-contrato-nome').textContent = data.venda.nome_contrato || '-';
             document.getElementById('bv-operadora').textContent = data.venda.operadora || '-';
@@ -175,7 +160,7 @@
                 alertaReenvio.classList.remove('d-none');
             }
 
-            const linksApp = getLinksAppPorOperadora(data.venda.operadora || '');
+            const linksApp = data.venda.app_links || { ios: '', android: '' };
             document.getElementById('bv-link-ios').value = linksApp.ios;
             document.getElementById('bv-link-android').value = linksApp.android;
 
@@ -365,7 +350,7 @@
         });
 
         let msg = `Olá, *${nomeContrato}* 👋\n\n`;
-        msg += `Sejam muito bem-vindos à *LK Brokers Consultoria de Seguros*!\n\n`;
+        msg += `Sejam muito bem-vindos à *${bvNomeEmpresa}*!\n\n`;
         msg += `É uma satisfação tê-los como nossos clientes. Agradecemos pela confiança e reforçamos que, a partir de agora, vocês contam com o nosso Concierge de Pós-Vendas, um atendimento dedicado para oferecer suporte durante toda a utilização do plano de saúde.\n\n`;
         msg += `*📋 Beneficiários e Matrículas*${linhasBen || '\n(preencha os campos acima)'}\n\n`;
 
@@ -401,7 +386,7 @@
         msg += `* Suporte em solicitações junto à operadora.\n\n`;
         msg += `Nosso compromisso é proporcionar uma experiência tranquila, ágil e segura durante toda a vigência do plano.\n\n`;
         msg += `Conte conosco sempre que precisar. Será um prazer atendê-los!\n\n`;
-        msg += `*Equipe LK Brokers | Concierge de Pós-Vendas*\n\n`;
+        msg += `*Equipe ${bvNomeEmpresa} | Concierge de Pós-Vendas*\n\n`;
         msg += `🤝 Seu plano de saúde com acompanhamento de quem realmente cuida de você`;
 
         document.getElementById('bv-preview-padrao').value = msg;

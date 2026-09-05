@@ -16,12 +16,30 @@
 
 @section('content')
 
+    <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6">
+        <div>
+            <h4 class="mb-1">Empresas</h4>
+            <p class="text-body-secondary mb-0">Cadastre corretoras e selecione no topo qual operação deseja administrar.</p>
+        </div>
+        <button type="button" class="btn btn-primary text-nowrap align-self-start align-self-sm-center"
+            data-company-create-trigger aria-controls="offcanvasEcommerceCustomerAdd">
+            <i class="ri-add-line me-1" aria-hidden="true"></i>
+            Cadastrar empresa
+        </button>
+    </div>
+
+    @if (!app(\App\Support\TenantContext::class)->isResolved())
+        <div class="alert alert-warning" role="status">
+            <h5 class="alert-heading mb-1">Selecione a empresa que deseja administrar</h5>
+            <p class="mb-0">Nenhuma empresa está ativa. Use o seletor no topo ou cadastre a primeira corretora para liberar os módulos operacionais.</p>
+        </div>
+    @endif
 
     <!-- customers List Table -->
     <div class="card">
 
         <div class="card-datatable table-responsive">
-            <table class="datatables-customers table">
+            <table class="datatables-customers table" data-source="{{ route('empresa.getAllCompanies') }}">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -42,34 +60,41 @@
                 <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body mx-0 flex-grow-0">
-                <form method="POST" class="ecommerce-customer-add pt-0" id="eCommerceCustomerAddForm">
+                <form method="POST" action="{{ route('empresa.createCompanies') }}" class="ecommerce-customer-add pt-0" id="eCommerceCustomerAddForm">
                     @csrf
+                    <div id="company-form-feedback" class="alert alert-danger d-none" role="alert" tabindex="-1"></div>
                     <div class="ecommerce-customer-add-basic mb-6">
-                        <h6 class="mb-5">Informações basicas</h6>
+                        <h6 class="mb-5">Informações básicas</h6>
                         <div class="form-floating form-floating-outline mb-5">
                             <input type="text" class="form-control" id="ecommerce-customer-add-name"
-                                placeholder="John Doe" name="customerName" aria-label="John Doe" />
-                            <label for="ecommerce-customer-add-name">Nome*</label>
+                                placeholder="Nome da corretora" name="customerName" maxlength="255" autocomplete="organization" required />
+                            <label for="ecommerce-customer-add-name">Nome da empresa*</label>
                         </div>
                         <div class="form-floating form-floating-outline mb-5">
-                            <input type="number" class="form-control" id="ecommerce-customer-add-name"
-                                placeholder="49.877.625/0001-25" name="customerCnpj" aria-label="49.877.625/0001-25" />
-                            <label for="ecommerce-customer-add-name">CNPJ / CPF*</label>
+                            <input type="text" class="form-control" id="ecommerce-customer-add-document"
+                                placeholder="CPF ou CNPJ" name="customerCnpj" maxlength="18" inputmode="numeric"
+                                autocomplete="off" aria-describedby="empresa-documento-ajuda" required />
+                            <label for="ecommerce-customer-add-document">CNPJ ou CPF*</label>
+                            <small id="empresa-documento-ajuda" class="form-text">O documento identifica a empresa e não pode ser reutilizado.</small>
                         </div>
                         <div class="form-floating form-floating-outline mb-5">
                             <input type="email" id="ecommerce-customer-add-email" class="form-control"
-                                placeholder="john.doe@example.com" aria-label="john.doe@example.com" name="customerEmail" />
-                            <label for="ecommerce-customer-add-email">Email*</label>
+                                placeholder="contato@empresa.com.br" name="customerEmail" maxlength="255"
+                                autocomplete="email" required />
+                            <label for="ecommerce-customer-add-email">E-mail*</label>
                         </div>
                         <div class="form-floating form-floating-outline mb-5">
-                            <input type="text" id="ecommerce-customer-add-telefone" class="form-control"
-                                placeholder="(11) 94556-7166" aria-label="(11)945567166" name="customerContact" />
+                            <input type="tel" id="ecommerce-customer-add-telefone" class="form-control phone-mask"
+                                placeholder="(11) 99999-9999" name="customerContact" maxlength="20"
+                                inputmode="tel" autocomplete="tel" required />
                             <label for="ecommerce-customer-add-telefone">Telefone*</label>
                         </div>
                     </div>
 
                     <div>
-                        <button type="submit" class="btn btn-primary me-sm-3 me-1 data-submit submit">Cadastrar</button>
+                        <button type="submit" class="btn btn-primary me-sm-3 me-1 data-submit submit">
+                            <span class="company-submit-label">Cadastrar empresa</span>
+                        </button>
                         <button type="reset" class="btn btn-outline-danger" data-bs-dismiss="offcanvas">Fechar</button>
                     </div>
                 </form>

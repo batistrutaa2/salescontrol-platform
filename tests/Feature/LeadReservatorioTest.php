@@ -2,16 +2,18 @@
 
 namespace Tests\Feature;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Models\Contatos;
 use App\Models\ContatosCorretores;
 use App\Models\Empresa;
 use App\Models\LeadReservatorioEstrategia;
 use App\Models\LeadReservatorioItem;
-use App\Models\Tabulacoes;
+use App\Models\PreditivaConfiguracao;
 use App\Models\User;
 use App\Services\LeadReservatorioService;
+use App\Services\TabulationCatalog;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -29,6 +31,12 @@ class LeadReservatorioTest extends TestCase
 
     private User $vendedorB;
 
+    private int $prospeccaoId;
+
+    private int $novosClientesId;
+
+    private int $remarketingId;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,6 +45,7 @@ class LeadReservatorioTest extends TestCase
         DB::table('user_roles')->insert([
             ['id' => UserRole::VENDEDOR, 'tipo_usuario' => 'VENDEDOR', 'created_at' => now(), 'updated_at' => now()],
             ['id' => UserRole::ADMINISTRATIVO, 'tipo_usuario' => 'ADMINISTRATIVO', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => UserRole::DEVELOPER, 'tipo_usuario' => 'DEVELOPER', 'created_at' => now(), 'updated_at' => now()],
         ]);
         $this->empresa = Empresa::factory()->create();
         $this->admin = User::factory()->create([
@@ -54,20 +63,11 @@ class LeadReservatorioTest extends TestCase
             'user_role_id' => UserRole::VENDEDOR,
             'ativo' => 'Y',
         ]);
-        Tabulacoes::create([
-            'id' => Tabulations::PROSPECCAO,
-            'empresa_id' => $this->empresa->id,
-            'descricao' => 'PROSPECÇÃO',
-            'tipo_tabulacao' => 'C',
-            'status' => 'Y',
-        ]);
-        Tabulacoes::create([
-            'id' => Tabulations::NOVOS_CLIENTES,
-            'empresa_id' => $this->empresa->id,
-            'descricao' => 'NOVOS CLIENTES',
-            'tipo_tabulacao' => 'C',
-            'status' => 'Y',
-        ]);
+        $catalog = app(TabulationCatalog::class);
+        $catalog->provision($this->empresa->id);
+        $this->prospeccaoId = $catalog->id($this->empresa->id, TabulationCode::PROSPECCAO);
+        $this->novosClientesId = $catalog->id($this->empresa->id, TabulationCode::NOVOS_CLIENTES);
+        $this->remarketingId = $catalog->id($this->empresa->id, TabulationCode::REMARKETING);
     }
 
     public function test_distribui_quantidades_exatas_dentro_dos_filtros_e_nao_permita_reentrada(): void
@@ -109,8 +109,8 @@ class LeadReservatorioTest extends TestCase
 
         $this->assertSame(2, ContatosCorretores::where('user_id', $this->vendedorA->id)->count());
         $this->assertSame(1, ContatosCorretores::where('user_id', $this->vendedorB->id)->count());
-        $this->assertSame(3, ContatosCorretores::where('tabulacao_id', Tabulations::NOVOS_CLIENTES)->count());
-        $this->assertSame(0, ContatosCorretores::where('tabulacao_id', '!=', Tabulations::NOVOS_CLIENTES)->count());
+        $this->assertSame(3, ContatosCorretores::where('tabulacao_id', $this->novosClientesId)->count());
+        $this->assertSame(0, ContatosCorretores::where('tabulacao_id', '!=', $this->novosClientesId)->count());
         $this->assertSame(3, LeadReservatorioItem::where('status', LeadReservatorioItem::STATUS_DISTRIBUIDO)->count());
         $this->assertSame(3, LeadReservatorioItem::where('status', LeadReservatorioItem::STATUS_DISPONIVEL)->count());
         $this->assertDatabaseHas('lead_reservatorio_itens', [
@@ -129,22 +129,90 @@ class LeadReservatorioTest extends TestCase
         $this->actingAs($this->vendedorA)->getJson('/mailing/reservatorio/dados')->assertForbidden();
 
         $outraEmpresa = Empresa::factory()->create();
-        $outroAdmin = User::factory()->create([
-            'empresa_id' => $outraEmpresa->id,
-            'user_role_id' => UserRole::ADMINISTRATIVO,
-            'ativo' => 'Y',
-        ]);
-        $estrategia = LeadReservatorioEstrategia::create([
-            'empresa_id' => $outraEmpresa->id,
-            'nome' => 'Estratégia externa',
-            'condicoes' => [['campo' => 'origem', 'operador' => 'igual', 'valor' => 'MARKETING']],
-            'ativo' => true,
-            'created_by' => $outroAdmin->id,
-        ]);
+        $estrategia = app(TenantContext::class)->run($outraEmpresa->id, function () use ($outraEmpresa) {
+            $outroAdmin = User::factory()->create([
+                'empresa_id' => $outraEmpresa->id,
+                'user_role_id' => UserRole::ADMINISTRATIVO,
+                'ativo' => 'Y',
+            ]);
+
+            return LeadReservatorioEstrategia::create([
+                'empresa_id' => $outraEmpresa->id,
+                'nome' => 'Estratégia externa',
+                'condicoes' => [['campo' => 'origem', 'operador' => 'igual', 'valor' => 'MARKETING']],
+                'ativo' => true,
+                'created_by' => $outroAdmin->id,
+            ]);
+        });
 
         $this->actingAs($this->admin)
             ->postJson("/mailing/reservatorio/estrategias/{$estrategia->id}/preview")
             ->assertNotFound();
+    }
+
+    public function test_master_sem_empresa_opera_somente_o_reservatorio_do_tenant_ativo(): void
+    {
+        $master = User::factory()->create([
+            'empresa_id' => null,
+            'user_role_id' => UserRole::DEVELOPER,
+            'is_platform_admin' => true,
+            'ativo' => 'Y',
+        ]);
+        $contatoLocal = $this->contato(['nome_cliente' => 'Lead do tenant ativo']);
+        app(LeadReservatorioService::class)->adicionarNovo(
+            $contatoLocal,
+            LeadReservatorioItem::ORIGEM_MARKETING,
+            $master->id,
+        );
+
+        $outraEmpresa = Empresa::factory()->create();
+        app(TabulationCatalog::class)->provision($outraEmpresa->id);
+        app(TenantContext::class)->run($outraEmpresa->id, function () use ($outraEmpresa): void {
+            $autorExterno = User::factory()->create([
+                'empresa_id' => $outraEmpresa->id,
+                'user_role_id' => UserRole::ADMINISTRATIVO,
+                'ativo' => 'Y',
+            ]);
+            $contatoExterno = Contatos::create([
+                'empresa_id' => $outraEmpresa->id,
+                'user_import_id' => $autorExterno->id,
+                'nome_cliente' => 'Lead confidencial externo',
+                'status' => 'Y',
+            ]);
+            app(LeadReservatorioService::class)->adicionarNovo(
+                $contatoExterno,
+                LeadReservatorioItem::ORIGEM_MARKETING,
+                $autorExterno->id,
+            );
+        });
+
+        $this->actingAs($master)
+            ->withSession([TenantContext::SESSION_KEY => $this->empresa->id])
+            ->getJson(route('mailing.reservatorio.dados'))
+            ->assertOk()
+            ->assertJsonPath('metricas.disponiveis', 1)
+            ->assertSee('Lead do tenant ativo')
+            ->assertDontSee('Lead confidencial externo');
+
+        $this->postJson(route('mailing.reservatorio.estrategias.store'), [
+            'empresa_id' => $outraEmpresa->id,
+            'nome' => 'Estratégia criada pelo master',
+            'condicoes' => [[
+                'campo' => 'origem',
+                'operador' => 'igual',
+                'valor' => LeadReservatorioItem::ORIGEM_MARKETING,
+            ]],
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('lead_reservatorio_estrategias', [
+            'empresa_id' => $this->empresa->id,
+            'nome' => 'Estratégia criada pelo master',
+            'created_by' => $master->id,
+        ]);
+        $this->assertDatabaseMissing('lead_reservatorio_estrategias', [
+            'empresa_id' => $outraEmpresa->id,
+            'nome' => 'Estratégia criada pelo master',
+        ]);
     }
 
     public function test_distribuicao_rapida_sorteia_todos_os_elegiveis_sem_exigir_estrategia(): void
@@ -178,8 +246,8 @@ class LeadReservatorioTest extends TestCase
 
         $this->assertSame(3, ContatosCorretores::where('user_id', $this->vendedorA->id)->count());
         $this->assertSame(1, ContatosCorretores::where('user_id', $this->vendedorB->id)->count());
-        $this->assertSame(4, ContatosCorretores::where('tabulacao_id', Tabulations::NOVOS_CLIENTES)->count());
-        $this->assertSame(0, ContatosCorretores::where('tabulacao_id', '!=', Tabulations::NOVOS_CLIENTES)->count());
+        $this->assertSame(4, ContatosCorretores::where('tabulacao_id', $this->novosClientesId)->count());
+        $this->assertSame(0, ContatosCorretores::where('tabulacao_id', '!=', $this->novosClientesId)->count());
         $this->assertSame(4, LeadReservatorioItem::where('status', LeadReservatorioItem::STATUS_DISTRIBUIDO)->count());
         $this->assertSame(2, LeadReservatorioItem::where('status', LeadReservatorioItem::STATUS_DISPONIVEL)->count());
         $this->assertDatabaseHas('lead_reservatorio_execucoes', [
@@ -198,7 +266,7 @@ class LeadReservatorioTest extends TestCase
             LeadReservatorioItem::ORIGEM_MARKETING,
             null,
         );
-        $this->vincular($contato, Tabulations::PROSPECCAO);
+        $this->vincular($contato, $this->prospeccaoId);
 
         $this->actingAs($this->admin)
             ->getJson('/mailing/reservatorio/dados')
@@ -213,21 +281,46 @@ class LeadReservatorioTest extends TestCase
         ]);
     }
 
+    public function test_historico_nao_resolve_usuarios_de_outra_empresa_em_relacoes_corrompidas(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $usuarioExterno = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'name' => 'Autor externo confidencial',
+            'ativo' => 'Y',
+        ]);
+
+        DB::table('lead_reservatorio_execucoes')->insert([
+            'empresa_id' => $this->empresa->id,
+            'estrategia_id' => null,
+            'tipo' => 'DISTRIBUICAO_ALEATORIA',
+            'status' => 'CONCLUIDA',
+            'total_solicitado' => 0,
+            'total_executado' => 0,
+            'total_ignorado' => 0,
+            'vendedor_origem_id' => $usuarioExterno->id,
+            'created_by' => $usuarioExterno->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('mailing.reservatorio.historico'))
+            ->assertOk()
+            ->assertJsonPath('data.data.0.autor_nome', null)
+            ->assertJsonPath('data.data.0.vendedor_origem_nome', null)
+            ->assertDontSee('Autor externo confidencial');
+    }
+
     public function test_carga_inicial_move_somente_aptos_preserva_historico_e_e_idempotente(): void
     {
-        Tabulacoes::create([
-            'id' => Tabulations::REMARKETING,
-            'empresa_id' => $this->empresa->id,
-            'descricao' => 'REMARKETING',
-            'tipo_tabulacao' => 'C',
-            'status' => 'Y',
-        ]);
         $apto = $this->contato(['nome_cliente' => 'Lead novo concentrado']);
         $remarketing = $this->contato(['nome_cliente' => 'Lead de remarketing']);
         $descartado = $this->contato(['nome_cliente' => 'Lead descartado', 'status' => 'N']);
-        $this->vincular($apto, Tabulations::PROSPECCAO);
-        $this->vincular($remarketing, Tabulations::REMARKETING);
-        $this->vincular($descartado, Tabulations::PROSPECCAO);
+        $this->vincular($apto, $this->prospeccaoId);
+        $this->vincular($remarketing, $this->remarketingId);
+        $this->vincular($descartado, $this->prospeccaoId);
         DB::table('comentarios')->insert([
             'empresa_id' => $this->empresa->id,
             'user_id' => $this->vendedorA->id,
@@ -255,6 +348,38 @@ class LeadReservatorioTest extends TestCase
         $this->actingAs($this->admin)
             ->postJson('/mailing/reservatorio/migracao-inicial', ['vendedor_id' => $this->vendedorA->id])
             ->assertUnprocessable();
+    }
+
+    public function test_indicador_de_entradas_usa_janela_da_empresa_ativa(): void
+    {
+        PreditivaConfiguracao::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'indicadores_janela_dias' => 10,
+        ]);
+        $recente = $this->contato(['nome_cliente' => 'Entrada recente']);
+        $antigo = $this->contato(['nome_cliente' => 'Entrada antiga']);
+
+        foreach ([[$recente, now()], [$antigo, now()->subDays(11)]] as [$contato, $entrouEm]) {
+            DB::table('lead_reservatorio_itens')->insert([
+                'empresa_id' => $this->empresa->id,
+                'contato_id' => $contato->id,
+                'origem' => LeadReservatorioItem::ORIGEM_MARKETING,
+                'status' => LeadReservatorioItem::STATUS_DISPONIVEL,
+                'entrou_em' => $entrouEm,
+                'created_at' => $entrouEm,
+                'updated_at' => $entrouEm,
+            ]);
+        }
+
+        $this->actingAs($this->admin)
+            ->get(route('mailing.reservatorio.index'))
+            ->assertOk()
+            ->assertSee('Entradas em 10 dias');
+
+        $this->getJson(route('mailing.reservatorio.dados'))
+            ->assertOk()
+            ->assertJsonPath('metricas.entradas_na_janela', 1)
+            ->assertJsonPath('metricas.indicadores_janela_dias', 10);
     }
 
     private function contato(array $attributes = []): Contatos

@@ -1,5 +1,5 @@
 /**
- * Escola LK Brokers — Relatório de progresso (DataTables + filtros).
+ * Academia Comercial — Relatório de progresso.
  */
 'use strict';
 

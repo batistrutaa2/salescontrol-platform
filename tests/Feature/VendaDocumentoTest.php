@@ -13,6 +13,7 @@ use App\Models\Vendas;
 use App\Services\Documentos\DocumentoStatusService;
 use App\Services\Documentos\RegistrarVendaDocumentoService;
 use App\Services\Documentos\VendaDocumentoPermissionPolicy;
+use App\Support\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -64,6 +65,7 @@ class VendaDocumentoTest extends TestCase
             'operadora_id' => $operadora->id,
             'data_vigencia' => now(),
         ]);
+        app(TenantContext::class)->set($empresa->id);
     }
 
     public function test_vendedor_envia_imagem_e_job_e_enfileirado(): void
@@ -432,7 +434,7 @@ class VendaDocumentoTest extends TestCase
         $falhaSftp->save();
         Queue::fake();
 
-        $this->artisan('documentos:processar-pendentes')->assertSuccessful();
+        $this->artisan('documentos:processar-pendentes', ['empresa_id' => $this->venda->empresa_id])->assertSuccessful();
 
         $this->assertSame('AGUARDANDO_ENVIO', $doc->fresh()->status);
         $this->assertSame('AGUARDANDO_ENVIO', $falhaAntivirus->fresh()->status);
@@ -483,7 +485,10 @@ class VendaDocumentoTest extends TestCase
             'status' => 'DISPONIVEL',
         ]);
 
-        $this->artisan('documentos:reparar-permissoes', ['--apply' => true])
+        $this->artisan('documentos:reparar-permissoes', [
+            'empresa_id' => $this->venda->empresa_id,
+            '--apply' => true,
+        ])
             ->expectsOutput('Reparo concluído: 1 ajustado(s), 0 ausente(s), 0 falha(s).')
             ->assertSuccessful();
 

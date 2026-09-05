@@ -2,14 +2,14 @@
 
 namespace App\Services;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Models\Vendas;
 
 class StatusContratoWhatsappFormatter
 {
     public function format(
         Vendas $venda,
-        int $tabulacaoId,
+        string $tabulacaoCode,
         string $tabulacaoDescricao,
         ?string $alteradoPorNome,
         ?string $motivo,
@@ -27,13 +27,13 @@ class StatusContratoWhatsappFormatter
             'nome_empresa' => $nomeEmpresa ?: 'SalesControl',
         ];
 
-        return match ($tabulacaoId) {
-            Tabulations::IMPLANTADO => $this->templateImplantado($dados),
-            Tabulations::BOLETO_DISPONIVEL => $this->templateBoletoDisponivel($dados),
-            Tabulations::PENDENCIA => $this->templatePendencia($dados),
-            Tabulations::ESTORNO => $this->templateEstorno($dados),
-            Tabulations::REGULARIZADO => $this->templateRegularizado($dados),
-            Tabulations::ANALISE_OPERADORA => $this->templateAnaliseOperadora($dados),
+        return match ($tabulacaoCode) {
+            TabulationCode::IMPLANTADO => $this->templateImplantado($dados),
+            TabulationCode::BOLETO_DISPONIVEL => $this->templateBoletoDisponivel($dados),
+            TabulationCode::PENDENCIA => $this->templatePendencia($dados),
+            TabulationCode::ESTORNO => $this->templateEstorno($dados),
+            TabulationCode::REGULARIZADO => $this->templateRegularizado($dados),
+            TabulationCode::ANALISE_OPERADORA => $this->templateAnaliseOperadora($dados),
             default => $this->templateGenerico($dados),
         };
     }

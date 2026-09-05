@@ -1,5 +1,5 @@
 /**
- * Escola LK Brokers — Gestão de módulos (CRUD).
+ * Academia Comercial — Gestão de módulos.
  */
 'use strict';
 
@@ -9,6 +9,7 @@
 
     const storeUrl = page.dataset.storeUrl;
     const updateBase = page.dataset.updateUrl; // .../escola/gestao/modulos
+    const settingsUrl = page.dataset.settingsUrl;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const modalEl = document.getElementById('modal-modulo');
@@ -17,6 +18,41 @@
     const titleEl = modalEl.querySelector('.esc-modal-title');
 
     const toast = window.escolaToast;
+    const settingsForm = document.getElementById('form-escola-configuracoes');
+
+    settingsForm?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const button = settingsForm.querySelector('button[type="submit"]');
+        const status = document.getElementById('escola-configuracoes-status');
+        const input = document.getElementById('escola-percentual-conclusao');
+        button.disabled = true;
+        status.textContent = 'Salvando…';
+
+        try {
+            const response = await fetch(settingsUrl, {
+                method: 'PUT',
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ escola_percentual_conclusao: Number(input.value) })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Revise o percentual informado.');
+            }
+
+            input.value = data.escola_percentual_conclusao;
+            status.textContent = 'Critério salvo para esta empresa.';
+            toast('success', 'Critério atualizado', 'As próximas conclusões usarão este percentual.');
+        } catch (error) {
+            status.textContent = error.message || 'Não foi possível salvar. Tente novamente.';
+            toast('error', 'Não foi possível salvar', status.textContent);
+        } finally {
+            button.disabled = false;
+        }
+    });
 
     function abrirNovo() {
         form.reset();

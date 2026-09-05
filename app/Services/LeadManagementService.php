@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Models\Agendamento;
 use App\Models\Comentarios;
 use App\Models\Contatos;
@@ -22,25 +22,37 @@ class LeadManagementService
 {
     private VendasRepository $vendasRepository;
 
-    public function __construct(VendasRepository $vendasRepository)
+    public function __construct(VendasRepository $vendasRepository, private readonly TabulationCatalog $tabulations)
     {
         $this->vendasRepository = $vendasRepository;
     }
 
     public function getLeadKPIs(int $empresaId, $request = null): array
     {
+        $remarketingId = $this->tabulations->id($empresaId, TabulationCode::REMARKETING);
         $query = DB::table('contatos as a')
             ->leftJoin('contatos_corretores as b', function ($join) use ($empresaId) {
                 $join->on('b.contato_id', '=', 'a.id')
+                    ->on('b.empresa_id', '=', 'a.empresa_id')
                     ->where('b.empresa_id', '=', $empresaId);
             })
-            ->leftJoin('tabulacoes as c', 'b.tabulacao_id', '=', 'c.id')
+            ->leftJoin('tabulacoes as c', function ($join) use ($empresaId) {
+                $join->on('c.id', '=', 'b.tabulacao_id')
+                    ->on('c.empresa_id', '=', 'b.empresa_id')
+                    ->where('c.empresa_id', '=', $empresaId);
+            })
             ->leftJoin('preditiva as p', function ($join) use ($empresaId) {
                 $join->on('p.contato_id', '=', 'a.id')
+                    ->on('p.empresa_id', '=', 'a.empresa_id')
                     ->where('p.empresa_id', '=', $empresaId)
                     ->where('p.status', '=', 'Y');
             })
-            ->leftJoin('users as d', 'b.user_id', '=', 'd.id')
+            ->leftJoin('users as d', function ($join) use ($empresaId) {
+                $join->on('d.id', '=', 'b.user_id')
+                    ->on('d.empresa_id', '=', 'b.empresa_id')
+                    ->where('d.empresa_id', '=', $empresaId)
+                    ->where('d.is_platform_admin', false);
+            })
             ->where('a.empresa_id', $empresaId);
 
         // Aplicar filtros se existirem
@@ -60,15 +72,15 @@ class LeadManagementService
             }
             if ($request->filled('ultimo_contato_inicio') && $request->filled('ultimo_contato_fim')) {
                 $inicParts = explode('/', $request->ultimo_contato_inicio);
-                $fimParts  = explode('/', $request->ultimo_contato_fim);
+                $fimParts = explode('/', $request->ultimo_contato_fim);
                 if (count($inicParts) === 3 && count($fimParts) === 3) {
                     $dataInicio = "{$inicParts[2]}-{$inicParts[1]}-{$inicParts[0]}";
-                    $dataFim    = "{$fimParts[2]}-{$fimParts[1]}-{$fimParts[0]}";
-                    $query->whereRaw("
+                    $dataFim = "{$fimParts[2]}-{$fimParts[1]}-{$fimParts[0]}";
+                    $query->whereRaw('
                         (
-                            SELECT MAX(uc_max) FROM (" . \App\Repositories\Eloquent\ContatosRepository::ultimoContatoUnionSql($empresaId) . ") _uc_f
+                            SELECT MAX(uc_max) FROM ('.\App\Repositories\Eloquent\ContatosRepository::ultimoContatoUnionSql($empresaId).') _uc_f
                         ) BETWEEN ? AND ?
-                    ", [$dataInicio . ' 00:00:00', $dataFim . ' 23:59:59']);
+                    ', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']);
                 }
             }
         }
@@ -80,7 +92,7 @@ class LeadManagementService
                 SUM(CASE WHEN a.status = 'N' THEN 1 ELSE 0 END) as descartados,
                 SUM(CASE WHEN a.status = 'Y' AND b.contato_id IS NOT NULL AND c.id = ? THEN 1 ELSE 0 END) as remarketing,
                 SUM(CASE WHEN a.status = 'Y' AND b.contato_id IS NULL AND p.contato_id IS NULL THEN 1 ELSE 0 END) as sem_atribuicao
-            ", [Tabulations::REMARKETING, Tabulations::REMARKETING])
+            ", [$remarketingId, $remarketingId])
             ->first();
 
         return [
@@ -138,10 +150,12 @@ class LeadManagementService
             TransferenciaContato::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             Contatos::where('id', $contatoId)->where('empresa_id', $empresaId)->delete();
             DB::commit();
+
             return ['success' => true, 'message' => 'Lead excluido com sucesso.'];
         } catch (\Throwable $th) {
             DB::rollBack();
-            Log::error("Erro ao excluir lead {$contatoId}: " . $th->getMessage());
+            Log::error("Erro ao excluir lead {$contatoId}: ".$th->getMessage());
+
             return ['success' => false, 'message' => 'Erro ao excluir lead.'];
         }
     }
@@ -179,9 +193,11 @@ class LeadManagementService
             ContatosCorretores::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             Preditiva::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             DB::commit();
+
             return true;
         } catch (\Throwable $th) {
             DB::rollBack();
+
             return false;
         }
     }

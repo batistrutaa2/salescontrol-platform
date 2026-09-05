@@ -12,9 +12,11 @@ use App\Models\User;
 use App\Notifications\DemandaVendedorConcluida;
 use App\Notifications\SolicitacaoAtualizadaVendedor;
 use App\Repositories\Contracts\PosVendaSolicitacaoRepositoryInterface;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 /**
  * Central de Solicitações do Pós-Venda: todas as tarefas rotineiras do setor
@@ -64,12 +66,12 @@ class CentralSolicitacoesController extends Controller
         $this->checkAccess();
 
         $validated = $request->validate([
-            'venda_id' => 'required|integer',
+            'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->empresaId())],
             'tipo' => 'required|in:'.implode(',', array_keys(TipoSolicitacaoPosVenda::labels())),
             'titulo' => 'nullable|string|max:255',
             'descricao' => 'nullable|string|max:2000',
             'data_limite' => 'nullable|date_format:Y-m-d',
-            'responsavel_id' => 'nullable|integer|exists:users,id',
+            'responsavel_id' => ['nullable', 'integer', $this->responsavelExistsRule()],
         ]);
 
         $solicitacao = $this->solicitacoes->criar($this->empresaId(), $validated, Auth::id());
@@ -105,7 +107,7 @@ class CentralSolicitacoesController extends Controller
             'titulo' => 'sometimes|nullable|string|max:255',
             'descricao' => 'sometimes|nullable|string|max:2000',
             'data_limite' => 'sometimes|nullable|date_format:Y-m-d',
-            'responsavel_id' => 'sometimes|nullable|integer|exists:users,id',
+            'responsavel_id' => ['sometimes', 'nullable', 'integer', $this->responsavelExistsRule()],
         ]);
 
         if (! $this->solicitacoes->atualizar($id, $this->empresaId(), $validated, Auth::id())) {
@@ -176,7 +178,7 @@ class CentralSolicitacoesController extends Controller
      */
     private function notificarVendedorAtualizacao(PosVendaSolicitacao $solicitacao, string $texto): void
     {
-        $vendedor = User::where('empresa_id', $this->empresaId())
+        $vendedor = User::query()->tenantMember($this->empresaId())
             ->where('id', $solicitacao->venda?->user_id)
             ->where('ativo', 'Y')
             ->first();
@@ -312,8 +314,12 @@ class CentralSolicitacoesController extends Controller
             return;
         }
 
-        $solicitacao = PosVendaSolicitacao::with('venda:id,nome_contrato', 'criador:id')
-            ->where('empresa_id', $this->empresaId())
+        $empresaId = $this->empresaId();
+        $solicitacao = PosVendaSolicitacao::with([
+            'venda' => fn ($query) => $query->select('id', 'nome_contrato')->where('vendas.empresa_id', $empresaId),
+            'criador' => fn ($query) => $query->select('id')->tenantActor($empresaId),
+        ])
+            ->where('empresa_id', $empresaId)
             ->find($id);
 
         if (! $solicitacao
@@ -436,15 +442,23 @@ class CentralSolicitacoesController extends Controller
 
     private function empresaId(): int
     {
-        return Auth::user()->empresa_id;
+        return app(TenantContext::class)->id();
     }
 
     private function responsaveis()
     {
-        return User::where('empresa_id', $this->empresaId())
+        return User::query()->tenantMember($this->empresaId())
             ->whereIn('user_role_id', self::ALLOWED_ROLES)
             ->where('ativo', 'Y')
             ->orderBy('name')
             ->get(['id', 'name']);
+    }
+
+    private function responsavelExistsRule()
+    {
+        return Rule::exists('users', 'id')->where(fn ($query) => $query
+            ->where('empresa_id', $this->empresaId())
+            ->where('is_platform_admin', false)
+            ->whereIn('user_role_id', self::ALLOWED_ROLES));
     }
 }

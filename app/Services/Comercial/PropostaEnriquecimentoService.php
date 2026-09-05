@@ -2,7 +2,7 @@
 
 namespace App\Services\Comercial;
 
-use App\Modules\LkBeneficios\Services\LemitService;
+use App\Services\Enrichment\LemitService;
 use App\Support\DocumentoFiscal;
 use Carbon\Carbon;
 use Throwable;

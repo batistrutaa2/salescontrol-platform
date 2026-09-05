@@ -20,21 +20,21 @@ use App\Models\PreditivaEnvio;
 use App\Models\PreditivaRegraPriorizacao;
 use App\Models\PreditivaTabulacaoHard;
 use App\Models\TransferenciaContato;
-use App\Repositories\Contracts\BaseLegaceRespositoryInterface;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Contracts\VendasRepositoryInterface;
-use App\Repositories\Eloquent\BaseLegaceRespository;
 use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\PreditivaRegraRepository;
 use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\VendasRepository;
 use App\Services\LeadManagementService;
 use App\Services\MailingImportService;
+use App\Services\TabulationCatalog;
 use App\UseCases\MailingUseCase;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -42,14 +42,13 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 class Mailing extends Controller
 {
     protected UsuariosRepositoryInterface $usuarioRepository;
 
     protected TabulacoesRepository $tabulacoesRepository;
-
-    protected BaseLegaceRespository $baseLegaceRespository;
 
     protected MailingUseCase $mailingUseCase;
 
@@ -72,18 +71,17 @@ class Mailing extends Controller
         UsuariosRepositoryInterface $usuariosRepositoryInterface,
         ContatosRepositoryInterface $contatosRepositoryInterface,
         TabulacoesRepositoryInterface $tabulacoesRepositoryInterface,
-        BaseLegaceRespositoryInterface $baseLegaceRespositoryInterface,
         VendasRepositoryInterface $vendasRepositoryInterface,
         PreditivaRegraRepositoryInterface $preditivaRegraRepositoryInterface,
-        MailingImportService $mailingImportService
+        MailingImportService $mailingImportService,
+        TabulationCatalog $tabulations
     ) {
 
-        $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface);
+        $this->mailingUseCase = new MailingUseCase($contatosRepositoryInterface, $tabulations);
 
         $this->contatosRepository = $contatosRepositoryInterface;
         $this->usuarioRepository = $usuariosRepositoryInterface;
         $this->tabulacoesRepository = $tabulacoesRepositoryInterface;
-        $this->baseLegaceRespository = $baseLegaceRespositoryInterface;
         $this->vendasRepository = $vendasRepositoryInterface;
         $this->preditivaRegraRepository = $preditivaRegraRepositoryInterface;
         $this->leadManagementService = app(LeadManagementService::class);
@@ -92,8 +90,8 @@ class Mailing extends Controller
 
     public function index()
     {
-        $users = $this->usuarioRepository->getUserByCompany(Auth::user()->empresa_id);
-        $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial(Auth::user()->empresa_id);
+        $users = $this->usuarioRepository->getUserByCompany($this->tenantId());
+        $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial($this->tenantId());
 
         return view('content.pages.mailing.importMailing', [
             'users' => $users,
@@ -104,7 +102,7 @@ class Mailing extends Controller
     public function importaMailing(Request $request)
     {
         try {
-            $empresaId = (int) Auth::user()->empresa_id;
+            $empresaId = (int) $this->tenantId();
             $validated = $request->validate([
                 'base' => ['required', 'string', 'max:255'],
                 'file' => ['required', 'file', 'max:5120'],
@@ -112,7 +110,7 @@ class Mailing extends Controller
                 'id_user' => [
                     'nullable',
                     'integer',
-                    Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('ativo', 'Y')),
+                    Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('is_platform_admin', false)->where('ativo', 'Y')),
                 ],
                 'tabulacao' => [
                     'nullable',
@@ -159,7 +157,7 @@ class Mailing extends Controller
     public function importacaoPendente()
     {
         $importacao = MailingImportacao::query()
-            ->where('empresa_id', Auth::user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->where('user_id', Auth::id())
             ->whereIn('status', ['EM_ANALISE', 'PARCIAL'])
             ->latest('updated_at')
@@ -185,7 +183,7 @@ class Mailing extends Controller
     public function resolverDuplicados(Request $request, MailingImportacao $importacao)
     {
         $this->garantirAcessoImportacao($importacao);
-        $empresaId = (int) Auth::user()->empresa_id;
+        $empresaId = (int) $this->tenantId();
         $validated = $request->validate([
             'itens' => ['required', 'array', 'min:1'],
             'itens.*' => ['integer'],
@@ -193,7 +191,7 @@ class Mailing extends Controller
             'vendedor_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('ativo', 'Y')),
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('is_platform_admin', false)->where('ativo', 'Y')),
             ],
             'tabulacao_id' => [
                 'nullable',
@@ -232,7 +230,7 @@ class Mailing extends Controller
     private function garantirAcessoImportacao(MailingImportacao $importacao): void
     {
         abort_unless(
-            (int) $importacao->empresa_id === (int) Auth::user()->empresa_id
+            (int) $importacao->empresa_id === (int) $this->tenantId()
               && (int) $importacao->user_id === (int) Auth::id(),
             404
         );
@@ -240,6 +238,9 @@ class Mailing extends Controller
 
     public function deleteMailingLeadsDescarted($id)
     {
+        $empresaId = (int) $this->tenantId();
+        abort_unless(Contatos::where('empresa_id', $empresaId)->whereKey($id)->exists(), 404);
+
         try {
             $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($id);
 
@@ -248,17 +249,17 @@ class Mailing extends Controller
             }
 
             DB::beginTransaction();
-            Comentarios::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            Agendamento::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            Dependentes::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            Ligacoes::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            LeadAtividade::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            ContatosCorretores::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            LogPreditiva::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            Preditiva::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            PreditivaEnvio::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            TransferenciaContato::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            Contatos::where('id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
+            Comentarios::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            Agendamento::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            Dependentes::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            Ligacoes::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            LeadAtividade::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            ContatosCorretores::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            LogPreditiva::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            Preditiva::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            PreditivaEnvio::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            TransferenciaContato::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            Contatos::where('id', $id)->where('empresa_id', $this->tenantId())->delete();
             DB::commit();
 
             return redirect()->back()->with('status', 'success')->with('message', 'Contato Excluido com sucesso');
@@ -271,6 +272,9 @@ class Mailing extends Controller
 
     public function deleteMailing($id)
     {
+        $empresaId = (int) $this->tenantId();
+        abort_unless(Contatos::where('empresa_id', $empresaId)->whereKey($id)->exists(), 404);
+
         try {
             $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($id);
 
@@ -279,17 +283,17 @@ class Mailing extends Controller
             }
 
             DB::beginTransaction();
-            Comentarios::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            Agendamento::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            Dependentes::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            Ligacoes::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            LeadAtividade::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            ContatosCorretores::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            LogPreditiva::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            Preditiva::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            PreditivaEnvio::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            TransferenciaContato::where('contato_id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
-            Contatos::where('id', $id)->where('empresa_id', Auth::user()->empresa_id)->delete();
+            Comentarios::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            Agendamento::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            Dependentes::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            Ligacoes::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            LeadAtividade::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            ContatosCorretores::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            LogPreditiva::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            Preditiva::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            PreditivaEnvio::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            TransferenciaContato::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
+            Contatos::where('id', $id)->where('empresa_id', $this->tenantId())->delete();
             DB::commit();
 
             return redirect()->back()->with('status', 'success')->with('message', 'Contato Excluido com sucesso');
@@ -302,7 +306,7 @@ class Mailing extends Controller
 
     public function viewLeads()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
         $users = $this->usuarioRepository->getUserByCompany($empresaId);
         $tabulations = $this->tabulacoesRepository->getAll($empresaId);
         $kpis = $this->leadManagementService->getLeadKPIs($empresaId);
@@ -314,44 +318,36 @@ class Mailing extends Controller
         ]);
     }
 
-    public function viewLeadslegacy()
-    {
-
-        if (Auth::user()->empresa_id == 2) {
-            $contacts = $this->baseLegaceRespository->getContactsAll();
-
-            return view('content.pages.mailing.visualizar-leads-legado', [
-                'contatos' => $contacts,
-            ]);
-        } else {
-            return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', 'Acesso negado.');
-        }
-    }
-
     public function getLeads()
     {
-        $data = $this->contatosRepository->getLeads(Auth::user()->empresa_id);
+        $data = $this->contatosRepository->getLeads($this->tenantId());
 
         return response()->json(['data' => $data]);
     }
 
     public function getAllLeadsServerSide(Request $request)
     {
-        $data = $this->contatosRepository->getAllLeadsServerSide(Auth::user()->empresa_id, $request);
+        $this->validarFiltrosLeads($request, true);
+        $data = $this->contatosRepository->getAllLeadsServerSide($this->tenantId(), $request);
 
         return response()->json($data);
     }
 
     public function getLeadKPIs(Request $request)
     {
-        $kpis = $this->leadManagementService->getLeadKPIs(Auth::user()->empresa_id, $request);
+        $this->validarFiltrosLeads($request);
+        $kpis = $this->leadManagementService->getLeadKPIs($this->tenantId(), $request);
 
         return response()->json($kpis);
     }
 
     public function reactivateLead(Request $request)
     {
-        $result = $this->leadManagementService->reactivateLead($request->id, Auth::user()->empresa_id);
+        $empresaId = (int) $this->tenantId();
+        $validated = $request->validate([
+            'id' => ['required', 'integer', Rule::exists('contatos', 'id')->where('empresa_id', $empresaId)],
+        ]);
+        $result = $this->leadManagementService->reactivateLead((int) $validated['id'], $empresaId);
 
         return response()->json([
             'success' => $result,
@@ -361,8 +357,9 @@ class Mailing extends Controller
 
     public function bulkReactivateLeads(Request $request)
     {
-        $ids = $request->input('ids', []);
-        $result = $this->leadManagementService->bulkReactivateLeads($ids, Auth::user()->empresa_id);
+        $empresaId = (int) $this->tenantId();
+        $validated = $this->validarIdsLeads($request, $empresaId);
+        $result = $this->leadManagementService->bulkReactivateLeads($validated['ids'], $empresaId);
 
         return response()->json([
             'success' => true,
@@ -373,8 +370,9 @@ class Mailing extends Controller
 
     public function bulkDeleteLeads(Request $request)
     {
-        $ids = $request->input('ids', []);
-        $result = $this->leadManagementService->bulkDeleteLeads($ids, Auth::user()->empresa_id);
+        $empresaId = (int) $this->tenantId();
+        $validated = $this->validarIdsLeads($request, $empresaId);
+        $result = $this->leadManagementService->bulkDeleteLeads($validated['ids'], $empresaId);
 
         return response()->json([
             'success' => true,
@@ -385,7 +383,11 @@ class Mailing extends Controller
 
     public function discardLead(Request $request)
     {
-        $result = $this->leadManagementService->discardLead($request->id, Auth::user()->empresa_id);
+        $empresaId = (int) $this->tenantId();
+        $validated = $request->validate([
+            'id' => ['required', 'integer', Rule::exists('contatos', 'id')->where('empresa_id', $empresaId)],
+        ]);
+        $result = $this->leadManagementService->discardLead((int) $validated['id'], $empresaId);
 
         return response()->json([
             'success' => $result,
@@ -395,8 +397,9 @@ class Mailing extends Controller
 
     public function bulkDiscardLeads(Request $request)
     {
-        $ids = $request->input('ids', []);
-        $result = $this->leadManagementService->bulkDiscardLeads($ids, Auth::user()->empresa_id);
+        $empresaId = (int) $this->tenantId();
+        $validated = $this->validarIdsLeads($request, $empresaId);
+        $result = $this->leadManagementService->bulkDiscardLeads($validated['ids'], $empresaId);
 
         return response()->json([
             'success' => true,
@@ -405,17 +408,43 @@ class Mailing extends Controller
         ]);
     }
 
-    public function getLeadsLegacy($id_mailing)
+    private function validarFiltrosLeads(Request $request, bool $dataTable = false): array
     {
-        $infoContact = $this->baseLegaceRespository->getContacts($id_mailing);
-        $comments = $this->baseLegaceRespository->getCommentsMailing($id_mailing);
+        $empresaId = (int) $this->tenantId();
+        $rules = [
+            'situacao' => ['nullable', Rule::in(['DESCARTADO', 'PREDITIVA', 'REMARKETING', 'COM VENDEDOR', 'SEM ATRIBUICAO'])],
+            'corretor' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $empresaId)->where('is_platform_admin', false))],
+            'data_inicio' => ['nullable', 'date_format:d/m/Y', 'required_with:data_fim'],
+            'data_fim' => ['nullable', 'date_format:d/m/Y', 'required_with:data_inicio'],
+            'ultimo_contato_inicio' => ['nullable', 'date_format:d/m/Y', 'required_with:ultimo_contato_fim'],
+            'ultimo_contato_fim' => ['nullable', 'date_format:d/m/Y', 'required_with:ultimo_contato_inicio'],
+        ];
 
-        return response()->json(
-            [
-                'contato' => $infoContact,
-                'comentarios' => $comments,
-            ]
-        );
+        if ($dataTable) {
+            $rules += [
+                'draw' => ['nullable', 'integer', 'min:0'],
+                'start' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+                'length' => ['nullable', 'integer', 'between:1,100'],
+                'order.0.column' => ['nullable', 'integer', 'between:0,7'],
+                'order.0.dir' => ['nullable', Rule::in(['asc', 'desc'])],
+                'search.value' => ['nullable', 'string', 'max:150'],
+            ];
+        }
+
+        return $request->validate($rules);
+    }
+
+    private function validarIdsLeads(Request $request, int $empresaId): array
+    {
+        return $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:500'],
+            'ids.*' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('contatos', 'id')->where('empresa_id', $empresaId),
+            ],
+        ]);
     }
 
     public function contactsAdvertisement()
@@ -425,7 +454,7 @@ class Mailing extends Controller
 
     public function preditiva()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
         $users = $this->usuarioRepository->getUserByCompany($empresaId);
         $tabulacoes = $this->tabulacoesRepository->getTabulationsCompanieCommercial($empresaId);
         $config = PreditivaConfiguracao::getOrDefault($empresaId);
@@ -442,7 +471,7 @@ class Mailing extends Controller
     public function getPreditiva(Request $request)
     {
 
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         $hoje = Carbon::today();
 
@@ -487,7 +516,10 @@ class Mailing extends Controller
             ->select('linner.contato_id', 'linner.tabulacao');
 
         $query = DB::table('preditiva as p')
-            ->join('contatos as c', 'c.id', '=', 'p.contato_id')
+            ->join('contatos as c', function ($join) {
+                $join->on('c.id', '=', 'p.contato_id')
+                    ->on('c.empresa_id', '=', 'p.empresa_id');
+            })
             ->leftJoinSub($tentativasSub, 'tent', fn ($j) => $j->on('tent.contato_id', '=', 'p.contato_id'))
             ->leftJoinSub($ultimaTabulacaoSub, 'ut', fn ($j) => $j->on('ut.contato_id', '=', 'p.contato_id'))
             ->where('p.status', 'Y')
@@ -540,7 +572,7 @@ class Mailing extends Controller
 
     public function getLeadsDescartados()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
         $leadsDescartados = Contatos::select(['id', 'nome_cliente', 'cpf', 'telefone1', 'valor_plano_atual', 'categoria', 'created_at', 'nome_base', 'updated_at'])
             ->where('empresa_id', $empresaId)
             ->where('status', 'N')
@@ -552,10 +584,22 @@ class Mailing extends Controller
 
     public function getComentariosLead($contatoId)
     {
+        $empresaId = (int) $this->tenantId();
+        abort_unless(
+            Contatos::whereKey($contatoId)->where('empresa_id', $empresaId)->exists(),
+            404,
+        );
+
         $comentarios = DB::table('comentarios')
-            ->leftJoin('users', 'comentarios.user_id', '=', 'users.id')
+            ->leftJoin('users', function ($join) {
+                $join->on('comentarios.user_id', '=', 'users.id')
+                    ->where(function ($visibility) {
+                        $visibility->whereColumn('comentarios.empresa_id', 'users.empresa_id')
+                            ->orWhere('users.is_platform_admin', true);
+                    });
+            })
             ->where('comentarios.contato_id', $contatoId)
-            ->where('comentarios.empresa_id', Auth::user()->empresa_id)
+            ->where('comentarios.empresa_id', $empresaId)
             ->select('comentarios.*', 'users.name as autor')
             ->orderBy('comentarios.created_at', 'desc')
             ->get();
@@ -568,9 +612,19 @@ class Mailing extends Controller
      */
     public function sendDiscardedLeadToPreditiva(Request $request)
     {
+        $empresaId = (int) $this->tenantId();
+        $data = $request->validate([
+            'id' => [
+                'required',
+                'integer',
+                Rule::exists('contatos', 'id')
+                    ->where('empresa_id', $empresaId)
+                    ->where('status', 'N'),
+            ],
+        ]);
+
         try {
-            $contatoId = $request->id;
-            $empresaId = Auth::user()->empresa_id;
+            $contatoId = (int) $data['id'];
 
             // Verificar se o contato pertence a empresa e esta descartado
             $contato = Contatos::where('id', $contatoId)
@@ -629,13 +683,10 @@ class Mailing extends Controller
                 'message' => 'Lead enviado para preditiva com sucesso.',
             ]);
 
-        } catch (\Throwable $th) {
+        } catch (Throwable $th) {
             DB::rollBack();
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao enviar lead: '.$th->getMessage(),
-            ], 500);
+            return $this->internalError($th, 'Não foi possível enviar o lead neste momento.');
         }
     }
 
@@ -644,16 +695,21 @@ class Mailing extends Controller
      */
     public function sendMultipleDiscardedLeadsToPreditiva(Request $request)
     {
-        try {
-            $ids = $request->input('ids', []);
-            $empresaId = Auth::user()->empresa_id;
+        $empresaId = (int) $this->tenantId();
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:500'],
+            'ids.*' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('contatos', 'id')
+                    ->where('empresa_id', $empresaId)
+                    ->where('status', 'N'),
+            ],
+        ]);
 
-            if (empty($ids)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Nenhum lead selecionado.',
-                ], 400);
-            }
+        try {
+            $ids = array_map('intval', $data['ids']);
 
             $totalCount = count($ids);
             $successCount = 0;
@@ -745,18 +801,15 @@ class Mailing extends Controller
                 ],
             ]);
 
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao processar: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível processar o lead neste momento.');
         }
     }
 
     public function desativarLeadPreditiva($contatoId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             DB::beginTransaction();
 
@@ -780,20 +833,17 @@ class Mailing extends Controller
                 'success' => true,
                 'message' => 'Lead desativado da preditiva com sucesso.',
             ]);
-        } catch (\Throwable $th) {
+        } catch (Throwable $th) {
             DB::rollBack();
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao desativar lead: '.$th->getMessage(),
-            ], 500);
+            return $this->internalError($th, 'Não foi possível desativar o lead neste momento.');
         }
     }
 
     public function excluirLeadPreditiva($contatoId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             // Verifica se existe venda cadastrada
             $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($contatoId);
@@ -832,20 +882,17 @@ class Mailing extends Controller
                 'success' => true,
                 'message' => 'Lead excluído permanentemente com sucesso.',
             ]);
-        } catch (\Throwable $th) {
+        } catch (Throwable $th) {
             DB::rollBack();
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao excluir lead: '.$th->getMessage(),
-            ], 500);
+            return $this->internalError($th, 'Não foi possível excluir o lead neste momento.');
         }
     }
 
     public function removerDaPreditiva($contatoId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             DB::beginTransaction();
 
@@ -869,20 +916,17 @@ class Mailing extends Controller
                 'success' => true,
                 'message' => 'Lead removido da fila preditiva com sucesso.',
             ]);
-        } catch (\Throwable $th) {
+        } catch (Throwable $th) {
             DB::rollBack();
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao remover lead: '.$th->getMessage(),
-            ], 500);
+            return $this->internalError($th, 'Não foi possível remover o lead neste momento.');
         }
     }
 
     public function getTabulacoesDistintas()
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $tabulacoes = DB::table('log_preditiva')
                 ->where('empresa_id', $empresaId)
@@ -897,22 +941,16 @@ class Mailing extends Controller
                 'success' => true,
                 'tabulacoes' => $tabulacoes,
             ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar tabulações: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível carregar as etapas do funil.');
         }
     }
 
     public function limparLogsPreditiva(Request $request)
     {
-        $ids = $request->input('ids', []);
-        $empresaId = Auth::user()->empresa_id;
-
-        if (empty($ids)) {
-            return response()->json(['success' => false, 'message' => 'Nenhum lead selecionado.'], 400);
-        }
+        $empresaId = (int) $this->tenantId();
+        $data = $this->validarIdsLeads($request, $empresaId);
+        $ids = array_map('intval', $data['ids']);
 
         try {
             $deleted = LogPreditiva::whereIn('contato_id', $ids)
@@ -936,7 +974,7 @@ class Mailing extends Controller
                 'base' => 'required|string',
             ]);
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
             $ignorarDuplicados = $request->input('ignorar_duplicados', false);
 
             // Gerar ID único para a operação (usado como id_operacao)
@@ -1003,11 +1041,8 @@ class Mailing extends Controller
                 'total_importados' => $totalImportados,
                 'total_ignorados' => count($cpfsExistentes),
             ], 201);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'error' => true,
-                'message' => 'Erro ao importar leads: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível importar os leads neste momento.');
         }
     }
 
@@ -1022,18 +1057,15 @@ class Mailing extends Controller
     public function regrasIndex()
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
             $regras = $this->preditivaRegraRepository->getRegrasByEmpresa($empresaId);
 
             return response()->json([
                 'success' => true,
                 'regras' => $regras,
             ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar regras: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível carregar as regras neste momento.');
         }
     }
 
@@ -1075,10 +1107,9 @@ class Mailing extends Controller
                 ], 422);
             }
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
-            $id = $this->preditivaRegraRepository->create([
-                'empresa_id' => $empresaId,
+            $id = $this->preditivaRegraRepository->create((int) $empresaId, [
                 'nome' => $request->nome,
                 'descricao' => $request->descricao,
                 'campo' => $request->campo,
@@ -1100,11 +1131,8 @@ class Mailing extends Controller
                 'message' => 'Regra criada com sucesso.',
                 'id' => $id,
             ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao criar regra: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível criar a regra neste momento.');
         }
     }
 
@@ -1114,6 +1142,7 @@ class Mailing extends Controller
     public function regrasUpdate(Request $request, $id)
     {
         try {
+            $empresaId = (int) $this->tenantId();
             $validator = Validator::make($request->all(), [
                 'nome' => 'required|string|max:100',
                 'campo' => 'required|string|max:50',
@@ -1130,8 +1159,8 @@ class Mailing extends Controller
                 ], 422);
             }
 
-            $regra = $this->preditivaRegraRepository->findById($id);
-            if (! $regra || $regra->empresa_id !== Auth::user()->empresa_id) {
+            $regra = $this->preditivaRegraRepository->findById((int) $id, $empresaId);
+            if (! $regra) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Regra não encontrada.',
@@ -1154,7 +1183,7 @@ class Mailing extends Controller
                 ], 422);
             }
 
-            $updated = $this->preditivaRegraRepository->update($id, [
+            $updated = $this->preditivaRegraRepository->update((int) $id, $empresaId, [
                 'nome' => $request->nome,
                 'descricao' => $request->descricao,
                 'campo' => $request->campo,
@@ -1174,11 +1203,8 @@ class Mailing extends Controller
                 'success' => true,
                 'message' => 'Regra atualizada com sucesso.',
             ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao atualizar regra: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível atualizar a regra neste momento.');
         }
     }
 
@@ -1188,15 +1214,16 @@ class Mailing extends Controller
     public function regrasDestroy($id)
     {
         try {
-            $regra = $this->preditivaRegraRepository->findById($id);
-            if (! $regra || $regra->empresa_id !== Auth::user()->empresa_id) {
+            $empresaId = (int) $this->tenantId();
+            $regra = $this->preditivaRegraRepository->findById((int) $id, $empresaId);
+            if (! $regra) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Regra não encontrada.',
                 ], 404);
             }
 
-            $deleted = $this->preditivaRegraRepository->delete($id);
+            $deleted = $this->preditivaRegraRepository->delete((int) $id, $empresaId);
 
             if (! $deleted) {
                 return response()->json([
@@ -1209,11 +1236,8 @@ class Mailing extends Controller
                 'success' => true,
                 'message' => 'Regra excluída com sucesso.',
             ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao excluir regra: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível excluir a regra neste momento.');
         }
     }
 
@@ -1223,15 +1247,16 @@ class Mailing extends Controller
     public function regrasToggle($id)
     {
         try {
-            $regra = $this->preditivaRegraRepository->findById($id);
-            if (! $regra || $regra->empresa_id !== Auth::user()->empresa_id) {
+            $empresaId = (int) $this->tenantId();
+            $regra = $this->preditivaRegraRepository->findById((int) $id, $empresaId);
+            if (! $regra) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Regra não encontrada.',
                 ], 404);
             }
 
-            $toggled = $this->preditivaRegraRepository->toggleAtivo($id);
+            $toggled = $this->preditivaRegraRepository->toggleAtivo((int) $id, $empresaId);
 
             if (! $toggled) {
                 return response()->json([
@@ -1240,18 +1265,15 @@ class Mailing extends Controller
                 ], 500);
             }
 
-            $regraAtualizada = $this->preditivaRegraRepository->findById($id);
+            $regraAtualizada = $this->preditivaRegraRepository->findById((int) $id, $empresaId);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Status da regra alterado com sucesso.',
                 'ativo' => $regraAtualizada->ativo,
             ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao alterar status: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível alterar o estado da regra.');
         }
     }
 
@@ -1273,12 +1295,12 @@ class Mailing extends Controller
                 ], 422);
             }
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
             $ordens = $request->ordens;
 
             foreach ($ordens as $id) {
-                $regra = $this->preditivaRegraRepository->findById($id);
-                if (! $regra || $regra->empresa_id !== $empresaId) {
+                $regra = $this->preditivaRegraRepository->findById((int) $id, (int) $empresaId);
+                if (! $regra) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Regra não autorizada na lista.',
@@ -1286,7 +1308,7 @@ class Mailing extends Controller
                 }
             }
 
-            $reordered = $this->preditivaRegraRepository->reordenar($ordens);
+            $reordered = $this->preditivaRegraRepository->reordenar((int) $empresaId, $ordens);
 
             if (! $reordered) {
                 return response()->json([
@@ -1299,11 +1321,8 @@ class Mailing extends Controller
                 'success' => true,
                 'message' => 'Regras reordenadas com sucesso.',
             ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao reordenar: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível reordenar as regras.');
         }
     }
 
@@ -1329,11 +1348,8 @@ class Mailing extends Controller
                 'success' => true,
                 'campos' => $campos,
             ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar campos: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível carregar os campos disponíveis.');
         }
     }
 
@@ -1350,7 +1366,7 @@ class Mailing extends Controller
                 ], 422);
             }
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $valores = DB::table('contatos')
                 ->where('empresa_id', $empresaId)
@@ -1365,11 +1381,8 @@ class Mailing extends Controller
                 'success' => true,
                 'valores' => $valores,
             ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar valores: '.$th->getMessage(),
-            ], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível carregar os valores disponíveis.');
         }
     }
 
@@ -1380,7 +1393,7 @@ class Mailing extends Controller
     public function getConfiguracaoPreditiva()
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
             $config = PreditivaConfiguracao::getOrDefault($empresaId);
             $tabsHard = PreditivaTabulacaoHard::listForEmpresa($empresaId);
 
@@ -1389,15 +1402,15 @@ class Mailing extends Controller
                 'config' => $config,
                 'tabs_hard' => $tabsHard,
             ]);
-        } catch (\Throwable $th) {
-            return response()->json(['success' => false, 'message' => $th->getMessage()], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível carregar a configuração da preditiva.');
         }
     }
 
     public function salvarConfiguracaoPreditiva(Request $request)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $request->validate([
                 'cooldown_horas' => 'required|integer|min:0|max:168',
@@ -1417,15 +1430,15 @@ class Mailing extends Controller
             );
 
             return response()->json(['success' => true, 'message' => 'Configuracoes salvas com sucesso.']);
-        } catch (\Throwable $th) {
-            return response()->json(['success' => false, 'message' => $th->getMessage()], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível salvar a configuração da preditiva.');
         }
     }
 
     public function storeTabulacaoHard(Request $request)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
             $tabulacao = strtoupper(trim($request->tabulacao ?? ''));
 
             if (empty($tabulacao)) {
@@ -1443,15 +1456,15 @@ class Mailing extends Controller
                 'id' => $tab->id,
                 'tabulacao' => $tab->tabulacao,
             ]);
-        } catch (\Throwable $th) {
-            return response()->json(['success' => false, 'message' => $th->getMessage()], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível adicionar a tabulação neste momento.');
         }
     }
 
     public function destroyTabulacaoHard(int $id)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
             $deleted = PreditivaTabulacaoHard::where('id', $id)
                 ->where('empresa_id', $empresaId)
                 ->delete();
@@ -1461,8 +1474,19 @@ class Mailing extends Controller
             }
 
             return response()->json(['success' => true, 'message' => 'Tabulacao removida.']);
-        } catch (\Throwable $th) {
-            return response()->json(['success' => false, 'message' => $th->getMessage()], 500);
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível remover a tabulação neste momento.');
         }
+    }
+
+    private function internalError(Throwable $exception, string $message): JsonResponse
+    {
+        report($exception);
+
+        return response()->json([
+            'success' => false,
+            'error' => true,
+            'message' => $message,
+        ], 500);
     }
 }

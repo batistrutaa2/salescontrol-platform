@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Empresa;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -18,13 +19,25 @@ class LimparPreditivaComVenda extends Command
         $empresaId = (int) $this->argument('empresa_id');
         $confirmar = $this->option('confirmar');
 
+        if ($empresaId < 1 || ! Empresa::query()->whereKey($empresaId)->exists()) {
+            $this->error('Empresa inválida.');
+
+            return self::FAILURE;
+        }
+
         $this->info("Empresa ID: $empresaId");
         $this->info($confirmar ? '⚠️  MODO EXECUÇÃO — registros serão removidos' : '🔍 Dry-run — nenhuma alteração será feita');
         $this->newLine();
 
         $leads = DB::table('preditiva as p')
-            ->join('contatos as c', 'c.id', '=', 'p.contato_id')
-            ->join('vendas as v', 'v.contato_id', '=', 'p.contato_id')
+            ->join('contatos as c', function ($join) {
+                $join->on('c.id', '=', 'p.contato_id')
+                    ->on('c.empresa_id', '=', 'p.empresa_id');
+            })
+            ->join('vendas as v', function ($join) {
+                $join->on('v.contato_id', '=', 'p.contato_id')
+                    ->on('v.empresa_id', '=', 'p.empresa_id');
+            })
             ->where('p.status', 'Y')
             ->where('p.empresa_id', $empresaId)
             ->select(
@@ -40,6 +53,7 @@ class LimparPreditivaComVenda extends Command
 
         if ($leads->isEmpty()) {
             $this->info('✅ Nenhum lead na preditiva com venda cadastrada. Nada a fazer.');
+
             return self::SUCCESS;
         }
 
@@ -48,7 +62,7 @@ class LimparPreditivaComVenda extends Command
 
         $this->table(
             ['preditiva_id', 'contato_id', 'nome_cliente', 'cpf', 'venda_ids', 'propostas'],
-            $leads->map(fn($r) => [
+            $leads->map(fn ($r) => [
                 $r->preditiva_id,
                 $r->contato_id,
                 $r->nome_cliente,
@@ -61,17 +75,20 @@ class LimparPreditivaComVenda extends Command
 
         if (! $confirmar) {
             $this->warn('Rode com --confirmar para efetivar a remoção.');
+
             return self::SUCCESS;
         }
 
         if (! $this->confirm("Confirma a remoção de {$leads->count()} registros da preditiva?")) {
             $this->info('Cancelado.');
+
             return self::SUCCESS;
         }
 
         $preditivaIds = $leads->pluck('preditiva_id')->toArray();
 
         DB::table('preditiva')
+            ->where('empresa_id', $empresaId)
             ->whereIn('id', $preditivaIds)
             ->delete();
 

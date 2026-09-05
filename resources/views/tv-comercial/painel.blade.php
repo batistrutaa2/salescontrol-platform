@@ -666,16 +666,9 @@
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const empresaId = urlParams.get('empresa_id');
-
-        if (!empresaId) {
-            document.getElementById('loading-screen').innerHTML =
-                '<div style="text-align:center;color:var(--text-muted);">ID da empresa não informado.<br>Use ?empresa_id=X na URL</div>';
-        }
-
-        const API_DIARIA = '/tv-comercial/dados?empresa_id=' + empresaId;
-        const API_RANKING = '/tv-comercial/ranking?empresa_id=' + empresaId;
+        const accessToken = @json($accessToken);
+        const API_DIARIA = @json(route('tv-comercial.dados', ['token' => $accessToken]));
+        const API_RANKING = @json(route('tv-comercial.ranking', ['token' => $accessToken]));
         const ROTATE_INTERVAL = 15000;
         const REFRESH_INTERVAL = 30000;
 
@@ -884,9 +877,11 @@
 
         // Helpers
         function getPctClass(pct) {
+            const configuracao = dadosDiaria?.configuracao || dadosRanking?.configuracao;
+            if (!configuracao) return 'pct-red';
             if (pct >= 100) return 'pct-green';
-            if (pct >= 75) return 'pct-blue';
-            if (pct >= 50) return 'pct-amber';
+            if (pct >= configuracao.percentual_bom) return 'pct-blue';
+            if (pct >= configuracao.percentual_atencao) return 'pct-amber';
             return 'pct-red';
         }
 
@@ -901,7 +896,7 @@
         }
 
         // Init
-        if (empresaId) {
+        if (accessToken) {
             updateClock();
             setInterval(updateClock, 1000);
 

@@ -16,6 +16,8 @@ class ConversaService
     public function resolverConversa(WhatsappInstancia $instancia, string $remoteJid, ?string $pushName = null): WhatsappConversa
     {
         $conversa = WhatsappConversa::where('instancia_id', $instancia->id)
+            ->where('empresa_id', $instancia->empresa_id)
+            ->where('user_id', $instancia->user_id)
             ->where('remote_jid', $remoteJid)
             ->first();
 
@@ -32,12 +34,12 @@ class ConversaService
 
         $conversa = WhatsappConversa::firstOrCreate(
             [
+                'empresa_id' => $instancia->empresa_id,
                 'instancia_id' => $instancia->id,
+                'user_id' => $instancia->user_id,
                 'remote_jid' => $remoteJid,
             ],
             [
-                'empresa_id' => $instancia->empresa_id,
-                'user_id' => $instancia->user_id,
                 'numero' => $numero,
                 'numero_normalizado' => $numeroNormalizado,
                 'nome_whatsapp' => $pushName,
@@ -77,7 +79,11 @@ class ConversaService
         $match = 'CONCAT(LEFT(%1$s, 2), RIGHT(%1$s, 8)) = ?';
 
         return DB::table('contatos as c')
-            ->join('contatos_corretores as cc', 'cc.contato_id', '=', 'c.id')
+            ->join('contatos_corretores as cc', function ($join) {
+                $join->on('cc.contato_id', '=', 'c.id')
+                    ->on('cc.empresa_id', '=', 'c.empresa_id');
+            })
+            ->where('c.empresa_id', $empresaId)
             ->where('cc.empresa_id', $empresaId)
             ->where('cc.user_id', $userId)
             ->where(function ($query) use ($match, $numeroNormalizado) {

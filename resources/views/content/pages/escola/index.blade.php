@@ -1,6 +1,6 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'Escola LK Brokers')
+@section('title', 'Academia Comercial')
 
 @section('page-style')
     @vite('resources/assets/vendor/scss/pages/escola.scss')
@@ -18,7 +18,7 @@
                 </svg>
             </div>
             <div class="esc-title-text">
-                <h4>Escola LK Brokers</h4>
+                <h4>Academia Comercial</h4>
                 <span>Evolua com nossos treinamentos: portabilidade, negociação, produto e muito mais.</span>
             </div>
         </div>

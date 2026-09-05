@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PosVendaSolicitacaoHistorico extends Model
 {
+    use \App\Models\Concerns\BelongsToTenantThrough;
+
     protected $table = 'pos_venda_solicitacao_historico';
 
     protected $fillable = [

@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Comercial;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
 use App\Models\Vendas;
+use App\Services\TabulationCatalog;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -27,12 +29,15 @@ class CreateSaleValidationTest extends TestCase
 
     private int $planoId;
 
+    private int $vendaTabulacaoId;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         DB::table('user_roles')->insert([
             ['id' => UserRole::VENDEDOR, 'tipo_usuario' => 'VENDEDOR', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => UserRole::DEVELOPER, 'tipo_usuario' => 'DEVELOPER', 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         $this->empresa = Empresa::factory()->create();
@@ -43,16 +48,9 @@ class CreateSaleValidationTest extends TestCase
             'ativo' => 'Y',
         ]);
 
-        DB::table('tabulacoes')->insert([
-            'id' => Tabulations::VENDA,
-            'empresa_id' => $this->empresa->id,
-            'descricao' => 'VENDA',
-            'tipo_tabulacao' => 'C',
-            'efetivo' => 'Y',
-            'status' => 'Y',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $catalog = app(TabulationCatalog::class);
+        $catalog->provision($this->empresa->id);
+        $this->vendaTabulacaoId = $catalog->id($this->empresa->id, TabulationCode::VENDA);
 
         $this->operadoraId = DB::table('operadoras')->insertGetId([
             'empresa_id' => $this->empresa->id,
@@ -91,7 +89,7 @@ class CreateSaleValidationTest extends TestCase
             'empresa_id' => $this->empresa->id,
             'contato_id' => $this->contatoId,
             'user_id' => $this->vendedor->id,
-            'tabulacao_id' => Tabulations::VENDA,
+            'tabulacao_id' => $this->vendaTabulacaoId,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -503,6 +501,71 @@ class CreateSaleValidationTest extends TestCase
             'parentesco' => 'FILHO',
             'plano_id' => $this->planoId,
             'coparticipacao' => 'Y',
+        ]);
+    }
+
+    public function test_master_cadastra_venda_em_nome_do_vendedor_atribuido(): void
+    {
+        $master = User::factory()->create([
+            'empresa_id' => null,
+            'user_role_id' => UserRole::DEVELOPER,
+            'is_platform_admin' => true,
+            'ativo' => 'Y',
+        ]);
+
+        $this->actingAs($master)
+            ->withSession([TenantContext::SESSION_KEY => $this->empresa->id])
+            ->from(route('comercial.novaProposta', $this->contatoId))
+            ->post(route('comercial.createSale'), $this->payloadValido())
+            ->assertRedirect(route('sale.listSale'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('vendas', [
+            'empresa_id' => $this->empresa->id,
+            'contato_id' => $this->contatoId,
+            'user_id' => $this->vendedor->id,
+        ]);
+        $this->assertDatabaseMissing('vendas', ['user_id' => $master->id]);
+    }
+
+    public function test_master_nao_cadastra_venda_para_lead_sem_vendedor_operacional(): void
+    {
+        $master = User::factory()->create([
+            'empresa_id' => null,
+            'user_role_id' => UserRole::DEVELOPER,
+            'is_platform_admin' => true,
+            'ativo' => 'Y',
+        ]);
+        DB::table('contatos_corretores')->where('contato_id', $this->contatoId)->update(['user_id' => null]);
+
+        $this->actingAs($master)
+            ->withSession([TenantContext::SESSION_KEY => $this->empresa->id])
+            ->from(route('comercial.novaProposta', $this->contatoId))
+            ->post(route('comercial.createSale'), $this->payloadValido())
+            ->assertSessionHasErrors('contato_id');
+
+        $this->assertDatabaseCount('vendas', 0);
+    }
+
+    public function test_coparticipacao_obedece_configuracao_da_operadora_sem_regra_por_nome(): void
+    {
+        DB::table('operadoras')->where('id', $this->operadoraId)->update([
+            'coparticipacao_formato' => 'PARCIAL_COMPLETA',
+        ]);
+
+        $this->postVenda($this->payloadValido([
+            'titulares' => [$this->titularValido(['coparticipacao' => 'Y'])],
+        ]))->assertSessionHasErrors(['titulares.0.coparticipacao']);
+
+        $this->assertDatabaseCount('vendas', 0);
+
+        $this->postVenda($this->payloadValido([
+            'titulares' => [$this->titularValido(['coparticipacao' => 'PARCIAL'])],
+        ]))->assertRedirect(route('sale.listSale'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('vendas_titulares', [
+            'coparticipacao' => 'PARCIAL',
         ]);
     }
 

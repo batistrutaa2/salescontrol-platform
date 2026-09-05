@@ -3,6 +3,8 @@
 namespace App\Jobs;
 
 use App\Events\VendaDocumentoAtualizado;
+use App\Jobs\Concerns\RunsTenantFailureCallback;
+use App\Jobs\Concerns\UsesTenantContext;
 use App\Models\VendaDocumento;
 use App\Models\Vendas;
 use App\Services\Documentos\DocumentoStatusService;
@@ -19,7 +21,7 @@ use Throwable;
 
 class TransferirDocumentosVenda implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, RunsTenantFailureCallback, SerializesModels, UsesTenantContext;
 
     public int $tries = 5;
 
@@ -117,19 +119,21 @@ class TransferirDocumentosVenda implements ShouldQueue
 
     public function failed(Throwable $exception): void
     {
-        $venda = Vendas::find($this->vendaId);
-        if (! $venda) {
-            return;
-        }
-        $doc = $venda->documentos()->whereIn('status', ['AGUARDANDO_ENVIO', 'ENVIANDO'])->orderBy('id')->first();
-        if ($doc) {
-            $doc->update(['status' => 'FALHA', 'erro' => mb_substr($exception->getMessage(), 0, 1000), 'expira_em' => now()->addDays(7)]);
-            event(new VendaDocumentoAtualizado($doc->venda_id, $doc->empresa_id));
-        }
-        app(DocumentoStatusService::class)->atualizarVenda($venda);
-        if ($venda->documentos()->where('status', 'AGUARDANDO_ENVIO')->exists()) {
-            self::dispatch($venda->id);
-        }
+        $this->runTenantFailureCallback(Vendas::class, $this->vendaId, function () use ($exception): void {
+            $venda = Vendas::find($this->vendaId);
+            if (! $venda) {
+                return;
+            }
+            $doc = $venda->documentos()->whereIn('status', ['AGUARDANDO_ENVIO', 'ENVIANDO'])->orderBy('id')->first();
+            if ($doc) {
+                $doc->update(['status' => 'FALHA', 'erro' => mb_substr($exception->getMessage(), 0, 1000), 'expira_em' => now()->addDays(7)]);
+                event(new VendaDocumentoAtualizado($doc->venda_id, $doc->empresa_id));
+            }
+            app(DocumentoStatusService::class)->atualizarVenda($venda);
+            if ($venda->documentos()->where('status', 'AGUARDANDO_ENVIO')->exists()) {
+                self::dispatch($venda->id);
+            }
+        });
     }
 
     private function disponibilizar(VendaDocumento $doc): void

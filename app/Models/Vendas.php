@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\ValidatesTenantUserReferences;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Vendas extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory, ValidatesTenantUserReferences;
 
     protected $table = 'vendas';
 
@@ -86,6 +88,19 @@ class Vendas extends Model
     protected static function booted(): void
     {
         static::saving(function (self $venda) {
+            if (self::shouldValidateTenantReference($venda, 'user_id')) {
+                self::assertTenantMember((int) $venda->empresa_id, $venda->user_id, 'vendedor da venda');
+            }
+            if (self::shouldValidateTenantReference($venda, 'backoffice_id')) {
+                self::assertTenantMember((int) $venda->empresa_id, $venda->backoffice_id, 'responsável de backoffice', true);
+            }
+            if (self::shouldValidateTenantReference($venda, 'boas_vindas_enviado_por')) {
+                self::assertTenantActor((int) $venda->empresa_id, $venda->boas_vindas_enviado_por, 'autor das boas-vindas', true);
+            }
+            if (self::shouldValidateTenantReference($venda, 'pos_venda_concluida_por')) {
+                self::assertTenantActor((int) $venda->empresa_id, $venda->pos_venda_concluida_por, 'autor da conclusão de pós-venda', true);
+            }
+
             static $possuiDocumentoNormalizado;
             $possuiDocumentoNormalizado ??= \Illuminate\Support\Facades\Schema::hasColumn('vendas', 'cpf_cnpj_normalizado');
             if ($possuiDocumentoNormalizado) {

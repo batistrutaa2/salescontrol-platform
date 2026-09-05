@@ -288,8 +288,15 @@ class MailingImportService
             ->leftJoin('contatos_corretores as cc', function ($join) use ($importacao) {
                 $join->on('cc.contato_id', '=', 'c.id')->where('cc.empresa_id', $importacao->empresa_id);
             })
-            ->leftJoin('users as u', 'u.id', '=', 'cc.user_id')
-            ->leftJoin('tabulacoes as t', 't.id', '=', 'cc.tabulacao_id')
+            ->leftJoin('users as u', function ($join) {
+                $join->on('u.id', '=', 'cc.user_id')
+                    ->on('u.empresa_id', '=', 'cc.empresa_id')
+                    ->where('u.is_platform_admin', false);
+            })
+            ->leftJoin('tabulacoes as t', function ($join) {
+                $join->on('t.id', '=', 'cc.tabulacao_id')
+                    ->on('t.empresa_id', '=', 'cc.empresa_id');
+            })
             ->leftJoin('preditiva as p', function ($join) use ($importacao) {
                 $join->on('p.contato_id', '=', 'c.id')
                     ->where('p.empresa_id', $importacao->empresa_id)
@@ -302,7 +309,10 @@ class MailingImportService
             ->keyBy('id');
 
         $propostas = DB::table('vendas as v')
-            ->leftJoin('tabulacoes as t', 't.id', '=', 'v.tabulacao_id')
+            ->leftJoin('tabulacoes as t', function ($join) {
+                $join->on('t.id', '=', 'v.tabulacao_id')
+                    ->on('t.empresa_id', '=', 'v.empresa_id');
+            })
             ->where('v.empresa_id', $importacao->empresa_id)
             ->whereIn('v.contato_id', $contatoIds)
             ->orderByDesc('v.id')

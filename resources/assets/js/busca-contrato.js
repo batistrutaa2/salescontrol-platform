@@ -25,11 +25,11 @@
     return doc || '';
   }
 
-  function statusClasse(status) {
-    const s = String(status || '').toUpperCase();
-    if (s.includes('IMPLANTADO') || s.includes('REGULARIZADO')) return 'ok';
-    if (s.includes('ESTORNO') || s.includes('DECLINIO') || s.includes('CANCEL')) return 'perdido';
-    if (s.includes('PENDENCIA')) return 'atencao';
+  function statusClasse(codigo) {
+    const code = String(codigo || '').toUpperCase();
+    if (['IMPLANTADO', 'REGULARIZADO'].includes(code)) return 'ok';
+    if (['ESTORNO', 'DECLINADO'].includes(code)) return 'perdido';
+    if (code === 'PENDENCIA') return 'atencao';
     return 'andamento';
   }
 
@@ -60,7 +60,7 @@
             <span class="bc-doc">${esc(formatarDoc(c.cpf_cnpj))}</span>
             ${c.operadora ? `<span class="bc-op">${esc(c.operadora)}</span>` : ''}
             ${c.numero_proposta ? `<span class="bc-prop">nº ${esc(c.numero_proposta)}</span>` : ''}
-            <span class="bc-status ${statusClasse(c.status)}">${esc(c.status)}</span>
+            <span class="bc-status ${statusClasse(c.status_codigo)}">${esc(c.status)}</span>
           </span>
         </button>`
       )

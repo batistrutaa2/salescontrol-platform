@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VendaDependente extends Model
 {
+    use \App\Models\Concerns\BelongsToTenantThrough;
     use HasFactory;
 
     protected $table = 'vendas_dependentes';

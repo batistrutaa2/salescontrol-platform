@@ -2,140 +2,120 @@
 
 namespace App\Repositories\Eloquent;
 
-
 use App\Enums\UserRole;
 use App\Models\Agendamento;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Contatos;
 use App\Repositories\Contracts\AgendamentoRepositoryInterface;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AgendamentoRepository implements AgendamentoRepositoryInterface
 {
-  protected $model;
+    public function __construct(private readonly Agendamento $model) {}
 
-  public function __construct(Agendamento $model)
-  {
-    $this->model = $model;
-  }
+    public function updateOrCreate($contatoId, $horarioAgendamento, $observacao)
+    {
+        $empresaId = (int) app(\App\Support\TenantContext::class)->id();
 
-  public function updateOrCreate($contato_id, $horario_agendamento, $obs)
-  {
-    try {
-      $conditions = ['contato_id' => $contato_id];
-
-      $createOrUpdate = $this->model::updateOrCreate(
-        $conditions,
-        [
-          'empresa_id' => Auth::user()->empresa_id,
-          'user_id' => Auth::user()->id,
-          'contato_id' => $contato_id,
-          'horario_agendamento' => $horario_agendamento,
-          'observacao' => $obs,
-          'notificado' => "N"
-        ]
-      );
-
-      return $createOrUpdate;
-
-    } catch (\Throwable $th) {
-      return false;
-    }
-  }
-
-  public function getSchedules($rulerUser)
-  {
-    try {
-      if ($rulerUser == UserRole::ADMINISTRATIVO || $rulerUser == UserRole::DEVELOPER || $rulerUser == UserRole::SUPERVISOR) {
-        $results = $this->model->select('c.id', 'b.name AS nome_corretor', 'c.nome_cliente', 'agendamentos.horario_agendamento', 'agendamentos.observacao', 'agendamentos.notificado')
-          ->leftJoin('users AS b', 'b.id', '=', 'agendamentos.user_id')
-          ->leftJoin('contatos AS c', 'c.id', '=', 'agendamentos.contato_id')
-          ->where('agendamentos.empresa_id', Auth::user()->empresa_id)
-          ->whereNotExists(function ($query) {
-            $query->select(DB::raw(1))
-              ->from('vendas')
-              ->whereColumn('vendas.contato_id', 'agendamentos.contato_id');
-          })
-          ->get();
-      } else {
-        $results = $this->model->select('c.id', 'b.name AS nome_corretor', 'c.nome_cliente', 'agendamentos.horario_agendamento', 'agendamentos.observacao', 'agendamentos.notificado')
-          ->leftJoin('users AS b', 'b.id', '=', 'agendamentos.user_id')
-          ->leftJoin('contatos AS c', 'c.id', '=', 'agendamentos.contato_id')
-          ->where('agendamentos.empresa_id', Auth::user()->empresa_id)
-          ->where('b.id', Auth::user()->id)
-          ->whereNotExists(function ($query) {
-            $query->select(DB::raw(1))
-              ->from('vendas')
-              ->whereColumn('vendas.contato_id', 'agendamentos.contato_id');
-          })
-          ->get();
-      }
-
-      // Formatar as datas para o formato MySQL (YYYY-MM-DD HH:mm:ss)
-      return $results->map(function ($item) {
-        if ($item->horario_agendamento) {
-          $item->horario_agendamento = Carbon::parse($item->horario_agendamento)->format('Y-m-d H:i:s');
+        if (! Contatos::query()->whereKey((int) $contatoId)->exists()) {
+            return false;
         }
-        return $item;
-      });
-    } catch (\Throwable $th) {
-      throw $th;
-    }
-  }
 
-  public function LateAppointments()
-  {
-    try {
-
-      return $this->model->select('agendamentos.contato_id', 'contatos.nome_cliente')
-        ->leftJoin('users', 'agendamentos.user_id', '=', 'users.id')
-        ->leftJoin('contatos', 'agendamentos.contato_id', '=', 'contatos.id')
-        ->where('agendamentos.horario_agendamento', '<', now())
-        ->where('agendamentos.user_id', Auth::user()->id)
-        ->get();
-
-    } catch (\Throwable $th) {
-      throw $th;
-    }
-  }
-
-  public function LateAppointmentsParaNotificar()
-  {
-    try {
-
-      return $this->model->select('agendamentos.contato_id', 'contatos.nome_cliente')
-        ->leftJoin('users', 'agendamentos.user_id', '=', 'users.id')
-        ->leftJoin('contatos', 'agendamentos.contato_id', '=', 'contatos.id')
-        ->where('agendamentos.horario_agendamento', '<', now())
-        ->where('agendamentos.user_id', Auth::user()->id)
-        ->get();
-
-    } catch (\Throwable $th) {
-      throw $th;
-    }
-  }
-
-  public function appointmentsDelaystonotify()
-  {
-    return $this->model->select('agendamentos.contato_id', 'contatos.nome_cliente')
-      ->leftJoin('users', 'agendamentos.user_id', '=', 'users.id')
-      ->leftJoin('contatos', 'agendamentos.contato_id', '=', 'contatos.id')
-      ->where('agendamentos.horario_agendamento', '<', now())
-      ->where('agendamentos.user_id', Auth::user()->id ?? "")
-      ->where('agendamentos.notificado', 'N')
-      ->get();
-  }
-
-  public function deleteSchedule($id)
-  {
-    $lead = $this->model::where('contato_id', $id)->first();
-
-    if ($lead) {
-      $lead->delete();
-      return true;
+        return $this->model->updateOrCreate(
+            ['empresa_id' => $empresaId, 'contato_id' => (int) $contatoId],
+            [
+                'user_id' => Auth::id(),
+                'horario_agendamento' => $horarioAgendamento,
+                'observacao' => $observacao,
+                'notificado' => 'N',
+            ]
+        );
     }
 
-    return false;
-  }
+    public function getSchedules($rulerUser): Collection
+    {
+        $empresaId = (int) app(\App\Support\TenantContext::class)->id();
+        $gestao = in_array((int) $rulerUser, [
+            UserRole::ADMINISTRATIVO,
+            UserRole::DEVELOPER,
+            UserRole::SUPERVISOR,
+        ], true);
 
+        return $this->queryComRelacionamentos($empresaId)
+            ->when(! $gestao, fn ($query) => $query->where('agendamentos.user_id', Auth::id()))
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('vendas')
+                    ->whereColumn('vendas.contato_id', 'agendamentos.contato_id')
+                    ->whereColumn('vendas.empresa_id', 'agendamentos.empresa_id');
+            })
+            ->get()
+            ->map(function ($item) {
+                if ($item->horario_agendamento) {
+                    $item->horario_agendamento = Carbon::parse($item->horario_agendamento)->format('Y-m-d H:i:s');
+                }
+
+                return $item;
+            });
+    }
+
+    public function LateAppointments(): Collection
+    {
+        return $this->lateAppointmentsQuery()->get();
+    }
+
+    public function LateAppointmentsParaNotificar(): Collection
+    {
+        return $this->lateAppointmentsQuery()->get();
+    }
+
+    public function appointmentsDelaystonotify(): Collection
+    {
+        return $this->lateAppointmentsQuery()
+            ->where('agendamentos.notificado', 'N')
+            ->get();
+    }
+
+    public function deleteSchedule($id): bool
+    {
+        $lead = $this->model
+            ->where('empresa_id', app(\App\Support\TenantContext::class)->id())
+            ->where('contato_id', (int) $id)
+            ->first();
+
+        return $lead ? (bool) $lead->delete() : false;
+    }
+
+    private function queryComRelacionamentos(int $empresaId): Builder
+    {
+        return $this->model
+            ->select(
+                'c.id',
+                'b.name AS nome_corretor',
+                'c.nome_cliente',
+                'agendamentos.horario_agendamento',
+                'agendamentos.observacao',
+                'agendamentos.notificado'
+            )
+            ->join('users AS b', function ($join) {
+                $join->on('b.id', '=', 'agendamentos.user_id')
+                    ->on('b.empresa_id', '=', 'agendamentos.empresa_id')
+                    ->where('b.is_platform_admin', false);
+            })
+            ->join('contatos AS c', function ($join) {
+                $join->on('c.id', '=', 'agendamentos.contato_id')
+                    ->on('c.empresa_id', '=', 'agendamentos.empresa_id');
+            })
+            ->where('agendamentos.empresa_id', $empresaId);
+    }
+
+    private function lateAppointmentsQuery(): Builder
+    {
+        return $this->queryComRelacionamentos((int) app(\App\Support\TenantContext::class)->id())
+            ->where('agendamentos.horario_agendamento', '<', now())
+            ->where('agendamentos.user_id', Auth::id());
+    }
 }

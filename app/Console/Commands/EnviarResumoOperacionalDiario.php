@@ -28,7 +28,7 @@ class EnviarResumoOperacionalDiario extends Command
         ResumoOperacionalService $service,
         ResumoOperacionalFormatter $formatter,
     ): int {
-        $tz   = 'America/Sao_Paulo';
+        $tz = 'America/Sao_Paulo';
         $hoje = $this->option('data')
             ? Carbon::parse($this->option('data'), $tz)->startOfDay()
             : Carbon::now($tz)->startOfDay();
@@ -51,24 +51,27 @@ class EnviarResumoOperacionalDiario extends Command
         $empresaId = $this->option('empresa');
         if (! $empresaId) {
             $this->error('--empresa é obrigatória quando --phone é informada.');
+
             return self::FAILURE;
         }
 
         $empresa = Empresa::find($empresaId);
         if (! $empresa) {
             $this->error("Empresa {$empresaId} não encontrada.");
+
             return self::FAILURE;
         }
 
         if (empty($empresa->whatsapp_token)) {
             $this->error("Empresa {$empresaId} não tem whatsapp_token configurado. Configure pelo Backoffice.");
+
             return self::FAILURE;
         }
 
         foreach ($phones as $phone) {
             if ($this->option('dry-run')) {
                 $snapshot = $service->montarSnapshot((int) $empresaId, $hoje);
-                $body     = $formatter->format(
+                $body = $formatter->format(
                     $snapshot,
                     'Teste manual',
                     $empresa->nome_fantasia ?? 'Sua corretora',
@@ -77,6 +80,7 @@ class EnviarResumoOperacionalDiario extends Command
                 $this->line("DRY-RUN -> {$phone}");
                 $this->line($body);
                 $this->line('---');
+
                 continue;
             }
 
@@ -99,6 +103,7 @@ class EnviarResumoOperacionalDiario extends Command
         $lock = Cache::lock("resumo-diario:{$hoje->toDateString()}", 1800);
         if (! $lock->get()) {
             $this->warn('Já está rodando. Abortando para evitar duplicidade.');
+
             return self::SUCCESS;
         }
 
@@ -109,7 +114,7 @@ class EnviarResumoOperacionalDiario extends Command
 
             $totalEnfileirados = 0;
             foreach ($empresas as $empresa) {
-                $admins = User::where('empresa_id', $empresa->id)
+                $admins = User::query()->tenantMember((int) $empresa->id)
                     ->whereIn('user_role_id', [
                         UserRole::ADMINISTRATIVO,
                         UserRole::DEVELOPER,
@@ -124,13 +129,14 @@ class EnviarResumoOperacionalDiario extends Command
                     Log::info('ResumoDiario: empresa sem admin elegível', [
                         'empresa_id' => $empresa->id,
                     ]);
+
                     continue;
                 }
 
                 foreach ($admins as $admin) {
                     if ($this->option('dry-run')) {
                         $snapshot = $service->montarSnapshot((int) $empresa->id, $hoje);
-                        $body     = $formatter->format(
+                        $body = $formatter->format(
                             $snapshot,
                             $admin->name,
                             $empresa->nome_fantasia ?? 'Sua corretora',
@@ -139,6 +145,7 @@ class EnviarResumoOperacionalDiario extends Command
                         $this->line("DRY-RUN -> {$admin->whatsapp} (admin {$admin->id} / empresa {$empresa->id})");
                         $this->line($body);
                         $this->line('---');
+
                         continue;
                     }
 

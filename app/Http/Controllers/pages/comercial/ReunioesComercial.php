@@ -2,35 +2,45 @@
 
 namespace App\Http\Controllers\pages\comercial;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Jobs\EnviarReuniaoAgendadaWhatsappJob;
 use App\Models\ComercialReunioes;
 use App\Models\Contatos;
 use App\Models\ContatosCorretores;
+use App\Models\Empresa;
 use App\Models\User;
 use App\Notifications\NovaReuniaoAgendada;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class ReunioesComercial extends Controller
 {
     public function index()
     {
-        $managers = User::whereIn('user_role_id', ['2', '5'])
+        $empresaId = $this->tenantId();
+        $managers = User::query()->tenantMember($empresaId)
+            ->whereIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::SUPERVISOR])
             ->where('ativo', 'Y')
-            ->where('empresa_id', Auth::user()->empresa_id)
             ->get();
+        $agendaSettings = Empresa::query()->findOrFail($empresaId);
 
-        return view('content.pages.reunioes.index', compact('managers'));
+        return view('content.pages.reunioes.index', compact('managers', 'agendaSettings'));
     }
 
     public function getReunioes()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
-        $reunioes = ComercialReunioes::with(['user', 'manager', 'contato'])
-            ->where('empresa_id', $empresaId)
+        $reunioes = $this->visibleMeetings(ComercialReunioes::with([
+            'user' => fn ($query) => $query->tenantActor((int) $empresaId),
+            'manager' => fn ($query) => $query->tenantMember((int) $empresaId),
+            'contato' => fn ($query) => $query->where('contatos.empresa_id', $empresaId),
+        ])->where('empresa_id', $empresaId), Auth::user())
             ->get()
             ->map(function ($reuniao) {
                 $startDate = $reuniao->data_inicio ? $reuniao->data_inicio->format('Y-m-d\TH:i:s') : null;
@@ -66,12 +76,16 @@ class ReunioesComercial extends Controller
 
     public function getStats()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
-        $total = ComercialReunioes::where('empresa_id', $empresaId)->count();
-        $scheduled = ComercialReunioes::where('empresa_id', $empresaId)->where('status', 'scheduled')->count();
-        $completed = ComercialReunioes::where('empresa_id', $empresaId)->where('status', 'completed')->count();
-        $cancelled = ComercialReunioes::where('empresa_id', $empresaId)->where('status', 'cancelled')->count();
+        $query = $this->visibleMeetings(
+            ComercialReunioes::query()->where('empresa_id', $empresaId),
+            Auth::user(),
+        );
+        $total = (clone $query)->count();
+        $scheduled = (clone $query)->where('status', 'scheduled')->count();
+        $completed = (clone $query)->where('status', 'completed')->count();
+        $cancelled = (clone $query)->where('status', 'cancelled')->count();
 
         return response()->json([
             'total' => $total,
@@ -92,15 +106,25 @@ class ReunioesComercial extends Controller
 
     public function getSellerContacts(Request $request)
     {
-        $empresaId = Auth::user()->empresa_id;
-        $userId = Auth::id();
-        $search = $request->get('search', '');
+        $empresaId = $this->tenantId();
+        $user = Auth::user();
+        $data = $request->validate([
+            'search' => ['nullable', 'string', 'max:120'],
+        ]);
+        $search = trim((string) ($data['search'] ?? ''));
 
-        // Busca contatos que pertencem ao vendedor logado através de contatos_corretores
         $query = Contatos::select('contatos.*')
-            ->join('contatos_corretores', 'contatos.id', '=', 'contatos_corretores.contato_id')
             ->where('contatos.empresa_id', $empresaId)
-            ->where('contatos_corretores.user_id', $userId);
+            ->when(! $this->canManageMeetings($user), function (Builder $query) use ($empresaId, $user) {
+                $query->whereExists(function ($assignment) use ($empresaId, $user) {
+                    $assignment->selectRaw('1')
+                        ->from('contatos_corretores')
+                        ->whereColumn('contatos_corretores.contato_id', 'contatos.id')
+                        ->whereColumn('contatos_corretores.empresa_id', 'contatos.empresa_id')
+                        ->where('contatos_corretores.empresa_id', $empresaId)
+                        ->where('contatos_corretores.user_id', $user->id);
+                });
+            });
 
         if (! empty($search)) {
             $query->where(function ($q) use ($search) {
@@ -130,24 +154,24 @@ class ReunioesComercial extends Controller
 
     public function store(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'titulo' => 'required|string|max:255',
-                'manager_id' => 'required|exists:users,id',
-                'contato_id' => 'nullable|exists:contatos,id',
-                'data_inicio' => 'required|date',
-                'data_final' => 'required|date|after:data_inicio',
-                'location' => 'nullable|string|max:255',
-                'observacao' => 'nullable|string',
-            ]);
+        $validated = $request->validate([
+            'titulo' => 'required|string|max:255',
+            'manager_id' => ['required', $this->managerExistsRule($this->tenantId())],
+            'contato_id' => ['nullable', Rule::exists('contatos', 'id')->where('empresa_id', $this->tenantId())],
+            'data_inicio' => 'required|date',
+            'data_final' => 'required|date|after:data_inicio',
+            'location' => 'nullable|string|max:255',
+            'observacao' => 'nullable|string',
+        ]);
 
+        try {
             // Obter o ID da empresa do usuário logado
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             // Verificar se o usuário selecionado é realmente um gestor
-            $manager = User::where('id', $request->manager_id)
-                ->whereIn('user_role_id', ['2', '5'])
-                ->where('empresa_id', $empresaId)
+            $manager = User::query()->tenantMember($empresaId)
+                ->where('id', $request->manager_id)
+                ->whereIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::SUPERVISOR])
                 ->first();
 
             if (! $manager) {
@@ -158,16 +182,11 @@ class ReunioesComercial extends Controller
             }
 
             // Validar que o contato pertence ao vendedor (se informado)
-            if ($request->contato_id) {
-                $contatoCorretor = ContatosCorretores::where('contato_id', $request->contato_id)
-                    ->where('user_id', Auth::id())
-                    ->where('empresa_id', $empresaId)
-                    ->first();
-
-                if (! $contatoCorretor) {
+            if (! empty($validated['contato_id'])) {
+                if (! $this->contactIsAvailable((int) $validated['contato_id'], Auth::user(), (int) $empresaId)) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'O contato selecionado não pertence à sua carteira.',
+                        'message' => 'O contato selecionado não está disponível para este usuário.',
                     ], 422);
                 }
             }
@@ -191,10 +210,13 @@ class ReunioesComercial extends Controller
             $reuniao->save();
 
             // Carregar relações
-            $reuniao->load(['manager', 'contato']);
+            $reuniao->load([
+                'manager' => fn ($query) => $query->tenantMember((int) $empresaId),
+                'contato' => fn ($query) => $query->where('contatos.empresa_id', $empresaId),
+            ]);
 
-            $admins = User::whereIn('user_role_id', ['2', '5'])
-                ->where('empresa_id', $empresaId)
+            $admins = User::query()->tenantMember($empresaId)
+                ->whereIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::SUPERVISOR])
                 ->get();
 
             foreach ($admins as $admin) {
@@ -228,10 +250,12 @@ class ReunioesComercial extends Controller
                 ],
             ]);
         } catch (\Throwable $th) {
+            report($th);
+
             return response()->json([
                 'status' => 'error',
-                'message' => $th->getMessage(),
-            ], 404);
+                'message' => 'Não foi possível agendar a reunião neste momento.',
+            ], 500);
         }
     }
 
@@ -239,8 +263,8 @@ class ReunioesComercial extends Controller
     {
         $validated = $request->validate([
             'titulo' => 'required|string|max:255',
-            'manager_id' => 'required|exists:users,id',
-            'contato_id' => 'nullable|exists:contatos,id',
+            'manager_id' => ['required', $this->managerExistsRule($this->tenantId())],
+            'contato_id' => ['nullable', Rule::exists('contatos', 'id')->where('empresa_id', $this->tenantId())],
             'data_inicio' => 'required|date',
             'data_final' => 'required|date|after:data_inicio',
             'location' => 'nullable|string|max:255',
@@ -249,12 +273,13 @@ class ReunioesComercial extends Controller
         ]);
 
         // Obter o ID da empresa do usuário logado
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         // Buscar a reunião e verificar se pertence à empresa do usuário
-        $reuniao = ComercialReunioes::where('id', $id)
-            ->where('empresa_id', $empresaId)
-            ->first();
+        $reuniao = $this->visibleMeetings(
+            ComercialReunioes::where('id', $id)->where('empresa_id', $empresaId),
+            Auth::user(),
+        )->first();
 
         if (! $reuniao) {
             return response()->json([
@@ -264,9 +289,9 @@ class ReunioesComercial extends Controller
         }
 
         // Verificar se o usuário selecionado é realmente um gestor
-        $manager = User::where('id', $request->manager_id)
-            ->whereIn('user_role_id', ['2', '5'])
-            ->where('empresa_id', $empresaId)
+        $manager = User::query()->tenantMember($empresaId)
+            ->where('id', $request->manager_id)
+            ->whereIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::SUPERVISOR])
             ->first();
 
         if (! $manager) {
@@ -277,16 +302,11 @@ class ReunioesComercial extends Controller
         }
 
         // Validar que o contato pertence ao vendedor (se informado)
-        if ($request->contato_id) {
-            $contatoCorretor = ContatosCorretores::where('contato_id', $request->contato_id)
-                ->where('user_id', $reuniao->user_id)
-                ->where('empresa_id', $empresaId)
-                ->first();
-
-            if (! $contatoCorretor) {
+        if (! empty($validated['contato_id'])) {
+            if (! $this->contactIsAvailable((int) $validated['contato_id'], Auth::user(), (int) $empresaId)) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'O contato selecionado não pertence à carteira do vendedor.',
+                    'message' => 'O contato selecionado não está disponível para este usuário.',
                 ], 422);
             }
         }
@@ -309,7 +329,9 @@ class ReunioesComercial extends Controller
         $reuniao->save();
 
         // Carregar relações
-        $reuniao->load(['contato']);
+        $reuniao->load([
+            'contato' => fn ($query) => $query->where('contatos.empresa_id', $empresaId),
+        ]);
 
         // Retornar dados da reunião para atualizar o calendário
         return response()->json([
@@ -340,12 +362,13 @@ class ReunioesComercial extends Controller
     public function destroy($id)
     {
         // Obter o ID da empresa do usuário logado
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         // Buscar a reunião e verificar se pertence à empresa do usuário
-        $reuniao = ComercialReunioes::where('id', $id)
-            ->where('empresa_id', $empresaId)
-            ->first();
+        $reuniao = $this->visibleMeetings(
+            ComercialReunioes::where('id', $id)->where('empresa_id', $empresaId),
+            Auth::user(),
+        )->first();
 
         if (! $reuniao) {
             return response()->json([
@@ -364,13 +387,19 @@ class ReunioesComercial extends Controller
 
     public function getAvailableSlots($managerId, $date)
     {
-        // Obter o ID da empresa do usuário logado
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
+        $data = Validator::make([
+            'manager_id' => $managerId,
+            'date' => $date,
+        ], [
+            'manager_id' => ['required', 'integer', $this->managerExistsRule($empresaId)],
+            'date' => ['required', 'date_format:Y-m-d'],
+        ])->validate();
 
         // Verificar se o gestor pertence à mesma empresa do usuário
-        $manager = User::where('id', $managerId)
-            ->whereIn('user_role_id', ['2', '5'])
-            ->where('empresa_id', $empresaId)
+        $manager = User::query()->tenantMember($empresaId)
+            ->where('id', $managerId)
+            ->whereIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::SUPERVISOR])
             ->first();
 
         if (! $manager) {
@@ -380,24 +409,22 @@ class ReunioesComercial extends Controller
             ], 404);
         }
 
-        // Definir horário comercial (8h às 18h)
-        $workStartHour = 8;
-        $workEndHour = 18;
-
-        // Duração padrão de cada slot em minutos (por exemplo, 60 minutos = 1 hora)
-        $slotDuration = 60;
+        $empresa = Empresa::query()->findOrFail($empresaId);
+        $workStart = substr((string) $empresa->reuniao_horario_inicio, 0, 5);
+        $workEnd = substr((string) $empresa->reuniao_horario_fim, 0, 5);
+        $slotDuration = (int) $empresa->reuniao_duracao_minutos;
 
         // Obter reuniões existentes para o gestor na data especificada
         $existingMeetings = ComercialReunioes::where('manager_id', $managerId)
             ->where('empresa_id', $empresaId)
-            ->whereDate('data_inicio', $date)
+            ->whereDate('data_inicio', $data['date'])
             ->orderBy('data_inicio')
             ->get();
 
         // Criar array com todos os slots possíveis no horário comercial
         $availableSlots = [];
-        $currentDate = Carbon::parse($date)->setHour($workStartHour)->setMinute(0)->setSecond(0);
-        $endWorkDay = Carbon::parse($date)->setHour($workEndHour)->setMinute(0)->setSecond(0);
+        $currentDate = Carbon::parse($data['date'].' '.$workStart);
+        $endWorkDay = Carbon::parse($data['date'].' '.$workEnd);
 
         while ($currentDate < $endWorkDay) {
             $slotEnd = (clone $currentDate)->addMinutes($slotDuration);
@@ -436,12 +463,86 @@ class ReunioesComercial extends Controller
 
         return response()->json([
             'status' => 'success',
-            'date' => Carbon::parse($date)->format('d/m/Y'),
+            'date' => Carbon::parse($data['date'])->format('d/m/Y'),
             'manager' => [
                 'id' => $manager->id,
                 'name' => $manager->name,
             ],
             'available_slots' => $availableSlots,
         ]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $data = $request->validate([
+            'reuniao_horario_inicio' => ['required', 'date_format:H:i'],
+            'reuniao_horario_fim' => ['required', 'date_format:H:i', 'after:reuniao_horario_inicio'],
+            'reuniao_duracao_minutos' => [
+                'required',
+                'integer',
+                'between:15,240',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ((int) $value % 5 !== 0) {
+                        $fail('A duração deve ser informada em intervalos de 5 minutos.');
+                    }
+                },
+            ],
+        ]);
+
+        $empresa = Empresa::query()->findOrFail($this->tenantId());
+        $empresa->fill($data)->save();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Configuração da agenda atualizada.',
+                'settings' => $data,
+            ]);
+        }
+
+        return redirect()->route('comercialReunioes.index')
+            ->with('status', 'success')
+            ->with('message', 'Configuração da agenda atualizada.');
+    }
+
+    private function managerExistsRule(int $empresaId)
+    {
+        return Rule::exists('users', 'id')->where(fn ($query) => $query
+            ->where('empresa_id', $empresaId)
+            ->where('is_platform_admin', false)
+            ->where('ativo', 'Y')
+            ->whereIn('user_role_id', [UserRole::ADMINISTRATIVO, UserRole::SUPERVISOR]));
+    }
+
+    private function visibleMeetings(Builder $query, User $user): Builder
+    {
+        return $query->when(
+            ! $this->canManageMeetings($user),
+            fn (Builder $meetings) => $meetings->where('user_id', $user->id),
+        );
+    }
+
+    private function canManageMeetings(User $user): bool
+    {
+        return $user->isPlatformAdmin() || in_array((int) $user->user_role_id, [
+            UserRole::ADMINISTRATIVO,
+            UserRole::SUPERVISOR,
+            UserRole::DEVELOPER,
+        ], true);
+    }
+
+    private function contactIsAvailable(int $contatoId, User $user, int $empresaId): bool
+    {
+        if ($this->canManageMeetings($user)) {
+            return Contatos::query()
+                ->where('empresa_id', $empresaId)
+                ->whereKey($contatoId)
+                ->exists();
+        }
+
+        return ContatosCorretores::query()
+            ->where('empresa_id', $empresaId)
+            ->where('contato_id', $contatoId)
+            ->where('user_id', $user->id)
+            ->exists();
     }
 }

@@ -1,4 +1,5 @@
 @php
+    use App\Enums\UserRole;
     use Illuminate\Support\Facades\Vite;
 
     $menuCollapsed = $configData['menuCollapsed'] === 'layout-menu-collapsed' ? json_encode(true) : false;
@@ -19,14 +20,18 @@
 
 <!-- Variáveis globais do usuário -->
 <script>
-    window.userId = {{ auth()->user()->id ?? 0 }};
-    window.userEmpresaId = {{ auth()->user()->empresa_id ?? 0 }};
-    window.userRoleId = {{ auth()->user()->user_role_id ?? 0 }};
-    window.userName = "{{ auth()->user()->name ?? 'Usuário' }}";
+    window.userId = @json(auth()->id() ?? 0);
+    window.userEmpresaId = @json(app(\App\Support\TenantContext::class)->isResolved() ? app(\App\Support\TenantContext::class)->id() : 0);
+    window.userRoleId = @json(auth()->user()->user_role_id ?? 0);
+    window.userName = @json(auth()->user()->name ?? 'Usuário');
+    window.isPlatformAdmin = @json(auth()->user()?->isPlatformAdmin() ?? false);
+    window.userRoles = @json([
+        'administrativo' => UserRole::ADMINISTRATIVO,
+    ]);
 </script>
 
 {{-- Echo/Reverb: administrativos (notificações), vendedores/supervisores/developers (WhatsApp em tempo real) --}}
-@if(auth()->check() && in_array((int) auth()->user()->user_role_id, [1, 2, 4, 5]))
+@if(auth()->check() && (auth()->user()->isPlatformAdmin() || in_array((int) auth()->user()->user_role_id, [UserRole::VENDEDOR, UserRole::ADMINISTRATIVO, UserRole::DEVELOPER, UserRole::SUPERVISOR], true)))
     @vite(['resources/js/echo.js'])
 @endif
 
@@ -556,7 +561,7 @@
         const userRoleId = window.userRoleId;
 
         // ========== NOTIFICAÇÕES PARA ADMINISTRATIVOS ==========
-        if (empresaId && userRoleId === 2) {
+        if (empresaId && (window.isPlatformAdmin || userRoleId === window.userRoles.administrativo)) {
             // Subscreve ao canal privado de contratos administrativos da empresa
             window.Echo.private(`contratos.administrativo.${empresaId}`)
                 .listen('.contrato.implantado', (data) => {
@@ -595,29 +600,6 @@
                 });
         }
 
-        // ========== NOTIFICAÇÕES PARA VENDEDORES ==========
-        // Exemplo de estrutura para futuras notificações de vendedores
-        // if (empresaId && (userRoleId === 3 || userRoleId === 4)) {
-        //     window.Echo.private(`vendas.vendedor.${window.userId}`)
-        //         .listen('.venda.status.atualizado', (data) => {
-        //             const mensagem = `
-        //                 <div style="margin-bottom: 6px; font-size: 13.5px; line-height: 1.4;">
-        //                     ${data.nome_contrato}
-        //                 </div>
-        //                 <div style="font-size: 13px; line-height: 1.5; opacity: 0.8;">
-        //                     Status: <strong>${data.novo_status}</strong>
-        //                 </div>
-        //             `;
-        //
-        //             showCriticalNotification({
-        //                 tipo: 'info',
-        //                 titulo: 'Status da Venda Atualizado',
-        //                 mensagem: mensagem,
-        //                 requireClick: true,
-        //                 playSound: true
-        //             });
-        //         });
-        // }
 
     } else {
         console.warn('⚠️ Laravel Echo ou variáveis do usuário não estão disponíveis. Notificações em tempo real não funcionarão.');

@@ -9,7 +9,7 @@
         ]);
         $mascotePerfil = $mascoteIsVendedor ? 'vendedor' : 'admin';
     @endphp
-    @if (($mascoteIsVendedor || $mascoteIsAdmin) && session('crm_mode', 'saude') === 'saude')
+    @if ($mascoteIsVendedor || $mascoteIsAdmin)
         @vite(['resources/assets/vendor/scss/pages/mascote-assistente.scss', 'resources/assets/js/mascote-assistente.js'])
 
         @php($mascoteParabens = $mascoteIsVendedor ? session()->pull('mascote_parabens') : null)

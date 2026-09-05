@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Backoffice;
 
+use App\Enums\TabulationCode;
 use App\Enums\Tabulations;
 use App\Enums\UserRole;
 use App\Models\Empresa;
@@ -40,7 +41,8 @@ class OpenContractLayoutTest extends TestCase
         ]);
 
         DB::table('tabulacoes')->insert([
-            'id' => Tabulations::IMPLANTADO, 'empresa_id' => $this->empresa->id, 'descricao' => 'IMPLANTADO',
+            'id' => Tabulations::IMPLANTADO, 'empresa_id' => $this->empresa->id,
+            'codigo' => TabulationCode::IMPLANTADO, 'descricao' => 'Cliente ativado',
             'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
         ]);
     }
@@ -84,6 +86,7 @@ class OpenContractLayoutTest extends TestCase
         $response->assertSee('pv-tabnav', false);
         $response->assertSee('CONTRATO LEGADO');
         $response->assertSee('TITULAR LEGADO');
+        $response->assertSee('class="pv-status st-ok">Cliente ativado</span>', false);
         // layout_venda preservado no hidden (não vira NOVO ao abrir).
         $response->assertSee('value="ANTIGO"', false);
     }
@@ -213,5 +216,52 @@ class OpenContractLayoutTest extends TestCase
             ->assertSee('DESTINO SAÚDE')
             ->assertSee('Plano de destino')
             ->assertSee('PLANO DESTINO OURO');
+    }
+
+    public function test_beneficiario_rejeita_plano_e_coparticipacao_de_outra_regra_comercial(): void
+    {
+        $venda = $this->criarContratoLegado('NOVO');
+        $operadoraVendaId = DB::table('operadoras')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'nome' => 'OPERADORA CONFIGURADA',
+            'status' => 'Y',
+            'coparticipacao_formato' => 'PARCIAL_COMPLETA',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $outraOperadoraId = DB::table('operadoras')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'nome' => 'OUTRA OPERADORA',
+            'status' => 'Y',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $planoIncompativelId = DB::table('planos')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'operadora_id' => $outraOperadoraId,
+            'nome' => 'PLANO INCOMPATÍVEL',
+            'status' => 'Y',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $venda->update([
+            'operadora_id' => $operadoraVendaId,
+            'operadora' => 'OPERADORA CONFIGURADA',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('backoffice.titulares.storePME'), [
+                'venda_id' => $venda->id,
+                'nome' => 'Beneficiário inválido',
+                'plano_id' => $planoIncompativelId,
+                'coparticipacao' => 'Y',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['plano_id', 'coparticipacao']);
+
+        $this->assertDatabaseMissing('vendas_titulares', [
+            'venda_id' => $venda->id,
+            'nome' => 'BENEFICIÁRIO INVÁLIDO',
+        ]);
     }
 }

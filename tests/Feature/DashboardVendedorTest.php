@@ -2,10 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
+use App\Services\TabulationCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -22,6 +23,8 @@ class DashboardVendedorTest extends TestCase
 
     private int $contatoId;
 
+    private array $statusIds;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,23 +40,14 @@ class DashboardVendedorTest extends TestCase
         $this->vendedor = $this->user($this->empresa, 'Ana Vendas');
         $this->concorrente = $this->user($this->empresa, 'Bruno Vendas');
 
-        foreach ([
-            Tabulations::VENDA => 'VENDA',
-            Tabulations::IMPLANTADO => 'IMPLANTADO',
-            Tabulations::ESTORNO => 'ESTORNO',
-            Tabulations::DECLINIO => 'DECLINIO',
-        ] as $id => $description) {
-            DB::table('tabulacoes')->insert([
-                'id' => $id,
-                'empresa_id' => $this->empresa->id,
-                'descricao' => $description,
-                'tipo_tabulacao' => 'A',
-                'efetivo' => $id === Tabulations::IMPLANTADO ? 'Y' : 'N',
-                'status' => 'Y',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+        $catalog = app(TabulationCatalog::class);
+        $catalog->provision($this->empresa->id);
+        $this->statusIds = $catalog->requiredIds($this->empresa->id, [
+            TabulationCode::VENDA,
+            TabulationCode::IMPLANTADO,
+            TabulationCode::ESTORNO,
+            TabulationCode::DECLINADO,
+        ]);
 
         $this->contatoId = DB::table('contatos')->insertGetId([
             'empresa_id' => $this->empresa->id,
@@ -67,10 +61,10 @@ class DashboardVendedorTest extends TestCase
 
     public function test_dashboard_anual_usa_regra_de_valor_valido_e_detalha_os_destaques(): void
     {
-        $this->sale($this->vendedor, Tabulations::IMPLANTADO, 1000, 100, 'Plano Ouro', 'Operadora A', now()->setMonth(2));
-        $this->sale($this->vendedor, Tabulations::ESTORNO, 300, 30, 'Plano Ouro', 'Operadora A', now()->setMonth(4));
-        $this->sale($this->vendedor, Tabulations::DECLINIO, 9000, 900, 'Plano Recusado', 'Operadora B', now()->setMonth(5));
-        $this->sale($this->vendedor, Tabulations::VENDA, 700, 0, 'Plano Antigo', 'Operadora A', now()->subYear());
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::IMPLANTADO), 1000, 100, 'Plano Ouro', 'Operadora A', now()->setMonth(2));
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::ESTORNO), 300, 30, 'Plano Ouro', 'Operadora A', now()->setMonth(4));
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::DECLINADO), 9000, 900, 'Plano Recusado', 'Operadora B', now()->setMonth(5));
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::VENDA), 700, 0, 'Plano Antigo', 'Operadora A', now()->subYear());
 
         $response = $this->actingAs($this->vendedor)
             ->getJson(route('dashboard.vendedor.metrics', ['period' => 'year']))
@@ -92,16 +86,17 @@ class DashboardVendedorTest extends TestCase
 
     public function test_ranking_anual_respeita_empresa_exclusao_e_desempate_oficial(): void
     {
-        $this->sale($this->vendedor, Tabulations::IMPLANTADO, 1000, 100);
-        $this->sale($this->vendedor, Tabulations::ESTORNO, 300, 30);
-        $this->sale($this->concorrente, Tabulations::VENDA, 1500);
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::IMPLANTADO), 1000, 100);
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::ESTORNO), 300, 30);
+        $this->sale($this->concorrente, $this->tabulationId(TabulationCode::VENDA), 1500);
 
         $excluded = $this->user($this->empresa, 'Fora do ranking', true);
-        $this->sale($excluded, Tabulations::IMPLANTADO, 50000);
+        $this->sale($excluded, $this->tabulationId(TabulationCode::IMPLANTADO), 50000);
 
         $otherCompany = Empresa::factory()->create();
         $otherSeller = $this->user($otherCompany, 'Outra empresa');
-        $this->sale($otherSeller, Tabulations::IMPLANTADO, 70000);
+        app(TabulationCatalog::class)->provision($otherCompany->id);
+        $this->sale($otherSeller, app(TabulationCatalog::class)->id($otherCompany->id, TabulationCode::IMPLANTADO), 70000);
 
         $response = $this->actingAs($this->vendedor)
             ->getJson(route('dashboard.vendedor.metrics', ['period' => 'year']))
@@ -117,7 +112,7 @@ class DashboardVendedorTest extends TestCase
 
     public function test_ranking_exibe_top_tres_e_vendedor_logado_sem_divulgar_valores(): void
     {
-        $this->sale($this->vendedor, Tabulations::VENDA, 1000);
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::VENDA), 1000);
 
         foreach ([
             'Primeiro Lugar' => 5000,
@@ -125,7 +120,7 @@ class DashboardVendedorTest extends TestCase
             'Terceiro Lugar' => 3000,
             'Quarto Lugar' => 2000,
         ] as $name => $value) {
-            $this->sale($this->user($this->empresa, $name), Tabulations::VENDA, $value);
+            $this->sale($this->user($this->empresa, $name), $this->tabulationId(TabulationCode::VENDA), $value);
         }
 
         $ranking = $this->actingAs($this->vendedor)
@@ -163,9 +158,9 @@ class DashboardVendedorTest extends TestCase
             : $now->copy()->startOfQuarter();
         $yearMonth = $now->quarter === 1 ? $now->copy()->setMonth(12) : $now->copy()->setMonth(1);
 
-        $this->sale($this->vendedor, Tabulations::VENDA, 700, 70, createdAt: $now);
-        $this->sale($this->vendedor, Tabulations::VENDA, 500, 50, createdAt: $quarterMonth);
-        $this->sale($this->vendedor, Tabulations::VENDA, 300, 30, createdAt: $yearMonth);
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::VENDA), 700, 70, createdAt: $now);
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::VENDA), 500, 50, createdAt: $quarterMonth);
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::VENDA), 300, 30, createdAt: $yearMonth);
 
         $this->actingAs($this->vendedor)
             ->getJson(route('dashboard.vendedor.metrics', ['period' => 'year']))
@@ -195,9 +190,9 @@ class DashboardVendedorTest extends TestCase
 
     public function test_produto_lider_agrupa_o_plano_mesmo_quando_ha_mais_de_uma_operadora(): void
     {
-        $this->sale($this->vendedor, Tabulations::VENDA, 500, product: 'Plano Flex', operator: 'Operadora A');
-        $this->sale($this->vendedor, Tabulations::VENDA, 400, product: 'Plano Flex', operator: 'Operadora B');
-        $this->sale($this->vendedor, Tabulations::VENDA, 800, product: 'Plano Premium', operator: 'Operadora A');
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::VENDA), 500, product: 'Plano Flex', operator: 'Operadora A');
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::VENDA), 400, product: 'Plano Flex', operator: 'Operadora B');
+        $this->sale($this->vendedor, $this->tabulationId(TabulationCode::VENDA), 800, product: 'Plano Premium', operator: 'Operadora A');
 
         $response = $this->actingAs($this->vendedor)
             ->getJson(route('dashboard.vendedor.metrics', ['period' => 'year']))
@@ -226,6 +221,11 @@ class DashboardVendedorTest extends TestCase
             'ativo' => 'Y',
             'excluir_ranking' => $excluded,
         ]);
+    }
+
+    private function tabulationId(string $code): int
+    {
+        return $this->statusIds[$code];
     }
 
     private function sale(

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
@@ -11,9 +11,14 @@ use App\Notifications\StatusPropostaAlterada;
 use App\Notifications\VendaEstornadaComComissaoPaga;
 use App\Notifications\VendaReenviadaNotification;
 use App\Notifications\VendaRetomadaPeloBackoffice;
+use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Repositories\Eloquent\VendasRepository;
+use App\Services\TabulationCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Mockery;
+use RuntimeException;
 use Tests\TestCase;
 
 class EstornoVendaTest extends TestCase
@@ -36,6 +41,8 @@ class EstornoVendaTest extends TestCase
 
     private int $tabulacaoVendaId;
 
+    private int $tabulacaoImplantadoId;
+
     private int $operadoraId;
 
     private int $planoId;
@@ -56,6 +63,12 @@ class EstornoVendaTest extends TestCase
 
         $this->empresa = Empresa::factory()->create();
 
+        $catalog = app(TabulationCatalog::class);
+        $catalog->provision($this->empresa->id);
+        $this->tabulacaoEstornoId = $catalog->id($this->empresa->id, TabulationCode::ESTORNO);
+        $this->tabulacaoVendaId = $catalog->id($this->empresa->id, TabulationCode::VENDA);
+        $this->tabulacaoImplantadoId = $catalog->id($this->empresa->id, TabulationCode::IMPLANTADO);
+
         $this->vendedor = User::factory()->create([
             'empresa_id' => $this->empresa->id,
             'user_role_id' => UserRole::VENDEDOR,
@@ -73,32 +86,6 @@ class EstornoVendaTest extends TestCase
             'user_role_id' => UserRole::ADMINISTRATIVO,
             'ativo' => 'Y',
         ]);
-
-        // IDs fixos correspondem ao Enum Tabulations (ESTORNO=17, VENDA=16).
-        DB::table('tabulacoes')->insert([
-            [
-                'id' => Tabulations::ESTORNO,
-                'empresa_id' => $this->empresa->id,
-                'descricao' => 'ESTORNO',
-                'tipo_tabulacao' => 'A',
-                'efetivo' => 'N',
-                'status' => 'Y',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => Tabulations::VENDA,
-                'empresa_id' => $this->empresa->id,
-                'descricao' => 'VENDA',
-                'tipo_tabulacao' => 'A',
-                'efetivo' => 'Y',
-                'status' => 'Y',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
-        $this->tabulacaoEstornoId = Tabulations::ESTORNO;
-        $this->tabulacaoVendaId = Tabulations::VENDA;
 
         $this->contatoId = DB::table('contatos')->insertGetId([
             'empresa_id' => $this->empresa->id,
@@ -254,6 +241,8 @@ class EstornoVendaTest extends TestCase
     public function test_estorno_de_outra_empresa_e_bloqueado(): void
     {
         $outraEmpresa = Empresa::factory()->create();
+        $catalog = app(TabulationCatalog::class);
+        $catalog->provision($outraEmpresa->id);
         $boOutraEmpresa = User::factory()->create([
             'empresa_id' => $outraEmpresa->id,
             'user_role_id' => UserRole::BACKOFFICE,
@@ -264,17 +253,61 @@ class EstornoVendaTest extends TestCase
 
         $response = $this->actingAs($boOutraEmpresa)->post(route('backoffice.alterStatusContract'), [
             'idSale' => $venda->id,
-            'tabulacao_id' => $this->tabulacaoEstornoId,
+            'tabulacao_id' => $catalog->id($outraEmpresa->id, TabulationCode::ESTORNO),
             'motivo_pendencia' => 'Tentativa indevida.',
         ]);
 
-        // canEditContract retorna false → redirect com erro de permissão
-        $response->assertRedirect(route('backoffice.index'));
-        $response->assertSessionHas('status', 'error');
+        $response->assertNotFound();
 
         $this->assertDatabaseMissing('vendas_historico', [
             'venda_id' => $venda->id,
             'tabulacao_nova_id' => $this->tabulacaoEstornoId,
+        ]);
+    }
+
+    public function test_admin_nao_edita_nem_exclui_contrato_de_outra_empresa(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $adminOutraEmpresa = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'ativo' => 'Y',
+        ]);
+        $venda = $this->criarVenda();
+
+        $this->actingAs($adminOutraEmpresa)
+            ->post(route('backoffice.updateSale'), ['id' => $venda->id])
+            ->assertNotFound();
+
+        $this->actingAs($adminOutraEmpresa)
+            ->delete(route('backoffice.deleteContract', $venda->id))
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('vendas', [
+            'id' => $venda->id,
+            'empresa_id' => $this->empresa->id,
+        ]);
+    }
+
+    public function test_status_de_outra_empresa_nao_pode_ser_aplicado(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $catalog = app(TabulationCatalog::class);
+        $catalog->provision($outraEmpresa->id);
+        $statusEstrangeiro = $catalog->id($outraEmpresa->id, TabulationCode::ESTORNO);
+        $venda = $this->criarVenda();
+
+        $this->actingAs($this->admin)
+            ->post(route('backoffice.alterStatusContract'), [
+                'idSale' => $venda->id,
+                'tabulacao_id' => $statusEstrangeiro,
+                'motivo_pendencia' => 'Tentativa de cruzar empresas.',
+            ])
+            ->assertSessionHasErrors('tabulacao_id');
+
+        $this->assertDatabaseHas('vendas', [
+            'id' => $venda->id,
+            'tabulacao_id' => $this->tabulacaoVendaId,
         ]);
     }
 
@@ -358,6 +391,22 @@ class EstornoVendaTest extends TestCase
         ]);
         $response2 = $this->actingAs($outroVendedor)->get(route('sale.meusEstornosDados'));
         $this->assertCount(0, $response2->json('data'));
+    }
+
+    public function test_vendedor_nao_acessa_fila_gerencial_do_backoffice_por_url_direta(): void
+    {
+        $this->actingAs($this->vendedor);
+
+        foreach ([
+            route('backoffice.index'),
+            route('backoffice.listContracts'),
+            route('backoffice.operadorasPlanos'),
+            route('backoffice.getFaqs'),
+        ] as $rota) {
+            $this->getJson($rota)->assertForbidden();
+        }
+
+        $this->deleteJson(route('backoffice.deleteContract', 1))->assertForbidden();
     }
 
     public function test_vendedor_dono_acessa_tela_de_edicao_quando_em_estorno(): void
@@ -471,6 +520,29 @@ class EstornoVendaTest extends TestCase
             'tabulacao_nova_id' => $this->tabulacaoVendaId,
             'observacao' => null,
         ]);
+    }
+
+    public function test_falha_no_reenvio_nao_expoe_excecao_interna(): void
+    {
+        $venda = $this->criarVenda(['operadora_id' => $this->operadoraId]);
+        DB::table('vendas')->where('id', $venda->id)
+            ->update(['tabulacao_id' => $this->tabulacaoEstornoId]);
+        $repository = Mockery::mock(VendasRepository::class);
+        $repository->shouldReceive('updateContractFull')
+            ->once()
+            ->andThrow(new RuntimeException('SQLSTATE reenvio_tenant_secreto'));
+        $this->app->instance(VendasRepositoryInterface::class, $repository);
+
+        $response = $this->actingAs($this->vendedor)->post(
+            route('sale.reenviarEstorno', $venda->id),
+            $this->payloadReenvio(),
+        );
+
+        $response->assertRedirect()
+            ->assertSessionHas('status', 'error')
+            ->assertSessionHas('message', 'Não foi possível reenviar a venda neste momento.')
+            ->assertDontSee('SQLSTATE')
+            ->assertDontSee('reenvio_tenant_secreto');
     }
 
     public function test_reenvio_substitui_titulares_e_dependentes(): void
@@ -714,7 +786,7 @@ class EstornoVendaTest extends TestCase
         $this->actingAs($this->backoffice)
             ->postJson(route('backoffice.retomarEstorno'), [
                 'venda_id' => $venda->id,
-                'tabulacao_id' => Tabulations::IMPLANTADO,
+                'tabulacao_id' => $this->tabulacaoImplantadoId,
             ])
             ->assertStatus(422);
 
@@ -774,6 +846,7 @@ class EstornoVendaTest extends TestCase
         $this->criarVendaEstornada();
 
         $outraEmpresa = Empresa::factory()->create();
+        app(TabulationCatalog::class)->provision($outraEmpresa->id);
         $boOutraEmpresa = User::factory()->create([
             'empresa_id' => $outraEmpresa->id,
             'user_role_id' => UserRole::BACKOFFICE,

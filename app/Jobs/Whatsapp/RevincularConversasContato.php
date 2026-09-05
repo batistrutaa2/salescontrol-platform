@@ -3,6 +3,7 @@
 namespace App\Jobs\Whatsapp;
 
 use App\Events\Whatsapp\ConversaWhatsappAtualizada;
+use App\Jobs\Concerns\UsesWhatsappTenantContext;
 use App\Models\Contatos;
 use App\Models\WhatsappConversa;
 use App\Services\Whatsapp\PhoneMatcher;
@@ -14,7 +15,7 @@ use Illuminate\Queue\SerializesModels;
 
 class RevincularConversasContato implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, UsesWhatsappTenantContext;
 
     public int $tries = 3;
 
@@ -46,6 +47,7 @@ class RevincularConversasContato implements ShouldQueue
         }
 
         $conversas = WhatsappConversa::where('user_id', $this->userId)
+            ->where('empresa_id', $contato->empresa_id)
             ->whereNull('contato_id')
             ->whereIn('numero_normalizado', $numerosNormalizados)
             ->get();

@@ -1,6 +1,6 @@
 @extends('layouts/blankLayout')
 
-@section('title', 'Estudo de Planos - LK Brokers')
+@section('title', 'Estudo de Planos')
 
 @section('page-style')
     <style>
@@ -21,15 +21,6 @@
 
         .hero-head {
             min-width: 0
-        }
-
-        .hero-eyebrow {
-            display: inline-block;
-            font-size: .8rem;
-            letter-spacing: .08em;
-            text-transform: uppercase;
-            color: #64748b;
-            margin-bottom: 4px
         }
 
         .hero-title {
@@ -437,40 +428,12 @@
 
 @section('content')
     @php
-        $operadoraColors = [
-            'AMIL - PME' => '#0066B3',
-            'PORTO SEGURO' => '#009CDE',
-            'BRADESCO' => '#CC092F',
-            'SULAMERICA' => '#002776',
-            'SEGUROS UNIMED' => '#006837',
-            'ALICE' => '#FF4A4A',
-            'TRASMONTANO' => '#006837',
-            'AMPLA' => '#009739',
-            'BLUE' => '#0072CE',
-            'MEDSENIOR' => '#F58220',
-            'PREVENTSENIOR' => '#0A3D91',
-            'HAPVIDA' => '#005BAB',
-            'AMIL - SUPERMED' => '#0066B3',
-            'OMINT' => '#002147',
-            'QUALICORP' => '#003D79',
-            'PLENA SAUDE' => '#009639',
-        ];
-        $operadoraLogos = [
-            'AMIL' => 'assets/img/logos-operadoras/amil.png',
-            'PORTO SEGURO' => 'assets/img/logos-operadoras/porto-seguro.png',
-            'BRADESCO' => 'assets/img/logos-operadoras/bradesco.png',
-            'SULAMERICA' => 'assets/img/logos-operadoras/sulamerica.png',
-            'UNIMED' => 'assets/img/logos-operadoras/unimed.png',
-            'ALICE' => 'assets/img/logos-operadoras/alice.png',
-            'OMINT' => 'assets/img/logos-operadoras/omint.png',
-            'QUALICORP' => 'assets/img/logos-operadoras/qualicorp.png',
-            'PLENA' => 'assets/img/logos-operadoras/plena.png',
-        ];
-
         // Calcula subtotal de cada item para destacar o mais barato
         $subtotais = [];
         foreach ($estudo->itens as $idx => $it) {
-            $subtotais[$idx] = $it->vidas->sum('total');
+            $subtotal = $it->vidas->sum('total');
+            $iofPercentual = (float) ($it->operadora?->iof_percentual ?? 0);
+            $subtotais[$idx] = $subtotal * (1 + ($iofPercentual / 100));
         }
         $idxMelhorCusto = count($subtotais) ? array_keys($subtotais, min($subtotais))[0] : null;
         $single = count($estudo->itens) === 1;
@@ -482,7 +445,6 @@
             <div class="hero-grid">
                 <!-- Coluna: Título e metadados -->
                 <div class="hero-head">
-                    <span class="hero-eyebrow">Apresentação comercial</span>
                     <h1 class="hero-title">Estudo de Planos de Saúde</h1>
                     <p class="hero-subtitle">Comparativo claro e objetivo para ajudar na melhor decisão.</p>
 
@@ -523,7 +485,7 @@
                 <!-- Coluna: Logo -->
                 <div class="hero-brand">
                     <div class="brand-card">
-                        <img class="brand-img" src="{{ asset('assets/img/avatars/logo1.jpeg') }}" alt="LK Brokers">
+                        <img class="brand-img" src="{{ asset('assets/img/branding/salescontrol-mark.svg') }}" alt="SalesControl">
                     </div>
                 </div>
             </div>
@@ -534,21 +496,19 @@
         <div class="row g-4 {{ $single ? 'justify-content-center' : '' }}">
             @foreach ($estudo->itens as $i => $item)
                 @php
-                    $color = '#334155';
-                    foreach ($operadoraColors as $key => $value) {
-                        if (stripos($item->operadora_plano, $key) !== false) {
-                            $color = $value;
-                            break;
-                        }
+                    $color = $item->operadora?->cor_marca ?? '#334155';
+                    if (! preg_match('/^#[0-9A-Fa-f]{6}$/', $color)) {
+                        $color = '#334155';
                     }
                     $logo = null;
-                    foreach ($operadoraLogos as $key => $path) {
-                        if (stripos($item->operadora_plano, $key) !== false) {
-                            $logo = $path;
-                            break;
-                        }
+                    $logoConfigurada = $item->operadora?->logo_path;
+                    if (is_string($logoConfigurada) && str_starts_with($logoConfigurada, 'https://')) {
+                        $logo = filter_var($logoConfigurada, FILTER_VALIDATE_URL) ? $logoConfigurada : null;
+                    } elseif (is_string($logoConfigurada) && str_starts_with($logoConfigurada, 'assets/') && ! str_contains($logoConfigurada, '..')) {
+                        $logo = asset($logoConfigurada);
                     }
                     $subtotal = $item->vidas->sum('total');
+                    $iofPercentual = (float) ($item->operadora?->iof_percentual ?? 0);
                 @endphp
 
                 <div class="col-12 col-md-6 col-lg-4">
@@ -559,7 +519,7 @@
                             @endif
                             <div class="plan-logo">
                                 @if ($logo)
-                                    <img src="{{ asset($logo) }}" alt="Logo {{ $item->operadora_plano }}">
+                                    <img src="{{ $logo }}" alt="Logo {{ $item->operadora?->nome ?? $item->operadora_plano }}">
                                 @endif
                                 <span class="fw-bold" style="color:#0f172a">{{ $item->operadora_plano }}</span>
                             </div>
@@ -618,28 +578,15 @@
                                                     <strong>R$ {{ number_format($subtotal, 2, ',', '.') }}</strong>
                                                 </div>
 
-                                                @php
-                                                    $operadoraNome = strtoupper($item->operadora_plano);
-                                                    $operadorasComIOF = ['BRADESCO', 'PORTO', 'SULAMERICA'];
-
-                                                    $temIOF = false;
-                                                    foreach ($operadorasComIOF as $op) {
-                                                        if (str_contains($operadoraNome, $op)) {
-                                                            $temIOF = true;
-                                                            break;
-                                                        }
-                                                    }
-                                                @endphp
-
-                                                @if ($temIOF)
+                                                @if ($iofPercentual > 0)
                                                     @php
-                                                        $valorIof = $subtotal * 0.0238;
+                                                        $valorIof = $subtotal * ($iofPercentual / 100);
                                                         $totalComIof = $subtotal + $valorIof;
                                                     @endphp
 
                                                     <div class="total-pill"
                                                         style="background:#fff7ed; border:1px solid #fdba74; margin-top:8px">
-                                                        <span>IOF (2,38%)</span>
+                                                        <span>IOF ({{ number_format($iofPercentual, 2, ',', '.') }}%)</span>
                                                         <strong>R$ {{ number_format($valorIof, 2, ',', '.') }}</strong>
                                                     </div>
 
@@ -662,7 +609,7 @@
         </div>
 
         <div class="text-center mt-5 footer-note">
-            © {{ date('Y') }} LK Brokers — Todos os direitos reservados
+            © {{ date('Y') }} SalesControl — Todos os direitos reservados
         </div>
     </div>
 @endsection

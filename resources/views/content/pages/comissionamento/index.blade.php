@@ -75,6 +75,7 @@
                                 <th>ID</th>
                                 <th>Vendedor</th>
                                 <th class="text-end">Percentual</th>
+                                <th class="text-end">Angariação</th>
                                 <th class="text-end">Imposto</th>
                                 <th>Grade</th>
                                 <th class="text-end">Salario</th>
@@ -126,6 +127,16 @@
                                 <span class="input-group-text">%</span>
                             </div>
                             <small class="text-muted">Percentual da comissao do vendedor.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="percentual_angariacao" class="form-label">Percentual de Angariação (%)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="percentual_angariacao" id="percentual_angariacao"
+                                    step="0.01" min="0" max="100" placeholder="Ex.: 25.00" required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <small class="text-muted">Regra individual do vendedor, sem inferência pela grade.</small>
                         </div>
 
                         {{-- Imposto (%) --}}

@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 
 class PreditivaRegraPriorizacao extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'preditiva_regras_priorizacao';
 
     protected $fillable = [
@@ -18,7 +20,7 @@ class PreditivaRegraPriorizacao extends Model
         'valor',
         'peso',
         'ativo',
-        'ordem'
+        'ordem',
     ];
 
     /**
@@ -28,40 +30,40 @@ class PreditivaRegraPriorizacao extends Model
         'valor_plano_atual' => [
             'tipo' => 'decimal',
             'label' => 'Valor do Plano Atual',
-            'operadores' => ['=', '!=', '>', '>=', '<', '<=']
+            'operadores' => ['=', '!=', '>', '>=', '<', '<='],
         ],
         'entidade' => [
             'tipo' => 'string',
             'label' => 'Entidade',
-            'operadores' => ['=', '!=', 'LIKE', 'IN']
+            'operadores' => ['=', '!=', 'LIKE', 'IN'],
         ],
         'categoria' => [
             'tipo' => 'string',
             'label' => 'Categoria',
-            'operadores' => ['=', '!=', 'LIKE', 'IN']
+            'operadores' => ['=', '!=', 'LIKE', 'IN'],
         ],
         'plano' => [
             'tipo' => 'string',
             'label' => 'Plano',
-            'operadores' => ['=', '!=', 'LIKE', 'IN']
+            'operadores' => ['=', '!=', 'LIKE', 'IN'],
         ],
         'vidas' => [
             'tipo' => 'integer',
             'label' => 'Quantidade de Vidas',
-            'operadores' => ['=', '!=', '>', '>=', '<', '<=']
+            'operadores' => ['=', '!=', '>', '>=', '<', '<='],
         ],
         'plano_ativo' => [
             'tipo' => 'enum',
             'label' => 'Plano Ativo',
             'operadores' => ['=', '!='],
-            'valores' => ['Y', 'N']
+            'valores' => ['Y', 'N'],
         ],
         'possui_cnpj' => [
             'tipo' => 'enum',
             'label' => 'Possui CNPJ',
             'operadores' => ['=', '!='],
-            'valores' => ['Y', 'N']
-        ]
+            'valores' => ['Y', 'N'],
+        ],
     ];
 
     public function empresa()

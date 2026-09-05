@@ -2,7 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
+use App\Jobs\Concerns\UsesTenantContext;
 use App\Models\Empresa;
 use App\Models\Tabulacoes;
 use App\Models\User;
@@ -19,19 +20,19 @@ use Illuminate\Support\Facades\Storage;
 
 class EnviarNotificacaoStatusContratoWhatsappJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, UsesTenantContext;
 
     public int $tries = 3;
 
     public array $backoff = [60, 180, 600];
 
     public const WHITELIST_STATUS = [
-        Tabulations::IMPLANTADO,
-        Tabulations::BOLETO_DISPONIVEL,
-        Tabulations::PENDENCIA,
-        Tabulations::ESTORNO,
-        Tabulations::REGULARIZADO,
-        Tabulations::ANALISE_OPERADORA,
+        TabulationCode::IMPLANTADO,
+        TabulationCode::BOLETO_DISPONIVEL,
+        TabulationCode::PENDENCIA,
+        TabulationCode::ESTORNO,
+        TabulationCode::REGULARIZADO,
+        TabulationCode::ANALISE_OPERADORA,
     ];
 
     // WhatsApp/Baileys aceita documentos até 100MB. Margem de 5MB para overhead de multipart/encoding.
@@ -46,15 +47,6 @@ class EnviarNotificacaoStatusContratoWhatsappJob implements ShouldQueue
 
     public function handle(WhatsappService $whatsapp, StatusContratoWhatsappFormatter $formatter): void
     {
-        if (! in_array($this->tabulacaoId, self::WHITELIST_STATUS, true)) {
-            Log::warning('StatusContratoWhats: tabulacao fora da whitelist', [
-                'venda_id' => $this->vendaId,
-                'tabulacao_id' => $this->tabulacaoId,
-            ]);
-
-            return;
-        }
-
         $venda = Vendas::find($this->vendaId);
         if (! $venda) {
             Log::warning('StatusContratoWhats: venda não encontrada', ['venda_id' => $this->vendaId]);
@@ -72,7 +64,7 @@ class EnviarNotificacaoStatusContratoWhatsappJob implements ShouldQueue
             return;
         }
 
-        $vendedor = User::find($venda->user_id);
+        $vendedor = User::query()->tenantMember((int) $venda->empresa_id)->find($venda->user_id);
         if (! $vendedor || empty($vendedor->whatsapp)) {
             Log::warning('StatusContratoWhats: vendedor sem whatsapp cadastrado', [
                 'venda_id' => $this->vendaId,
@@ -82,19 +74,32 @@ class EnviarNotificacaoStatusContratoWhatsappJob implements ShouldQueue
             return;
         }
 
-        $tabulacaoDescricao = Tabulacoes::find($this->tabulacaoId)?->descricao ?? "status #{$this->tabulacaoId}";
+        $tabulacao = Tabulacoes::query()
+            ->where('empresa_id', $venda->empresa_id)
+            ->whereNotNull('codigo')
+            ->find($this->tabulacaoId);
+
+        if (! $tabulacao || ! in_array($tabulacao->codigo, self::WHITELIST_STATUS, true)) {
+            Log::warning('StatusContratoWhats: tabulacao inválida para a empresa ou fora da whitelist', [
+                'venda_id' => $this->vendaId,
+                'empresa_id' => $venda->empresa_id,
+                'tabulacao_id' => $this->tabulacaoId,
+            ]);
+
+            return;
+        }
 
         $body = $formatter->format(
             $venda,
-            $this->tabulacaoId,
-            $tabulacaoDescricao,
+            $tabulacao->codigo,
+            $tabulacao->descricao,
             $this->alteradoPorNome,
             $this->motivo,
             $empresa->nome_fantasia ?? null,
         );
 
         $modo = 'texto';
-        if ($this->tabulacaoId === Tabulations::BOLETO_DISPONIVEL) {
+        if ($tabulacao->codigo === TabulationCode::BOLETO_DISPONIVEL) {
             $rel = trim((string) ($venda->path_boleto_disponivel ?? ''), '/');
 
             if ($rel !== '' && Storage::exists($rel)) {

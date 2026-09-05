@@ -3,6 +3,8 @@
 namespace App\Jobs;
 
 use App\Events\VendaDocumentoAtualizado;
+use App\Jobs\Concerns\RunsTenantFailureCallback;
+use App\Jobs\Concerns\UsesTenantContext;
 use App\Models\VendaDocumento;
 use App\Services\Documentos\DocumentoStatusService;
 use Illuminate\Bus\Queueable;
@@ -14,7 +16,7 @@ use Throwable;
 
 class VerificarVendaDocumento implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, RunsTenantFailureCallback, SerializesModels, UsesTenantContext;
 
     public int $tries = 5;
 
@@ -51,12 +53,14 @@ class VerificarVendaDocumento implements ShouldQueue
 
     public function failed(Throwable $exception): void
     {
-        $doc = VendaDocumento::with('venda')->find($this->documentoId);
-        if (! $doc || in_array($doc->status, ['DISPONIVEL', 'BLOQUEADO', 'EXCLUIDO'], true)) {
-            return;
-        }
-        $doc->update(['status' => 'FALHA', 'erro' => mb_substr($exception->getMessage(), 0, 1000), 'expira_em' => now()->addDays(7)]);
-        app(DocumentoStatusService::class)->atualizarVenda($doc->venda);
-        event(new VendaDocumentoAtualizado($doc->venda_id, $doc->empresa_id));
+        $this->runTenantFailureCallback(VendaDocumento::class, $this->documentoId, function () use ($exception): void {
+            $doc = VendaDocumento::with('venda')->find($this->documentoId);
+            if (! $doc || in_array($doc->status, ['DISPONIVEL', 'BLOQUEADO', 'EXCLUIDO'], true)) {
+                return;
+            }
+            $doc->update(['status' => 'FALHA', 'erro' => mb_substr($exception->getMessage(), 0, 1000), 'expira_em' => now()->addDays(7)]);
+            app(DocumentoStatusService::class)->atualizarVenda($doc->venda);
+            event(new VendaDocumentoAtualizado($doc->venda_id, $doc->empresa_id));
+        });
     }
 }

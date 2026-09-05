@@ -2,22 +2,32 @@
 
 namespace App\Services;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use Throwable;
 
 class RelatorioAproveitamentoService
 {
     private string $apiKey;
-    private string $baseUrl = 'https://api.anthropic.com/v1';
-    private string $model = 'claude-3-haiku-20240307';
 
-    public function __construct()
+    private string $baseUrl;
+
+    private string $model;
+
+    private string $apiVersion;
+
+    private int $maxTokens;
+
+    public function __construct(private readonly TabulationCatalog $tabulationCatalog)
     {
         $this->apiKey = config('services.anthropic.api_key') ?? '';
+        $this->baseUrl = rtrim((string) config('services.anthropic.base_url'), '/');
+        $this->model = (string) config('services.anthropic.model');
+        $this->apiVersion = (string) config('services.anthropic.version');
+        $this->maxTokens = (int) config('services.anthropic.max_tokens');
     }
 
     /**
@@ -25,7 +35,7 @@ class RelatorioAproveitamentoService
      */
     public function coletarDadosAgregados(int $ano, ?int $mesInicio = 1, ?int $mesFim = 12): array
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = app(\App\Support\TenantContext::class)->id();
 
         $dataInicio = Carbon::create($ano, $mesInicio, 1)->startOfMonth();
         $dataFim = Carbon::create($ano, $mesFim, 1)->endOfMonth();
@@ -91,8 +101,14 @@ class RelatorioAproveitamentoService
     private function getDistribuicaoStatus(int $empresaId, Carbon $dataInicio, Carbon $dataFim): array
     {
         return DB::table('contatos as c')
-            ->join('contatos_corretores as cc', 'c.id', '=', 'cc.contato_id')
-            ->join('tabulacoes as t', 'cc.tabulacao_id', '=', 't.id')
+            ->join('contatos_corretores as cc', function ($join) {
+                $join->on('c.id', '=', 'cc.contato_id')
+                    ->on('c.empresa_id', '=', 'cc.empresa_id');
+            })
+            ->join('tabulacoes as t', function ($join) {
+                $join->on('cc.tabulacao_id', '=', 't.id')
+                    ->on('cc.empresa_id', '=', 't.empresa_id');
+            })
             ->select(
                 't.descricao as status',
                 't.tipo_tabulacao',
@@ -100,6 +116,8 @@ class RelatorioAproveitamentoService
                 DB::raw('COUNT(*) as total')
             )
             ->where('c.empresa_id', $empresaId)
+            ->where('cc.empresa_id', $empresaId)
+            ->where('t.empresa_id', $empresaId)
             ->whereBetween('c.created_at', [$dataInicio, $dataFim])
             ->groupBy('t.id', 't.descricao', 't.tipo_tabulacao', 't.efetivo')
             ->orderByDesc('total')
@@ -121,12 +139,16 @@ class RelatorioAproveitamentoService
     private function getDistribuicaoTemperatura(int $empresaId, Carbon $dataInicio, Carbon $dataFim): array
     {
         $resultado = DB::table('contatos as c')
-            ->join('contatos_corretores as cc', 'c.id', '=', 'cc.contato_id')
+            ->join('contatos_corretores as cc', function ($join) {
+                $join->on('c.id', '=', 'cc.contato_id')
+                    ->on('c.empresa_id', '=', 'cc.empresa_id');
+            })
             ->select(
                 'cc.temperatura',
                 DB::raw('COUNT(*) as total')
             )
             ->where('c.empresa_id', $empresaId)
+            ->where('cc.empresa_id', $empresaId)
             ->whereBetween('c.created_at', [$dataInicio, $dataFim])
             ->whereNotNull('cc.temperatura')
             ->groupBy('cc.temperatura')
@@ -213,7 +235,7 @@ class RelatorioAproveitamentoService
             ->orderByDesc('total')
             ->limit(10)
             ->get()
-            ->map(fn($item) => [
+            ->map(fn ($item) => [
                 'fonte' => $item->fonte,
                 'total' => $item->total,
             ])
@@ -225,6 +247,17 @@ class RelatorioAproveitamentoService
      */
     private function getFunilConversao(int $empresaId, Carbon $dataInicio, Carbon $dataFim): array
     {
+        $statusEmNegociacao = array_values($this->tabulationCatalog->requiredIds($empresaId, [
+            TabulationCode::REUNIAO,
+            TabulationCode::NEGOCIACAO,
+            TabulationCode::DOCUMENTO,
+        ]));
+        $statusPerdidos = array_values($this->tabulationCatalog->requiredIds($empresaId, [
+            TabulationCode::NEGOCIO_NAO_FECHADO,
+            TabulationCode::ESTORNO,
+            TabulationCode::DECLINADO,
+        ]));
+
         // Total de leads importados no período
         $totalLeads = DB::table('contatos')
             ->where('empresa_id', $empresaId)
@@ -233,43 +266,55 @@ class RelatorioAproveitamentoService
 
         // Leads atribuídos a vendedores
         $leadsAtribuidos = DB::table('contatos as c')
-            ->join('contatos_corretores as cc', 'c.id', '=', 'cc.contato_id')
+            ->join('contatos_corretores as cc', function ($join) {
+                $join->on('c.id', '=', 'cc.contato_id')
+                    ->on('c.empresa_id', '=', 'cc.empresa_id');
+            })
             ->where('c.empresa_id', $empresaId)
+            ->where('cc.empresa_id', $empresaId)
             ->whereBetween('c.created_at', [$dataInicio, $dataFim])
             ->whereNotNull('cc.user_id')
             ->count();
 
         // Leads em negociação (status comerciais ativos)
         $leadsEmNegociacao = DB::table('contatos as c')
-            ->join('contatos_corretores as cc', 'c.id', '=', 'cc.contato_id')
+            ->join('contatos_corretores as cc', function ($join) {
+                $join->on('c.id', '=', 'cc.contato_id')
+                    ->on('c.empresa_id', '=', 'cc.empresa_id');
+            })
             ->where('c.empresa_id', $empresaId)
             ->whereBetween('c.created_at', [$dataInicio, $dataFim])
-            ->whereIn('cc.tabulacao_id', [
-                Tabulations::REUNIÃO,
-                Tabulations::NEGOCIAÇÃO,
-                Tabulations::DOCUMENTO,
-            ])
+            ->where('cc.empresa_id', $empresaId)
+            ->whereIn('cc.tabulacao_id', $statusEmNegociacao)
             ->count();
 
         // Leads convertidos (vendas)
         $leadsConvertidos = DB::table('contatos as c')
-            ->join('contatos_corretores as cc', 'c.id', '=', 'cc.contato_id')
-            ->join('tabulacoes as t', 'cc.tabulacao_id', '=', 't.id')
+            ->join('contatos_corretores as cc', function ($join) {
+                $join->on('c.id', '=', 'cc.contato_id')
+                    ->on('c.empresa_id', '=', 'cc.empresa_id');
+            })
+            ->join('tabulacoes as t', function ($join) {
+                $join->on('cc.tabulacao_id', '=', 't.id')
+                    ->on('cc.empresa_id', '=', 't.empresa_id');
+            })
             ->where('c.empresa_id', $empresaId)
+            ->where('cc.empresa_id', $empresaId)
+            ->where('t.empresa_id', $empresaId)
             ->whereBetween('c.created_at', [$dataInicio, $dataFim])
             ->where('t.efetivo', 'Y')
             ->count();
 
         // Leads perdidos
         $leadsPerdidos = DB::table('contatos as c')
-            ->join('contatos_corretores as cc', 'c.id', '=', 'cc.contato_id')
+            ->join('contatos_corretores as cc', function ($join) {
+                $join->on('c.id', '=', 'cc.contato_id')
+                    ->on('c.empresa_id', '=', 'cc.empresa_id');
+            })
             ->where('c.empresa_id', $empresaId)
             ->whereBetween('c.created_at', [$dataInicio, $dataFim])
-            ->whereIn('cc.tabulacao_id', [
-                Tabulations::NEGOCIO_NAO_FECHADO,
-                Tabulations::ESTORNO,
-                Tabulations::DECLINIO,
-            ])
+            ->where('cc.empresa_id', $empresaId)
+            ->whereIn('cc.tabulacao_id', $statusPerdidos)
             ->count();
 
         return [
@@ -289,6 +334,7 @@ class RelatorioAproveitamentoService
      */
     private function getKPIs(int $empresaId, Carbon $dataInicio, Carbon $dataFim): array
     {
+        $negocioNaoFechadoId = $this->tabulationCatalog->id($empresaId, TabulationCode::NEGOCIO_NAO_FECHADO);
         // Total de leads
         $totalLeads = DB::table('contatos')
             ->where('empresa_id', $empresaId)
@@ -312,13 +358,21 @@ class RelatorioAproveitamentoService
 
         // Leads ativos (não convertidos e não perdidos)
         $leadsAtivos = DB::table('contatos as c')
-            ->join('contatos_corretores as cc', 'c.id', '=', 'cc.contato_id')
-            ->join('tabulacoes as t', 'cc.tabulacao_id', '=', 't.id')
+            ->join('contatos_corretores as cc', function ($join) {
+                $join->on('c.id', '=', 'cc.contato_id')
+                    ->on('c.empresa_id', '=', 'cc.empresa_id');
+            })
+            ->join('tabulacoes as t', function ($join) {
+                $join->on('cc.tabulacao_id', '=', 't.id')
+                    ->on('cc.empresa_id', '=', 't.empresa_id');
+            })
             ->where('c.empresa_id', $empresaId)
+            ->where('cc.empresa_id', $empresaId)
+            ->where('t.empresa_id', $empresaId)
             ->whereBetween('c.created_at', [$dataInicio, $dataFim])
             ->where('t.efetivo', 'N')
             ->where('t.tipo_tabulacao', 'C')
-            ->whereNotIn('cc.tabulacao_id', [Tabulations::NEGOCIO_NAO_FECHADO])
+            ->where('cc.tabulacao_id', '!=', $negocioNaoFechadoId)
             ->count();
 
         return [
@@ -344,7 +398,7 @@ class RelatorioAproveitamentoService
         if (empty($this->apiKey)) {
             return [
                 'success' => false,
-                'error' => 'API Key da Anthropic não configurada. Adicione ANTHROPIC_API_KEY no arquivo .env'
+                'error' => 'API Key da Anthropic não configurada. Adicione ANTHROPIC_API_KEY no arquivo .env',
             ];
         }
 
@@ -353,15 +407,15 @@ class RelatorioAproveitamentoService
         try {
             $response = Http::withHeaders([
                 'x-api-key' => $this->apiKey,
-                'anthropic-version' => '2023-06-01',
+                'anthropic-version' => $this->apiVersion,
                 'Content-Type' => 'application/json',
             ])->timeout(60)->post("{$this->baseUrl}/messages", [
                 'model' => $this->model,
-                'max_tokens' => 2048,
+                'max_tokens' => $this->maxTokens,
                 'system' => $this->getSystemPrompt(),
                 'messages' => [
-                    ['role' => 'user', 'content' => $prompt]
-                ]
+                    ['role' => 'user', 'content' => $prompt],
+                ],
             ]);
 
             if ($response->successful()) {
@@ -374,33 +428,35 @@ class RelatorioAproveitamentoService
                     'tokens_usados' => [
                         'input' => $data['usage']['input_tokens'] ?? 0,
                         'output' => $data['usage']['output_tokens'] ?? 0,
-                    ]
+                    ],
                 ];
             }
 
-            Log::error('Claude API Error - Relatório', [
+            Log::error('Falha do provedor de IA no relatório de aproveitamento.', [
                 'status' => $response->status(),
-                'body' => $response->body()
+                'request_id' => $response->header('request-id'),
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Erro na API: ' . ($response->json()['error']['message'] ?? 'Erro desconhecido')
+                'error' => 'O serviço de análise está temporariamente indisponível.',
             ];
 
-        } catch (\Exception $e) {
-            Log::error('Claude API Exception - Relatório', ['message' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            Log::error('Erro de conexão com o provedor de IA do relatório.', [
+                'exception' => $e,
+            ]);
 
             return [
                 'success' => false,
-                'error' => 'Erro de conexão: ' . $e->getMessage()
+                'error' => 'O serviço de análise está temporariamente indisponível.',
             ];
         }
     }
 
     private function getSystemPrompt(): string
     {
-        return <<<PROMPT
+        return <<<'PROMPT'
 Você é um analista de dados especializado em vendas de planos de saúde no Brasil. Sua função é analisar métricas de leads e vendas e fornecer insights acionáveis para melhorar a performance comercial.
 
 ## Suas responsabilidades:
@@ -450,23 +506,23 @@ PROMPT;
 
         // Formatar leads por mês
         $leadsMes = collect($dados['leads_por_mes'])
-            ->map(fn($m) => "{$m['nome']}: {$m['total']} leads (ADS: {$m['ads']}, Base: {$m['base']})")
+            ->map(fn ($m) => "{$m['nome']}: {$m['total']} leads (ADS: {$m['ads']}, Base: {$m['base']})")
             ->join("\n");
 
         // Formatar vendas por mês (cadastradas vs implantadas)
         $vendasMes = collect($dados['vendas_por_mes'])
-            ->map(fn($m) => "{$m['nome']}: Cadastradas: {$m['cadastradas']} (R$ " . number_format($m['cadastradas_valor'], 2, ',', '.') . ") | Implantadas: {$m['implantadas']} (R$ " . number_format($m['implantadas_valor'], 2, ',', '.') . ")")
+            ->map(fn ($m) => "{$m['nome']}: Cadastradas: {$m['cadastradas']} (R$ ".number_format($m['cadastradas_valor'], 2, ',', '.').") | Implantadas: {$m['implantadas']} (R$ ".number_format($m['implantadas_valor'], 2, ',', '.').')')
             ->join("\n");
 
         // Formatar distribuição de status
         $statusDist = collect($dados['distribuicao_status'])
             ->take(10)
-            ->map(fn($s) => "- {$s['status']}: {$s['total']} leads")
+            ->map(fn ($s) => "- {$s['status']}: {$s['total']} leads")
             ->join("\n");
 
         // Formatar fontes
         $fontes = collect($dados['fontes_importacao'])
-            ->map(fn($f) => "- {$f['fonte']}: {$f['total']} leads")
+            ->map(fn ($f) => "- {$f['fonte']}: {$f['total']} leads")
             ->join("\n");
 
         // Temperatura

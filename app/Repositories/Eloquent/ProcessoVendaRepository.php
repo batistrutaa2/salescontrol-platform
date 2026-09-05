@@ -19,8 +19,8 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
         return VendaDemanda::with([
             'titular:id,nome,email,cpf',
             'operadoraAnterior:id,nome',
-            'criador:id,name',
-            'concluidaPor:id,name',
+            'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+            'concluidaPor' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
         ])
             ->where('venda_id', $vendaId)
             ->where('empresa_id', $empresaId)
@@ -72,12 +72,19 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
             'concluida_em' => $ehFinal ? Carbon::now() : null,
         ]);
 
-        return $demanda->fresh(['titular:id,nome', 'operadoraAnterior:id,nome', 'concluidaPor:id,name']);
+        return $demanda->fresh([
+            'titular:id,nome',
+            'operadoraAnterior:id,nome',
+            'concluidaPor' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+        ]);
     }
 
     public function emailsCriadosDaVenda(int $vendaId, int $empresaId): array
     {
-        return \App\Models\VendaEmailCriado::with(['titular:id,nome', 'criador:id,name'])
+        return \App\Models\VendaEmailCriado::with([
+            'titular:id,nome',
+            'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+        ])
             ->where('venda_id', $vendaId)
             ->where('empresa_id', $empresaId)
             ->orderBy('id')
@@ -98,7 +105,10 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
             'created_by' => $userId,
         ]);
 
-        return $this->mapEmailCriado($email->load(['titular:id,nome', 'criador:id,name']));
+        return $this->mapEmailCriado($email->load([
+            'titular:id,nome',
+            'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+        ]));
     }
 
     public function atualizarEmailCriado(int $id, int $empresaId, array $dados): ?array
@@ -116,7 +126,10 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
             'observacao' => $dados['observacao'] ?? null,
         ]);
 
-        return $this->mapEmailCriado($email->fresh(['titular:id,nome', 'criador:id,name']));
+        return $this->mapEmailCriado($email->fresh([
+            'titular:id,nome',
+            'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+        ]));
     }
 
     public function excluirEmailCriado(int $id, int $empresaId): bool
@@ -180,7 +193,7 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
             $bindings[] = $like;
             $relevancia[] = 'CASE WHEN numero_proposta LIKE ? THEN 8 ELSE 0 END';
             $bindings[] = $like;
-            // Operadora pesa pouco: "amil" casaria centenas de contratos.
+            // Operadora pesa pouco: nomes curtos ou populares podem casar centenas de contratos.
             $relevancia[] = 'CASE WHEN operadora LIKE ? THEN 2 ELSE 0 END';
             $bindings[] = $like;
         }
@@ -190,7 +203,7 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
             $bindings[] = '%'.$digitos.'%';
         }
 
-        return Vendas::with('tabulacao:id,descricao')
+        return Vendas::with('tabulacao:id,descricao,codigo')
             ->where('empresa_id', $empresaId)
             ->where(function ($q) use ($palavras, $digitos) {
                 foreach ($palavras as $palavra) {
@@ -220,6 +233,7 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
                 'operadora' => $v->operadora,
                 'numero_proposta' => $v->numero_proposta,
                 'status' => $v->tabulacao->descricao ?? '—',
+                'status_codigo' => $v->tabulacao?->codigo,
             ])
             ->all();
     }
@@ -230,7 +244,7 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
             return [];
         }
 
-        return Vendas::with('tabulacao:id,descricao')
+        return Vendas::with('tabulacao:id,descricao,codigo')
             ->where('empresa_id', $empresaId)
             ->where('cpf_cnpj', $cnpj)
             ->where('id', '!=', $exceptVendaId)
@@ -247,6 +261,7 @@ class ProcessoVendaRepository implements ProcessoVendaRepositoryInterface
                     ? 'R$ '.number_format((float) $v->valor_contrato, 2, ',', '.')
                     : null,
                 'status' => $v->tabulacao->descricao ?? '—',
+                'status_codigo' => $v->tabulacao?->codigo,
                 'data_vigencia' => $v->getRawOriginal('data_vigencia') ? Carbon::parse($v->getRawOriginal('data_vigencia'))->format('d/m/Y') : null,
                 'data_implantacao' => $v->getRawOriginal('data_implantacao') ? Carbon::parse($v->getRawOriginal('data_implantacao'))->format('d/m/Y') : null,
             ])

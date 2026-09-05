@@ -21,7 +21,12 @@ class EvolutionWebhookController extends Controller
      */
     public function handle(Request $request, string $instanceName, string $token): JsonResponse
     {
-        $instancia = WhatsappInstancia::where('instance_name', $instanceName)->first();
+        // O nome da instância é globalmente único e resolve o tenant antes de
+        // qualquer processamento. Ignorar o scope aqui evita contexto residual
+        // em servidores persistentes; os jobs reinstalam o tenant da instância.
+        $instancia = WhatsappInstancia::withoutGlobalScope('tenant')
+            ->where('instance_name', $instanceName)
+            ->first();
 
         if (! $instancia || ! hash_equals($instancia->webhook_token, $token)) {
             return response()->json(['ok' => false], 401);

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Repositories\Contracts\WhatsappConversaRepositoryInterface;
+use App\Support\TenantContext;
 use App\UseCases\WhatsappConversaUseCase;
 use App\UseCases\WhatsappMensagemUseCase;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class WhatsappChatController extends Controller
 {
@@ -26,9 +28,12 @@ class WhatsappChatController extends Controller
 
     public function index(?int $conversaId = null)
     {
+        $user = Auth::user();
+
         return view('content.pages.whatsapp.chat', [
             'conversaInicialId' => $conversaId,
-            'podeEnviar' => (int) Auth::user()->user_role_id === \App\Enums\UserRole::VENDEDOR,
+            'podeEnviar' => $user->isPlatformAdmin()
+                || (int) $user->user_role_id === \App\Enums\UserRole::VENDEDOR,
         ]);
     }
 
@@ -41,7 +46,7 @@ class WhatsappChatController extends Controller
             : 'ativas';
 
         $conversas = $this->conversaRepository->getConversasLista(
-            $user->empresa_id,
+            $this->tenantId(),
             $this->conversaUseCase->escopoUsuario($user),
             $request->query('busca'),
             $modo
@@ -150,7 +155,7 @@ class WhatsappChatController extends Controller
     public function vincularContato(int $conversaId, Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'contato_id' => 'nullable|integer|exists:contatos,id',
+            'contato_id' => ['nullable', 'integer', Rule::exists('contatos', 'id')->where('empresa_id', app(TenantContext::class)->id())],
         ]);
 
         if ($validator->fails()) {
@@ -180,8 +185,12 @@ class WhatsappChatController extends Controller
         $digitos = preg_replace('/\D/', '', $busca);
 
         $leads = DB::table('contatos as c')
-            ->join('contatos_corretores as cc', 'cc.contato_id', '=', 'c.id')
-            ->where('cc.empresa_id', $user->empresa_id)
+            ->join('contatos_corretores as cc', function ($join) {
+                $join->on('cc.contato_id', '=', 'c.id')
+                    ->on('cc.empresa_id', '=', 'c.empresa_id');
+            })
+            ->where('c.empresa_id', $this->tenantId())
+            ->where('cc.empresa_id', $this->tenantId())
             ->where('cc.user_id', $user->id)
             ->when($busca !== '', function ($q) use ($busca, $digitos) {
                 $q->where(function ($sub) use ($busca, $digitos) {
@@ -238,7 +247,7 @@ class WhatsappChatController extends Controller
             return response()->json(['success' => false], 403);
         }
 
-        $this->conversaRepository->setArquivada($conversa->id, true);
+        $this->conversaRepository->setArquivada($conversa->id, (int) $conversa->empresa_id, true);
 
         return response()->json(['success' => true]);
     }
@@ -251,7 +260,7 @@ class WhatsappChatController extends Controller
             return response()->json(['success' => false], 403);
         }
 
-        $this->conversaRepository->setArquivada($conversa->id, false);
+        $this->conversaRepository->setArquivada($conversa->id, (int) $conversa->empresa_id, false);
 
         return response()->json(['success' => true]);
     }
@@ -340,7 +349,10 @@ class WhatsappChatController extends Controller
         }
 
         $vendas = DB::table('vendas as v')
-            ->leftJoin('tabulacoes as t', 't.id', '=', 'v.tabulacao_id')
+            ->leftJoin('tabulacoes as t', function ($join) {
+                $join->on('t.id', '=', 'v.tabulacao_id')
+                    ->on('t.empresa_id', '=', 'v.empresa_id');
+            })
             ->where('v.contato_id', $conversa->contato_id)
             ->where('v.empresa_id', $conversa->empresa_id)
             ->orderByDesc('v.created_at')
@@ -392,7 +404,7 @@ class WhatsappChatController extends Controller
 
         return $this->conversaRepository->findParaUsuario(
             $conversaId,
-            $user->empresa_id,
+            $this->tenantId(),
             $this->conversaUseCase->escopoUsuario($user)
         );
     }
@@ -427,6 +439,7 @@ class WhatsappChatController extends Controller
                 'temperatura' => DB::table('contatos_corretores')
                     ->where('contato_id', $conversa->contato_id)
                     ->where('user_id', $conversa->user_id)
+                    ->where('empresa_id', $conversa->empresa_id)
                     ->value('temperatura'),
                 'nome_cliente' => $conversa->contato->nome_cliente,
                 'cpf' => $conversa->contato->cpf,

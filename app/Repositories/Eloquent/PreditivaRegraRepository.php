@@ -28,26 +28,28 @@ class PreditivaRegraRepository implements PreditivaRegraRepositoryInterface
         return $query->get();
     }
 
-    public function create(array $data): ?int
+    public function create(int $empresaId, array $data): ?int
     {
         try {
-            $maxOrdem = $this->model::where('empresa_id', $data['empresa_id'])
+            $maxOrdem = $this->model::where('empresa_id', $empresaId)
                 ->max('ordem') ?? 0;
 
+            $data['empresa_id'] = $empresaId;
             $data['ordem'] = $maxOrdem + 1;
 
             $regra = $this->model::create($data);
+
             return $regra->id;
         } catch (\Exception $e) {
             return null;
         }
     }
 
-    public function update(int $id, array $data): bool
+    public function update(int $id, int $empresaId, array $data): bool
     {
         try {
-            $regra = $this->model::find($id);
-            if (!$regra) {
+            $regra = $this->model::where('empresa_id', $empresaId)->find($id);
+            if (! $regra) {
                 return false;
             }
 
@@ -57,15 +59,14 @@ class PreditivaRegraRepository implements PreditivaRegraRepositoryInterface
         }
     }
 
-    public function delete(int $id): bool
+    public function delete(int $id, int $empresaId): bool
     {
         try {
-            $regra = $this->model::find($id);
-            if (!$regra) {
+            $regra = $this->model::where('empresa_id', $empresaId)->find($id);
+            if (! $regra) {
                 return false;
             }
 
-            $empresaId = $regra->empresa_id;
             $ordem = $regra->ordem;
 
             $deleted = $regra->delete();
@@ -82,40 +83,45 @@ class PreditivaRegraRepository implements PreditivaRegraRepositoryInterface
         }
     }
 
-    public function toggleAtivo(int $id): bool
+    public function toggleAtivo(int $id, int $empresaId): bool
     {
         try {
-            $regra = $this->model::find($id);
-            if (!$regra) {
+            $regra = $this->model::where('empresa_id', $empresaId)->find($id);
+            if (! $regra) {
                 return false;
             }
 
             $regra->ativo = $regra->ativo === 'Y' ? 'N' : 'Y';
+
             return $regra->save();
         } catch (\Exception $e) {
             return false;
         }
     }
 
-    public function reordenar(array $ordens): bool
+    public function reordenar(int $empresaId, array $ordens): bool
     {
         try {
             DB::beginTransaction();
 
             foreach ($ordens as $index => $id) {
-                $this->model::where('id', $id)->update(['ordem' => $index + 1]);
+                $this->model::where('id', $id)
+                    ->where('empresa_id', $empresaId)
+                    ->update(['ordem' => $index + 1]);
             }
 
             DB::commit();
+
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
+
             return false;
         }
     }
 
-    public function findById(int $id)
+    public function findById(int $id, int $empresaId)
     {
-        return $this->model::find($id);
+        return $this->model::where('empresa_id', $empresaId)->find($id);
     }
 }

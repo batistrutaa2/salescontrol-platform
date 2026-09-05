@@ -5,7 +5,7 @@
 
 @extends('layouts/layoutMaster')
 
-@section('title', 'Login - Bem-vindo')
+@section('title', 'Entrar')
 
 @section('vendor-style')
     @vite(['resources/assets/vendor/libs/@form-validation/form-validation.scss'])
@@ -25,29 +25,33 @@
 
 @section('content')
     <main class="auth-modern-cover row m-0">
-        <section class="d-none d-lg-flex col-lg-7 col-xl-8 auth-left-panel" aria-label="LK Brokers">
+        <section class="col-12 col-lg-7 col-xl-8 auth-left-panel" aria-labelledby="access-hero-title">
+            <img class="auth-broker-photo" src="{{ asset('assets/img/auth/broker-login-hero.png') }}"
+                alt="Corretor conversando com uma cliente durante a análise de uma proposta">
             <div class="auth-brand-panel">
-                <div class="auth-brand-symbol" aria-hidden="true">
-                    @include('_partials.macros', ['height' => 112, 'withbg' => 'fill: #ffffff;'])
+                <div class="auth-brand-lockup">
+                    <span class="auth-brand-symbol">
+                        @include('_partials.macros', ['height' => 42, 'color' => '#6845df'])
+                    </span>
+                    <span class="auth-brand-name">SalesControl</span>
                 </div>
-                <p class="auth-brand-name">LK'Brokers</p>
-                <h1>Bem-vindo ao seu ambiente de trabalho.</h1>
-                <p class="auth-brand-copy">Acesse sua conta para continuar.</p>
+                <h1 id="access-hero-title">Seu dia comercial começa com contexto.</h1>
+                <p class="auth-brand-copy">Contatos, propostas e próximos passos organizados para você conduzir cada oportunidade.</p>
             </div>
         </section>
 
         <section class="col-12 col-lg-5 col-xl-4 auth-right-panel" aria-labelledby="login-title">
             <div class="login-form-wrapper">
-                <div class="app-brand justify-content-center d-lg-none mb-5">
-                    <a href="{{ url('/') }}" class="app-brand-link gap-2" aria-label="LK Brokers">
-                        <span class="app-brand-logo demo">@include('_partials.macros', ['height' => 40, 'withbg' => 'fill: var(--bs-primary);'])</span>
-                        <span class="app-brand-text demo text-heading fw-bold">LK'Brokers</span>
+                <div class="app-brand d-lg-none mb-5">
+                    <a href="{{ url('/') }}" class="app-brand-link gap-3" aria-label="SalesControl">
+                        <span class="app-brand-logo demo">@include('_partials.macros', ['height' => 38])</span>
+                        <span class="app-brand-text demo text-heading fw-bold">SalesControl</span>
                     </a>
                 </div>
 
                 <header class="auth-form-header">
-                    <h2 id="login-title">Bem-vindo de volta</h2>
-                    <p>Entre com seus dados para acessar a plataforma.</p>
+                    <h2 id="login-title">Acesse sua operação</h2>
+                    <p>Use seu e-mail e senha para continuar de onde parou.</p>
                 </header>
 
                 @if ($errors->has('email'))
@@ -61,7 +65,7 @@
                     <div class="form-floating form-floating-outline mb-4">
                         <input type="email" class="form-control" id="email" name="email" value="{{ old('email') }}"
                             placeholder="seu@email.com" autocomplete="email" required autofocus>
-                        <label for="email">Email</label>
+                        <label for="email">E-mail</label>
                     </div>
 
                     <div class="mb-4 form-password-toggle">
@@ -84,7 +88,7 @@
                         <label class="form-check-label" for="remember-me">Lembrar-me</label>
                     </div>
 
-                    <button class="btn btn-primary d-grid w-100" type="submit">Entrar</button>
+                    <button class="btn btn-primary d-grid w-100" type="submit">Entrar no SalesControl</button>
                 </form>
             </div>
         </section>

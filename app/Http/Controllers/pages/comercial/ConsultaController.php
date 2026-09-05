@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\pages\comercial;
 
 use App\Http\Controllers\Controller;
-use App\Modules\LkBeneficios\Services\ConsultaService;
+use App\Services\Enrichment\ConsultaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 /**
  * Endpoints de enriquecimento. Delegam ao {@see ConsultaService}, que roteia a
- * fonte (Lemit x Assertiva) e serve do banco quando o dado já existe (cache-first).
+ * fonte (Lemit x Assertiva). Apenas o cache Assertiva, isolado por empresa, é
+ * reutilizado; a Lemit é consultada diretamente para evitar cache legado global.
  */
 class ConsultaController extends Controller
 {
@@ -17,7 +20,7 @@ class ConsultaController extends Controller
     public function consultarPessoa(Request $request)
     {
         $request->validate([
-            'cpf' => 'required|string|size:11',
+            'cpf' => ['required', 'string', 'regex:/^\d{11}$/'],
             'fonte' => 'nullable|in:lemit,assertiva',
         ]);
 
@@ -27,7 +30,7 @@ class ConsultaController extends Controller
     public function consultarEmpresa(Request $request)
     {
         $request->validate([
-            'cnpj' => 'required|string|size:14',
+            'cnpj' => ['required', 'string', 'regex:/^\d{14}$/'],
             'fonte' => 'nullable|in:lemit,assertiva',
         ]);
 
@@ -36,14 +39,14 @@ class ConsultaController extends Controller
 
     public function consultarTelefone(Request $request)
     {
-        $request->validate(['telefone' => 'required|string|min:10']);
+        $request->validate(['telefone' => ['required', 'string', 'regex:/^\d{10,13}$/']]);
 
         return $this->responder(fn () => $this->consulta->consultarTelefone($request->telefone), 'telefone');
     }
 
     public function consultarEmail(Request $request)
     {
-        $request->validate(['email' => 'required|email']);
+        $request->validate(['email' => ['required', 'email', 'max:254']]);
 
         return $this->responder(fn () => $this->consulta->consultarEmail($request->email), 'e-mail');
     }
@@ -51,12 +54,18 @@ class ConsultaController extends Controller
     public function consultarNomeEndereco(Request $request)
     {
         $request->validate([
-            'buscarPor' => 'required|string',
-            'nomeOuRazaoSocial' => 'nullable|string',
-            'uf' => 'nullable|string|size:2',
-            'cidade' => 'nullable|string',
-            'bairro' => 'nullable|string',
-            'cepOuNomeRua' => 'nullable|string',
+            'buscarPor' => ['required', Rule::in(['pessoaFisica', 'pessoaJuridica', 'ambas'])],
+            'nomeOuRazaoSocial' => ['nullable', 'string', 'max:160'],
+            'nomeOuRazaoSocialExata' => ['nullable', 'boolean'],
+            'sexo' => ['nullable', Rule::in(['M', 'F'])],
+            'dataNascimentoOuAbertura' => ['nullable', 'date_format:Y-m-d'],
+            'uf' => ['nullable', 'string', 'size:2'],
+            'cidade' => ['nullable', 'string', 'max:100'],
+            'bairro' => ['nullable', 'string', 'max:100'],
+            'cepOuNomeRua' => ['nullable', 'string', 'max:160'],
+            'numeroInicial' => ['nullable', 'integer', 'min:0'],
+            'numeroFinal' => ['nullable', 'integer', 'min:0', 'gte:numeroInicial'],
+            'complemento' => ['nullable', 'string', 'max:100'],
         ]);
 
         return $this->responder(
@@ -76,9 +85,16 @@ class ConsultaController extends Controller
         } catch (\InvalidArgumentException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
+            Log::error('Falha em consulta de enriquecimento.', [
+                'tipo' => $rotulo,
+                'user_id' => auth()->id(),
+                'empresa_id' => $this->tenantId(),
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'error' => 'Erro ao consultar '.$rotulo,
-                'message' => $e->getMessage(),
+                'message' => 'Não foi possível concluir a consulta neste momento.',
             ], 500);
         }
     }

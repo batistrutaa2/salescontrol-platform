@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PosVendaDemandaTemplate extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
     use HasFactory;
 
     protected $table = 'pos_venda_demanda_templates';
@@ -41,7 +42,7 @@ class PosVendaDemandaTemplate extends Model
             ['tipo' => TipoDemandaContrato::ACESSO_EMPRESA->value, 'titulo' => 'Criar acesso da empresa', 'gerar_automatico' => true],
             ['tipo' => TipoDemandaContrato::LOGIN_APPS->value, 'titulo' => 'Criar login dos aplicativos', 'gerar_automatico' => true],
             ['tipo' => TipoDemandaContrato::TROCA_EMAIL->value, 'titulo' => 'Alterar e-mail pós-implantação', 'gerar_automatico' => true],
-            ['tipo' => TipoDemandaContrato::CANCELAMENTO_QUALICORP->value, 'titulo' => 'Cancelar plano Qualicorp', 'gerar_automatico' => true],
+            ['tipo' => TipoDemandaContrato::CANCELAMENTO_INTERMEDIADORA->value, 'titulo' => 'Cancelar vínculo com intermediadora', 'gerar_automatico' => true],
             ['tipo' => TipoDemandaContrato::CANCELAMENTO_LIMITAR->value, 'titulo' => 'Cancelar via Limitar', 'gerar_automatico' => true],
             ['tipo' => TipoDemandaContrato::BOAS_VINDAS->value, 'titulo' => 'Enviar boas-vindas', 'gerar_automatico' => true],
             ['tipo' => TipoDemandaContrato::ENVIO_BOLETO->value, 'titulo' => 'Enviar boleto', 'gerar_automatico' => false],

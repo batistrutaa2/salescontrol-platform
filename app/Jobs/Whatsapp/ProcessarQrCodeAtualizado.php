@@ -3,6 +3,7 @@
 namespace App\Jobs\Whatsapp;
 
 use App\Events\Whatsapp\QrCodeAtualizado;
+use App\Jobs\Concerns\UsesWhatsappTenantContext;
 use App\Models\WhatsappInstancia;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 class ProcessarQrCodeAtualizado implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, UsesWhatsappTenantContext;
 
     public int $tries = 3;
 

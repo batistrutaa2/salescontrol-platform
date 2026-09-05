@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\pages\backoffice;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\TipoDemandaContrato;
 use App\Enums\UserRole;
 use App\Events\ContratoImplantado;
@@ -39,8 +39,10 @@ use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Repositories\Eloquent\VendasRepository;
 use App\Services\Documentos\NomeDocumentoService;
 use App\Services\PosVendaDemandaService;
+use App\Services\TabulationCatalog;
 use App\Services\WhatsappService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +50,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class Backoffice extends Controller
 {
@@ -57,16 +60,20 @@ class Backoffice extends Controller
 
     protected ContatosCorretoresRepository $contatosCorretoresRepository;
 
+    protected TabulationCatalog $tabulationCatalog;
+
     public function __construct(
 
         VendasRepositoryInterface $vendasRepositoryInterface,
         TabulacoesRepositoryInterface $tabulacoesRepositoryInterface,
-        ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface
+        ContatosCorretoresRepositoryInterface $contatosCorretoresRepositoryInterface,
+        TabulationCatalog $tabulationCatalog
 
     ) {
         $this->vendasRepository = $vendasRepositoryInterface;
         $this->tabulacoesRepository = $tabulacoesRepositoryInterface;
         $this->contatosCorretoresRepository = $contatosCorretoresRepositoryInterface;
+        $this->tabulationCatalog = $tabulationCatalog;
     }
 
     private function canEditContract(Vendas $sale): bool
@@ -88,6 +95,81 @@ class Backoffice extends Controller
 
         // SUPERVISOR e demais: somente leitura
         return false;
+    }
+
+    private function internalError(Throwable $exception, string $message): JsonResponse
+    {
+        report($exception);
+
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], 500);
+    }
+
+    private function tabulationId(string $code): int
+    {
+        return $this->tabulationCatalog->id((int) $this->tenantId(), $code);
+    }
+
+    private function vendaDoTenant(int $id): Vendas
+    {
+        return Vendas::where('empresa_id', $this->tenantId())->findOrFail($id);
+    }
+
+    private function operadoraDaVenda(Vendas $venda): ?Operadora
+    {
+        $query = Operadora::where('empresa_id', $venda->empresa_id);
+        $operadora = $venda->operadora_id
+            ? (clone $query)->whereKey($venda->operadora_id)->first()
+            : null;
+
+        // Compatibilidade com contratos antigos sem operadora_id: o nome serve
+        // apenas para localizar o cadastro do mesmo tenant, não para definir regra.
+        $operadora ??= $query
+            ->whereRaw('UPPER(nome) = ?', [mb_strtoupper(trim((string) $venda->operadora), 'UTF-8')])
+            ->first();
+
+        return $operadora;
+    }
+
+    private function valoresCoparticipacaoDaVenda(Vendas $venda): array
+    {
+        return $this->operadoraDaVenda($venda)?->valoresCoparticipacao() ?? ['Y', 'N'];
+    }
+
+    private function titularDoTenant(int $id): VendaTitular
+    {
+        return VendaTitular::whereHas('venda', fn ($query) => $query
+            ->where('empresa_id', $this->tenantId()))->findOrFail($id);
+    }
+
+    private function dependenteDoTenant(int $id): VendaDependente
+    {
+        return VendaDependente::whereHas('venda', fn ($query) => $query
+            ->where('empresa_id', $this->tenantId()))->findOrFail($id);
+    }
+
+    private function portabilidadeDoTenant(int $id): VendaPortabilidade
+    {
+        return VendaPortabilidade::whereHas('venda', fn ($query) => $query
+            ->where('empresa_id', $this->tenantId()))->findOrFail($id);
+    }
+
+    private function destinosRetomadaEstorno(): array
+    {
+        return array_values($this->tabulationCatalog->requiredIds(
+            (int) $this->tenantId(),
+            [
+                TabulationCode::VENDA,
+                TabulationCode::ANALISE_DOCUMENTOS,
+                TabulationCode::AGUARDANDO_ASSINATURA_DS,
+                TabulationCode::ANALISE_OPERADORA,
+                TabulationCode::CONTRATO_GERADO_AGUARDANDO_ASSINATURA,
+                TabulationCode::BOLETO_DISPONIVEL,
+                TabulationCode::REGULARIZADO,
+            ]
+        ));
     }
 
     private function canAlterStatus(Vendas $sale): bool
@@ -115,7 +197,7 @@ class Backoffice extends Controller
 
     public function index()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
         $tabulations = $this->tabulacoesRepository->getTabulationsBackoffice($empresaId);
         $isBackoffice = Auth::user()->user_role_id == UserRole::BACKOFFICE;
 
@@ -135,7 +217,7 @@ class Backoffice extends Controller
 
     public function listContract()
     {
-        $sales = $this->vendasRepository->all(Auth::user()->empresa_id);
+        $sales = $this->vendasRepository->all($this->tenantId());
 
         return response()->json([
             'data' => $sales,
@@ -148,9 +230,9 @@ class Backoffice extends Controller
         $endDate = $request->input('end_date');
 
         if (! $startDate && ! $endDate) {
-            $vendas = $this->vendasRepository->all(Auth::user()->empresa_id);
+            $vendas = $this->vendasRepository->all($this->tenantId());
         } else {
-            $vendas = $this->vendasRepository->getSalesFilter($startDate, $endDate, Auth::user()->empresa_id);
+            $vendas = $this->vendasRepository->getSalesFilter($startDate, $endDate, $this->tenantId());
         }
 
         return response()->json([
@@ -160,13 +242,14 @@ class Backoffice extends Controller
 
     public function openContract(string $idContract)
     {
+        $empresaId = (int) $this->tenantId();
         $sale = $this->vendasRepository->find($idContract);
 
         if (! $sale) {
             abort(404, 'Contrato não encontrado.');
         }
 
-        if ($sale->empresa_id !== Auth::user()->empresa_id) {
+        if ($sale->empresa_id !== $this->tenantId()) {
             abort(404, 'Contrato não encontrado.');
         }
 
@@ -174,36 +257,54 @@ class Backoffice extends Controller
         // redireciona para a tela de correção; caso contrário, bloqueia.
         if (Auth::user()->user_role_id === UserRole::VENDEDOR) {
             $tabulacaoAtual = (int) $sale->tabulacao_id;
-            if ($sale->user_id === Auth::id() && $tabulacaoAtual === Tabulations::ESTORNO) {
+            if ($sale->user_id === Auth::id() && $tabulacaoAtual === $this->tabulationId(TabulationCode::ESTORNO)) {
                 return redirect()->route('sale.editEstorno', $sale->id);
             }
             abort(403, 'Você não tem permissão para acessar este contrato.');
         }
 
-        $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)->get();
+        abort_unless(
+            in_array((int) Auth::user()->user_role_id, [
+                UserRole::ADMINISTRATIVO,
+                UserRole::BACKOFFICE,
+                UserRole::SUPERVISOR,
+                UserRole::DEVELOPER,
+            ], true),
+            403,
+            'Você não tem permissão para acessar este contrato.'
+        );
 
-        $selectedOperadora = $operadoras->first(function ($op) use ($sale) {
+        $operadoras = Operadora::where('empresa_id', $this->tenantId())->get();
+
+        $selectedOperadora = $operadoras->firstWhere('id', $sale->operadora_id);
+        $selectedOperadora ??= $operadoras->first(function ($op) use ($sale) {
             return mb_strtoupper($op->nome, 'UTF-8') === mb_strtoupper($sale->operadora ?? '', 'UTF-8');
         });
         $selectedOperadoraId = optional($selectedOperadora)->id;
 
         $planosDaOperadora = $selectedOperadoraId
-          ? Plano::where('operadora_id', $selectedOperadoraId)->get()
+          ? Plano::where('empresa_id', $this->tenantId())
+              ->where('operadora_id', $selectedOperadoraId)
+              ->get()
           : collect();
 
-        $planosPortabilidade = Plano::where('empresa_id', Auth::user()->empresa_id)
+        $planosPortabilidade = Plano::where('empresa_id', $this->tenantId())
             ->where('status', 'Y')
             ->orderBy('nome')
             ->get(['id', 'operadora_id', 'nome']);
 
-        $plano = $sale->plano_id ? Plano::find($sale->plano_id) : null;
+        $plano = $sale->plano_id
+          ? Plano::where('empresa_id', $this->tenantId())->find($sale->plano_id)
+          : null;
 
         $titulares = VendaTitular::with(['plano', 'dependentes', 'operadoraAnterior'])
             ->where('venda_id', $sale->id)
             ->get();
 
         // Quem disparou as boas-vindas — o selo no cabeçalho mostra data e autor.
-        $sale->loadMissing('usuarioBoasVindas');
+        $sale->loadMissing([
+            'usuarioBoasVindas' => fn ($query) => $query->tenantActor($empresaId),
+        ]);
 
         // Backoffice responsável
         $isBackofficeRole = Auth::user()->user_role_id == UserRole::BACKOFFICE;
@@ -212,9 +313,11 @@ class Backoffice extends Controller
         $canEdit = $this->canEditContract($sale);
         $canReassign = $this->canReassignContract();
         $showAssumirDialog = ! $hasBackoffice && $isBackofficeRole;
-        $backofficeUser = $hasBackoffice ? User::find($sale->backoffice_id) : null;
+        $backofficeUser = $hasBackoffice
+          ? User::query()->tenantMember($this->tenantId())->find($sale->backoffice_id)
+          : null;
         $backofficeUsers = $canReassign
-          ? User::where('empresa_id', Auth::user()->empresa_id)
+          ? User::query()->tenantMember($this->tenantId())
               ->whereIn('user_role_id', [UserRole::BACKOFFICE, UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])
               ->where('ativo', 'Y')
               ->orderBy('name')
@@ -257,7 +360,12 @@ class Backoffice extends Controller
     public function updateSale(Request $request)
     {
         $sale = $this->vendasRepository->find($request->id);
-        if ($sale && ! $this->canEditContract($sale)) {
+
+        if (! $sale || (int) $sale->empresa_id !== (int) $this->tenantId()) {
+            abort(404, 'Contrato não encontrado.');
+        }
+
+        if (! $this->canEditContract($sale)) {
             return redirect()->back()->with('status', 'error')
                 ->with('message', 'Voce nao tem permissao para editar este contrato.');
         }
@@ -271,9 +379,24 @@ class Backoffice extends Controller
 
     public function alterStatusContract(Request $request)
     {
+        $request->validate([
+            'idSale' => ['required', 'integer'],
+            'tabulacao_id' => [
+                'required',
+                'integer',
+                Rule::exists('tabulacoes', 'id')
+                    ->where('empresa_id', $this->tenantId())
+                    ->where('tipo_tabulacao', 'A'),
+            ],
+        ]);
+
         $sale = $this->vendasRepository->find($request->idSale);
 
-        if (! $sale || ! $this->canAlterStatus($sale)) {
+        if (! $sale || (int) $sale->empresa_id !== (int) $this->tenantId()) {
+            abort(404, 'Contrato não encontrado.');
+        }
+
+        if (! $this->canAlterStatus($sale)) {
             return redirect()->route('backoffice.index')
                 ->with('status', 'error')
                 ->with('message', 'Somente o backoffice responsavel pelo contrato pode alterar o status.');
@@ -281,7 +404,7 @@ class Backoffice extends Controller
 
         // ESTORNO exige motivo registrado em vendas_historico — devolve ao vendedor.
         // Validado fora do try para que ValidationException flua para o handler do Laravel.
-        if ((int) $request->tabulacao_id === Tabulations::ESTORNO) {
+        if ((int) $request->tabulacao_id === $this->tabulationId(TabulationCode::ESTORNO)) {
             $request->validate([
                 'motivo_pendencia' => 'required|string|min:10|max:500',
             ], [
@@ -302,7 +425,7 @@ class Backoffice extends Controller
                 $request->motivo_pendencia ?? null
             );
 
-            if ($request->tabulacao_id == Tabulations::IMPLANTADO) {
+            if ((int) $request->tabulacao_id === $this->tabulationId(TabulationCode::IMPLANTADO)) {
                 $request->validate([
                     'comprovante' => 'required|file|mimes:jpeg,jpg,png,pdf',
                     'data_implantacao' => 'required|date',
@@ -345,7 +468,7 @@ class Backoffice extends Controller
                 ));
             }
 
-            if ($request->tabulacao_id == Tabulations::BOLETO_DISPONIVEL) {
+            if ((int) $request->tabulacao_id === $this->tabulationId(TabulationCode::BOLETO_DISPONIVEL)) {
                 $request->validate([
                     'boleto_disponivel' => 'required|file|mimes:jpeg,jpg,png,pdf',
                 ]);
@@ -357,19 +480,26 @@ class Backoffice extends Controller
                 $updateContract = $this->vendasRepository->saveTicket($sale->id, $directory.$fileName);
             }
 
-            if ($request->tabulacao_id != Tabulations::IMPLANTADO && $request->tabulacao_id != Tabulations::BOLETO_DISPONIVEL) {
+            if (
+                (int) $request->tabulacao_id !== $this->tabulationId(TabulationCode::IMPLANTADO)
+                && (int) $request->tabulacao_id !== $this->tabulationId(TabulationCode::BOLETO_DISPONIVEL)
+            ) {
                 $updateContract = $this->vendasRepository->updateDataImplantacao($sale->id, null, $request->motivo_pendencia ?? null, null, $request->numero_proposta);
             }
 
             if ($updateContract) {
-                $tabulation = Tabulacoes::find($request->tabulacao_id);
-                $vendedor = User::findOrFail($sale->user_id);
+                $tabulation = Tabulacoes::query()
+                    ->where('empresa_id', $this->tenantId())
+                    ->findOrFail($request->tabulacao_id);
+                $vendedor = User::query()
+                    ->tenantMember($this->tenantId())
+                    ->findOrFail($sale->user_id);
                 $vendedor->notify(new StatusPropostaAlterada(
                     vendaId: $sale->id,
                     novoStatus: $tabulation->descricao,
                     alteradoPorId: Auth::id(),
                     alteradoPorNome: Auth::user()->name ?? null,
-                    tabulacaoId: (int) $request->tabulacao_id
+                    tabulacaoCode: $tabulation->codigo
                 ));
 
                 // WhatsApp ao vendedor desativado: o aviso de mudança de status agora
@@ -377,8 +507,8 @@ class Backoffice extends Controller
                 // StatusPropostaAlterada acima (GET /comercial/avisos-mascote).
 
                 // Alerta financeiro: estorno em venda com comissão paga não é estornado automaticamente.
-                if ((int) $request->tabulacao_id === Tabulations::ESTORNO && $sale->comissao_paga) {
-                    $admins = User::where('empresa_id', $sale->empresa_id)
+                if ((int) $request->tabulacao_id === $this->tabulationId(TabulationCode::ESTORNO) && $sale->comissao_paga) {
+                    $admins = User::query()->tenantMember((int) $sale->empresa_id)
                         ->where('user_role_id', UserRole::ADMINISTRATIVO)
                         ->where('ativo', 'Y')
                         ->get();
@@ -412,18 +542,23 @@ class Backoffice extends Controller
         try {
             $request->validate([
                 'venda_id' => 'required|integer',
-                'tabulacao_id' => 'required|integer',
+                'tabulacao_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('tabulacoes', 'id')
+                        ->where('empresa_id', $this->tenantId())
+                        ->where('tipo_tabulacao', 'A'),
+                ],
             ]);
 
             $vendaId = $request->venda_id;
             $tabulacaoId = $request->tabulacao_id;
 
             // Status que requerem modal (não permitidos aqui)
-            $statusComModal = [
-                Tabulations::IMPLANTADO,
-                Tabulations::PENDENCIA,
-                Tabulations::ESTORNO,
-            ];
+            $statusComModal = array_values($this->tabulationCatalog->requiredIds(
+                (int) $this->tenantId(),
+                [TabulationCode::IMPLANTADO, TabulationCode::PENDENCIA, TabulationCode::ESTORNO]
+            ));
 
             if (in_array($tabulacaoId, $statusComModal)) {
                 return response()->json([
@@ -434,7 +569,7 @@ class Backoffice extends Controller
             }
 
             $sale = $this->vendasRepository->find($vendaId);
-            if (! $sale || $sale->empresa_id != Auth::user()->empresa_id) {
+            if (! $sale || $sale->empresa_id != $this->tenantId()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Venda não encontrada.',
@@ -452,14 +587,18 @@ class Backoffice extends Controller
 
             if ($updateContract) {
                 // Notificar vendedor
-                $tabulation = Tabulacoes::find($tabulacaoId);
-                $vendedor = User::findOrFail($sale->user_id);
+                $tabulation = Tabulacoes::query()
+                    ->where('empresa_id', $this->tenantId())
+                    ->findOrFail($tabulacaoId);
+                $vendedor = User::query()
+                    ->tenantMember($this->tenantId())
+                    ->findOrFail($sale->user_id);
                 $vendedor->notify(new StatusPropostaAlterada(
                     vendaId: $sale->id,
                     novoStatus: $tabulation->descricao,
                     alteradoPorId: Auth::id(),
                     alteradoPorNome: Auth::user()->name ?? null,
-                    tabulacaoId: (int) $tabulacaoId
+                    tabulacaoCode: $tabulation->codigo
                 ));
 
                 // WhatsApp ao vendedor desativado: o aviso de mudança de status agora
@@ -479,10 +618,7 @@ class Backoffice extends Controller
             ], 500);
 
         } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao atualizar status: '.$th->getMessage(),
-            ], 500);
+            return $this->internalError($th, 'Não foi possível atualizar o status neste momento.');
         }
     }
 
@@ -490,7 +626,11 @@ class Backoffice extends Controller
     {
         $sale = $this->vendasRepository->find($id);
 
-        if (! $sale || (int) $sale->tabulacao_id !== Tabulations::IMPLANTADO) {
+        if (
+            ! $sale
+            || (int) $sale->empresa_id !== (int) $this->tenantId()
+            || (int) $sale->tabulacao_id !== $this->tabulationId(TabulationCode::IMPLANTADO)
+        ) {
             abort(404);
         }
 
@@ -506,6 +646,16 @@ class Backoffice extends Controller
 
     public function deleteContract($id)
     {
+        $sale = $this->vendasRepository->find($id);
+
+        if (! $sale || (int) $sale->empresa_id !== (int) $this->tenantId()) {
+            abort(404, 'Contrato não encontrado.');
+        }
+
+        if (! $this->canEditContract($sale)) {
+            abort(403, 'Você não tem permissão para excluir este contrato.');
+        }
+
         $deleteContract = $this->vendasRepository->delete($id);
 
         if (request()->wantsJson()) {
@@ -544,7 +694,7 @@ class Backoffice extends Controller
     /** Operadoras da empresa com seus planos aninhados (para o master-detail). */
     public function getOperadorasComPlanos()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
         $planosComVenda = $this->planosComVenda($empresaId);
 
         $planos = Plano::where('empresa_id', $empresaId)
@@ -573,11 +723,18 @@ class Backoffice extends Controller
 
         $operadoras = Operadora::where('empresa_id', $empresaId)
             ->orderBy('nome')
-            ->get(['id', 'nome', 'diretorio_documentos', 'status'])
+            ->get(['id', 'nome', 'diretorio_documentos', 'coparticipacao_formato', 'angariacao_padrao', 'iof_percentual', 'cor_marca', 'logo_path', 'app_ios_url', 'app_android_url', 'status'])
             ->map(fn ($op) => [
                 'id' => $op->id,
                 'nome' => $op->nome,
                 'diretorio_documentos' => $op->diretorio_documentos,
+                'coparticipacao_formato' => $op->coparticipacao_formato,
+                'angariacao_padrao' => $op->angariacao_padrao,
+                'iof_percentual' => $op->iof_percentual,
+                'cor_marca' => $op->cor_marca,
+                'logo_path' => $op->logo_path,
+                'app_ios_url' => $op->app_ios_url,
+                'app_android_url' => $op->app_android_url,
                 'status' => $op->status,
                 'planos' => ($planos[$op->id] ?? collect())->values(),
                 'can_delete' => ! $operadorasComVenda->contains($op->id),
@@ -588,7 +745,7 @@ class Backoffice extends Controller
 
     public function toggleOperadoraStatus($id)
     {
-        $op = Operadora::where('id', $id)->where('empresa_id', Auth::user()->empresa_id)->first();
+        $op = Operadora::where('id', $id)->where('empresa_id', $this->tenantId())->first();
         if (! $op) {
             return response()->json(['success' => false, 'message' => 'Operadora não encontrada.'], 404);
         }
@@ -597,10 +754,52 @@ class Backoffice extends Controller
         return response()->json(['success' => true, 'status' => $op->status]);
     }
 
+    public function updateOperadoraRegrasComerciais(Request $request, $id)
+    {
+        $empresaId = (int) $this->tenantId();
+        $operadora = Operadora::where('empresa_id', $empresaId)->find($id);
+        if (! $operadora) {
+            return response()->json(['success' => false, 'message' => 'Operadora não encontrada.'], 404);
+        }
+
+        $validated = $request->validate([
+            'coparticipacao_formato' => ['required', Rule::in([
+                Operadora::COPARTICIPACAO_SIM_NAO,
+                Operadora::COPARTICIPACAO_PARCIAL_COMPLETA,
+            ])],
+            'angariacao_padrao' => ['required', 'boolean'],
+            'iof_percentual' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'cor_marca' => ['sometimes', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'logo_path' => ['sometimes', 'nullable', 'string', 'max:500', function (string $attribute, mixed $value, \Closure $fail) {
+                if ($value === null || $value === '') {
+                    return;
+                }
+
+                $urlValida = str_starts_with($value, 'https://') && filter_var($value, FILTER_VALIDATE_URL);
+                $caminhoLocalSeguro = str_starts_with($value, 'assets/')
+                    && ! str_contains($value, '..')
+                    && preg_match('/^assets\/[A-Za-z0-9_.\/-]+$/', $value);
+
+                if (! $urlValida && ! $caminhoLocalSeguro) {
+                    $fail('Informe uma URL HTTPS ou um caminho local iniciado por assets/.');
+                }
+            }],
+            'app_ios_url' => $this->regrasUrlHttpsOpcional(),
+            'app_android_url' => $this->regrasUrlHttpsOpcional(),
+        ]);
+
+        $operadora->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Regras comerciais atualizadas.',
+        ]);
+    }
+
     public function updateOperadoraDiretorioDocumentos(Request $request, $id, NomeDocumentoService $nomes)
     {
         $operadora = Operadora::where('id', $id)
-            ->where('empresa_id', Auth::user()->empresa_id)
+            ->where('empresa_id', $this->tenantId())
             ->first();
         if (! $operadora) {
             return response()->json(['success' => false, 'message' => 'Operadora não encontrada.'], 404);
@@ -634,9 +833,9 @@ class Backoffice extends Controller
     public function saudeDocumentos()
     {
         abort_unless(in_array((int) Auth::user()->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::BACKOFFICE, UserRole::DEVELOPER], true), 403);
-        $estados = \App\Models\VendaDocumento::where('empresa_id', Auth::user()->empresa_id)->whereNull('deleted_at')
+        $estados = \App\Models\VendaDocumento::where('empresa_id', $this->tenantId())->whereNull('deleted_at')
             ->selectRaw('status, COUNT(*) total')->groupBy('status')->pluck('total', 'status');
-        $maisAntigo = \App\Models\VendaDocumento::where('empresa_id', Auth::user()->empresa_id)
+        $maisAntigo = \App\Models\VendaDocumento::where('empresa_id', $this->tenantId())
             ->whereIn('status', ['RECEBIDO', 'VERIFICANDO', 'AGUARDANDO_ENVIO', 'ENVIANDO'])
             ->oldest()->value('created_at');
 
@@ -671,7 +870,7 @@ class Backoffice extends Controller
 
     public function togglePlanoStatus($id)
     {
-        $plano = Plano::where('id', $id)->where('empresa_id', Auth::user()->empresa_id)->first();
+        $plano = Plano::where('id', $id)->where('empresa_id', $this->tenantId())->first();
         if (! $plano) {
             return response()->json(['success' => false, 'message' => 'Plano não encontrado.'], 404);
         }
@@ -682,7 +881,7 @@ class Backoffice extends Controller
 
     public function destroyOperadora($id)
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
         $operadora = Operadora::where('id', $id)->where('empresa_id', $empresaId)->first();
         if (! $operadora) {
             return response()->json(['success' => false, 'message' => 'Operadora não encontrada.'], 404);
@@ -716,7 +915,7 @@ class Backoffice extends Controller
 
     public function destroyPlano($id)
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
         $plano = Plano::where('id', $id)->where('empresa_id', $empresaId)->first();
         if (! $plano) {
             return response()->json(['success' => false, 'message' => 'Plano não encontrado.'], 404);
@@ -765,44 +964,69 @@ class Backoffice extends Controller
 
     public function createOperation(Request $request)
     {
+        $empresaId = (int) $this->tenantId();
+        $validated = $request->validate([
+            'nome' => ['required', 'string', 'max:255'],
+            'status' => ['required', Rule::in(['Y', 'N'])],
+            'coparticipacao_formato' => ['sometimes', Rule::in([
+                Operadora::COPARTICIPACAO_SIM_NAO,
+                Operadora::COPARTICIPACAO_PARCIAL_COMPLETA,
+            ])],
+            'angariacao_padrao' => ['sometimes', 'boolean'],
+            'iof_percentual' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'cor_marca' => ['sometimes', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+        ]);
+
         try {
-            Operadora::insert([
-                'empresa_id' => Auth::user()->empresa_id,
-                'nome' => mb_strtoupper($request->nome, 'UTF-8'),
-                'status' => $request->status,
-                'created_at' => now(),
-                'updated_at' => now(),
+            Operadora::create([
+                'empresa_id' => $empresaId,
+                'nome' => mb_strtoupper(trim($validated['nome']), 'UTF-8'),
+                'status' => $validated['status'],
+                'coparticipacao_formato' => $validated['coparticipacao_formato'] ?? Operadora::COPARTICIPACAO_SIM_NAO,
+                'angariacao_padrao' => $validated['angariacao_padrao'] ?? false,
+                'iof_percentual' => $validated['iof_percentual'] ?? 0,
+                'cor_marca' => $validated['cor_marca'] ?? '#334155',
             ]);
 
             return response()->json(['success' => true, 'message' => 'Operadora cadastrada com sucesso!'], 201);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Erro ao cadastrar operadora.'], 500);
+            return $this->internalError($e, 'Não foi possível cadastrar a operadora neste momento.');
         }
     }
 
     public function createPlan(Request $request)
     {
+        $empresaId = (int) $this->tenantId();
+        $validated = $request->validate([
+            'operadora_id' => [
+                'required',
+                'integer',
+                Rule::exists('operadoras', 'id')->where('empresa_id', $empresaId),
+            ],
+            'nome' => ['required', 'string', 'max:255'],
+            'status' => ['required', Rule::in(['Y', 'N'])],
+            'acomodacao' => ['nullable', 'string', 'max:100'],
+        ]);
+
         try {
-            Plano::insert([
-                'empresa_id' => Auth::user()->empresa_id,
-                'operadora_id' => $request->operadora_id,
-                'nome' => mb_strtoupper($request->nome, 'UTF-8'),
-                'status' => $request->status,
-                'acomodacao' => $request->acomodacao,
-                'created_at' => now(),
-                'updated_at' => now(),
+            Plano::create([
+                'empresa_id' => $empresaId,
+                'operadora_id' => $validated['operadora_id'],
+                'nome' => mb_strtoupper(trim($validated['nome']), 'UTF-8'),
+                'status' => $validated['status'],
+                'acomodacao' => $validated['acomodacao'] ?? null,
             ]);
 
             return response()->json(['success' => true, 'message' => 'Plano cadastrado com sucesso!'], 201);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Erro ao cadastrar plano.'], 500);
+            return $this->internalError($e, 'Não foi possível cadastrar o plano neste momento.');
         }
     }
 
     public function getOperators()
     {
-        $operators = Operadora::where('empresa_id', Auth::user()->empresa_id)->get();
+        $operators = Operadora::where('empresa_id', $this->tenantId())->get();
 
         return response()->json(
             $operators
@@ -819,8 +1043,11 @@ class Backoffice extends Controller
             'planos.created_at',
             'planos.nome'
         )
-            ->leftJoin('operadoras', 'operadoras.id', '=', 'planos.operadora_id')
-            ->where('planos.empresa_id', Auth::user()->empresa_id)
+            ->leftJoin('operadoras', function ($join) {
+                $join->on('operadoras.id', '=', 'planos.operadora_id')
+                    ->on('operadoras.empresa_id', '=', 'planos.empresa_id');
+            })
+            ->where('planos.empresa_id', $this->tenantId())
             ->orderBy('planos.created_at', 'desc')
             ->get();
 
@@ -830,10 +1057,10 @@ class Backoffice extends Controller
     public function updateTitular(Request $request, int $id)
     {
         try {
-            $titular = VendaTitular::findOrFail($id);
+            $titular = $this->titularDoTenant($id);
 
             $vendaId = (int) $request->input('venda_id');
-            $venda = Vendas::findOrFail($vendaId);
+            $venda = $this->vendaDoTenant($vendaId);
 
             if ($titular->venda_id !== $venda->id) {
                 return back()
@@ -842,22 +1069,28 @@ class Backoffice extends Controller
                     ->with('message', 'Titular não pertence a esta venda.');
             }
 
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return back()
                     ->with('status', 'error')
                     ->with('message', 'Acesso negado para esta venda.');
             }
 
-            $isAmil = stripos((string) $venda->operadora, 'AMIL - PME') !== false;
+            $valoresCoparticipacao = $this->valoresCoparticipacaoDaVenda($venda);
 
             // Validação
             $validated = $request->validate([
-                'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
                 'nome' => ['required', 'string', 'max:90'],
                 'email' => ['nullable', 'email', 'max:90'],
                 'telefone' => ['nullable', 'string', 'max:50'],
-                'plano_id' => ['required', 'integer', 'exists:planos,id'],
-                'coparticipacao' => ['required', Rule::in($isAmil ? ['PARCIAL', 'COMPLETA'] : ['Y', 'N'])],
+                'plano_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('planos', 'id')
+                        ->where('empresa_id', $this->tenantId())
+                        ->where('operadora_id', $this->operadoraDaVenda($venda)?->id ?? 0),
+                ],
+                'coparticipacao' => ['required', Rule::in($valoresCoparticipacao)],
             ]);
 
             DB::transaction(function () use ($titular, $validated) {
@@ -894,10 +1127,10 @@ class Backoffice extends Controller
     public function destroyTitular(int $id)
     {
         try {
-            $titular = VendaTitular::findOrFail($id);
-            $venda = Vendas::findOrFail($titular->venda_id);
+            $titular = $this->titularDoTenant($id);
+            $venda = $this->vendaDoTenant($titular->venda_id);
 
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Acesso negado para esta venda.',
@@ -914,10 +1147,7 @@ class Backoffice extends Controller
                 'message' => 'Titular removido com sucesso.',
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Falha ao remover titular: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível remover o titular neste momento.');
         }
     }
 
@@ -927,9 +1157,9 @@ class Backoffice extends Controller
     public function updateTitularPME(Request $request, int $id)
     {
         try {
-            $titular = VendaTitular::findOrFail($id);
+            $titular = $this->titularDoTenant($id);
             $vendaId = (int) $request->input('venda_id');
-            $venda = Vendas::findOrFail($vendaId);
+            $venda = $this->vendaDoTenant($vendaId);
 
             if ($titular->venda_id !== $venda->id) {
                 return response()->json([
@@ -938,17 +1168,17 @@ class Backoffice extends Controller
                 ], 400);
             }
 
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Acesso negado para esta venda.',
                 ], 403);
             }
 
-            $isAmil = stripos((string) $venda->operadora, 'AMIL') !== false;
+            $valoresCoparticipacao = $this->valoresCoparticipacaoDaVenda($venda);
 
             $validated = $request->validate([
-                'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
                 'nome' => ['required', 'string', 'max:100'],
                 'cpf' => ['nullable', 'string', 'max:20'],
                 'data_nascimento' => ['nullable', 'string', 'max:10'],
@@ -956,10 +1186,16 @@ class Backoffice extends Controller
                 'telefone' => ['nullable', 'string', 'max:20'],
                 'telefone2' => ['nullable', 'string', 'max:20'],
                 'cargo' => ['nullable', 'string', 'max:50'],
-                'plano_id' => ['required', 'integer', 'exists:planos,id'],
-                'coparticipacao' => ['nullable', Rule::in($isAmil ? ['PARCIAL', 'COMPLETA'] : ['Y', 'N'])],
+                'plano_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('planos', 'id')
+                        ->where('empresa_id', $this->tenantId())
+                        ->where('operadora_id', $this->operadoraDaVenda($venda)?->id ?? 0),
+                ],
+                'coparticipacao' => ['nullable', Rule::in($valoresCoparticipacao)],
                 'plano_anterior' => ['nullable', Rule::in(['SIM', 'NAO'])],
-                'operadora_anterior_id' => ['nullable', 'integer', 'exists:operadoras,id'],
+                'operadora_anterior_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->tenantId())],
             ]);
 
             DB::transaction(function () use ($titular, $validated) {
@@ -997,10 +1233,7 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Falha ao atualizar titular: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível atualizar o titular neste momento.');
         }
     }
 
@@ -1011,22 +1244,22 @@ class Backoffice extends Controller
     {
         try {
             $request->validate([
-                'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
             ]);
 
-            $venda = Vendas::findOrFail((int) $request->input('venda_id'));
+            $venda = $this->vendaDoTenant((int) $request->input('venda_id'));
 
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Acesso negado para esta venda.',
                 ], 403);
             }
 
-            $isAmil = stripos((string) $venda->operadora, 'AMIL') !== false;
+            $valoresCoparticipacao = $this->valoresCoparticipacaoDaVenda($venda);
 
             $validated = $request->validate([
-                'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
                 'nome' => ['required', 'string', 'max:100'],
                 'cpf' => ['nullable', 'string', 'max:20'],
                 'data_nascimento' => ['nullable', 'string', 'max:10'],
@@ -1034,10 +1267,16 @@ class Backoffice extends Controller
                 'telefone' => ['nullable', 'string', 'max:20'],
                 'telefone2' => ['nullable', 'string', 'max:20'],
                 'cargo' => ['nullable', 'string', 'max:50'],
-                'plano_id' => ['required', 'integer', 'exists:planos,id'],
-                'coparticipacao' => ['nullable', Rule::in($isAmil ? ['PARCIAL', 'COMPLETA'] : ['Y', 'N'])],
+                'plano_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('planos', 'id')
+                        ->where('empresa_id', $this->tenantId())
+                        ->where('operadora_id', $this->operadoraDaVenda($venda)?->id ?? 0),
+                ],
+                'coparticipacao' => ['nullable', Rule::in($valoresCoparticipacao)],
                 'plano_anterior' => ['nullable', Rule::in(['SIM', 'NAO'])],
-                'operadora_anterior_id' => ['nullable', 'integer', 'exists:operadoras,id'],
+                'operadora_anterior_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->tenantId())],
             ]);
 
             $titular = DB::transaction(function () use ($venda, $validated) {
@@ -1077,10 +1316,7 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Falha ao cadastrar titular: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível cadastrar o titular neste momento.');
         }
     }
 
@@ -1090,9 +1326,9 @@ class Backoffice extends Controller
     public function updateDependentePME(Request $request, int $id)
     {
         try {
-            $dependente = VendaDependente::findOrFail($id);
+            $dependente = $this->dependenteDoTenant($id);
             $vendaId = (int) $request->input('venda_id');
-            $venda = Vendas::findOrFail($vendaId);
+            $venda = $this->vendaDoTenant($vendaId);
 
             if ($dependente->venda_id !== $venda->id) {
                 return response()->json([
@@ -1101,7 +1337,7 @@ class Backoffice extends Controller
                 ], 400);
             }
 
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Acesso negado para esta venda.',
@@ -1109,7 +1345,7 @@ class Backoffice extends Controller
             }
 
             $validated = $request->validate([
-                'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
                 'nome' => ['required', 'string', 'max:100'],
                 'cpf' => ['nullable', 'string', 'max:20'],
                 'data_nascimento' => ['nullable', 'string', 'max:10'],
@@ -1117,10 +1353,16 @@ class Backoffice extends Controller
                 'telefone1' => ['nullable', 'string', 'max:20'],
                 'telefone2' => ['nullable', 'string', 'max:20'],
                 'parentesco' => ['nullable', 'string', 'max:50'],
-                'plano_id' => ['nullable', 'integer', 'exists:planos,id'],
-                'coparticipacao' => ['nullable', Rule::in(['Y', 'N', 'PARCIAL', 'COMPLETA'])],
+                'plano_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('planos', 'id')
+                        ->where('empresa_id', $this->tenantId())
+                        ->where('operadora_id', $this->operadoraDaVenda($venda)?->id ?? 0),
+                ],
+                'coparticipacao' => ['nullable', Rule::in($this->valoresCoparticipacaoDaVenda($venda))],
                 'plano_anterior' => ['nullable', Rule::in(['SIM', 'NAO'])],
-                'operadora_anterior_id' => ['nullable', 'integer', 'exists:operadoras,id'],
+                'operadora_anterior_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->tenantId())],
             ]);
 
             DB::transaction(function () use ($dependente, $validated) {
@@ -1158,10 +1400,7 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Falha ao atualizar dependente: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível atualizar o dependente neste momento.');
         }
     }
 
@@ -1171,9 +1410,14 @@ class Backoffice extends Controller
     public function storeDependentePME(Request $request)
     {
         try {
+            $request->validate([
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
+            ]);
+            $venda = $this->vendaDoTenant((int) $request->input('venda_id'));
+
             $validated = $request->validate([
-                'venda_id' => ['required', 'integer', 'exists:vendas,id'],
-                'titular_id' => ['required', 'integer', 'exists:vendas_titulares,id'],
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
+                'titular_id' => ['required', 'integer'],
                 'nome' => ['required', 'string', 'max:100'],
                 'cpf' => ['nullable', 'string', 'max:20'],
                 'data_nascimento' => ['nullable', 'string', 'max:10'],
@@ -1181,22 +1425,26 @@ class Backoffice extends Controller
                 'telefone1' => ['nullable', 'string', 'max:20'],
                 'telefone2' => ['nullable', 'string', 'max:20'],
                 'parentesco' => ['nullable', 'string', 'max:50'],
-                'plano_id' => ['nullable', 'integer', 'exists:planos,id'],
-                'coparticipacao' => ['nullable', Rule::in(['Y', 'N', 'PARCIAL', 'COMPLETA'])],
+                'plano_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('planos', 'id')
+                        ->where('empresa_id', $this->tenantId())
+                        ->where('operadora_id', $this->operadoraDaVenda($venda)?->id ?? 0),
+                ],
+                'coparticipacao' => ['nullable', Rule::in($this->valoresCoparticipacaoDaVenda($venda))],
                 'plano_anterior' => ['nullable', Rule::in(['SIM', 'NAO'])],
-                'operadora_anterior_id' => ['nullable', 'integer', 'exists:operadoras,id'],
+                'operadora_anterior_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->tenantId())],
             ]);
 
-            $venda = Vendas::findOrFail((int) $validated['venda_id']);
-
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Acesso negado para esta venda.',
                 ], 403);
             }
 
-            $titular = VendaTitular::findOrFail((int) $validated['titular_id']);
+            $titular = $this->titularDoTenant((int) $validated['titular_id']);
             if ($titular->venda_id !== $venda->id) {
                 return response()->json([
                     'success' => false,
@@ -1242,10 +1490,7 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Falha ao adicionar dependente: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível adicionar o dependente neste momento.');
         }
     }
 
@@ -1255,10 +1500,10 @@ class Backoffice extends Controller
     public function destroyDependentePME(int $id)
     {
         try {
-            $dependente = VendaDependente::findOrFail($id);
-            $venda = Vendas::findOrFail($dependente->venda_id);
+            $dependente = $this->dependenteDoTenant($id);
+            $venda = $this->vendaDoTenant($dependente->venda_id);
 
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Acesso negado para esta venda.',
@@ -1272,10 +1517,7 @@ class Backoffice extends Controller
                 'message' => 'Dependente removido com sucesso.',
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Falha ao remover dependente: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível remover o dependente neste momento.');
         }
     }
 
@@ -1286,33 +1528,33 @@ class Backoffice extends Controller
     {
         try {
             $validated = $request->validate([
-                'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
                 'nome' => ['required', 'string', 'max:100'],
                 'cpf' => ['nullable', 'string', 'max:20'],
                 'data_nascimento' => ['nullable', 'string', 'max:10'],
-                'operadora_anterior_id' => ['required', 'integer', 'exists:operadoras,id'],
+                'operadora_anterior_id' => ['required', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->tenantId())],
                 'plano_anterior' => ['nullable', 'string', 'max:100'],
                 'numero_carteirinha' => ['nullable', 'string', 'max:50'],
                 'operadora_destino_id' => [
                     'required',
                     'integer',
                     Rule::exists('operadoras', 'id')
-                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('empresa_id', $this->tenantId())
                         ->where('status', 'Y'),
                 ],
                 'plano_destino_id' => [
                     'required',
                     'integer',
                     Rule::exists('planos', 'id')
-                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('empresa_id', $this->tenantId())
                         ->where('status', 'Y')
                         ->where('operadora_id', $request->integer('operadora_destino_id')),
                 ],
             ]);
 
-            $venda = Vendas::findOrFail((int) $validated['venda_id']);
+            $venda = $this->vendaDoTenant((int) $validated['venda_id']);
 
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Acesso negado para esta venda.',
@@ -1365,10 +1607,7 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Falha ao adicionar beneficiário: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível adicionar o beneficiário neste momento.');
         }
     }
 
@@ -1378,9 +1617,9 @@ class Backoffice extends Controller
     public function updatePortabilidadePME(Request $request, int $id)
     {
         try {
-            $portabilidade = VendaPortabilidade::findOrFail($id);
+            $portabilidade = $this->portabilidadeDoTenant($id);
             $vendaId = (int) $request->input('venda_id');
-            $venda = Vendas::findOrFail($vendaId);
+            $venda = $this->vendaDoTenant($vendaId);
 
             if ($portabilidade->venda_id !== $venda->id) {
                 return response()->json([
@@ -1389,7 +1628,7 @@ class Backoffice extends Controller
                 ], 400);
             }
 
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Acesso negado para esta venda.',
@@ -1397,25 +1636,25 @@ class Backoffice extends Controller
             }
 
             $validated = $request->validate([
-                'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
                 'nome' => ['required', 'string', 'max:100'],
                 'cpf' => ['nullable', 'string', 'max:20'],
                 'data_nascimento' => ['nullable', 'string', 'max:10'],
-                'operadora_anterior_id' => ['required', 'integer', 'exists:operadoras,id'],
+                'operadora_anterior_id' => ['required', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->tenantId())],
                 'plano_anterior' => ['nullable', 'string', 'max:100'],
                 'numero_carteirinha' => ['nullable', 'string', 'max:50'],
                 'operadora_destino_id' => [
                     'required',
                     'integer',
                     Rule::exists('operadoras', 'id')
-                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('empresa_id', $this->tenantId())
                         ->where('status', 'Y'),
                 ],
                 'plano_destino_id' => [
                     'required',
                     'integer',
                     Rule::exists('planos', 'id')
-                        ->where('empresa_id', Auth::user()->empresa_id)
+                        ->where('empresa_id', $this->tenantId())
                         ->where('status', 'Y')
                         ->where('operadora_id', $request->integer('operadora_destino_id')),
                 ],
@@ -1453,10 +1692,7 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Falha ao atualizar beneficiário: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível atualizar o beneficiário neste momento.');
         }
     }
 
@@ -1466,10 +1702,10 @@ class Backoffice extends Controller
     public function destroyPortabilidadePME(int $id)
     {
         try {
-            $portabilidade = VendaPortabilidade::findOrFail($id);
-            $venda = Vendas::findOrFail($portabilidade->venda_id);
+            $portabilidade = $this->portabilidadeDoTenant($id);
+            $venda = $this->vendaDoTenant($portabilidade->venda_id);
 
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Acesso negado para esta venda.',
@@ -1490,10 +1726,7 @@ class Backoffice extends Controller
                 'message' => 'Beneficiário removido com sucesso.',
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Falha ao remover beneficiário: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível remover o beneficiário neste momento.');
         }
     }
 
@@ -1502,45 +1735,35 @@ class Backoffice extends Controller
         try {
             // 1) valida apenas venda_id para poder decidir regra dinâmica
             $request->validate([
-                'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
             ]);
 
-            $venda = Vendas::findOrFail((int) $request->input('venda_id'));
+            $venda = $this->vendaDoTenant((int) $request->input('venda_id'));
 
             // segura: venda precisa pertencer à mesma empresa do usuário
-            if ((int) $venda->empresa_id !== (int) Auth::user()->empresa_id) {
+            if ((int) $venda->empresa_id !== (int) $this->tenantId()) {
                 return back()
                     ->withInput()
                     ->with('status', 'error')
                     ->with('message', 'Acesso negado para esta venda.');
             }
 
-            // Regra AMIL (qualquer variação contendo "AMIL")
-            $isAmil = stripos((string) $venda->operadora, 'AMIL') !== false;
+            $valoresCoparticipacao = $this->valoresCoparticipacaoDaVenda($venda);
 
             // 2) validação completa agora que sabemos a regra de coparticipação
             $validated = $request->validate([
                 'nome' => ['required', 'string', 'max:90'],
                 'email' => ['nullable', 'email', 'max:90'],
                 'telefone' => ['nullable', 'string', 'max:50'],
-                'plano_id' => ['required', 'integer', 'exists:planos,id'],
-                'coparticipacao' => ['required', Rule::in($isAmil ? ['PARCIAL', 'COMPLETA'] : ['Y', 'N'])],
+                'plano_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('planos', 'id')
+                        ->where('empresa_id', $this->tenantId())
+                        ->where('operadora_id', $this->operadoraDaVenda($venda)?->id ?? 0),
+                ],
+                'coparticipacao' => ['required', Rule::in($valoresCoparticipacao)],
             ]);
-
-            // (Opcional forte) garantir que o PLANO pertence à operadora base do contrato
-            $operadora = Operadora::where('empresa_id', Auth::user()->empresa_id)
-                ->whereRaw('UPPER(nome) = ?', [mb_strtoupper((string) $venda->operadora, 'UTF-8')])
-                ->first();
-
-            if ($operadora) {
-                $plano = Plano::findOrFail((int) $validated['plano_id']);
-                if ((int) $plano->operadora_id !== (int) $operadora->id) {
-                    return back()
-                        ->withInput()
-                        ->with('status', 'error')
-                        ->with('message', 'Plano selecionado não pertence à operadora do contrato.');
-                }
-            }
 
             DB::transaction(function () use ($venda, $validated) {
                 VendaTitular::create([
@@ -1577,12 +1800,12 @@ class Backoffice extends Controller
     public function gerarRecebivelContrato(int $vendaId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             // Buscar a venda e validar
             $venda = Vendas::where('id', $vendaId)
                 ->where('empresa_id', $empresaId)
-                ->where('tabulacao_id', Tabulations::IMPLANTADO)
+                ->where('tabulacao_id', $this->tabulationId(TabulationCode::IMPLANTADO))
                 ->first();
 
             if (! $venda) {
@@ -1600,7 +1823,9 @@ class Backoffice extends Controller
             }
 
             // Buscar operadora
-            $operadora = Operadora::where('nome', $venda->operadora)->first();
+            $operadora = Operadora::where('empresa_id', $empresaId)
+                ->where('nome', $venda->operadora)
+                ->first();
 
             if (! $operadora) {
                 return response()->json([
@@ -1625,7 +1850,7 @@ class Backoffice extends Controller
             // Resolver nome do plano
             $planoNome = 'N/A';
             if (! empty($venda->plano_id)) {
-                $plano = Plano::find($venda->plano_id);
+                $plano = Plano::where('empresa_id', $empresaId)->find($venda->plano_id);
                 $planoNome = $plano?->nome ?? $venda->nome_plano ?? 'N/A';
             } elseif (! empty($venda->nome_plano)) {
                 $planoNome = $venda->nome_plano;
@@ -1683,10 +1908,7 @@ class Backoffice extends Controller
                 'ja_existia' => $recebiveisExistentes > 0,
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao gerar recebíveis: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível gerar os recebíveis neste momento.');
         }
     }
 
@@ -1696,7 +1918,7 @@ class Backoffice extends Controller
     public function verificarRecebiveis(int $vendaId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $venda = Vendas::where('id', $vendaId)
                 ->where('empresa_id', $empresaId)
@@ -1721,10 +1943,7 @@ class Backoffice extends Controller
                 'nome_contrato' => $venda->nome_contrato,
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao verificar recebíveis: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível verificar os recebíveis neste momento.');
         }
     }
 
@@ -1742,12 +1961,12 @@ class Backoffice extends Controller
         }
 
         $sale = $this->vendasRepository->find($request->venda_id);
-        if (! $sale || $sale->empresa_id != $user->empresa_id) {
+        if (! $sale || $sale->empresa_id != $this->tenantId()) {
             return response()->json(['success' => false, 'message' => 'Contrato nao encontrado.'], 404);
         }
 
         if ($sale->backoffice_id !== null) {
-            $responsavel = User::find($sale->backoffice_id);
+            $responsavel = User::query()->tenantMember($this->tenantId())->find($sale->backoffice_id);
 
             return response()->json([
                 'success' => false,
@@ -1773,13 +1992,14 @@ class Backoffice extends Controller
         }
 
         $sale = $this->vendasRepository->find($request->venda_id);
-        if (! $sale || $sale->empresa_id != Auth::user()->empresa_id) {
+        if (! $sale || $sale->empresa_id != $this->tenantId()) {
             return response()->json(['success' => false, 'message' => 'Contrato nao encontrado.'], 404);
         }
 
         if ($request->backoffice_id) {
-            $novoBackoffice = User::where('id', $request->backoffice_id)
-                ->where('empresa_id', Auth::user()->empresa_id)
+            $novoBackoffice = User::query()
+                ->tenantMember($this->tenantId())
+                ->where('id', $request->backoffice_id)
                 ->whereIn('user_role_id', [UserRole::BACKOFFICE, UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])
                 ->first();
 
@@ -1799,16 +2019,6 @@ class Backoffice extends Controller
      * normal da fila — IMPLANTADO/PENDENCIA/ESTORNO exigem dados extras (modal)
      * e DECLINADO é saída, não retomada.
      */
-    private const DESTINOS_RETOMADA_ESTORNO = [
-        Tabulations::VENDA,
-        Tabulations::ANALISE_DOCUMENTOS,
-        Tabulations::AGUARD_ASSINATURA_DS,
-        Tabulations::ANALISE_OPERADORA,
-        Tabulations::CONTR_GERADO_AGUARDANDO_ASSINATURA,
-        Tabulations::BOLETO_DISPONIVEL,
-        Tabulations::REGULARIZADO,
-    ];
-
     /**
      * Propostas estornadas da empresa, do estorno mais recente para o mais antigo —
      * o que acabou de voltar é o que ainda dá para captar. Alimenta o painel de
@@ -1835,16 +2045,24 @@ class Backoffice extends Controller
                 'users.name as vendedor_nome',
                 'backoffice_user.name as backoffice_nome',
             ])
-            ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
-            ->leftJoin('users as backoffice_user', 'backoffice_user.id', '=', 'vendas.backoffice_id')
-            ->where('vendas.empresa_id', $user->empresa_id)
-            ->where('vendas.tabulacao_id', Tabulations::ESTORNO)
+            ->leftJoin('users', function ($join) {
+                $join->on('users.id', '=', 'vendas.user_id')
+                    ->on('users.empresa_id', '=', 'vendas.empresa_id')
+                    ->where('users.is_platform_admin', false);
+            })
+            ->leftJoin('users as backoffice_user', function ($join) {
+                $join->on('backoffice_user.id', '=', 'vendas.backoffice_id')
+                    ->on('backoffice_user.empresa_id', '=', 'vendas.empresa_id')
+                    ->where('backoffice_user.is_platform_admin', false);
+            })
+            ->where('vendas.empresa_id', $this->tenantId())
+            ->where('vendas.tabulacao_id', $this->tabulationId(TabulationCode::ESTORNO))
             ->get();
 
         // Quem estornou vem do histórico; a data do estorno usa tabulacao_updated_at
         // (gravada na troca de status) e cai para o histórico em registros antigos.
         $historicos = VendaHistorico::whereIn('venda_id', $vendas->pluck('id'))
-            ->where('tabulacao_nova_id', Tabulations::ESTORNO)
+            ->where('tabulacao_nova_id', $this->tabulationId(TabulationCode::ESTORNO))
             ->orderBy('id', 'desc')
             ->get()
             ->groupBy('venda_id');
@@ -1903,7 +2121,13 @@ class Backoffice extends Controller
     {
         $request->validate([
             'venda_id' => 'required|integer',
-            'tabulacao_id' => 'nullable|integer',
+            'tabulacao_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('tabulacoes', 'id')
+                    ->where('empresa_id', $this->tenantId())
+                    ->where('tipo_tabulacao', 'A'),
+            ],
             'observacao' => 'nullable|string|max:500',
         ]);
 
@@ -1914,11 +2138,11 @@ class Backoffice extends Controller
         }
 
         $sale = $this->vendasRepository->find($request->venda_id);
-        if (! $sale || $sale->empresa_id != $user->empresa_id) {
+        if (! $sale || $sale->empresa_id != $this->tenantId()) {
             return response()->json(['success' => false, 'message' => 'Contrato nao encontrado.'], 404);
         }
 
-        if ((int) $sale->tabulacao_id !== Tabulations::ESTORNO) {
+        if ((int) $sale->tabulacao_id !== $this->tabulationId(TabulationCode::ESTORNO)) {
             return response()->json(['success' => false, 'message' => 'Esta proposta nao esta em estorno.'], 409);
         }
 
@@ -1926,7 +2150,7 @@ class Backoffice extends Controller
         // no mesmo passo). ADM/DEVELOPER retomam qualquer contrato da empresa.
         $isBackoffice = $user->user_role_id == UserRole::BACKOFFICE;
         if ($isBackoffice && $sale->backoffice_id !== null && $sale->backoffice_id !== $user->id) {
-            $responsavel = User::find($sale->backoffice_id);
+            $responsavel = User::query()->tenantMember($this->tenantId())->find($sale->backoffice_id);
 
             return response()->json([
                 'success' => false,
@@ -1934,8 +2158,8 @@ class Backoffice extends Controller
             ], 403);
         }
 
-        $destino = (int) ($request->input('tabulacao_id') ?: Tabulations::VENDA);
-        if (! in_array($destino, self::DESTINOS_RETOMADA_ESTORNO, true)) {
+        $destino = (int) ($request->input('tabulacao_id') ?: $this->tabulationId(TabulationCode::VENDA));
+        if (! in_array($destino, $this->destinosRetomadaEstorno(), true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Status de destino invalido para retomada. Traga para a fila e siga o fluxo normal.',
@@ -1961,21 +2185,23 @@ class Backoffice extends Controller
             if ($sale->backoffice_id === null && $isBackoffice) {
                 $updates['backoffice_id'] = $user->id;
             }
-            Vendas::where('id', $sale->id)->update($updates);
+            Vendas::where('empresa_id', $this->tenantId())
+                ->where('id', $sale->id)
+                ->update($updates);
 
             DB::commit();
         } catch (\Throwable $th) {
             DB::rollBack();
 
-            return response()->json(['success' => false, 'message' => 'Erro ao retomar proposta: '.$th->getMessage()], 500);
+            return $this->internalError($th, 'Não foi possível retomar a proposta neste momento.');
         }
 
-        $tabulacao = Tabulacoes::find($destino);
-        $novoStatus = $tabulacao->descricao ?? 'VENDA';
+        $tabulacao = Tabulacoes::where('empresa_id', $this->tenantId())->find($destino);
+        $novoStatus = $tabulacao->descricao ?? 'Etapa atualizada';
 
         // O vendedor precisa saber que a venda saiu de "Meus Estornos" e que o
         // reenvio dele não é mais necessário.
-        $vendedor = User::find($sale->user_id);
+        $vendedor = User::query()->tenantMember($this->tenantId())->find($sale->user_id);
         if ($vendedor) {
             $vendedor->notify(new VendaRetomadaPeloBackoffice(
                 vendaId: $sale->id,
@@ -2055,7 +2281,10 @@ class Backoffice extends Controller
                 'vendas.cpf_cnpj',
                 'tabulacoes.descricao as status_atual',
             ])
-            ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
+            ->leftJoin('tabulacoes', function ($join) {
+                $join->on('tabulacoes.id', '=', 'vendas.tabulacao_id')
+                    ->on('tabulacoes.empresa_id', '=', 'vendas.empresa_id');
+            })
             ->where('vendas.empresa_id', $empresaId)
             ->whereNotIn('vendas.tabulacao_id', $idsKanban);
 
@@ -2079,7 +2308,7 @@ class Backoffice extends Controller
     public function getPipelineData(Request $request)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
             $dataInicio = $request->input('data_inicio');
             $dataFim = $request->input('data_fim');
             $vendedorId = $request->input('vendedor_id');
@@ -2110,12 +2339,24 @@ class Backoffice extends Controller
                     'users.id as vendedor_id',
                     'tabulacoes.id as tabulacao_id',
                     'tabulacoes.descricao as status_atual',
+                    'tabulacoes.codigo as status_codigo',
                     'tabulacoes.ordem_kanban',
                     'vendas.tabulacao_updated_at as status_updated_at',
                 ])
-                ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
-                ->leftJoin('users as backoffice_user', 'backoffice_user.id', '=', 'vendas.backoffice_id')
-                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
+                ->leftJoin('users', function ($join) {
+                    $join->on('users.id', '=', 'vendas.user_id')
+                        ->on('users.empresa_id', '=', 'vendas.empresa_id')
+                        ->where('users.is_platform_admin', false);
+                })
+                ->leftJoin('users as backoffice_user', function ($join) {
+                    $join->on('backoffice_user.id', '=', 'vendas.backoffice_id')
+                        ->on('backoffice_user.empresa_id', '=', 'vendas.empresa_id')
+                        ->where('backoffice_user.is_platform_admin', false);
+                })
+                ->leftJoin('tabulacoes', function ($join) {
+                    $join->on('tabulacoes.id', '=', 'vendas.tabulacao_id')
+                        ->on('tabulacoes.empresa_id', '=', 'vendas.empresa_id');
+                })
                 ->where('vendas.empresa_id', $empresaId)
                 ->where('tabulacoes.tipo_tabulacao', 'A'); // Apenas tabulações de backoffice
 
@@ -2163,28 +2404,28 @@ class Backoffice extends Controller
             }
 
             // Status permitidos no Kanban (ordem definida pelo usuário)
-            $statusPermitidos = [
-                'VENDA',
-                'ANALISE DE DOCUMENTOS',
-                'AGUARD. ASSINATURA DA DS',
-                'ESTORNO',
-                'PENDENCIA',
-                'ANALISE OPERADORA',
-                'CONTR. GERADO - AGUARDANDO ASSINATURA',
-                'BOLETO DISPONIVEL',
-                'REGULARIZADO',
-                'DECLINADO',
+            $codigosPermitidos = [
+                TabulationCode::VENDA,
+                TabulationCode::ANALISE_DOCUMENTOS,
+                TabulationCode::AGUARDANDO_ASSINATURA_DS,
+                TabulationCode::ESTORNO,
+                TabulationCode::PENDENCIA,
+                TabulationCode::ANALISE_OPERADORA,
+                TabulationCode::CONTRATO_GERADO_AGUARDANDO_ASSINATURA,
+                TabulationCode::BOLETO_DISPONIVEL,
+                TabulationCode::REGULARIZADO,
+                TabulationCode::DECLINADO,
             ];
 
             // Buscar tabulações do backoffice APENAS dos status permitidos
             $tabulacoes = Tabulacoes::where('empresa_id', $empresaId)
                 ->where('tipo_tabulacao', 'A')
                 ->where('status', 'Y')
-                ->whereIn('descricao', $statusPermitidos)
+                ->whereIn('codigo', $codigosPermitidos)
                 ->get()
-                ->sortBy(function ($tab) use ($statusPermitidos) {
-                    // Ordenar pela posição no array de status permitidos
-                    return array_search($tab->descricao, $statusPermitidos);
+                ->sortBy(function ($tab) use ($codigosPermitidos) {
+                    // A ordem operacional é semântica; o rótulo pode ser personalizado.
+                    return array_search($tab->codigo, $codigosPermitidos, true);
                 })
                 ->values();
 
@@ -2195,10 +2436,11 @@ class Backoffice extends Controller
 
                 $pipeline[] = [
                     'id' => $tab->id,
+                    'codigo' => $tab->codigo,
                     'nome' => $tab->descricao,
                     'ordem' => $tab->ordem_kanban,
-                    'cor' => $this->getCorStatus($tab->descricao),
-                    'icone' => $this->getIconeStatus($tab->descricao),
+                    'cor' => $this->getCorStatus($tab->codigo),
+                    'icone' => $this->getIconeStatus($tab->codigo),
                     'quantidade' => $vendasNoStatus->count(),
                     'valor_total' => $vendasNoStatus->sum(function ($v) {
                         $valor = (float) ($v->valor_contrato ?? 0);
@@ -2237,13 +2479,13 @@ class Backoffice extends Controller
 
             // KPIs
             $total = $vendas->count();
-            $implantados = $vendas->where('status_atual', 'IMPLANTADO')->count();
-            $emAndamento = $vendas->whereNotIn('status_atual', ['IMPLANTADO', 'ESTORNO', 'DECLINADO'])->count();
-            $perdidos = $vendas->whereIn('status_atual', ['ESTORNO', 'DECLINADO'])->count();
+            $implantados = $vendas->where('status_codigo', TabulationCode::IMPLANTADO)->count();
+            $emAndamento = $vendas->whereNotIn('status_codigo', [TabulationCode::IMPLANTADO, TabulationCode::ESTORNO, TabulationCode::DECLINADO])->count();
+            $perdidos = $vendas->whereIn('status_codigo', [TabulationCode::ESTORNO, TabulationCode::DECLINADO])->count();
 
             // Tempo médio de implantação
             $temposImplantacao = [];
-            foreach ($vendas->where('status_atual', 'IMPLANTADO') as $v) {
+            foreach ($vendas->where('status_codigo', TabulationCode::IMPLANTADO) as $v) {
                 if ($v->data_implantacao && $v->data_venda) {
                     $temposImplantacao[] = Carbon::parse($v->data_venda)->diffInDays(Carbon::parse($v->data_implantacao));
                 }
@@ -2251,16 +2493,24 @@ class Backoffice extends Controller
             $tempoMedio = count($temposImplantacao) > 0 ? round(array_sum($temposImplantacao) / count($temposImplantacao), 1) : 0;
 
             // Vendedores para filtro - busca vendedores que têm vendas no sistema
-            $vendedores = User::select('users.id', 'users.name')
-                ->join('vendas', 'vendas.user_id', '=', 'users.id')
+            $vendedores = User::query()->tenantMember($empresaId)
+                ->select('users.id', 'users.name')
+                ->join('vendas', function ($join) {
+                    $join->on('vendas.user_id', '=', 'users.id')
+                        ->on('vendas.empresa_id', '=', 'users.empresa_id');
+                })
                 ->where('vendas.empresa_id', $empresaId)
                 ->distinct()
                 ->orderBy('users.name')
                 ->get();
 
             // Backoffices para filtro (admin) - busca usuários backoffice que são responsáveis por contratos
-            $backoffices = User::select('users.id', 'users.name')
-                ->join('vendas', 'vendas.backoffice_id', '=', 'users.id')
+            $backoffices = User::query()->tenantMember($empresaId)
+                ->select('users.id', 'users.name')
+                ->join('vendas', function ($join) {
+                    $join->on('vendas.backoffice_id', '=', 'users.id')
+                        ->on('vendas.empresa_id', '=', 'users.empresa_id');
+                })
                 ->where('vendas.empresa_id', $empresaId)
                 ->distinct()
                 ->orderBy('users.name')
@@ -2277,7 +2527,7 @@ class Backoffice extends Controller
                     'taxa_conversao' => $total > 0 ? round(($implantados / $total) * 100, 1) : 0,
                     'tempo_medio' => $tempoMedio,
                     'valor_total' => $vendas->sum('valor_contrato'),
-                    'valor_implantado' => $vendas->where('status_atual', 'IMPLANTADO')->sum('valor_contrato'),
+                    'valor_implantado' => $vendas->where('status_codigo', TabulationCode::IMPLANTADO)->sum('valor_contrato'),
                     'total_demandas_pendentes' => array_sum($demandasPendentesMap),
                     'contratos_com_demandas' => count($demandasPendentesMap),
                 ],
@@ -2288,10 +2538,7 @@ class Backoffice extends Controller
                 'fora_da_fila' => $this->contratosForaDaFila($busca, $empresaId, $tabulacoes->pluck('id')->all()),
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar dados: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível carregar o pipeline neste momento.');
         }
     }
 
@@ -2301,7 +2548,7 @@ class Backoffice extends Controller
     public function getDemandasPendentesKanban(Request $request)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
             $dataInicio = $request->input('data_inicio');
             $dataFim = $request->input('data_fim');
             $vendedorId = $request->input('vendedor_id');
@@ -2313,7 +2560,10 @@ class Backoffice extends Controller
             // Reconstruir query base para obter IDs de vendas visíveis (mesmos filtros do kanban)
             $query = DB::table('vendas')
                 ->select('vendas.id')
-                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
+                ->leftJoin('tabulacoes', function ($join) {
+                    $join->on('tabulacoes.id', '=', 'vendas.tabulacao_id')
+                        ->on('tabulacoes.empresa_id', '=', 'vendas.empresa_id');
+                })
                 ->where('vendas.empresa_id', $empresaId)
                 ->where('tabulacoes.tipo_tabulacao', 'A');
 
@@ -2353,8 +2603,15 @@ class Backoffice extends Controller
             // Buscar info extra dos contratos (backoffice, status)
             $vendaInfoMap = DB::table('vendas')
                 ->select('vendas.id', 'vendas.backoffice_id', 'bo.name as backoffice_nome', 'tabulacoes.descricao as status_atual')
-                ->leftJoin('users as bo', 'bo.id', '=', 'vendas.backoffice_id')
-                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
+                ->leftJoin('users as bo', function ($join) {
+                    $join->on('bo.id', '=', 'vendas.backoffice_id')
+                        ->on('bo.empresa_id', '=', 'vendas.empresa_id')
+                        ->where('bo.is_platform_admin', false);
+                })
+                ->leftJoin('tabulacoes', function ($join) {
+                    $join->on('tabulacoes.id', '=', 'vendas.tabulacao_id')
+                        ->on('tabulacoes.empresa_id', '=', 'vendas.empresa_id');
+                })
                 ->whereIn('vendas.id', $vendaIds)
                 ->get()
                 ->keyBy('id');
@@ -2372,7 +2629,10 @@ class Backoffice extends Controller
             }
 
             // Buscar TODAS as demandas (pendentes + concluídas) desses contratos
-            $demandas = VendaDemanda::with(['criador:id,name', 'venda:id,nome_contrato,numero_proposta,operadora'])
+            $demandas = VendaDemanda::with([
+                'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+                'venda' => fn ($query) => $query->select('id', 'nome_contrato', 'numero_proposta', 'operadora')->where('vendas.empresa_id', $empresaId),
+            ])
                 ->where('empresa_id', $empresaId)
                 ->whereIn('venda_id', $vendasComPendente)
                 ->orderByRaw("FIELD(status, 'PENDENTE', 'CONCLUIDA')")
@@ -2405,10 +2665,7 @@ class Backoffice extends Controller
                 'demandas' => $demandas,
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar demandas: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível carregar as demandas neste momento.');
         }
     }
 
@@ -2418,7 +2675,14 @@ class Backoffice extends Controller
     public function getContratosPorStatus(Request $request, int $tabulacaoId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
+
+            if (! Tabulacoes::where('empresa_id', $empresaId)->whereKey($tabulacaoId)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Etapa não encontrada.',
+                ], 404);
+            }
 
             $contratos = DB::table('vendas')
                 ->select([
@@ -2435,8 +2699,15 @@ class Backoffice extends Controller
                     'tabulacoes.descricao as status_atual',
                     'vendas.tabulacao_updated_at as status_updated_at',
                 ])
-                ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
-                ->leftJoin('tabulacoes', 'tabulacoes.id', '=', 'vendas.tabulacao_id')
+                ->leftJoin('users', function ($join) {
+                    $join->on('users.id', '=', 'vendas.user_id')
+                        ->on('users.empresa_id', '=', 'vendas.empresa_id')
+                        ->where('users.is_platform_admin', false);
+                })
+                ->leftJoin('tabulacoes', function ($join) {
+                    $join->on('tabulacoes.id', '=', 'vendas.tabulacao_id')
+                        ->on('tabulacoes.empresa_id', '=', 'vendas.empresa_id');
+                })
                 ->where('vendas.empresa_id', $empresaId)
                 ->where('vendas.tabulacao_id', $tabulacaoId)
                 ->orderBy('vendas.tabulacao_updated_at', 'asc')
@@ -2467,10 +2738,7 @@ class Backoffice extends Controller
                 'contratos' => $contratosFormatados,
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar contratos: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível carregar os contratos neste momento.');
         }
     }
 
@@ -2480,11 +2748,15 @@ class Backoffice extends Controller
     public function getHistorico(int $vendaId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             // Verificar se a venda pertence à empresa
             $venda = Vendas::where('id', $vendaId)
                 ->where('empresa_id', $empresaId)
+                ->when(
+                    (int) Auth::user()->user_role_id === UserRole::VENDEDOR,
+                    fn ($query) => $query->where('user_id', Auth::id())
+                )
                 ->first();
 
             if (! $venda) {
@@ -2495,7 +2767,11 @@ class Backoffice extends Controller
             }
 
             // Buscar histórico
-            $historico = VendaHistorico::with(['usuario', 'tabulacaoAnterior', 'tabulacaoNova'])
+            $historico = VendaHistorico::with([
+                'usuario' => fn ($query) => $query->tenantActor($empresaId),
+                'tabulacaoAnterior' => fn ($query) => $query->where('tabulacoes.empresa_id', $empresaId),
+                'tabulacaoNova' => fn ($query) => $query->where('tabulacoes.empresa_id', $empresaId),
+            ])
                 ->where('venda_id', $vendaId)
                 ->orderBy('created_at', 'desc')
                 ->get()
@@ -2506,6 +2782,8 @@ class Backoffice extends Controller
                         'usuario' => $h->usuario->name ?? 'Sistema',
                         'status_anterior' => $h->tabulacaoAnterior->descricao ?? 'N/A',
                         'status_novo' => $h->tabulacaoNova->descricao ?? 'N/A',
+                        'status_anterior_codigo' => $h->tabulacaoAnterior?->codigo,
+                        'status_novo_codigo' => $h->tabulacaoNova?->codigo,
                         'observacao' => $h->observacao,
                         'motivo_pendencia' => $h->motivo_pendencia,
                         'tempo_formatado' => $h->tempo_formatado,
@@ -2529,73 +2807,52 @@ class Backoffice extends Controller
                 'historico' => $historico,
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar histórico: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível carregar o histórico neste momento.');
         }
-    }
-
-    /**
-     * Retorna prazo máximo para cada status (em dias)
-     */
-    private function getPrazoMaximo($status)
-    {
-        $prazos = [
-            'ANALISE DE DOCUMENTOS' => 2,
-            'PENDENCIA' => 2,
-            'ANALISE OPERADORA' => 10,
-            'CONTR. GERADO - AGUARDANDO ASSINATURA' => 5,
-            'AGUARD. ASSINATURA DA DS' => 5,
-            'BOLETO DISPONIVEL' => 3,
-            'REGULARIZADO' => 2,
-        ];
-
-        return $prazos[$status] ?? null;
     }
 
     /**
      * Retorna cor para cada status
      */
-    private function getCorStatus($status)
+    private function getCorStatus($codigo)
     {
         $cores = [
-            'VENDA' => '#696cff',
-            'ANALISE DE DOCUMENTOS' => '#03c3ec',
-            'PENDENCIA' => '#ff3e1d',
-            'REGULARIZADO' => '#71dd37',
-            'ANALISE OPERADORA' => '#ffab00',
-            'CONTR. GERADO - AGUARDANDO ASSINATURA' => '#8c57ff',
-            'AGUARD. ASSINATURA DA DS' => '#ffc107',
-            'BOLETO DISPONIVEL' => '#20c997',
-            'IMPLANTADO' => '#198754',
-            'ESTORNO' => '#dc3545',
-            'DECLINADO' => '#6c757d',
+            TabulationCode::VENDA => '#696cff',
+            TabulationCode::ANALISE_DOCUMENTOS => '#03c3ec',
+            TabulationCode::PENDENCIA => '#ff3e1d',
+            TabulationCode::REGULARIZADO => '#71dd37',
+            TabulationCode::ANALISE_OPERADORA => '#ffab00',
+            TabulationCode::CONTRATO_GERADO_AGUARDANDO_ASSINATURA => '#8c57ff',
+            TabulationCode::AGUARDANDO_ASSINATURA_DS => '#ffc107',
+            TabulationCode::BOLETO_DISPONIVEL => '#20c997',
+            TabulationCode::IMPLANTADO => '#198754',
+            TabulationCode::ESTORNO => '#dc3545',
+            TabulationCode::DECLINADO => '#6c757d',
         ];
 
-        return $cores[$status] ?? '#8592a3';
+        return $cores[$codigo] ?? '#8592a3';
     }
 
     /**
      * Retorna ícone para cada status
      */
-    private function getIconeStatus($status)
+    private function getIconeStatus($codigo)
     {
         $icones = [
-            'VENDA' => 'ri-shopping-cart-line',
-            'ANALISE DE DOCUMENTOS' => 'ri-file-search-line',
-            'PENDENCIA' => 'ri-error-warning-line',
-            'REGULARIZADO' => 'ri-checkbox-circle-line',
-            'ANALISE OPERADORA' => 'ri-search-eye-line',
-            'CONTR. GERADO - AGUARDANDO ASSINATURA' => 'ri-draft-line',
-            'AGUARD. ASSINATURA DA DS' => 'ri-pen-nib-line',
-            'BOLETO DISPONIVEL' => 'ri-bank-card-line',
-            'IMPLANTADO' => 'ri-check-double-line',
-            'ESTORNO' => 'ri-arrow-go-back-line',
-            'DECLINADO' => 'ri-close-circle-line',
+            TabulationCode::VENDA => 'ri-shopping-cart-line',
+            TabulationCode::ANALISE_DOCUMENTOS => 'ri-file-search-line',
+            TabulationCode::PENDENCIA => 'ri-error-warning-line',
+            TabulationCode::REGULARIZADO => 'ri-checkbox-circle-line',
+            TabulationCode::ANALISE_OPERADORA => 'ri-search-eye-line',
+            TabulationCode::CONTRATO_GERADO_AGUARDANDO_ASSINATURA => 'ri-draft-line',
+            TabulationCode::AGUARDANDO_ASSINATURA_DS => 'ri-pen-nib-line',
+            TabulationCode::BOLETO_DISPONIVEL => 'ri-bank-card-line',
+            TabulationCode::IMPLANTADO => 'ri-check-double-line',
+            TabulationCode::ESTORNO => 'ri-arrow-go-back-line',
+            TabulationCode::DECLINADO => 'ri-close-circle-line',
         ];
 
-        return $icones[$status] ?? 'ri-question-line';
+        return $icones[$codigo] ?? 'ri-question-line';
     }
 
     /**
@@ -2604,7 +2861,7 @@ class Backoffice extends Controller
     public function getAcessosEmpresa(int $vendaId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $venda = Vendas::where('id', $vendaId)
                 ->where('empresa_id', $empresaId)
@@ -2646,9 +2903,11 @@ class Backoffice extends Controller
                 'acessos' => $acessos,
             ]);
         } catch (\Throwable $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao buscar acessos: '.$e->getMessage(),
+                'message' => 'Não foi possível buscar os acessos neste momento.',
             ], 500);
         }
     }
@@ -2659,10 +2918,10 @@ class Backoffice extends Controller
     public function storeAcessoEmpresa(Request $request)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $validated = $request->validate([
-                'venda_id' => ['required', 'integer', 'exists:vendas,id'],
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
                 'email' => ['required', 'email', 'max:150'],
                 'senha' => ['required', 'string', 'max:255'],
                 'cpf' => ['nullable', 'string', 'max:14'],
@@ -2704,9 +2963,11 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao cadastrar acesso: '.$e->getMessage(),
+                'message' => 'Não foi possível cadastrar o acesso neste momento.',
             ], 500);
         }
     }
@@ -2717,7 +2978,7 @@ class Backoffice extends Controller
     public function updateAcessoEmpresa(Request $request, int $id)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $validated = $request->validate([
                 'email' => ['required', 'email', 'max:150'],
@@ -2725,14 +2986,10 @@ class Backoffice extends Controller
                 'cpf' => ['nullable', 'string', 'max:14'],
             ]);
 
-            $acesso = AcessoEmpresa::with('venda')->findOrFail($id);
-
-            if ((int) $acesso->venda->empresa_id !== (int) $empresaId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Acesso negado.',
-                ], 403);
-            }
+            $acesso = AcessoEmpresa::query()
+                ->whereHas('venda', fn ($query) => $query->where('empresa_id', $empresaId))
+                ->with('venda')
+                ->findOrFail($id);
 
             $acesso->update([
                 'email' => $validated['email'],
@@ -2757,10 +3014,17 @@ class Backoffice extends Controller
                 'message' => 'Erro de validação.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Throwable $e) {
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao atualizar acesso: '.$e->getMessage(),
+                'message' => 'Acesso não encontrado.',
+            ], 404);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Não foi possível atualizar o acesso neste momento.',
             ], 500);
         }
     }
@@ -2771,16 +3035,12 @@ class Backoffice extends Controller
     public function deleteAcessoEmpresa(int $id)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
-            $acesso = AcessoEmpresa::with('venda')->findOrFail($id);
-
-            if ((int) $acesso->venda->empresa_id !== (int) $empresaId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Acesso negado.',
-                ], 403);
-            }
+            $acesso = AcessoEmpresa::query()
+                ->whereHas('venda', fn ($query) => $query->where('empresa_id', $empresaId))
+                ->with('venda')
+                ->findOrFail($id);
 
             $acesso->delete();
 
@@ -2788,10 +3048,17 @@ class Backoffice extends Controller
                 'success' => true,
                 'message' => 'Acesso removido com sucesso.',
             ]);
-        } catch (\Throwable $e) {
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao remover acesso: '.$e->getMessage(),
+                'message' => 'Acesso não encontrado.',
+            ], 404);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Não foi possível remover o acesso neste momento.',
             ], 500);
         }
     }
@@ -2801,7 +3068,10 @@ class Backoffice extends Controller
      */
     public function posVenda()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
+        $empresa = Empresa::query()->findOrFail($empresaId);
+        $podeConfigurar = Auth::user()->isPlatformAdmin()
+            || in_array((int) Auth::user()->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER], true);
 
         // Buscar operadoras para filtro (apenas de contratos implantados)
         $operadoras = Vendas::select('operadora')
@@ -2814,16 +3084,39 @@ class Backoffice extends Controller
             ->pluck('operadora');
 
         // Buscar vendedores para filtro (apenas que têm contratos implantados)
-        $vendedores = User::select('users.id', 'users.name')
-            ->join('vendas', 'vendas.user_id', '=', 'users.id')
+        $vendedores = User::query()->tenantMember($empresaId)
+            ->select('users.id', 'users.name')
+            ->join('vendas', function ($join) {
+                $join->on('vendas.user_id', '=', 'users.id')
+                    ->on('vendas.empresa_id', '=', 'users.empresa_id');
+            })
             ->where('vendas.empresa_id', $empresaId)
-            ->where('vendas.tabulacao_id', Tabulations::IMPLANTADO)
+            ->where('vendas.tabulacao_id', $this->tabulationId(TabulationCode::IMPLANTADO))
             ->whereNotNull('vendas.data_implantacao')
             ->distinct()
             ->orderBy('users.name')
             ->get();
 
-        return view('content.pages.backoffice.pos-venda', compact('operadoras', 'vendedores'));
+        return view('content.pages.backoffice.pos-venda', compact('empresa', 'operadoras', 'vendedores', 'podeConfigurar'));
+    }
+
+    public function updatePosVendaSettings(Request $request)
+    {
+        $user = $request->user();
+        abort_unless(
+            $user->isPlatformAdmin()
+                || in_array((int) $user->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER], true),
+            403,
+        );
+
+        $validated = $request->validate([
+            'pos_venda_aniversarios_janela_dias' => ['required', 'integer', 'between:1,365'],
+        ]);
+
+        Empresa::query()->whereKey($this->tenantId())->update($validated);
+
+        return redirect()->route('backoffice.posVenda')
+            ->with('success', 'Janela de aniversários atualizada para esta empresa.');
     }
 
     /**
@@ -2832,8 +3125,11 @@ class Backoffice extends Controller
     public function getPosVendaData(Request $request)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
             $hoje = Carbon::now();
+            $janelaAniversariosDias = (int) Empresa::query()
+                ->whereKey($empresaId)
+                ->value('pos_venda_aniversarios_janela_dias');
 
             // Paginação
             $page = max(1, (int) $request->input('page', 1));
@@ -2856,10 +3152,20 @@ class Backoffice extends Controller
                     'users.name as vendedor',
                     'users_bv.name as boas_vindas_por_nome',
                 ])
-                ->leftJoin('users', 'users.id', '=', 'vendas.user_id')
-                ->leftJoin('users as users_bv', 'users_bv.id', '=', 'vendas.boas_vindas_enviado_por')
+                ->leftJoin('users', function ($join) {
+                    $join->on('users.id', '=', 'vendas.user_id')
+                        ->on('users.empresa_id', '=', 'vendas.empresa_id')
+                        ->where('users.is_platform_admin', false);
+                })
+                ->leftJoin('users as users_bv', function ($join) {
+                    $join->on('users_bv.id', '=', 'vendas.boas_vindas_enviado_por')
+                        ->where(function ($visibility) {
+                            $visibility->whereColumn('users_bv.empresa_id', 'vendas.empresa_id')
+                                ->orWhere('users_bv.is_platform_admin', true);
+                        });
+                })
                 ->where('vendas.empresa_id', $empresaId)
-                ->where('vendas.tabulacao_id', Tabulations::IMPLANTADO)
+                ->where('vendas.tabulacao_id', $this->tabulationId(TabulationCode::IMPLANTADO))
                 ->whereNotNull('vendas.data_implantacao');
 
             // Aplicar filtros
@@ -2934,7 +3240,7 @@ class Backoffice extends Controller
             // Para KPIs precisos, calculamos separadamente
             $kpiQuery = DB::table('vendas')
                 ->where('vendas.empresa_id', $empresaId)
-                ->where('vendas.tabulacao_id', Tabulations::IMPLANTADO)
+                ->where('vendas.tabulacao_id', $this->tabulationId(TabulationCode::IMPLANTADO))
                 ->whereNotNull('vendas.data_implantacao');
 
             // Aplicar mesmos filtros para KPIs
@@ -2963,10 +3269,10 @@ class Backoffice extends Controller
                 DB::raw('SUM(CASE WHEN vendas.boas_vindas_enviado_em IS NULL THEN 1 ELSE 0 END) as aguardando_boas_vindas'),
             ])->first();
 
-            // Calcular próximos aniversários (30 dias) - precisa de query separada
+            // Calcular próximos aniversários pela janela da empresa.
             $proximosAniversarios = DB::table('vendas')
                 ->where('vendas.empresa_id', $empresaId)
-                ->where('vendas.tabulacao_id', Tabulations::IMPLANTADO)
+                ->where('vendas.tabulacao_id', $this->tabulationId(TabulationCode::IMPLANTADO))
                 ->whereNotNull('vendas.data_implantacao')
                 ->whereRaw("
           DATEDIFF(
@@ -2976,8 +3282,8 @@ class Backoffice extends Controller
               1, 0
             ) YEAR,
             CURDATE()
-          ) BETWEEN 0 AND 30
-        ")
+          ) BETWEEN 0 AND ?
+        ", [$janelaAniversariosDias])
                 ->when($request->filled('operadora'), fn ($q) => $q->where('vendas.operadora', $request->operadora))
                 ->when($request->filled('vendedor_id'), fn ($q) => $q->where('vendas.user_id', $request->vendedor_id))
                 ->count();
@@ -2999,15 +3305,13 @@ class Backoffice extends Controller
                     'total_implantados' => $kpiData->total ?? 0,
                     'aniversarios_mes' => $kpiData->aniversarios_mes ?? 0,
                     'proximos_aniversarios' => $proximosAniversarios,
+                    'aniversarios_janela_dias' => $janelaAniversariosDias,
                     'valor_carteira' => $kpiData->valor_total ?? 0,
                     'aguardando_boas_vindas' => $kpiData->aguardando_boas_vindas ?? 0,
                 ],
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar dados: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível carregar os dados de pós-venda neste momento.');
         }
     }
 
@@ -3017,7 +3321,7 @@ class Backoffice extends Controller
     public function getAnotacoesPosVenda(int $vendaId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $venda = Vendas::where('id', $vendaId)
                 ->where('empresa_id', $empresaId)
@@ -3030,7 +3334,9 @@ class Backoffice extends Controller
                 ], 404);
             }
 
-            $anotacoes = PosVendaAnotacao::with('usuario:id,name')
+            $anotacoes = PosVendaAnotacao::with([
+                'usuario' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+            ])
                 ->where('venda_id', $vendaId)
                 ->orderBy('created_at', 'desc')
                 ->get()
@@ -3052,10 +3358,7 @@ class Backoffice extends Controller
                 'anotacoes' => $anotacoes,
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar anotações: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível carregar as anotações neste momento.');
         }
     }
 
@@ -3066,11 +3369,15 @@ class Backoffice extends Controller
     {
         try {
             $request->validate([
-                'venda_id' => 'required|integer|exists:vendas,id',
+                'venda_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId()),
+                ],
                 'descricao' => 'required|string|max:2000',
             ]);
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $venda = Vendas::where('id', $request->venda_id)
                 ->where('empresa_id', $empresaId)
@@ -3108,10 +3415,7 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao salvar anotação: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível salvar a anotação neste momento.');
         }
     }
 
@@ -3122,11 +3426,11 @@ class Backoffice extends Controller
     {
         try {
             $request->validate([
-                'venda_id' => 'required|integer|exists:vendas,id',
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
                 'data_implantacao' => 'required|date',
             ]);
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $venda = Vendas::where('id', $request->venda_id)
                 ->where('empresa_id', $empresaId)
@@ -3154,10 +3458,7 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao atualizar data: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível atualizar a data de implantação neste momento.');
         }
     }
 
@@ -3167,12 +3468,14 @@ class Backoffice extends Controller
     public function getBeneficiariosParaBoasVindas(Request $request, int $vendaId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $venda = Vendas::where('id', $vendaId)
                 ->where('empresa_id', $empresaId)
-                ->with('usuarioBoasVindas:id,name')
-                ->select('id', 'nome_contrato', 'operadora', 'nome_plano', 'telefone1', 'telefone2', 'email', 'data_implantacao', 'boas_vindas_enviado_em', 'boas_vindas_enviado_por')
+                ->with([
+                    'usuarioBoasVindas' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+                ])
+                ->select('id', 'nome_contrato', 'operadora', 'operadora_id', 'nome_plano', 'telefone1', 'telefone2', 'email', 'data_implantacao', 'boas_vindas_enviado_em', 'boas_vindas_enviado_por')
                 ->first();
 
             if (! $venda) {
@@ -3189,6 +3492,9 @@ class Backoffice extends Controller
 
             $empresa = Empresa::find($empresaId);
             $hasToken = ! empty($empresa?->whatsapp_token);
+            $operadora = $venda->operadora_id
+                ? Operadora::where('empresa_id', $empresaId)->find($venda->operadora_id)
+                : null;
 
             return response()->json([
                 'success' => true,
@@ -3196,6 +3502,10 @@ class Backoffice extends Controller
                     'nome_contrato' => $venda->nome_contrato,
                     'operadora' => $venda->operadora,
                     'plano' => $venda->nome_plano,
+                    'app_links' => [
+                        'ios' => $operadora?->app_ios_url ?? '',
+                        'android' => $operadora?->app_android_url ?? '',
+                    ],
                     'telefone1' => $venda->telefone1,
                     'telefone2' => $venda->telefone2,
                     'email' => $venda->email,
@@ -3214,7 +3524,7 @@ class Backoffice extends Controller
                 'nome_empresa' => $empresa?->nome_fantasia ?? '',
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => 'Erro ao buscar dados: '.$e->getMessage()], 500);
+            return $this->internalError($e, 'Não foi possível carregar os beneficiários neste momento.');
         }
     }
 
@@ -3225,7 +3535,7 @@ class Backoffice extends Controller
     {
         try {
             $request->validate([
-                'venda_id' => 'required|integer|exists:vendas,id',
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
                 // 'sem_whatsapp' mantido por compatibilidade com a tela antiga de
                 // gerenciamento de pós-venda (pos-venda.js), que não envia 'canais'.
                 'tipo_envio' => 'required|in:padrao,personalizado,sem_whatsapp',
@@ -3255,7 +3565,7 @@ class Backoffice extends Controller
                 'observacao' => 'nullable|string|max:500',
             ]);
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $venda = Vendas::where('id', $request->venda_id)
                 ->where('empresa_id', $empresaId)
@@ -3285,7 +3595,7 @@ class Backoffice extends Controller
             $enviarEmail = in_array('email', $canais, true);
 
             $empresa = Empresa::find($empresaId);
-            $nomeEmpresa = $empresa?->nome_fantasia ?: 'LK Brokers';
+            $nomeEmpresa = $empresa?->nome_fantasia ?: 'SalesControl';
             $canaisEnviados = [];
 
             // -------------------------------------------------- WhatsApp
@@ -3307,7 +3617,7 @@ class Backoffice extends Controller
                 }
 
                 $mensagem = $tipoEnvio === 'padrao'
-                  ? $this->buildMensagemPadraoWhatsapp($request)
+                  ? $this->buildMensagemPadraoWhatsapp($request, $nomeEmpresa)
                   : $request->mensagem_personalizada;
 
                 $whatsappService = new WhatsappService();
@@ -3352,7 +3662,7 @@ class Backoffice extends Controller
                 }
 
                 $dadosEmail = $this->buildDadosEmailPadrao($request, $nomeEmpresa, (string) $venda->operadora, $tipoEnvio);
-                $emailVendedor = trim((string) $venda->user()->value('email'));
+                $emailVendedor = trim((string) $venda->user()->tenantMember((int) $venda->empresa_id)->value('email'));
                 $erros = [];
 
                 foreach ($destinatariosEmail as $dest) {
@@ -3360,7 +3670,6 @@ class Backoffice extends Controller
                         $email = Mail::to($dest['email']);
                         $emailsCopia = collect([
                             $emailVendedor,
-                            'implantacao@lkbrokers.com',
                         ])->filter(fn (string $endereco) => $endereco !== '' && strcasecmp($endereco, $dest['email']) !== 0)
                             ->unique(fn (string $endereco) => mb_strtolower($endereco))
                             ->values()
@@ -3372,14 +3681,15 @@ class Backoffice extends Controller
 
                         $email->send(new BoasVindasMail($dadosEmail));
                     } catch (\Throwable $e) {
-                        $erros[] = ($dest['nome'] ?? $dest['email']).': '.$e->getMessage();
+                        report($e);
+                        $erros[] = $dest['nome'] ?? $dest['email'];
                     }
                 }
 
                 if (! empty($erros) && count($erros) === count($destinatariosEmail)) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Erro ao enviar e-mail: '.implode('; ', $erros),
+                        'message' => 'Não foi possível enviar o e-mail para: '.implode('; ', $erros).'.',
                     ], 422);
                 }
 
@@ -3449,10 +3759,7 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao registrar Boas Vindas: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível registrar as boas-vindas neste momento.');
         }
     }
 
@@ -3480,9 +3787,9 @@ class Backoffice extends Controller
                 'mensagem_personalizada' => 'nullable|string',
             ]);
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
             $empresa = Empresa::find($empresaId);
-            $nomeEmpresa = $empresa?->nome_fantasia ?: 'LK Brokers';
+            $nomeEmpresa = $empresa?->nome_fantasia ?: 'SalesControl';
 
             $operadora = (string) $request->input('operadora', '');
             if ($operadora === '' && $request->filled('venda_id')) {
@@ -3497,7 +3804,9 @@ class Backoffice extends Controller
 
             return view('emails.boas-vindas', ['dados' => $dadosEmail]);
         } catch (\Throwable $e) {
-            return response('Não foi possível gerar a prévia: '.e($e->getMessage()), 500);
+            report($e);
+
+            return response('Não foi possível gerar a prévia neste momento.', 500);
         }
     }
 
@@ -3541,7 +3850,7 @@ class Backoffice extends Controller
         return [
             'modo' => $tipoEnvio,
             'nomeContrato' => $request->input('nome_contrato', ''),
-            'nomeEmpresa' => $nomeEmpresa ?: 'LK Brokers',
+            'nomeEmpresa' => $nomeEmpresa ?: 'SalesControl',
             'operadora' => $operadora,
             'beneficiarios' => $request->input('beneficiarios', []),
             'acessosApp' => $this->normalizarAcessosApp($request),
@@ -3552,14 +3861,14 @@ class Backoffice extends Controller
             'portalUser' => $request->input('portal_user', ''),
             'portalSenha' => $request->input('portal_senha', ''),
             'corpoPersonalizado' => $request->input('mensagem_personalizada', ''),
-            'assunto' => 'Boas-vindas à '.($nomeEmpresa ?: 'LK Brokers'),
+            'assunto' => 'Boas-vindas à '.($nomeEmpresa ?: 'SalesControl'),
         ];
     }
 
     /**
      * Monta a mensagem padrão de boas-vindas para WhatsApp
      */
-    private function buildMensagemPadraoWhatsapp(Request $request): string
+    private function buildMensagemPadraoWhatsapp(Request $request, string $nomeEmpresa): string
     {
         $nomeContrato = $request->input('nome_contrato', '');
         $beneficiarios = $request->input('beneficiarios', []);
@@ -3577,7 +3886,7 @@ class Backoffice extends Controller
         }
 
         $msg = "Olá, *{$nomeContrato}* 👋\n\n";
-        $msg .= "Sejam muito bem-vindos à *LK Brokers Consultoria de Seguros*!\n\n";
+        $msg .= "Sejam muito bem-vindos à *{$nomeEmpresa}*!\n\n";
         $msg .= "É uma satisfação tê-los como nossos clientes. Agradecemos pela confiança e reforçamos que, a partir de agora, vocês contam com o nosso Concierge de Pós-Vendas, um atendimento dedicado para oferecer suporte durante toda a utilização do plano de saúde.\n\n";
         $msg .= "*📋 Beneficiários e Matrículas*{$linhasBeneficiarios}\n\n";
 
@@ -3620,7 +3929,7 @@ class Backoffice extends Controller
         $msg .= "* Suporte em solicitações junto à operadora.\n\n";
         $msg .= "Nosso compromisso é proporcionar uma experiência tranquila, ágil e segura durante toda a vigência do plano.\n\n";
         $msg .= "Conte conosco sempre que precisar. Será um prazer atendê-los!\n\n";
-        $msg .= "*Equipe LK Brokers | Concierge de Pós-Vendas*\n\n";
+        $msg .= "*Equipe {$nomeEmpresa} | Concierge de Pós-Vendas*\n\n";
         $msg .= '🤝 Seu plano de saúde com acompanhamento de quem realmente cuida de você';
 
         return $msg;
@@ -3647,14 +3956,19 @@ class Backoffice extends Controller
     public function updateWhatsappToken(Request $request)
     {
         try {
+            abort_unless(
+                in_array((int) Auth::user()->user_role_id, [UserRole::ADMINISTRATIVO, UserRole::DEVELOPER], true),
+                403,
+                'Acesso não autorizado.'
+            );
             $request->validate([
-                'whatsapp_token' => 'required|string|min:10',
+                'whatsapp_token' => 'required|string|min:10|max:500',
             ]);
 
-            $empresaId = Auth::user()->empresa_id;
-            Empresa::where('id', $empresaId)->update([
-                'whatsapp_token' => $request->whatsapp_token,
-            ]);
+            $empresaId = $this->tenantId();
+            $empresa = Empresa::query()->findOrFail($empresaId);
+            $empresa->whatsapp_token = $request->string('whatsapp_token')->value();
+            $empresa->save();
 
             return response()->json(['success' => true, 'message' => 'Token salvo com sucesso!']);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -3669,7 +3983,7 @@ class Backoffice extends Controller
      */
     public function getWhatsappConfig()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
         $empresa = Empresa::find($empresaId);
         $token = $empresa?->whatsapp_token ?? '';
 
@@ -3693,7 +4007,7 @@ class Backoffice extends Controller
 
     public function carteiraClientes()
     {
-        $empresaId = Auth::user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         $operadoras = DB::table('vendas')
             ->where('empresa_id', $empresaId)
@@ -3703,7 +4017,7 @@ class Backoffice extends Controller
             ->orderBy('operadora')
             ->pluck('operadora');
 
-        $backoffices = User::where('empresa_id', $empresaId)
+        $backoffices = User::query()->tenantMember($empresaId)
             ->whereIn('user_role_id', [UserRole::BACKOFFICE, UserRole::ADMINISTRATIVO, UserRole::DEVELOPER])
             ->where('ativo', 'Y')
             ->orderBy('name')
@@ -3719,7 +4033,9 @@ class Backoffice extends Controller
         }
 
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
+            $implantadoId = $this->tabulationId(TabulationCode::IMPLANTADO);
+            $estornoId = $this->tabulationId(TabulationCode::ESTORNO);
             $page = max(1, (int) $request->input('page', 1));
             $perPage = min(100, max(10, (int) $request->input('per_page', 15)));
 
@@ -3732,14 +4048,14 @@ class Backoffice extends Controller
                     'v.cpf_cnpj',
                     DB::raw('MAX(v.nome_contrato) as nome_contrato'),
                     DB::raw('COUNT(v.id) as total_contratos'),
-                    DB::raw('SUM(CASE WHEN v.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN 1 ELSE 0 END) as contratos_ativos'),
-                    DB::raw('SUM(CASE WHEN v.tabulacao_id = '.Tabulations::ESTORNO.' THEN 1 ELSE 0 END) as contratos_cancelados'),
-                    DB::raw('SUM(CASE WHEN v.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN v.valor_contrato ELSE 0 END) as valor_ativo'),
-                    DB::raw('SUM(CASE WHEN v.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN COALESCE(v.vidas,0) ELSE 0 END) as vidas_ativas'),
                     DB::raw('MIN(v.data_implantacao) as primeiro_contrato'),
                     DB::raw('MAX(v.data_implantacao) as ultimo_contrato'),
                     DB::raw('GROUP_CONCAT(DISTINCT v.operadora ORDER BY v.operadora SEPARATOR \', \') as operadoras'),
-                ]);
+                ])
+                ->selectRaw('SUM(CASE WHEN v.tabulacao_id = ? THEN 1 ELSE 0 END) as contratos_ativos', [$implantadoId])
+                ->selectRaw('SUM(CASE WHEN v.tabulacao_id = ? THEN 1 ELSE 0 END) as contratos_cancelados', [$estornoId])
+                ->selectRaw('SUM(CASE WHEN v.tabulacao_id = ? THEN v.valor_contrato ELSE 0 END) as valor_ativo', [$implantadoId])
+                ->selectRaw('SUM(CASE WHEN v.tabulacao_id = ? THEN COALESCE(v.vidas,0) ELSE 0 END) as vidas_ativas', [$implantadoId]);
 
             // Filtros
             if ($request->filled('busca')) {
@@ -3763,9 +4079,7 @@ class Backoffice extends Controller
                 };
             }
 
-            $total = DB::table(DB::raw("({$query->toSql()}) as sub"))
-                ->mergeBindings($query)
-                ->count();
+            $total = DB::query()->fromSub(clone $query, 'sub')->count();
             $offset = ($page - 1) * $perPage;
             $results = $query->orderByRaw('primeiro_contrato DESC')
                 ->skip($offset)->take($perPage)->get();
@@ -3807,17 +4121,17 @@ class Backoffice extends Controller
             });
 
             // KPIs — mesma query base sem paginação
-            $kpiBase = DB::table(DB::raw('(
-        SELECT
-          SUM(CASE WHEN v2.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN 1 ELSE 0 END) as ca,
-          SUM(CASE WHEN v2.tabulacao_id = '.Tabulations::ESTORNO.' THEN 1 ELSE 0 END) as cc2,
-          SUM(CASE WHEN v2.tabulacao_id = '.Tabulations::IMPLANTADO.' THEN v2.valor_contrato ELSE 0 END) as va,
-          SUM(CASE WHEN v2.tabulacao_id = '.Tabulations::IMPLANTADO." THEN COALESCE(v2.vidas,0) ELSE 0 END) as vi
-        FROM vendas v2
-        WHERE v2.empresa_id = {$empresaId}
-          AND v2.cpf_cnpj IS NOT NULL AND v2.cpf_cnpj != ''
-        GROUP BY v2.cpf_cnpj
-      ) as kpi_sub"))->select([
+            $kpiSubquery = DB::table('vendas as v2')
+                ->where('v2.empresa_id', $empresaId)
+                ->whereNotNull('v2.cpf_cnpj')
+                ->where('v2.cpf_cnpj', '!=', '')
+                ->groupBy('v2.cpf_cnpj')
+                ->selectRaw('SUM(CASE WHEN v2.tabulacao_id = ? THEN 1 ELSE 0 END) as ca', [$implantadoId])
+                ->selectRaw('SUM(CASE WHEN v2.tabulacao_id = ? THEN 1 ELSE 0 END) as cc2', [$estornoId])
+                ->selectRaw('SUM(CASE WHEN v2.tabulacao_id = ? THEN v2.valor_contrato ELSE 0 END) as va', [$implantadoId])
+                ->selectRaw('SUM(CASE WHEN v2.tabulacao_id = ? THEN COALESCE(v2.vidas,0) ELSE 0 END) as vi', [$implantadoId]);
+
+            $kpiBase = DB::query()->fromSub($kpiSubquery, 'kpi_sub')->select([
                 DB::raw('COUNT(*) as total_clientes'),
                 DB::raw('SUM(CASE WHEN ca > 0 THEN 1 ELSE 0 END) as clientes_ativos'),
                 DB::raw('SUM(CASE WHEN ca = 0 THEN 1 ELSE 0 END) as clientes_inativos'),
@@ -3845,14 +4159,14 @@ class Backoffice extends Controller
                 ],
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return $this->internalError($e, 'Não foi possível carregar a carteira neste momento.');
         }
     }
 
     private function getImplantadosRecentesData(Request $request)
     {
         try {
-            $empresaId = (int) Auth::user()->empresa_id;
+            $empresaId = (int) $this->tenantId();
             $page = max(1, (int) $request->input('page', 1));
             $perPage = min(100, max(10, (int) $request->input('per_page', 15)));
             $periodo = in_array((int) $request->input('periodo', 30), [30, 60, 365], true)
@@ -3862,16 +4176,24 @@ class Backoffice extends Controller
             $tiposCancelamento = [
                 TipoDemandaContrato::CANCELAMENTO->value,
                 TipoDemandaContrato::CANCELAMENTO_OPERADORA_ANTERIOR->value,
-                TipoDemandaContrato::CANCELAMENTO_QUALICORP->value,
+                TipoDemandaContrato::CANCELAMENTO_INTERMEDIADORA->value,
                 TipoDemandaContrato::CANCELAMENTO_LIMITAR->value,
                 TipoDemandaContrato::CARTA_PERMANENCIA->value,
             ];
 
             $baseQuery = DB::table('vendas as v')
-                ->leftJoin('users as bo', 'bo.id', '=', 'v.backoffice_id')
-                ->leftJoin('users as vendedor', 'vendedor.id', '=', 'v.user_id')
+                ->leftJoin('users as bo', function ($join) {
+                    $join->on('bo.id', '=', 'v.backoffice_id')
+                        ->on('bo.empresa_id', '=', 'v.empresa_id')
+                        ->where('bo.is_platform_admin', false);
+                })
+                ->leftJoin('users as vendedor', function ($join) {
+                    $join->on('vendedor.id', '=', 'v.user_id')
+                        ->on('vendedor.empresa_id', '=', 'v.empresa_id')
+                        ->where('vendedor.is_platform_admin', false);
+                })
                 ->where('v.empresa_id', $empresaId)
-                ->where('v.tabulacao_id', Tabulations::IMPLANTADO)
+                ->where('v.tabulacao_id', $this->tabulationId(TabulationCode::IMPLANTADO))
                 ->whereNotNull('v.data_implantacao')
                 ->whereDate('v.data_implantacao', '>=', $dataInicial->toDateString());
 
@@ -3906,6 +4228,7 @@ class Backoffice extends Controller
                 $query->selectRaw('1')
                     ->from('venda_demandas as vd')
                     ->whereColumn('vd.venda_id', 'v.id')
+                    ->whereColumn('vd.empresa_id', 'v.empresa_id')
                     ->where('vd.status', 'PENDENTE')
                     ->whereIn('vd.tipo', $tiposCancelamento);
             };
@@ -3964,6 +4287,7 @@ class Backoffice extends Controller
                 ->selectSub(function ($query) use ($tiposCancelamento) {
                     $query->from('venda_demandas as vd')
                         ->whereColumn('vd.venda_id', 'v.id')
+                        ->whereColumn('vd.empresa_id', 'v.empresa_id')
                         ->where('vd.status', 'PENDENTE')
                         ->whereIn('vd.tipo', $tiposCancelamento)
                         ->selectRaw('COUNT(*)');
@@ -4028,18 +4352,26 @@ class Backoffice extends Controller
                 'kpis' => $kpis,
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return $this->internalError($e, 'Não foi possível carregar os implantados recentes neste momento.');
         }
     }
 
     public function getDetalheClienteCarteira(Request $request, string $cnpj)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
+            $implantadoId = $this->tabulationId(TabulationCode::IMPLANTADO);
 
             $contratos = DB::table('vendas as v')
-                ->leftJoin('tabulacoes as t', 't.id', '=', 'v.tabulacao_id')
-                ->leftJoin('users as u', 'u.id', '=', 'v.user_id')
+                ->leftJoin('tabulacoes as t', function ($join) {
+                    $join->on('t.id', '=', 'v.tabulacao_id')
+                        ->on('t.empresa_id', '=', 'v.empresa_id');
+                })
+                ->leftJoin('users as u', function ($join) {
+                    $join->on('u.id', '=', 'v.user_id')
+                        ->on('u.empresa_id', '=', 'v.empresa_id')
+                        ->where('u.is_platform_admin', false);
+                })
                 ->where('v.empresa_id', $empresaId)
                 ->where('v.cpf_cnpj', $cnpj)
                 ->orderByDesc('v.data_implantacao')
@@ -4053,7 +4385,7 @@ class Backoffice extends Controller
                     'u.name as vendedor',
                 ])
                 ->get()
-                ->map(function ($c, $idx) {
+                ->map(function ($c, $idx) use ($implantadoId) {
                     return [
                         'id' => $c->id,
                         'numero_proposta' => $c->numero_proposta,
@@ -4071,7 +4403,7 @@ class Backoffice extends Controller
                         'boas_vindas' => ! empty($c->boas_vindas_enviado_em),
                         'status_descricao' => $c->status_descricao ?? 'Sem status',
                         'tabulacao_id' => $c->tabulacao_id,
-                        'is_ativo' => $c->tabulacao_id == Tabulations::IMPLANTADO,
+                        'is_ativo' => (int) $c->tabulacao_id === $implantadoId,
                         'vendedor' => $c->vendedor,
                         'primeiro' => $idx === 0, // mais recente
                     ];
@@ -4079,7 +4411,7 @@ class Backoffice extends Controller
 
             return response()->json(['success' => true, 'contratos' => $contratos]);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return $this->internalError($e, 'Não foi possível carregar os contratos do cliente neste momento.');
         }
     }
 
@@ -4103,7 +4435,7 @@ class Backoffice extends Controller
     public function getDemandasContrato(int $vendaId)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $venda = Vendas::where('id', $vendaId)
                 ->where('empresa_id', $empresaId)
@@ -4116,7 +4448,10 @@ class Backoffice extends Controller
                 ], 404);
             }
 
-            $demandas = VendaDemanda::with(['criador:id,name', 'concluidaPor:id,name'])
+            $demandas = VendaDemanda::with([
+                'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+                'concluidaPor' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+            ])
                 ->where('venda_id', $vendaId)
                 ->where('empresa_id', $empresaId)
                 ->orderByRaw("FIELD(status, 'PENDENTE', 'CONCLUIDA')")
@@ -4133,10 +4468,7 @@ class Backoffice extends Controller
                 'total' => $total,
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao carregar demandas: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível carregar as demandas do contrato neste momento.');
         }
     }
 
@@ -4144,13 +4476,13 @@ class Backoffice extends Controller
     {
         try {
             $validated = $request->validate([
-                'venda_id' => 'required|integer|exists:vendas,id',
+                'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->tenantId())],
                 'tipo' => 'required|string|max:50',
                 'titulo' => 'required|string|max:255',
                 'descricao' => 'nullable|string|max:1000',
             ]);
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $venda = Vendas::where('id', $validated['venda_id'])
                 ->where('empresa_id', $empresaId)
@@ -4173,7 +4505,10 @@ class Backoffice extends Controller
                 'status' => 'PENDENTE',
             ]);
 
-            $demanda->load(['criador:id,name', 'concluidaPor:id,name']);
+            $demanda->load([
+                'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+                'concluidaPor' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -4187,10 +4522,7 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao criar demanda: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível criar a demanda neste momento.');
         }
     }
 
@@ -4203,7 +4535,7 @@ class Backoffice extends Controller
                 'descricao' => 'nullable|string|max:1000',
             ]);
 
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $demanda = VendaDemanda::where('id', $id)
                 ->where('empresa_id', $empresaId)
@@ -4222,7 +4554,10 @@ class Backoffice extends Controller
                 'descricao' => $validated['descricao'] ?? null,
             ]);
 
-            $demanda->load(['criador:id,name', 'concluidaPor:id,name']);
+            $demanda->load([
+                'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+                'concluidaPor' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -4236,17 +4571,14 @@ class Backoffice extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao atualizar demanda: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível atualizar a demanda neste momento.');
         }
     }
 
     public function toggleStatusDemandaContrato(int $id)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $demanda = VendaDemanda::where('id', $id)
                 ->where('empresa_id', $empresaId)
@@ -4273,7 +4605,10 @@ class Backoffice extends Controller
                 ]);
             }
 
-            $demanda->load(['criador:id,name', 'concluidaPor:id,name']);
+            $demanda->load([
+                'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+                'concluidaPor' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -4281,17 +4616,14 @@ class Backoffice extends Controller
                 'demanda' => $demanda,
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao alterar status: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível alterar o status da demanda neste momento.');
         }
     }
 
     public function destroyDemandaContrato(int $id)
     {
         try {
-            $empresaId = Auth::user()->empresa_id;
+            $empresaId = $this->tenantId();
 
             $demanda = VendaDemanda::where('id', $id)
                 ->where('empresa_id', $empresaId)
@@ -4311,10 +4643,7 @@ class Backoffice extends Controller
                 'message' => 'Demanda removida com sucesso.',
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao remover demanda: '.$e->getMessage(),
-            ], 500);
+            return $this->internalError($e, 'Não foi possível remover a demanda neste momento.');
         }
     }
 
@@ -4322,7 +4651,7 @@ class Backoffice extends Controller
 
     public function faqs()
     {
-        $operadoras = Operadora::where('empresa_id', Auth::user()->empresa_id)
+        $operadoras = Operadora::where('empresa_id', $this->tenantId())
             ->where('status', 'Y')
             ->orderBy('nome')
             ->get();
@@ -4332,15 +4661,37 @@ class Backoffice extends Controller
         ]);
     }
 
+    private function regrasUrlHttpsOpcional(): array
+    {
+        return ['sometimes', 'nullable', 'string', 'max:500', function (string $attribute, mixed $value, \Closure $fail) {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            if (! str_starts_with($value, 'https://') || ! filter_var($value, FILTER_VALIDATE_URL)) {
+                $fail('Informe uma URL HTTPS válida.');
+            }
+        }];
+    }
+
     public function getFaqs(Request $request)
     {
+        $empresaId = (int) $this->tenantId();
+        $validated = $request->validate([
+            'operadora_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('operadoras', 'id')->where('empresa_id', $empresaId),
+            ],
+        ]);
+
         $query = Faq::with('operadora')
-            ->where('empresa_id', Auth::user()->empresa_id)
+            ->where('empresa_id', $empresaId)
             ->orderBy('ordem')
             ->orderBy('created_at', 'desc');
 
-        if ($request->filled('operadora_id')) {
-            $query->where('operadora_id', $request->operadora_id);
+        if (isset($validated['operadora_id'])) {
+            $query->where('operadora_id', (int) $validated['operadora_id']);
         }
 
         return response()->json($query->get());
@@ -4352,8 +4703,13 @@ class Backoffice extends Controller
             return response()->json(['success' => false, 'message' => 'Sem permissão.'], 403);
         }
 
-        $request->validate([
-            'operadora_id' => 'required|exists:operadoras,id',
+        $empresaId = (int) $this->tenantId();
+        $validated = $request->validate([
+            'operadora_id' => [
+                'required',
+                'integer',
+                Rule::exists('operadoras', 'id')->where('empresa_id', $empresaId),
+            ],
             'titulo' => 'required|string|max:255',
             'resposta' => 'required|string',
             'status' => 'nullable|in:Y,N',
@@ -4362,16 +4718,18 @@ class Backoffice extends Controller
 
         try {
             Faq::create([
-                'empresa_id' => Auth::user()->empresa_id,
-                'operadora_id' => $request->operadora_id,
-                'titulo' => $request->titulo,
-                'resposta' => $request->resposta,
-                'status' => $request->status ?? 'Y',
-                'ordem' => $request->ordem ?? 0,
+                'empresa_id' => $empresaId,
+                'operadora_id' => (int) $validated['operadora_id'],
+                'titulo' => $validated['titulo'],
+                'resposta' => $validated['resposta'],
+                'status' => $validated['status'] ?? 'Y',
+                'ordem' => $validated['ordem'] ?? 0,
             ]);
 
             return response()->json(['success' => true, 'message' => 'FAQ cadastrado com sucesso!'], 201);
         } catch (\Exception $e) {
+            report($e);
+
             return response()->json(['success' => false, 'message' => 'Erro ao cadastrar FAQ.'], 500);
         }
     }
@@ -4382,27 +4740,34 @@ class Backoffice extends Controller
             return response()->json(['success' => false, 'message' => 'Sem permissão.'], 403);
         }
 
-        $request->validate([
-            'operadora_id' => 'required|exists:operadoras,id',
+        $empresaId = (int) $this->tenantId();
+        $validated = $request->validate([
+            'operadora_id' => [
+                'required',
+                'integer',
+                Rule::exists('operadoras', 'id')->where('empresa_id', $empresaId),
+            ],
             'titulo' => 'required|string|max:255',
             'resposta' => 'required|string',
             'status' => 'nullable|in:Y,N',
             'ordem' => 'nullable|integer|min:0',
         ]);
 
-        try {
-            $faq = Faq::where('empresa_id', Auth::user()->empresa_id)->findOrFail($id);
+        $faq = Faq::where('empresa_id', $empresaId)->findOrFail($id);
 
+        try {
             $faq->update([
-                'operadora_id' => $request->operadora_id,
-                'titulo' => $request->titulo,
-                'resposta' => $request->resposta,
-                'status' => $request->status ?? 'Y',
-                'ordem' => $request->ordem ?? 0,
+                'operadora_id' => (int) $validated['operadora_id'],
+                'titulo' => $validated['titulo'],
+                'resposta' => $validated['resposta'],
+                'status' => $validated['status'] ?? 'Y',
+                'ordem' => $validated['ordem'] ?? 0,
             ]);
 
             return response()->json(['success' => true, 'message' => 'FAQ atualizado com sucesso!']);
         } catch (\Exception $e) {
+            report($e);
+
             return response()->json(['success' => false, 'message' => 'Erro ao atualizar FAQ.'], 500);
         }
     }
@@ -4413,12 +4778,15 @@ class Backoffice extends Controller
             return response()->json(['success' => false, 'message' => 'Sem permissão.'], 403);
         }
 
+        $faq = Faq::where('empresa_id', $this->tenantId())->findOrFail($id);
+
         try {
-            $faq = Faq::where('empresa_id', Auth::user()->empresa_id)->findOrFail($id);
             $faq->delete();
 
             return response()->json(['success' => true, 'message' => 'FAQ excluído com sucesso!']);
         } catch (\Exception $e) {
+            report($e);
+
             return response()->json(['success' => false, 'message' => 'Erro ao excluir FAQ.'], 500);
         }
     }

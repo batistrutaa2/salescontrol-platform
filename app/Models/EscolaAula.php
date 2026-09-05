@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 
 class EscolaAula extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'escola_aulas';
 
     protected $fillable = [

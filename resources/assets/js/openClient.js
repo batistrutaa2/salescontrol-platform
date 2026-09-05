@@ -218,21 +218,6 @@
     }
   }
 
-  // Import contatos (com proteção)
-  const btnImport = document.getElementById('js-importContatos');
-  if (btnImport) {
-    btnImport.addEventListener('click', function () {
-      const cpfEl = document.getElementById('cpf');
-      const cpf = cpfEl ? cpfEl.value : '';
-      fetch('/comercial/getCommentsLegacy/' + encodeURIComponent(cpf || ''), { method: 'GET' })
-        .then(r => r.json())
-        .then(data => {
-          (data || []).forEach(() => updateTimeline(data || []));
-        })
-        .catch(console.error);
-    });
-  }
-
   // Dropzone (com proteção)
   if (document.getElementById('cotacoes-dropzone') && typeof Dropzone !== 'undefined') {
     Dropzone.autoDiscover = false;
@@ -334,37 +319,6 @@
         }
       });
     }
-  }
-
-  // Timeline (protegido)
-  function updateTimeline(newData) {
-    const timelineList = document.getElementById('timeline-list');
-    if (!timelineList) return;
-    timelineList.innerHTML = '';
-    (newData || []).forEach(item => {
-      const li = createTimelineItem(item);
-      timelineList.appendChild(li);
-    });
-  }
-  function truncate(text, limit) {
-    if (text && text.length > limit) return text.substring(0, limit) + '...';
-    return text || '';
-  }
-  function createTimelineItem(item) {
-    const li = document.createElement('li');
-    li.className = 'timeline-item timeline-item-transparent border-primary';
-    li.innerHTML = `
-      <span class="timeline-point timeline-point-primary"></span>
-      <div class="timeline-event">
-        <div class="timeline-header mb-1">
-          <h6 class="mb-0">Feito por:${truncate(item?.nome_autor, 10)}
-            <span class="badge bg-label-success">Sistema legado</span>
-          </h6>
-          <small class="text-muted">${item?.created_at || 'Data não disponível'}</small>
-        </div>
-        <p class="mt-1 mb-3">${item?.anotacao || 'Nenhuma anotação'}</p>
-      </div>`;
-    return li;
   }
 
   // Salvar comentário (protegido)
@@ -621,7 +575,7 @@
   // === APÓLICE/TITULARES
   // =======================
   let planosDaOperadoraAtual = []; // [{id, nome, acomodacao}]
-  let isOperadoraAmil = false;
+  let usaCoparticipacaoDetalhada = false;
 
   function renderOptionsPlanoAtual() {
     if (!planosDaOperadoraAtual.length) {
@@ -635,8 +589,7 @@
   }
 
   function coparticipacaoOptionsHtml() {
-    // Por titular: AMIL => PARCIAL/COMPLETA, demais => SIM/NÃO
-    return isOperadoraAmil
+    return usaCoparticipacaoDetalhada
       ? `<option value="">Selecione...</option><option value="PARCIAL">PARCIAL</option><option value="COMPLETA">COMPLETA</option>`
       : `<option value="">Selecione...</option><option value="Y">SIM</option><option value="N">NÃO</option>`;
   }
@@ -713,7 +666,7 @@
             <select name="titulares[${i}][coparticipacao]" class="form-select select-coparticipacao" required>
               ${coparticipacaoOptionsHtml()}
             </select>
-            <label class="label-coparticipacao">${isOperadoraAmil ? 'Coparticipação (Amil)' : 'Coparticipação'}</label>
+            <label class="label-coparticipacao">Coparticipação</label>
           </div>
         </div>
       `;
@@ -751,7 +704,7 @@
       const old = sel.value;
       sel.innerHTML = coparticipacaoOptionsHtml();
       const label = sel.closest('.form-floating').querySelector('.label-coparticipacao');
-      if (label) label.textContent = isOperadoraAmil ? 'Coparticipação (Amil)' : 'Coparticipação';
+      if (label) label.textContent = 'Coparticipação';
       if (old && Array.from(sel.options).some(o => o.value === old)) sel.value = old;
       else sel.value = '';
     });
@@ -780,16 +733,12 @@
   $(document).on('change', '#operadora', function () {
     let operadoraId = $(this).val();
 
-    // Detectar nome da operadora (data-nome ou texto do option)
-    const nomeOperadora = ($(this).find(':selected').data('nome') || $(this).find(':selected').text() || '')
-      .toString().trim().toUpperCase();
-    isOperadoraAmil = nomeOperadora.startsWith('AMIL');
+    const $selected = $(this).find(':selected');
+    usaCoparticipacaoDetalhada = $selected.attr('data-coparticipacao-formato') === 'PARCIAL_COMPLETA';
 
-    // Auto-selecionar angariação para Supermed
-    const isSupermed = nomeOperadora === 'AMIL - SUPERMED';
     const $angariacaoSelect = $('#angariacao_status');
     if ($angariacaoSelect.length) {
-      $angariacaoSelect.val(isSupermed ? 'SIM' : 'NAO').trigger('change');
+      $angariacaoSelect.val($selected.attr('data-angariacao-padrao') === '1' ? 'SIM' : 'NAO').trigger('change');
     }
 
     // Suporte ao seletor do "titular principal" caso exista na página

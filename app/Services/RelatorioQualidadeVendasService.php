@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -19,10 +19,13 @@ class RelatorioQualidadeVendasService
 
     public const DECLINIO = 'declinio';
 
+    public function __construct(private readonly TabulationCatalog $tabulationCatalog) {}
+
     public function resumo(int $empresaId, CarbonImmutable $inicio, CarbonImmutable $fim, ?int $vendedorId = null): array
     {
+        $statusIds = $this->statusIds($empresaId);
         $linhas = $this->queryBase($empresaId, $inicio, $fim, $vendedorId)->get();
-        $atual = $this->agregar($linhas, $inicio, $fim);
+        $atual = $this->agregar($linhas, $inicio, $fim, $statusIds);
 
         $dias = $inicio->diffInDays($fim) + 1;
         $comparacaoFim = $inicio->subDay();
@@ -33,7 +36,7 @@ class RelatorioQualidadeVendasService
             $linhasAnteriores = $this->queryBase($empresaId, $comparacaoInicio, $comparacaoFim, $vendedorId)->get();
             $comparacao = [
                 'periodo' => $this->periodo($comparacaoInicio, $comparacaoFim),
-                'kpis' => $this->agregar($linhasAnteriores, $comparacaoInicio, $comparacaoFim)['kpis'],
+                'kpis' => $this->agregar($linhasAnteriores, $comparacaoInicio, $comparacaoFim, $statusIds)['kpis'],
             ];
         }
 
@@ -52,12 +55,13 @@ class RelatorioQualidadeVendasService
         ?string $categoria,
         int $porPagina = 20
     ): LengthAwarePaginator {
+        $statusIds = $this->statusIds($empresaId);
         $query = $this->queryPropostas($empresaId, $inicio, $fim, $vendedorId);
 
-        $this->aplicarCategoria($query, $categoria);
+        $this->aplicarCategoria($query, $categoria, $statusIds);
 
         return $query->orderByDesc('v.created_at')->orderByDesc('v.id')->paginate($porPagina)
-            ->through(fn ($venda) => $this->normalizarProposta($venda));
+            ->through(fn ($venda) => $this->normalizarProposta($venda, $statusIds));
     }
 
     private function queryPropostas(int $empresaId, CarbonImmutable $inicio, CarbonImmutable $fim, ?int $vendedorId): Builder
@@ -72,7 +76,7 @@ class RelatorioQualidadeVendasService
             ->selectRaw($this->valorSql().' as valor_total');
     }
 
-    private function normalizarProposta(object $venda): array
+    private function normalizarProposta(object $venda, array $statusIds): array
     {
         return [
             'id' => $venda->id,
@@ -85,7 +89,7 @@ class RelatorioQualidadeVendasService
                 ? CarbonImmutable::parse($venda->data_implantacao)->format('d/m/Y')
                 : null,
             'status' => $venda->status ?: 'Sem status',
-            'categoria' => $this->categoria((int) $venda->tabulacao_id),
+            'categoria' => $this->categoria((int) $venda->tabulacao_id, $statusIds),
             'valor_contrato' => (float) ($venda->valor_contrato ?? 0),
             'angariacao' => $venda->angariacao_status === 'SIM' ? (float) ($venda->angariacao_valor ?? 0) : 0.0,
             'valor_total' => (float) $venda->valor_total,
@@ -95,8 +99,14 @@ class RelatorioQualidadeVendasService
     private function queryBase(int $empresaId, CarbonImmutable $inicio, CarbonImmutable $fim, ?int $vendedorId = null): Builder
     {
         return DB::table('vendas as v')
-            ->join('users as u', 'u.id', '=', 'v.user_id')
-            ->leftJoin('tabulacoes as t', 't.id', '=', 'v.tabulacao_id')
+            ->join('users as u', function ($join) {
+                $join->on('u.id', '=', 'v.user_id')
+                    ->on('u.empresa_id', '=', 'v.empresa_id')
+                    ->where('u.is_platform_admin', false);
+            })
+            ->leftJoin('tabulacoes as t', function ($join) {
+                $join->on('t.id', '=', 'v.tabulacao_id')->on('t.empresa_id', '=', 'v.empresa_id');
+            })
             ->select([
                 'v.id', 'v.user_id', 'v.tabulacao_id', 'v.created_at',
                 'v.valor_contrato', 'v.angariacao_status', 'v.angariacao_valor',
@@ -107,10 +117,10 @@ class RelatorioQualidadeVendasService
             ->when($vendedorId, fn (Builder $query) => $query->where('v.user_id', $vendedorId));
     }
 
-    private function agregar(Collection $linhas, CarbonImmutable $inicio, CarbonImmutable $fim): array
+    private function agregar(Collection $linhas, CarbonImmutable $inicio, CarbonImmutable $fim, array $statusIds): array
     {
-        $normalizadas = $linhas->map(function ($linha) {
-            $linha->categoria_relatorio = $this->categoria((int) $linha->tabulacao_id);
+        $normalizadas = $linhas->map(function ($linha) use ($statusIds) {
+            $linha->categoria_relatorio = $this->categoria((int) $linha->tabulacao_id, $statusIds);
             $linha->valor_calculado = (float) ($linha->valor_contrato ?? 0)
                 + ($linha->angariacao_status === 'SIM' ? (float) ($linha->angariacao_valor ?? 0) : 0);
 
@@ -215,25 +225,25 @@ class RelatorioQualidadeVendasService
         })->all();
     }
 
-    private function categoria(int $tabulacaoId): string
+    private function categoria(int $tabulacaoId, array $statusIds): string
     {
         return match ($tabulacaoId) {
-            Tabulations::IMPLANTADO => self::IMPLANTADA,
-            Tabulations::ESTORNO => self::ESTORNO,
-            Tabulations::DECLINIO => self::DECLINIO,
+            $statusIds[TabulationCode::IMPLANTADO] => self::IMPLANTADA,
+            $statusIds[TabulationCode::ESTORNO] => self::ESTORNO,
+            $statusIds[TabulationCode::DECLINADO] => self::DECLINIO,
             default => self::EM_PROCESSO,
         };
     }
 
-    private function aplicarCategoria(Builder $query, ?string $categoria): void
+    private function aplicarCategoria(Builder $query, ?string $categoria, array $statusIds): void
     {
         match ($categoria) {
-            self::IMPLANTADA => $query->where('v.tabulacao_id', Tabulations::IMPLANTADO),
-            self::ESTORNO => $query->where('v.tabulacao_id', Tabulations::ESTORNO),
-            self::DECLINIO => $query->where('v.tabulacao_id', Tabulations::DECLINIO),
-            self::EM_PROCESSO => $query->where(function (Builder $status) {
+            self::IMPLANTADA => $query->where('v.tabulacao_id', $statusIds[TabulationCode::IMPLANTADO]),
+            self::ESTORNO => $query->where('v.tabulacao_id', $statusIds[TabulationCode::ESTORNO]),
+            self::DECLINIO => $query->where('v.tabulacao_id', $statusIds[TabulationCode::DECLINADO]),
+            self::EM_PROCESSO => $query->where(function (Builder $status) use ($statusIds) {
                 $status->whereNull('v.tabulacao_id')
-                    ->orWhereNotIn('v.tabulacao_id', [Tabulations::IMPLANTADO, Tabulations::ESTORNO, Tabulations::DECLINIO]);
+                    ->orWhereNotIn('v.tabulacao_id', array_values($statusIds));
             }),
             default => null,
         };
@@ -241,8 +251,11 @@ class RelatorioQualidadeVendasService
 
     private function vendedoresDoAno(int $empresaId, int $ano): array
     {
-        return DB::table('users as u')->join('vendas as v', 'v.user_id', '=', 'u.id')
-            ->where('v.empresa_id', $empresaId)->whereYear('v.created_at', $ano)
+        return DB::table('users as u')->join('vendas as v', function ($join) {
+            $join->on('v.user_id', '=', 'u.id')
+                ->on('v.empresa_id', '=', 'u.empresa_id');
+        })
+            ->where('v.empresa_id', $empresaId)->where('u.empresa_id', $empresaId)->whereYear('v.created_at', $ano)
             ->select('u.id', 'u.name')->distinct()->orderBy('u.name')->get()
             ->map(fn ($user) => ['id' => $user->id, 'nome' => $user->name])->all();
     }
@@ -255,5 +268,14 @@ class RelatorioQualidadeVendasService
     private function valorSql(): string
     {
         return "COALESCE(v.valor_contrato, 0) + CASE WHEN v.angariacao_status = 'SIM' THEN COALESCE(v.angariacao_valor, 0) ELSE 0 END";
+    }
+
+    private function statusIds(int $empresaId): array
+    {
+        return $this->tabulationCatalog->requiredIds($empresaId, [
+            TabulationCode::IMPLANTADO,
+            TabulationCode::ESTORNO,
+            TabulationCode::DECLINADO,
+        ]);
     }
 }

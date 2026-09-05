@@ -19,6 +19,12 @@
 @endsection
 
 @section('content')
+@php
+    $podeConfigurarAgenda = auth()->user()->isPlatformAdmin()
+        || in_array((int) auth()->user()->user_role_id, [\App\Enums\UserRole::ADMINISTRATIVO, \App\Enums\UserRole::DEVELOPER], true);
+    $horarioInicio = substr((string) $agendaSettings->reuniao_horario_inicio, 0, 5);
+    $horarioFim = substr((string) $agendaSettings->reuniao_horario_fim, 0, 5);
+@endphp
 <div class="reunioes-wrapper">
     <!-- Page Header -->
     <div class="rm-page-header">
@@ -29,6 +35,13 @@
                 <p class="subtitle">Agende reunioes com seus gestores comerciais</p>
             </div>
             <div class="header-actions">
+                @if ($podeConfigurarAgenda)
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+                        data-bs-target="#meetingSettingsModal">
+                        <i class="ri-settings-3-line me-1" aria-hidden="true"></i>
+                        Configurar agenda
+                    </button>
+                @endif
                 <button class="rm-btn-new-meeting btn-toggle-sidebar" data-bs-toggle="offcanvas" data-bs-target="#addEventSidebar" aria-controls="addEventSidebar">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -38,6 +51,9 @@
                 </button>
             </div>
         </div>
+        <p class="small text-muted mb-0 mt-2">
+            Disponibilidade da empresa: {{ $horarioInicio }}–{{ $horarioFim }}, em blocos de {{ $agendaSettings->reuniao_duracao_minutos }} minutos.
+        </p>
     </div>
 
     <!-- Stats Grid -->
@@ -309,6 +325,54 @@
         </div>
     </div>
 </div>
+
+@if ($podeConfigurarAgenda)
+    <div class="modal fade" id="meetingSettingsModal" tabindex="-1" aria-labelledby="meetingSettingsModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('comercialReunioes.settings.update') }}">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="meetingSettingsModalLabel">Disponibilidade para reuniões</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted">Esta regra vale somente para a empresa ativa e define os horários oferecidos no agendamento.</p>
+                        <div class="row g-4">
+                            <div class="col-sm-6">
+                                <label class="form-label" for="meeting-settings-start">Início do expediente</label>
+                                <input class="form-control" type="time" id="meeting-settings-start"
+                                    name="reuniao_horario_inicio" value="{{ old('reuniao_horario_inicio', $horarioInicio) }}" required>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="meeting-settings-end">Fim do expediente</label>
+                                <input class="form-control" type="time" id="meeting-settings-end"
+                                    name="reuniao_horario_fim" value="{{ old('reuniao_horario_fim', $horarioFim) }}" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="meeting-settings-duration">Duração de cada horário</label>
+                                <div class="input-group">
+                                    <input class="form-control" type="number" id="meeting-settings-duration"
+                                        name="reuniao_duracao_minutos" min="15" max="240" step="5"
+                                        value="{{ old('reuniao_duracao_minutos', $agendaSettings->reuniao_duracao_minutos) }}"
+                                        aria-describedby="meeting-settings-duration-help" required>
+                                    <span class="input-group-text">minutos</span>
+                                </div>
+                                <small id="meeting-settings-duration-help" class="form-text">Use intervalos de 5 minutos, entre 15 minutos e 4 horas.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar configuração</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif
 
 <!-- CSRF Token para requisicoes AJAX -->
 <meta name="csrf-token" content="{{ csrf_token() }}">

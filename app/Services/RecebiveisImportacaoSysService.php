@@ -62,7 +62,9 @@ class RecebiveisImportacaoSysService
         }
 
         // Buscar operadora pelo nome salvo na venda
-        $operadora = Operadora::where('nome', $venda->operadora)->first();
+        $operadora = Operadora::where('nome', $venda->operadora)
+            ->where('empresa_id', $venda->empresa_id)
+            ->first();
         if (! $operadora) {
             $this->vendasSemRegra++;
             $this->warnings[] = "Venda #{$venda->id} ({$venda->numero_proposta}): Operadora \"{$venda->operadora}\" não encontrada";
@@ -114,7 +116,7 @@ class RecebiveisImportacaoSysService
     private function resolverNomePlano(Vendas $venda): string
     {
         if (! empty($venda->plano_id)) {
-            $plano = Plano::find($venda->plano_id);
+            $plano = Plano::where('empresa_id', $venda->empresa_id)->find($venda->plano_id);
 
             return $plano?->nome ?? $venda->nome_plano ?? 'N/A';
         }
@@ -176,7 +178,10 @@ class RecebiveisImportacaoSysService
         DB::beginTransaction();
         try {
             // Checar novamente dentro da transaction (race condition)
-            $existeDentroTx = Recebivel::where('venda_id', $venda->id)->lockForUpdate()->count();
+            $existeDentroTx = Recebivel::where('venda_id', $venda->id)
+                ->where('empresa_id', $venda->empresa_id)
+                ->lockForUpdate()
+                ->count();
             if ($existeDentroTx > 0) {
                 DB::rollBack();
                 Log::info("[RecebiveisImportacaoSys] Venda {$venda->id} já possui recebíveis. Ignorando.");

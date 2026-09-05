@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PreditivaTabulacaoHard extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'preditiva_tabulacoes_hard';
 
     protected $fillable = [

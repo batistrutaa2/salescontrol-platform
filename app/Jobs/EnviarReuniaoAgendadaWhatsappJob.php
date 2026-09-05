@@ -2,10 +2,12 @@
 
 namespace App\Jobs;
 
+use App\Jobs\Concerns\UsesTenantContext;
 use App\Models\ComercialReunioes;
 use App\Models\Empresa;
 use App\Services\ReuniaoAgendadaFormatter;
 use App\Services\WhatsappService;
+use App\Support\TenantContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -15,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 
 class EnviarReuniaoAgendadaWhatsappJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, UsesTenantContext;
 
     public int $tries = 3;
 
@@ -25,8 +27,8 @@ class EnviarReuniaoAgendadaWhatsappJob implements ShouldQueue
 
     public function handle(WhatsappService $whatsapp, ReuniaoAgendadaFormatter $formatter): void
     {
-        $reuniao = ComercialReunioes::with(['user', 'manager'])->find($this->reuniaoId);
-        if (! $reuniao) {
+        $referencia = ComercialReunioes::withoutGlobalScopes()->find($this->reuniaoId);
+        if (! $referencia) {
             Log::warning('ReuniaoAgendada: reunião não encontrada', [
                 'reuniao_id' => $this->reuniaoId,
             ]);
@@ -34,34 +36,47 @@ class EnviarReuniaoAgendadaWhatsappJob implements ShouldQueue
             return;
         }
 
-        $empresa = Empresa::find($reuniao->empresa_id);
-        if (! $empresa || empty($empresa->whatsapp_token)) {
-            Log::warning('ReuniaoAgendada: empresa sem whatsapp_token', [
+        app(TenantContext::class)->run((int) $referencia->empresa_id, function () use ($whatsapp, $formatter) {
+            $empresaId = (int) app(TenantContext::class)->id();
+            $reuniao = ComercialReunioes::with([
+                'user' => fn ($query) => $query->tenantActor($empresaId),
+                'manager' => fn ($query) => $query->tenantMember($empresaId),
+            ])->find($this->reuniaoId);
+
+            if (! $reuniao) {
+                return;
+            }
+
+            $empresa = Empresa::find($empresaId);
+            if (! $empresa || empty($empresa->whatsapp_token)) {
+                Log::warning('ReuniaoAgendada: empresa sem whatsapp_token', [
+                    'reuniao_id' => $reuniao->id,
+                    'empresa_id' => $empresaId,
+                ]);
+
+                return;
+            }
+
+            $manager = $reuniao->manager;
+            $criador = $reuniao->user;
+            if (! $manager || ! $criador || empty($manager->whatsapp)) {
+                Log::warning('ReuniaoAgendada: gestor ou criador inválido para a empresa', [
+                    'reuniao_id' => $reuniao->id,
+                    'manager_id' => $reuniao->manager_id,
+                ]);
+
+                return;
+            }
+
+            $body = $formatter->format($reuniao);
+            $resp = $whatsapp->send($empresa->whatsapp_token, $manager->whatsapp, $body);
+
+            Log::info('ReuniaoAgendada: envio', [
                 'reuniao_id' => $reuniao->id,
-                'empresa_id' => $reuniao->empresa_id,
+                'empresa_id' => $empresa->id,
+                'manager_id' => $manager->id,
+                'success' => $resp['success'] ?? false,
             ]);
-
-            return;
-        }
-
-        $manager = $reuniao->manager;
-        if (! $manager || empty($manager->whatsapp)) {
-            Log::warning('ReuniaoAgendada: gestor sem whatsapp cadastrado', [
-                'reuniao_id' => $reuniao->id,
-                'manager_id' => $reuniao->manager_id,
-            ]);
-
-            return;
-        }
-
-        $body = $formatter->format($reuniao);
-        $resp = $whatsapp->send($empresa->whatsapp_token, $manager->whatsapp, $body);
-
-        Log::info('ReuniaoAgendada: envio', [
-            'reuniao_id' => $reuniao->id,
-            'empresa_id' => $empresa->id,
-            'manager_id' => $manager->id,
-            'success' => $resp['success'] ?? false,
-        ]);
+        });
     }
 }

@@ -4,17 +4,23 @@ namespace Tests\Feature\Backoffice;
 
 use App\Enums\FaseCancelamento;
 use App\Enums\ModalidadeCancelamento;
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\TipoDemandaContrato;
 use App\Enums\UserRole;
+use App\Models\AcessoEmpresa;
 use App\Models\CredencialAcesso;
 use App\Models\Empresa;
 use App\Models\User;
 use App\Models\VendaDemanda;
 use App\Models\Vendas;
+use App\Repositories\Contracts\ProcessoVendaRepositoryInterface;
 use App\Repositories\Contracts\VendasRepositoryInterface;
+use App\Services\TabulationCatalog;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Mockery;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -33,6 +39,10 @@ class ProcessosVendaTest extends TestCase
 
     private User $admin;
 
+    private int $implantadoId;
+
+    private int $vendaTabulacaoId;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -47,25 +57,38 @@ class ProcessosVendaTest extends TestCase
         $this->outroBackoffice = User::factory()->create(['empresa_id' => $this->empresa->id, 'user_role_id' => UserRole::BACKOFFICE, 'ativo' => 'Y']);
         $this->admin = User::factory()->create(['empresa_id' => $this->empresa->id, 'user_role_id' => UserRole::ADMINISTRATIVO, 'ativo' => 'Y']);
 
-        DB::table('tabulacoes')->insert([
-            'id' => Tabulations::IMPLANTADO, 'empresa_id' => $this->empresa->id, 'descricao' => 'IMPLANTADO',
-            'tipo_tabulacao' => 'A', 'efetivo' => 'Y', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
-        ]);
+        $catalog = app(TabulationCatalog::class);
+        $catalog->provision($this->empresa->id);
+        $this->implantadoId = $catalog->id($this->empresa->id, TabulationCode::IMPLANTADO);
+        $this->vendaTabulacaoId = $catalog->id($this->empresa->id, TabulationCode::VENDA);
     }
 
     private function criarContrato(?int $backofficeId, ?Empresa $empresa = null, ?string $cnpj = null): Vendas
     {
         $empresa = $empresa ?? $this->empresa;
+        $vendedor = $this->backoffice;
+        $tabulacaoId = $this->implantadoId;
+
+        if (! $empresa->is($this->empresa)) {
+            $vendedor = User::factory()->create([
+                'empresa_id' => $empresa->id,
+                'user_role_id' => UserRole::BACKOFFICE,
+                'ativo' => 'Y',
+            ]);
+            $backofficeId = $vendedor->id;
+            app(TabulationCatalog::class)->provision($empresa->id);
+            $tabulacaoId = app(TabulationCatalog::class)->id($empresa->id, TabulationCode::IMPLANTADO);
+        }
 
         $contatoId = DB::table('contatos')->insertGetId([
-            'empresa_id' => $empresa->id, 'user_import_id' => $this->backoffice->id,
+            'empresa_id' => $empresa->id, 'user_import_id' => $vendedor->id,
             'nome_cliente' => 'Cliente '.uniqid(), 'cpf' => (string) random_int(10000000000, 99999999999),
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
         return Vendas::create([
-            'empresa_id' => $empresa->id, 'user_id' => $this->backoffice->id, 'backoffice_id' => $backofficeId,
-            'contato_id' => $contatoId, 'tabulacao_id' => Tabulations::IMPLANTADO, 'nome_contrato' => 'Contrato '.uniqid(),
+            'empresa_id' => $empresa->id, 'user_id' => $vendedor->id, 'backoffice_id' => $backofficeId,
+            'contato_id' => $contatoId, 'tabulacao_id' => $tabulacaoId, 'nome_contrato' => 'Contrato '.uniqid(),
             'cpf_cnpj' => $cnpj ?? (string) random_int(10000000000000, 99999999999999), 'operadora' => 'AMIL',
             'valor_contrato' => 500.00, 'vidas' => 1, 'data_vigencia' => now(), 'data_implantacao' => now(),
         ]);
@@ -91,6 +114,7 @@ class ProcessosVendaTest extends TestCase
     public function test_dados_lista_cancelamentos_titulares_e_enums(): void
     {
         $venda = $this->criarContrato($this->backoffice->id);
+        DB::table('tabulacoes')->where('id', $this->implantadoId)->update(['descricao' => 'Cliente ativado']);
         $titularId = $this->criarTitular($venda);
         $this->criarCancelamento($venda, $titularId, 'SOLICITADO');
 
@@ -99,7 +123,10 @@ class ProcessosVendaTest extends TestCase
         $response->assertOk()->assertJson([
             'success' => true,
             'can_edit' => true,
-            'venda' => ['status' => 'IMPLANTADO'],
+            'venda' => [
+                'status' => 'Cliente ativado',
+                'status_codigo' => TabulationCode::IMPLANTADO,
+            ],
         ]);
         $this->assertCount(1, $response->json('cancelamentos'));
         $this->assertSame('SOLICITADO', $response->json('cancelamentos.0.fase'));
@@ -173,6 +200,10 @@ class ProcessosVendaTest extends TestCase
         $this->assertTrue($ids->contains($anterior->id), 'Deve listar o outro contrato do mesmo CNPJ.');
         $this->assertFalse($ids->contains($atual->id), 'Não lista o próprio contrato.');
         $this->assertCount(1, $ids);
+        $this->assertSame(
+            TabulationCode::IMPLANTADO,
+            collect($response->json('contratos_anteriores'))->firstWhere('id', $anterior->id)['status_codigo']
+        );
 
         $this->assertCount(1, $response->json('acessos'));
         $this->assertSame('ROFER', $response->json('acessos.0.nome'));
@@ -229,6 +260,13 @@ class ProcessosVendaTest extends TestCase
         $this->assertTrue($buscar('11.222.333/0001-99')->contains($a->id), 'Casa por CNPJ formatado (dígitos).');
         $this->assertTrue($buscar('PROP-777')->contains($a->id), 'Casa por nº de proposta.');
         $this->assertTrue($buscar('MERCADO')->contains($b->id));
+
+        $resultado = collect(
+            $this->actingAs($this->backoffice)
+                ->getJson(route('backoffice.processos.buscar', ['termo' => 'PADARIA']))
+                ->json('resultados')
+        )->firstWhere('id', $a->id);
+        $this->assertSame(TabulationCode::IMPLANTADO, $resultado['status_codigo']);
     }
 
     public function test_busca_casa_palavras_soltas_fora_de_ordem(): void
@@ -295,6 +333,90 @@ class ProcessosVendaTest extends TestCase
         $this->actingAs($userOutra)->getJson(route('backoffice.processos.dados', $venda->id))->assertStatus(404);
     }
 
+    public function test_falha_interna_ao_carregar_processos_nao_vaza_detalhes(): void
+    {
+        $venda = $this->criarContrato($this->backoffice->id);
+        $repository = Mockery::mock(ProcessoVendaRepositoryInterface::class);
+        $repository->shouldReceive('daVenda')
+            ->once()
+            ->with($venda->id, $this->empresa->id)
+            ->andThrow(new RuntimeException('SQLSTATE tabela_cliente_secreta'));
+        $this->app->instance(ProcessoVendaRepositoryInterface::class, $repository);
+
+        $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.processos.dados', $venda->id))
+            ->assertStatus(500)
+            ->assertJsonPath('message', 'Não foi possível carregar os processos neste momento.')
+            ->assertDontSee('SQLSTATE')
+            ->assertDontSee('tabela_cliente_secreta');
+    }
+
+    public function test_acesso_da_empresa_nao_pode_ser_alterado_ou_removido_por_outro_tenant(): void
+    {
+        $venda = $this->criarContrato($this->backoffice->id);
+        $acesso = AcessoEmpresa::create([
+            'venda_id' => $venda->id,
+            'email' => 'cliente@empresa.test',
+            'senha' => 'segredo-original',
+        ]);
+        $outraEmpresa = Empresa::factory()->create();
+        $usuarioExterno = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::ADMINISTRATIVO,
+            'ativo' => 'Y',
+        ]);
+
+        $this->actingAs($usuarioExterno)
+            ->putJson(route('backoffice.updateAcessoEmpresa', $acesso->id), [
+                'email' => 'invasor@empresa.test',
+                'senha' => 'senha-alterada',
+            ])
+            ->assertNotFound();
+
+        $this->deleteJson(route('backoffice.deleteAcessoEmpresa', $acesso->id))
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('acesso_empresas', [
+            'id' => $acesso->id,
+            'email' => 'cliente@empresa.test',
+            'senha' => 'segredo-original',
+        ]);
+    }
+
+    public function test_falha_ao_cadastrar_acesso_nao_expoe_excecao_interna(): void
+    {
+        $venda = $this->criarContrato($this->backoffice->id);
+        AcessoEmpresa::creating(fn () => throw new RuntimeException('SQLSTATE acesso_empresa_secreto'));
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.storeAcessoEmpresa'), [
+                'venda_id' => $venda->id,
+                'email' => 'cliente@empresa.test',
+                'senha' => 'senha-segura',
+            ])
+            ->assertStatus(500)
+            ->assertJsonPath('message', 'Não foi possível cadastrar o acesso neste momento.')
+            ->assertDontSee('SQLSTATE')
+            ->assertDontSee('acesso_empresa_secreto');
+    }
+
+    public function test_falha_ao_criar_demanda_nao_expoe_excecao_interna(): void
+    {
+        $venda = $this->criarContrato($this->backoffice->id);
+        VendaDemanda::creating(fn () => throw new RuntimeException('SQLSTATE demanda_tenant_secreta'));
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.storeDemandaContrato'), [
+                'venda_id' => $venda->id,
+                'tipo' => 'DOCUMENTACAO',
+                'titulo' => 'Conferir documentos',
+            ])
+            ->assertStatus(500)
+            ->assertJsonPath('message', 'Não foi possível criar a demanda neste momento.')
+            ->assertDontSee('SQLSTATE')
+            ->assertDontSee('demanda_tenant_secreta');
+    }
+
     public function test_atualizar_cancelamento_permitido_para_backoffice_nao_dono(): void
     {
         // O pós-venda atua em contratos sob custódia de terceiros — a trava por
@@ -351,11 +473,11 @@ class ProcessosVendaTest extends TestCase
         $this->actingAs($this->backoffice)
             ->postJson(route('backoffice.quickStatusChange'), [
                 'venda_id' => $venda->id,
-                'tabulacao_id' => Tabulations::VENDA,
+                'tabulacao_id' => $this->vendaTabulacaoId,
             ])
             ->assertStatus(403);
 
-        $this->assertSame(Tabulations::IMPLANTADO, (int) $venda->fresh()->tabulacao_id);
+        $this->assertSame($this->implantadoId, (int) $venda->fresh()->tabulacao_id);
     }
 
     public function test_emails_criados_crud_completo(): void
@@ -430,11 +552,6 @@ class ProcessosVendaTest extends TestCase
 
     public function test_cadastro_do_vendedor_gera_cancelamento_por_titular(): void
     {
-        DB::table('tabulacoes')->insert([
-            'id' => Tabulations::VENDA, 'empresa_id' => $this->empresa->id, 'descricao' => 'VENDA',
-            'tipo_tabulacao' => 'C', 'efetivo' => 'N', 'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
-        ]);
-
         $operadoraId = DB::table('operadoras')->insertGetId(['empresa_id' => $this->empresa->id, 'nome' => 'AMIL', 'created_at' => now(), 'updated_at' => now()]);
         $opAnteriorId = DB::table('operadoras')->insertGetId(['empresa_id' => $this->empresa->id, 'nome' => 'UNIMED', 'created_at' => now(), 'updated_at' => now()]);
         $planoId = DB::table('planos')->insertGetId(['empresa_id' => $this->empresa->id, 'operadora_id' => $operadoraId, 'nome' => 'Plano X', 'created_at' => now(), 'updated_at' => now()]);
@@ -442,23 +559,26 @@ class ProcessosVendaTest extends TestCase
 
         $this->actingAs($this->backoffice);
 
-        $venda = app(VendasRepositoryInterface::class)->create([
-            'contato_id' => $contatoId,
-            'nome_contrato' => 'ACME LTDA',
-            'cpf_cnpj' => '11222333000144',
-            'operadora_id' => $operadoraId,
-            'titulares' => [
-                ['nome' => 'Fulano', 'plano_id' => $planoId, 'plano_anterior' => 'SIM', 'operadora_anterior_id' => $opAnteriorId, 'precisa_cancelamento' => '1'],
-                ['nome' => 'Beltrano', 'plano_id' => $planoId, 'plano_anterior' => 'NAO'], // sem cancelamento
-            ],
-        ]);
+        $venda = app(TenantContext::class)->run(
+            $this->empresa->id,
+            fn () => app(VendasRepositoryInterface::class)->create([
+                'contato_id' => $contatoId,
+                'nome_contrato' => 'ACME LTDA',
+                'cpf_cnpj' => '11222333000144',
+                'operadora_id' => $operadoraId,
+                'titulares' => [
+                    ['nome' => 'Fulano', 'plano_id' => $planoId, 'plano_anterior' => 'SIM', 'operadora_anterior_id' => $opAnteriorId, 'precisa_cancelamento' => '1'],
+                    ['nome' => 'Beltrano', 'plano_id' => $planoId, 'plano_anterior' => 'NAO'], // sem cancelamento
+                ],
+            ]),
+        );
 
         $this->assertInstanceOf(Vendas::class, $venda);
 
         // Titular 1 gera cancelamento (origem VENDEDOR, fase SOLICITADO).
-        $cancel = VendaDemanda::where('venda_id', $venda->id)
+        $cancel = app(TenantContext::class)->run($this->empresa->id, fn () => VendaDemanda::where('venda_id', $venda->id)
             ->where('tipo', TipoDemandaContrato::CANCELAMENTO_OPERADORA_ANTERIOR->value)
-            ->get();
+            ->get());
         $this->assertCount(1, $cancel, 'Só o titular que precisa cancelar gera processo.');
         $this->assertSame('VENDEDOR', $cancel->first()->origem);
         $this->assertSame('SOLICITADO', $cancel->first()->meta['fase']);

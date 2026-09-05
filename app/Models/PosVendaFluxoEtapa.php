@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PosVendaFluxoEtapa extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'pos_venda_fluxo_etapas';
 
     protected $fillable = [

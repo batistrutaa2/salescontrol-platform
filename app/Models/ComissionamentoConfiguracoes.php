@@ -2,19 +2,25 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ValidatesTenantUserReferences;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class ComissionamentoConfiguracoes extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
     use HasFactory;
-    protected $table = "comissionamento_configuracao";
+    use ValidatesTenantUserReferences;
+
+    protected $table = 'comissionamento_configuracao';
+
     protected $fillable = [
         'id',
         'empresa_id',
         'user_id',
         'percentual',
+        'percentual_angariacao',
         'periodicidade',
         'imposto',
         'grade',
@@ -25,9 +31,19 @@ class ComissionamentoConfiguracoes extends Model
 
     protected $casts = [
         'percentual' => 'decimal:2',
+        'percentual_angariacao' => 'decimal:2',
         'imposto' => 'decimal:2',
         'salario' => 'decimal:2',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $configuracao): void {
+            if (self::shouldValidateTenantReference($configuracao, 'user_id')) {
+                self::assertTenantMember((int) $configuracao->empresa_id, $configuracao->user_id, 'configuração de comissão');
+            }
+        });
+    }
 
     public function user()
     {

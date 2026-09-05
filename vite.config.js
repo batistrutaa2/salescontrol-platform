@@ -76,12 +76,12 @@ export default defineConfig({
     libsWindowAssignment()
   ],
   server: {
-    // Escuta em todas as interfaces do container e usa porta fixa 5174
-    // (o bloo já usa 5173) para que o browser do host alcance o dev server.
+    // Escuta em todas as interfaces do container e usa uma porta exclusiva
+    // deste fork para que o browser do host alcance o dev server.
     // hmr.host = localhost faz o plugin anunciar localhost no hot file/HMR,
     // em vez de 0.0.0.0 (que o navegador não acessa).
     host: '0.0.0.0',
-    port: 5174,
+    port: 5176,
     strictPort: true,
     hmr: {
       host: 'localhost',

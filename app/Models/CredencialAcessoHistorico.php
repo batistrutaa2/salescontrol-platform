@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CredencialAcessoHistorico extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'credenciais_acesso_historico';
 
     public $timestamps = false;

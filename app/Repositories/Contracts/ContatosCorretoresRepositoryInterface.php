@@ -16,7 +16,7 @@ interface ContatosCorretoresRepositoryInterface
 
     public function getRemarketingLeads(string $empresa_id);
 
-    public function getTabulationId($idMailing);
+    public function getTabulationId(int $idMailing, ?int $empresaId = null, ?int $userId = null);
 
     public function transferContact(array $data);
 

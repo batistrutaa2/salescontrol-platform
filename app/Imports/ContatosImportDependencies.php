@@ -2,19 +2,21 @@
 
 namespace App\Imports;
 
+use App\Helpers\Helpers;
 use App\Models\Contatos;
 use App\Models\ContatosCorretores;
 use App\Models\Dependentes;
-use Maatwebsite\Excel\Concerns\ToModel;
-use App\Helpers\Helpers;
 use Illuminate\Support\Facades\Auth;
-
+use Maatwebsite\Excel\Concerns\ToModel;
 
 class ContatosImportDependencies implements ToModel
 {
     private $ultimoTitular = null;
+
     protected string $nome_base;
+
     protected string $tabulacao_id;
+
     protected string $user_id;
 
     public function __construct($nome_base, $tabulacao_id, $user_id)
@@ -38,9 +40,9 @@ class ContatosImportDependencies implements ToModel
         $categoria = (string) ($row[0] ?? null);
         $nome = (string) ($row[1] ?? null);
         $cpf = (string) ($row[2] ?? null);
-        $idade = $this->toInt($row[3] ?? null);              
+        $idade = $this->toInt($row[3] ?? null);
         $parentesco = strtoupper((string) ($row[4] ?? ''));
-        $valorPlano = $this->toDecimal($row[5] ?? null);     
+        $valorPlano = $this->toDecimal($row[5] ?? null);
         $entidade = (string) ($row[6] ?? null);
 
         if ($parentesco === 'TITULAR') {
@@ -48,7 +50,7 @@ class ContatosImportDependencies implements ToModel
 
             $this->ultimoTitular = Contatos::create([
                 'id_operacao' => $uniqueIdBase,
-                'empresa_id' => Auth::user()->empresa_id,
+                'empresa_id' => app(\App\Support\TenantContext::class)->id(),
                 'user_import_id' => Auth::user()->id,
                 'tipo_layout' => 'com_dependentes',
                 'nome_base' => $this->nome_base,
@@ -61,7 +63,7 @@ class ContatosImportDependencies implements ToModel
             ]);
 
             ContatosCorretores::create([
-                'empresa_id' => Auth::user()->empresa_id,
+                'empresa_id' => app(\App\Support\TenantContext::class)->id(),
                 'contato_id' => $this->ultimoTitular->id,
                 'user_id' => $this->user_id,
                 'tabulacao_id' => $this->tabulacao_id,
@@ -69,13 +71,13 @@ class ContatosImportDependencies implements ToModel
             ]);
         } elseif ($this->ultimoTitular) {
             Dependentes::create([
-                'empresa_id' => Auth::user()->empresa_id,
+                'empresa_id' => app(\App\Support\TenantContext::class)->id(),
                 'contato_id' => $this->ultimoTitular->id,
                 'nome' => $nome,
                 'cpf' => $cpf,
                 'idade' => $idade,
                 'parentesco' => $parentesco,
-                'valor_plano' => $valorPlano,        
+                'valor_plano' => $valorPlano,
             ]);
         }
 
@@ -87,15 +89,17 @@ class ContatosImportDependencies implements ToModel
      */
     private function toDecimal($value): ?float
     {
-        if ($value === null)
+        if ($value === null) {
             return null;
+        }
         if (is_int($value) || is_float($value)) {
             return round((float) $value, 2);
         }
 
         $s = trim((string) $value);
-        if ($s === '')
+        if ($s === '') {
             return null;
+        }
 
         // Remove moeda, espaços e qualquer coisa que não seja dígito, vírgula, ponto ou sinal
         $s = preg_replace('/[^\d,.\-]/', '', $s);
@@ -125,12 +129,14 @@ class ContatosImportDependencies implements ToModel
             $parts = explode('.', $s);
             if (count($parts) > 2) {
                 $last = array_pop($parts);
-                $s = implode('', $parts) . '.' . $last;
+                $s = implode('', $parts).'.'.$last;
             }
         }
 
-        if (!is_numeric($s))
+        if (! is_numeric($s)) {
             return null;
+        }
+
         return round((float) $s, 2);
     }
 
@@ -139,13 +145,15 @@ class ContatosImportDependencies implements ToModel
      */
     private function toInt($value): ?int
     {
-        if ($value === null)
+        if ($value === null) {
             return null;
-        if (is_int($value))
+        }
+        if (is_int($value)) {
             return $value;
+        }
 
         $s = preg_replace('/\D+/', '', (string) $value);
+
         return $s === '' ? null : (int) $s;
     }
-
 }

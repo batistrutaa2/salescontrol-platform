@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Vendas;
 use App\Services\Documentos\NomeDocumentoService;
 use App\Services\Documentos\VendaDocumentoPermissionPolicy;
+use App\Support\TenantContext;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,24 @@ class RealinharDiretorioVendaDocumentos extends Command
 
     public function handle(NomeDocumentoService $nomes, VendaDocumentoPermissionPolicy $permissions): int
     {
-        $venda = Vendas::with(['operadoraRelation', 'documentos'])->find((int) $this->argument('venda'));
+        $vendaId = (int) $this->argument('venda');
+        $empresaId = Vendas::withoutGlobalScope('tenant')->whereKey($vendaId)->value('empresa_id');
+
+        if ($empresaId === null) {
+            $this->error('Venda não encontrada.');
+
+            return self::FAILURE;
+        }
+
+        return app(TenantContext::class)->run(
+            (int) $empresaId,
+            fn () => $this->realinhar($vendaId, $nomes, $permissions),
+        );
+    }
+
+    private function realinhar(int $vendaId, NomeDocumentoService $nomes, VendaDocumentoPermissionPolicy $permissions): int
+    {
+        $venda = Vendas::with(['operadoraRelation', 'documentos'])->find($vendaId);
         if (! $venda) {
             $this->error('Venda não encontrada.');
 

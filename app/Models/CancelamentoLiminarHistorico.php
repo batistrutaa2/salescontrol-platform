@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class CancelamentoLiminarHistorico extends Model
 {
+    use \App\Models\Concerns\BelongsToTenantThrough;
+
     protected $table = 'cancelamentos_liminares_historico';
 
     protected $fillable = [

@@ -514,22 +514,7 @@
   let bvModoSelecionado = 'padrao';
   let bvTitulares = [];
   let bvVendaInfo = {};
-
-  // Links dos apps por operadora (adicione novas operadoras conforme necessário)
-  const LINKS_APP_OPERADORAS = {
-    amil: {
-      ios:     'https://apps.apple.com/br/app/amil-clientes/id471890526',
-      android: 'https://play.google.com/store/apps/details?id=br.com.amil.beneficiarios&hl=pt_BR',
-    },
-  };
-
-  function getLinksAppPorOperadora(operadora) {
-    const key = operadora.toLowerCase().trim();
-    for (const [nome, links] of Object.entries(LINKS_APP_OPERADORAS)) {
-      if (key.includes(nome)) return links;
-    }
-    return { ios: '', android: '' };
-  }
+  let bvNomeEmpresa = 'SalesControl';
 
   // Abre o modal de Boas Vindas e carrega dados via API
   async function openBoasVindas(vendaId) {
@@ -550,6 +535,7 @@
 
       bvVendaInfo = data.venda;
       bvTitulares = data.titulares || [];
+      bvNomeEmpresa = data.nome_empresa || 'SalesControl';
 
       document.getElementById('bv-contrato-nome').textContent = data.venda.nome_contrato || '-';
       document.getElementById('bv-operadora').textContent = data.venda.operadora || '-';
@@ -557,7 +543,7 @@
       document.getElementById('bv-data-implantacao').textContent = data.venda.data_implantacao || '-';
 
       // Pré-preencher links do app conforme operadora
-      const linksApp = getLinksAppPorOperadora(data.venda.operadora || '');
+      const linksApp = data.venda.app_links || { ios: '', android: '' };
       document.getElementById('bv-link-ios').value = linksApp.ios;
       document.getElementById('bv-link-android').value = linksApp.android;
 
@@ -713,7 +699,7 @@
     });
 
     let msg = `Olá, *${nomeContrato}* 👋\n\n`;
-    msg += `Sejam muito bem-vindos à *LK Brokers Consultoria de Seguros*!\n\n`;
+    msg += `Sejam muito bem-vindos à *${bvNomeEmpresa}*!\n\n`;
     msg += `É uma satisfação tê-los como nossos clientes. Agradecemos pela confiança e reforçamos que, a partir de agora, vocês contam com o nosso Concierge de Pós-Vendas, um atendimento dedicado para oferecer suporte durante toda a utilização do plano de saúde.\n\n`;
     msg += `*📋 Beneficiários e Matrículas*${linhasBen || '\n(preencha os campos acima)'}\n\n`;
 
@@ -744,7 +730,7 @@
     msg += `* Suporte em solicitações junto à operadora.\n\n`;
     msg += `Nosso compromisso é proporcionar uma experiência tranquila, ágil e segura durante toda a vigência do plano.\n\n`;
     msg += `Conte conosco sempre que precisar. Será um prazer atendê-los!\n\n`;
-    msg += `*Equipe LK Brokers | Concierge de Pós-Vendas*\n\n`;
+    msg += `*Equipe ${bvNomeEmpresa} | Concierge de Pós-Vendas*\n\n`;
     msg += `🤝 Seu plano de saúde com acompanhamento de quem realmente cuida de você`;
 
     document.getElementById('bv-preview-padrao').value = msg;
@@ -1450,6 +1436,7 @@
 
     try {
       const response = await fetch(`/back-office/deletar-contrato/${vendaId}`, {
+        method: 'DELETE',
         headers: {
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
           'Accept': 'application/json'

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VendaTitular extends Model
 {
+    use \App\Models\Concerns\BelongsToTenantThrough;
     use HasFactory;
 
     protected $table = 'vendas_titulares';

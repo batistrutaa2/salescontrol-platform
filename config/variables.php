@@ -1,13 +1,13 @@
 <?php
 // Variables
 return [
-  "creatorName" => "Brsolutions",
-  "creatorUrl" => "https://brsolution.tech",
-  "templateName" => "L & K",
-  "templateSuffix" => "Gestão de clientes e mailing para corretores",
+  "creatorName" => env('PLATFORM_CREATOR_NAME', 'BR Solutions'),
+  "creatorUrl" => env('PLATFORM_CREATOR_URL', '#'),
+  "templateName" => env('PLATFORM_NAME', 'SalesControl'),
+  "templateSuffix" => "Gestão comercial para corretoras",
   "templateVersion" => "2.0.0",
   "templateFree" => false,
-  "templateDescription" => "Controle seus leads e corretores através dessa plataforma incrivel.",
+  "templateDescription" => "Organize leads, propostas e relacionamentos comerciais em uma única plataforma.",
   "templateKeyword" => "",
   "licenseUrl" => "#",
   "livePreview" => "#",

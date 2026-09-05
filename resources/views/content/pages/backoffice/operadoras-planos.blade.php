@@ -34,6 +34,15 @@
             <form class="op-form" id="op-form" hidden autocomplete="off">
                 <label for="op-nome">Nome da operadora</label>
                 <input type="text" class="op-input" id="op-nome" placeholder="Nome da operadora" maxlength="120" required>
+                <label for="op-coparticipacao-formato">Formato de coparticipação</label>
+                <select class="op-input" id="op-coparticipacao-formato">
+                    <option value="SIM_NAO">Sim / Não</option>
+                    <option value="PARCIAL_COMPLETA">Parcial / Completa</option>
+                </select>
+                <label class="op-check" for="op-angariacao-padrao">
+                    <input type="checkbox" id="op-angariacao-padrao">
+                    <span>Ativar angariação por padrão nas novas vendas</span>
+                </label>
                 <div class="op-form-row">
                     <label class="visually-hidden" for="op-status">Status da operadora</label>
                     <select class="op-input" id="op-status">

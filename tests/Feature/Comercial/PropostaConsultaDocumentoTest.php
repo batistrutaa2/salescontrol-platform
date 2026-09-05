@@ -2,17 +2,31 @@
 
 namespace Tests\Feature\Comercial;
 
+use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
-use App\Modules\LkBeneficios\Services\LemitService;
 use App\Services\Comercial\PropostaEnriquecimentoService;
+use App\Services\Enrichment\LemitService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Mockery;
 use Tests\TestCase;
 
 class PropostaConsultaDocumentoTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        DB::table('user_roles')->insert([
+            'id' => UserRole::VENDEDOR,
+            'tipo_usuario' => 'VENDEDOR',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
 
     public function test_exige_autenticacao(): void
     {
@@ -26,7 +40,10 @@ class PropostaConsultaDocumentoTest extends TestCase
         $service->shouldNotReceive('consultar');
         $this->app->instance(PropostaEnriquecimentoService::class, $service);
 
-        $user = User::factory()->create(['empresa_id' => Empresa::factory()->create()->id]);
+        $user = User::factory()->create([
+            'empresa_id' => Empresa::factory()->create()->id,
+            'user_role_id' => UserRole::VENDEDOR,
+        ]);
         $this->actingAs($user)->postJson(route('comercial.proposta.consultaDocumento'), ['documento' => '11111111111'])
             ->assertUnprocessable()->assertJsonValidationErrors('documento');
     }
@@ -40,7 +57,10 @@ class PropostaConsultaDocumentoTest extends TestCase
         ]);
         $this->app->instance(PropostaEnriquecimentoService::class, $service);
 
-        $user = User::factory()->create(['empresa_id' => Empresa::factory()->create()->id]);
+        $user = User::factory()->create([
+            'empresa_id' => Empresa::factory()->create()->id,
+            'user_role_id' => UserRole::VENDEDOR,
+        ]);
         $this->actingAs($user)->postJson(route('comercial.proposta.consultaDocumento'), ['documento' => '11144477735'])
             ->assertOk()->assertExactJson([
                 'encontrado' => true,
@@ -67,7 +87,10 @@ class PropostaConsultaDocumentoTest extends TestCase
         ]);
         $this->app->instance(LemitService::class, $lemit);
 
-        $user = User::factory()->create(['empresa_id' => Empresa::factory()->create()->id]);
+        $user = User::factory()->create([
+            'empresa_id' => Empresa::factory()->create()->id,
+            'user_role_id' => UserRole::VENDEDOR,
+        ]);
         $this->actingAs($user)
             ->postJson(route('comercial.proposta.consultaDocumento'), ['documento' => '11144477735'])
             ->assertOk()

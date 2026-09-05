@@ -31,10 +31,10 @@
     <div id="pgmts-root"
         data-url="{{ route('comissionamento.pagamentos.data') }}"
         data-pdf-base="{{ route('comissionamento.pagamento.pdf', ['pagamento' => 'PAYMENT_ID']) }}"
-        data-estornar-url="{{ route('comissionamento.pagamentos.estornar', ['id' => 'PAYMENT_ID']) }}"
+        data-estornar-url="{{ $podeGerenciarPagamentos ? route('comissionamento.pagamentos.estornar', ['id' => 'PAYMENT_ID']) : '' }}"
         data-contas-base="{{ route('contas.byUser') }}?user_id=USER_ID"
-        data-pagar-base="{{ route('comissao.pagar', ['id' => 'PAYMENT_ID']) }}"
-        data-role="{{ (string) auth()->user()->user_role_id }}">
+        data-pagar-base="{{ $podeGerenciarPagamentos ? route('comissao.pagar', ['id' => 'PAYMENT_ID']) : '' }}"
+        data-can-manage-payments="{{ $podeGerenciarPagamentos ? '1' : '0' }}">
     </div>
 
     {{-- Header Section --}}

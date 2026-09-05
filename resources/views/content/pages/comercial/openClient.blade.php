@@ -75,10 +75,6 @@
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     Consultar
                 </button>
-                <button type="button" class="oc-btn oc-btn-outline" data-bs-toggle="modal" data-bs-target="#modalcomments">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                    Legado
-                </button>
                 <button type="button" class="oc-btn oc-btn-success" data-bs-toggle="modal" data-bs-target="#scheduleModal">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                     Agendar
@@ -568,28 +564,6 @@
     {{-- ============================================ --}}
     {{-- MODAIS - Mantidas intactas --}}
     {{-- ============================================ --}}
-
-    {{-- Modal Anotacoes Legado --}}
-    <div class="modal-onboarding modal fade animate__animated" id="modalcomments" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content text-center">
-                <div class="modal-header border-0">
-                    <a class="text-muted close-label" href="javascript:void(0);" data-bs-dismiss="modal">Anotacoes Sistema (LEGADO)</a>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body onboarding-horizontal p-0">
-                    <div class="card col-10 p-5 m-5">
-                        <div class="card-body mt-3">
-                            <ul class="timeline pb-0 mb-0" id="timeline-list"></ul>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     {{-- Modal Descartar Lead --}}
     <div class="modal fade" id="discardModal" tabindex="-1" aria-labelledby="discardModalLabel" aria-hidden="true">

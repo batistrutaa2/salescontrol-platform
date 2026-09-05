@@ -4,19 +4,34 @@ namespace App\Console\Commands;
 
 use App\Models\VendaDocumento;
 use App\Services\Documentos\VendaDocumentoPermissionPolicy;
+use App\Support\TenantContext;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class RepararPermissoesVendaDocumentos extends Command
 {
     protected $signature = 'documentos:reparar-permissoes
+        {empresa_id : ID da empresa cujos documentos serão auditados}
         {--apply : Aplica o modo 0660 aos arquivos remotos encontrados}
         {--limit=5000 : Quantidade máxima de registros por execução}';
 
     protected $description = 'Audita ou reaplica a permissão colaborativa nos documentos remotos de propostas';
 
     public function handle(VendaDocumentoPermissionPolicy $permissions): int
+    {
+        $empresaId = (int) $this->argument('empresa_id');
+        if (! DB::table('empresas')->where('id', $empresaId)->exists()) {
+            $this->error('Empresa inválida.');
+
+            return self::FAILURE;
+        }
+
+        return app(TenantContext::class)->run($empresaId, fn () => $this->repair($permissions));
+    }
+
+    private function repair(VendaDocumentoPermissionPolicy $permissions): int
     {
         $root = trim((string) config('documentos.root'), '/');
         $limit = max(1, min(50000, (int) $this->option('limit')));

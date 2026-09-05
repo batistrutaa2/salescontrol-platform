@@ -2,6 +2,7 @@
 
 namespace App\UseCases;
 
+use App\Exceptions\EvolutionApiException;
 use App\Models\User;
 use App\Models\WhatsappInstancia;
 use App\Repositories\Contracts\WhatsappInstanciaRepositoryInterface;
@@ -21,10 +22,10 @@ class WhatsappConexaoUseCase
      */
     public function conectar(User $user): array
     {
-        $instancia = $this->instanciaRepository->findByUser($user->empresa_id, $user->id);
+        $instancia = $this->instanciaRepository->findByUser(app(\App\Support\TenantContext::class)->id(), $user->id);
 
         if (! $instancia) {
-            $instancia = $this->instanciaRepository->createForUser($user->empresa_id, $user->id);
+            $instancia = $this->instanciaRepository->createForUser(app(\App\Support\TenantContext::class)->id(), $user->id);
             $this->criarInstanciaEvolution($instancia);
         }
 
@@ -66,7 +67,7 @@ class WhatsappConexaoUseCase
      */
     public function qrAtual(User $user): ?string
     {
-        $instancia = $this->instanciaRepository->findByUser($user->empresa_id, $user->id);
+        $instancia = $this->instanciaRepository->findByUser(app(\App\Support\TenantContext::class)->id(), $user->id);
 
         if (! $instancia || $instancia->status === 'CONECTADA') {
             return null;
@@ -83,7 +84,7 @@ class WhatsappConexaoUseCase
 
     public function status(User $user): array
     {
-        $instancia = $this->instanciaRepository->findByUser($user->empresa_id, $user->id);
+        $instancia = $this->instanciaRepository->findByUser(app(\App\Support\TenantContext::class)->id(), $user->id);
 
         if (! $instancia) {
             return ['status' => 'SEM_INSTANCIA', 'numero_conectado' => null];
@@ -119,7 +120,7 @@ class WhatsappConexaoUseCase
 
     public function desconectar(User $user): void
     {
-        $instancia = $this->instanciaRepository->findByUser($user->empresa_id, $user->id);
+        $instancia = $this->instanciaRepository->findByUser(app(\App\Support\TenantContext::class)->id(), $user->id);
 
         if (! $instancia) {
             return;
@@ -153,7 +154,7 @@ class WhatsappConexaoUseCase
             ]);
         } catch (\Throwable $e) {
             // Instância já existe na Evolution — garante o webhook atualizado
-            if (str_contains($e->getMessage(), '403') || str_contains($e->getMessage(), 'already')) {
+            if ($e instanceof EvolutionApiException && $e->status === 403) {
                 $this->evolution->setWebhook($instancia->instance_name, $webhookUrl);
 
                 return;

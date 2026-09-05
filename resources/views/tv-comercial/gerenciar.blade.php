@@ -25,17 +25,50 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">TV Comercial</h5>
                 <div>
-                    <a href="#" id="btn-copiar-url" class="btn btn-sm btn-info">
+                    <button type="button" id="btn-regenerar-url" class="btn btn-sm btn-warning">
+                        <i class="bx bx-refresh me-1"></i> {{ $tvUrl ? 'Revogar e gerar nova URL' : 'Gerar URL da TV' }}
+                    </button>
+                    <button type="button" id="btn-copiar-url" class="btn btn-sm btn-info" @disabled(!$tvUrl)>
                         <i class="bx bx-copy me-1"></i> Copiar URL da TV
-                    </a>
+                    </button>
                 </div>
             </div>
             <div class="card-body">
                 <div class="alert alert-info mb-4">
                     <strong>URL para TV:</strong>
-                    <code id="url-tv">{{ url('/tv-comercial/painel?empresa_id=' . auth()->user()->empresa_id) }}</code>
+                    <code id="url-tv">{{ $tvUrl ?? 'Nenhum acesso público gerado' }}</code>
                     <br>
                     <small>Abra esta URL no navegador da TV para exibir o painel. Os dados serão atualizados automaticamente a cada 30 segundos.</small>
+                </div>
+
+                <div class="card border mb-4">
+                    <div class="card-body">
+                        <form id="form-configuracao-tv" class="row g-3 align-items-end">
+                            <div class="col-lg-6">
+                                <h6 class="mb-1">Faixas de progresso desta empresa</h6>
+                                <p class="text-muted mb-0">Defina quando o progresso muda de crítico para atenção e de atenção para bom. A conclusão permanece em 100%.</p>
+                            </div>
+                            <div class="col-sm-4 col-lg-2">
+                                <label for="percentual-atencao" class="form-label">Atenção a partir de</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="percentual-atencao" min="0" max="98"
+                                           value="{{ $configuracaoTv['percentual_atencao'] }}" required>
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-4 col-lg-2">
+                                <label for="percentual-bom" class="form-label">Bom a partir de</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="percentual-bom" min="1" max="99"
+                                           value="{{ $configuracaoTv['percentual_bom'] }}" required>
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-4 col-lg-2">
+                                <button type="submit" class="btn btn-primary w-100">Salvar faixas</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- Tabs -->
@@ -212,6 +245,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Variáveis globais
     let chartRanking = null;
     let cardColor, labelColor, headingColor, borderColor;
+    let percentualAtencao = @json($configuracaoTv['percentual_atencao']);
+    let percentualBom = @json($configuracaoTv['percentual_bom']);
+    const escapeHtml = value => {
+        const element = document.createElement('div');
+        element.textContent = value ?? '';
+        return element.innerHTML;
+    };
 
     // Configurar cores baseado no tema
     if (typeof isDarkStyle !== 'undefined' && isDarkStyle) {
@@ -238,6 +278,41 @@ document.addEventListener('DOMContentLoaded', function() {
         allowClear: true
     });
 
+    document.getElementById('form-configuracao-tv').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        fetch(@json(route('tv-comercial.atualizar-configuracao')), {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                percentual_atencao: Number(document.getElementById('percentual-atencao').value),
+                percentual_bom: Number(document.getElementById('percentual-bom').value)
+            })
+        })
+        .then(async response => {
+            const result = await response.json();
+            if (!response.ok) throw result;
+            return result;
+        })
+        .then(result => {
+            percentualAtencao = result.configuracao.percentual_atencao;
+            percentualBom = result.configuracao.percentual_bom;
+            preencherMetas([]);
+            carregarMetas();
+            toastr.success(result.message);
+        })
+        .catch(result => {
+            const message = result?.errors?.percentual_bom?.[0]
+                ?? result?.errors?.percentual_atencao?.[0]
+                ?? 'Não foi possível atualizar as faixas.';
+            toastr.error(message);
+        });
+    });
+
     // Converter data brasileira para formato backend
     function converterDataParaBackend(dataBrasileira) {
         if (!dataBrasileira) return '';
@@ -258,6 +333,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    document.getElementById('btn-regenerar-url').addEventListener('click', function() {
+        if (document.getElementById('url-tv').textContent.startsWith('http')
+            && !confirm('A URL atual deixará de funcionar. Deseja gerar uma nova?')) {
+            return;
+        }
+
+        fetch('/tv-comercial/regenerar-acesso', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        })
+        .then(response => response.ok ? response.json() : Promise.reject(response))
+        .then(result => {
+            document.getElementById('url-tv').textContent = result.url;
+            document.getElementById('btn-copiar-url').disabled = false;
+            document.getElementById('btn-regenerar-url').innerHTML = '<i class="bx bx-refresh me-1"></i> Revogar e gerar nova URL';
+            toastr.success(result.message);
+        })
+        .catch(() => toastr.error('Não foi possível gerar o acesso da TV.'));
+    });
+
     // ========================
     // TAB 1: GERENCIAR METAS
     // ========================
@@ -275,6 +373,8 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/tv-comercial/listar-metas?data=${dataBackend}`)
             .then(response => response.json())
             .then(result => {
+                percentualAtencao = result.configuracao.percentual_atencao;
+                percentualBom = result.configuracao.percentual_bom;
                 preencherMetas(result.data);
             })
             .catch(error => {
@@ -304,11 +404,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let progressClass = 'bg-danger';
             if (percentual >= 100) progressClass = 'bg-success';
-            else if (percentual >= 75) progressClass = 'bg-info';
-            else if (percentual >= 50) progressClass = 'bg-warning';
+            else if (percentual >= percentualBom) progressClass = 'bg-info';
+            else if (percentual >= percentualAtencao) progressClass = 'bg-warning';
 
             tr.innerHTML = `
-                <td><strong>${meta.vendedor}</strong></td>
+                <td><strong>${escapeHtml(meta.vendedor)}</strong></td>
                 <td class="text-center">
                     <input type="number"
                            class="form-control form-control-sm input-meta"
@@ -335,8 +435,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-danger btn-deletar" data-meta-id="${meta.id}">
-                        <i class="bx bx-trash"></i>
+                    <button type="button" class="btn btn-sm btn-danger btn-deletar" data-meta-id="${meta.id}"
+                            aria-label="Excluir meta de ${escapeHtml(meta.vendedor)}">
+                        <i class="bx bx-trash" aria-hidden="true"></i>
                     </button>
                 </td>
             `;
@@ -567,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             tr.innerHTML = `
                 <td class="text-center">${medalha}${index + 1}º</td>
-                <td><strong>${item.vendedor}</strong></td>
+                <td><strong>${escapeHtml(item.vendedor)}</strong></td>
                 <td class="text-center"><span class="badge bg-primary">${item.total}</span></td>
             `;
             tbody.appendChild(tr);

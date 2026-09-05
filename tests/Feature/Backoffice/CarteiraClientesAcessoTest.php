@@ -2,11 +2,12 @@
 
 namespace Tests\Feature\Backoffice;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\TipoDemandaContrato;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
+use App\Services\TabulationCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -21,6 +22,8 @@ class CarteiraClientesAcessoTest extends TestCase
 
     private Empresa $empresa;
 
+    private int $implantadoId;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -34,6 +37,9 @@ class CarteiraClientesAcessoTest extends TestCase
         ]);
 
         $this->empresa = Empresa::factory()->create();
+        $catalog = app(TabulationCatalog::class);
+        $catalog->provision($this->empresa->id);
+        $this->implantadoId = $catalog->id($this->empresa->id, TabulationCode::IMPLANTADO);
     }
 
     private function user(int $roleId): User
@@ -73,17 +79,6 @@ class CarteiraClientesAcessoTest extends TestCase
         $admin = $this->user(UserRole::ADMINISTRATIVO);
         $backoffice = $this->user(UserRole::BACKOFFICE);
         $vendedor = $this->user(UserRole::VENDEDOR);
-
-        DB::table('tabulacoes')->insert([
-            'id' => Tabulations::IMPLANTADO,
-            'empresa_id' => $this->empresa->id,
-            'descricao' => 'IMPLANTADO',
-            'tipo_tabulacao' => 'A',
-            'efetivo' => 'Y',
-            'status' => 'Y',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
 
         $contatoId = DB::table('contatos')->insertGetId([
             'empresa_id' => $this->empresa->id,
@@ -147,6 +142,57 @@ class CarteiraClientesAcessoTest extends TestCase
         ]))->assertOk()->assertJsonCount(2, 'clientes');
     }
 
+    public function test_relacionamentos_inconsistentes_de_outro_tenant_nao_vazam_na_carteira(): void
+    {
+        $admin = $this->user(UserRole::ADMINISTRATIVO);
+        $vendedor = $this->user(UserRole::VENDEDOR);
+        $outraEmpresa = Empresa::factory()->create();
+        $backofficeExterno = User::factory()->create([
+            'empresa_id' => $outraEmpresa->id,
+            'user_role_id' => UserRole::BACKOFFICE,
+            'ativo' => 'Y',
+        ]);
+        $contatoId = DB::table('contatos')->insertGetId([
+            'empresa_id' => $this->empresa->id,
+            'user_import_id' => $vendedor->id,
+            'nome_cliente' => 'Cliente com relação inconsistente',
+            'cpf' => '98765432100',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $vendaId = $this->criarVendaImplantada(
+            $vendedor,
+            $backofficeExterno,
+            $contatoId,
+            now()->subDay(),
+            '77.888.999/0001-00'
+        );
+        DB::table('venda_demandas')->insert([
+            'venda_id' => $vendaId,
+            'empresa_id' => $outraEmpresa->id,
+            'created_by' => $backofficeExterno->id,
+            'origem' => 'BACKOFFICE',
+            'tipo' => TipoDemandaContrato::CANCELAMENTO->value,
+            'titulo' => 'Demanda externa inconsistente',
+            'status' => 'PENDENTE',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->getJson(route('backoffice.getCarteiraClientesData', [
+            'visao' => 'recentes',
+            'periodo' => 30,
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('contratos.0.id', $vendaId)
+            ->assertJsonPath('contratos.0.backoffice', 'Sem responsável')
+            ->assertJsonPath('contratos.0.cancelamentos_pendentes', 0)
+            ->assertJsonPath('kpis.cancelamentos', 0);
+        $response->assertDontSee($backofficeExterno->name);
+        $response->assertDontSee('Demanda externa inconsistente');
+    }
+
     public function test_demais_papeis_recebem_403(): void
     {
         foreach ([UserRole::VENDEDOR, UserRole::SUPERVISOR] as $role) {
@@ -168,7 +214,7 @@ class CarteiraClientesAcessoTest extends TestCase
             'user_id' => $vendedor->id,
             'backoffice_id' => $backoffice->id,
             'contato_id' => $contatoId,
-            'tabulacao_id' => Tabulations::IMPLANTADO,
+            'tabulacao_id' => $this->implantadoId,
             'nome_contrato' => 'Empresa '.$cnpj,
             'cpf_cnpj' => $cnpj,
             'numero_proposta' => 'PROP-'.$cnpj,

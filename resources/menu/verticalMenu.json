@@ -20,13 +20,12 @@
         "ADMINISTRATIVO",
         "BACKOFFICE",
         "DEVELOPER",
-        "SUPERVISOR",
-        "BENEFICIOS"
+        "SUPERVISOR"
       ]
     },
     {
       "url": "/escola",
-      "name": "Escola LK Brokers",
+      "name": "Academia Comercial",
       "icon": "menu-icon tf-icons ri-graduation-cap-line",
       "slug": "escola.index",
       "gate": "escola",
@@ -35,8 +34,7 @@
         "ADMINISTRATIVO",
         "BACKOFFICE",
         "DEVELOPER",
-        "SUPERVISOR",
-        "BENEFICIOS"
+        "SUPERVISOR"
       ]
     },
     {
@@ -134,7 +132,29 @@
       "url": "/empresas",
       "name": "Cadastro de Empresas",
       "icon": "menu-icon tf-icons ri-briefcase-line",
-      "slug": "pages-usuarios",
+      "slug": "empresa.empresa",
+      "gate": "platform_admin",
+      "tenantOptional": true,
+      "rules": [
+        "DEVELOPER"
+      ]
+    },
+    {
+      "url": "/configuracoes/funis",
+      "name": "Configurar Funis",
+      "icon": "menu-icon tf-icons ri-flow-chart",
+      "slug": "manager.funis.index",
+      "rules": [
+        "DEVELOPER",
+        "ADMINISTRATIVO"
+      ]
+    },
+    {
+      "url": "/configuracoes/integracoes",
+      "name": "Integrações por empresa",
+      "icon": "menu-icon tf-icons ri-plug-2-line",
+      "slug": "manager.integrations.index",
+      "gate": "platform_admin",
       "rules": [
         "DEVELOPER"
       ]
@@ -225,21 +245,6 @@
         {
           "url": "/usuarios",
           "name": "Cadastro de Usuarios",
-          "slug": "pages-mailing-importar"
-        }
-      ]
-    },
-    {
-      "name": "Ranking de Vendas",
-      "icon": "menu-icon tf-icons ri-trophy-line",
-      "slug": "dashboard",
-      "rules": [
-        "DEVELOPER"
-      ],
-      "submenu": [
-        {
-          "url": "/ranking",
-          "name": "Metas de Vendas",
           "slug": "pages-mailing-importar"
         }
       ]
@@ -432,11 +437,6 @@
           "url": "/mailing/visualizar-leads",
           "name": "Visualizar Leads",
           "slug": "pages-mailing-importar"
-        },
-        {
-          "url": "/mailing/visualizar-leads-legacy",
-          "name": "contatos legados - (LEGADO)",
-          "slug": "pages-mailing-importar-legado"
         },
         {
           "url": "/comercial/criar-cliente",

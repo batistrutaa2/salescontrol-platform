@@ -5,6 +5,7 @@ namespace Tests\Feature\Backoffice;
 use App\Enums\UserRole;
 use App\Mail\BoasVindasMail;
 use App\Models\Empresa;
+use App\Models\Operadora;
 use App\Models\User;
 use App\Models\Vendas;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -129,7 +130,7 @@ class BoasVindasTest extends TestCase
         ]);
     }
 
-    public function test_emails_de_boas_vindas_colocam_vendedor_e_implantacao_em_copia(): void
+    public function test_emails_de_boas_vindas_colocam_somente_o_vendedor_em_copia(): void
     {
         Mail::fake();
 
@@ -137,7 +138,7 @@ class BoasVindasTest extends TestCase
             'empresa_id' => $this->user->empresa_id,
             'user_role_id' => UserRole::ADMINISTRATIVO,
             'ativo' => 'Y',
-            'email' => 'vendedor@lkbrokers.com',
+            'email' => 'vendedor@corretora.test',
         ]);
         $venda = $this->criarVenda(['user_id' => $vendedor->id]);
 
@@ -158,8 +159,8 @@ class BoasVindasTest extends TestCase
         foreach (['cliente@example.com', 'dependente@example.com'] as $destinatario) {
             Mail::assertSent(BoasVindasMail::class, function (BoasVindasMail $mail) use ($destinatario) {
                 return $mail->hasTo($destinatario)
-                    && $mail->hasCc('vendedor@lkbrokers.com')
-                    && $mail->hasCc('implantacao@lkbrokers.com');
+                    && $mail->hasCc('vendedor@corretora.test')
+                    && ! $mail->hasCc('implantacao@lkbrokers.com');
             });
         }
     }
@@ -214,5 +215,45 @@ class BoasVindasTest extends TestCase
             ->assertJsonPath('venda.boas_vindas_enviado', true)
             ->assertJsonPath('venda.boas_vindas_enviado_em', now()->setTime(14, 32)->format('d/m/Y H:i'))
             ->assertJsonPath('venda.boas_vindas_enviado_por', $this->user->name);
+    }
+
+    public function test_endpoint_retorna_links_configurados_sem_inferir_nome_da_operadora(): void
+    {
+        $operadora = Operadora::create([
+            'empresa_id' => $this->user->empresa_id,
+            'nome' => 'OPERADORA PERSONALIZADA',
+            'status' => 'Y',
+            'app_ios_url' => 'https://apps.apple.com/app/id987654',
+            'app_android_url' => 'https://play.google.com/store/apps/details?id=tenant.app',
+        ]);
+        $venda = $this->criarVenda([
+            'operadora_id' => $operadora->id,
+            'operadora' => 'TEXTO ANTIGO DIFERENTE',
+        ]);
+
+        $this->actingAs($this->user)
+            ->getJson(route('backoffice.getBeneficiariosParaBoasVindas', $venda->id))
+            ->assertOk()
+            ->assertJsonPath('venda.app_links.ios', $operadora->app_ios_url)
+            ->assertJsonPath('venda.app_links.android', $operadora->app_android_url);
+    }
+
+    public function test_endpoint_nao_expoe_links_de_operadora_de_outro_tenant_em_vinculo_adulterado(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        $operadoraExterna = Operadora::create([
+            'empresa_id' => $outraEmpresa->id,
+            'nome' => 'OPERADORA EXTERNA',
+            'status' => 'Y',
+            'app_ios_url' => 'https://secret.example.test/ios',
+            'app_android_url' => 'https://secret.example.test/android',
+        ]);
+        $venda = $this->criarVenda(['operadora_id' => $operadoraExterna->id]);
+
+        $this->actingAs($this->user)
+            ->getJson(route('backoffice.getBeneficiariosParaBoasVindas', $venda->id))
+            ->assertOk()
+            ->assertJsonPath('venda.app_links.ios', '')
+            ->assertJsonPath('venda.app_links.android', '');
     }
 }

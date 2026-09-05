@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Jobs\Concerns\UsesTenantContext;
 use App\Models\Empresa;
 use App\Models\User;
 use App\Services\ResumoOperacionalFormatter;
@@ -17,9 +18,10 @@ use Illuminate\Support\Facades\Log;
 
 class EnviarResumoDiarioWhatsappJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, UsesTenantContext;
 
     public int $tries = 3;
+
     public array $backoff = [60, 180, 600];
 
     public function __construct(
@@ -44,30 +46,32 @@ class EnviarResumoDiarioWhatsappJob implements ShouldQueue
             Log::warning('ResumoDiario: empresa sem whatsapp_token', [
                 'empresa_id' => $this->empresaId,
             ]);
+
             return;
         }
 
         if ($this->phoneOverride) {
-            $numero       = $this->phoneOverride;
-            $nomeAdmin    = 'Teste manual';
-            $contextoLog  = "phone-test:{$numero}";
+            $numero = $this->phoneOverride;
+            $nomeAdmin = 'Teste manual';
+            $contextoLog = "phone-test:{$numero}";
         } else {
-            $admin = User::find($this->userId);
+            $admin = User::query()->tenantMember($this->empresaId)->find($this->userId);
             if (! $admin || empty($admin->whatsapp)) {
                 Log::warning('ResumoDiario: admin sem whatsapp', [
-                    'user_id'    => $this->userId,
+                    'user_id' => $this->userId,
                     'empresa_id' => $this->empresaId,
                 ]);
+
                 return;
             }
-            $numero      = $admin->whatsapp;
-            $nomeAdmin   = $admin->name;
+            $numero = $admin->whatsapp;
+            $nomeAdmin = $admin->name;
             $contextoLog = "user:{$admin->id}";
         }
 
-        $data     = Carbon::parse($this->data, 'America/Sao_Paulo');
+        $data = Carbon::parse($this->data, 'America/Sao_Paulo');
         $snapshot = $service->montarSnapshot($this->empresaId, $data);
-        $body     = $formatter->format(
+        $body = $formatter->format(
             $snapshot,
             $nomeAdmin,
             $empresa->nome_fantasia ?? 'Sua corretora',
@@ -77,10 +81,10 @@ class EnviarResumoDiarioWhatsappJob implements ShouldQueue
         $resp = $whatsapp->send($empresa->whatsapp_token, $numero, $body);
 
         Log::info('ResumoDiario: envio', [
-            'empresa_id'   => $this->empresaId,
+            'empresa_id' => $this->empresaId,
             'destinatario' => $contextoLog,
-            'data'         => $this->data,
-            'success'      => $resp['success'] ?? false,
+            'data' => $this->data,
+            'success' => $resp['success'] ?? false,
         ]);
     }
 }

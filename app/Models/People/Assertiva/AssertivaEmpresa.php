@@ -2,16 +2,21 @@
 
 namespace App\Models\People\Assertiva;
 
+use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\RequiresTenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AssertivaEmpresa extends Model
 {
+    use BelongsToTenant, RequiresTenantContext;
+
     protected $connection = 'people_db';
 
     protected $table = 'assertiva_empresas';
 
     protected $fillable = [
+        'empresa_id',
         'cnpj',
         'razao_social',
         'nome_fantasia',

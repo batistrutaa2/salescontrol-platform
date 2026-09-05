@@ -7,7 +7,12 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsappService
 {
-    const ENDPOINT = 'https://whats.lkbrokers.com:443/backend/api/messages/send';
+    private function endpoint(): ?string
+    {
+        $endpoint = trim((string) config('services.whatsapp.endpoint'));
+
+        return filter_var($endpoint, FILTER_VALIDATE_URL) ? $endpoint : null;
+    }
 
     /**
      * Envia uma mensagem de texto via Ticketz WhatsApp.
@@ -21,6 +26,11 @@ class WhatsappService
     public function send(string $token, string $number, string $body, bool $saveOnTicket = false): array
     {
         $formattedNumber = $this->formatNumber($number);
+        $endpoint = $this->endpoint();
+
+        if (! $endpoint) {
+            return ['success' => false, 'message' => 'Integração de WhatsApp não configurada.'];
+        }
 
         try {
             $payload = json_encode([
@@ -34,7 +44,7 @@ class WhatsappService
                 'Authorization' => 'Bearer '.$token,
             ])->timeout(15)
                 ->withBody($payload, 'application/json')
-                ->post(self::ENDPOINT);
+                ->post($endpoint);
 
             if ($response->successful()) {
                 return ['success' => true, 'message' => 'Mensagem enviada com sucesso.'];
@@ -74,6 +84,11 @@ class WhatsappService
     public function sendMedia(string $token, string $number, string $absoluteFilePath, ?string $caption = null): array
     {
         $formattedNumber = $this->formatNumber($number);
+        $endpoint = $this->endpoint();
+
+        if (! $endpoint) {
+            return ['success' => false, 'message' => 'Integração de WhatsApp não configurada.'];
+        }
 
         if (! is_file($absoluteFilePath)) {
             Log::warning('WhatsappService::sendMedia: arquivo não encontrado', [
@@ -97,7 +112,7 @@ class WhatsappService
                 'Authorization' => 'Bearer '.$token,
             ])->timeout(60)
                 ->attach('medias', file_get_contents($absoluteFilePath), basename($absoluteFilePath))
-                ->post(self::ENDPOINT, $fields);
+                ->post($endpoint, $fields);
 
             if ($response->successful()) {
                 return ['success' => true, 'message' => 'Mídia enviada com sucesso.'];

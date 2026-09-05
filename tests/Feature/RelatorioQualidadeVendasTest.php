@@ -2,11 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
 use App\Models\Vendas;
+use App\Services\TabulationCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -32,6 +33,8 @@ class RelatorioQualidadeVendasTest extends TestCase
 
     private int $contatoId;
 
+    private TabulationCatalog $tabulationCatalog;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -44,26 +47,17 @@ class RelatorioQualidadeVendasTest extends TestCase
             ['id' => UserRole::SUPERVISOR, 'tipo_usuario' => 'SUPERVISOR', 'created_at' => now(), 'updated_at' => now()],
         ]);
 
+        $this->tabulationCatalog = app(TabulationCatalog::class);
+        $empresaAnterior = Empresa::factory()->create();
+        $this->tabulationCatalog->provision($empresaAnterior->id);
         $this->empresa = Empresa::factory()->create();
+        $this->tabulationCatalog->provision($this->empresa->id);
         $this->admin = $this->usuario(UserRole::ADMINISTRATIVO, 'Administrativo');
         $this->supervisor = $this->usuario(UserRole::SUPERVISOR, 'Supervisor');
         $this->developer = $this->usuario(UserRole::DEVELOPER, 'Developer');
         $this->backoffice = $this->usuario(UserRole::BACKOFFICE, 'Backoffice');
         $this->vendedor = $this->usuario(UserRole::VENDEDOR, 'Ana Vendas');
         $this->vendedorDois = $this->usuario(UserRole::VENDEDOR, 'Bruno Vendas');
-
-        foreach ([
-            Tabulations::VENDA => 'VENDA',
-            Tabulations::IMPLANTADO => 'IMPLANTADO',
-            Tabulations::ESTORNO => 'ESTORNO',
-            Tabulations::DECLINIO => 'DECLINIO',
-        ] as $id => $descricao) {
-            DB::table('tabulacoes')->insert([
-                'id' => $id, 'empresa_id' => $this->empresa->id, 'descricao' => $descricao,
-                'tipo_tabulacao' => 'A', 'efetivo' => $id === Tabulations::IMPLANTADO ? 'Y' : 'N',
-                'status' => 'Y', 'created_at' => now(), 'updated_at' => now(),
-            ]);
-        }
 
         $this->contatoId = DB::table('contatos')->insertGetId([
             'empresa_id' => $this->empresa->id,
@@ -87,10 +81,10 @@ class RelatorioQualidadeVendasTest extends TestCase
 
     public function test_calcula_valores_status_e_percentuais_pelas_regras_da_premiacao(): void
     {
-        $this->venda($this->vendedor, Tabulations::IMPLANTADO, 1000, 100);
-        $this->venda($this->vendedor, Tabulations::VENDA, 500, 50);
-        $this->venda($this->vendedor, Tabulations::ESTORNO, 300, 30);
-        $this->venda($this->vendedor, Tabulations::DECLINIO, 200, 20);
+        $this->venda($this->vendedor, TabulationCode::IMPLANTADO, 1000, 100);
+        $this->venda($this->vendedor, TabulationCode::VENDA, 500, 50);
+        $this->venda($this->vendedor, TabulationCode::ESTORNO, 300, 30);
+        $this->venda($this->vendedor, TabulationCode::DECLINADO, 200, 20);
 
         $dados = $this->actingAs($this->admin)
             ->getJson(route('relatorios.qualidadeVendas.dados', $this->filtros()))
@@ -114,13 +108,13 @@ class RelatorioQualidadeVendasTest extends TestCase
 
     public function test_ranking_exclui_declinio_mantem_estorno_e_respeita_excluir_ranking(): void
     {
-        $this->venda($this->vendedor, Tabulations::IMPLANTADO, 1000);
-        $this->venda($this->vendedor, Tabulations::ESTORNO, 700);
-        $this->venda($this->vendedor, Tabulations::DECLINIO, 9000);
-        $this->venda($this->vendedorDois, Tabulations::IMPLANTADO, 1500);
+        $this->venda($this->vendedor, TabulationCode::IMPLANTADO, 1000);
+        $this->venda($this->vendedor, TabulationCode::ESTORNO, 700);
+        $this->venda($this->vendedor, TabulationCode::DECLINADO, 9000);
+        $this->venda($this->vendedorDois, TabulationCode::IMPLANTADO, 1500);
 
         $fora = $this->usuario(UserRole::VENDEDOR, 'Fora do ranking', true);
-        $this->venda($fora, Tabulations::IMPLANTADO, 20000);
+        $this->venda($fora, TabulationCode::IMPLANTADO, 20000);
 
         $dados = $this->actingAs($this->admin)
             ->getJson(route('relatorios.qualidadeVendas.dados', $this->filtros()))
@@ -136,9 +130,9 @@ class RelatorioQualidadeVendasTest extends TestCase
 
     public function test_filtro_usa_data_da_venda_e_reflete_status_atual(): void
     {
-        $venda = $this->venda($this->vendedor, Tabulations::IMPLANTADO, 800, 0, now()->startOfYear()->addDays(2));
-        DB::table('vendas')->where('id', $venda->id)->update(['tabulacao_id' => Tabulations::ESTORNO]);
-        $this->venda($this->vendedor, Tabulations::IMPLANTADO, 999, 0, now()->subYear());
+        $venda = $this->venda($this->vendedor, TabulationCode::IMPLANTADO, 800, 0, now()->startOfYear()->addDays(2));
+        DB::table('vendas')->where('id', $venda->id)->update(['tabulacao_id' => $this->tabulacaoId(TabulationCode::ESTORNO)]);
+        $this->venda($this->vendedor, TabulationCode::IMPLANTADO, 999, 0, now()->subYear());
 
         $dados = $this->actingAs($this->admin)
             ->getJson(route('relatorios.qualidadeVendas.dados', $this->filtros()))
@@ -151,10 +145,11 @@ class RelatorioQualidadeVendasTest extends TestCase
 
     public function test_detalhamento_e_filtro_de_vendedor_nao_vazam_outra_empresa(): void
     {
-        $minha = $this->venda($this->vendedor, Tabulations::ESTORNO, 300, 25);
-        $this->venda($this->vendedorDois, Tabulations::IMPLANTADO, 500);
+        $minha = $this->venda($this->vendedor, TabulationCode::ESTORNO, 300, 25);
+        $this->venda($this->vendedorDois, TabulationCode::IMPLANTADO, 500);
 
         $outraEmpresa = Empresa::factory()->create();
+        $this->tabulationCatalog->provision($outraEmpresa->id);
         $outroVendedor = User::factory()->create([
             'empresa_id' => $outraEmpresa->id, 'user_role_id' => UserRole::VENDEDOR, 'ativo' => 'Y',
         ]);
@@ -164,7 +159,7 @@ class RelatorioQualidadeVendasTest extends TestCase
         ]);
         Vendas::create([
             'empresa_id' => $outraEmpresa->id, 'user_id' => $outroVendedor->id, 'contato_id' => $contatoOutro,
-            'tabulacao_id' => Tabulations::ESTORNO, 'nome_contrato' => 'Não pode aparecer',
+            'tabulacao_id' => $this->tabulationCatalog->id($outraEmpresa->id, TabulationCode::ESTORNO), 'nome_contrato' => 'Não pode aparecer',
             'valor_contrato' => 99999, 'data_vigencia' => now(), 'created_at' => now(),
         ]);
 
@@ -194,8 +189,8 @@ class RelatorioQualidadeVendasTest extends TestCase
     public function test_exporta_excel_com_auditoria_por_vendedor_respeitando_filtros(): void
     {
         Excel::fake();
-        $this->venda($this->vendedor, Tabulations::IMPLANTADO, 1000, 100);
-        $this->venda($this->vendedorDois, Tabulations::ESTORNO, 500);
+        $this->venda($this->vendedor, TabulationCode::IMPLANTADO, 1000, 100);
+        $this->venda($this->vendedorDois, TabulationCode::ESTORNO, 500);
 
         $params = array_merge($this->filtros(), ['vendedor_id' => $this->vendedor->id]);
         $this->actingAs($this->admin)
@@ -223,15 +218,15 @@ class RelatorioQualidadeVendasTest extends TestCase
         ]);
     }
 
-    private function venda(User $vendedor, int $status, float $contrato, float $angariacao = 0, $data = null): Vendas
+    private function venda(User $vendedor, string $status, float $contrato, float $angariacao = 0, $data = null): Vendas
     {
         return Vendas::create([
             'empresa_id' => $this->empresa->id, 'user_id' => $vendedor->id,
-            'contato_id' => $this->contatoId, 'tabulacao_id' => $status,
+            'contato_id' => $this->contatoId, 'tabulacao_id' => $this->tabulacaoId($status),
             'nome_contrato' => 'Cliente '.uniqid(), 'numero_proposta' => uniqid('PROP-'),
             'valor_contrato' => $contrato, 'angariacao_status' => $angariacao > 0 ? 'SIM' : 'NAO',
             'angariacao_valor' => $angariacao, 'data_vigencia' => now(),
-            'data_implantacao' => $status === Tabulations::IMPLANTADO ? now() : null,
+            'data_implantacao' => $status === TabulationCode::IMPLANTADO ? now() : null,
             'created_at' => $data ?? now(), 'updated_at' => $data ?? now(),
         ]);
     }
@@ -239,5 +234,10 @@ class RelatorioQualidadeVendasTest extends TestCase
     private function filtros(): array
     {
         return ['data_inicio' => now()->startOfYear()->format('Y-m-d'), 'data_fim' => now()->endOfYear()->format('Y-m-d')];
+    }
+
+    private function tabulacaoId(string $codigo): int
+    {
+        return $this->tabulationCatalog->id($this->empresa->id, $codigo);
     }
 }

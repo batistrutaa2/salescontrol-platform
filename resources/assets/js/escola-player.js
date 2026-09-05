@@ -1,5 +1,5 @@
 /**
- * Escola LK Brokers — Player de aula (Plyr)
+ * Academia Comercial — Player de aula (Plyr)
  * Retoma a posição, salva progresso periodicamente e marca conclusão (>=90%).
  */
 'use strict';

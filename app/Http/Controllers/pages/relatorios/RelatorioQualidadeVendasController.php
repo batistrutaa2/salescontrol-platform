@@ -8,6 +8,7 @@ use App\Services\RelatorioQualidadeVendasService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -30,7 +31,7 @@ class RelatorioQualidadeVendasController extends Controller
 
         return response()->json([
             'success' => true,
-            'dados' => $this->service->resumo(auth()->user()->empresa_id, $inicio, $fim, $vendedorId),
+            'dados' => $this->service->resumo($this->tenantId(), $inicio, $fim, $vendedorId),
         ]);
     }
 
@@ -43,7 +44,7 @@ class RelatorioQualidadeVendasController extends Controller
         ]);
 
         return response()->json($this->service->detalhes(
-            auth()->user()->empresa_id,
+            $this->tenantId(),
             $inicio,
             $fim,
             $vendedorId,
@@ -55,7 +56,7 @@ class RelatorioQualidadeVendasController extends Controller
     public function excel(Request $request): BinaryFileResponse
     {
         [$inicio, $fim, $vendedorId] = $this->filtros($request);
-        $empresaId = auth()->user()->empresa_id;
+        $empresaId = $this->tenantId();
 
         $export = new RelatorioQualidadeVendasExport(
             $this->service->resumo($empresaId, $inicio, $fim, $vendedorId),
@@ -73,7 +74,11 @@ class RelatorioQualidadeVendasController extends Controller
         $request->validate([
             'data_inicio' => "required|date_format:Y-m-d|after_or_equal:{$ano}-01-01|before_or_equal:{$ano}-12-31",
             'data_fim' => "required|date_format:Y-m-d|after_or_equal:data_inicio|before_or_equal:{$ano}-12-31",
-            'vendedor_id' => 'nullable|integer',
+            'vendedor_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('empresa_id', $this->tenantId())->where('is_platform_admin', false)),
+            ],
         ]);
 
         return [

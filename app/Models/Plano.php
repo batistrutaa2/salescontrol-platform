@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
-
 
 class Plano extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     protected $table = 'planos';
 
@@ -28,7 +28,6 @@ class Plano extends Model
     {
         return $this->belongsTo(Operadora::class, 'operadora_id');
     }
-
 
     public function getCreatedAtAttribute($value)
     {

@@ -3,25 +3,28 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\NaturezaEtapaSolicitacao;
-use App\Enums\Tabulations;
+use App\Enums\TabulationCode;
 use App\Enums\TipoSolicitacaoPosVenda;
 use App\Models\PosVendaFluxoEtapa;
 use App\Models\PosVendaSolicitacao;
 use App\Models\PosVendaSolicitacaoHistorico;
 use App\Models\Vendas;
 use App\Repositories\Contracts\PosVendaSolicitacaoRepositoryInterface;
+use App\Services\TabulationCatalog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInterface
 {
+    public function __construct(private readonly TabulationCatalog $tabulationCatalog) {}
+
     public function listar(int $empresaId, array $filtros = []): array
     {
         $query = PosVendaSolicitacao::with([
-            'venda:id,nome_contrato,cpf_cnpj,operadora',
-            'etapa:id,nome,cor,natureza,ordem',
-            'responsavel:id,name',
-            'criador:id,name',
+            'venda' => fn ($query) => $query->select('id', 'nome_contrato', 'cpf_cnpj', 'operadora')->where('vendas.empresa_id', $empresaId),
+            'etapa' => fn ($query) => $query->select('id', 'nome', 'cor', 'natureza', 'ordem')->where('pos_venda_fluxo_etapas.empresa_id', $empresaId),
+            'responsavel' => fn ($query) => $query->select('id', 'name')->tenantMember($empresaId),
+            'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
         ])->where('empresa_id', $empresaId);
 
         if (! empty($filtros['tipo'])) {
@@ -83,7 +86,7 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
     {
         $venda = Vendas::where('id', $dados['venda_id'])
             ->where('empresa_id', $empresaId)
-            ->whereIn('tabulacao_id', Tabulations::STATUS_ELEGIVEIS_SOLICITACAO_POS_VENDA)
+            ->whereIn('tabulacao_id', $this->statusElegiveis($empresaId))
             ->first();
 
         if (! $venda) {
@@ -124,11 +127,13 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
     public function detalhe(int $id, int $empresaId): ?array
     {
         $solicitacao = PosVendaSolicitacao::with([
-            'venda:id,nome_contrato,cpf_cnpj,operadora,nome_plano,numero_proposta',
-            'etapa:id,nome,cor,natureza,ordem',
-            'responsavel:id,name',
-            'criador:id,name',
-            'historico.usuario:id,name',
+            'venda' => fn ($query) => $query->select('id', 'nome_contrato', 'cpf_cnpj', 'operadora', 'nome_plano', 'numero_proposta')->where('vendas.empresa_id', $empresaId),
+            'etapa' => fn ($query) => $query->select('id', 'nome', 'cor', 'natureza', 'ordem')->where('pos_venda_fluxo_etapas.empresa_id', $empresaId),
+            'responsavel' => fn ($query) => $query->select('id', 'name')->tenantMember($empresaId),
+            'criador' => fn ($query) => $query->select('id', 'name')->tenantActor($empresaId),
+            'historico' => fn ($query) => $query->with([
+                'usuario' => fn ($userQuery) => $userQuery->select('id', 'name')->tenantActor($empresaId),
+            ]),
         ])
             ->where('empresa_id', $empresaId)
             ->find($id);
@@ -160,7 +165,9 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
 
     public function atualizar(int $id, int $empresaId, array $dados, int $userId): bool
     {
-        $solicitacao = PosVendaSolicitacao::with('responsavel:id,name')
+        $solicitacao = PosVendaSolicitacao::with([
+            'responsavel' => fn ($query) => $query->select('id', 'name')->tenantMember($empresaId),
+        ])
             ->where('empresa_id', $empresaId)
             ->find($id);
         if (! $solicitacao) {
@@ -184,7 +191,9 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
                 && (int) $solicitacao->responsavel_id !== (int) ($dados['responsavel_id'] ?? 0)) {
                 $nomeAnterior = $solicitacao->responsavel?->name;
                 $solicitacao->responsavel_id = $dados['responsavel_id'] ?: null;
-                $solicitacao->load('responsavel:id,name');
+                $solicitacao->load([
+                    'responsavel' => fn ($query) => $query->select('id', 'name')->tenantMember((int) $solicitacao->empresa_id),
+                ]);
                 $this->registrarHistorico($solicitacao->id, $userId, 'responsavel',
                     $nomeAnterior ?? 'Sem responsável',
                     $solicitacao->responsavel?->name ?? 'Sem responsável');
@@ -257,7 +266,9 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
 
     public function registrarAtualizacao(int $id, int $empresaId, int $userId, string $texto): ?PosVendaSolicitacao
     {
-        $solicitacao = PosVendaSolicitacao::with('venda:id,nome_contrato,user_id')
+        $solicitacao = PosVendaSolicitacao::with([
+            'venda' => fn ($query) => $query->select('id', 'nome_contrato', 'user_id')->where('vendas.empresa_id', $empresaId),
+        ])
             ->where('empresa_id', $empresaId)
             ->find($id);
         if (! $solicitacao) {
@@ -364,9 +375,13 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
         $like = '%'.$this->escaparLike($termo).'%';
         $digitos = preg_replace('/\D+/', '', $termo);
 
-        return Vendas::with(['user:id,name', 'tabulacao:id,descricao', 'titulares:id,venda_id,nome'])
+        return Vendas::with([
+            'user' => fn ($query) => $query->select('id', 'name')->tenantMember($empresaId),
+            'tabulacao' => fn ($query) => $query->select('id', 'descricao')->where('tabulacoes.empresa_id', $empresaId),
+            'titulares:id,venda_id,nome',
+        ])
             ->where('empresa_id', $empresaId)
-            ->whereIn('tabulacao_id', Tabulations::STATUS_ELEGIVEIS_SOLICITACAO_POS_VENDA)
+            ->whereIn('tabulacao_id', $this->statusElegiveis($empresaId))
             ->where(function ($q) use ($like, $digitos) {
                 $q->where('nome_contrato', 'like', $like)
                     ->orWhere('numero_proposta', 'like', $like)
@@ -408,6 +423,11 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
                 'data_implantacao' => $v->data_implantacao?->format('d/m/Y'),
             ])
             ->all();
+    }
+
+    private function statusElegiveis(int $empresaId): array
+    {
+        return array_values($this->tabulationCatalog->requiredIds($empresaId, TabulationCode::POS_VENDA_ELEGIVEIS));
     }
 
     // ---------------------------------------------------------------

@@ -54,20 +54,21 @@ $(function () {
   if (dt_customer_table.length) {
     table = dt_customer_table.DataTable({
       ajax: {
-        url: 'empresas/getAllCompanies',
+        url: dt_customer_table.data('source'),
         dataSrc: '',
-        complete: function (jqXHR, textStatus) {},
-        error: function (jqXHR, textStatus, errorThrown) {}
+        error: function () {
+          toastr.error('Não foi possível carregar as empresas. Atualize a página para tentar novamente.', 'Erro');
+        }
       },
       columns: [
         { data: 'id' },
-        { data: 'nome_fantasia' },
-        { data: 'cpf_cnpj' },
-        { data: 'telefone' },
-        { data: 'email' },
-        { data: 'created_at' }
+        { data: 'nome_fantasia', render: $.fn.dataTable.render.text() },
+        { data: 'cpf_cnpj', render: $.fn.dataTable.render.text() },
+        { data: 'telefone', render: $.fn.dataTable.render.text() },
+        { data: 'email', render: $.fn.dataTable.render.text() },
+        { data: 'created_at', render: $.fn.dataTable.render.text() }
       ],
-      order: [[2, 'desc']],
+      order: [[0, 'desc']],
       dom:
         '<"card-header d-flex rounded-0 flex-wrap py-0 pb-5 pb-md-0"' +
         '<"me-5 pe-5 ms-n1_5 ps-2"f>' +
@@ -80,7 +81,9 @@ $(function () {
       language: {
         sLengthMenu: '_MENU_',
         search: '',
-        searchPlaceholder: 'Pesquisa Empresa'
+        searchPlaceholder: 'Pesquisar empresa',
+        emptyTable: 'Nenhuma empresa cadastrada.',
+        zeroRecords: 'Nenhuma empresa encontrada para esta busca.'
       },
       // Botões com Dropdown
       buttons: [
@@ -91,7 +94,7 @@ $(function () {
           buttons: [
             {
               extend: 'print',
-              text: '<i class="ri-printer-line me-1"></i>Print',
+              text: '<i class="ri-printer-line me-1"></i>Imprimir',
               className: 'dropdown-item',
               exportOptions: {
                 columns: [0, 1, 2, 3, 4, 5],
@@ -196,7 +199,7 @@ $(function () {
             },
             {
               extend: 'copy',
-              text: '<i class="ri-file-copy-line me-1"></i>Copy',
+              text: '<i class="ri-file-copy-line me-1"></i>Copiar',
               className: 'dropdown-item',
               exportOptions: {
                 columns: [0, 1, 2, 3, 4, 5],
@@ -218,14 +221,6 @@ $(function () {
               }
             }
           ]
-        },
-        {
-          text: '<i class="ri-add-line ri-16px me-0 me-sm-1_5 align-baseline"></i><span class="d-none d-sm-inline-block">Criar Empresa</span>',
-          className: 'add-new btn btn-primary waves-effect waves-light',
-          attr: {
-            'data-bs-toggle': 'offcanvas',
-            'data-bs-target': '#offcanvasEcommerceCustomerAdd'
-          }
         }
       ],
       // Para popup responsivo
@@ -234,7 +229,7 @@ $(function () {
           display: $.fn.dataTable.Responsive.display.modal({
             header: function (row) {
               var data = row.data();
-              return 'Details of ' + data['nome_fantasia'];
+              return 'Detalhes de ' + data['nome_fantasia'];
             }
           }),
           type: 'column',
@@ -274,7 +269,22 @@ $(function () {
   const phoneMaskList = document.querySelectorAll('.phone-mask'),
     eCommerceCustomerAddForm = document.getElementById('eCommerceCustomerAddForm');
 
-  if (phoneMaskList) {
+  if (!eCommerceCustomerAddForm) return;
+
+  const offcanvasElement = document.getElementById('offcanvasEcommerceCustomerAdd');
+  const feedback = document.getElementById('company-form-feedback');
+  const submitButton = eCommerceCustomerAddForm.querySelector('.data-submit');
+  const submitLabel = submitButton.querySelector('.company-submit-label');
+
+  document.addEventListener('click', function (event) {
+    const trigger = event.target.closest('[data-company-create-trigger]');
+    if (!trigger || !offcanvasElement) return;
+
+    event.preventDefault();
+    bootstrap.Offcanvas.getOrCreateInstance(offcanvasElement).show();
+  });
+
+  if (phoneMaskList.length) {
     phoneMaskList.forEach(function (phoneMask) {
       new Cleave(phoneMask, {
         phone: true,
@@ -288,31 +298,31 @@ $(function () {
       customerName: {
         validators: {
           notEmpty: {
-            message: 'Nome da Empresa é obrigatorio '
+            message: 'Informe o nome da empresa.'
           }
         }
       },
       customerCnpj: {
         validators: {
           notEmpty: {
-            message: 'CNPJ/CPF da Empresa é obrigatorio '
+            message: 'Informe o CNPJ ou CPF da empresa.'
           }
         }
       },
       customerEmail: {
         validators: {
           notEmpty: {
-            message: 'E-mail da Empresa é obrigatorio'
+            message: 'Informe o e-mail da empresa.'
           },
           emailAddress: {
-            message: 'Esse E-mail não é valido'
+            message: 'Informe um e-mail válido.'
           }
         }
       },
       customerContact: {
         validators: {
           notEmpty: {
-            message: 'Telefone da Empresa é obrigatorio '
+            message: 'Informe o telefone da empresa.'
           }
         }
       }
@@ -325,13 +335,17 @@ $(function () {
           return '.mb-5';
         }
       }),
-      submitButton: new FormValidation.plugins.SubmitButton(),
       autoFocus: new FormValidation.plugins.AutoFocus()
     }
   });
 
-  const submitButton = document.querySelector('.data-submit');
-  submitButton.addEventListener('click', function (event) {
+  eCommerceCustomerAddForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    if (submitButton.disabled) return;
+
+    feedback.classList.add('d-none');
+    feedback.textContent = '';
+
     fv.validate().then(function (status) {
       if (status === 'Valid') {
         const formData = {
@@ -348,12 +362,19 @@ $(function () {
         });
 
         $.ajax({
-          url: 'empresas/createCompanies',
+          url: eCommerceCustomerAddForm.action,
           type: 'POST',
           data: formData,
+          beforeSend: function () {
+            submitButton.disabled = true;
+            submitButton.setAttribute('aria-busy', 'true');
+            submitLabel.textContent = 'Cadastrando...';
+          },
           success: function (response) {
-            table.ajax.reload();
-            $('#offcanvasEcommerceCustomerAdd').offcanvas('hide');
+            if (table?.ajax) table.ajax.reload(null, false);
+            if (offcanvasElement) bootstrap.Offcanvas.getOrCreateInstance(offcanvasElement).hide();
+            eCommerceCustomerAddForm.reset();
+            fv.resetForm(true);
             if (!response.error) {
               toastr.success(response.message, 'Sucesso');
             } else {
@@ -361,7 +382,16 @@ $(function () {
             }
           },
           error: function (error) {
-            toastr.error(response.message, 'Erro');
+            const message = error.responseJSON?.message || 'Não foi possível cadastrar a empresa. Tente novamente.';
+            feedback.textContent = message;
+            feedback.classList.remove('d-none');
+            feedback.focus();
+            toastr.error(message, 'Erro');
+          },
+          complete: function () {
+            submitButton.disabled = false;
+            submitButton.removeAttribute('aria-busy');
+            submitLabel.textContent = 'Cadastrar empresa';
           }
         });
       }

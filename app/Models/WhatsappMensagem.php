@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use LogicException;
 
 class WhatsappMensagem extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     protected $table = 'whatsapp_mensagens';
 
     protected $fillable = [
@@ -33,6 +36,20 @@ class WhatsappMensagem extends Model
     ];
 
     protected $appends = ['media_url'];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $mensagem): void {
+            $conversaValida = WhatsappConversa::query()
+                ->whereKey($mensagem->conversa_id)
+                ->where('empresa_id', $mensagem->empresa_id)
+                ->exists();
+
+            if (! $conversaValida) {
+                throw new LogicException('A conversa da mensagem não pertence à empresa ativa.');
+            }
+        });
+    }
 
     public function conversa(): BelongsTo
     {

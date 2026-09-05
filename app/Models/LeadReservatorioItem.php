@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class LeadReservatorioItem extends Model
 {
+    use \App\Models\Concerns\BelongsToTenant;
+
     public const STATUS_DISPONIVEL = 'DISPONIVEL';
 
     public const STATUS_DISTRIBUIDO = 'DISTRIBUIDO';

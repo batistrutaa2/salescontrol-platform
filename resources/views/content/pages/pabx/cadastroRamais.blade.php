@@ -61,35 +61,18 @@
                             <label for="ramal">RAMAL*</label>
                         </div>
                         <div class="form-floating form-floating-outline mb-5">
-                            <select id="empresas" class="form-select" name="usuario_id">
+                            <select id="usuario-ramal" class="form-select" name="usuario_id">
                                 @foreach ($usuarios as $usuario)
                                     <option value="{{ $usuario->id }}">
                                         {{ $usuario->name }}</option>
                                 @endforeach
                             </select>
-                            <label for="empresas">VENDEDOR</label>
+                            <label for="usuario-ramal">VENDEDOR</label>
                         </div>
                         <div class="form-floating form-floating-outline mb-5">
-                            @if (is_iterable($companies) && count($companies) > 0)
-                                <select id="empresas" class="form-select" {{ count($companies) == 1 ? 'disabled' : '' }}
-                                    name="empresa_id">
-                                    @foreach ($companies as $companie)
-                                        <option value="{{ $companie->id }}" {{ count($companies) == 1 ? 'selected' : '' }}>
-                                            {{ $companie->nome_fantasia }}</option>
-                                    @endforeach
-                                </select>
-                                <label for="empresas">Empresa</label>
-                            @elseif(is_object($companies))
-                                <select id="empresas" class="form-select" disabled name="empresa_id">
-                                    <option value="{{ $companies->id }}" selected>{{ $companies->nome_fantasia }}</option>
-                                </select>
-                                <label for="empresas">Empresa</label>
-                            @else
-                                <select id="empresas" class="form-select" disabled name="empresa_id">
-                                    <option value="">Nenhuma empresa disponível</option>
-                                </select>
-                                <label for="empresas">Empresa</label>
-                            @endif
+                            <input id="empresa-ativa" class="form-control" type="text"
+                                value="{{ $companies->nome_fantasia ?? 'Nenhuma empresa ativa' }}" readonly>
+                            <label for="empresa-ativa">Empresa ativa</label>
                         </div>
                     </div>
                     <div>

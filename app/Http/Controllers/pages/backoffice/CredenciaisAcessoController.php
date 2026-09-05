@@ -8,11 +8,13 @@ use App\Models\CredencialAcesso;
 use App\Models\CredencialAcessoHistorico;
 use App\Models\Operadora;
 use App\Models\Vendas;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 
 class CredenciaisAcessoController extends Controller
@@ -44,7 +46,7 @@ class CredenciaisAcessoController extends Controller
 
     private function empresaId(): int
     {
-        return Auth::user()->empresa_id;
+        return app(TenantContext::class)->id();
     }
 
     public function index()
@@ -142,7 +144,7 @@ class CredenciaisAcessoController extends Controller
         $this->checkAccess();
 
         $validated = $request->validate([
-            'operadora_id' => 'nullable|integer|exists:operadoras,id',
+            'operadora_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->empresaId())],
             'tipo' => 'nullable|string|max:50',
             'nome' => 'required|string|max:255',
             'login' => 'nullable|string|max:255',
@@ -187,11 +189,11 @@ class CredenciaisAcessoController extends Controller
         $this->checkAccess();
 
         $validated = $request->validate([
-            'operadora_id' => 'nullable|integer|exists:operadoras,id',
+            'operadora_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->empresaId())],
             'tipo' => 'nullable|string|max:50',
             'observacao' => 'nullable|string',
             'status' => 'required|in:Y,N',
-            'venda_id' => 'nullable|integer|exists:vendas,id',
+            'venda_id' => ['nullable', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->empresaId())],
             'acessos' => 'required|array|min:1',
             'acessos.*.nome' => 'required|string|max:255',
             'acessos.*.login' => 'nullable|string|max:255',
@@ -264,7 +266,7 @@ class CredenciaisAcessoController extends Controller
         $this->checkAccess();
 
         $validated = $request->validate([
-            'operadora_id' => 'nullable|integer|exists:operadoras,id',
+            'operadora_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->empresaId())],
             'tipo' => 'nullable|string|max:50',
             'nome' => 'required|string|max:255',
             'login' => 'nullable|string|max:255',
@@ -285,7 +287,7 @@ class CredenciaisAcessoController extends Controller
                 ->findOrFail($id);
 
             foreach (self::CAMPOS_AUDITAVEIS as $campo => $label) {
-                $anterior = $credencial->getOriginal($campo);
+                $anterior = $campo === 'senha' ? $credencial->senha : $credencial->getOriginal($campo);
                 $novo = $validated[$campo] ?? null;
 
                 if ((string) $anterior !== (string) $novo) {
@@ -295,8 +297,8 @@ class CredenciaisAcessoController extends Controller
                         'user_id' => $userId,
                         'acao' => 'EDICAO',
                         'campo' => $label,
-                        'valor_anterior' => $anterior,
-                        'valor_novo' => $novo,
+                        'valor_anterior' => $campo === 'senha' ? null : $anterior,
+                        'valor_novo' => $campo === 'senha' ? null : $novo,
                         'created_at' => now(),
                     ]);
                 }
@@ -340,21 +342,24 @@ class CredenciaisAcessoController extends Controller
     public function historico(int $id): JsonResponse
     {
         $this->checkAccess();
+        $empresaId = $this->empresaId();
 
-        $credencial = CredencialAcesso::where('empresa_id', $this->empresaId())->findOrFail($id);
+        $credencial = CredencialAcesso::where('empresa_id', $empresaId)->findOrFail($id);
 
-        $historico = $credencial->historico()->with('usuario')->get()->map(function (CredencialAcessoHistorico $h) {
-            return [
-                'acao' => $h->acao,
-                'campo' => $h->campo,
-                'valor_anterior' => $h->valor_anterior,
-                'valor_novo' => $h->valor_novo,
-                'usuario' => $h->usuario?->name ?? 'Sistema',
-                'data' => $h->created_at
-                    ? Carbon::parse($h->getRawOriginal('created_at'))->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s')
-                    : '—',
-            ];
-        });
+        $historico = $credencial->historico()
+            ->with(['usuario' => fn ($query) => $query->tenantActor($empresaId)])
+            ->get()->map(function (CredencialAcessoHistorico $h) {
+                return [
+                    'acao' => $h->acao,
+                    'campo' => $h->campo,
+                    'valor_anterior' => $h->valor_anterior,
+                    'valor_novo' => $h->valor_novo,
+                    'usuario' => $h->usuario?->name ?? 'Sistema',
+                    'data' => $h->created_at
+                        ? Carbon::parse($h->getRawOriginal('created_at'))->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i:s')
+                        : '—',
+                ];
+            });
 
         return response()->json([
             'credencial' => [
@@ -448,7 +453,7 @@ class CredenciaisAcessoController extends Controller
         $this->checkAccess();
 
         $validated = $request->validate([
-            'operadora_id' => 'required|integer|exists:operadoras,id',
+            'operadora_id' => ['required', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->empresaId())],
             'arquivo' => 'required|file|mimes:xlsx,xls,csv,txt|max:10240',
             'mapping' => 'required|array',
             'mapping.nome' => 'required',
