@@ -1,0 +1,47 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name licas-consultoria.brsolution.tech;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name licas-consultoria.brsolution.tech;
+
+    ssl_certificate /etc/letsencrypt/live/licas-consultoria.brsolution.tech/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/licas-consultoria.brsolution.tech/privkey.pem;
+
+    client_max_body_size 100m;
+
+    location /app/ {
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_pass http://127.0.0.1:8087;
+    }
+
+    location / {
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_read_timeout 120s;
+        proxy_pass http://127.0.0.1:8010;
+    }
+}

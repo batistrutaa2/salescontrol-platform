@@ -1,5 +1,7 @@
 # 📊 SalesControl - Sistema de Controle de Vendas
 
+> Deploy da plataforma: consulte [DEPLOYMENT.md](DEPLOYMENT.md).
+
 <p align="center">
   <img src="https://img.shields.io/badge/Laravel-11-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel 11">
   <img src="https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.2+">

@@ -2,6 +2,8 @@
 
 use App\Http\Middleware\EnsureAdvogadaScope;
 use App\Http\Middleware\EnsureFinanceiroScope;
+use App\Http\Middleware\EnsurePlatformAdmin;
+use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\LocaleMiddleware;
 use App\Http\Middleware\ResolveTenantContext;
 use Illuminate\Foundation\Application;
@@ -18,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Em produção a porta do container só é exposta no loopback da VPS e
+        // todo tráfego externo chega pelo Nginx do host.
+        $middleware->trustProxies(at: '*');
+
         // O tenant precisa estar resolvido antes do route model binding; do
         // contrário, models fail-closed seriam procurados sem empresa ativa.
         $middleware->web(remove: [SubstituteBindings::class], append: [
@@ -29,8 +35,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureUserRole::class,
-            'platform.admin' => \App\Http\Middleware\EnsurePlatformAdmin::class,
+            'role' => EnsureUserRole::class,
+            'platform.admin' => EnsurePlatformAdmin::class,
         ]);
 
         // Webhooks da Evolution API (WhatsApp) chegam sem sessão/CSRF

@@ -1,0 +1,166 @@
+name: Test, build and deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: salescontrol-platform-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/salescontrol-platform
+
+jobs:
+  production:
+    name: Validate and deploy production
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 45
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: salescontrol_platform_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Prepare release metadata
+        id: release
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          image_name="${IMAGE_NAME,,}"
+          echo "tag=sha-${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "image=${image_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build test image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: test
+          load: true
+          tags: salescontrol-platform:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Laravel test suite
+        shell: bash
+        run: |
+          docker run --rm --network host \
+            -e APP_ENV=testing \
+            -e APP_KEY=base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= \
+            -e CACHE_STORE=array \
+            -e SESSION_DRIVER=array \
+            -e QUEUE_CONNECTION=sync \
+            -e MAIL_MAILER=array \
+            -e DB_CONNECTION=mysql \
+            -e DB_HOST=127.0.0.1 \
+            -e DB_PORT=3306 \
+            -e DB_DATABASE=salescontrol_platform_testing \
+            -e DB_USERNAME=root \
+            -e DB_PASSWORD=root \
+            -e DB_PERSONAL_HOST=127.0.0.1 \
+            -e DB_PERSONAL_PORT=3306 \
+            -e DB_PERSONAL_DATABASE=salescontrol_platform_testing \
+            -e DB_PERSONAL_USERNAME=root \
+            -e DB_PERSONAL_PASSWORD=root \
+            salescontrol-platform:test \
+            php -d memory_limit=512M artisan test --colors=always
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push production image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: production
+          push: true
+          tags: |
+            ${{ steps.release.outputs.image }}:${{ steps.release.outputs.tag }}
+            ${{ steps.release.outputs.image }}:latest
+          build-args: |
+            REALTIME_PUBLIC_KEY=${{ secrets.REVERB_APP_KEY }}
+            VITE_REVERB_HOST=licas-consultoria.brsolution.tech
+            VITE_REVERB_PORT=443
+            VITE_REVERB_SCHEME=https
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Prepare SSH and production environment
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          PRODUCTION_ENV: ${{ secrets.PRODUCTION_ENV }}
+        shell: bash
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          printf '%s\n' "$PRODUCTION_ENV" > "$RUNNER_TEMP/production.env"
+          chmod 600 "$RUNNER_TEMP/production.env"
+
+      - name: Upload deployment files
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        shell: bash
+        run: |
+          ssh_opts=(-i "$HOME/.ssh/deploy_key" -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          ssh "${ssh_opts[@]}" -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" \
+            "install -d -m 700 /root/apps/salescontrol-platform/deploy"
+          scp "${ssh_opts[@]}" -P "${VPS_PORT:-22}" compose.production.yaml \
+            "$VPS_USER@$VPS_HOST:/root/apps/salescontrol-platform/compose.production.yaml"
+          scp "${ssh_opts[@]}" -P "${VPS_PORT:-22}" deploy/deploy.sh deploy/rollback.sh \
+            "$VPS_USER@$VPS_HOST:/root/apps/salescontrol-platform/deploy/"
+          scp "${ssh_opts[@]}" -P "${VPS_PORT:-22}" "$RUNNER_TEMP/production.env" \
+            "$VPS_USER@$VPS_HOST:/root/apps/salescontrol-platform/.env.next"
+
+      - name: Deploy exact image on VPS
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          RELEASE_IMAGE: ${{ steps.release.outputs.image }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          ssh_opts=(-i "$HOME/.ssh/deploy_key" -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          printf '%s' "$GHCR_TOKEN" | ssh "${ssh_opts[@]}" -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" \
+            "docker login ghcr.io --username '$GITHUB_ACTOR' --password-stdin"
+          ssh "${ssh_opts[@]}" -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" \
+            "cd /root/apps/salescontrol-platform && chmod 700 deploy/*.sh && chmod 600 .env.next && if [ -s .env ]; then cp .env .env.previous; fi && mv .env.next .env && ./deploy/deploy.sh '$RELEASE_IMAGE' '$RELEASE_TAG'"
+
+      - name: Verify public endpoint
+        if: ${{ vars.PUBLIC_HEALTHCHECK_URL != '' }}
+        env:
+          PUBLIC_HEALTHCHECK_URL: ${{ vars.PUBLIC_HEALTHCHECK_URL }}
+        shell: bash
+        run: curl --fail --silent --show-error --retry 6 --retry-delay 5 --max-time 15 "$PUBLIC_HEALTHCHECK_URL"
