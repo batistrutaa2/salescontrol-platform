@@ -6,16 +6,7 @@
     @vite([
         'resources/assets/vendor/libs/dropzone/dropzone.scss',
         'resources/assets/vendor/libs/toastr/toastr.scss',
-        'resources/assets/vendor/libs/select2/select2.scss',
         'resources/assets/vendor/scss/pages/importar-mailing.scss'
-    ])
-@endsection
-
-@section('vendor-script')
-    @vite([
-        'resources/assets/vendor/libs/dropzone/dropzone.js',
-        'resources/assets/vendor/libs/toastr/toastr.js',
-        'resources/assets/vendor/libs/select2/select2.js'
     ])
 @endsection
 

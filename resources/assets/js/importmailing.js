@@ -1,5 +1,8 @@
 'use strict';
 
+import { Dropzone } from '../vendor/libs/dropzone/dropzone';
+import { toastr } from '../vendor/libs/toastr/toastr';
+
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.querySelector('#mailing-import-form');
   const uploadPanel = document.querySelector('#upload-panel');
@@ -18,8 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let selected = new Set();
   let page = 1;
 
+  if (!form) return;
+
   toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 5000, preventDuplicates: true };
-  Dropzone.autoDiscover = false;
   const dropzone = new Dropzone('#dropzone-basic', {
     url: '/mailing/importaMailing',
     autoProcessQueue: false,
