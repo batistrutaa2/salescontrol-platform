@@ -68,7 +68,7 @@ jobs:
         run: |
           docker run --rm --network host \
             -e APP_ENV=testing \
-            -e APP_KEY=base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= \
+            -e APP_KEY=base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= \
             -e CACHE_STORE=array \
             -e SESSION_DRIVER=array \
             -e QUEUE_CONNECTION=sync \
