@@ -149,6 +149,7 @@ class CredenciaisAcessoController extends Controller
 
         $validated = $request->validate([
             'operadora_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->empresaId())],
+            'operadora_nome' => 'nullable|string|max:255',
             'tipo' => 'nullable|string|max:50',
             'nome' => 'required|string|max:255',
             'login' => 'nullable|string|max:255',
@@ -159,6 +160,9 @@ class CredenciaisAcessoController extends Controller
 
         $credencial = DB::transaction(function () use ($validated) {
             $userId = Auth::id();
+            $operadora = $this->resolverOperadora($validated['operadora_nome'] ?? null, $validated['operadora_id'] ?? null);
+            unset($validated['operadora_nome']);
+            $validated['operadora_id'] = $operadora?->id;
 
             $credencial = CredencialAcesso::create(array_merge($validated, [
                 'empresa_id' => $this->empresaId(),
@@ -181,6 +185,7 @@ class CredenciaisAcessoController extends Controller
             'success' => true,
             'message' => 'Credencial cadastrada com sucesso!',
             'id' => $credencial->id,
+            'operadora' => $credencial->operadora?->only(['id', 'nome']),
         ], 201);
     }
 
@@ -194,6 +199,7 @@ class CredenciaisAcessoController extends Controller
 
         $validated = $request->validate([
             'operadora_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->empresaId())],
+            'operadora_nome' => 'nullable|string|max:255',
             'tipo' => 'nullable|string|max:50',
             'observacao' => 'nullable|string',
             'status' => 'required|in:Y,N',
@@ -215,14 +221,15 @@ class CredenciaisAcessoController extends Controller
             $cnpj = $venda ? preg_replace('/\D/', '', (string) $venda->cpf_cnpj) : null;
         }
 
-        $qtd = DB::transaction(function () use ($validated, $vendaId, $cnpj) {
+        $resultado = DB::transaction(function () use ($validated, $vendaId, $cnpj) {
             $userId = Auth::id();
             $criadas = 0;
+            $operadora = $this->resolverOperadora($validated['operadora_nome'] ?? null, $validated['operadora_id'] ?? null);
 
             foreach ($validated['acessos'] as $acesso) {
                 $credencial = CredencialAcesso::create([
                     'empresa_id' => $this->empresaId(),
-                    'operadora_id' => $validated['operadora_id'] ?? null,
+                    'operadora_id' => $operadora?->id,
                     'tipo' => $validated['tipo'] ?? null,
                     'venda_id' => $vendaId,
                     'cnpj' => $cnpj ?: null,
@@ -246,13 +253,14 @@ class CredenciaisAcessoController extends Controller
                 $criadas++;
             }
 
-            return $criadas;
+            return ['quantidade' => $criadas, 'operadora' => $operadora];
         });
 
         return response()->json([
             'success' => true,
-            'message' => $qtd > 1 ? "{$qtd} acessos cadastrados!" : 'Acesso cadastrado!',
-            'quantidade' => $qtd,
+            'message' => $resultado['quantidade'] > 1 ? "{$resultado['quantidade']} acessos cadastrados!" : 'Acesso cadastrado!',
+            'quantidade' => $resultado['quantidade'],
+            'operadora' => $resultado['operadora']?->only(['id', 'nome']),
         ], 201);
     }
 
@@ -260,9 +268,13 @@ class CredenciaisAcessoController extends Controller
     {
         $this->checkAccess();
 
-        $credencial = CredencialAcesso::where('empresa_id', $this->empresaId())->findOrFail($id);
+        $credencial = CredencialAcesso::with('operadora:id,nome')
+            ->where('empresa_id', $this->empresaId())
+            ->findOrFail($id);
 
-        return response()->json($credencial);
+        return response()->json(array_merge($credencial->toArray(), [
+            'operadora_nome' => $credencial->operadora?->nome,
+        ]));
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -271,6 +283,7 @@ class CredenciaisAcessoController extends Controller
 
         $validated = $request->validate([
             'operadora_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->empresaId())],
+            'operadora_nome' => 'nullable|string|max:255',
             'tipo' => 'nullable|string|max:50',
             'nome' => 'required|string|max:255',
             'login' => 'nullable|string|max:255',
@@ -283,8 +296,11 @@ class CredenciaisAcessoController extends Controller
         // valor gravado consistentes (o mutator do model também aplica isso).
         $validated['nome'] = mb_strtoupper(trim($validated['nome']), 'UTF-8');
 
-        DB::transaction(function () use ($validated, $id) {
+        $operadora = DB::transaction(function () use ($validated, $id) {
             $userId = Auth::id();
+            $operadora = $this->resolverOperadora($validated['operadora_nome'] ?? null, $validated['operadora_id'] ?? null);
+            unset($validated['operadora_nome']);
+            $validated['operadora_id'] = $operadora?->id;
 
             $credencial = CredencialAcesso::where('empresa_id', $this->empresaId())
                 ->lockForUpdate()
@@ -309,11 +325,14 @@ class CredenciaisAcessoController extends Controller
             }
 
             $credencial->update(array_merge($validated, ['updated_by' => $userId]));
+
+            return $operadora;
         });
 
         return response()->json([
             'success' => true,
             'message' => 'Credencial atualizada com sucesso!',
+            'operadora' => $operadora?->only(['id', 'nome']),
         ]);
     }
 
@@ -523,7 +542,7 @@ class CredenciaisAcessoController extends Controller
                             'status' => 'Y',
                         ]);
                         $operadoras->put($chave, $operadora);
-                        $operadorasCriadas[$operadora->id] = $operadora->nome;
+                        $operadorasCriadas[$operadora->id] = $operadora->only(['id', 'nome']);
                     }
                 }
 
@@ -566,6 +585,30 @@ class CredenciaisAcessoController extends Controller
     private function chaveOperadora(string $nome): string
     {
         return preg_replace('/[^A-Z0-9]+/', '', Str::ascii(mb_strtoupper(trim($nome), 'UTF-8'))) ?? '';
+    }
+
+    private function resolverOperadora(?string $nome, ?int $id = null): ?Operadora
+    {
+        $nome = trim((string) $nome);
+
+        if ($nome !== '') {
+            $chave = $this->chaveOperadora($nome);
+            $operadora = Operadora::where('empresa_id', $this->empresaId())
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->first(fn (Operadora $item) => $this->chaveOperadora($item->nome) === $chave);
+
+            return $operadora ?? Operadora::create([
+                'empresa_id' => $this->empresaId(),
+                'nome' => mb_strtoupper($nome, 'UTF-8'),
+                'status' => 'Y',
+            ]);
+        }
+
+        return $id
+            ? Operadora::where('empresa_id', $this->empresaId())->lockForUpdate()->findOrFail($id)
+            : null;
     }
 
     /** Mantém apenas os campos válidos e converte índices para int (ou null). */

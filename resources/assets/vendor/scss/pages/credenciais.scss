@@ -460,79 +460,80 @@
 // ============================================
 // Modal de importação
 // ============================================
-.cred-steps {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    list-style: none;
-    padding: 0;
-    margin: 0 0 1.25rem;
-
-    li {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: var(--dash-text-secondary);
-        background: var(--dash-glass-bg);
-        border: 1px solid var(--dash-card-border);
-        border-radius: 20px;
-        padding: 0.375rem 0.875rem 0.375rem 0.375rem;
-
-        span {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-light));
-            color: #fff;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-    }
+.cred-import-intro {
+    padding: 1.25rem;
+    border-radius: var(--dash-border-radius);
+    background: rgba(var(--dash-primary-rgb), 0.055);
 }
 
-.cred-import-guide {
-    display: grid;
-    grid-template-columns: minmax(240px, 0.8fr) minmax(360px, 1.2fr);
-    gap: 1.25rem;
+.cred-import-title-row,
+.cred-import-section-head {
+    display: flex;
     align-items: center;
-    padding: 1.1rem;
-    border-radius: var(--dash-border-radius-sm);
-    background: rgba(var(--dash-primary-rgb), 0.055);
+    gap: 0.75rem;
 
     h6 {
-        margin: 0 0 0.4rem;
+        margin: 0 0 0.2rem;
         color: var(--dash-text-primary);
         font-size: 1.15rem;
-        font-weight: 750;
+        font-weight: 700;
     }
 
     p {
-        max-width: 58ch;
-        margin: 0 0 0.9rem;
+        max-width: 68ch;
+        margin: 0;
         color: var(--dash-text-secondary);
         font-size: 0.96rem;
-        line-height: 1.55;
+        line-height: 1.5;
     }
+
+    .cred-btn { margin-left: auto; }
+}
+
+.cred-import-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 50%;
+    background: var(--dash-primary);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.cred-import-rules {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 1rem 0;
+    padding: 0.9rem 0;
+    border-top: 1px solid rgba(var(--dash-primary-rgb), 0.14);
+    border-bottom: 1px solid rgba(var(--dash-primary-rgb), 0.14);
+
+    div { padding: 0 1rem; }
+    div:first-child { padding-left: 0; }
+    div + div { border-left: 1px solid rgba(var(--dash-primary-rgb), 0.14); }
+    strong { display: block; margin-bottom: 0.2rem; color: var(--dash-text-primary); font-size: 0.78rem; }
+    span { display: block; color: var(--dash-text-secondary); font-size: 0.78rem; line-height: 1.45; }
 }
 
 .cred-import-example {
     min-width: 0;
 
-    .cred-section-label { display: block; margin: 0 0 0.45rem; }
-    .table-responsive { border-radius: 8px; border: 1px solid var(--dash-card-border); }
+    .cred-import-example-label { display: block; margin: 0 0 0.45rem; color: var(--dash-text-muted); font-size: 0.78rem; font-weight: 700; }
+    .table-responsive { border-radius: var(--dash-border-radius-sm); }
     table { color: var(--dash-text-primary); }
     th { color: var(--dash-text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
     td { color: var(--dash-text-secondary); font-size: 0.78rem; white-space: nowrap; }
-    th, td { padding: 0.45rem 0.55rem; border-color: var(--dash-card-border); }
-    small { display: block; margin-top: 0.45rem; color: var(--dash-text-muted); font-size: 0.78rem; }
+    th, td { padding: 0.5rem 0.65rem; border-color: rgba(var(--dash-primary-rgb), 0.12); }
 }
 
-.cred-import-upload { margin-top: 0.35rem; }
+.cred-import-section-head { margin-top: 1.5rem; }
+.cred-import-section-head-compact { margin: 0 0 1rem; }
+.cred-import-section-head .cred-pill-info { margin-left: auto; }
+.cred-import-upload { margin-top: 0.25rem; padding-left: 2.65rem; }
 
 .cred-divider { border-color: var(--dash-card-border); opacity: 1; margin: 1.5rem 0; }
 
@@ -681,7 +682,12 @@
     }
     .cred-toolbar { align-items: flex-start; }
     .cred-filters { width: 100%; .cred-select { flex: 1; } }
-    .cred-import-guide { grid-template-columns: 1fr; }
+    .cred-import-title-row { align-items: flex-start; flex-wrap: wrap; }
+    .cred-import-title-row .cred-btn { width: 100%; margin-left: 2.65rem; }
+    .cred-import-rules { grid-template-columns: 1fr; }
+    .cred-import-rules div { padding: 0.65rem 0; }
+    .cred-import-rules div + div { border-left: 0; border-top: 1px solid rgba(var(--dash-primary-rgb), 0.14); }
+    .cred-import-upload { padding-left: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -733,6 +739,7 @@
 }
 .cred-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
 .cred-field-full { grid-column: 1 / -1; }
+.cred-field-hint { color: var(--dash-text-muted); font-size: 0.78rem; line-height: 1.4; }
 .cred-label {
     font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
     color: var(--dash-text-muted);

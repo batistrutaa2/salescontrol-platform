@@ -7,7 +7,6 @@
         'resources/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.scss',
         'resources/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.scss',
         'resources/assets/vendor/libs/sweetalert2/sweetalert2.scss',
-        'resources/assets/vendor/libs/select2/select2.scss',
         'resources/assets/vendor/scss/pages/dashboard-analytics.scss',
         'resources/assets/vendor/scss/pages/credenciais.scss',
     ])
@@ -15,9 +14,7 @@
 
 @section('vendor-script')
     @vite([
-        'resources/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js',
         'resources/assets/vendor/libs/sweetalert2/sweetalert2.js',
-        'resources/assets/vendor/libs/select2/select2.js',
     ])
 @endsection
 
@@ -174,13 +171,15 @@
                     {{-- Contexto compartilhado por todos os acessos --}}
                     <div class="cred-ctx">
                         <div class="cred-field">
-                            <label class="cred-label" for="operadora_id">Operadora</label>
-                            <select class="form-select select2-operadora" id="operadora_id" name="operadora_id">
-                                <option value="">— Selecione —</option>
+                            <label class="cred-label" for="operadora_nome">Operadora</label>
+                            <input type="text" class="form-control" id="operadora_nome" name="operadora_nome"
+                                list="operadoraSugestoes" autocomplete="off" placeholder="Digite o nome da operadora">
+                            <datalist id="operadoraSugestoes">
                                 @foreach ($operadoras as $operadora)
-                                    <option value="{{ $operadora->id }}">{{ $operadora->nome }}</option>
+                                    <option value="{{ $operadora->nome }}"></option>
                                 @endforeach
-                            </select>
+                            </datalist>
+                            <small class="cred-field-hint">Se ainda não existir, será criada ao salvar.</small>
                         </div>
                         <div class="cred-field">
                             <label class="cred-label" for="tipo">Tipo de acesso</label>
@@ -261,36 +260,46 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
-                <ol class="cred-steps">
-                    <li><span>1</span> Baixe e preencha o modelo</li>
-                    <li><span>2</span> Envie e confira as colunas</li>
-                    <li><span>3</span> Confirme a importação</li>
-                </ol>
-
-                <section class="cred-import-guide" aria-labelledby="credImportGuideTitle">
-                    <div class="cred-import-guide-copy">
-                        <h6 id="credImportGuideTitle">Comece pelo modelo pronto</h6>
-                        <p>Preencha uma credencial por linha. A operadora não precisa estar cadastrada: quando informada, o sistema encontra ou cria automaticamente para sua empresa.</p>
+                <section class="cred-import-intro" aria-labelledby="credImportGuideTitle">
+                    <div class="cred-import-title-row">
+                        <span class="cred-import-number" aria-hidden="true">1</span>
+                        <div>
+                            <h6 id="credImportGuideTitle">Prepare a planilha</h6>
+                            <p>Use o modelo abaixo e mantenha uma credencial por linha.</p>
+                        </div>
                         <a class="cred-btn cred-btn-ghost" href="{{ route('backoffice.credenciais.import.modelo') }}" id="btnBaixarModelo">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg>
                             Baixar modelo Excel
                         </a>
                     </div>
-                    <div class="cred-import-example" aria-label="Exemplo de preenchimento">
-                        <span class="cred-section-label">Exemplo</span>
+
+                    <div class="cred-import-rules" aria-label="Regras de preenchimento">
+                        <div><strong>Operadora</strong><span>Opcional. Digite o nome; se for nova, será criada automaticamente.</span></div>
+                        <div><strong>Nome</strong><span>Obrigatório. Identifica a empresa, pessoa ou rótulo do acesso.</span></div>
+                        <div><strong>Demais campos</strong><span>Tipo, login, senha e observação podem ficar vazios.</span></div>
+                    </div>
+
+                    <div class="cred-import-example" aria-label="Exemplo de uma linha preenchida">
+                        <span class="cred-import-example-label">Exemplo de preenchimento</span>
                         <div class="table-responsive">
                             <table class="table table-sm mb-0">
-                                <thead><tr><th>Operadora</th><th>Tipo</th><th>Nome</th><th>Login</th></tr></thead>
-                                <tbody><tr><td>AMIL</td><td>Empresa</td><td>Empresa Exemplo</td><td>12.345.678/0001-90</td></tr></tbody>
+                                <thead><tr><th>Operadora</th><th>Tipo</th><th>Nome</th><th>Login</th><th>Senha</th><th>Observação</th></tr></thead>
+                                <tbody><tr><td>AMIL</td><td>Empresa</td><td>Empresa Exemplo</td><td>12.345.678/0001-90</td><td>Senha@123</td><td>Portal empresarial</td></tr></tbody>
                             </table>
                         </div>
-                        <small>Você também pode deixar a operadora vazia e vincular depois.</small>
                     </div>
                 </section>
 
+                <div class="cred-import-section-head">
+                    <span class="cred-import-number" aria-hidden="true">2</span>
+                    <div>
+                        <h6>Envie o arquivo preenchido</h6>
+                        <p>Formatos aceitos: Excel ou CSV, com até 10 MB.</p>
+                    </div>
+                </div>
                 <div class="row g-3 align-items-end cred-import-upload">
-                    <div class="col-md-8">
-                        <label class="form-label" for="import_arquivo">Arquivo (.xlsx, .xls, .csv) <span class="text-danger">*</span></label>
+                    <div class="col-md-9">
+                        <label class="form-label" for="import_arquivo">Arquivo <span class="text-danger">*</span></label>
                         <input type="file" class="form-control" id="import_arquivo" accept=".xlsx,.xls,.csv,.txt">
                     </div>
                     <div class="col-md-3">
@@ -306,12 +315,14 @@
 
                 <div id="importMapeamento" class="d-none">
                     <hr class="cred-divider">
-                    <p class="cred-help">
-                        Confira se cada coluna da planilha está ligada ao campo correto.
-                        <strong>Nome</strong> é o único campo obrigatório; operadora e demais campos são opcionais.
-                        Operadoras informadas serão vinculadas ou criadas automaticamente.
+                    <div class="cred-import-section-head cred-import-section-head-compact">
+                        <span class="cred-import-number" aria-hidden="true">3</span>
+                        <div>
+                            <h6>Confira as colunas</h6>
+                            <p>Selecione de qual coluna vem cada informação. Apenas <strong>Nome</strong> é obrigatório.</p>
+                        </div>
                         <span id="importTotalLinhas" class="cred-pill-info"></span>
-                    </p>
+                    </div>
                     <div class="row g-3" id="importCamposRow"></div>
 
                     <h6 class="cred-section-label">Amostra da planilha</h6>

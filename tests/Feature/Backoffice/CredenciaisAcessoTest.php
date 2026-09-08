@@ -107,7 +107,11 @@ class CredenciaisAcessoTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('backoffice.credenciais.index'))
             ->assertOk()
-            ->assertSee('Cofre de Acessos');
+            ->assertSee('Cofre de Acessos')
+            ->assertSee('id="operadora_nome"', false)
+            ->assertDontSee('id="operadora_id"', false)
+            ->assertSee('Prepare a planilha')
+            ->assertSee('Exemplo de preenchimento');
     }
 
     public function test_pesquisa_compacta_localiza_acesso_sem_vazar_outra_empresa(): void
@@ -191,6 +195,40 @@ class CredenciaisAcessoTest extends TestCase
         $this->assertNotSame('a1', DB::table('credenciais_acesso')->where('nome', 'ROFER MASTER')->value('senha'));
         // Histórico de criação para cada uma.
         $this->assertDatabaseCount('credenciais_acesso_historico', 2);
+    }
+
+    public function test_store_multiplo_aceita_operadora_digitada_e_cria_quando_necessario(): void
+    {
+        $resp = $this->actingAs($this->admin)
+            ->postJson(route('backoffice.credenciais.storeMultiplo'), [
+                'operadora_nome' => 'Sul América',
+                'tipo' => 'Empresa',
+                'status' => 'Y',
+                'acessos' => [
+                    ['nome' => 'Portal Empresa', 'login' => 'usuario', 'senha' => 'senha'],
+                ],
+            ]);
+
+        $resp->assertCreated()
+            ->assertJsonPath('operadora.nome', 'SUL AMÉRICA');
+
+        $this->actingAs($this->admin)
+            ->postJson(route('backoffice.credenciais.storeMultiplo'), [
+                'operadora_nome' => 'sulamerica',
+                'tipo' => 'Empresa',
+                'status' => 'Y',
+                'acessos' => [['nome' => 'Segundo Portal']],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('operadora.nome', 'SUL AMÉRICA');
+
+        $operadora = Operadora::where('empresa_id', $this->empresa->id)->where('nome', 'SUL AMÉRICA')->sole();
+        $this->assertSame(1, Operadora::where('empresa_id', $this->empresa->id)->whereIn('nome', ['SUL AMÉRICA', 'SULAMERICA'])->count());
+        $this->assertDatabaseHas('credenciais_acesso', [
+            'empresa_id' => $this->empresa->id,
+            'operadora_id' => $operadora->id,
+            'nome' => 'PORTAL EMPRESA',
+        ]);
     }
 
     public function test_store_multiplo_valida_nome_de_cada_acesso(): void

@@ -1,5 +1,8 @@
 'use strict';
 
+import $ from 'jquery';
+import 'datatables.net-bs5';
+
 (function () {
     const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
     let tabela = null;
@@ -148,8 +151,22 @@
     function resetForm() {
         document.getElementById('formCredencial').reset();
         document.getElementById('credencial_id').value = '';
-        $('#operadora_id').val('').trigger('change');
+        document.getElementById('operadora_nome').value = '';
         acessosBox().innerHTML = '';
+    }
+
+    function registrarOperadora(operadora) {
+        if (!operadora?.id || !operadora?.nome) return;
+
+        const sugestoes = document.getElementById('operadoraSugestoes');
+        if (!Array.from(sugestoes.options).some((option) => option.value === operadora.nome)) {
+            sugestoes.appendChild(new Option('', operadora.nome));
+        }
+
+        const filtro = document.getElementById('filtroOperadora');
+        if (!Array.from(filtro.options).some((option) => option.value === String(operadora.id))) {
+            filtro.appendChild(new Option(operadora.nome, operadora.id));
+        }
     }
 
     function abrirNova() {
@@ -173,7 +190,7 @@
             document.getElementById('tipo').value = c.tipo ?? '';
             document.getElementById('observacao').value = c.observacao ?? '';
             document.getElementById('status').value = c.status ?? 'Y';
-            $('#operadora_id').val(c.operadora_id ? String(c.operadora_id) : '').trigger('change');
+            document.getElementById('operadora_nome').value = c.operadora_nome ?? '';
             document.getElementById('cred-add-acesso').style.display = 'none';
             adicionarAcesso({ nome: c.nome, login: c.login, senha: c.senha });
             credencialModal().show();
@@ -193,7 +210,7 @@
         }
 
         const contexto = {
-            operadora_id: document.getElementById('operadora_id').value || null,
+            operadora_nome: document.getElementById('operadora_nome').value.trim() || null,
             tipo: document.getElementById('tipo').value || null,
             observacao: document.getElementById('observacao').value || null,
             status: document.getElementById('status').value,
@@ -218,6 +235,7 @@
                 return;
             }
             credencialModal().hide();
+            registrarOperadora(data.operadora);
             tabela.ajax.reload(null, false);
             Toast.fire({ icon: 'success', title: data.message ?? 'Salvo!' });
         } catch {
@@ -355,9 +373,10 @@
                 .join('');
 
         document.getElementById('importCamposRow').innerHTML = Object.entries(data.campos)
-            .map(([campo, label]) => {
+            .map(([campo, labelOriginal]) => {
                 const req = obrigatorios.includes(campo) ? ' <span class="text-danger">*</span>' : '';
                 const palpite = data.palpite?.[campo] ?? '';
+                const label = campo === 'operadora' ? 'Coluna da operadora' : labelOriginal;
                 return `<div class="col-md-4">
                             <label class="form-label">${escapeHtml(label)}${req}</label>
                             <select class="form-select map-campo" data-campo="${campo}">${opcoes(palpite)}</select>
@@ -408,6 +427,7 @@
                 return;
             }
             importarModal().hide();
+            (data.operadoras_criadas ?? []).forEach(registrarOperadora);
             tabela.ajax.reload(null, false);
             Swal.fire({ icon: 'success', title: 'Importação concluída', text: data.message, customClass: { confirmButton: 'btn btn-primary' }, buttonsStyling: false });
         } catch {
@@ -422,10 +442,6 @@
     // ----------------------------------------------------------------
     $(function () {
         initTabela();
-
-        if ($.fn.select2) {
-            $('.select2-operadora').select2({ dropdownParent: $('#credencialModal'), width: '100%' });
-        }
 
         document.getElementById('btnNovaCredencial').addEventListener('click', abrirNova);
         document.getElementById('formCredencial').addEventListener('submit', salvar);
