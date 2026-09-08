@@ -8,6 +8,7 @@ use App\Models\CredencialAcessoHistorico;
 use App\Models\Empresa;
 use App\Models\Operadora;
 use App\Models\User;
+use App\Models\Vendas;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -221,7 +222,7 @@ class CredenciaisAcessoTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        $venda = \App\Models\Vendas::create([
+        $venda = Vendas::create([
             'empresa_id' => $this->empresa->id,
             'user_id' => $this->admin->id,
             'contato_id' => $contatoId,
@@ -329,6 +330,24 @@ class CredenciaisAcessoTest extends TestCase
         return UploadedFile::fake()->createWithContent('acessos.csv', $conteudo);
     }
 
+    private function csvAcessosComOperadoras(): UploadedFile
+    {
+        $conteudo = "Operadora,Tipo,Nome,Login,Senha,Observação\n"
+            ."Sul América,Empresa,Cliente Um,11.111.111/0001-11,senha1,Portal empresarial\n"
+            ."sulamerica,Pessoa Física,Cliente Dois,222.222.222-22,senha2,Portal individual\n"
+            .",Empresa,Cliente Sem Operadora,33.333.333/0001-33,senha3,Será vinculada depois\n";
+
+        return UploadedFile::fake()->createWithContent('acessos-com-operadoras.csv', $conteudo);
+    }
+
+    public function test_usuario_autorizado_baixa_modelo_excel_de_credenciais(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('backoffice.credenciais.import.modelo'))
+            ->assertOk()
+            ->assertDownload('modelo-importacao-credenciais.xlsx');
+    }
+
     public function test_preview_retorna_colunas_e_palpite_de_mapeamento(): void
     {
         $resp = $this->actingAs($this->admin)
@@ -344,6 +363,18 @@ class CredenciaisAcessoTest extends TestCase
             ->assertJsonPath('palpite.login', 1)
             ->assertJsonPath('palpite.senha', 2)
             ->assertJsonPath('palpite.observacao', 3);
+    }
+
+    public function test_preview_identifica_coluna_de_operadora_do_modelo(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('backoffice.credenciais.import.preview'), [
+                'arquivo' => $this->csvAcessosComOperadoras(),
+                'tem_cabecalho' => '1',
+            ])
+            ->assertOk()
+            ->assertJsonPath('palpite.operadora', 0)
+            ->assertJsonPath('palpite.nome', 2);
     }
 
     public function test_import_cria_credenciais_mapeadas_e_historico(): void
@@ -383,6 +414,46 @@ class CredenciaisAcessoTest extends TestCase
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['mapping.nome']);
+    }
+
+    public function test_import_cria_e_reutiliza_operadora_informada_sem_cadastro_previo(): void
+    {
+        $outraEmpresa = Empresa::factory()->create();
+        Operadora::create(['empresa_id' => $outraEmpresa->id, 'nome' => 'SULAMÉRICA', 'status' => 'Y']);
+
+        $resp = $this->actingAs($this->admin)
+            ->post(route('backoffice.credenciais.import'), [
+                'arquivo' => $this->csvAcessosComOperadoras(),
+                'tem_cabecalho' => '1',
+                'mapping' => ['operadora' => 0, 'tipo' => 1, 'nome' => 2, 'login' => 3, 'senha' => 4, 'observacao' => 5],
+            ]);
+
+        $resp->assertOk()
+            ->assertJson(['success' => true, 'importados' => 3])
+            ->assertJsonCount(1, 'operadoras_criadas');
+
+        $operadora = Operadora::where('empresa_id', $this->empresa->id)->where('nome', 'SUL AMÉRICA')->sole();
+        $this->assertSame(2, CredencialAcesso::where('empresa_id', $this->empresa->id)->where('operadora_id', $operadora->id)->count());
+        $this->assertDatabaseHas('credenciais_acesso', [
+            'empresa_id' => $this->empresa->id,
+            'nome' => 'CLIENTE SEM OPERADORA',
+            'operadora_id' => null,
+        ]);
+        $this->assertSame(1, DB::table('operadoras')->where('empresa_id', $outraEmpresa->id)->where('nome', 'SULAMÉRICA')->count());
+    }
+
+    public function test_import_sem_operadora_continua_disponivel(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('backoffice.credenciais.import'), [
+                'arquivo' => $this->csvAcessos(),
+                'tem_cabecalho' => '1',
+                'mapping' => ['nome' => 0, 'login' => 1, 'senha' => 2, 'observacao' => 3],
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true, 'importados' => 2]);
+
+        $this->assertSame(2, CredencialAcesso::where('empresa_id', $this->empresa->id)->whereNull('operadora_id')->count());
     }
 
     public function test_import_bloqueia_operadora_de_outra_empresa(): void

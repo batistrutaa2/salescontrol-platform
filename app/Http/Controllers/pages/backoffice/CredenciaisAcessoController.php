@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\pages\backoffice;
 
 use App\Enums\UserRole;
+use App\Exports\CredenciaisModeloExport;
 use App\Http\Controllers\Controller;
+use App\Imports\RawSheetImport;
 use App\Models\CredencialAcesso;
 use App\Models\CredencialAcessoHistorico;
 use App\Models\Operadora;
@@ -14,7 +16,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
 
 class CredenciaisAcessoController extends Controller
@@ -371,11 +375,12 @@ class CredenciaisAcessoController extends Controller
     }
 
     // ----------------------------------------------------------------
-    // Importação por Excel (por operadora + mapeamento de colunas)
+    // Importação por Excel (operadora opcional + mapeamento de colunas)
     // ----------------------------------------------------------------
 
     /** Campos do sistema que podem receber uma coluna da planilha. */
     private const CAMPOS_IMPORTAVEIS = [
+        'operadora' => 'Operadora',
         'tipo' => 'Tipo',
         'nome' => 'Nome',
         'login' => 'Login / Documento',
@@ -385,12 +390,20 @@ class CredenciaisAcessoController extends Controller
 
     /** Palavras-chave para adivinhar o mapeamento a partir do cabeçalho. */
     private const PALPITES = [
+        'operadora' => ['operadora', 'seguradora'],
         'nome' => ['empresa', 'nome', 'cliente', 'razao', 'razão', 'titular'],
         'login' => ['login', 'usuario', 'usuário', 'cpf', 'cnpj', 'documento', 'user'],
         'senha' => ['senha', 'password', 'pass'],
         'observacao' => ['obs', 'observ', 'acesso', 'dia', 'email', 'e-mail', 'nota'],
         'tipo' => ['tipo'],
     ];
+
+    public function downloadModelo()
+    {
+        $this->checkAccess();
+
+        return Excel::download(new CredenciaisModeloExport, 'modelo-importacao-credenciais.xlsx');
+    }
 
     /**
      * Lê a planilha enviada e devolve as colunas + amostra para o usuário mapear.
@@ -405,7 +418,7 @@ class CredenciaisAcessoController extends Controller
 
         $temCabecalho = $request->boolean('tem_cabecalho', true);
 
-        $sheets = \Maatwebsite\Excel\Facades\Excel::toArray(new \App\Imports\RawSheetImport(), $request->file('arquivo'));
+        $sheets = Excel::toArray(new RawSheetImport, $request->file('arquivo'));
         $rows = $sheets[0] ?? [];
 
         if (empty($rows)) {
@@ -445,27 +458,29 @@ class CredenciaisAcessoController extends Controller
     }
 
     /**
-     * Importa as credenciais de uma operadora a partir do Excel + mapeamento.
-     * Política: sempre adiciona (cria registros novos).
+     * Importa credenciais a partir do Excel + mapeamento.
+     * A operadora é opcional. Quando informada por linha, é vinculada à existente
+     * ou criada automaticamente dentro da empresa atual.
      */
     public function import(Request $request): JsonResponse
     {
         $this->checkAccess();
 
         $validated = $request->validate([
-            'operadora_id' => ['required', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->empresaId())],
+            'operadora_id' => ['nullable', 'integer', Rule::exists('operadoras', 'id')->where('empresa_id', $this->empresaId())],
             'arquivo' => 'required|file|mimes:xlsx,xls,csv,txt|max:10240',
             'mapping' => 'required|array',
             'mapping.nome' => 'required',
         ]);
 
-        // Garante que a operadora pertence à empresa do usuário.
-        $operadora = Operadora::where('empresa_id', $this->empresaId())->findOrFail($validated['operadora_id']);
+        $operadoraPadrao = isset($validated['operadora_id'])
+            ? Operadora::where('empresa_id', $this->empresaId())->findOrFail($validated['operadora_id'])
+            : null;
 
         $temCabecalho = $request->boolean('tem_cabecalho', true);
         $mapping = $this->normalizarMapping($request->input('mapping'));
 
-        $sheets = \Maatwebsite\Excel\Facades\Excel::toArray(new \App\Imports\RawSheetImport(), $request->file('arquivo'));
+        $sheets = Excel::toArray(new RawSheetImport, $request->file('arquivo'));
         $rows = $sheets[0] ?? [];
         $rows = $temCabecalho ? array_slice($rows, 1) : $rows;
 
@@ -475,9 +490,16 @@ class CredenciaisAcessoController extends Controller
 
         $importados = 0;
         $pulados = 0;
+        $operadorasCriadas = [];
 
-        DB::transaction(function () use ($rows, $mapping, $operadora, &$importados, &$pulados) {
+        DB::transaction(function () use ($rows, $mapping, $operadoraPadrao, &$importados, &$pulados, &$operadorasCriadas) {
             $userId = Auth::id();
+            $empresaId = $this->empresaId();
+            $operadoras = Operadora::where('empresa_id', $empresaId)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy(fn (Operadora $operadora) => $this->chaveOperadora($operadora->nome));
 
             foreach ($rows as $row) {
                 $nome = $this->valorMapeado($row, $mapping['nome'] ?? null);
@@ -487,9 +509,27 @@ class CredenciaisAcessoController extends Controller
                     continue;
                 }
 
+                $operadora = $operadoraPadrao;
+                $operadoraNome = $this->valorMapeado($row, $mapping['operadora'] ?? null);
+
+                if ($operadoraNome !== null) {
+                    $chave = $this->chaveOperadora($operadoraNome);
+                    $operadora = $chave !== '' ? $operadoras->get($chave) : null;
+
+                    if ($chave !== '' && $operadora === null) {
+                        $operadora = Operadora::create([
+                            'empresa_id' => $empresaId,
+                            'nome' => mb_strtoupper(trim($operadoraNome), 'UTF-8'),
+                            'status' => 'Y',
+                        ]);
+                        $operadoras->put($chave, $operadora);
+                        $operadorasCriadas[$operadora->id] = $operadora->nome;
+                    }
+                }
+
                 $credencial = CredencialAcesso::create([
-                    'empresa_id' => $this->empresaId(),
-                    'operadora_id' => $operadora->id,
+                    'empresa_id' => $empresaId,
+                    'operadora_id' => $operadora?->id,
                     'tipo' => $this->valorMapeado($row, $mapping['tipo'] ?? null),
                     'nome' => $nome,
                     'login' => $this->valorMapeado($row, $mapping['login'] ?? null),
@@ -501,7 +541,7 @@ class CredenciaisAcessoController extends Controller
                 ]);
 
                 CredencialAcessoHistorico::create([
-                    'empresa_id' => $this->empresaId(),
+                    'empresa_id' => $empresaId,
                     'credencial_id' => $credencial->id,
                     'user_id' => $userId,
                     'acao' => 'CRIACAO',
@@ -514,10 +554,18 @@ class CredenciaisAcessoController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Importação concluída: {$importados} credenciais adicionadas".($pulados ? " ({$pulados} linhas sem nome ignoradas)." : '.'),
+            'message' => "Importação concluída: {$importados} credenciais adicionadas"
+                .(count($operadorasCriadas) ? ' e '.count($operadorasCriadas).' operadora(s) criada(s)' : '')
+                .($pulados ? " ({$pulados} linhas sem nome ignoradas)." : '.'),
             'importados' => $importados,
             'pulados' => $pulados,
+            'operadoras_criadas' => array_values($operadorasCriadas),
         ]);
+    }
+
+    private function chaveOperadora(string $nome): string
+    {
+        return preg_replace('/[^A-Z0-9]+/', '', Str::ascii(mb_strtoupper(trim($nome), 'UTF-8'))) ?? '';
     }
 
     /** Mantém apenas os campos válidos e converte índices para int (ou null). */

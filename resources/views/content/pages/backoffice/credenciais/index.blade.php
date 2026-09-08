@@ -262,22 +262,34 @@
             </div>
             <div class="modal-body">
                 <ol class="cred-steps">
-                    <li><span>1</span> Escolha a operadora e o arquivo</li>
-                    <li><span>2</span> Diga qual coluna é cada campo</li>
-                    <li><span>3</span> Importe</li>
+                    <li><span>1</span> Baixe e preencha o modelo</li>
+                    <li><span>2</span> Envie e confira as colunas</li>
+                    <li><span>3</span> Confirme a importação</li>
                 </ol>
 
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label" for="import_operadora">Operadora <span class="text-danger">*</span></label>
-                        <select class="form-select" id="import_operadora">
-                            <option value="">— Selecione —</option>
-                            @foreach ($operadoras as $operadora)
-                                <option value="{{ $operadora->id }}">{{ $operadora->nome }}</option>
-                            @endforeach
-                        </select>
+                <section class="cred-import-guide" aria-labelledby="credImportGuideTitle">
+                    <div class="cred-import-guide-copy">
+                        <h6 id="credImportGuideTitle">Comece pelo modelo pronto</h6>
+                        <p>Preencha uma credencial por linha. A operadora não precisa estar cadastrada: quando informada, o sistema encontra ou cria automaticamente para sua empresa.</p>
+                        <a class="cred-btn cred-btn-ghost" href="{{ route('backoffice.credenciais.import.modelo') }}" id="btnBaixarModelo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg>
+                            Baixar modelo Excel
+                        </a>
                     </div>
-                    <div class="col-md-5">
+                    <div class="cred-import-example" aria-label="Exemplo de preenchimento">
+                        <span class="cred-section-label">Exemplo</span>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead><tr><th>Operadora</th><th>Tipo</th><th>Nome</th><th>Login</th></tr></thead>
+                                <tbody><tr><td>AMIL</td><td>Empresa</td><td>Empresa Exemplo</td><td>12.345.678/0001-90</td></tr></tbody>
+                            </table>
+                        </div>
+                        <small>Você também pode deixar a operadora vazia e vincular depois.</small>
+                    </div>
+                </section>
+
+                <div class="row g-3 align-items-end cred-import-upload">
+                    <div class="col-md-8">
                         <label class="form-label" for="import_arquivo">Arquivo (.xlsx, .xls, .csv) <span class="text-danger">*</span></label>
                         <input type="file" class="form-control" id="import_arquivo" accept=".xlsx,.xls,.csv,.txt">
                     </div>
@@ -295,8 +307,9 @@
                 <div id="importMapeamento" class="d-none">
                     <hr class="cred-divider">
                     <p class="cred-help">
-                        Cada operadora tem colunas diferentes — relacione cada coluna da planilha ao campo do sistema.
-                        <strong>Nome</strong> é obrigatório; os demais são opcionais.
+                        Confira se cada coluna da planilha está ligada ao campo correto.
+                        <strong>Nome</strong> é o único campo obrigatório; operadora e demais campos são opcionais.
+                        Operadoras informadas serão vinculadas ou criadas automaticamente.
                         <span id="importTotalLinhas" class="cred-pill-info"></span>
                     </p>
                     <div class="row g-3" id="importCamposRow"></div>

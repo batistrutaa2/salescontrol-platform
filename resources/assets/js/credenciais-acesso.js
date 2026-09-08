@@ -307,12 +307,11 @@
     }
 
     // ----------------------------------------------------------------
-    // Importação por Excel (operadora + mapeamento de colunas)
+    // Importação por Excel (operadora opcional por linha + mapeamento de colunas)
     // ----------------------------------------------------------------
     const importarModal = () => bootstrap.Modal.getOrCreateInstance(document.getElementById('importarModal'));
 
     function abrirImport() {
-        document.getElementById('import_operadora').value = '';
         document.getElementById('import_arquivo').value = '';
         document.getElementById('import_cabecalho').checked = true;
         document.getElementById('importMapeamento').classList.add('d-none');
@@ -322,10 +321,8 @@
     }
 
     async function previewImport() {
-        const operadora = document.getElementById('import_operadora').value;
         const arquivo = document.getElementById('import_arquivo').files[0];
 
-        if (!operadora) return Toast.fire({ icon: 'warning', title: 'Selecione a operadora' });
         if (!arquivo) return Toast.fire({ icon: 'warning', title: 'Selecione o arquivo' });
 
         const fd = new FormData();
@@ -382,18 +379,16 @@
     }
 
     async function confirmarImport() {
-        const operadora = document.getElementById('import_operadora').value;
         const arquivo = document.getElementById('import_arquivo').files[0];
-        if (!operadora || !arquivo) return;
+        if (!arquivo) return;
 
         const mapping = {};
         document.querySelectorAll('.map-campo').forEach((sel) => {
             mapping[sel.dataset.campo] = sel.value;
         });
-        if (!mapping.nome) return Toast.fire({ icon: 'warning', title: 'Mapeie a coluna do Nome' });
+        if (mapping.nome === undefined || mapping.nome === '') return Toast.fire({ icon: 'warning', title: 'Mapeie a coluna do Nome' });
 
         const fd = new FormData();
-        fd.append('operadora_id', operadora);
         fd.append('arquivo', arquivo);
         fd.append('tem_cabecalho', document.getElementById('import_cabecalho').checked ? '1' : '0');
         Object.entries(mapping).forEach(([campo, idx]) => fd.append(`mapping[${campo}]`, idx));
