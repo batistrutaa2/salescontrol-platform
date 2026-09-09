@@ -45,6 +45,10 @@ class ConsultaService
         $digits = AssertivaService::digits($doc);
         $fonte = $fonte === 'assertiva' ? 'assertiva' : 'lemit';
 
+        if ($fonte === 'assertiva') {
+            $this->ensureAssertivaEnabled();
+        }
+
         if (strlen($digits) === 11) {
             return $fonte === 'assertiva' ? $this->documentoAssertivaCpf($digits) : $this->lemit->consultarCpf($digits);
         }
@@ -85,6 +89,7 @@ class ConsultaService
 
     public function consultarTelefone(string $telefone): array
     {
+        $this->ensureAssertivaEnabled();
         $numero = AssertivaService::digits($telefone);
         if (strlen($numero) < 10) {
             throw new InvalidArgumentException('Telefone inválido.');
@@ -115,6 +120,7 @@ class ConsultaService
 
     public function consultarEmail(string $email): array
     {
+        $this->ensureAssertivaEnabled();
         $email = trim($email);
         if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new InvalidArgumentException('E-mail inválido.');
@@ -146,6 +152,8 @@ class ConsultaService
 
     public function consultarNomeEndereco(array $filtros): array
     {
+        $this->ensureAssertivaEnabled();
+
         return $this->assertiva->consultarNomeEndereco($filtros);
     }
 
@@ -160,5 +168,12 @@ class ConsultaService
         }
 
         return Carbon::parse($dataConsulta)->gt(now()->subMonths($months));
+    }
+
+    private function ensureAssertivaEnabled(): void
+    {
+        if (! config('services.assertiva.enabled', false)) {
+            throw new InvalidArgumentException('A consulta pela Assertiva está indisponível. Utilize a Lemit.');
+        }
     }
 }

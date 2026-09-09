@@ -9,9 +9,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 /**
- * Endpoints de enriquecimento. Delegam ao {@see ConsultaService}, que roteia a
- * fonte (Lemit x Assertiva). Apenas o cache Assertiva, isolado por empresa, é
- * reutilizado; a Lemit é consultada diretamente para evitar cache legado global.
+ * Endpoints de enriquecimento. A Lemit é a única fonte habilitada por padrão;
+ * a integração Assertiva permanece atrás de configuração para eventual uso futuro.
  */
 class ConsultaController extends Controller
 {
@@ -21,7 +20,7 @@ class ConsultaController extends Controller
     {
         $request->validate([
             'cpf' => ['required', 'string', 'regex:/^\d{11}$/'],
-            'fonte' => 'nullable|in:lemit,assertiva',
+            'fonte' => ['nullable', Rule::in($this->fontesDisponiveis())],
         ]);
 
         return $this->responder(fn () => $this->consulta->consultarDocumento($request->cpf, $request->input('fonte', 'lemit')), 'CPF');
@@ -31,7 +30,7 @@ class ConsultaController extends Controller
     {
         $request->validate([
             'cnpj' => ['required', 'string', 'regex:/^\d{14}$/'],
-            'fonte' => 'nullable|in:lemit,assertiva',
+            'fonte' => ['nullable', Rule::in($this->fontesDisponiveis())],
         ]);
 
         return $this->responder(fn () => $this->consulta->consultarDocumento($request->cnpj, $request->input('fonte', 'lemit')), 'CNPJ');
@@ -97,5 +96,12 @@ class ConsultaController extends Controller
                 'message' => 'Não foi possível concluir a consulta neste momento.',
             ], 500);
         }
+    }
+
+    private function fontesDisponiveis(): array
+    {
+        return config('services.assertiva.enabled', false)
+            ? ['lemit', 'assertiva']
+            : ['lemit'];
     }
 }

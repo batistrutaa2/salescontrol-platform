@@ -116,13 +116,22 @@ jobs:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
           PRODUCTION_ENV: ${{ secrets.PRODUCTION_ENV }}
+          LEMIT_API_TOKEN: ${{ secrets.LEMIT_API_TOKEN }}
         shell: bash
         run: |
+          test -n "$LEMIT_API_TOKEN"
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
           printf '%s\n' "$PRODUCTION_ENV" > "$RUNNER_TEMP/production.env"
+          sed -i '/^LEMIT_API_TOKEN=/d; /^LEMIT_BASE_URL=/d; /^LEMIT_CACHE_MONTHS=/d; /^ASSERTIVA_ENABLED=/d' "$RUNNER_TEMP/production.env"
+          {
+            printf 'LEMIT_API_TOKEN=%s\n' "$LEMIT_API_TOKEN"
+            printf 'LEMIT_BASE_URL=https://api.lemit.com.br/api/v1/consulta\n'
+            printf 'LEMIT_CACHE_MONTHS=3\n'
+            printf 'ASSERTIVA_ENABLED=false\n'
+          } >> "$RUNNER_TEMP/production.env"
           chmod 600 "$RUNNER_TEMP/production.env"
 
       - name: Upload deployment files

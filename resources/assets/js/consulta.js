@@ -438,7 +438,7 @@
     const errEl   = document.getElementById('erro-consulta-cliente');
     const input   = document.getElementById('oc-doc-input');
 
-    const fonte = body.fonte || 'assertiva';
+    const fonte = body.fonte || 'lemit';
     const termo = input ? input.value.trim() : '';
 
     if (spinner) spinner.classList.remove('d-none');

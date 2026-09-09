@@ -672,13 +672,17 @@
                         <div class="oc-search-area">
                             <div class="oc-fonte-seg" id="oc-fonte-seg">
                                 <button type="button" class="oc-fonte-btn active" data-fonte="lemit">Lemit</button>
+                                @if(config('services.assertiva.enabled'))
                                 <button type="button" class="oc-fonte-btn" data-fonte="assertiva">Assertiva</button>
+                                @endif
                             </div>
                             <div class="oc-tipo-seg" id="oc-tipo-seg">
                                 <button type="button" class="oc-tipo-btn active" data-tipo="documento">Documento</button>
+                                @if(config('services.assertiva.enabled'))
                                 <button type="button" class="oc-tipo-btn" data-tipo="telefone">Telefone</button>
                                 <button type="button" class="oc-tipo-btn" data-tipo="email">E-mail</button>
                                 <button type="button" class="oc-tipo-btn" data-tipo="nome">Nome</button>
+                                @endif
                             </div>
                             <div class="oc-search-wrap">
                                 <input type="text" id="oc-doc-input" class="oc-search-input"

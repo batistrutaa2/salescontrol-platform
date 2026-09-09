@@ -17,6 +17,7 @@ class ConsultaEndpointTest extends AssertivaTestCase
     {
         parent::setUp();
         config([
+            'services.assertiva.enabled' => true,
             'services.assertiva.client_id' => 'cli',
             'services.assertiva.client_secret' => 'sec',
             'services.assertiva.base_url' => 'https://api.assertivasolucoes.com.br',
@@ -45,6 +46,19 @@ class ConsultaEndpointTest extends AssertivaTestCase
 
         $this->postJson(route('consulta.telefone'), ['telefone' => '11999998888'])
             ->assertUnauthorized();
+    }
+
+    public function test_assertiva_desabilitada_rejeita_a_fonte_no_endpoint(): void
+    {
+        config(['services.assertiva.enabled' => false]);
+        Http::fake();
+
+        $this->postJson(route('consulta.pessoa'), [
+            'cpf' => '12345678901',
+            'fonte' => 'assertiva',
+        ])->assertUnprocessable()->assertJsonValidationErrors('fonte');
+
+        Http::assertNothingSent();
     }
 
     public function test_consultar_telefone_retorna_dados_da_api(): void

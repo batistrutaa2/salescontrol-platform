@@ -37,9 +37,11 @@ return [
     'lemit' => [
         'api_key' => env('LEMIT_API_TOKEN'),
         'base_url' => env('LEMIT_BASE_URL', 'https://api.lemit.com.br/api/v1/consulta'),
+        'cache_months' => (int) env('LEMIT_CACHE_MONTHS', 3),
     ],
 
     'assertiva' => [
+        'enabled' => filter_var(env('ASSERTIVA_ENABLED', false), FILTER_VALIDATE_BOOL),
         'client_id' => env('CLIENTE_ID_ASSERTIVA'),
         'client_secret' => env('TOKEN_SECRET_ASSERTIVA'),
         'base_url' => env('ASSERTIVA_BASE_URL', 'https://api.assertivasolucoes.com.br'),

@@ -1229,13 +1229,17 @@
                         <div class="kp-search-area">
                             <div class="oc-fonte-seg" id="kp-fonte-seg">
                                 <button type="button" class="oc-fonte-btn active" data-fonte="lemit">Lemit</button>
+                                @if(config('services.assertiva.enabled'))
                                 <button type="button" class="oc-fonte-btn" data-fonte="assertiva">Assertiva</button>
+                                @endif
                             </div>
                             <div class="oc-tipo-seg" id="kp-tipo-seg">
                                 <button type="button" class="oc-tipo-btn active" data-tipo="documento">Documento</button>
+                                @if(config('services.assertiva.enabled'))
                                 <button type="button" class="oc-tipo-btn" data-tipo="telefone">Telefone</button>
                                 <button type="button" class="oc-tipo-btn" data-tipo="email">E-mail</button>
                                 <button type="button" class="oc-tipo-btn" data-tipo="nome">Nome</button>
+                                @endif
                             </div>
                             <div class="kp-search-wrap">
                                 <input type="text" id="kp-manual-cpf" class="kp-search-input"

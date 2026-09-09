@@ -22,6 +22,7 @@ class ConsultaServiceTest extends AssertivaTestCase
     {
         parent::setUp();
         config([
+            'services.assertiva.enabled' => true,
             'services.assertiva.client_id' => 'cli',
             'services.assertiva.client_secret' => 'sec',
             'services.assertiva.base_url' => 'https://api.assertivasolucoes.com.br',
@@ -82,6 +83,17 @@ class ConsultaServiceTest extends AssertivaTestCase
         $res = $this->consultaService($lemit)->consultarDocumento('123.456.789-01', 'lemit');
 
         $this->assertSame('api_lemit', $res['fonte']);
+    }
+
+    public function test_assertiva_desabilitada_nao_executa_a_fonte(): void
+    {
+        config(['services.assertiva.enabled' => false]);
+        Http::fake();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('A consulta pela Assertiva está indisponível. Utilize a Lemit.');
+
+        $this->consultaService()->consultarDocumento('12345678901', 'assertiva');
     }
 
     public function test_documento_fonte_assertiva_servido_do_cache(): void
