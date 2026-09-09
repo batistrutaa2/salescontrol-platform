@@ -4,8 +4,6 @@ namespace Tests\Feature\Enrichment;
 
 use App\Models\Empresa;
 use App\Models\People\Assertiva\AssertivaPessoa;
-use App\Services\Enrichment\Assertiva\AssertivaService;
-use App\Services\Enrichment\Assertiva\AssertivaTokenManager;
 use App\Services\Enrichment\ConsultaService;
 use App\Services\Enrichment\LemitService;
 use App\Support\TenantContext;
@@ -38,7 +36,7 @@ class ConsultaServiceTest extends AssertivaTestCase
     {
         $lemit ??= Mockery::mock(LemitService::class);
 
-        return new ConsultaService($lemit, new AssertivaService(new AssertivaTokenManager));
+        return new ConsultaService($lemit);
     }
 
     public function test_telefone_servido_do_cache_assertiva_sem_chamar_api(): void

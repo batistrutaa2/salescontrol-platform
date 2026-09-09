@@ -6,10 +6,12 @@ use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\People\Assertiva\AssertivaPessoa;
 use App\Models\User;
+use App\Services\Enrichment\LemitService;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Mockery;
 
 class ConsultaEndpointTest extends AssertivaTestCase
 {
@@ -59,6 +61,28 @@ class ConsultaEndpointTest extends AssertivaTestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('fonte');
 
         Http::assertNothingSent();
+    }
+
+    public function test_consulta_lemit_nao_resolve_credenciais_da_assertiva(): void
+    {
+        config([
+            'services.assertiva.enabled' => false,
+            'services.assertiva.client_id' => '',
+            'services.assertiva.client_secret' => '',
+        ]);
+        $lemit = Mockery::mock(LemitService::class);
+        $lemit->shouldReceive('consultarCpf')->once()->with('12345678901')->andReturn([
+            'fonte' => 'api_lemit',
+            'pessoa' => ['nome' => 'LEMIT OK'],
+        ]);
+        $this->app->instance(LemitService::class, $lemit);
+
+        $this->postJson(route('consulta.pessoa'), [
+            'cpf' => '12345678901',
+            'fonte' => 'lemit',
+        ])->assertOk()
+            ->assertJsonPath('fonte', 'api_lemit')
+            ->assertJsonPath('pessoa.nome', 'LEMIT OK');
     }
 
     public function test_consultar_telefone_retorna_dados_da_api(): void

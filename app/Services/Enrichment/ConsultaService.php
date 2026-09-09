@@ -27,10 +27,8 @@ class ConsultaService
 {
     private int $assertivaMonths;
 
-    public function __construct(
-        private LemitService $lemit,
-        private AssertivaService $assertiva,
-    ) {
+    public function __construct(private LemitService $lemit)
+    {
         $this->assertivaMonths = (int) config('services.assertiva.cache_months', 3);
     }
 
@@ -68,7 +66,7 @@ class ConsultaService
             return ['fonte' => 'local_db_assertiva', 'data_consulta' => $pessoa->data_consulta, 'pessoa' => $pessoa];
         }
 
-        return $this->assertiva->consultarCpf($cpf);
+        return $this->assertiva()->consultarCpf($cpf);
     }
 
     private function documentoAssertivaCnpj(string $cnpj): array
@@ -80,7 +78,7 @@ class ConsultaService
             return ['fonte' => 'local_db_assertiva', 'data_consulta' => $empresa->data_consulta, 'empresa' => $empresa];
         }
 
-        return $this->assertiva->consultarCnpj($cnpj);
+        return $this->assertiva()->consultarCnpj($cnpj);
     }
 
     // ----------------------------------------------------------------------
@@ -111,7 +109,7 @@ class ConsultaService
         }
 
         // 2) API Assertiva (o cache do Lemit NÃO é usado em busca Assertiva)
-        return $this->assertiva->consultarTelefone($numero);
+        return $this->assertiva()->consultarTelefone($numero);
     }
 
     // ----------------------------------------------------------------------
@@ -143,7 +141,7 @@ class ConsultaService
         }
 
         // 2) API Assertiva (o cache do Lemit NÃO é usado em busca Assertiva)
-        return $this->assertiva->consultarEmail($email);
+        return $this->assertiva()->consultarEmail($email);
     }
 
     // ----------------------------------------------------------------------
@@ -154,7 +152,7 @@ class ConsultaService
     {
         $this->ensureAssertivaEnabled();
 
-        return $this->assertiva->consultarNomeEndereco($filtros);
+        return $this->assertiva()->consultarNomeEndereco($filtros);
     }
 
     // ----------------------------------------------------------------------
@@ -175,5 +173,10 @@ class ConsultaService
         if (! config('services.assertiva.enabled', false)) {
             throw new InvalidArgumentException('A consulta pela Assertiva está indisponível. Utilize a Lemit.');
         }
+    }
+
+    private function assertiva(): AssertivaService
+    {
+        return app(AssertivaService::class);
     }
 }
