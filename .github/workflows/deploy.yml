@@ -64,8 +64,26 @@ jobs:
           printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
           ssh_opts=(-i "$HOME/.ssh/deploy_key" -o BatchMode=yes -o StrictHostKeyChecking=yes)
-          ssh "${ssh_opts[@]}" -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" \
-            "docker logs --since 30m salescontrol-platform-app-1 2>&1 | grep -E 'Falha em consulta de enriquecimento|Lemit|ConnectionException' | tail -n 30 | sed -E 's/[0-9]{11,14}/[documento]/g' || true"
+          ssh "${ssh_opts[@]}" -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" 'bash -s' <<'REMOTE'
+          docker exec salescontrol-platform-app-1 sh -lc '
+            status=$(curl --silent --show-error --output /dev/null --write-out "%{http_code}" \
+              --connect-timeout 8 --max-time 20 --request POST \
+              --header "Authorization: Bearer $LEMIT_API_TOKEN" \
+              --header "Content-Type: application/x-www-form-urlencoded" \
+              --data "documento=11144477735" \
+              "$LEMIT_BASE_URL/pessoa" || true)
+            printf "lemit_runtime_http=%s\n" "$status"
+          '
+          {
+            docker logs --since 2h salescontrol-platform-app-1 2>&1
+            docker exec salescontrol-platform-app-1 sh -lc '
+              test ! -f storage/logs/laravel.log || tail -n 300 storage/logs/laravel.log
+            '
+          } | grep -Ei 'production.ERROR|Falha em consulta|Lemit|ConnectionException|cURL error' \
+            | tail -n 80 \
+            | sed -E 's/[[:alnum:]._%+-]+@[[:alnum:].-]+/[email]/g; s/[0-9]{6,}/[numero]/g' \
+            || true
+          REMOTE
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
