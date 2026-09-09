@@ -50,6 +50,23 @@ jobs:
           echo "tag=sha-${short_sha}" >> "$GITHUB_OUTPUT"
           echo "image=${image_name}" >> "$GITHUB_OUTPUT"
 
+      - name: Capture recent enrichment errors
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          ssh_opts=(-i "$HOME/.ssh/deploy_key" -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          ssh "${ssh_opts[@]}" -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" \
+            "docker logs --since 30m salescontrol-platform-app-1 2>&1 | grep -E 'Falha em consulta de enriquecimento|Lemit|ConnectionException' | tail -n 30 | sed -E 's/[0-9]{11,14}/[documento]/g' || true"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
