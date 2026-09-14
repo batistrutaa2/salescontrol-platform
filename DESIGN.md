@@ -281,9 +281,9 @@ Painéis usam cantos suavemente curvos; controles, linhas do ledger e seletores 
 
 ### Backoffice — Vencimentos de boletos
 
-Extensão operacional do dashboard Bootstrap existente, restrita à tela de boletos e ao aviso no painel. Preserva fontes, controles e temas claro/escuro do layout; os tokens de Temporada Comercial acima continuam pertencendo àquela superfície.
+Extensão operacional do dashboard Bootstrap existente, restrita à tela de boletos e ao aviso no painel. Usa toda a largura útil do container fluido do layout, sem max-width próprio nem margens laterais adicionais; seções reutilizam card/card-body e o espaçamento do projeto. Preserva fontes, controles e temas claro/escuro do layout; os tokens de Temporada Comercial acima continuam pertencendo àquela superfície.
 
-- **Leitura:** lembretes pendentes primeiro, configuração mensal dos contratos depois e últimos acompanhamentos em área recolhível ao final. A ação primária registra acompanhamento; não representa confirmação de pagamento.
+- **Leitura:** lembretes pendentes primeiro, configuração mensal de clientes sem contrato e dos contratos depois e últimos acompanhamentos em área recolhível ao final. A ação primária registra acompanhamento; não representa confirmação de pagamento.
 - **Estrutura:** seções com borda discreta e registros separados por divisores. Desktop aproxima identificação e ação; abaixo de 768px, registros, filtros e cabeçalhos se empilham em uma coluna compacta.
 - **Hierarquia:** título de página, títulos de seção e nomes de contrato em escala decrescente; botões, campos e modal reutilizam Bootstrap. Dados de cliente permanecem em caixa natural.
 - **Estado e acesso:** âmbar identifica vencimento do dia e avisos; vermelho suave identifica acompanhamento pendente de datas anteriores, sem afirmar inadimplência. Ambos têm pares no tema escuro. Rótulos visíveis, mensagens de erro, foco nos controles recolhíveis e aviso de painel com anúncio discreto preservam a operação por teclado e tecnologia assistiva.

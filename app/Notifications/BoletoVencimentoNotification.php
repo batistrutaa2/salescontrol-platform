@@ -24,7 +24,7 @@ class BoletoVencimentoNotification extends Notification
             'empresa_id' => (int) $this->lembrete->empresa_id,
             'lembrete_id' => $this->lembrete->id,
             'titulo' => 'Vencimento de boleto',
-            'mensagem' => $this->lembrete->venda->nome_contrato.' — boleto com vencimento em '.$this->lembrete->vencimento->format('d/m/Y').'. Confira o envio e o acompanhamento.',
+            'mensagem' => ($this->lembrete->nome_cliente ?? $this->lembrete->venda?->nome_contrato ?? 'Cliente').' — boleto com vencimento em '.$this->lembrete->vencimento->format('d/m/Y').'. Confira o envio e o acompanhamento.',
             'url' => route('backoffice.boletos.index', ['lembrete' => $this->lembrete->id]),
         ];
     }

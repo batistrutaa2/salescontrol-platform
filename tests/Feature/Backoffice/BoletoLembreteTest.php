@@ -206,6 +206,65 @@ class BoletoLembreteTest extends TestCase
         $this->assertSame($this->outraEmpresa->id, app(TenantContext::class)->id());
     }
 
+    public function test_cliente_sem_contrato_recebe_aviso_recorrente_e_preserva_historico(): void
+    {
+        $this->actingAs($this->admin)->post(route('backoffice.boletos.manual.store'), [
+            ...$this->dados('2026-09-14', 14),
+            'nome_cliente' => 'Cliente avulso',
+            'referencia' => 'Plano familiar',
+            'empresa_id' => $this->outraEmpresa->id,
+            'venda_id' => $this->outraVenda->id,
+        ])->assertRedirect();
+        $agenda = DB::table('boleto_agendas')->first();
+        $this->assertNull($agenda->venda_id);
+        $this->assertSame($this->empresa->id, $agenda->empresa_id);
+        $this->assertDatabaseCount('vendas', 2);
+        $this->assertDatabaseCount('notifications', 2);
+        $this->assertDatabaseHas('boleto_lembretes', ['nome_cliente' => 'Cliente avulso', 'referencia' => 'Plano familiar', 'venda_id' => null]);
+        $this->get(route('backoffice.boletos.index'))->assertOk()->assertSee('Cliente avulso')->assertSee('1 sem vencimento cadastrado');
+        $this->getJson(route('backoffice.boletos.resumo'))->assertJson(['total' => 1]);
+        $this->put(route('backoffice.boletos.manual.update', $agenda->id), [
+            ...$this->dados('2026-10-14', 14), 'nome_cliente' => 'Cliente renomeado', 'referencia' => 'Nova referência',
+        ])->assertRedirect();
+        $this->assertDatabaseHas('boleto_lembretes', ['nome_cliente' => 'Cliente avulso', 'referencia' => 'Plano familiar']);
+        $this->travelTo(CarbonImmutable::parse('2026-10-14 09:00', 'America/Sao_Paulo'));
+        $this->assertSame(1, app(BoletoLembreteService::class)->sincronizar());
+        $this->assertSame(0, app(BoletoLembreteService::class)->sincronizar());
+        $this->assertDatabaseHas('boleto_lembretes', ['nome_cliente' => 'Cliente renomeado', 'vencimento' => '2026-10-14']);
+        $id = DB::table('boleto_lembretes')->orderBy('id')->value('id');
+        $this->actingAs($this->backoffice)->post(route('backoffice.boletos.tratar', $id), ['observacao' => 'Cliente orientado'])->assertRedirect();
+        $this->assertDatabaseHas('boleto_lembretes', ['id' => $id, 'tratado_por' => $this->backoffice->id]);
+        $this->getJson(route('backoffice.boletos.resumo'))->assertJson(['total' => 1]);
+    }
+
+    public function test_cadastro_manual_valida_dados_recupera_formulario_e_restringe_acesso(): void
+    {
+        $this->actingAs($this->admin)->from(route('backoffice.boletos.index'))->post(route('backoffice.boletos.manual.store'), [
+            ...$this->dados('2026-09-15', 16), 'nome_cliente' => 'Tentativa preservada',
+        ])->assertSessionHasErrors('proximo_vencimento');
+        $this->get(route('backoffice.boletos.index'))->assertOk()->assertSee('data-nome="Tentativa preservada"', false)->assertSee('data-manual="1"', false);
+        $this->postJson(route('backoffice.boletos.manual.store'), $this->dados('2026-09-15', 15))->assertUnprocessable();
+        $this->post(route('backoffice.boletos.manual.store'), [
+            ...$this->dados('2026-09-15', 15, false), 'nome_cliente' => 'Somente empresa A',
+        ])->assertRedirect();
+        $agenda = DB::table('boleto_agendas')->first();
+        $this->actingAs($this->externo)->putJson(route('backoffice.boletos.manual.update', $agenda->id), [
+            ...$this->dados('2026-09-15', 15), 'nome_cliente' => 'Não permitido',
+        ])->assertNotFound();
+        $this->get(route('backoffice.boletos.index'))->assertOk()->assertDontSee('Somente empresa A');
+        $this->actingAs($this->usuario($this->empresa, UserRole::VENDEDOR))
+            ->postJson(route('backoffice.boletos.manual.store'), [
+                ...$this->dados('2026-09-15', 15), 'nome_cliente' => 'Não permitido',
+            ])->assertForbidden();
+        $this->putJson(route('backoffice.boletos.manual.update', $agenda->id), [
+            ...$this->dados('2026-09-15', 15), 'nome_cliente' => 'Não permitido',
+        ])->assertForbidden();
+        $this->travelTo(CarbonImmutable::parse('2026-09-15 09:00', 'America/Sao_Paulo'));
+        $this->assertSame(0, app(BoletoLembreteService::class)->sincronizar());
+        $this->assertDatabaseCount('boleto_lembretes', 0);
+        $this->assertDatabaseHas('boleto_agendas', ['id' => $agenda->id, 'nome_cliente' => 'Somente empresa A', 'ativo' => false]);
+    }
+
     private function usuario(Empresa $empresa, int $role, array $extra = []): User
     {
         return User::factory()->create(array_merge(['empresa_id' => $empresa->id, 'user_role_id' => $role, 'ativo' => 'Y'], $extra));

@@ -437,6 +437,8 @@ Route::middleware(['auth'])->group(function () {
         // Carteira de Clientes — contém valores/faturamento; restrito a ADMINISTRATIVO, BACKOFFICE e DEVELOPER.
         Route::middleware('role:'.\App\Enums\UserRole::ADMINISTRATIVO.','.\App\Enums\UserRole::BACKOFFICE.','.\App\Enums\UserRole::DEVELOPER)->group(function () {
             Route::get('/back-office/boletos', [BoletoLembreteController::class, 'index'])->name('backoffice.boletos.index');
+            Route::post('/back-office/boletos/clientes', [BoletoLembreteController::class, 'criarManual'])->name('backoffice.boletos.manual.store');
+            Route::put('/back-office/boletos/clientes/{agenda}', [BoletoLembreteController::class, 'editarManual'])->name('backoffice.boletos.manual.update');
             Route::get('/back-office/boletos/resumo', [BoletoLembreteController::class, 'resumo'])->name('backoffice.boletos.resumo');
             Route::put('/back-office/boletos/contratos/{venda}', [BoletoLembreteController::class, 'configurar'])->name('backoffice.boletos.configurar');
             Route::post('/back-office/boletos/lembretes/{lembrete}/tratar', [BoletoLembreteController::class, 'tratar'])->name('backoffice.boletos.tratar');

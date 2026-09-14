@@ -27,7 +27,7 @@ class BoletoLembreteService
     {
         return BoletoLembrete::query()->where('empresa_id', $empresaId)->whereNull('tratado_em')
             ->whereDate('vencimento', '<=', CarbonImmutable::today('America/Sao_Paulo'))
-            ->whereHas('venda', fn ($q) => $q->whereIn('vendas.id', $this->implantados($empresaId)->select('vendas.id')));
+            ->where(fn ($q) => $q->whereNull('venda_id')->orWhereHas('venda', fn ($v) => $v->whereIn('vendas.id', $this->implantados($empresaId)->select('vendas.id'))));
     }
 
     public function configurar(Vendas $venda, User $ator, array $dados): BoletoAgenda
@@ -35,13 +35,7 @@ class BoletoLembreteService
         return DB::transaction(function () use ($venda, $ator, $dados) {
             $venda = $this->implantados((int) $venda->empresa_id)->whereKey($venda->id)->lockForUpdate()->firstOrFail();
             $agenda = BoletoAgenda::where('venda_id', $venda->id)->lockForUpdate()->first();
-            $proximo = CarbonImmutable::parse($dados['proximo_vencimento'], 'America/Sao_Paulo');
-            if ($proximo->day !== min((int) $dados['dia_vencimento'], $proximo->daysInMonth)) {
-                throw ValidationException::withMessages(['proximo_vencimento' => 'A data deve corresponder ao dia mensal escolhido (ou ao último dia do mês).']);
-            }
-            if ($agenda && BoletoLembrete::where('agenda_id', $agenda->id)->where('competencia', $proximo->startOfMonth()->toDateString())->exists()) {
-                throw ValidationException::withMessages(['proximo_vencimento' => 'Este mês já possui um lembrete. Escolha o próximo mês para preservar o histórico.']);
-            }
+            $proximo = $this->validarProximoVencimento($agenda, $dados);
 
             return BoletoAgenda::updateOrCreate(['venda_id' => $venda->id], [
                 'empresa_id' => $venda->empresa_id,
@@ -50,6 +44,41 @@ class BoletoLembreteService
                 'ativo' => $dados['ativo'],
                 'configurado_por' => $ator->id,
             ]);
+        });
+    }
+
+    private function validarProximoVencimento(?BoletoAgenda $agenda, array $dados): CarbonImmutable
+    {
+        $proximo = CarbonImmutable::parse($dados['proximo_vencimento'], 'America/Sao_Paulo');
+        if ($proximo->day !== min((int) $dados['dia_vencimento'], $proximo->daysInMonth)) {
+            throw ValidationException::withMessages(['proximo_vencimento' => 'A data deve corresponder ao dia mensal escolhido (ou ao último dia do mês).']);
+        }
+        if ($agenda && BoletoLembrete::where('agenda_id', $agenda->id)->where('competencia', $proximo->startOfMonth()->toDateString())->exists()) {
+            throw ValidationException::withMessages(['proximo_vencimento' => 'Este mês já possui um lembrete. Escolha o próximo mês para preservar o histórico.']);
+        }
+
+        return $proximo;
+    }
+
+    public function configurarManual(?BoletoAgenda $agenda, User $ator, int $empresaId, array $dados): BoletoAgenda
+    {
+        return DB::transaction(function () use ($agenda, $ator, $empresaId, $dados) {
+            if ($agenda) {
+                $agenda = BoletoAgenda::where('empresa_id', $empresaId)->whereNull('venda_id')->whereKey($agenda->id)->lockForUpdate()->firstOrFail();
+            }
+            $proximo = $this->validarProximoVencimento($agenda, $dados);
+            $agenda ??= new BoletoAgenda;
+            $agenda->fill([
+                'empresa_id' => $empresaId,
+                'nome_cliente' => $dados['nome_cliente'],
+                'referencia' => $dados['referencia'] ?? null,
+                'dia_vencimento' => $dados['dia_vencimento'],
+                'proximo_vencimento' => $proximo->toDateString(),
+                'ativo' => $dados['ativo'],
+                'configurado_por' => $ator->id,
+            ])->save();
+
+            return $agenda;
         });
     }
 
@@ -64,8 +93,8 @@ class BoletoLembreteService
                 foreach ($agendas as $item) {
                     $total += app(TenantContext::class)->run((int) $item->empresa_id, fn () => DB::transaction(function () use ($item, $hoje) {
                         // Same lock order as configuration: contract, then schedule.
-                        $venda = $this->implantados((int) $item->empresa_id)->whereKey($item->venda_id)->lockForUpdate()->first();
-                        if (! $venda) {
+                        $venda = $item->venda_id ? $this->implantados((int) $item->empresa_id)->whereKey($item->venda_id)->lockForUpdate()->first() : null;
+                        if ($item->venda_id && ! $venda) {
                             return 0;
                         }
                         $agenda = BoletoAgenda::whereKey($item->id)->lockForUpdate()->first();
@@ -80,6 +109,8 @@ class BoletoLembreteService
                             ], [
                                 'empresa_id' => $agenda->empresa_id,
                                 'venda_id' => $agenda->venda_id,
+                                'nome_cliente' => $agenda->nome_cliente,
+                                'referencia' => $agenda->referencia,
                                 'vencimento' => $agenda->proximo_vencimento->toDateString(),
                             ]);
                             if ($lembrete->wasRecentlyCreated) {

@@ -1,4 +1,4 @@
-@if (auth()->check() && in_array((int) auth()->user()->user_role_id, [\App\Enums\UserRole::ADMINISTRATIVO, \App\Enums\UserRole::BACKOFFICE], true) && app(\App\Support\TenantContext::class)->isResolved())
+@if (! request()->routeIs('backoffice.boletos.index') && auth()->check() && in_array((int) auth()->user()->user_role_id, [\App\Enums\UserRole::ADMINISTRATIVO, \App\Enums\UserRole::BACKOFFICE], true) && app(\App\Support\TenantContext::class)->isResolved())
     @php
         $boletosPendentes = app(\App\Services\BoletoLembreteService::class)->pendentes(app(\App\Support\TenantContext::class)->id())->count();
     @endphp

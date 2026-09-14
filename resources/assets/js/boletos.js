@@ -6,8 +6,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const restore = document.getElementById('boleto-restaurar');
   const populate = source => {
     form.action = source.dataset.url;
-    document.getElementById('boleto-venda').value = source.dataset.venda;
-    document.getElementById('boleto-config-cliente').textContent = source.dataset.nome;
+    form.querySelector('[name="_method"]').value = source.dataset.metodo || 'PUT';
+    const manual = source.dataset.manual === '1';
+    document.getElementById('boleto-manual-fields').hidden = !manual;
+    document.getElementById('boleto-config-cliente').hidden = manual;
+    const nome = document.getElementById('boleto-nome');
+    const referencia = document.getElementById('boleto-referencia');
+    nome.disabled = referencia.disabled = !manual;
+    nome.required = manual;
+    nome.value = source.dataset.nome || '';
+    referencia.value = source.dataset.referencia || '';
+    document.getElementById('boleto-venda').value = source.dataset.venda || '';
+    document.getElementById('boleto-config-cliente').textContent = source.dataset.nome || '';
     dia.value = source.dataset.dia || '';
     proximo.value = source.dataset.proximo || '';
     document.getElementById('boleto-ativo').checked = source.dataset.ativo === '1';
@@ -16,7 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   modal?.addEventListener('show.bs.modal', event => {
     const button = event.relatedTarget;
-    if (button) populate(restore?.dataset.venda === button.dataset.venda ? restore : button);
+    if (button) {
+      const same = restore && restore.dataset.manual === button.dataset.manual
+        && (button.dataset.manual === '1' ? (restore.dataset.agenda || '') === (button.dataset.agenda || '') : restore.dataset.venda === button.dataset.venda);
+      populate(same ? restore : button);
+    }
   });
   if (restore) {
     populate(restore);
