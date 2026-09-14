@@ -65,6 +65,7 @@
                             <div class="{{ $container }} flex-grow-1 container-p-y">
                     @endif
 
+                    @include('_partials.boleto-lembretes-painel')
                     @yield('content')
 
                 </div>

@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\Auth;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\manager\Manager;
 use App\Http\Controllers\pages\backoffice\Backoffice;
+use App\Http\Controllers\pages\backoffice\BoletoLembreteController;
 use App\Http\Controllers\pages\backoffice\CentralSolicitacoesController;
 use App\Http\Controllers\pages\backoffice\CredenciaisAcessoController;
 use App\Http\Controllers\pages\backoffice\LiminarController;
@@ -58,7 +59,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('manager.changeCompany');
     Route::get('/notificacoes/novas', function () {
         $notifications = auth()->user()->unreadNotifications
-            ->filter(fn ($n) => ! isset($n->data['agendado_por']) || $n->data['agendado_por'] == auth()->user()->id);
+            ->filter(fn ($n) => (! isset($n->data['agendado_por']) || $n->data['agendado_por'] == auth()->user()->id)
+                && \App\Notifications\BoletoVencimentoNotification::visibleTo($n, auth()->user()));
 
         return response()->json($notifications->values());
     })->middleware('auth')->name('notificacoes.novas');
@@ -434,6 +436,10 @@ Route::middleware(['auth'])->group(function () {
 
         // Carteira de Clientes — contém valores/faturamento; restrito a ADMINISTRATIVO, BACKOFFICE e DEVELOPER.
         Route::middleware('role:'.\App\Enums\UserRole::ADMINISTRATIVO.','.\App\Enums\UserRole::BACKOFFICE.','.\App\Enums\UserRole::DEVELOPER)->group(function () {
+            Route::get('/back-office/boletos', [BoletoLembreteController::class, 'index'])->name('backoffice.boletos.index');
+            Route::get('/back-office/boletos/resumo', [BoletoLembreteController::class, 'resumo'])->name('backoffice.boletos.resumo');
+            Route::put('/back-office/boletos/contratos/{venda}', [BoletoLembreteController::class, 'configurar'])->name('backoffice.boletos.configurar');
+            Route::post('/back-office/boletos/lembretes/{lembrete}/tratar', [BoletoLembreteController::class, 'tratar'])->name('backoffice.boletos.tratar');
             Route::get('/back-office/carteira-clientes', [Backoffice::class, 'carteiraClientes'])->name('backoffice.carteiraClientes');
             Route::get('/back-office/carteira-clientes/data', [Backoffice::class, 'getCarteiraClientesData'])->name('backoffice.getCarteiraClientesData');
             Route::get('/back-office/carteira-clientes/detalhe/{cnpj}', [Backoffice::class, 'getDetalheClienteCarteira'])->name('backoffice.getDetalheClienteCarteira');

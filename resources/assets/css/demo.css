@@ -113,3 +113,9 @@
   text-align: center;
   margin-top: 1.25rem;
 }
+
+.boleto-painel-aviso.alert-warning {
+  color: #704600;
+  background-color: #fff1c9;
+  border-color: #e4ce99;
+}

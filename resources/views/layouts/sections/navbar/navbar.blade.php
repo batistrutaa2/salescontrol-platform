@@ -4,7 +4,8 @@
     $navbarDetached = $navbarDetached ?? '';
 
     $notifications = Auth::user()->unreadNotifications->filter(function ($notification) {
-        return !isset($notification->data['agendado_por']) || $notification->data['agendado_por'] == Auth::id();
+        return (!isset($notification->data['agendado_por']) || $notification->data['agendado_por'] == Auth::id())
+            && \App\Notifications\BoletoVencimentoNotification::visibleTo($notification, Auth::user());
     });
 
     $isPlatformAdmin = Auth::user()->isPlatformAdmin();

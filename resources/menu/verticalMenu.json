@@ -277,6 +277,12 @@
           "slug": "backoffice.liminar"
         },
         {
+          "url": "/back-office/boletos",
+          "name": "Vencimentos de boletos",
+          "slug": "backoffice.boletos",
+          "rules": ["ADMINISTRATIVO", "BACKOFFICE", "DEVELOPER"]
+        },
+        {
           "url": "/back-office/carteira-clientes",
           "name": "Implantados Recentes",
           "slug": "pages-carteira-clientes",

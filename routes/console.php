@@ -46,3 +46,9 @@ Schedule::command('renovacoes:sincronizar')
     ->dailyAt('06:30')
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('boletos:lembrar')
+    ->timezone('America/Sao_Paulo')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();

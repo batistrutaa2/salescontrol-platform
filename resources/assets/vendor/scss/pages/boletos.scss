@@ -1,0 +1,50 @@
+.boletos {
+  max-width: 1440px;
+  margin-inline: auto;
+  color: var(--bs-body-color);
+
+  h1 { margin: 0 0 .65rem; font-size: clamp(1.65rem, 3vw, 2.25rem); letter-spacing: -.025em; }
+  h2 { margin: 0 0 .5rem; font-size: 1.2rem; }
+  h3 { margin: .65rem 0 .35rem; font-size: 1rem; overflow-wrap: anywhere; }
+  p { margin: 0; line-height: 1.6; }
+  summary { cursor: pointer; font-weight: 600; padding-block: .75rem; }
+  summary:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 3px; }
+}
+.boletos-header, .boletos-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.boletos-date { display: inline-flex; align-items: center; gap: .5rem; white-space: nowrap; }
+.boletos-pendentes, .boletos-contracts, .boletos-history { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 12px; padding: clamp(1rem, 2vw, 1.75rem); margin-bottom: 1.5rem; }
+.boletos-reminder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, .65fr); gap: 1.5rem; padding: 1.25rem 0; border-top: 1px solid var(--bs-border-color); }
+.boletos-treatment form { padding-top: .75rem; }
+.boletos-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, .5fr) auto; align-items: end; gap: 1rem; margin-bottom: 1.25rem; }
+.boletos-contract { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, .65fr) auto; align-items: center; gap: 1rem; border-top: 1px solid var(--bs-border-color); padding: 1.25rem 0; }
+.boletos-schedule { display: grid; gap: .4rem; }
+.boletos-schedule span, .boletos-contract p { font-size: .875rem; }
+.boletos-empty { display: flex; align-items: center; gap: 1rem; padding-block: 1.5rem; }
+.boletos-empty i { font-size: 1.75rem; color: var(--bs-success); }
+.boletos-history article { border-top: 1px solid var(--bs-border-color); padding-block: 1rem; overflow-wrap: anywhere; }
+.boletos nav { margin-top: 1rem; }
+@media (max-width: 767.98px) {
+  .boletos-header, .boletos-section-heading { align-items: flex-start; flex-direction: column; }
+  .boletos-reminder, .boletos-contract, .boletos-filters { grid-template-columns: minmax(0, 1fr); }
+  .boletos-contract .btn { justify-self: start; }
+}
+
+.boletos .alert-warning, .boletos .boletos-due {
+  color: #704600;
+  background-color: #fff1c9;
+  border-color: #e4ce99;
+}
+.boletos .boletos-overdue {
+  color: #9b2637;
+  background-color: #ffe8ed;
+}
+.dark-style .boletos .alert-warning, .dark-style .boletos .boletos-due,
+.dark-style .boleto-painel-aviso.alert-warning {
+  color: #f6ce79;
+  background-color: #3d3220;
+  border-color: #73603a;
+}
+.dark-style .boletos .boletos-overdue {
+  color: #ffb5c2;
+  background-color: #49242f;
+}
