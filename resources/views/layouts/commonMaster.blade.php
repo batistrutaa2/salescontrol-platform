@@ -22,7 +22,7 @@ $contentLayout = (isset($container) ? (($container === 'container-xxl') ? "layou
   <!-- Canonical SEO -->
   <link rel="canonical" href="{{ config('variables.productPage') ? config('variables.productPage') : '' }}">
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="{{ asset('assets/img/branding/salescontrol-mark.svg') }}" />
+  <link rel="icon" type="image/svg+xml" href="{{ asset('assets/img/branding/licas-mark.svg') }}" />
 
 
   <!-- Include Styles -->

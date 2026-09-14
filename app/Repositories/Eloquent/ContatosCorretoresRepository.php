@@ -8,9 +8,11 @@ use App\Models\ContatosCorretores;
 use App\Models\Tabulacoes;
 use App\Repositories\Contracts\ContatosCorretoresRepositoryInterface;
 use App\Services\TabulationCatalog;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterface
 {
@@ -363,21 +365,22 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
                 return false;
             }
 
-            DB::beginTransaction();
-            $leadIds = explode(',', $data['selectedLeadIds']);
-            array_map(function ($leadId) use ($data, $empresaId) {
-                $this->model->where('contato_id', $leadId)->where('empresa_id', $empresaId)->update([
-                    'user_id' => $data['user_id'],
-                    'tabulacao_id' => $data['tabulation_id'],
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
-                ]);
-            }, $leadIds);
-            DB::commit();
+            return DB::transaction(function () use ($data, $empresaId) {
+                $leadIds = array_unique(explode(',', $data['selectedLeadIds']));
+                foreach ($leadIds as $leadId) {
+                    // Jobs síncronos de vinculação também alteram o contexto do tenant.
+                    $transferred = app(TenantContext::class)->run($empresaId,
+                        fn () => $this->transferContact(array_merge($data, ['idMailing' => $leadId]))
+                    );
+                    if (! $transferred) {
+                        throw new RuntimeException('Falha ao vincular lead ao corretor.');
+                    }
+                }
 
-            return true;
+                return true;
+            });
         } catch (\Throwable $th) {
-            DB::rollBack();
+            report($th);
 
             return false;
         }

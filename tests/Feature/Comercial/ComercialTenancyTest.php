@@ -9,11 +9,14 @@ use App\Models\Empresa;
 use App\Models\PreditivaConfiguracao;
 use App\Models\Tabulacoes;
 use App\Models\User;
+use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
+use App\Repositories\Eloquent\ComentariosRepository;
 use App\Services\TabulationCatalog;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Mockery;
 use Tests\TestCase;
 
 class ComercialTenancyTest extends TestCase
@@ -498,6 +501,81 @@ class ComercialTenancyTest extends TestCase
             'empresa_id' => $this->empresa->id,
             'nome_cliente' => 'Cliente Inválido',
         ]);
+    }
+
+    public function test_transferencia_em_massa_cria_vinculo_e_preserva_origem_e_data_dos_existentes(): void
+    {
+        $destino = $this->usuario($this->empresa);
+        $vinculado = $this->contato($this->empresa, $this->usuario, 'Lead vinculado');
+        $criadoEm = now()->subDays(10)->startOfSecond();
+        DB::table('contatos_corretores')->insert([
+            'empresa_id' => $this->empresa->id,
+            'contato_id' => $vinculado->id,
+            'user_id' => $this->usuario->id,
+            'tabulacao_id' => $this->tabulacao->id,
+            'created_at' => $criadoEm,
+            'updated_at' => $criadoEm,
+        ]);
+
+        $this->actingAs($this->usuario)->postJson(route('comercial.transferContactInNulk'), [
+            'selectedLeadIds' => $vinculado->id.','.$this->contato->id,
+            'user_id' => $destino->id,
+            'tabulation_id' => $this->tabulacao->id,
+        ])->assertOk()->assertJsonPath('success', true);
+
+        foreach ([$this->contato, $vinculado] as $contato) {
+            $this->assertDatabaseHas('contatos_corretores', [
+                'empresa_id' => $this->empresa->id,
+                'contato_id' => $contato->id,
+                'user_id' => $destino->id,
+                'tabulacao_id' => $this->tabulacao->id,
+            ]);
+            $this->assertDatabaseHas('transferencia_contatos', [
+                'contato_id' => $contato->id,
+                'de_users_id' => $contato->id === $vinculado->id ? $this->usuario->id : null,
+                'para_user_id' => $destino->id,
+                'responsavel_transferencia' => $this->usuario->id,
+            ]);
+        }
+        $this->assertDatabaseHas('contatos_corretores', [
+            'contato_id' => $vinculado->id, 'created_at' => $criadoEm,
+        ]);
+    }
+
+    public function test_transferencia_em_massa_rejeita_lote_com_contato_externo(): void
+    {
+        $this->actingAs($this->usuario)->postJson(route('comercial.transferContactInNulk'), [
+            'selectedLeadIds' => $this->contato->id.','.$this->outroContato->id,
+            'user_id' => $this->usuario->id,
+            'tabulation_id' => $this->tabulacao->id,
+        ])->assertNotFound();
+
+        $this->assertDatabaseCount('transferencia_contatos', 0);
+        $this->assertDatabaseCount('contatos_corretores', 0);
+    }
+
+    public function test_transferencia_em_massa_desfaz_lote_quando_gravacao_falha(): void
+    {
+        DB::table('preditiva')->insert([
+            'empresa_id' => $this->empresa->id,
+            'contato_id' => $this->contato->id,
+            'status' => 'Y',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $comentarios = Mockery::mock(ComentariosRepository::class);
+        $comentarios->shouldReceive('clearComments')->once()->andReturn(false);
+        $this->app->instance(ComentariosRepositoryInterface::class, $comentarios);
+
+        $this->actingAs($this->usuario)->postJson(route('comercial.transferContactInNulk'), [
+            'selectedLeadIds' => (string) $this->contato->id,
+            'user_id' => $this->usuario->id,
+            'tabulation_id' => $this->tabulacao->id,
+        ])->assertStatus(500)->assertJsonPath('success', false);
+
+        $this->assertDatabaseHas('preditiva', ['contato_id' => $this->contato->id]);
+        $this->assertDatabaseCount('transferencia_contatos', 0);
+        $this->assertDatabaseCount('contatos_corretores', 0);
     }
 
     private function usuario(Empresa $empresa): User

@@ -114,6 +114,56 @@
   margin-top: 1.25rem;
 }
 
+/* The original artwork is framed without stretching or recoloring the brand. */
+.licas-brand {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  flex-shrink: 0;
+  vertical-align: middle;
+  background: #f8f8f8;
+}
+
+.licas-brand img {
+  position: absolute;
+  display: block;
+  max-width: none;
+  height: auto;
+}
+
+.licas-brand--mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+}
+
+.licas-brand--mark img {
+  width: 290.909%;
+  left: -95.455%;
+  top: -68.182%;
+}
+
+.licas-brand--full {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 1;
+}
+
+.licas-brand--full img {
+  position: static;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.app-brand-link:has(.licas-brand--full) {
+  max-width: 100%;
+}
+
+.app-brand-link:has(.licas-brand--mark) .app-brand-text {
+  font-size: 1rem;
+}
+
 .boleto-painel-aviso.alert-warning {
   color: #704600;
   background-color: #fff1c9;

@@ -96,25 +96,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, var(--sidebar-primary) 0%, var(--sidebar-primary-light) 100%);
-            border-radius: 10px;
-            box-shadow: 0 4px 16px rgba(var(--sidebar-primary-rgb), 0.4);
-            transition: var(--sidebar-transition);
-
-            img, svg {
-                max-width: 20px;
-                max-height: 20px;
-                filter: brightness(0) invert(1);
-            }
-
-            &:hover {
-                transform: scale(1.05);
-                box-shadow: 0 6px 20px rgba(var(--sidebar-primary-rgb), 0.5);
-            }
+            flex-shrink: 0;
         }
 
         .app-brand-text {
-            font-size: 1.125rem !important;
+            font-size: 1rem !important;
             font-weight: 700 !important;
             background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
             -webkit-background-clip: text;

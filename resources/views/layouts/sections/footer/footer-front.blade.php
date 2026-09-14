@@ -7,7 +7,7 @@
         <div class="col-lg-5">
           <a href="javascript:;" class="app-brand-link mb-6">
             <span class="app-brand-logo demo me-2">@include('_partials.macros',['height'=>20])</span>
-            <span class="app-brand-text demo footer-link fw-semibold ms-1">{{ config('variables.templateName') }}</span>
+            <span class="app-brand-text demo footer-link fw-semibold ms-1">M &amp; L</span>
           </a>
           <p class="footer-text footer-logo-description mb-6">
             Most Powerful & Comprehensive 🤩 React NextJS Admin Template with Elegant Material Design & Unique

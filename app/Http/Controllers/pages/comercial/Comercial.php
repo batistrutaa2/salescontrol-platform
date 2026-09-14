@@ -64,6 +64,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use RuntimeException;
 
 class Comercial extends Controller
 {
@@ -661,36 +662,38 @@ class Comercial extends Controller
         abort_unless($leadIds !== [] && $tenantLeadCount === count($leadIds), 404);
 
         try {
-            array_map(function ($leadId) use ($request, $empresaId) {
-                // Limpar preditiva se existir
-                DB::table('preditiva')->where('contato_id', $leadId)->where('empresa_id', $empresaId)->delete();
+            DB::transaction(function () use ($request, $empresaId, $leadIds) {
+                Contatos::where('empresa_id', $empresaId)->whereIn('id', $leadIds)
+                    ->orderBy('id')->lockForUpdate()->get();
+                $data = array_merge($request->all(), ['selectedLeadIds' => implode(',', $leadIds)]);
 
-                $fromUser = $this->repositoryContatosCorretores->getContactOwner($leadId);
-                $this->transferenciaContatoRepository->saveTransfer(
-                    $this->tenantId(),
-                    $leadId,
-                    $fromUser->user_id == null ? $request->user_id : $fromUser->user_id,
-                    $request->user_id,
-                    Auth::user()->id
-                );
-            }, $leadIds);
-            $clearComments = $this->comentariosRepository->clearComments($request->all());
-            $updateLead = $this->repositoryContatosCorretores->transferContactInNulk($request->all());
-
-            if ($updateLead && $clearComments) {
-                if ($request->wantsJson()) {
-                    return response()->json(['success' => true, 'message' => 'Transferência concluída com sucesso']);
+                foreach ($leadIds as $leadId) {
+                    DB::table('preditiva')->where('contato_id', $leadId)->where('empresa_id', $empresaId)->delete();
+                    $fromUser = $this->repositoryContatosCorretores->getContactOwner($leadId);
+                    if (! $this->transferenciaContatoRepository->saveTransfer(
+                        $empresaId,
+                        $leadId,
+                        $fromUser?->user_id,
+                        $request->user_id,
+                        Auth::id()
+                    )) {
+                        throw new RuntimeException('Falha ao registrar transferência de lead.');
+                    }
                 }
 
-                return redirect()->back()->with('status', 'success')->with('message', 'Transferência concluída com sucesso');
-            } else {
-                if ($request->wantsJson()) {
-                    return response()->json(['success' => false, 'message' => 'Erro ao efetuar transferência de lead'], 500);
+                if (! $this->repositoryContatosCorretores->transferContactInNulk($data)
+                    || ! $this->comentariosRepository->clearComments($data)) {
+                    throw new RuntimeException('Falha ao transferir lote de leads.');
                 }
+            });
 
-                return redirect()->back()->with('status', 'error')->with('message', 'Erro ao efetuar transferência de lead');
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Transferência concluída com sucesso']);
             }
+
+            return redirect()->back()->with('status', 'success')->with('message', 'Transferência concluída com sucesso');
         } catch (\Throwable $th) {
+            report($th);
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => 'Erro ao efetuar transferência de lead'], 500);
             }
