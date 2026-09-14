@@ -43,6 +43,8 @@ return [
         'assertiva_enderecos',
         'assertiva_pessoas',
         'assertiva_telefones',
+        'boleto_agendas',
+        'boleto_lembretes',
         'cancelamentos_liminares',
         'cancelamentos_liminares_documentos',
         'comentarios',
@@ -173,6 +175,8 @@ return [
     |
     */
     'global_unique_indexes' => [
+        'boleto_agendas.boleto_agendas_venda_id_unique' => 'Venda possui ID global e determina a empresa da agenda mensal.',
+        'boleto_lembretes.boleto_lembretes_agenda_id_competencia_unique' => 'Agenda possui ID global e determina a empresa do lembrete por competência.',
         'escola_aula_progresso.uq_progresso_user_aula' => 'Os IDs de usuário e aula são globais e ambos carregam o tenant.',
         'estudos.estudos_link_unico_unique' => 'Token público opaco deve ser único em toda a plataforma.',
         'lead_reservatorio_execucoes.lead_reservatorio_execucoes_chave_idempotencia_unique' => 'Chave de idempotência é gerada globalmente.',

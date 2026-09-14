@@ -147,6 +147,7 @@ class VendasRelatorioTenancyTest extends TestCase
             0,
             now()
         );
+        DB::table('vendas')->where('id', $vendaPropria)->update(['created_at' => '2026-09-13 12:00:00']);
         DB::table('vendas_historico')->insert([
             [
                 'empresa_id' => $empresa->id,
@@ -182,6 +183,7 @@ class VendasRelatorioTenancyTest extends TestCase
         $this->getJson(route('sale.history', $vendaPropria))
             ->assertOk()
             ->assertJsonCount(1, 'historico')
+            ->assertJsonPath('venda.data_criacao', '13/09/2026 09:00')
             ->assertJsonPath('historico.0.status_novo', 'Cliente ativado')
             ->assertJsonPath('historico.0.status_novo_codigo', TabulationCode::IMPLANTADO);
 

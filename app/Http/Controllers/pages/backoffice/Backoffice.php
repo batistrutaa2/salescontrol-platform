@@ -2797,7 +2797,7 @@ class Backoffice extends Controller
                 'nome_contrato' => $venda->nome_contrato,
                 'operadora' => $venda->operadora,
                 'valor_contrato' => $venda->valor_contrato,
-                'data_criacao' => Carbon::parse($venda->created_at)->format('d/m/Y H:i'),
+                'data_criacao' => Carbon::createFromFormat('d/m/Y H:i:s', $venda->created_at)->format('d/m/Y H:i'),
                 'data_implantacao' => $venda->data_implantacao ? Carbon::parse($venda->data_implantacao)->format('d/m/Y') : null,
             ];
 
