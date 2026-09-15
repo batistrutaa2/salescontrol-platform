@@ -1,7 +1,7 @@
 @extends('layouts/layoutMaster')
 @section('title', 'Vencimentos de boletos')
 @section('page-style')
-    @vite(['resources/assets/vendor/scss/pages/boletos.scss'])
+    @vite(['resources/assets/vendor/scss/pages/dashboard-analytics.scss', 'resources/assets/vendor/scss/pages/boletos.scss'])
 @endsection
 @section('page-script')
     @vite(['resources/assets/js/boletos.js'])
@@ -9,13 +9,13 @@
 @section('content')
 <div class="boletos">
     <header class="boletos-header">
-        <div>
+        <div class="boletos-heading"><span class="boletos-heading-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/></svg></span><div>
             <h1>Vencimentos de boletos</h1>
             <p>Organize os vencimentos mensais e acompanhe cada cliente, com ou sem contrato na carteira.</p>
-        </div>
+        </div></div>
         <button class="btn btn-primary js-boleto-config" type="button" data-bs-toggle="modal" data-bs-target="#boleto-config"
             data-manual="1" data-metodo="POST" data-url="{{ route('backoffice.boletos.manual.store') }}" data-ativo="1">
-            <i class="ri-add-line me-2" aria-hidden="true"></i>Novo cliente sem contrato
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Novo cliente sem contrato
         </button>
     </header>
 
@@ -29,7 +29,8 @@
         </div>
     @endif
 
-        <form class="boletos-filters mb-6" action="{{ route('backoffice.boletos.index') }}" method="GET">
+    <section class="table-card boletos-filter-panel" aria-label="Filtros de boletos">
+        <form class="boletos-filters" action="{{ route('backoffice.boletos.index') }}" method="GET">
             <div><label class="form-label" for="boleto-busca">Cliente, proposta ou referência</label><input class="form-control" id="boleto-busca" name="busca" value="{{ request('busca') }}" maxlength="160" placeholder="Buscar contrato"></div>
             <div><label class="form-label" for="boleto-situacao">Vencimento</label><select class="form-select" id="boleto-situacao" name="situacao">
                 @foreach (['todos' => 'Todos', 'sem_cadastro' => 'Sem cadastro', 'ativos' => 'Lembrete ativo', 'pausados' => 'Lembrete pausado'] as $valor => $rotulo)
@@ -42,13 +43,14 @@
                 <option value="1" @selected(request('quinzena') === '1')>1ª quinzena · dias 1 a 15</option>
                 <option value="2" @selected(request('quinzena') === '2')>2ª quinzena · dia 16 ao fim do mês</option>
             </select></div>
-            <button class="btn btn-outline-primary" type="submit">Filtrar</button>
-            <a href="{{ route('backoffice.boletos.index') }}" class="btn btn-outline-secondary">Limpar filtros</a>
+            <div class="boletos-filter-actions"><button class="btn btn-primary" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>Filtrar</button>
+            <a href="{{ route('backoffice.boletos.index') }}" class="btn btn-outline-secondary">Limpar</a></div>
         </form>
-    <section class="card card-body boletos-pendentes" aria-labelledby="boletos-pendentes-title">
-        <div class="boletos-section-heading">
-            <div><h2 id="boletos-pendentes-title">Acompanhamentos pendentes <span class="badge rounded-pill bg-label-primary ms-2">{{ $pendentes->total() }}</span></h2>
-                <p>Marcar como tratado registra o acompanhamento da equipe; não confirma o pagamento do boleto.</p></div>
+    </section>
+    <section class="table-card boletos-pendentes" aria-labelledby="boletos-pendentes-title">
+        <div class="table-header boletos-section-heading">
+            <div class="table-title-group"><span class="table-icon cadastrados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/></svg></span><div><h2 class="table-title" id="boletos-pendentes-title">Acompanhamentos pendentes <span class="badge rounded-pill bg-label-primary ms-2">{{ $pendentes->total() }}</span></h2>
+                <p>Marcar como tratado registra o acompanhamento da equipe; não confirma o pagamento do boleto.</p></div></div>
             @if (request('lembrete'))<a href="{{ route('backoffice.boletos.index') }}">Ver todos os lembretes</a>@endif
         </div>
         @forelse ($pendentes as $lembrete)
@@ -62,7 +64,7 @@
                     @if($lembrete->venda_id)
                     <p>{{ $lembrete->venda->operadora ?: 'Operadora não informada' }} · Proposta {{ $lembrete->venda->numero_proposta ?: '#'.$lembrete->venda_id }}</p>
                     @if($lembrete->referencia)<p>{{ $lembrete->referencia }}</p>@endif
-                    <a href="{{ route('backoffice.openContract', ['idContrato' => $lembrete->venda_id]) }}">Abrir contrato <i class="ri-arrow-right-up-line" aria-hidden="true"></i></a>
+                    <a href="{{ route('backoffice.openContract', ['idContrato' => $lembrete->venda_id]) }}">Abrir contrato <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></a>
                     @else
                         <p>{{ $lembrete->referencia ?: 'Cliente sem contrato na carteira' }}</p>
                     @endif
@@ -97,15 +99,15 @@
                 </div>
             </article>
         @empty
-            <div class="boletos-empty"><i class="ri-checkbox-circle-line" aria-hidden="true"></i><p>Nenhum lembrete pendente para os filtros selecionados. Os avisos aparecem 10 dias antes do vencimento.</p></div>
+            <div class="boletos-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11v1a10 10 0 1 1-6-9M22 4 12 14l-3-3"/></svg><p>Nenhum lembrete pendente para os filtros selecionados. Os avisos aparecem 10 dias antes do vencimento.</p></div>
         @endforelse
         {{ $pendentes->links() }}
     </section>
 
 
-    <section class="card card-body boletos-clients" aria-labelledby="boletos-clients-title">
-        <div class="boletos-section-heading">
-            <div><h2 id="boletos-clients-title">Clientes sem contrato <span class="badge bg-label-secondary ms-2">{{ $manuais->total() }}</span></h2><p>Cadastros independentes da carteira, com recorrência mensal.</p></div>
+    <section class="table-card boletos-clients" aria-labelledby="boletos-clients-title">
+        <div class="table-header boletos-section-heading">
+            <div class="table-title-group"><span class="table-icon cadastrados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></span><div><h2 class="table-title" id="boletos-clients-title">Clientes sem contrato <span class="badge bg-label-secondary ms-2">{{ $manuais->total() }}</span></h2><p>Cadastros independentes da carteira, com recorrência mensal.</p></div></div>
         </div>
         <div class="boletos-list">
             @forelse($manuais as $agenda)
@@ -131,9 +133,9 @@
         {{ $manuais->links() }}
     </section>
 
-    <section class="card card-body boletos-contracts" aria-labelledby="boletos-contracts-title">
-        <div class="boletos-section-heading">
-            <div><h2 id="boletos-contracts-title">Contratos implantados</h2><p>{{ $totalImplantados }} contrato(s) · {{ $semCadastro }} sem vencimento cadastrado</p></div>
+    <section class="table-card boletos-contracts" aria-labelledby="boletos-contracts-title">
+        <div class="table-header boletos-section-heading">
+            <div class="table-title-group"><span class="table-icon cadastrados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5"/></svg></span><div><h2 class="table-title" id="boletos-contracts-title">Contratos implantados</h2><p>{{ $totalImplantados }} contrato(s) · {{ $semCadastro }} sem vencimento cadastrado</p></div></div>
         </div>
         @if ($semCadastro > 0)
             <div class="alert alert-warning">Cadastre o vencimento dos {{ $semCadastro }} contrato(s) sem data para ativar os avisos. A data de implantação não é usada como vencimento.</div>
@@ -172,7 +174,7 @@
         {{ $contratos->links() }}
     </section>
 
-    <details class="card card-body boletos-history">
+    <details class="table-card boletos-history">
         <summary>Últimos acompanhamentos registrados</summary>
         @forelse ($historico as $item)
             <article><strong>{{ $item->nome_cliente ?? $item->venda?->nome_contrato ?? 'Cliente indisponível' }}</strong><p>Vencimento {{ $item->vencimento->format('d/m/Y') }} · Tratado por {{ $item->tratadoPor?->name ?? 'Usuário indisponível' }} em {{ $item->tratado_em->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</p>
@@ -182,7 +184,7 @@
     </details>
 </div>
 
-<div class="modal fade" id="boleto-config" tabindex="-1" aria-labelledby="boleto-config-title" aria-hidden="true">
+<div class="modal fade boletos-modal" id="boleto-config" tabindex="-1" aria-labelledby="boleto-config-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
         <form id="boleto-config-form" method="POST">
             <input type="hidden" name="boleto_venda" id="boleto-venda">
