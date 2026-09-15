@@ -6,6 +6,7 @@ use App\Enums\TabulationCode;
 use App\Enums\UserRole;
 use App\Models\Empresa;
 use App\Models\User;
+use App\Services\TabulationCatalog;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -94,7 +95,7 @@ class CompanyOnboardingTest extends TestCase
             'email' => 'contato@alfa.example',
             'whatsapp_token' => null,
         ]);
-        $this->assertDatabaseCount('tabulacoes', count(TabulationCode::defaults()));
+        $this->assertDatabaseCount('tabulacoes', (count(TabulationCode::defaults()) + count(TabulationCatalog::DESCARTES)));
     }
 
     public function test_onboarding_rejects_invalid_or_duplicate_fiscal_document(): void

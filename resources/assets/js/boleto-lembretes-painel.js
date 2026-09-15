@@ -7,7 +7,7 @@ async function atualizarLembretes() {
     const response = await fetch(aviso.dataset.resumoUrl, {headers: {Accept: 'application/json'}});
     if (!response.ok) return;
     const data = await response.json();
-    const text = `${data.total} lembrete(s) aguardando acompanhamento${data.hoje ? `; ${data.hoje} com vencimento hoje` : ''}.`;
+    const text = `${data.total} lembrete(s) aguardando acompanhamento${data.hoje ? `; ${data.hoje} com notificação hoje` : ''}.`;
     const target = document.getElementById('boleto-painel-texto');
     if (target.textContent !== text) target.textContent = text;
     aviso.classList.toggle('d-none', data.total === 0);

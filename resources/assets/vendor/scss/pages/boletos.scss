@@ -25,7 +25,7 @@
 .boletos-contract > div, .boletos-reminder > div { min-width: 0; overflow-wrap: anywhere; }
 .boletos-reminder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .5fr); gap: 1.5rem; padding: 1.25rem 0; border-top: 1px solid var(--bs-border-color); }
 .boletos-treatment form { padding-top: .75rem; }
-.boletos-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, .5fr) auto; align-items: end; gap: 1rem; margin-bottom: 1.25rem; }
+.boletos-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 1rem; margin-bottom: 1.25rem; }
 .boletos-contract { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, .65fr) auto; align-items: center; gap: 1rem; border-top: 1px solid var(--bs-border-color); padding: 1.25rem 0; }
 .boletos-schedule { display: grid; gap: .4rem; }
 .boletos-schedule span, .boletos-contract p { font-size: .875rem; }

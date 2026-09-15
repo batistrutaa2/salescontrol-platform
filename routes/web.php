@@ -439,6 +439,9 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/back-office/boletos', [BoletoLembreteController::class, 'index'])->name('backoffice.boletos.index');
             Route::post('/back-office/boletos/clientes', [BoletoLembreteController::class, 'criarManual'])->name('backoffice.boletos.manual.store');
             Route::put('/back-office/boletos/clientes/{agenda}', [BoletoLembreteController::class, 'editarManual'])->name('backoffice.boletos.manual.update');
+            Route::delete('/back-office/boletos/cadastros/{agenda}', [BoletoLembreteController::class, 'excluirAgenda'])->name('backoffice.boletos.destroy');
+            Route::put('/back-office/boletos/lembretes/{lembrete}', [BoletoLembreteController::class, 'editarLembrete'])->name('backoffice.boletos.lembretes.update');
+            Route::delete('/back-office/boletos/lembretes/{lembrete}', [BoletoLembreteController::class, 'excluirLembrete'])->name('backoffice.boletos.lembretes.destroy');
             Route::get('/back-office/boletos/resumo', [BoletoLembreteController::class, 'resumo'])->name('backoffice.boletos.resumo');
             Route::put('/back-office/boletos/contratos/{venda}', [BoletoLembreteController::class, 'configurar'])->name('backoffice.boletos.configurar');
             Route::post('/back-office/boletos/lembretes/{lembrete}/tratar', [BoletoLembreteController::class, 'tratar'])->name('backoffice.boletos.tratar');

@@ -392,7 +392,8 @@ class ContatosCorretoresRepository implements ContatosCorretoresRepositoryInterf
             $empresaId = (int) app(\App\Support\TenantContext::class)->id();
             $subTabulacaoValida = Tabulacoes::query()
                 ->where('empresa_id', $empresaId)
-                ->where('sub_tabulacao', 'Y')
+                ->whereIn('sub_tabulacao', ['S', 'Y'])
+                ->where('status', 'Y')
                 ->whereKey($sub_tabulacao_id)
                 ->exists();
             if (! $subTabulacaoValida) {

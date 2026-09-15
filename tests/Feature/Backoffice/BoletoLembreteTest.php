@@ -68,7 +68,7 @@ class BoletoLembreteTest extends TestCase
         $this->assertSame([$this->admin->id, $this->backoffice->id], DB::table('notifications')->orderBy('notifiable_id')->pluck('notifiable_id')->map(fn ($id) => (int) $id)->all());
         $this->assertSame(0, app(BoletoLembreteService::class)->sincronizar());
         $this->assertDatabaseCount('notifications', 2);
-        $this->getJson(route('backoffice.boletos.resumo'))->assertOk()->assertJson(['total' => 1, 'hoje' => 1]);
+        $this->getJson(route('backoffice.boletos.resumo'))->assertOk()->assertJson(['total' => 1, 'hoje' => 0]);
         $this->getJson(route('notificacoes.novas'))->assertOk()->assertJsonPath('0.data.tipo', 'boleto_vencimento');
         $this->get(route('backoffice.boletos.index'))->assertOk()->assertSee('Vence hoje')->assertSee($this->venda->nome_contrato);
         $this->get(route('home.dashboard'))->assertOk()->assertSee('1 lembrete(s) aguardando acompanhamento.');
@@ -141,7 +141,7 @@ class BoletoLembreteTest extends TestCase
     {
         $this->actingAs($this->admin)->get(route('backoffice.boletos.index'))->assertOk()->assertSee('1 sem vencimento cadastrado');
         $this->assertSame(0, app(BoletoLembreteService::class)->sincronizar());
-        $this->configurar('2026-09-15', 15)->assertRedirect();
+        $this->configurar('2026-09-25', 25)->assertRedirect();
         $this->assertDatabaseCount('boleto_lembretes', 0);
         $this->configurar('2026-09-14', 14, false)->assertRedirect();
         $this->assertDatabaseCount('boleto_lembretes', 0);
@@ -178,7 +178,7 @@ class BoletoLembreteTest extends TestCase
 
     public function test_falha_na_notificacao_desfaz_lembrete_e_preserva_proximo_vencimento(): void
     {
-        $this->configurar('2026-09-15', 15)->assertRedirect();
+        $this->configurar('2026-09-25', 25)->assertRedirect();
         $this->travelTo(CarbonImmutable::parse('2026-09-15 09:00', 'America/Sao_Paulo'));
         Notification::shouldReceive('send')->once()->andThrow(new RuntimeException('Falha simulada.'));
         try {
@@ -188,13 +188,13 @@ class BoletoLembreteTest extends TestCase
             $this->assertSame('Falha simulada.', $exception->getMessage());
         }
         $this->assertDatabaseCount('boleto_lembretes', 0);
-        $this->assertDatabaseHas('boleto_agendas', ['venda_id' => $this->venda->id, 'proximo_vencimento' => '2026-09-15']);
+        $this->assertDatabaseHas('boleto_agendas', ['venda_id' => $this->venda->id, 'proximo_vencimento' => '2026-09-25']);
     }
 
     public function test_comando_respeita_empresa_e_fuso_horario(): void
     {
-        $this->configurar('2026-09-15', 15)->assertRedirect();
-        $this->actingAs($this->externo)->put(route('backoffice.boletos.configurar', $this->outraVenda), $this->dados('2026-09-15', 15))->assertRedirect();
+        $this->configurar('2026-09-25', 25)->assertRedirect();
+        $this->actingAs($this->externo)->put(route('backoffice.boletos.configurar', $this->outraVenda), $this->dados('2026-09-25', 25))->assertRedirect();
         $this->travelTo(CarbonImmutable::parse('2026-09-15 02:59:00', 'UTC'));
         $this->artisan('boletos:lembrar')->assertSuccessful();
         $this->assertDatabaseCount('boleto_lembretes', 0);
@@ -263,6 +263,133 @@ class BoletoLembreteTest extends TestCase
         $this->assertSame(0, app(BoletoLembreteService::class)->sincronizar());
         $this->assertDatabaseCount('boleto_lembretes', 0);
         $this->assertDatabaseHas('boleto_agendas', ['id' => $agenda->id, 'nome_cliente' => 'Somente empresa A', 'ativo' => false]);
+    }
+
+    public function test_notifica_antes_do_vencimento_e_repete_as_duas_datas(): void
+    {
+        $this->actingAs($this->admin)->put(route('backoffice.boletos.configurar', $this->venda), [
+            ...$this->dados('2026-09-25', 25), 'proxima_notificacao' => '2026-09-15',
+        ])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('boleto_lembretes', 0);
+        $this->travelTo(CarbonImmutable::parse('2026-09-15 09:00', 'America/Sao_Paulo'));
+        $this->assertSame(1, app(BoletoLembreteService::class)->sincronizar());
+        $this->getJson(route('backoffice.boletos.resumo'))->assertJson(['total' => 1, 'hoje' => 1]);
+        $this->assertDatabaseHas('boleto_lembretes', ['data_notificacao' => '2026-09-15', 'vencimento' => '2026-09-25']);
+        $this->assertDatabaseHas('boleto_agendas', ['proxima_notificacao' => '2026-10-15', 'proximo_vencimento' => '2026-10-25']);
+        $this->get(route('backoffice.boletos.index'))->assertOk()->assertSee('Vence em breve')->assertSee('25/09/2026');
+        $this->travelTo(CarbonImmutable::parse('2026-10-15 09:00', 'America/Sao_Paulo'));
+        $this->assertSame(1, app(BoletoLembreteService::class)->sincronizar());
+        $this->assertDatabaseHas('boleto_lembretes', ['data_notificacao' => '2026-10-15', 'vencimento' => '2026-10-25']);
+    }
+
+    public function test_edita_e_exclui_boleto_sem_recriar_ocorrencia_ou_alterar_recorrencia(): void
+    {
+        $this->configurar('2026-09-14', 14);
+        $id = DB::table('boleto_lembretes')->value('id');
+        $this->put(route('backoffice.boletos.lembretes.update', $id), ['vencimento' => '2026-09-20', 'referencia' => 'Corrigido'])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('boleto_lembretes', ['id' => $id, 'vencimento' => '2026-09-20']);
+        $this->assertStringContainsString('20/09/2026', json_decode(DB::table('notifications')->value('data'), true)['mensagem']);
+        $this->assertDatabaseHas('boleto_agendas', ['proximo_vencimento' => '2026-10-14']);
+        $this->delete(route('backoffice.boletos.lembretes.destroy', $id))->assertRedirect();
+        $this->assertSoftDeleted('boleto_lembretes', ['id' => $id]);
+        $this->assertDatabaseCount('notifications', 0);
+        $this->getJson(route('backoffice.boletos.resumo'))->assertJson(['total' => 0]);
+        $this->putJson(route('backoffice.boletos.configurar', $this->venda), $this->dados('2026-09-14', 14))->assertUnprocessable();
+        $this->assertSame(0, app(BoletoLembreteService::class)->sincronizar());
+    }
+
+    public function test_excluir_cadastro_cancela_pendentes_e_preserva_tratados_e_contrato(): void
+    {
+        $this->configurar('2026-09-14', 14);
+        $tratado = DB::table('boleto_lembretes')->value('id');
+        $this->post(route('backoffice.boletos.tratar', $tratado));
+        $this->travelTo(CarbonImmutable::parse('2026-10-14 09:00', 'America/Sao_Paulo'));
+        app(BoletoLembreteService::class)->sincronizar();
+        $agenda = DB::table('boleto_agendas')->value('id');
+        $this->delete(route('backoffice.boletos.destroy', $agenda))->assertRedirect();
+        $this->assertSoftDeleted('boleto_agendas', ['id' => $agenda]);
+        $this->assertDatabaseHas('boleto_lembretes', ['id' => $tratado, 'deleted_at' => null, 'tratado_por' => $this->admin->id]);
+        $this->assertDatabaseHas('vendas', ['id' => $this->venda->id]);
+        $this->getJson(route('backoffice.boletos.resumo'))->assertJson(['total' => 0]);
+        $this->travelTo(CarbonImmutable::parse('2026-11-14 09:00', 'America/Sao_Paulo'));
+        $this->assertSame(0, app(BoletoLembreteService::class)->sincronizar());
+        $this->configurar('2026-11-14', 14)->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('boleto_agendas', ['id' => $agenda, 'deleted_at' => null]);
+    }
+
+    public function test_novas_mutacoes_restringem_empresa_papel_e_datas(): void
+    {
+        $this->configurar('2026-09-14', 14);
+        $id = DB::table('boleto_lembretes')->value('id');
+        $agenda = DB::table('boleto_agendas')->value('id');
+        $this->putJson(route('backoffice.boletos.configurar', $this->venda), [...$this->dados('2026-10-20', 20), 'proxima_notificacao' => '2026-10-21'])->assertRedirect();
+        $this->assertDatabaseHas('boleto_agendas', ['proxima_notificacao' => '2026-10-10']);
+        $this->putJson(route('backoffice.boletos.lembretes.update', $id), ['vencimento' => '2026-09-03'])->assertUnprocessable();
+        foreach ([$this->externo, $this->usuario($this->empresa, UserRole::VENDEDOR)] as $user) {
+            $status = $user->id === $this->externo->id ? 404 : 403;
+            $this->actingAs($user)->putJson(route('backoffice.boletos.lembretes.update', $id), ['vencimento' => '2026-09-20'])->assertStatus($status);
+            $this->deleteJson(route('backoffice.boletos.lembretes.destroy', $id))->assertStatus($status);
+            $this->deleteJson(route('backoffice.boletos.destroy', $agenda))->assertStatus($status);
+        }
+    }
+
+    public function test_cliente_manual_com_aviso_em_mes_anterior_pode_ser_editado_e_excluido(): void
+    {
+        $this->actingAs($this->admin)->post(route('backoffice.boletos.manual.store'), [
+            ...$this->dados('2026-10-05', 5), 'proxima_notificacao' => '2026-09-30', 'nome_cliente' => 'Avulso',
+        ])->assertSessionHasNoErrors();
+        $id = DB::table('boleto_agendas')->value('id');
+        $this->put(route('backoffice.boletos.manual.update', $id), [
+            ...$this->dados('2026-10-05', 5), 'proxima_notificacao' => '2026-09-25', 'nome_cliente' => 'Avulso corrigido',
+        ])->assertSessionHasNoErrors();
+        $this->travelTo(CarbonImmutable::parse('2026-09-25 09:00', 'America/Sao_Paulo'));
+        $this->assertSame(1, app(BoletoLembreteService::class)->sincronizar());
+        $this->assertDatabaseHas('boleto_lembretes', ['nome_cliente' => 'Avulso corrigido', 'data_notificacao' => '2026-09-25', 'vencimento' => '2026-10-05']);
+        $this->assertDatabaseHas('boleto_agendas', ['proxima_notificacao' => '2026-10-26', 'proximo_vencimento' => '2026-11-05']);
+        $this->delete(route('backoffice.boletos.destroy', $id))->assertRedirect();
+        $this->assertSoftDeleted('boleto_agendas', ['id' => $id]);
+        $this->assertDatabaseCount('notifications', 0);
+    }
+
+    public function test_alerta_de_fim_de_mes_mantem_dez_dias_e_ignora_data_enviada(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2028-02-18 09:00', 'America/Sao_Paulo'));
+        $this->configurar('2028-02-29', 31)->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('boleto_lembretes', 0);
+        $this->travelTo(CarbonImmutable::parse('2028-02-19 09:00', 'America/Sao_Paulo'));
+        $this->assertSame(1, app(BoletoLembreteService::class)->sincronizar());
+        $this->assertDatabaseHas('boleto_lembretes', ['vencimento' => '2028-02-29', 'data_notificacao' => '2028-02-19']);
+        $this->assertDatabaseHas('boleto_agendas', ['proximo_vencimento' => '2028-03-31', 'proxima_notificacao' => '2028-03-21']);
+        $this->travelTo(CarbonImmutable::parse('2028-03-21 09:00', 'America/Sao_Paulo'));
+        $this->assertSame(1, app(BoletoLembreteService::class)->sincronizar());
+        $this->assertDatabaseHas('boleto_agendas', ['proximo_vencimento' => '2028-04-30', 'proxima_notificacao' => '2028-04-20']);
+    }
+
+    public function test_filtra_quinzena_pelo_vencimento_e_preserva_empresa_e_paginacao(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-09-30 09:00', 'America/Sao_Paulo'));
+        foreach (['2026-10-15' => 'Primeira', '2026-10-16' => 'Segunda', '2026-10-31' => 'Fim do mês', '2026-11-01' => 'Outro mês'] as $data => $nome) {
+            $this->actingAs($this->admin)->post(route('backoffice.boletos.manual.store'), [
+                ...$this->dados($data, (int) substr($data, -2)), 'nome_cliente' => $nome,
+            ])->assertSessionHasNoErrors();
+        }
+        $this->configurar('2026-10-16', 16)->assertSessionHasNoErrors();
+        $this->actingAs($this->externo)->post(route('backoffice.boletos.manual.store'), [
+            ...$this->dados('2026-10-16', 16), 'nome_cliente' => 'Cliente externo',
+        ])->assertSessionHasNoErrors();
+        $this->travelTo(CarbonImmutable::parse('2026-10-31 09:00', 'America/Sao_Paulo'));
+        app(BoletoLembreteService::class)->sincronizar();
+        $this->actingAs($this->admin)->get(route('backoffice.boletos.index', ['mes' => '2026-10', 'quinzena' => '1']))
+            ->assertOk()->assertViewHas('pendentes', fn ($p) => $p->pluck('nome_cliente')->all() === ['Primeira']);
+        $this->get(route('backoffice.boletos.index', ['mes' => '2026-10', 'quinzena' => '2']))
+            ->assertOk()->assertViewHas('pendentes', fn ($p) => $p->total() === 3)
+            ->assertDontSee('Cliente externo')
+            ->assertViewHas('pendentes', fn ($p) => ! $p->contains('nome_cliente', 'Outro mês'));
+        $this->get(route('backoffice.boletos.index', ['mes' => '2026-11', 'quinzena' => '2']))
+            ->assertOk()->assertViewHas('manuais', fn ($p) => $p->total() === 2)
+            ->assertViewHas('contratos', fn ($p) => $p->total() === 1);
+        $this->getJson(route('backoffice.boletos.index', ['quinzena' => '3']))->assertUnprocessable();
+        $this->getJson(route('backoffice.boletos.index', ['mes' => '2026-13']))->assertUnprocessable();
     }
 
     private function usuario(Empresa $empresa, int $role, array $extra = []): User

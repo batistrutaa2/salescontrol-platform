@@ -354,7 +354,7 @@ class TenantContextTest extends TestCase
         $betaProspeccao = $catalog->id($beta->id, TabulationCode::PROSPECCAO);
 
         $this->assertNotSame($alfaProspeccao, $betaProspeccao);
-        $this->assertDatabaseCount('tabulacoes', count(TabulationCode::defaults()) * 2);
+        $this->assertDatabaseCount('tabulacoes', (count(TabulationCode::defaults()) + count(TabulationCatalog::DESCARTES)) * 2);
 
         DB::table('tabulacoes')->where('id', $alfaProspeccao)->update(['descricao' => 'PRIMEIRO CONTATO']);
         $this->assertSame($alfaProspeccao, $catalog->id($alfa->id, TabulationCode::PROSPECCAO));

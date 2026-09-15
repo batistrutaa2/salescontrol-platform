@@ -1060,6 +1060,11 @@ class Comercial extends Controller
 
     public function sendRemaketing(Request $request)
     {
+        $request->validate([
+            'contato_id' => ['required', 'integer'],
+            'sub_tabulacao_id' => ['required', 'integer', Rule::exists('tabulacoes', 'id')->where(fn ($q) => $q
+                ->where('empresa_id', $this->tenantId())->where('status', 'Y')->whereIn('sub_tabulacao', ['S', 'Y']))],
+        ]);
         $this->authorizeContatoOperavel($request, (int) $request->contato_id);
 
         try {
@@ -1067,13 +1072,13 @@ class Comercial extends Controller
                 $this->agendamentoRepository->deleteSchedule($request->contato_id);
 
                 if (! $this->repositoryContatosCorretores->sendRemaketing($request->contato_id, $request->sub_tabulacao_id)) {
-                    throw new \RuntimeException('Não foi possível mover o contato para remarketing.');
+                    throw new RuntimeException('Não foi possível mover o contato para remarketing.');
                 }
             });
 
             return redirect()->route(route: 'comercial.kanban')->with('status', 'success')->with('message', 'Contato descartado com sucesso');
         } catch (\Throwable) {
-            return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', 'Erro ao descartado com sucesso');
+            return redirect()->route(route: 'comercial.kanban')->with('status', 'error')->with('message', 'Não foi possível descartar o contato. Tente novamente.');
         }
     }
 

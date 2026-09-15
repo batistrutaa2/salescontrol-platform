@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Repositories\Contracts\ComentariosRepositoryInterface;
 use App\Repositories\Contracts\UsuariosRepositoryInterface;
 use App\Repositories\Eloquent\ComentariosRepository;
+use App\Repositories\Eloquent\TabulacoesRepository;
 use App\Services\TabulationCatalog;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -576,6 +577,43 @@ class ComercialTenancyTest extends TestCase
         $this->assertDatabaseHas('preditiva', ['contato_id' => $this->contato->id]);
         $this->assertDatabaseCount('transferencia_contatos', 0);
         $this->assertDatabaseCount('contatos_corretores', 0);
+    }
+
+    public function test_motivos_padrao_sao_idempotentes_e_vendedor_e_supervisor_conseguem_descartar(): void
+    {
+        $catalog = app(TabulationCatalog::class);
+        $catalog->provision($this->empresa->id);
+        $catalog->provision($this->outraEmpresa->id);
+        $catalog->provision($this->empresa->id);
+        $motivos = app(TenantContext::class)->run($this->empresa->id,
+            fn () => app(TabulacoesRepository::class)->getSubTabulations($this->empresa->id));
+        $this->assertEqualsCanonicalizing(array_values(TabulationCatalog::DESCARTES), $motivos->pluck('descricao')->all());
+        DB::table('contatos_corretores')->insert([
+            'empresa_id' => $this->empresa->id, 'contato_id' => $this->contato->id,
+            'user_id' => $this->usuario->id, 'tabulacao_id' => $this->tabulacao->id,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        foreach ([UserRole::VENDEDOR, UserRole::SUPERVISOR] as $role) {
+            DB::table('user_roles')->insert(['id' => $role, 'tipo_usuario' => 'Perfil '.$role]);
+            $this->usuario->update(['user_role_id' => $role]);
+            $this->actingAs($this->usuario->fresh())->get(route('comercial.kanban'))->assertOk()->assertSee('DOENÇA PRÉ EXISTENTE');
+            foreach ($motivos as $motivo) {
+                $this->post(route('comercial.sendRemaketing'), [
+                    'contato_id' => $this->contato->id, 'sub_tabulacao_id' => $motivo->id,
+                ])->assertSessionHas('status', 'success');
+                $this->assertDatabaseHas('contatos_corretores', [
+                    'contato_id' => $this->contato->id, 'sub_tabulacao_id' => $motivo->id,
+                    'tabulacao_id' => $catalog->id($this->empresa->id, TabulationCode::REMARKETING),
+                    'user_id' => $this->usuario->id,
+                ]);
+            }
+        }
+        $foreign = DB::table('tabulacoes')->where('empresa_id', $this->outraEmpresa->id)->where('sub_tabulacao', 'S')->value('id');
+        foreach ([$foreign, $this->tabulacao->id, null] as $invalido) {
+            $this->postJson(route('comercial.sendRemaketing'), [
+                'contato_id' => $this->contato->id, 'sub_tabulacao_id' => $invalido,
+            ])->assertUnprocessable();
+        }
     }
 
     private function usuario(Empresa $empresa): User

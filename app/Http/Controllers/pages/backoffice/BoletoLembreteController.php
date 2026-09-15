@@ -20,8 +20,19 @@ class BoletoLembreteController extends Controller
             'busca' => ['nullable', 'string', 'max:160'],
             'situacao' => ['nullable', 'in:todos,sem_cadastro,ativos,pausados'],
             'lembrete' => ['nullable', 'integer'],
+            'quinzena' => ['nullable', 'in:1,2'],
+            'mes' => ['nullable', 'date_format:Y-m'],
         ]);
         $empresaId = $this->tenantId();
+        $periodo = function ($query, string $coluna) use ($filtros) {
+            if (! empty($filtros['mes'])) {
+                $inicio = CarbonImmutable::createFromFormat('!Y-m', $filtros['mes']);
+                $query->whereBetween($coluna, [$inicio->toDateString(), $inicio->endOfMonth()->toDateString()]);
+            }
+            if (! empty($filtros['quinzena'])) {
+                $query->whereDay($coluna, $filtros['quinzena'] === '1' ? '<=' : '>', 15);
+            }
+        };
         $base = $this->service->implantados($empresaId);
         $agendas = BoletoAgenda::where('empresa_id', $empresaId)->whereNotNull('venda_id')->select('venda_id');
         $contratos = (clone $base)
@@ -29,9 +40,11 @@ class BoletoLembreteController extends Controller
             ->when(($filtros['situacao'] ?? '') === 'sem_cadastro', fn ($q) => $q->whereNotIn('id', clone $agendas))
             ->when(($filtros['situacao'] ?? '') === 'ativos', fn ($q) => $q->whereIn('id', (clone $agendas)->where('ativo', true)))
             ->when(($filtros['situacao'] ?? '') === 'pausados', fn ($q) => $q->whereIn('id', (clone $agendas)->where('ativo', false)))
+            ->when(! empty($filtros['mes']) || ! empty($filtros['quinzena']), fn ($q) => $q->whereIn('id', (clone $agendas)->where(fn ($a) => $periodo($a, 'proximo_vencimento'))))
             ->orderBy('nome_contrato')->paginate(20)->withQueryString();
         $configuracoes = BoletoAgenda::whereIn('venda_id', $contratos->pluck('id'))->get()->keyBy('venda_id');
         $pendentes = $this->service->pendentes($empresaId)->with('venda')
+            ->where(fn ($q) => $periodo($q, 'vencimento'))
             ->when($filtros['lembrete'] ?? null, fn ($q, $id) => $q->whereKey($id))
             ->orderBy('vencimento')->paginate(10, ['*'], 'lembretes_page')->withQueryString();
         $historico = BoletoLembrete::where('empresa_id', $empresaId)->whereNotNull('tratado_em')
@@ -42,6 +55,7 @@ class BoletoLembreteController extends Controller
             : null;
 
         $manuais = BoletoAgenda::where('empresa_id', $empresaId)->whereNull('venda_id')
+            ->where(fn ($q) => $periodo($q, 'proximo_vencimento'))
             ->when($filtros['busca'] ?? null, fn ($q, $busca) => $q->where(fn ($q) => $q->where('nome_cliente', 'like', '%'.$busca.'%')->orWhere('referencia', 'like', '%'.$busca.'%')))
             ->when(($filtros['situacao'] ?? '') === 'ativos', fn ($q) => $q->where('ativo', true))
             ->when(($filtros['situacao'] ?? '') === 'pausados', fn ($q) => $q->where('ativo', false))
@@ -82,7 +96,7 @@ class BoletoLembreteController extends Controller
         $this->service->configurar($venda, $request->user(), $dados);
         $this->service->sincronizar($this->tenantId());
 
-        return back()->with('boleto_status', 'Vencimento mensal salvo. O aviso será gerado no dia cadastrado.');
+        return back()->with('boleto_status', 'Boleto salvo. O aviso é gerado 10 dias antes do vencimento.');
     }
 
     public function criarManual(Request $request)
@@ -113,6 +127,35 @@ class BoletoLembreteController extends Controller
         return redirect()->route('backoffice.boletos.index')->with('boleto_status', 'Vencimento mensal salvo para o cliente.');
     }
 
+    public function excluirAgenda(BoletoAgenda $agenda)
+    {
+        abort_unless((int) $agenda->empresa_id === $this->tenantId(), 404);
+        $this->service->excluirAgenda($agenda);
+
+        return back()->with('boleto_status', 'Cadastro excluído. Os avisos futuros e pendentes foram cancelados; acompanhamentos tratados foram preservados.');
+    }
+
+    public function editarLembrete(Request $request, BoletoLembrete $lembrete)
+    {
+        abort_unless((int) $lembrete->empresa_id === $this->tenantId(), 404);
+        $request->merge(['boleto_lembrete' => $lembrete->id]);
+        $dados = $request->validate([
+            'vencimento' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$lembrete->data_notificacao->toDateString()],
+            'referencia' => ['nullable', 'string', 'max:160'],
+        ]);
+        $this->service->alterarLembrete($lembrete, $dados);
+
+        return back()->with('boleto_status', 'Boleto atualizado. A recorrência mensal permanece com as datas do cadastro.');
+    }
+
+    public function excluirLembrete(BoletoLembrete $lembrete)
+    {
+        abort_unless((int) $lembrete->empresa_id === $this->tenantId(), 404);
+        $this->service->alterarLembrete($lembrete, null);
+
+        return back()->with('boleto_status', 'Boleto excluído. Os próximos meses continuam programados.');
+    }
+
     public function tratar(Request $request, BoletoLembrete $lembrete)
     {
         abort_unless((int) $lembrete->empresa_id === $this->tenantId(), 404);
@@ -129,7 +172,7 @@ class BoletoLembreteController extends Controller
 
         return response()->json([
             'total' => (clone $pendentes)->count(),
-            'hoje' => (clone $pendentes)->whereDate('vencimento', CarbonImmutable::today('America/Sao_Paulo'))->count(),
+            'hoje' => (clone $pendentes)->whereDate('data_notificacao', CarbonImmutable::today('America/Sao_Paulo'))->count(),
             'url' => route('backoffice.boletos.index'),
         ]);
     }

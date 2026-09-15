@@ -4,6 +4,7 @@ namespace Tests\Feature\Tenancy;
 
 use App\Enums\TabulationCode;
 use App\Enums\UserRole;
+use App\Services\TabulationCatalog;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,7 @@ class PlatformSeederTest extends TestCase
             'senha-exclusiva-do-teste',
             (string) DB::table('users')->value('password')
         ));
-        $this->assertDatabaseCount('tabulacoes', count(TabulationCode::defaults()));
+        $this->assertDatabaseCount('tabulacoes', (count(TabulationCode::defaults()) + count(TabulationCatalog::DESCARTES)));
         $this->assertDatabaseMissing('empresas', ['nome_fantasia' => 'LKBROKERS']);
     }
 }

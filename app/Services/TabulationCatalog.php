@@ -10,6 +10,14 @@ use Illuminate\Validation\ValidationException;
 
 class TabulationCatalog
 {
+    public const DESCARTES = [
+        'DESCARTE_DOENCA_PRE_EXISTENTE' => 'DOENÇA PRÉ EXISTENTE',
+        'DESCARTE_CLIENTE_NAO_ENCONTRADO' => 'CLIENTE NAO ENCONTRADO',
+        'DESCARTE_TRANSFERENCIA_RECENTE' => 'TRANSFERENCIA DE PLANO RECENTE',
+        'DESCARTE_SEM_INTERESSE' => 'NAO TEM INTERESSE',
+        'DESCARTE_SEM_RETORNO' => 'SEM RETORNO',
+    ];
+
     private array $ids = [];
 
     public function __construct(private readonly TenantContext $tenantContext) {}
@@ -18,6 +26,7 @@ class TabulationCatalog
     {
         $this->tenantContext->run($empresaId, function () use ($empresaId): void {
             DB::transaction(function () use ($empresaId) {
+                $this->provisionDescartes($empresaId);
                 foreach (TabulationCode::defaults() as $codigo => $definition) {
                     Tabulacoes::query()->firstOrCreate(
                         ['empresa_id' => $empresaId, 'codigo' => $codigo],
@@ -27,6 +36,24 @@ class TabulationCatalog
             });
         });
 
+        unset($this->ids[$empresaId]);
+    }
+
+    public function provisionDescartes(int $empresaId): void
+    {
+        $this->tenantContext->run($empresaId, function () use ($empresaId): void {
+            DB::transaction(function () use ($empresaId): void {
+                foreach (self::DESCARTES as $codigo => $descricao) {
+                    $tabulacao = Tabulacoes::where('empresa_id', $empresaId)->where('codigo', $codigo)->first()
+                        ?? Tabulacoes::where('empresa_id', $empresaId)->whereNull('codigo')->where('descricao', $descricao)->first()
+                        ?? new Tabulacoes;
+                    $tabulacao->fill([
+                        'empresa_id' => $empresaId, 'codigo' => $codigo, 'descricao' => $descricao,
+                        'tipo_tabulacao' => 'A', 'sub_tabulacao' => 'S', 'status' => 'Y', 'efetivo' => 'N',
+                    ])->save();
+                }
+            });
+        });
         unset($this->ids[$empresaId]);
     }
 

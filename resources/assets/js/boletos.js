@@ -4,6 +4,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const dia = document.getElementById('boleto-dia');
   const proximo = document.getElementById('boleto-proximo');
   const restore = document.getElementById('boleto-restaurar');
+  const atualizarAlerta = () => {
+    const campo = document.getElementById('boleto-notificacao');
+    campo.value = '';
+    if (!proximo.value) return;
+    const data = new Date(`${proximo.value}T12:00:00Z`);
+    if (Number.isNaN(data.getTime())) return;
+    data.setUTCDate(data.getUTCDate() - 10);
+    campo.value = data.toISOString().slice(0, 10);
+  };
   const populate = source => {
     form.action = source.dataset.url;
     form.querySelector('[name="_method"]').value = source.dataset.metodo || 'PUT';
@@ -20,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('boleto-config-cliente').textContent = source.dataset.nome || '';
     dia.value = source.dataset.dia || '';
     proximo.value = source.dataset.proximo || '';
+    atualizarAlerta();
     document.getElementById('boleto-ativo').checked = source.dataset.ativo === '1';
     const errors = document.getElementById('boleto-config-erros');
     if (errors) errors.hidden = source !== restore;
@@ -36,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     populate(restore);
     bootstrap.Modal.getOrCreateInstance(modal).show();
   }
+  proximo?.addEventListener('change', atualizarAlerta);
   dia?.addEventListener('change', () => {
     const day = Number(dia.value);
     if (!Number.isInteger(day) || day < 1 || day > 31) return;
@@ -43,9 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let target = new Date(year, month - 1, Math.min(day, new Date(year, month, 0).getDate()), 12);
     if (target.getDate() < today) target = new Date(year, month, Math.min(day, new Date(year, month + 1, 0).getDate()), 12);
     proximo.value = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+    proximo.dispatchEvent(new Event('change'));
   });
   document.querySelectorAll('.boletos form, #boleto-config-form').forEach(item => {
-    item.addEventListener('submit', () => {
+    item.addEventListener('submit', event => {
+      if (item.dataset.confirm && !window.confirm(item.dataset.confirm)) {
+        event.preventDefault();
+        return;
+      }
       if (!item.checkValidity()) return;
       const button = item.querySelector('button[type="submit"]');
       if (button) button.disabled = true;

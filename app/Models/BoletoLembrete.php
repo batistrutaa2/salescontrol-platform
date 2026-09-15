@@ -5,14 +5,16 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BoletoLembrete extends Model
 {
     use BelongsToTenant;
+    use SoftDeletes;
 
     protected $guarded = ['id'];
 
-    protected $casts = ['competencia' => 'immutable_date', 'vencimento' => 'immutable_date', 'tratado_em' => 'immutable_datetime'];
+    protected $casts = ['data_notificacao' => 'immutable_date', 'competencia' => 'immutable_date', 'vencimento' => 'immutable_date', 'tratado_em' => 'immutable_datetime'];
 
     public function venda(): BelongsTo
     {

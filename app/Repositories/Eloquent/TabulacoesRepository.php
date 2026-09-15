@@ -52,7 +52,7 @@ class TabulacoesRepository implements TabulacoesRepositoryInterface
         return $this->model->select(['id', 'descricao'])
             ->where('empresa_id', $empresa_id)
             ->where('status', 'Y')
-            ->where('sub_tabulacao', 'S')
+            ->whereIn('sub_tabulacao', ['S', 'Y'])
             ->get();
     }
 }
