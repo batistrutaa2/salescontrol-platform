@@ -65,6 +65,72 @@ class FunnelConfigurationTest extends TestCase
         ]);
     }
 
+    public function test_duplicate_stage_name_displays_a_clear_message_on_creation_and_editing(): void
+    {
+        [$empresa, , $admin] = $this->tenantScenario();
+        Tabulacoes::query()->create(array_merge($this->customStage($empresa->id, 'NOME EXISTENTE'), [
+            'tipo_tabulacao' => 'A',
+            'status' => 'N',
+        ]));
+        $stage = Tabulacoes::query()->create($this->customStage($empresa->id, 'ETAPA ORIGINAL'));
+        $payload = [
+            'descricao' => 'NOME EXISTENTE',
+            'tipo_tabulacao' => 'C',
+            'efetivo' => 'Y',
+            'status' => 'Y',
+            'prazo' => null,
+        ];
+        $message = 'Já existe uma etapa com esse nome nesta empresa, no funil comercial ou no pós-venda, inclusive entre as arquivadas. Escolha outro nome.';
+
+        $this->actingAs($admin)->from(route('manager.funis.index'))
+            ->post(route('manager.funis.store'), $payload)
+            ->assertRedirect(route('manager.funis.index'))
+            ->assertSessionHasErrors(['descricao' => $message]);
+
+        $this->get(route('manager.funis.index'))
+            ->assertOk()
+            ->assertSee($message)
+            ->assertDontSee('validation.unique');
+
+        $this->from(route('manager.funis.index'))
+            ->put(route('manager.funis.update', $stage->id), $payload)
+            ->assertRedirect(route('manager.funis.index'))
+            ->assertSessionHasErrors(['descricao' => $message]);
+
+        $this->assertSame('ETAPA ORIGINAL', $stage->fresh()->descricao);
+        $this->assertDatabaseMissing('tabulacoes', [
+            'empresa_id' => $empresa->id,
+            'descricao' => 'NOME EXISTENTE',
+            'tipo_tabulacao' => 'C',
+        ]);
+    }
+
+    public function test_name_from_another_company_and_unchanged_name_are_allowed(): void
+    {
+        [$empresa, $outra, $admin] = $this->tenantScenario();
+        Tabulacoes::query()->create($this->customStage($outra->id, 'NOME COMPARTILHADO'));
+        $payload = [
+            'descricao' => 'NOME COMPARTILHADO',
+            'tipo_tabulacao' => 'C',
+            'efetivo' => 'Y',
+            'status' => 'Y',
+            'prazo' => '24 horas',
+        ];
+
+        $this->actingAs($admin)->post(route('manager.funis.store'), $payload)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $stage = Tabulacoes::query()->where('empresa_id', $empresa->id)
+            ->where('descricao', 'NOME COMPARTILHADO')->firstOrFail();
+
+        $this->put(route('manager.funis.update', $stage->id), array_merge($payload, ['prazo' => '48 horas']))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('48 horas', $stage->fresh()->prazo);
+    }
+
     public function test_stage_from_another_company_cannot_be_edited_or_reordered(): void
     {
         [$empresa, $outra, $admin] = $this->tenantScenario();

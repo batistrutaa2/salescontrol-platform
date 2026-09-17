@@ -47,7 +47,7 @@ class FunilController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $empresaId = $this->tenantContext->id();
-        $data = $request->validate($this->rules($empresaId));
+        $data = $request->validate($this->rules($empresaId), $this->messages());
 
         DB::transaction(function () use ($data, $empresaId) {
             $lastPosition = Tabulacoes::query()
@@ -76,7 +76,7 @@ class FunilController extends Controller
     {
         $empresaId = $this->tenantContext->id();
         $etapa = $this->tenantStage($tabulacao);
-        $data = $request->validate($this->rules($empresaId, $etapa));
+        $data = $request->validate($this->rules($empresaId, $etapa), $this->messages());
 
         $changes = [
             'descricao' => mb_strtoupper(trim($data['descricao'])),
@@ -95,7 +95,7 @@ class FunilController extends Controller
 
     public function move(Request $request, int $tabulacao): RedirectResponse
     {
-        $data = $request->validate(['direction' => ['required', Rule::in(['up', 'down'])]]);
+        $data = $request->validate(['direction' => ['required', Rule::in(['up', 'down'])]], $this->messages());
         $etapa = $this->tenantStage($tabulacao);
 
         DB::transaction(function () use ($data, $etapa) {
@@ -148,6 +148,26 @@ class FunilController extends Controller
             'efetivo' => ['required', Rule::in(['Y', 'N'])],
             'status' => [$stage ? 'required' : 'sometimes', Rule::in(['Y', 'N'])],
             'prazo' => ['nullable', 'string', 'max:100'],
+        ];
+    }
+
+    private function messages(): array
+    {
+        return [
+            'descricao.required' => 'Informe o nome da etapa.',
+            'descricao.string' => 'O nome da etapa deve ser um texto.',
+            'descricao.max' => 'O nome da etapa deve ter no máximo 255 caracteres.',
+            'descricao.unique' => 'Já existe uma etapa com esse nome nesta empresa, no funil comercial ou no pós-venda, inclusive entre as arquivadas. Escolha outro nome.',
+            'tipo_tabulacao.required' => 'Selecione o fluxo da etapa.',
+            'tipo_tabulacao.in' => 'Selecione um fluxo válido: Comercial ou Pós-venda.',
+            'efetivo.required' => 'Informe se a etapa conta como contato efetivo.',
+            'efetivo.in' => 'Selecione Sim ou Não para contato efetivo.',
+            'status.required' => 'Selecione a disponibilidade da etapa.',
+            'status.in' => 'Selecione uma disponibilidade válida: Ativa ou Arquivada.',
+            'prazo.string' => 'O prazo de referência deve ser um texto.',
+            'prazo.max' => 'O prazo de referência deve ter no máximo 100 caracteres.',
+            'direction.required' => 'Informe se deseja mover a etapa para cima ou para baixo.',
+            'direction.in' => 'Selecione uma direção válida: para cima ou para baixo.',
         ];
     }
 
