@@ -13,6 +13,7 @@ use App\Notifications\DemandaVendedorConcluida;
 use App\Notifications\SolicitacaoAtualizadaVendedor;
 use App\Repositories\Contracts\PosVendaSolicitacaoRepositoryInterface;
 use App\Support\TenantContext;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -65,8 +66,16 @@ class CentralSolicitacoesController extends Controller
     {
         $this->checkAccess();
 
+        // Cliente fora da base (carteira não cadastrada): sem contrato, a
+        // solicitação carrega a identificação mínima do cliente.
+        $avulsa = $request->boolean('cliente_avulso');
+
         $validated = $request->validate([
-            'venda_id' => ['required', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->empresaId())],
+            'venda_id' => [Rule::requiredIf(! $avulsa), Rule::prohibitedIf($avulsa), 'nullable', 'integer', Rule::exists('vendas', 'id')->where('empresa_id', $this->empresaId())],
+            'cliente_nome' => [Rule::requiredIf($avulsa), Rule::prohibitedIf(! $avulsa), 'nullable', 'string', 'max:255'],
+            'cliente_documento' => [Rule::prohibitedIf(! $avulsa), 'nullable', 'string', 'max:20'],
+            'cliente_telefone' => [Rule::prohibitedIf(! $avulsa), 'nullable', 'string', 'max:20'],
+            'cliente_operadora' => [Rule::prohibitedIf(! $avulsa), 'nullable', 'string', 'max:100'],
             'tipo' => 'required|in:'.implode(',', array_keys(TipoSolicitacaoPosVenda::labels())),
             'titulo' => 'nullable|string|max:255',
             'descricao' => 'nullable|string|max:2000',
@@ -74,7 +83,9 @@ class CentralSolicitacoesController extends Controller
             'responsavel_id' => ['nullable', 'integer', $this->responsavelExistsRule()],
         ]);
 
-        $solicitacao = $this->solicitacoes->criar($this->empresaId(), $validated, Auth::id());
+        $solicitacao = $avulsa
+            ? $this->solicitacoes->criarAvulsa($this->empresaId(), $validated, Auth::id())
+            : $this->solicitacoes->criar($this->empresaId(), $validated, Auth::id());
 
         if (! $solicitacao) {
             return response()->json([
@@ -178,6 +189,10 @@ class CentralSolicitacoesController extends Controller
      */
     private function notificarVendedorAtualizacao(PosVendaSolicitacao $solicitacao, string $texto): void
     {
+        if ($solicitacao->isAvulsa()) {
+            return;
+        }
+
         $vendedor = User::query()->tenantMember($this->empresaId())
             ->where('id', $solicitacao->venda?->user_id)
             ->where('ativo', 'Y')
@@ -230,7 +245,7 @@ class CentralSolicitacoesController extends Controller
         return response()->json([
             'success' => true,
             'data_retorno' => isset($validated['data_retorno'])
-                ? \Carbon\Carbon::parse($validated['data_retorno'])->format('d/m/Y')
+                ? Carbon::parse($validated['data_retorno'])->format('d/m/Y')
                 : null,
         ]);
     }

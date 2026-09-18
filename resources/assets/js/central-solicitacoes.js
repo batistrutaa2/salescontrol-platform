@@ -41,6 +41,17 @@
         return valor || '—';
     };
 
+    const formatarTelefone = (valor) => {
+        const v = String(valor || '').replace(/\D/g, '');
+        if (v.length === 11) return v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+        if (v.length === 10) return v.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+        return valor || null;
+    };
+
+    const avulsaBadge = (r) => (r.avulsa
+        ? '<span class="spv-badge-avulsa" title="Cliente sem contrato cadastrado no sistema">Fora da base</span>'
+        : '');
+
     const etapasDoTipo = (tipo) => etapasPorTipo[tipo] || [];
     const etapaInfo = (tipo, etapaId) => etapasDoTipo(tipo).find((e) => e.id === etapaId) || null;
 
@@ -286,6 +297,7 @@
                         <span class="spv-badge-tipo">${escapar(r.tipo_label)}</span>
                         <strong>${escapar(r.titulo || r.tipo_label)}</strong>
                         ${r.origem === 'VENDEDOR' ? `<span class="spv-badge-origem" title="Solicitação aberta pelo vendedor ${escapar(r.criado_por_nome || '')}">Vendedor</span>` : ''}
+                        ${avulsaBadge(r)}
                     </div>
                     <div class="spv-fila-sub">${escapar(r.nome_contrato)} · ${escapar(formatarDoc(r.cpf_cnpj))}</div>
                 </div>
@@ -357,7 +369,7 @@
                 <span class="spv-card-contrato">${escapar(item.titulo || item.tipo_label)}</span>
                 ${prioridadeBadge(item)}
             </div>
-            <div class="spv-card-linha">${escapar(item.nome_contrato)}</div>
+            <div class="spv-card-linha">${escapar(item.nome_contrato)} ${avulsaBadge(item)}</div>
             <div class="spv-card-prazo">${prazoBadge(item)}</div>
             <div class="spv-card-autor" title="Quem abriu a solicitação">
                 Aberta por <strong>${escapar(item.criado_por_nome || '—')}</strong>${item.origem === 'VENDEDOR' ? ' <span class="spv-badge-origem">Vendedor</span>' : ''}
@@ -685,11 +697,19 @@
             document.getElementById('spvDetalheTitulo').textContent = r.titulo || r.tipo_label;
             document.getElementById('spvDetalheSubtitulo').textContent = `${r.tipo_label} · ${r.nome_contrato || '—'}`;
 
+            const clienteInfo = r.avulsa
+                ? infoItem('Cliente', r.nome_contrato)
+                    + infoItem('CPF/CNPJ', r.cpf_cnpj ? formatarDoc(r.cpf_cnpj) : null)
+                    + infoItem('Telefone', formatarTelefone(r.telefone))
+                    + infoItem('Operadora', r.operadora)
+                    + infoItem('Contrato', 'Fora da base (sem contrato cadastrado)')
+                : infoItem('Contrato', r.nome_contrato)
+                    + infoItem('CPF/CNPJ', formatarDoc(r.cpf_cnpj))
+                    + infoItem('Proposta', r.numero_proposta)
+                    + infoItem('Plano', r.nome_plano ? `${r.nome_plano} · ${r.operadora || ''}` : r.operadora);
+
             document.getElementById('spvDetalheInfo').innerHTML =
-                infoItem('Contrato', r.nome_contrato)
-                + infoItem('CPF/CNPJ', formatarDoc(r.cpf_cnpj))
-                + infoItem('Proposta', r.numero_proposta)
-                + infoItem('Plano', r.nome_plano ? `${r.nome_plano} · ${r.operadora || ''}` : r.operadora)
+                clienteInfo
                 + infoItem('Origem', r.origem === 'VENDEDOR' ? 'Vendedor' : 'Pós-venda')
                 + infoItem('Aberta por', r.criado_por_nome)
                 + infoItem('Aberta em', r.criado_em)
@@ -735,7 +755,8 @@
                 body: JSON.stringify({ texto }),
             });
             campo.value = '';
-            showModernToast('success', 'Atualização registrada', 'O vendedor dono do contrato foi avisado.');
+            showModernToast('success', 'Atualização registrada',
+                detalheRegistro?.avulsa ? 'A atualização entrou no histórico.' : 'O vendedor dono do contrato foi avisado.');
             const detalhe = await recarregarDetalhe();
             if (detalhe.historico) renderTimeline(detalhe.historico);
         } catch (err) {
@@ -923,6 +944,24 @@
     // =========================================================================
     const modalNovoEl = document.getElementById('modalNovaSolicitacao');
     let contratoSelecionado = null;
+    // 'contrato' = cliente com contrato cadastrado; 'avulso' = cliente fora da base.
+    let clienteModo = 'contrato';
+
+    const trocarClienteModo = (modo) => {
+        clienteModo = modo;
+        document.querySelectorAll('.spv-cliente-modo-btn').forEach((b) => {
+            const ativo = b.dataset.clienteModo === modo;
+            b.classList.toggle('is-active', ativo);
+            b.setAttribute('aria-selected', ativo ? 'true' : 'false');
+        });
+        document.querySelectorAll('[data-cliente-pane]').forEach((p) => { p.hidden = p.dataset.clientePane !== modo; });
+        document.getElementById('spvClienteNome').required = modo === 'avulso';
+        if (modo === 'avulso') document.getElementById('spvClienteNome').focus();
+    };
+
+    document.querySelectorAll('.spv-cliente-modo-btn').forEach((btn) => {
+        btn.addEventListener('click', () => trocarClienteModo(btn.dataset.clienteModo));
+    });
 
     const limparContrato = () => {
         contratoSelecionado = null;
@@ -1018,20 +1057,33 @@
     document.getElementById('btnNovaSolicitacao')?.addEventListener('click', () => {
         document.getElementById('formNovaSolicitacao').reset();
         limparContrato();
+        trocarClienteModo('contrato');
         bootstrap.Modal.getOrCreateInstance(modalNovoEl).show();
     });
 
     const btnConfirmar = document.getElementById('btnConfirmarNovaSolicitacao');
     btnConfirmar?.addEventListener('click', async () => {
-        if (!contratoSelecionado) {
-            showModernToast('warning', 'Contrato obrigatório', 'Busque e selecione o contrato do cliente.');
+        const avulso = clienteModo === 'avulso';
+        if (!avulso && !contratoSelecionado) {
+            showModernToast('warning', 'Contrato obrigatório', 'Busque e selecione o contrato do cliente ou use "Cliente fora da base".');
             return;
         }
         const formEl = document.getElementById('formNovaSolicitacao');
         if (!formEl.reportValidity()) return;
 
+        const valor = (id) => document.getElementById(id).value.trim() || null;
+        const cliente = avulso
+            ? {
+                cliente_avulso: true,
+                cliente_nome: valor('spvClienteNome'),
+                cliente_documento: valor('spvClienteDocumento'),
+                cliente_telefone: valor('spvClienteTelefone'),
+                cliente_operadora: valor('spvClienteOperadora'),
+            }
+            : { venda_id: contratoSelecionado.id };
+
         const payload = {
-            venda_id: contratoSelecionado.id,
+            ...cliente,
             tipo: document.getElementById('spvNovoTipo').value,
             titulo: document.getElementById('spvNovoTitulo').value || null,
             data_limite: document.getElementById('spvNovoPrazo').value || null,

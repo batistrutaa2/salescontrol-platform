@@ -2002,7 +2002,7 @@ class Comercial extends Controller
                 'tipo' => $d->tipo,
                 'tipo_label' => TipoSolicitacaoPosVenda::tryFrom($d->tipo)?->label() ?? $d->tipo,
                 'origem' => $d->origem,
-                'cliente' => $d->venda?->nome_contrato,
+                'cliente' => $d->clienteNome(),
                 'numero_proposta' => $d->venda?->numero_proposta,
                 'data_limite' => $d->data_limite?->format('d/m/Y'),
                 'created_at' => $d->created_at->toDateTimeString(),

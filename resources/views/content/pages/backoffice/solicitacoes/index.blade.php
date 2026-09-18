@@ -93,7 +93,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
             <input type="text" id="spvFiltroBusca" class="spv-search-input"
-                   placeholder="Buscar por título, contrato ou CPF/CNPJ" autocomplete="off">
+                   placeholder="Buscar por título, cliente ou CPF/CNPJ" autocomplete="off">
         </div>
         <select id="spvFiltroTipo" class="spv-filtro-select">
             <option value="">Todos os tipos</option>
@@ -154,28 +154,64 @@
 
             <div class="pv-modal-body">
                 <form id="formNovaSolicitacao">
-                    {{-- 1. Contrato --}}
+                    {{-- 1. Cliente: contrato cadastrado ou cliente fora da base --}}
                     <div class="spv-form-section">
-                        <div class="spv-form-section-title">1 · Contrato do cliente</div>
-                        <div class="spv-busca-contrato">
-                            <span class="spv-search-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            </span>
-                            <input type="text" id="spvBuscaContrato" class="spv-search-input"
-                                   placeholder="Buscar contrato — nome, proposta ou CPF/CNPJ" autocomplete="off">
-                            <div id="spvResultadosContrato" class="spv-resultados" hidden></div>
+                        <div class="spv-form-section-title">1 · Cliente</div>
+                        <div class="spv-view-toggle spv-cliente-modo" role="tablist" aria-label="Origem do cliente">
+                            <button type="button" class="spv-cliente-modo-btn is-active" data-cliente-modo="contrato" role="tab" aria-selected="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                Contrato cadastrado
+                            </button>
+                            <button type="button" class="spv-cliente-modo-btn" data-cliente-modo="avulso" role="tab" aria-selected="false">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                                Cliente fora da base
+                            </button>
                         </div>
-                        <input type="hidden" name="venda_id" id="spvVendaId">
-                        <div class="spv-contrato-resumo" id="spvContratoResumo" hidden>
-                            <div class="spv-contrato-resumo-topo">
-                                <div class="spv-contrato-resumo-main">
-                                    <strong id="spvResumoNome">—</strong>
-                                    <span id="spvResumoDocs">—</span>
-                                </div>
-                                <button type="button" class="spv-resumo-trocar" id="spvTrocarContrato">trocar</button>
+
+                        <div data-cliente-pane="contrato">
+                            <div class="spv-busca-contrato">
+                                <span class="spv-search-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                </span>
+                                <input type="text" id="spvBuscaContrato" class="spv-search-input"
+                                       placeholder="Buscar contrato — nome, proposta ou CPF/CNPJ" autocomplete="off">
+                                <div id="spvResultadosContrato" class="spv-resultados" hidden></div>
                             </div>
-                            {{-- Visão rápida do que foi vendido: plano, valor, vidas, vendedor... --}}
-                            <div class="spv-resumo-grid" id="spvResumoGrid"></div>
+                            <input type="hidden" name="venda_id" id="spvVendaId">
+                            <div class="spv-contrato-resumo" id="spvContratoResumo" hidden>
+                                <div class="spv-contrato-resumo-topo">
+                                    <div class="spv-contrato-resumo-main">
+                                        <strong id="spvResumoNome">—</strong>
+                                        <span id="spvResumoDocs">—</span>
+                                    </div>
+                                    <button type="button" class="spv-resumo-trocar" id="spvTrocarContrato">trocar</button>
+                                </div>
+                                {{-- Visão rápida do que foi vendido: plano, valor, vidas, vendedor... --}}
+                                <div class="spv-resumo-grid" id="spvResumoGrid"></div>
+                            </div>
+                        </div>
+
+                        <div data-cliente-pane="avulso" hidden>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="pv-form-label" for="spvClienteNome">Nome / Razão social *</label>
+                                    <input type="text" id="spvClienteNome" class="pv-form-input" maxlength="255"
+                                           placeholder="Cliente ou empresa">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="pv-form-label" for="spvClienteDocumento">CPF / CNPJ</label>
+                                    <input type="text" id="spvClienteDocumento" class="pv-form-input" maxlength="18" inputmode="numeric">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="pv-form-label" for="spvClienteTelefone">Telefone</label>
+                                    <input type="text" id="spvClienteTelefone" class="pv-form-input" maxlength="20" inputmode="tel">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="pv-form-label" for="spvClienteOperadora">Operadora</label>
+                                    <input type="text" id="spvClienteOperadora" class="pv-form-input" maxlength="100">
+                                </div>
+                            </div>
+                            <small class="spv-hint">Para clientes da carteira que não têm contrato cadastrado no sistema.</small>
                         </div>
                     </div>
 

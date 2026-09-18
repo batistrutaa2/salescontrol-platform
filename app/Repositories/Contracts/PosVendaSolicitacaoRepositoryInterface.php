@@ -14,6 +14,9 @@ interface PosVendaSolicitacaoRepositoryInterface
 
     public function criar(int $empresaId, array $dados, int $userId): ?PosVendaSolicitacao;
 
+    /** Solicitação para cliente fora da base (sem contrato cadastrado). */
+    public function criarAvulsa(int $empresaId, array $dados, int $userId): PosVendaSolicitacao;
+
     public function detalhe(int $id, int $empresaId): ?array;
 
     public function atualizar(int $id, int $empresaId, array $dados, int $userId): bool;

@@ -329,6 +329,92 @@ class CentralSolicitacoesTest extends TestCase
     }
 
     // ---------------------------------------------------------------
+    // Cliente fora da base (sem contrato cadastrado)
+    // ---------------------------------------------------------------
+
+    public function test_store_avulsa_cria_solicitacao_sem_contrato(): void
+    {
+        $resp = $this->actingAs($this->backoffice)->postJson(route('backoffice.solicitacoes.store'), [
+            'cliente_avulso' => true,
+            'cliente_nome' => '  Padaria Pão Quente LTDA ',
+            'cliente_documento' => '12.345.678/0001-90',
+            'cliente_telefone' => '(11) 98765-4321',
+            'cliente_operadora' => 'Unimed',
+            'tipo' => TipoSolicitacaoPosVenda::ENVIO_BOLETO->value,
+        ]);
+
+        $resp->assertOk()->assertJson(['success' => true]);
+
+        $solicitacao = PosVendaSolicitacao::findOrFail($resp->json('id'));
+        $this->assertNull($solicitacao->venda_id);
+        $this->assertTrue($solicitacao->isAvulsa());
+        $this->assertSame('Padaria Pão Quente LTDA', $solicitacao->cliente_nome);
+        $this->assertSame('12345678000190', $solicitacao->cliente_documento);
+        $this->assertSame('11987654321', $solicitacao->cliente_telefone);
+        $this->assertSame(PosVendaSolicitacao::STATUS_ABERTA, $solicitacao->status);
+
+        $registro = $this->actingAs($this->backoffice)
+            ->getJson(route('backoffice.solicitacoes.show', $solicitacao->id))
+            ->assertOk()->json('registro');
+        $this->assertTrue($registro['avulsa']);
+        $this->assertSame('Padaria Pão Quente LTDA', $registro['nome_contrato']);
+        $this->assertSame('12345678000190', $registro['cpf_cnpj']);
+        $this->assertSame('Unimed', $registro['operadora']);
+
+        // Busca pelo nome e pelo documento formatado encontra o avulso.
+        foreach (['Pão Quente', '12.345.678/0001-90'] as $busca) {
+            $this->actingAs($this->backoffice)
+                ->getJson(route('backoffice.solicitacoes.dados', ['busca' => $busca]))
+                ->assertOk()->assertJsonCount(1, 'registros')
+                ->assertJsonPath('registros.0.id', $solicitacao->id);
+        }
+    }
+
+    public function test_store_avulsa_validacoes(): void
+    {
+        $venda = $this->criarContrato();
+
+        // Avulsa exige o nome do cliente.
+        $this->actingAs($this->backoffice)->postJson(route('backoffice.solicitacoes.store'), [
+            'cliente_avulso' => true,
+            'tipo' => TipoSolicitacaoPosVenda::OUTROS->value,
+        ])->assertUnprocessable()->assertJsonValidationErrors('cliente_nome');
+
+        // Avulsa não aceita contrato junto.
+        $this->actingAs($this->backoffice)->postJson(route('backoffice.solicitacoes.store'), [
+            'cliente_avulso' => true,
+            'cliente_nome' => 'Cliente X',
+            'venda_id' => $venda->id,
+            'tipo' => TipoSolicitacaoPosVenda::OUTROS->value,
+        ])->assertUnprocessable()->assertJsonValidationErrors('venda_id');
+
+        // Sem o modo avulso, o contrato continua obrigatório.
+        $this->actingAs($this->backoffice)->postJson(route('backoffice.solicitacoes.store'), [
+            'cliente_nome' => 'Cliente X',
+            'tipo' => TipoSolicitacaoPosVenda::OUTROS->value,
+        ])->assertUnprocessable()->assertJsonValidationErrors(['venda_id', 'cliente_nome']);
+
+        $this->assertSame(0, PosVendaSolicitacao::count());
+    }
+
+    public function test_atualizacao_em_solicitacao_avulsa_nao_notifica_ninguem(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+
+        $id = $this->actingAs($this->backoffice)->postJson(route('backoffice.solicitacoes.store'), [
+            'cliente_avulso' => true,
+            'cliente_nome' => 'Cliente Avulso',
+            'tipo' => TipoSolicitacaoPosVenda::OUTROS->value,
+        ])->assertOk()->json('id');
+
+        $this->actingAs($this->backoffice)
+            ->postJson(route('backoffice.solicitacoes.atualizacoes.store', $id), ['texto' => 'Boleto enviado.'])
+            ->assertOk();
+
+        \Illuminate\Support\Facades\Notification::assertNothingSent();
+    }
+
+    // ---------------------------------------------------------------
     // Fila, KPIs e filtros
     // ---------------------------------------------------------------
 

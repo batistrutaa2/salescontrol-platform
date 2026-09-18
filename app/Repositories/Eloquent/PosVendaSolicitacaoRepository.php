@@ -41,8 +41,12 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
         }
         if (! empty($filtros['busca'])) {
             $like = '%'.$this->escaparLike(trim($filtros['busca'])).'%';
-            $query->where(function ($q) use ($like) {
+            // Documento avulso é gravado só com dígitos; busca formatada também acha.
+            $digitos = preg_replace('/\D+/', '', $filtros['busca']);
+            $query->where(function ($q) use ($like, $digitos) {
                 $q->where('titulo', 'like', $like)
+                    ->orWhere('cliente_nome', 'like', $like)
+                    ->when($digitos !== '', fn ($q) => $q->orWhere('cliente_documento', 'like', "%{$digitos}%"))
                     ->orWhereHas('venda', function ($v) use ($like) {
                         $v->where('nome_contrato', 'like', $like)
                             ->orWhere('cpf_cnpj', 'like', $like);
@@ -93,12 +97,36 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
             return null;
         }
 
+        return $this->abrir($empresaId, ['venda_id' => $venda->id] + $dados, $userId);
+    }
+
+    public function criarAvulsa(int $empresaId, array $dados, int $userId): PosVendaSolicitacao
+    {
+        $cliente = [
+            'venda_id' => null,
+            'cliente_nome' => trim($dados['cliente_nome']),
+            'cliente_documento' => $this->normalizarOpcional($dados['cliente_documento'] ?? null, digitos: true),
+            'cliente_telefone' => $this->normalizarOpcional($dados['cliente_telefone'] ?? null, digitos: true),
+            'cliente_operadora' => $this->normalizarOpcional($dados['cliente_operadora'] ?? null),
+        ];
+
+        return $this->abrir($empresaId, $cliente + $dados + [
+            'observacao_abertura' => 'Solicitação aberta para cliente fora da base (sem contrato cadastrado).',
+        ], $userId);
+    }
+
+    private function abrir(int $empresaId, array $dados, int $userId): PosVendaSolicitacao
+    {
         $tipo = TipoSolicitacaoPosVenda::from($dados['tipo']);
         $etapaInicial = $this->etapaInicial($empresaId, $tipo->value);
 
         return DB::transaction(function () use ($empresaId, $dados, $userId, $tipo, $etapaInicial) {
             $solicitacao = PosVendaSolicitacao::create([
                 'venda_id' => $dados['venda_id'],
+                'cliente_nome' => $dados['cliente_nome'] ?? null,
+                'cliente_documento' => $dados['cliente_documento'] ?? null,
+                'cliente_telefone' => $dados['cliente_telefone'] ?? null,
+                'cliente_operadora' => $dados['cliente_operadora'] ?? null,
                 'empresa_id' => $empresaId,
                 'tipo' => $tipo->value,
                 'etapa_id' => $etapaInicial->id,
@@ -569,9 +597,11 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
         return [
             'id' => $s->id,
             'venda_id' => $s->venda_id,
-            'nome_contrato' => $s->venda?->nome_contrato ?? '—',
-            'cpf_cnpj' => $s->venda?->cpf_cnpj,
-            'operadora' => $s->venda?->operadora,
+            'avulsa' => $s->isAvulsa(),
+            'nome_contrato' => $s->clienteNome() ?? '—',
+            'cpf_cnpj' => $s->venda?->cpf_cnpj ?? $s->cliente_documento,
+            'operadora' => $s->venda?->operadora ?? $s->cliente_operadora,
+            'telefone' => $s->cliente_telefone,
             'tipo' => $s->tipo,
             'tipo_label' => TipoSolicitacaoPosVenda::tryFrom($s->tipo)?->label() ?? $s->tipo,
             'titulo' => $s->titulo,
@@ -618,6 +648,13 @@ class PosVendaSolicitacaoRepository implements PosVendaSolicitacaoRepositoryInte
             ->where('campo_alterado', 'atualizacao')
             ->whereHas('solicitacao', fn ($query) => $query->where('empresa_id', $empresaId))
             ->first();
+    }
+
+    private function normalizarOpcional(?string $valor, bool $digitos = false): ?string
+    {
+        $valor = $digitos ? preg_replace('/\D+/', '', (string) $valor) : trim((string) $valor);
+
+        return $valor === '' ? null : $valor;
     }
 
     /**

@@ -25,6 +25,10 @@ class PosVendaSolicitacao extends Model
 
     protected $fillable = [
         'venda_id',
+        'cliente_nome',
+        'cliente_documento',
+        'cliente_telefone',
+        'cliente_operadora',
         'empresa_id',
         'tipo',
         'etapa_id',
@@ -58,12 +62,29 @@ class PosVendaSolicitacao extends Model
             }
 
             if ((self::shouldValidateTenantReference($solicitacao, 'venda_id')
+                    && $solicitacao->venda_id !== null
                     && ! Vendas::query()->withoutGlobalScope('tenant')->whereKey($solicitacao->venda_id)->where('empresa_id', $solicitacao->empresa_id)->exists())
                 || (self::shouldValidateTenantReference($solicitacao, 'etapa_id')
                     && ! PosVendaFluxoEtapa::query()->withoutGlobalScope('tenant')->whereKey($solicitacao->etapa_id)->where('empresa_id', $solicitacao->empresa_id)->exists())) {
                 throw new LogicException('A venda ou etapa da solicitação não pertence à empresa ativa.');
             }
+
+            if ($solicitacao->venda_id === null && trim((string) $solicitacao->cliente_nome) === '') {
+                throw new LogicException('Solicitação sem contrato precisa identificar o cliente.');
+            }
         });
+    }
+
+    /** Solicitação avulsa: cliente fora da base, identificado pelos campos `cliente_*`. */
+    public function isAvulsa(): bool
+    {
+        return $this->venda_id === null;
+    }
+
+    /** Nome do cliente, venha ele do contrato ou do cadastro avulso. */
+    public function clienteNome(): ?string
+    {
+        return $this->venda?->nome_contrato ?? $this->cliente_nome;
     }
 
     public function venda()
