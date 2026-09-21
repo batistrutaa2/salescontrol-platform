@@ -361,8 +361,8 @@ $(function () {
         atualizarPreditiva();
     });
 
-    // Limpar Fila (batch)
-    $('#btnLimparFila').on('click', async function () {
+    // Excluir Permanentemente (batch) — espelha o "Excluir Permanentemente" da linha
+    $('#btnExcluirLeads').on('click', async function () {
         const selecionados = [];
 
         $('#tabela-fila-preditiva tbody input.select-lead:checked').each(function () {
@@ -373,7 +373,7 @@ $(function () {
             return toastr.warning('Nenhum lead selecionado.');
         }
 
-        if (!confirm(`ATENCAO: ${selecionados.length} lead(s) serao DESATIVADOS permanentemente e removidos da preditiva. Deseja continuar?`)) {
+        if (!confirm(`ATENCAO: ${selecionados.length} lead(s) serao EXCLUIDOS PERMANENTEMENTE: os contatos ficam inativos e saem da preditiva. Leads com venda cadastrada serao mantidos. Deseja continuar?`)) {
             return;
         }
 
@@ -381,31 +381,39 @@ $(function () {
         const originalHtml = btn.html();
         btn.html('<span class="spinner-border spinner-border-sm me-2"></span>Processando...').prop('disabled', true);
 
-        // Processar em lotes
         const batchSize = 100;
         const batches = [];
         for (let i = 0; i < selecionados.length; i += batchSize) {
             batches.push(selecionados.slice(i, i + batchSize));
         }
 
-        let totalSuccess = 0;
+        let totalExcluidos = 0;
+        let totalIgnorados = 0;
+        let totalFalhas = 0;
         let processedBatches = 0;
 
         for (const batch of batches) {
             try {
-                await $.ajax({
-                    url: '/comercial/descartar-multiplos-leads',
+                const response = await $.ajax({
+                    url: '/comercial/preditiva/excluir-multiplos',
                     method: 'POST',
                     data: {
                         ids: batch,
-                        clearPreditiva: true,
                         _token: $('meta[name="csrf-token"]').attr('content')
                     },
                     timeout: 120000
                 });
-                totalSuccess += batch.length;
+                totalExcluidos += response.excluidos || 0;
+                totalIgnorados += response.ignorados || 0;
             } catch (error) {
-                console.error('Erro no lote:', error);
+                // Lote inteiro com venda cadastrada volta 422 e nada e excluido.
+                const ignorados = error.responseJSON?.ignorados;
+                if (ignorados) {
+                    totalIgnorados += ignorados;
+                } else {
+                    totalFalhas += batch.length;
+                    console.error('Erro no lote:', error);
+                }
             }
 
             processedBatches++;
@@ -414,7 +422,17 @@ $(function () {
         }
 
         btn.html(originalHtml).prop('disabled', false);
-        toastr.success(`${totalSuccess} lead(s) descartados com sucesso!`);
+
+        if (totalExcluidos > 0) {
+            toastr.success(`${totalExcluidos} lead(s) excluido(s) permanentemente!`);
+        }
+        if (totalIgnorados > 0) {
+            toastr.warning(`${totalIgnorados} lead(s) mantidos por terem venda cadastrada.`);
+        }
+        if (totalFalhas > 0) {
+            toastr.error(`Falha ao excluir ${totalFalhas} lead(s). Tente novamente.`);
+        }
+
         atualizarPreditiva();
     });
 

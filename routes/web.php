@@ -139,6 +139,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/getPreditiva', [Mailing::class, 'getPreditiva'])->name('mailing.getPreditiva');
         Route::post('/comercial/preditiva/desativar/{id}', [Mailing::class, 'desativarLeadPreditiva'])->name('preditiva.desativar');
         Route::post('/comercial/preditiva/excluir/{id}', [Mailing::class, 'excluirLeadPreditiva'])->name('preditiva.excluir');
+        Route::post('/comercial/preditiva/excluir-multiplos', [Mailing::class, 'excluirMultiplosLeadsPreditiva'])->name('preditiva.excluirMultiplos');
         Route::post('/comercial/preditiva/remover/{id}', [Mailing::class, 'removerDaPreditiva'])->name('preditiva.remover');
         Route::get('/comercial/preditiva/tabulacoes', [Mailing::class, 'getTabulacoesDistintas'])->name('preditiva.tabulacoes');
         Route::post('/comercial/preditiva/limpar-logs', [Mailing::class, 'limparLogsPreditiva'])->name('preditiva.limparLogs');

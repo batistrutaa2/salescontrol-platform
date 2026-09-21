@@ -42,5 +42,11 @@ interface VendasRepositoryInterface
 
     public function checkExistenceSale($id);
 
+    /**
+     * @param  array<int, int>  $contatoIds
+     * @return array<int, int>
+     */
+    public function contatosComVenda(array $contatoIds): array;
+
     public function alterStatusVenda(int $vendaId, int $tabulacaoId, ?string $observacao = null, ?string $motivoPendencia = null): bool;
 }

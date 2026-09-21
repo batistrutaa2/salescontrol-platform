@@ -889,6 +889,66 @@ class Mailing extends Controller
         }
     }
 
+    /**
+     * Exclusão em massa da fila: mesma regra do botão por linha — o contato é
+     * desativado e sai da preditiva. Leads com venda lançada são preservados e
+     * devolvidos na resposta, para o operador saber o que ficou de fora.
+     */
+    public function excluirMultiplosLeadsPreditiva(Request $request): JsonResponse
+    {
+        $empresaId = (int) $this->tenantId();
+        $data = $this->validarIdsLeads($request, $empresaId);
+        $ids = array_map('intval', $data['ids']);
+
+        $comVenda = $this->vendasRepository->contatosComVenda($ids);
+        $excluiveis = array_values(array_diff($ids, $comVenda));
+
+        if (! $excluiveis) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Todos os leads selecionados possuem venda cadastrada; exclusão cancelada.',
+                'ignorados' => count($comVenda),
+            ], 422);
+        }
+
+        try {
+            DB::transaction(function () use ($excluiveis, $empresaId) {
+                Contatos::whereIn('id', $excluiveis)
+                    ->where('empresa_id', $empresaId)
+                    ->update(['status' => 'N']);
+
+                Preditiva::whereIn('contato_id', $excluiveis)
+                    ->where('empresa_id', $empresaId)
+                    ->delete();
+
+                $agora = now();
+                LogPreditiva::insert(array_map(fn (int $contatoId) => [
+                    'empresa_id' => $empresaId,
+                    'user_id' => Auth::id(),
+                    'contato_id' => $contatoId,
+                    'tabulacao' => 'EXCLUIDO',
+                    'acao' => 'DESCARTE',
+                    'created_at' => $agora,
+                    'updated_at' => $agora,
+                ], $excluiveis));
+            });
+        } catch (Throwable $th) {
+            return $this->internalError($th, 'Não foi possível excluir os leads neste momento.');
+        }
+
+        $mensagem = count($excluiveis).' lead(s) excluído(s) permanentemente.';
+        if ($comVenda) {
+            $mensagem .= ' '.count($comVenda).' com venda cadastrada foram mantidos.';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $mensagem,
+            'excluidos' => count($excluiveis),
+            'ignorados' => count($comVenda),
+        ]);
+    }
+
     public function removerDaPreditiva($contatoId)
     {
         try {

@@ -1107,4 +1107,25 @@ class VendasRepository implements VendasRepositoryInterface
             ->where('empresa_id', app(\App\Support\TenantContext::class)->id())
             ->exists();
     }
+
+    /**
+     * Quais dos contatos informados já têm venda lançada — a versão em lote de
+     * checkExistenceSale, para não consultar contato a contato.
+     *
+     * @param  array<int, int>  $contatoIds
+     * @return array<int, int>
+     */
+    public function contatosComVenda(array $contatoIds): array
+    {
+        if (! $contatoIds) {
+            return [];
+        }
+
+        return $this->model->whereIn('contato_id', $contatoIds)
+            ->where('empresa_id', app(\App\Support\TenantContext::class)->id())
+            ->distinct()
+            ->pluck('contato_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
 }
