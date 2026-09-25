@@ -799,3 +799,34 @@ Usar ícones SVG inline para melhor controle de cor. Exemplos:
 6. **NUNCA** hardcodar cores - usar as variáveis
 7. **SEMPRE** incluir efeitos hover nos cards
 8. **SEMPRE** usar border-radius de 16px para cards principais
+
+<!-- skills-frontend:start -->
+## Skills de interface (obrigatório)
+
+Toda alteração de UI deste repo passa pelas **duas** skills, nesta ordem. Regra completa e
+precedência em `~/.claude/CLAUDE.md` (global).
+
+1. **Direção visual — fonte da verdade:** a seção "Design System - SalesControl UI" deste arquivo + `resources/assets/vendor/scss/pages/dashboard-analytics.scss`.
+   O design system deste repo **vence** sobre o gosto das skills. Elas existem para caçar
+   defaults que ninguém escolheu e manter coerência entre telas, não para trocar a identidade.
+2. **`avoid-ai-design`** — catálogo de vícios + scanner. Rodar antes e depois de mexer:
+   `node ~/.claude/skills/avoid-ai-design/scripts/detect.mjs <arquivos ou pasta>`
+   (exit 2 = tem P0/P1). Meta: zero P0 e nenhum tell SD que o brief não pediu.
+3. **`antislop`** — filtro de propósito (toda decisão visual precisa de motivo escrito) +
+   Delivery Gate antes de entregar. Modo **DURING** para tela nova ou reescrita; **AFTER**
+   só quando o pedido for auditar tela existente. **Não rodar o install wizard** nem criar
+   pasta `skills/` aqui: já está instalado como plugin (`antislop@anti-slop`).
+4. **Contraste WCAG** (não chutar):
+   `python3 "$(ls -d ~/.claude/plugins/cache/anti-slop/antislop/*/skills/antislop-human/contrast-check.py | tail -1)" "#fg" "#bg"`
+5. **Perfil de contexto:** `dashboard` — densidade, legibilidade e hierarquia da informação acima de decoração.
+
+> **Atenção, conflito conhecido:** o design system atual deste projeto é *Glass Morphism + Gradient*
+> com primária violeta `#7C3AED`. Isso casa com três tells que as skills acusam por padrão
+> (C1 gradiente roxo/indigo, C2 primária violeta, K3 glassmorphism). Pela regra de precedência o
+> design system do projeto vence, então **não trocar a paleta por conta própria**: marcar com
+> `avoid-ai-design-ignore` e aplicar as skills no resto (hierarquia, espaçamento, estados,
+> contraste, foco, copy). Se a decisão for revisar a identidade, isso é conversa com o dono primeiro.
+
+O que o design system deste projeto exige e o scanner acusa deve ser marcado com um comentário
+`avoid-ai-design-ignore: <ID>` na linha, para o scanner parar de reclamar do que foi escolhido.
+<!-- skills-frontend:end -->
