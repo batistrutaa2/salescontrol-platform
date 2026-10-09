@@ -14,6 +14,7 @@ use App\Models\LogPreditiva;
 use App\Models\Preditiva;
 use App\Models\PreditivaEnvio;
 use App\Models\TransferenciaContato;
+use App\Repositories\Eloquent\ContatosRepository;
 use App\Repositories\Eloquent\VendasRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -78,7 +79,7 @@ class LeadManagementService
                     $dataFim = "{$fimParts[2]}-{$fimParts[1]}-{$fimParts[0]}";
                     $query->whereRaw('
                         (
-                            SELECT MAX(uc_max) FROM ('.\App\Repositories\Eloquent\ContatosRepository::ultimoContatoUnionSql($empresaId).') _uc_f
+                            SELECT MAX(uc_max) FROM ('.ContatosRepository::ultimoContatoUnionSql($empresaId).') _uc_f
                         ) BETWEEN ? AND ?
                     ', [$dataInicio.' 00:00:00', $dataFim.' 23:59:59']);
                 }
@@ -148,6 +149,19 @@ class LeadManagementService
             Preditiva::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             PreditivaEnvio::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
             TransferenciaContato::where('contato_id', $contatoId)->where('empresa_id', $empresaId)->delete();
+
+            // O reservatório tem FK RESTRICT para contatos: sem isso, todo lead importado pelo fluxo novo fica impossível de excluir.
+            $itensReservatorio = DB::table('lead_reservatorio_itens')
+                ->where('empresa_id', $empresaId)
+                ->where('contato_id', $contatoId)
+                ->pluck('id');
+            DB::table('lead_reservatorio_execucao_itens')->whereIn('reservatorio_item_id', $itensReservatorio)->delete();
+            DB::table('lead_reservatorio_itens')->whereIn('id', $itensReservatorio)->delete();
+            DB::table('whatsapp_conversas')
+                ->where('empresa_id', $empresaId)
+                ->where('contato_id', $contatoId)
+                ->update(['contato_id' => null]);
+
             Contatos::where('id', $contatoId)->where('empresa_id', $empresaId)->delete();
             DB::commit();
 

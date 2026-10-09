@@ -382,6 +382,39 @@ class LeadReservatorioTest extends TestCase
             ->assertJsonPath('metricas.indicadores_janela_dias', 10);
     }
 
+    public function test_exclusao_remove_lead_que_passou_pelo_reservatorio(): void
+    {
+        $service = app(LeadReservatorioService::class);
+        $distribuido = $this->contato(['nome_cliente' => 'Lead distribuido', 'nome_base' => 'Base exclusao']);
+        $disponivel = $this->contato(['nome_cliente' => 'Lead disponivel', 'nome_base' => 'Outra base']);
+        $service->adicionarNovo($distribuido, LeadReservatorioItem::ORIGEM_IMPORTACAO, $this->admin->id);
+        $service->adicionarNovo($disponivel, LeadReservatorioItem::ORIGEM_IMPORTACAO, $this->admin->id);
+
+        $estrategia = LeadReservatorioEstrategia::create([
+            'empresa_id' => $this->empresa->id,
+            'nome' => 'Base exclusao',
+            'condicoes' => [['campo' => 'nome_base', 'operador' => 'igual', 'valor' => 'Base exclusao']],
+            'ativo' => true,
+            'created_by' => $this->admin->id,
+        ]);
+        $this->actingAs($this->admin)
+            ->postJson("/mailing/reservatorio/estrategias/{$estrategia->id}/executar", [
+                'distribuicoes' => [['vendedor_id' => $this->vendedorA->id, 'quantidade' => 1]],
+            ])
+            ->assertOk();
+        $this->assertDatabaseHas('lead_reservatorio_execucao_itens', ['contato_id' => $distribuido->id]);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('mailing.bulkDeleteLeads'), ['ids' => [$distribuido->id, $disponivel->id]])
+            ->assertOk()
+            ->assertJsonPath('details.success', 2);
+
+        $this->assertDatabaseMissing('contatos', ['id' => $distribuido->id]);
+        $this->assertDatabaseMissing('contatos', ['id' => $disponivel->id]);
+        $this->assertSame(0, LeadReservatorioItem::count());
+        $this->assertDatabaseMissing('lead_reservatorio_execucao_itens', ['contato_id' => $distribuido->id]);
+    }
+
     private function contato(array $attributes = []): Contatos
     {
         return Contatos::create(array_merge([

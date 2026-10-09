@@ -5,21 +5,13 @@ namespace App\Http\Controllers\pages\mailing;
 use App\Helpers\Helpers;
 use App\Http\Controllers\Controller;
 use App\Imports\ContatosImportPreditiva;
-use App\Models\Agendamento;
-use App\Models\Comentarios;
 use App\Models\Contatos;
-use App\Models\ContatosCorretores;
-use App\Models\Dependentes;
-use App\Models\LeadAtividade;
-use App\Models\Ligacoes;
 use App\Models\LogPreditiva;
 use App\Models\MailingImportacao;
 use App\Models\Preditiva;
 use App\Models\PreditivaConfiguracao;
-use App\Models\PreditivaEnvio;
 use App\Models\PreditivaRegraPriorizacao;
 use App\Models\PreditivaTabulacaoHard;
-use App\Models\TransferenciaContato;
 use App\Repositories\Contracts\ContatosRepositoryInterface;
 use App\Repositories\Contracts\PreditivaRegraRepositoryInterface;
 use App\Repositories\Contracts\TabulacoesRepositoryInterface;
@@ -41,6 +33,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
@@ -135,8 +128,8 @@ class Mailing extends Controller
                 'message' => 'Arquivo analisado. Revise o resultado antes de confirmar.',
                 'data' => $this->mailingImportService->detalhar($importacao),
             ], 201);
-        } catch (\Throwable $th) {
-            if ($th instanceof \Illuminate\Validation\ValidationException) {
+        } catch (Throwable $th) {
+            if ($th instanceof ValidationException) {
                 return response()->json([
                     'message' => $th->validator->errors()->first(),
                     'errors' => $th->validator->errors(),
@@ -241,33 +234,17 @@ class Mailing extends Controller
         $empresaId = (int) $this->tenantId();
         abort_unless(Contatos::where('empresa_id', $empresaId)->whereKey($id)->exists(), 404);
 
-        try {
-            $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($id);
+        $result = $this->leadManagementService->deleteLead((int) $id, $empresaId);
 
-            if ($searchForLaunchedSale) {
-                return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', 'Esse Lead possui venda cadastrada, exclusão cancelada.');
-            }
+        if (! $result['success']) {
+            $message = str_contains($result['message'], 'venda')
+                ? 'Esse Lead possui venda cadastrada, exclusão cancelada.'
+                : 'Erro ao excluir Lead';
 
-            DB::beginTransaction();
-            Comentarios::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            Agendamento::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            Dependentes::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            Ligacoes::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            LeadAtividade::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            ContatosCorretores::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            LogPreditiva::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            Preditiva::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            PreditivaEnvio::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            TransferenciaContato::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            Contatos::where('id', $id)->where('empresa_id', $this->tenantId())->delete();
-            DB::commit();
-
-            return redirect()->back()->with('status', 'success')->with('message', 'Contato Excluido com sucesso');
-        } catch (\Throwable $th) {
-            DB::rollBack();
-
-            return redirect()->route(route: 'mailing.leadDescartados')->with('status', 'error')->with('message', 'Erro ao excluir Lead');
+            return redirect()->route(route: 'mailing.leadDescartados')->with('status', 'error')->with('message', $message);
         }
+
+        return redirect()->back()->with('status', 'success')->with('message', 'Contato Excluido com sucesso');
     }
 
     public function deleteMailing($id)
@@ -275,33 +252,17 @@ class Mailing extends Controller
         $empresaId = (int) $this->tenantId();
         abort_unless(Contatos::where('empresa_id', $empresaId)->whereKey($id)->exists(), 404);
 
-        try {
-            $searchForLaunchedSale = $this->vendasRepository->checkExistenceSale($id);
+        $result = $this->leadManagementService->deleteLead((int) $id, $empresaId);
 
-            if ($searchForLaunchedSale) {
-                return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', 'Esse Lead possui venda cadastrada, exclusão cancelada.');
-            }
+        if (! $result['success']) {
+            $message = str_contains($result['message'], 'venda')
+                ? 'Esse Lead possui venda cadastrada, exclusão cancelada.'
+                : 'Erro ao excluir Lead';
 
-            DB::beginTransaction();
-            Comentarios::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            Agendamento::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            Dependentes::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            Ligacoes::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            LeadAtividade::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            ContatosCorretores::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            LogPreditiva::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            Preditiva::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            PreditivaEnvio::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            TransferenciaContato::where('contato_id', $id)->where('empresa_id', $this->tenantId())->delete();
-            Contatos::where('id', $id)->where('empresa_id', $this->tenantId())->delete();
-            DB::commit();
-
-            return redirect()->back()->with('status', 'success')->with('message', 'Contato Excluido com sucesso');
-        } catch (\Throwable $th) {
-            DB::rollBack();
-
-            return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', 'Erro ao excluir Lead');
+            return redirect()->route(route: 'mailing.viewLeads')->with('status', 'error')->with('message', $message);
         }
+
+        return redirect()->back()->with('status', 'success')->with('message', 'Contato Excluido com sucesso');
     }
 
     public function viewLeads()
@@ -773,7 +734,7 @@ class Mailing extends Controller
                         $successCount++;
                     }
                     DB::commit();
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     DB::rollBack();
                     $errorCount += count($chunk);
                 }
