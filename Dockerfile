@@ -2,6 +2,9 @@
 
 FROM php:8.3-fpm-alpine AS php-base
 
+# Mínimo 8.3.36: correção do php2shell (CVE-2026-109618/109619).
+RUN php -r 'exit(version_compare(PHP_VERSION, "8.3.36", "<") ? 1 : 0);'
+
 ADD https://github.com/phpredis/phpredis/archive/refs/tags/6.3.0.tar.gz /tmp/phpredis.tar.gz
 RUN set -eux; \
     apk add --no-cache \
