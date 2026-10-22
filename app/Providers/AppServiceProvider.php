@@ -44,6 +44,7 @@ use App\Repositories\Eloquent\WhatsappMensagemRepository;
 use App\Support\TenantContext;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
@@ -98,6 +99,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // O front é Bootstrap (Materio); o padrão do Laravel é o HTML do Tailwind, que
+        // aqui renderiza a versão mobile e a desktop juntas, sem estilo.
+        Paginator::useBootstrapFive();
+
         // Forçar HTTPS se vier através de proxy (Nginx)
         if (
             isset($_SERVER['HTTP_X_FORWARDED_PROTO']) &&

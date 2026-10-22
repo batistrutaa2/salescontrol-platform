@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import pdfMake from 'pdfmake';
-import 'pdfmake/build/vfs_fonts';
+// vfs_fonts não é importado: ele grava em `this.pdfMake`, que é undefined como ES module
+// no Vite dev e derrubava o DataTables inteiro. As fontes do PDF vêm por URL (abaixo).
 import 'datatables.net-bs5';
 import 'datatables.net-fixedcolumns-bs5';
 import 'datatables.net-fixedheader-bs5';
