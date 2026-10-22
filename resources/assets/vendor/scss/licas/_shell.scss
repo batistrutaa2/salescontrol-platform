@@ -6,12 +6,12 @@ html.theme-licas .layout-menu.menu-vertical {
   --sidebar-bg: var(--color-sidebar);
   --sidebar-glass-bg: var(--color-sidebar);
   --sidebar-border: var(--color-sidebar-border);
-  --sidebar-text-primary: #FFFFFF;
-  --sidebar-text-secondary: var(--color-accent-200);
-  --sidebar-text-muted: var(--color-accent-400);
-  --sidebar-item-hover: rgba(255, 255, 255, .06);
-  --sidebar-item-active: rgba(255, 255, 255, .08);
-  --sidebar-primary-light: #FFFFFF;
+  --sidebar-text-primary: var(--sb-active-text);
+  --sidebar-text-secondary: var(--sb-text);
+  --sidebar-text-muted: var(--sb-group);
+  --sidebar-item-hover: var(--sb-hover);
+  --sidebar-item-active: var(--sb-active-bg);
+  --sidebar-primary-light: var(--sb-active-text);
   --sidebar-shadow: none;
   --sidebar-glow: none;
   --sidebar-border-radius: var(--radius-md);
@@ -20,7 +20,7 @@ html.theme-licas .layout-menu.menu-vertical {
   background: var(--color-sidebar) !important;
   border-right: 1px solid var(--color-sidebar-border) !important;
   box-shadow: none !important;
-  color: var(--color-accent-200);
+  color: var(--sb-text);
 
   &::before,
   &::after {
@@ -28,7 +28,7 @@ html.theme-licas .layout-menu.menu-vertical {
   }
 
   .ps__thumb-y {
-    background: rgba(255, 255, 255, .18) !important;
+    background: var(--sb-thumb) !important;
   }
 }
 
@@ -37,14 +37,14 @@ html.theme-licas .layout-menu .app-brand {
   height: 64px;
   padding: 0 var(--space-5) !important;
   margin-bottom: var(--space-2);
-  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  border-bottom: 1px solid var(--sb-divider);
 }
 
 html.theme-licas .licas-wordmark {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  color: #FFFFFF;
+  color: var(--sb-brand);
   text-decoration: none;
 }
 
@@ -53,7 +53,7 @@ html.theme-licas .licas-wordmark__mono {
   height: 32px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, .28);
+  border: 1px solid var(--sb-brand-border);
   border-radius: var(--radius-md);
   font-family: var(--font-brand) !important;
   font-size: 18px;
@@ -67,17 +67,17 @@ html.theme-licas .licas-wordmark__name {
   font-weight: 500;
   letter-spacing: .32em;
   text-transform: uppercase;
-  color: #FFFFFF;
+  color: var(--sb-brand);
 }
 
 html.theme-licas .layout-menu .layout-menu-toggle {
   background: transparent;
-  border-color: rgba(255, 255, 255, .14);
+  border-color: var(--sb-divider);
   border-radius: var(--radius-md);
 }
 
 html.theme-licas .layout-menu .layout-menu-toggle .menu-toggle-icon {
-  color: var(--color-accent-300);
+  color: var(--sb-icon);
 }
 
 // ---------- Grupos ----------
@@ -91,7 +91,7 @@ html.theme-licas .layout-menu .menu-header .menu-header-text {
   line-height: 14px;
   font-weight: 600 !important;
   letter-spacing: .12em !important;
-  color: var(--color-accent-400) !important;
+  color: var(--sb-group) !important;
 }
 
 // ---------- Itens ----------
@@ -111,25 +111,25 @@ html.theme-licas .layout-menu .menu-inner > .menu-item > .menu-link {
     width: 16px !important;
     height: 16px !important;
     font-size: 16px !important;
-    color: var(--color-accent-300) !important;
+    color: var(--sb-icon) !important;
     margin-right: var(--space-3) !important;
   }
 
   > div {
     font-size: 14px !important;
     font-weight: 500 !important;
-    color: var(--color-accent-200) !important;
+    color: var(--sb-text) !important;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, .06) !important;
+    background: var(--sb-hover) !important;
   }
 }
 
-// Ativo: fundo branco 8% e barra de 2px branca à esquerda.
+// Ativo: fundo destacado e barra de 2px à esquerda (marinho no claro, branca no escuro).
 html.theme-licas .layout-menu .menu-inner > .menu-item.active:not(.open) > .menu-link:not(.menu-toggle),
 html.theme-licas .layout-menu .menu-sub > .menu-item.active > .menu-link {
-  background: rgba(255, 255, 255, .08) !important;
+  background: var(--sb-active-bg) !important;
 
   &::before {
     content: '';
@@ -141,13 +141,13 @@ html.theme-licas .layout-menu .menu-sub > .menu-item.active > .menu-link {
     width: 2px;
     height: auto !important;
     transform: none !important;
-    background: #FFFFFF !important;
+    background: var(--sb-active-bar) !important;
     border-radius: 0;
   }
 
   > i,
   > div {
-    color: #FFFFFF !important;
+    color: var(--sb-active-text) !important;
     font-weight: 600 !important;
   }
 }
@@ -158,14 +158,14 @@ html.theme-licas .layout-menu .menu-inner > .menu-item.active.open > .menu-link 
 
   > i,
   > div {
-    color: #FFFFFF !important;
+    color: var(--sb-active-text) !important;
   }
 }
 
 html.theme-licas .layout-menu .menu-sub > .menu-item > .menu-link {
   min-height: 32px;
   border-radius: var(--radius-md) !important;
-  color: var(--color-accent-300) !important;
+  color: var(--sb-sub) !important;
   font-size: 13px;
 
   > div {
@@ -178,14 +178,14 @@ html.theme-licas .layout-menu .menu-sub > .menu-item > .menu-link {
   }
 
   &:hover {
-    background: rgba(255, 255, 255, .06) !important;
-    color: #FFFFFF !important;
+    background: var(--sb-hover) !important;
+    color: var(--sb-active-text) !important;
   }
 }
 
 html.theme-licas .layout-menu .menu-inner > .menu-item > .menu-link .badge {
-  background: rgba(255, 255, 255, .12) !important;
-  color: #FFFFFF !important;
+  background: var(--sb-badge-bg) !important;
+  color: var(--sb-badge-text) !important;
 }
 
 // ---------- Rodapé do menu: quem está logado ----------
@@ -194,7 +194,7 @@ html.theme-licas .licas-menu-user {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
-  border-top: 1px solid rgba(255, 255, 255, .08);
+  border-top: 1px solid var(--sb-divider);
 }
 
 html.theme-licas .licas-avatar {
@@ -204,8 +204,8 @@ html.theme-licas .licas-avatar {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--color-accent-600);
-  color: #FFFFFF;
+  background: var(--sb-avatar-bg);
+  color: var(--sb-avatar-text);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .02em;
@@ -220,7 +220,7 @@ html.theme-licas .licas-menu-user__text {
 html.theme-licas .licas-menu-user__name {
   font-size: 13px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: var(--sb-name);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -228,7 +228,7 @@ html.theme-licas .licas-menu-user__name {
 
 html.theme-licas .licas-menu-user__role {
   font-size: 12px;
-  color: var(--color-accent-400);
+  color: var(--sb-role);
 }
 
 html.theme-licas.layout-menu-collapsed:not(.layout-menu-hover) .licas-menu-user__text,

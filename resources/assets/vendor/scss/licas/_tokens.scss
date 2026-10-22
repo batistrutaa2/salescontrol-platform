@@ -46,8 +46,28 @@ html.theme-licas {
   --color-card: var(--color-bg);
   --color-card-hover: var(--color-surface);
   --color-card-border: var(--color-divider);
-  --color-sidebar: var(--color-accent-900);
-  --color-sidebar-border: transparent;
+  // Sidebar: clara no tema claro (decisão do dono, 22/10/2026, no lugar do marinho
+  // 900 do DS 7.7) e quase preta no escuro. Contrastes AA conferidos sobre #FFFFFF.
+  --color-sidebar: #FFFFFF;
+  --color-sidebar-border: var(--color-divider);
+  --sb-text: var(--color-neutral-800);        // 11,1:1
+  --sb-icon: var(--color-neutral-700);        // 6,3:1
+  --sb-group: var(--color-neutral-700);
+  --sb-sub: var(--color-neutral-700);
+  --sb-hover: var(--color-surface);
+  --sb-active-bg: var(--color-accent-100);
+  --sb-active-text: var(--color-accent-700);  // 13,7:1 sobre o accent-100
+  --sb-active-bar: var(--color-accent-700);
+  --sb-divider: var(--color-divider);
+  --sb-brand: var(--color-accent-700);
+  --sb-brand-border: color-mix(in srgb, var(--color-accent-700) 30%, transparent);
+  --sb-name: var(--color-text);
+  --sb-role: var(--color-text-muted);
+  --sb-avatar-bg: var(--color-accent-100);
+  --sb-avatar-text: var(--color-accent-800);
+  --sb-badge-bg: var(--color-accent-100);
+  --sb-badge-text: var(--color-accent-800);
+  --sb-thumb: var(--color-neutral-400);
   --color-on-accent: #FFFFFF;
   // O âmbar base dá 4,1:1 sobre o papel; como texto usa o tom 800 do DS (8,8:1).
   --color-warning-text: var(--color-warning-800);
@@ -111,6 +131,24 @@ html.theme-licas.dark-style {
   --color-surface: #1C2360;
   --color-sidebar: #04061A;
   --color-sidebar-border: rgba(241, 242, 248, .08);
+  --sb-text: var(--color-accent-200);
+  --sb-icon: var(--color-accent-300);
+  --sb-group: var(--color-accent-400);
+  --sb-sub: var(--color-accent-300);
+  --sb-hover: rgba(255, 255, 255, .06);
+  --sb-active-bg: rgba(255, 255, 255, .08);
+  --sb-active-text: #FFFFFF;
+  --sb-active-bar: #FFFFFF;
+  --sb-divider: rgba(255, 255, 255, .08);
+  --sb-brand: #FFFFFF;
+  --sb-brand-border: rgba(255, 255, 255, .28);
+  --sb-name: #FFFFFF;
+  --sb-role: var(--color-accent-400);
+  --sb-avatar-bg: var(--color-accent-600);
+  --sb-avatar-text: #FFFFFF;
+  --sb-badge-bg: rgba(255, 255, 255, .12);
+  --sb-badge-text: #FFFFFF;
+  --sb-thumb: rgba(255, 255, 255, .18);
   --color-text: #F1F2F8;
   --color-text-muted: #B9BFE2;
   --color-accent: #BCC3E4;

@@ -12,7 +12,7 @@ Previews: `Design System.dc.html` (claro) · `Design System Dark.dc.html` (escur
 
 1. **Marca primeiro.** A identidade vem do logo: azul-marinho profundo sobre papel off-white, serifa clássica. Nada de roxo, gradientes, neon ou glow — o sistema antigo (dark roxo) está descontinuado.
 2. **Suave e preciso.** Cantos arredondados (cards 14px, controles 8px, tags 6px), borda hairline de 1px. No claro, cards são contorno; no escuro, têm preenchimento `--color-card`.
-3. **Um único objeto sólido de destaque.** O botão primário é o único elemento de ação preenchido por área. A sidebar é o único campo de cor forte (marinho 900 no claro, `#04061A` no escuro).
+3. **Um único objeto sólido de destaque.** O botão primário é o único elemento de ação preenchido por área. A sidebar acompanha o tema: clara no claro, `#04061A` no escuro (ver 7.7).
 4. **Grid visível.** Conteúdo em células iguais, ritmo horizontal/vertical forte, alinhamento rígido.
 5. **Cor tem função.** Cores de status (sucesso, alerta, perigo) aparecem só para comunicar estado — nunca decoração. Ícones de KPI não ganham "bolinhas" coloridas.
 6. **Dados legíveis.** Números sempre com `font-variant-numeric: tabular-nums`. Sem fontes monoespaçadas para valores.
@@ -230,6 +230,8 @@ Card com: overline (rótulo) · valor `kpi` 38px tabular (cor de destaque, nunca
 Borda-esquerda **não**. Usa: borda 1px `warning`, bg `warning-100`, ícone `alert-triangle` warning, título Body 600 + descrição, ação secundária à direita. Dispensável (×).
 
 ### 7.7 Sidebar
+> **Alterado pelo dono em 22/10/2026:** no tema claro a sidebar é clara (`#FFFFFF`, borda direita divider, texto `neutral-800`, rótulos e ícones `neutral-700`, ativo `accent-100` + texto e barra `accent-700`). No escuro continua `#04061A`. O texto abaixo descreve a versão original.
+
 Bg `accent-900`. Topo: monograma M (Cinzel) + "LICAS" wordmark. Grupos com overline `accent-400`. Itens 34px radius 8px, ícone 16px `accent-300`, texto 14px `accent-200`; ativo branco com barra 2px. Rodapé: avatar + nome + papel.
 
 ### 7.8 Topbar
