@@ -835,6 +835,12 @@ precedência em `~/.claude/CLAUDE.md` (global).
 4. **Contraste WCAG** (não chutar):
    `python3 "$(ls -d ~/.claude/plugins/cache/anti-slop/antislop/*/skills/antislop-human/contrast-check.py | tail -1)" "#fg" "#bg"`
 5. **Perfil de contexto:** `dashboard` — densidade, legibilidade e hierarquia da informação acima de decoração.
+6. **Antes de editar:** inspecionar uma tela equivalente já implementada (o Cofre de Acessos é a
+   referência operacional). Bootstrap sozinho não representa o design system; não criar identidade
+   isolada por rota. Direções específicas de `DESIGN.md` (ex.: Temporada Comercial) valem só para a
+   superfície documentada. Empresas Licas seguem `DESIGN-LICAS.md` e a seção "Tema Licas".
+7. **Verificar** desktop e celular, temas claro e escuro, controles e estados com dados, sem
+   alterar regra de negócio em ajuste visual.
 
 > **Atenção, conflito conhecido:** o design system atual deste projeto é *Glass Morphism + Gradient*
 > com primária violeta `#7C3AED`. Isso casa com três tells que as skills acusam por padrão
