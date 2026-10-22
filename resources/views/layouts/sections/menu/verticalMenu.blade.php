@@ -51,11 +51,7 @@
             {{-- Gate por usuário (além do papel): usado por features liberadas individualmente --}}
             @php
                 $passaGate = true;
-                if (isset($menu->gate) && $menu->gate === 'escola') {
-                    $u = Auth::user();
-                    $passaGate = in_array($u->user_role_id, [\App\Enums\UserRole::ADMINISTRATIVO, \App\Enums\UserRole::DEVELOPER])
-                        || (bool) $u->escola_habilitada;
-                } elseif (isset($menu->gate) && $menu->gate === 'platform_admin') {
+                if (isset($menu->gate) && $menu->gate === 'platform_admin') {
                     $passaGate = Auth::user()->isPlatformAdmin();
                 }
                 if (!$tenantResolved && empty($menu->tenantOptional)) {

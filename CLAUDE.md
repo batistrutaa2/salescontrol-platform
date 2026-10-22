@@ -300,13 +300,6 @@ app/
 - Links to: empresas, users
 - Meeting scheduling and tracking
 
-**estudos** - Quotation studies
-- Links to: empresas, contatos, users
-- For managing insurance quotations
-
-**estudo_itens** & **estudo_vidas** - Study details
-- Breakdown of quotation studies
-
 ## Important Business Logic
 
 ### Multi-Tenancy

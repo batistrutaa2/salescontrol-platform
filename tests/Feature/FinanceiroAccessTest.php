@@ -68,8 +68,7 @@ class FinanceiroAccessTest extends TestCase
             ->assertOk()
             ->assertSee('Regras de Comissão')
             ->assertSee('Recebíveis')
-            ->assertDontSee('Dashboard')
-            ->assertDontSee('Escola LK Brokers');
+            ->assertDontSee('Dashboard');
     }
 
     public function test_financeiro_nao_acessa_rotas_fora_do_modulo(): void

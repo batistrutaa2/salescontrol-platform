@@ -13,57 +13,6 @@
       ]
     },
     {
-      "menuHeader": "Treinamento",
-      "gate": "escola",
-      "rules": [
-        "VENDEDOR",
-        "ADMINISTRATIVO",
-        "BACKOFFICE",
-        "DEVELOPER",
-        "SUPERVISOR"
-      ]
-    },
-    {
-      "url": "/escola",
-      "name": "Academia Comercial",
-      "icon": "menu-icon tf-icons ri-graduation-cap-line",
-      "slug": "escola.index",
-      "gate": "escola",
-      "rules": [
-        "VENDEDOR",
-        "ADMINISTRATIVO",
-        "BACKOFFICE",
-        "DEVELOPER",
-        "SUPERVISOR"
-      ]
-    },
-    {
-      "name": "Gestão da Escola",
-      "icon": "menu-icon tf-icons ri-settings-4-line",
-      "slug": "escola.gestao",
-      "rules": [
-        "ADMINISTRATIVO",
-        "DEVELOPER"
-      ],
-      "submenu": [
-        {
-          "url": "/escola/gestao",
-          "name": "Módulos e Aulas",
-          "slug": "escola.gestao.index"
-        },
-        {
-          "url": "/escola/gestao/relatorio",
-          "name": "Relatório de Progresso",
-          "slug": "escola.gestao.relatorio"
-        },
-        {
-          "url": "/escola/gestao/acessos",
-          "name": "Liberar Acesso",
-          "slug": "escola.gestao.acessos"
-        }
-      ]
-    },
-    {
       "menuHeader": "Financeiro",
       "rules": [
         "ADMINISTRATIVO",
@@ -498,24 +447,6 @@
       ]
     },
     {
-      "name": "Estudo",
-      "icon": "menu-icon tf-icons ri-book-2-line",
-      "slug": "dashboard",
-      "rules": [
-        "DEVELOPER",
-        "ADMINISTRATIVO",
-        "SUPERVISOR",
-        "BACKOFFICE"
-      ],
-      "submenu": [
-        {
-          "url": "/estudo-lista",
-          "name": "Listar Estudos",
-          "slug": "pages-estudo-criar"
-        }
-      ]
-    },
-    {
       "menuHeader": "WhatsApp",
       "rules": [
         "VENDEDOR"
@@ -652,21 +583,6 @@
       ]
     },
     {
-      "name": "Estudo",
-      "icon": "menu-icon tf-icons ri-book-2-line",
-      "slug": "pages-estudo",
-      "rules": [
-        "VENDEDOR"
-      ],
-      "submenu": [
-        {
-          "url": "/estudo-lista",
-          "name": "Listar Estudos",
-          "slug": "pages-estudo-criar"
-        }
-      ]
-    },
-    {
       "url": "/comercial/enviar-cotacao",
       "name": "Enviar Cotação",
       "icon": "menu-icon tf-icons ri-mail-send-line",
@@ -674,18 +590,6 @@
       "rules": [
         "VENDEDOR",
         "DEVELOPER"
-      ]
-    },
-    {
-      "url": "/comercial/faqs",
-      "name": "FAQs",
-      "icon": "menu-icon tf-icons ri-question-answer-line",
-      "slug": "pages-faqs-vendedor",
-      "rules": [
-        "VENDEDOR",
-        "ADMINISTRATIVO",
-        "DEVELOPER",
-        "SUPERVISOR"
       ]
     }
   ]

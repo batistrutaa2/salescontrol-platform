@@ -22,7 +22,6 @@ class Empresa extends Model
         'reuniao_horario_inicio',
         'reuniao_horario_fim',
         'reuniao_duracao_minutos',
-        'escola_percentual_conclusao',
         'tv_percentual_atencao',
         'tv_percentual_bom',
         'demandas_concluidas_janela_dias',
@@ -41,7 +40,6 @@ class Empresa extends Model
         return [
             'whatsapp_token' => 'encrypted',
             'reuniao_duracao_minutos' => 'integer',
-            'escola_percentual_conclusao' => 'integer',
             'tv_percentual_atencao' => 'integer',
             'tv_percentual_bom' => 'integer',
             'demandas_concluidas_janela_dias' => 'integer',

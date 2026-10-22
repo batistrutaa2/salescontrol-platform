@@ -20,8 +20,6 @@ class FaqTenancyTest extends TestCase
 
     private User $adminA;
 
-    private User $vendedorA;
-
     private int $operadoraA;
 
     private int $operadoraB;
@@ -42,11 +40,6 @@ class FaqTenancyTest extends TestCase
         $this->adminA = User::factory()->create([
             'empresa_id' => $this->empresaA->id,
             'user_role_id' => UserRole::ADMINISTRATIVO,
-            'ativo' => 'Y',
-        ]);
-        $this->vendedorA = User::factory()->create([
-            'empresa_id' => $this->empresaA->id,
-            'user_role_id' => UserRole::VENDEDOR,
             'ativo' => 'Y',
         ]);
         $this->operadoraA = $this->criarOperadora($this->empresaA, 'Operadora A');
@@ -78,7 +71,7 @@ class FaqTenancyTest extends TestCase
         ]);
     }
 
-    public function test_listagem_e_visualizacao_do_vendedor_nao_vazam_outra_empresa(): void
+    public function test_listagem_nao_vaza_outra_empresa(): void
     {
         $this->criarFaq($this->empresaA, $this->operadoraA, 'FAQ visível A');
         $this->criarFaq($this->empresaA, $this->operadoraA, 'FAQ inativo A', 'N');
@@ -96,13 +89,6 @@ class FaqTenancyTest extends TestCase
             ->getJson(route('backoffice.getFaqs', ['operadora_id' => $this->operadoraB]))
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['operadora_id']);
-
-        $this->actingAs($this->vendedorA)
-            ->get(route('comercial.faqs'))
-            ->assertOk()
-            ->assertSee('FAQ visível A')
-            ->assertDontSee('FAQ inativo A')
-            ->assertDontSee('FAQ secreto B');
     }
 
     public function test_criacao_usa_empresa_do_servidor_e_rejeita_operadora_externa(): void

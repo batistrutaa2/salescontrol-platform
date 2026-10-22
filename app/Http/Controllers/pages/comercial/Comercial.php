@@ -14,7 +14,6 @@ use App\Models\ContatosCorretores;
 use App\Models\Demanda;
 use App\Models\Dependentes;
 use App\Models\Empresa;
-use App\Models\Faq;
 use App\Models\LogPreditiva;
 use App\Models\Operadora;
 use App\Models\Plano;
@@ -2196,28 +2195,5 @@ class Comercial extends Controller
                 'error' => 'Não foi possível processar a análise neste momento.',
             ], 500);
         }
-    }
-
-    public function faqsVendedor()
-    {
-        $empresaId = $this->tenantId();
-
-        $faqs = Faq::with('operadora')
-            ->where('empresa_id', $empresaId)
-            ->where('status', 'Y')
-            ->orderBy('ordem')
-            ->orderBy('titulo')
-            ->get();
-
-        $faqsPorOperadora = $faqs->groupBy(function ($faq) {
-            return $faq->operadora->nome ?? 'Sem Operadora';
-        });
-
-        $operadoras = $faqs->pluck('operadora')->unique('id')->filter()->sortBy('nome');
-
-        return view('content.pages.comercial.faqs-vendedor', [
-            'faqsPorOperadora' => $faqsPorOperadora,
-            'operadoras' => $operadoras,
-        ]);
     }
 }

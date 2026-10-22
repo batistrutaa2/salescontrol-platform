@@ -3,13 +3,13 @@
 namespace Tests\Feature\Tenancy;
 
 use App\Models\Empresa;
-use App\Models\EstudoItens;
-use App\Models\Estudos;
-use App\Models\EstudoVidas;
 use App\Models\Operadora;
 use App\Models\User;
+use App\Models\VendaDependente;
+use App\Models\VendaTitular;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use LogicException;
 use Tests\TestCase;
 
@@ -88,66 +88,56 @@ class TenantModelScopeTest extends TestCase
 
     public function test_modelos_herdados_filtram_e_validam_o_tenant_ate_o_pai_direto(): void
     {
+        // Cadeia de dois níveis: vendas -> vendas_titulares -> vendas_dependentes.
         [$empresaA, $empresaB] = $this->empresas();
         $userA = User::factory()->create(['empresa_id' => $empresaA->id]);
         $userB = User::factory()->create(['empresa_id' => $empresaB->id]);
-        $estudoA = Estudos::query()->create([
-            'empresa_id' => $empresaA->id,
-            'user_id' => $userA->id,
-            'titulo' => 'Estudo A',
-            'link_unico' => 'estudo-tenant-a',
-        ]);
-        $estudoB = Estudos::query()->create([
-            'empresa_id' => $empresaB->id,
-            'user_id' => $userB->id,
-            'titulo' => 'Estudo B',
-            'link_unico' => 'estudo-tenant-b',
-        ]);
-        $itemA = EstudoItens::query()->create([
-            'estudo_id' => $estudoA->id,
-            'operadora_plano' => 'Plano A',
-            'coparticipacao' => 'Não',
-            'categoria' => 'Individual',
-        ]);
-        $itemB = EstudoItens::query()->create([
-            'estudo_id' => $estudoB->id,
-            'operadora_plano' => 'Plano B',
-            'coparticipacao' => 'Não',
-            'categoria' => 'Individual',
-        ]);
-        EstudoVidas::query()->create([
-            'estudo_item_id' => $itemA->id,
-            'faixa' => '00-18',
-            'qtde' => 1,
-        ]);
-        EstudoVidas::query()->create([
-            'estudo_item_id' => $itemB->id,
-            'faixa' => '19-23',
-            'qtde' => 2,
-        ]);
+        $vendaA = $this->venda($empresaA->id, $userA->id);
+        $vendaB = $this->venda($empresaB->id, $userB->id);
+        $titularA = VendaTitular::query()->create(['venda_id' => $vendaA, 'nome' => 'Titular A']);
+        $titularB = VendaTitular::query()->create(['venda_id' => $vendaB, 'nome' => 'Titular B']);
+        VendaDependente::query()->create(['venda_id' => $vendaA, 'titular_id' => $titularA->id, 'nome' => 'Dependente A']);
+        VendaDependente::query()->create(['venda_id' => $vendaB, 'titular_id' => $titularB->id, 'nome' => 'Dependente B']);
 
         app(TenantContext::class)->set($empresaA->id);
 
-        $this->assertSame([$itemA->id], EstudoItens::query()->pluck('id')->all());
-        $this->assertSame(['00-18'], EstudoVidas::query()->pluck('faixa')->all());
+        $this->assertSame([$titularA->id], VendaTitular::query()->pluck('id')->all());
+        $this->assertSame(['DEPENDENTE A'], VendaDependente::query()->pluck('nome')->all());
 
         try {
-            EstudoItens::query()->create([
-                'estudo_id' => $estudoB->id,
-                'operadora_plano' => 'Tentativa externa',
-                'coparticipacao' => 'Não',
-                'categoria' => 'Individual',
-            ]);
-            $this->fail('O filho de um estudo externo deveria ser rejeitado.');
+            VendaTitular::query()->create(['venda_id' => $vendaB, 'nome' => 'Tentativa externa']);
+            $this->fail('O titular de uma venda externa deveria ser rejeitado.');
         } catch (LogicException $exception) {
             $this->assertSame('O recurso pai não pertence à empresa ativa.', $exception->getMessage());
         }
 
         $this->expectException(LogicException::class);
-        EstudoVidas::query()->create([
-            'estudo_item_id' => $itemB->id,
-            'faixa' => '24-28',
-            'qtde' => 1,
+        VendaDependente::query()->create([
+            'venda_id' => $vendaB,
+            'titular_id' => $titularB->id,
+            'nome' => 'Dependente externo',
+        ]);
+    }
+
+    private function venda(int $empresaId, int $userId): int
+    {
+        $contatoId = DB::table('contatos')->insertGetId([
+            'empresa_id' => $empresaId,
+            'user_import_id' => $userId,
+            'nome_cliente' => 'Cliente '.$empresaId,
+            'status' => 'Y',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return DB::table('vendas')->insertGetId([
+            'empresa_id' => $empresaId,
+            'user_id' => $userId,
+            'contato_id' => $contatoId,
+            'nome_contrato' => 'Contrato '.$empresaId,
+            'data_vigencia' => now()->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 

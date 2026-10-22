@@ -31,7 +31,6 @@ class User extends Authenticatable
         'data_nascimento_notified_at',
         'password',
         'excluir_ranking',
-        'escola_habilitada',
     ];
 
     /**
@@ -58,7 +57,6 @@ class User extends Authenticatable
             'data_nascimento' => 'date',
             'data_nascimento_notified_at' => 'date',
             'excluir_ranking' => 'boolean',
-            'escola_habilitada' => 'boolean',
         ];
     }
 

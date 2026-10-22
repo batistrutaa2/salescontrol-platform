@@ -18,9 +18,6 @@ use App\Http\Controllers\pages\comercial\ReciclagemLeads;
 use App\Http\Controllers\pages\comercial\ReunioesComercial;
 use App\Http\Controllers\pages\comissionamento\Comissionamento;
 use App\Http\Controllers\pages\DashboardController;
-use App\Http\Controllers\pages\escola\EscolaAdminController;
-use App\Http\Controllers\pages\escola\EscolaController;
-use App\Http\Controllers\pages\estudo\Estudo;
 use App\Http\Controllers\pages\financeiro\Financeiro;
 use App\Http\Controllers\pages\HomePage;
 use App\Http\Controllers\pages\mailing\LeadReservatorioController;
@@ -44,7 +41,6 @@ Route::get('/login', [LoginBasic::class, 'index'])->name('login.form');
 Route::post('/logout', [LoginBasic::class, 'logout'])->name('logout');
 Route::post('autentication', [Auth::class, 'login'])->name('login.autentication');
 
-Route::get('/visualizar-estudo/{uuid}', [Estudo::class, 'showStudy'])->name('estudo.show');
 
 // O token opaco identifica a empresa sem expor um empresa_id enumerável.
 Route::get('/tv-comercial/painel/{token}', [\App\Http\Controllers\TvComercialController::class, 'painelTv'])->name('tv-comercial.painel');
@@ -469,10 +465,6 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/back-office/deleteFaq/{id}', [Backoffice::class, 'deleteFaq'])->name('backoffice.deleteFaq');
     });
 
-    // FAQs (Vendedor - visualização)
-    Route::get('/comercial/faqs', [Comercial::class, 'faqsVendedor'])
-        ->middleware('role:'.\App\Enums\UserRole::VENDEDOR.','.\App\Enums\UserRole::ADMINISTRATIVO.','.\App\Enums\UserRole::SUPERVISOR.','.\App\Enums\UserRole::DEVELOPER)
-        ->name('comercial.faqs');
 
     /** VENDAS */
     Route::middleware('role:'.\App\Enums\UserRole::VENDEDOR.','.\App\Enums\UserRole::ADMINISTRATIVO.','.\App\Enums\UserRole::BACKOFFICE.','.\App\Enums\UserRole::SUPERVISOR.','.\App\Enums\UserRole::DEVELOPER)->group(function () {
@@ -566,19 +558,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/contas-pagamento', [Comissionamento::class, 'byUser'])->name('contas.byUser');
     });
 
-    /** ESTUDO */
-    Route::middleware('role:'.\App\Enums\UserRole::VENDEDOR.','.\App\Enums\UserRole::ADMINISTRATIVO.','.\App\Enums\UserRole::BACKOFFICE.','.\App\Enums\UserRole::SUPERVISOR.','.\App\Enums\UserRole::DEVELOPER)->group(function () {
-        Route::get('/estudo-lista', [Estudo::class, 'index'])->name('estudo.index');
-        Route::get('/estudo-criar', [Estudo::class, 'create'])->name('estudo.create');
-        Route::get('/editar-estudo/{idEstudo}', [Estudo::class, 'edit'])->name('estudo.edit');
-        Route::get('/estudos/{id}', [Estudo::class, 'show'])->name('estudo.data');
-        Route::put('/estudos/{id}', [Estudo::class, 'update'])->name('estudo.update');
-        Route::get('/estudo/getListStudies', [Estudo::class, 'getListStudies'])->name('estudo.getListStudies');
-
-        Route::get('/planos/{operadoraId}', [Estudo::class, 'getByOperadora']);
-        Route::post('/estudos', [Estudo::class, 'store'])->name('estudo.store');
-        Route::delete('/estudo-delete/{id}', [Estudo::class, 'delete'])->name('estudo.delete');
-    });
 
     /**FINANCEIRO */
     Route::middleware('role:'.\App\Enums\UserRole::ADMINISTRATIVO.','.\App\Enums\UserRole::DEVELOPER.','.\App\Enums\UserRole::FINANCEIRO)->group(function () {
@@ -681,45 +660,6 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    /** ACADEMIA COMERCIAL */
-    Route::prefix('escola')->name('escola.')->group(function () {
-        // Área do aluno (todos os roles autenticados)
-        Route::get('/', [EscolaController::class, 'index'])->name('index');
-        Route::get('/modulos/{modulo}', [EscolaController::class, 'show'])->whereNumber('modulo')->name('modulos.show');
-        Route::get('/aulas/{aula}', [EscolaController::class, 'assistir'])->whereNumber('aula')->name('aulas.assistir');
-        Route::post('/aulas/{aula}/progresso', [EscolaController::class, 'salvarProgresso'])->whereNumber('aula')->name('aulas.progresso');
-        Route::get('/materiais/{material}/download', [EscolaController::class, 'downloadMaterial'])->whereNumber('material')->name('materiais.download');
-
-        // Área administrativa (ADMINISTRATIVO e DEVELOPER)
-        Route::middleware('role:'.\App\Enums\UserRole::ADMINISTRATIVO.','.\App\Enums\UserRole::DEVELOPER)
-            ->prefix('gestao')->name('gestao.')->group(function () {
-                Route::get('/', [EscolaAdminController::class, 'index'])->name('index');
-                Route::put('/configuracoes', [EscolaAdminController::class, 'updateConfiguracoes'])->name('configuracoes.update');
-
-                Route::post('/modulos', [EscolaAdminController::class, 'storeModulo'])->name('modulos.store');
-                Route::post('/modulos/reordenar', [EscolaAdminController::class, 'reordenarModulos'])->name('modulos.reordenar');
-                Route::put('/modulos/{modulo}', [EscolaAdminController::class, 'updateModulo'])->whereNumber('modulo')->name('modulos.update');
-                Route::delete('/modulos/{modulo}', [EscolaAdminController::class, 'destroyModulo'])->whereNumber('modulo')->name('modulos.destroy');
-
-                Route::get('/modulos/{modulo}/aulas', [EscolaAdminController::class, 'aulas'])->whereNumber('modulo')->name('aulas.index');
-                Route::post('/modulos/{modulo}/aulas', [EscolaAdminController::class, 'storeAula'])->whereNumber('modulo')->name('aulas.store');
-                Route::post('/aulas/reordenar', [EscolaAdminController::class, 'reordenarAulas'])->name('aulas.reordenar');
-                Route::put('/aulas/{aula}', [EscolaAdminController::class, 'updateAula'])->whereNumber('aula')->name('aulas.update');
-                Route::delete('/aulas/{aula}', [EscolaAdminController::class, 'destroyAula'])->whereNumber('aula')->name('aulas.destroy');
-
-                Route::post('/upload/presign', [EscolaAdminController::class, 'presignUpload'])->name('upload.presign');
-                Route::post('/aulas/{aula}/video/confirmar', [EscolaAdminController::class, 'confirmarVideo'])->whereNumber('aula')->name('aulas.video.confirmar');
-
-                Route::post('/aulas/{aula}/materiais', [EscolaAdminController::class, 'storeMaterial'])->whereNumber('aula')->name('materiais.store');
-                Route::delete('/materiais/{material}', [EscolaAdminController::class, 'destroyMaterial'])->whereNumber('material')->name('materiais.destroy');
-
-                Route::get('/relatorio', [EscolaAdminController::class, 'relatorio'])->name('relatorio');
-                Route::get('/relatorio/data', [EscolaAdminController::class, 'relatorioData'])->name('relatorio.data');
-
-                Route::get('/acessos', [EscolaAdminController::class, 'acessos'])->name('acessos');
-                Route::post('/acessos/{usuario}/toggle', [EscolaAdminController::class, 'toggleAcesso'])->whereNumber('usuario')->name('acessos.toggle');
-            });
-    });
 });
 
 Route::middleware([
