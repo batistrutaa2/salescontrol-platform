@@ -1,0 +1,585 @@
+// Ponte entre o Bootstrap/Materio compilado e o DS Licas.
+// O Materio compila o roxo como hex literal (btn-primary, bg-label-primary...), então os
+// componentes precisam de regra própria; variável sozinha não alcança.
+
+$ui-font-exclude: ':not([class^="ri-"]):not([class*=" ri-"]):not(.tf-icons):not(.menu-icon)';
+
+html.theme-licas {
+  --bs-primary: var(--color-accent);
+  --bs-primary-rgb: var(--color-accent-rgb);
+  --bs-success: var(--color-success);
+  --bs-success-rgb: var(--color-success-rgb);
+  --bs-warning: var(--color-warning);
+  --bs-warning-rgb: var(--color-warning-rgb);
+  --bs-danger: var(--color-danger);
+  --bs-danger-rgb: var(--color-danger-rgb);
+  --bs-info: var(--color-accent);
+  --bs-info-rgb: var(--color-accent-rgb);
+  --bs-body-bg: var(--color-bg);
+  --bs-body-color: var(--color-text);
+  --bs-heading-color: var(--color-text);
+  --bs-secondary-color: var(--color-text-muted);
+  --bs-border-color: var(--color-divider);
+  --bs-link-color: var(--color-accent);
+  --bs-link-hover-color: var(--color-accent-hover);
+  --bs-body-font-family: var(--font-body);
+  --bs-border-radius: var(--radius-md);
+  --bs-paper-bg: var(--color-card);
+  background: var(--color-bg);
+}
+
+// ---------- Tipografia ----------
+// As telas antigas fixam Plus Jakarta Sans e JetBrains Mono em ~540 regras; esta regra
+// passa por cima delas sem tocar nos ícones (Remixicon usa a própria font-family).
+html.theme-licas body,
+html.theme-licas body *#{$ui-font-exclude} {
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+html.theme-licas body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 23px;
+}
+
+html.theme-licas :is(h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6,
+  .card-title, .card-header h5, .modal-title, .btn, .nav-tabs .nav-link, .nav-pills .nav-link,
+  .kpi-value, .chart-title, .table-title, .page-title, .swal2-title, .swal2-styled)#{$ui-font-exclude} {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+:where(html.theme-licas) :is(h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6) {
+  color: var(--color-text);
+}
+
+html.theme-licas :is(h1, .h1) { font-size: 32px; line-height: 36px; letter-spacing: -.01em; }
+html.theme-licas :is(h2, .h2) { font-size: 24px; line-height: 28px; letter-spacing: -.01em; }
+html.theme-licas :is(h3, .h3) { font-size: 18px; line-height: 22px; }
+html.theme-licas :is(h4, .h4) { font-size: 18px; line-height: 22px; }
+html.theme-licas :is(h5, .h5, h6, .h6) { font-size: 15px; line-height: 20px; }
+
+html.theme-licas :is(small, .small, .text-muted, .text-body-secondary) {
+  color: var(--color-text-muted) !important;
+}
+
+// :where zera a especificidade: links soltos ficam marinho, mas botões e componentes
+// das telas que definem a própria cor (ícone branco em botão, por exemplo) vencem.
+:where(html.theme-licas) a {
+  color: var(--color-accent);
+  transition: color var(--ease);
+}
+
+html.theme-licas .text-primary { color: var(--color-accent) !important; }
+html.theme-licas .text-success { color: var(--color-success) !important; }
+html.theme-licas .text-warning { color: var(--color-warning-text) !important; }
+html.theme-licas .text-danger { color: var(--color-danger) !important; }
+html.theme-licas .text-info { color: var(--color-accent) !important; }
+html.theme-licas .text-heading { color: var(--color-text) !important; }
+
+html.theme-licas .bg-primary { background-color: var(--color-accent) !important; color: var(--color-on-accent) !important; }
+html.theme-licas .bg-info { background-color: var(--color-accent) !important; }
+html.theme-licas .bg-success { background-color: var(--color-success) !important; }
+html.theme-licas .bg-warning { background-color: var(--color-warning) !important; }
+html.theme-licas .bg-danger { background-color: var(--color-danger) !important; }
+
+// Rótulos tingidos do Materio viram as tags do DS (7.2).
+html.theme-licas .bg-label-primary,
+html.theme-licas .bg-label-info { background-color: var(--color-accent-tint) !important; color: var(--color-accent-tint-text) !important; }
+html.theme-licas .bg-label-success { background-color: var(--color-success-100) !important; color: var(--color-success-800) !important; }
+html.theme-licas .bg-label-warning { background-color: var(--color-warning-100) !important; color: var(--color-warning-800) !important; }
+html.theme-licas .bg-label-danger { background-color: var(--color-danger-100) !important; color: var(--color-danger-800) !important; }
+html.theme-licas :is(.bg-label-secondary, .bg-label-dark) { background-color: var(--color-neutral-tag) !important; color: var(--color-neutral-tag-text) !important; }
+
+// ---------- Superfícies ----------
+html.theme-licas :is(.card, .modal-content, .offcanvas) {
+  background: var(--color-card);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-xl);
+  box-shadow: none;
+  color: var(--color-text);
+}
+
+html.theme-licas .card {
+  --bs-card-spacer-x: var(--space-5);
+  --bs-card-spacer-y: var(--space-5);
+  --bs-card-cap-bg: transparent;
+}
+
+html.theme-licas .card-header {
+  background: transparent;
+  border-bottom: 0;
+}
+
+html.theme-licas .card-footer {
+  background: transparent;
+  border-top: 0;
+}
+
+html.theme-licas .modal-content {
+  background: var(--color-bg);
+  box-shadow: var(--shadow-lg);
+}
+
+html.theme-licas.dark-style .modal-content {
+  background: var(--color-card);
+}
+
+html.theme-licas .modal-backdrop.show {
+  background: var(--color-backdrop);
+  opacity: 1;
+}
+
+html.theme-licas :is(.modal-header, .modal-footer) {
+  border-color: transparent;
+}
+
+html.theme-licas .dropdown-menu {
+  background: var(--color-card);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+html.theme-licas .dropdown-item {
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+}
+
+html.theme-licas .dropdown-item:is(:hover, :focus) {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+html.theme-licas .dropdown-item.active,
+html.theme-licas .dropdown-item:active {
+  background: var(--color-accent-tint);
+  color: var(--color-accent-tint-text);
+}
+
+html.theme-licas hr,
+html.theme-licas .dropdown-divider {
+  border-color: var(--color-divider);
+  opacity: 1;
+}
+
+// ---------- Botões (7.1) ----------
+html.theme-licas .btn {
+  min-height: var(--control-h);
+  padding: 0 var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: color var(--ease), background-color var(--ease), border-color var(--ease);
+}
+
+html.theme-licas .btn-sm { min-height: 32px; padding: 0 var(--space-3); font-size: 13px; }
+html.theme-licas .btn-lg { min-height: 44px; padding: 0 var(--space-5); font-size: 15px; }
+
+html.theme-licas .btn-icon {
+  width: var(--control-h);
+  padding: 0;
+}
+
+html.theme-licas .btn-icon.btn-sm { width: 32px; }
+
+html.theme-licas .btn-primary {
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+html.theme-licas .btn-primary:hover { background: var(--color-accent-hover) !important; border-color: var(--color-accent-hover) !important; }
+html.theme-licas .btn-primary:active { background: var(--color-accent-pressed) !important; border-color: var(--color-accent-pressed) !important; }
+
+// Secundário (7.1): transparente com borda divider. Info/dark/secondary caem aqui porque
+// o DS só tem um preenchido por área.
+html.theme-licas :is(.btn-secondary, .btn-info, .btn-dark, .btn-light, .btn-outline-primary,
+  .btn-outline-secondary, .btn-outline-info, .btn-outline-dark, .btn-label-primary,
+  .btn-label-secondary, .btn-label-info, .btn-label-dark) {
+  background: transparent !important;
+  border: 1px solid var(--color-divider) !important;
+  color: var(--color-text) !important;
+}
+
+html.theme-licas :is(.btn-text-primary, .btn-text-secondary, .btn-link, .btn-text-info) {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--color-accent) !important;
+}
+
+html.theme-licas :is(.btn-danger, .btn-outline-danger, .btn-label-danger, .btn-text-danger) {
+  background: transparent !important;
+  border: 1px solid var(--color-danger) !important;
+  color: var(--color-danger) !important;
+}
+
+html.theme-licas :is(.btn-danger, .btn-outline-danger, .btn-label-danger, .btn-text-danger):hover {
+  background: var(--color-danger-100) !important;
+}
+
+html.theme-licas :is(.btn-success, .btn-outline-success, .btn-label-success) {
+  background: transparent !important;
+  border: 1px solid var(--color-success) !important;
+  color: var(--color-success) !important;
+}
+
+html.theme-licas :is(.btn-warning, .btn-outline-warning, .btn-label-warning) {
+  background: transparent !important;
+  border: 1px solid var(--color-warning) !important;
+  color: var(--color-warning) !important;
+}
+
+html.theme-licas .btn:not(.btn-primary):hover {
+  background-color: var(--color-hover) !important;
+}
+
+html.theme-licas .btn:is(:disabled, .disabled) {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+// ---------- Foco (6) ----------
+html.theme-licas :is(a, button, .btn, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent) !important;
+  outline-offset: 2px;
+  box-shadow: none !important;
+}
+
+// ---------- Formulários (7.3) ----------
+html.theme-licas :is(.form-control, .form-select, .input-group-text, .select2-container--default .select2-selection) {
+  min-height: var(--control-h);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: 14px;
+  box-shadow: none;
+}
+
+html.theme-licas :is(.form-control, .form-select):hover {
+  border-color: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+
+// O tema do Materio pinta a borda de foco de roxo com !important.
+html.theme-licas :is(.form-control, .form-select):focus {
+  background-color: var(--color-surface);
+  border-color: var(--color-accent) !important;
+  box-shadow: none;
+  color: var(--color-text);
+}
+
+html.theme-licas .form-control::placeholder {
+  color: var(--color-text-muted);
+}
+
+html.theme-licas :is(.form-control-sm, .form-select-sm) {
+  min-height: 32px;
+  font-size: 13px;
+}
+
+html.theme-licas :is(.form-label, .col-form-label) { // avoid-ai-design-ignore: SD4 (overline do DS Licas)
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+// Materio usa label flutuante; o DS quer label acima. Mantém a estrutura e só reposiciona.
+html.theme-licas .form-floating > label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+html.theme-licas .form-check-input {
+  border-color: var(--color-divider);
+  background-color: var(--color-surface);
+}
+
+html.theme-licas .form-check-input:checked {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+html.theme-licas .form-switch .form-check-input:checked {
+  background-color: var(--color-accent);
+}
+
+// ---------- Tabelas (7.11) ----------
+html.theme-licas .table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--color-text);
+  --bs-table-hover-bg: var(--color-row-hover);
+  --bs-table-striped-bg: transparent;
+  --bs-table-border-color: var(--color-divider-soft);
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+html.theme-licas .table > :not(caption) > * > * {
+  border-bottom-color: var(--color-divider-soft);
+  background-color: transparent;
+  box-shadow: none;
+}
+
+html.theme-licas .table > tbody > tr > * {
+  height: 44px;
+  vertical-align: middle;
+}
+
+html.theme-licas .table > tbody > tr:hover > * {
+  background-color: var(--color-row-hover);
+}
+
+html.theme-licas .table > thead > tr > th, // avoid-ai-design-ignore: SD4 (overline do DS Licas)
+html.theme-licas .table th {
+  font-family: var(--font-body);
+  font-size: 11px !important;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted) !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--color-divider) !important;
+}
+
+// ---------- Tags / badges (7.2) ---------- // avoid-ai-design-ignore: SD4 (overline do DS Licas)
+html.theme-licas .badge {
+  height: 22px;
+  padding: 0 var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-sm) !important;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+html.theme-licas .badge.badge-dot {
+  height: 8px;
+  width: 8px;
+  padding: 0;
+  border-radius: 50% !important;
+}
+
+html.theme-licas .badge.rounded-pill {
+  border-radius: var(--radius-sm) !important;
+}
+
+// ---------- Navegação: tabs, pills, paginação (7.9) ----------
+html.theme-licas .nav-tabs {
+  border-bottom: 1px solid var(--color-divider);
+  box-shadow: none;
+}
+
+html.theme-licas :is(.nav-tabs, .nav-pills) .nav-link {
+  background: transparent !important;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  box-shadow: none !important;
+  border-bottom: 2px solid transparent;
+}
+
+html.theme-licas :is(.nav-tabs, .nav-pills) .nav-link.active {
+  color: var(--color-text) !important;
+  border-bottom-color: var(--color-accent);
+}
+
+html.theme-licas .nav-tabs .nav-link::after,
+html.theme-licas .nav-align-top .nav-tabs .nav-link::after { display: none; }
+
+// Paginação (Laravel bootstrap-5 e DataTables): botões-ícone de 32px com 4px entre eles.
+html.theme-licas .pagination {
+  gap: var(--space-1);
+  margin: 0;
+}
+
+html.theme-licas .page-link {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  background: transparent;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md) !important;
+  box-shadow: none !important;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  transition: background-color var(--ease), border-color var(--ease);
+}
+
+html.theme-licas .page-link:hover {
+  background: var(--color-hover);
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+html.theme-licas .page-item.disabled .page-link {
+  opacity: .45;
+  background: transparent;
+}
+
+// No DataTables bs5 o botão é li.paginate_button > a.page-link. Várias telas estilizam o
+// li como se fosse o botão (padding, borda, fundo); somado ao .page-link, a fileira
+// quebrava em duas. O li vira só o contêiner e o visual fica no .page-link.
+html.theme-licas .dataTables_paginate .paginate_button.page-item {
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+html.theme-licas .dataTables_paginate .pagination {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+html.theme-licas .dataTables_paginate .paginate_button.page-item.active .page-link,
+html.theme-licas .dataTables_paginate .paginate_button.current .page-link {
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+html.theme-licas .dataTables_paginate .paginate_button.previous .page-link,
+html.theme-licas .dataTables_paginate .paginate_button.next .page-link {
+  padding: 0 var(--space-3);
+}
+
+// Linha "Mostrando 1 a 20 de 95 resultados" do Laravel.
+html.theme-licas nav[role="navigation"] .small.text-muted {
+  font-size: 12px;
+  margin: 0;
+}
+
+html.theme-licas .page-item.active .page-link,
+html.theme-licas .dataTables_paginate .paginate_button.current {
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+html.theme-licas .progress {
+  height: 8px;
+  background: var(--color-surface);
+  border-radius: 4px;
+}
+
+html.theme-licas .progress-bar {
+  background-color: var(--color-accent);
+  border-radius: 4px;
+}
+
+// ---------- Alertas (7.6) ----------
+html.theme-licas .alert {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-divider);
+  border-left-width: 1px !important;
+  box-shadow: none;
+}
+
+html.theme-licas :is(.alert-warning, .alert-solid-warning) { background: var(--color-warning-100); border-color: var(--color-warning); color: var(--color-warning-800); }
+html.theme-licas :is(.alert-danger, .alert-solid-danger) { background: var(--color-danger-100); border-color: var(--color-danger); color: var(--color-danger-800); }
+html.theme-licas :is(.alert-success, .alert-solid-success) { background: var(--color-success-100); border-color: var(--color-success); color: var(--color-success-800); }
+html.theme-licas :is(.alert-primary, .alert-info) { background: var(--color-accent-tint); border-color: var(--color-divider); color: var(--color-accent-tint-text); }
+
+// ---------- Avatar (7.14) ----------
+html.theme-licas .avatar-initial {
+  background: var(--color-avatar) !important;
+  color: var(--color-avatar-text) !important;
+  font-weight: 600;
+}
+
+// ---------- Bibliotecas de terceiros ----------
+html.theme-licas .swal2-popup {
+  background: var(--color-bg);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-xl);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+}
+
+html.theme-licas.dark-style .swal2-popup { background: var(--color-card); }
+html.theme-licas .swal2-title { color: var(--color-text); }
+html.theme-licas .swal2-html-container { color: var(--color-text-muted); }
+html.theme-licas .swal2-container.swal2-backdrop-show { background: var(--color-backdrop); }
+
+html.theme-licas .swal2-styled {
+  border-radius: var(--radius-md) !important;
+  box-shadow: none !important;
+}
+
+html.theme-licas .swal2-styled.swal2-confirm {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+html.theme-licas .swal2-styled:is(.swal2-cancel, .swal2-deny) {
+  background: transparent !important;
+  border: 1px solid var(--color-divider) !important;
+  color: var(--color-text) !important;
+}
+
+html.theme-licas .flatpickr-calendar {
+  background: var(--color-card);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+html.theme-licas .flatpickr-day.selected {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+html.theme-licas .apexcharts-tooltip {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-card-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+  color: var(--color-text) !important;
+}
+
+html.theme-licas .apexcharts-text,
+html.theme-licas .apexcharts-legend-text {
+  font-family: var(--font-body) !important;
+  fill: var(--color-text-muted);
+}
+
+// ---------- Movimento (6) ----------
+// As telas antigas levantam cards no hover (translateY) e brilham; o DS não tem isso.
+html.theme-licas :is(.card, [class*="-card"], [class*="kpi"]):hover {
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-licas *,
+  html.theme-licas *::before,
+  html.theme-licas *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

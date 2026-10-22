@@ -192,7 +192,7 @@
                     </div>
                 </div>
                 <div class="chart-body">
-                    <div id="salesPerformanceChart"></div>
+                    <div id="salesPerformanceChart" data-licas-series="marca"></div>
                 </div>
             </div>
 
@@ -206,6 +206,24 @@
                 </div>
                 <div class="chart-body">
                     <div id="conversionFunnelChart"></div>
+                    {{-- Tema Licas: funil em barras horizontais (DS 7.12), preenchido pelo dashboard-analytics.js --}}
+                    <ol class="lc-funnel" id="licasFunnel" hidden>
+                        <li class="lc-funnel__step" data-step="leads">
+                            <div class="lc-funnel__row"><span>Leads importados</span><strong class="js-funnel-qtd">0</strong></div>
+                            <div class="lc-bar"><div class="lc-bar__fill" style="width: 0%"></div></div>
+                            <span class="lc-caption js-funnel-nota">Base do mês</span>
+                        </li>
+                        <li class="lc-funnel__step" data-step="cadastrados">
+                            <div class="lc-funnel__row"><span>Contratos cadastrados</span><strong class="js-funnel-qtd">0</strong></div>
+                            <div class="lc-bar"><div class="lc-bar__fill" style="width: 0%"></div></div>
+                            <span class="lc-caption js-funnel-nota">0% dos leads trabalhados</span>
+                        </li>
+                        <li class="lc-funnel__step" data-step="implantados">
+                            <div class="lc-funnel__row"><span>Implantados</span><strong class="js-funnel-qtd">0</strong></div>
+                            <div class="lc-bar"><div class="lc-bar__fill" style="width: 0%"></div></div>
+                            <span class="lc-caption js-funnel-nota">0% do valor cadastrado</span>
+                        </li>
+                    </ol>
                 </div>
             </div>
         </div>

@@ -1,0 +1,405 @@
+// Dashboard (pages-home) no tema Licas. O Blade é o mesmo das outras empresas; aqui só
+// muda a apresentação: KPI do DS 7.5, painéis 7.4, tabela 7.11, funil 7.12.
+
+html.theme-licas .dashboard-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  // ---------- Cabeçalho ----------
+  .dashboard-header {
+    background: none;
+    border: 0;
+    padding: 0;
+    margin: 0 0 var(--space-4);
+    box-shadow: none;
+
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
+
+  .header-content {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+  }
+
+  .greeting-label { // avoid-ai-design-ignore: SD4 (overline do DS Licas)
+    display: block;
+    background: none;
+    padding: 0;
+    border: 0;
+    margin-bottom: var(--space-2);
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .main-title {
+    font-family: var(--font-heading);
+    font-size: 40px;
+    line-height: 44px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--color-text);
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    margin: 0 0 var(--space-1);
+  }
+
+  .subtitle {
+    font-size: 15px;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .header-filters,
+  .filter-group {
+    background: none;
+    border: 0;
+    padding: 0;
+    box-shadow: none;
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  .filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .filter-label { // avoid-ai-design-ignore: SD4 (overline do DS Licas)
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .filter-select {
+    height: var(--control-h);
+    min-width: 132px;
+    padding: 0 32px 0 var(--space-3);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: none;
+
+    &:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+    &:focus { border-color: var(--color-accent); }
+  }
+
+  // ---------- KPIs: 4 × 3 colunas ----------
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin: 0;
+  }
+
+  .kpi-card {
+    background: var(--color-card);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    box-shadow: none;
+    animation: none;
+    opacity: 1;
+    overflow: visible;
+
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
+
+  // Ícone em quadrado colorido, pulso e brilho: o DS proíbe (10).
+  .kpi-icon-wrapper,
+  .kpi-glow,
+  .kpi-pulse {
+    display: none !important;
+  }
+
+  .kpi-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+
+  .kpi-label { // avoid-ai-design-ignore: SD4 (overline do DS Licas)
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .kpi-value {
+    font-family: var(--font-heading);
+    font-size: 38px;
+    line-height: 42px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--color-kpi);
+    margin: 0;
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // Linha de contexto: texto muted, sem pílula (7.5).
+  .kpi-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    background: none !important;
+    border: 0;
+    padding: 0;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    color: var(--color-text-muted) !important;
+
+    svg {
+      display: none;
+    }
+  }
+
+  // ---------- Painéis de gráfico: 8 + 4 colunas, depois 6 + 6 ----------
+  .charts-section,
+  .tables-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+  }
+
+  .chart-row,
+  .tables-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin: 0;
+  }
+
+  .chart-large { grid-column: span 8; }
+  .chart-medium { grid-column: span 4; }
+  .chart-half,
+  .table-card { grid-column: span 6; }
+
+  .chart-card,
+  .table-card {
+    background: var(--color-card);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    box-shadow: none;
+    animation: none;
+    opacity: 1;
+    min-width: 0;
+    width: auto;
+    flex: none;
+  }
+
+  .chart-header,
+  .table-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: 0;
+    margin-bottom: var(--space-4);
+    border: 0;
+    background: none;
+  }
+
+  .chart-title,
+  .table-title {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    line-height: 22px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0 0 2px;
+  }
+
+  .chart-subtitle,
+  .table-subtitle {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: var(--space-4);
+  }
+
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+
+    &.primary { background: var(--chart-1); }
+    &.warning { background: var(--chart-2); }
+  }
+
+  .chart-body,
+  .table-body {
+    padding: 0;
+    margin: 0;
+  }
+
+  // ---------- Tabelas ----------
+  .table-title-group {
+    display: block;
+  }
+
+  .table-icon {
+    display: none;
+  }
+
+  .table-badge { // avoid-ai-design-ignore: SD4 (overline do DS Licas)
+    height: 22px;
+    padding: 0 var(--space-2);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    border-radius: var(--radius-sm);
+    background: var(--color-neutral-tag) !important;
+    color: var(--color-neutral-tag-text) !important;
+    border: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .custom-table {
+    td {
+      font-size: 13px;
+      color: var(--color-text);
+    }
+
+    td:not(:first-child) {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--color-text) !important;
+      font-weight: 500;
+    }
+  }
+
+  // Busca e paginação do DataTables no padrão dos inputs (7.3).
+  .dataTables_filter label,
+  .dataTables_length label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  .dataTables_filter input,
+  .dataTables_length select {
+    height: 32px;
+    min-height: 32px;
+    font-size: 13px;
+  }
+
+  .dataTables_info {
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  // ---------- Funil (7.12) ----------
+  #conversionFunnelChart {
+    display: none;
+  }
+
+  .lc-funnel {
+    list-style: none;
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .lc-funnel__step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .lc-funnel__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: 13px;
+    color: var(--color-text);
+
+    strong {
+      font-family: var(--font-heading);
+      font-size: 24px;
+      line-height: 28px;
+      font-weight: 600;
+      color: var(--color-kpi);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .lc-bar__fill {
+    transition: width 200ms ease-out;
+  }
+
+  [data-step="cadastrados"] .lc-bar__fill { background: var(--chart-2); }
+  [data-step="implantados"] .lc-bar__fill { background: var(--color-success); }
+}
+
+@media (max-width: 1199.98px) {
+  html.theme-licas .dashboard-wrapper {
+    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .chart-large,
+    .chart-medium,
+    .chart-half,
+    .table-card { grid-column: span 12; }
+  }
+}
+
+@media (max-width: 575.98px) {
+  html.theme-licas .dashboard-wrapper {
+    .kpi-grid { grid-template-columns: minmax(0, 1fr); }
+    .main-title { font-size: 32px; line-height: 36px; }
+    .header-filters,
+    .filter-group,
+    .filter-item { width: 100%; }
+    .filter-select { width: 100%; }
+  }
+}

@@ -24,6 +24,55 @@
 @endsection
 
 @section('content')
+    @if (Helper::temaEmpresa() === 'licas')
+        {{-- Tema Licas: login como referência de marca (DESIGN-LICAS.md, seção 8) --}}
+        <main class="licas-login">
+            <div class="licas-login__inner">
+                <div class="licas-login__brand" role="img" aria-label="Licas Consultoria Seguros">
+                    <span class="licas-login__mono" aria-hidden="true">M</span>
+                    <span class="licas-login__name" aria-hidden="true">Licas Consultoria</span>
+                    <span class="licas-login__sub" aria-hidden="true">Seguros</span>
+                </div>
+
+                <h1 id="login-title" class="visually-hidden">Acesse sua operação</h1>
+
+                @if ($errors->has('email'))
+                    <div class="alert alert-danger mb-4" role="alert">
+                        {{ $errors->first('email') }}
+                    </div>
+                @endif
+
+                <form id="formAuthentication" action="{{ route('login.autentication') }}" method="POST">
+                    @csrf
+                    <div class="mb-5">
+                        <label class="form-label" for="email">E-mail</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ old('email') }}"
+                            placeholder="seu@email.com" autocomplete="email" required autofocus>
+                    </div>
+
+                    <div class="mb-4 form-password-toggle">
+                        <label class="form-label" for="password">Senha</label>
+                        <div class="input-group input-group-merge">
+                            <input type="password" id="password" class="form-control" name="password"
+                                    placeholder="Digite sua senha" autocomplete="current-password"
+                                    aria-describedby="password-toggle" required>
+                            <button id="password-toggle" class="input-group-text cursor-pointer" type="button"
+                                aria-label="Mostrar ou ocultar senha">
+                                <i class="ri-eye-off-line ri-20px" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="remember-me" name="remember">
+                        <label class="form-check-label" for="remember-me">Lembrar-me</label>
+                    </div>
+
+                    <button class="btn btn-primary btn-lg w-100" type="submit">Entrar</button>
+                </form>
+            </div>
+        </main>
+    @else
     <main class="auth-modern-cover row m-0">
         <section class="col-12 col-lg-7 col-xl-8 auth-left-panel" aria-label="M &amp; L — Licas Consultoria Seguros">
             @include('_partials.macros', ['full' => true])
@@ -73,4 +122,5 @@
             </div>
         </section>
     </main>
+    @endif
 @endsection

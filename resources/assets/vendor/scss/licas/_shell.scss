@@ -1,0 +1,340 @@
+// Casca do app no tema Licas: sidebar (DS 7.7), topbar (7.8) e área de conteúdo (4).
+// O sidebar-custom.scss continua carregado para as outras empresas; aqui ele é
+// neutralizado: sem vidro, sem brilho radial, sem gradiente no texto da marca.
+
+html.theme-licas .layout-menu.menu-vertical {
+  --sidebar-bg: var(--color-sidebar);
+  --sidebar-glass-bg: var(--color-sidebar);
+  --sidebar-border: var(--color-sidebar-border);
+  --sidebar-text-primary: #FFFFFF;
+  --sidebar-text-secondary: var(--color-accent-200);
+  --sidebar-text-muted: var(--color-accent-400);
+  --sidebar-item-hover: rgba(255, 255, 255, .06);
+  --sidebar-item-active: rgba(255, 255, 255, .08);
+  --sidebar-primary-light: #FFFFFF;
+  --sidebar-shadow: none;
+  --sidebar-glow: none;
+  --sidebar-border-radius: var(--radius-md);
+  --sidebar-transition: color var(--ease), background-color var(--ease);
+
+  background: var(--color-sidebar) !important;
+  border-right: 1px solid var(--color-sidebar-border) !important;
+  box-shadow: none !important;
+  color: var(--color-accent-200);
+
+  &::before,
+  &::after {
+    display: none !important;
+  }
+
+  .ps__thumb-y {
+    background: rgba(255, 255, 255, .18) !important;
+  }
+}
+
+// ---------- Marca ----------
+html.theme-licas .layout-menu .app-brand {
+  height: 64px;
+  padding: 0 var(--space-5) !important;
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+html.theme-licas .licas-wordmark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: #FFFFFF;
+  text-decoration: none;
+}
+
+html.theme-licas .licas-wordmark__mono {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: var(--radius-md);
+  font-family: var(--font-brand) !important;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+html.theme-licas .licas-wordmark__name {
+  font-family: var(--font-brand) !important;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+}
+
+html.theme-licas .layout-menu .layout-menu-toggle {
+  background: transparent;
+  border-color: rgba(255, 255, 255, .14);
+  border-radius: var(--radius-md);
+}
+
+html.theme-licas .layout-menu .layout-menu-toggle .menu-toggle-icon {
+  color: var(--color-accent-300);
+}
+
+// ---------- Grupos ----------
+html.theme-licas .layout-menu .menu-header {
+  padding: var(--space-5) var(--space-5) var(--space-2) !important;
+  margin-top: 0 !important;
+}
+
+html.theme-licas .layout-menu .menu-header .menu-header-text {
+  font-size: 11px !important;
+  line-height: 14px;
+  font-weight: 600 !important;
+  letter-spacing: .12em !important;
+  color: var(--color-accent-400) !important;
+}
+
+// ---------- Itens ----------
+html.theme-licas .layout-menu .menu-inner > .menu-item {
+  padding: 1px var(--space-3);
+  // O sidebar-custom entra com opacity 0 e anima; sem a animação o item precisa aparecer.
+  animation: none !important;
+  opacity: 1 !important;
+}
+
+html.theme-licas .layout-menu .menu-inner > .menu-item > .menu-link {
+  min-height: 34px;
+  padding: 0 var(--space-3) !important;
+  border-radius: var(--radius-md) !important;
+
+  > i {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 16px !important;
+    color: var(--color-accent-300) !important;
+    margin-right: var(--space-3) !important;
+  }
+
+  > div {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: var(--color-accent-200) !important;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, .06) !important;
+  }
+}
+
+// Ativo: fundo branco 8% e barra de 2px branca à esquerda.
+html.theme-licas .layout-menu .menu-inner > .menu-item.active:not(.open) > .menu-link:not(.menu-toggle),
+html.theme-licas .layout-menu .menu-sub > .menu-item.active > .menu-link {
+  background: rgba(255, 255, 255, .08) !important;
+
+  &::before {
+    content: '';
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    height: auto !important;
+    transform: none !important;
+    background: #FFFFFF !important;
+    border-radius: 0;
+  }
+
+  > i,
+  > div {
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+  }
+}
+
+html.theme-licas .layout-menu .menu-inner > .menu-item.open > .menu-link,
+html.theme-licas .layout-menu .menu-inner > .menu-item.active.open > .menu-link {
+  background: transparent !important;
+
+  > i,
+  > div {
+    color: #FFFFFF !important;
+  }
+}
+
+html.theme-licas .layout-menu .menu-sub > .menu-item > .menu-link {
+  min-height: 32px;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-accent-300) !important;
+  font-size: 13px;
+
+  > div {
+    color: inherit !important;
+  }
+
+  // Materio desenha um ponto antes do subitem; aqui ele vira só recuo.
+  &::before {
+    display: none !important;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, .06) !important;
+    color: #FFFFFF !important;
+  }
+}
+
+html.theme-licas .layout-menu .menu-inner > .menu-item > .menu-link .badge {
+  background: rgba(255, 255, 255, .12) !important;
+  color: #FFFFFF !important;
+}
+
+// ---------- Rodapé do menu: quem está logado ----------
+html.theme-licas .licas-menu-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+html.theme-licas .licas-avatar {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-accent-600);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+html.theme-licas .licas-menu-user__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+html.theme-licas .licas-menu-user__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html.theme-licas .licas-menu-user__role {
+  font-size: 12px;
+  color: var(--color-accent-400);
+}
+
+html.theme-licas.layout-menu-collapsed:not(.layout-menu-hover) .licas-menu-user__text,
+html.theme-licas.layout-menu-collapsed:not(.layout-menu-hover) .licas-wordmark__name {
+  display: none;
+}
+
+// ---------- Topbar ----------
+html.theme-licas .layout-navbar {
+  height: 56px;
+  background: var(--color-bg) !important;
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--color-divider);
+  box-shadow: none !important;
+}
+
+html.theme-licas .layout-navbar.navbar-detached {
+  margin: 0 !important;
+  padding: 0 var(--space-8) !important;
+  border-radius: 0 !important;
+  max-width: none;
+}
+
+@media (min-width: 1200px) {
+  html.theme-licas.layout-navbar-fixed:not(.layout-menu-collapsed) .layout-navbar.navbar-detached {
+    width: calc(100% - 16.25rem) !important;
+  }
+
+  html.theme-licas.layout-navbar-fixed.layout-menu-collapsed .layout-navbar.navbar-detached {
+    width: calc(100% - 5.25rem) !important;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  html.theme-licas .layout-navbar.navbar-detached {
+    width: 100% !important;
+    padding: 0 var(--space-4) !important;
+  }
+}
+
+html.theme-licas .licas-topbar-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html.theme-licas .licas-topbar-title strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+html.theme-licas .licas-icon-btn {
+  width: var(--control-h);
+  height: var(--control-h);
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 18px;
+  transition: background-color var(--ease);
+
+  &:hover {
+    background: var(--color-hover);
+  }
+}
+
+html.theme-licas .layout-navbar .dropdown-notifications .nav-link {
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md) !important;
+  width: var(--control-h);
+  height: var(--control-h);
+}
+
+html.theme-licas .layout-navbar .dropdown-user .avatar img {
+  width: 32px !important;
+}
+
+// ---------- Conteúdo ----------
+html.theme-licas .layout-page,
+html.theme-licas .content-wrapper {
+  background: var(--color-bg);
+}
+
+@media (min-width: 1200px) {
+  html.theme-licas .content-wrapper > .container-fluid.container-p-y {
+    padding: 28px var(--space-8) var(--space-8) !important;
+    max-width: 1600px;
+  }
+}
+
+html.theme-licas .content-footer,
+html.theme-licas .footer {
+  background: transparent !important;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+// Customizador do Materio (engrenagem roxa na lateral): a troca de tema já está na topbar.
+html.theme-licas #template-customizer {
+  display: none !important;
+}

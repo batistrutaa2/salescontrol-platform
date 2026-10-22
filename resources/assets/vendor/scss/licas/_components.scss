@@ -1,0 +1,166 @@
+// Peças do DS Licas (seção 7) para as telas redesenhadas usarem direto no Blade.
+// Prefixo lc- para não colidir com as famílias antigas (kpi-, pv-, kb-...).
+
+html.theme-licas {
+  .lc-overline {
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .lc-caption {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+  }
+
+  .lc-display {
+    font-family: var(--font-heading);
+    font-size: 40px;
+    line-height: 44px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  // 7.4 Card / painel
+  .lc-panel {
+    background: var(--color-card);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    min-width: 0;
+  }
+
+  .lc-panel__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .lc-panel__title {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    line-height: 22px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 2px 0 0;
+  }
+
+  // 7.5 KPI
+  .lc-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .lc-kpi__value {
+    font-family: var(--font-heading);
+    font-size: 38px;
+    line-height: 42px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-kpi);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .lc-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-weight: 600;
+  }
+
+  .lc-delta--up { color: var(--color-success); }
+  .lc-delta--down { color: var(--color-danger); }
+
+  // 7.2 Tags
+  .lc-tag {
+    height: 22px;
+    padding: 0 var(--space-2);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    background: var(--color-neutral-tag);
+    color: var(--color-neutral-tag-text);
+  }
+
+  .lc-tag--accent { background: var(--color-accent-tint); color: var(--color-accent-tint-text); }
+  .lc-tag--outline { background: transparent; border-color: var(--color-accent); color: var(--color-accent); }
+  .lc-tag--success { background: var(--color-success-100); color: var(--color-success-800); }
+  .lc-tag--warning { background: var(--color-warning-100); color: var(--color-warning-800); }
+  .lc-tag--danger { background: var(--color-danger-100); color: var(--color-danger-800); }
+
+  // 7.11 Tabela
+  .lc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    line-height: 19px;
+
+    th {
+      height: 36px;
+      padding: 0 var(--space-3);
+      text-align: left;
+      border-bottom: 1px solid var(--color-divider);
+    }
+
+    td {
+      height: 44px;
+      padding: 0 var(--space-3);
+      border-bottom: 1px solid var(--color-divider-soft);
+      color: var(--color-text);
+    }
+
+    tr:hover td { background: var(--color-row-hover); }
+    tr:last-child td { border-bottom: 0; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+  }
+
+  // 7.12 Funil e barras horizontais
+  .lc-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--color-surface);
+    overflow: hidden;
+  }
+
+  .lc-bar__fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--chart-1);
+  }
+
+  .lc-avatar {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--color-avatar);
+    color: var(--color-avatar-text);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .lc-avatar--sm { width: 20px; height: 20px; font-size: 9px; }
+}

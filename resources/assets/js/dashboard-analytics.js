@@ -460,7 +460,11 @@
 
         // Conversion Funnel Chart
         const funnelEl = document.querySelector('#conversionFunnelChart');
-        if (funnelEl) {
+        const licasFunnel = document.querySelector('#licasFunnel');
+        if (licasFunnel && document.documentElement.classList.contains('theme-licas')) {
+            // Tema Licas: o DS proíbe gauge circular para funil; usa as barras do Blade.
+            licasFunnel.hidden = false;
+        } else if (funnelEl) {
             conversionFunnelChart = new ApexCharts(funnelEl, getConversionFunnelConfig());
             conversionFunnelChart.render();
         }
@@ -629,6 +633,35 @@
             const conversaoRate = Math.round(conversaoMensal);
 
             conversionFunnelChart.updateSeries([implantacaoRate, conversaoRate, 100]);
+        }
+
+        const licasFunnel = document.querySelector('#licasFunnel');
+        if (licasFunnel && !licasFunnel.hidden) {
+            const implantacaoRate = totalContratosCadastrados > 0
+                ? Math.round((totalImplantadas / totalContratosCadastrados) * 100)
+                : 0;
+            const conversaoRate = Math.round(conversaoMensal);
+            // Largura relativa aos leads: cada etapa só pode ser menor ou igual à anterior.
+            const etapas = {
+                leads: { qtd: totalContatosImportados, largura: totalContatosImportados > 0 ? 100 : 0, nota: 'Base do mês' },
+                cadastrados: {
+                    qtd: (data.contratosCadastrados || []).length,
+                    largura: conversaoRate,
+                    nota: conversaoRate + '% dos leads trabalhados'
+                },
+                implantados: {
+                    qtd: (data.contratosImplantados || []).length,
+                    largura: Math.round(conversaoRate * implantacaoRate / 100),
+                    nota: implantacaoRate + '% do valor cadastrado'
+                }
+            };
+            Object.entries(etapas).forEach(([chave, etapa]) => {
+                const li = licasFunnel.querySelector(`[data-step="${chave}"]`);
+                if (!li) return;
+                li.querySelector('.js-funnel-qtd').textContent = etapa.qtd.toLocaleString('pt-BR');
+                li.querySelector('.lc-bar__fill').style.width = Math.min(100, Math.max(0, etapa.largura)) + '%';
+                li.querySelector('.js-funnel-nota').textContent = etapa.nota;
+            });
         }
 
         // Update Leads Import Chart

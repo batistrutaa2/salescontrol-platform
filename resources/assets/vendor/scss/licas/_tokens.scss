@@ -1,0 +1,156 @@
+// Tokens do tema Licas (DESIGN-LICAS.md, seções 2.6 e 9).
+// Só existem dentro de html.theme-licas: as outras empresas não enxergam nada daqui.
+// O escuro reaproveita a classe dark-style do Materio no lugar do [data-theme="dark"] do DS.
+
+html.theme-licas {
+  --color-bg: #F7F7F8;
+  --color-surface: #EFEFF2;
+  --color-text: #0E1230;
+  --color-text-muted: #5B5F78;
+  --color-accent: #141C5C;
+  --color-divider: rgba(14, 18, 48, .14);
+  --color-divider-soft: rgba(14, 18, 48, .07);
+
+  --color-accent-100: #EEF0FA;
+  --color-accent-200: #DCE0F2;
+  --color-accent-300: #BCC3E4;
+  --color-accent-400: #8C96C8;
+  --color-accent-500: #5A66A6;
+  --color-accent-600: #2E3A80;
+  --color-accent-700: #141C5C;
+  --color-accent-800: #0F1650;
+  --color-accent-900: #0A0F3D;
+
+  --color-neutral-100: #F7F7F8;
+  --color-neutral-200: #EFEFF2;
+  --color-neutral-300: #DDDEE4;
+  --color-neutral-400: #BDBFCA;
+  --color-neutral-500: #9A9DAE;
+  --color-neutral-600: #787C91;
+  --color-neutral-700: #5B5F78;
+  --color-neutral-800: #363A55;
+  --color-neutral-900: #0E1230;
+
+  --color-success: #2F7D5B;
+  --color-success-100: #E6F2EC;
+  --color-success-800: #1C4D38;
+  --color-warning: #A86B12;
+  --color-warning-100: #FBF1DE;
+  --color-warning-800: #5E3C08;
+  --color-danger: #B23A3A;
+  --color-danger-100: #F8E7E7;
+  --color-danger-800: #6B2121;
+
+  // Papéis derivados que o DS descreve em prosa; nomeados aqui para o claro e o escuro
+  // trocarem num lugar só.
+  --color-card: var(--color-bg);
+  --color-card-hover: var(--color-surface);
+  --color-card-border: var(--color-divider);
+  --color-sidebar: var(--color-accent-900);
+  --color-sidebar-border: transparent;
+  --color-on-accent: #FFFFFF;
+  // O âmbar base dá 4,1:1 sobre o papel; como texto usa o tom 800 do DS (8,8:1).
+  --color-warning-text: var(--color-warning-800);
+  --color-accent-hover: var(--color-accent-800);
+  --color-accent-pressed: var(--color-accent-900);
+  --color-accent-tint: var(--color-accent-100);
+  --color-accent-tint-text: var(--color-accent-800);
+  --color-neutral-tag: var(--color-surface);
+  --color-neutral-tag-text: var(--color-text-muted);
+  --color-kpi: var(--color-accent-900);
+  --color-hover: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  --color-row-hover: color-mix(in srgb, var(--color-accent) 4%, transparent);
+  --color-avatar: var(--color-accent-100);
+  --color-avatar-text: var(--color-accent-800);
+  --color-backdrop: rgba(10, 15, 61, .45);
+
+  // Triplos RGB: as telas antigas montam rgba(var(--x-rgb), .1).
+  --color-accent-rgb: 20, 28, 92;
+  --color-success-rgb: 47, 125, 91;
+  --color-warning-rgb: 168, 107, 18;
+  --color-danger-rgb: 178, 58, 58;
+
+  --chart-1: var(--color-accent-700);
+  --chart-2: var(--color-accent-400);
+  --chart-3: var(--color-neutral-500);
+
+  --font-brand: "Cinzel", Georgia, serif;
+  --font-heading: "Barlow Condensed", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, sans-serif;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+  --sidebar-w: 248px;
+  --control-h: 36px;
+
+  --shadow-sm: 0 1px 2px rgba(14, 18, 48, .10);
+  --shadow-md: 0 4px 12px rgba(14, 18, 48, .12);
+  --shadow-lg: 0 16px 40px rgba(14, 18, 48, .18);
+
+  --ease: 120ms ease-out;
+}
+
+html.theme-licas.dark-style {
+  --color-bg: #080B22;
+  --color-card: #131A4A;
+  --color-card-hover: #171E52;
+  --color-card-border: rgba(241, 242, 248, .12);
+  --color-surface: #1C2360;
+  --color-sidebar: #04061A;
+  --color-sidebar-border: rgba(241, 242, 248, .08);
+  --color-text: #F1F2F8;
+  --color-text-muted: #B9BFE2;
+  --color-accent: #BCC3E4;
+  --color-on-accent: #0A0F3D;
+  --color-accent-hover: #DCE0F2;
+  --color-accent-pressed: #8C96C8;
+  --color-divider: rgba(241, 242, 248, .14);
+  --color-divider-soft: rgba(241, 242, 248, .07);
+
+  --color-success: #5FB98E;
+  --color-success-100: rgba(95, 185, 142, .14);
+  --color-success-800: #A8E0C4;
+  --color-warning: #E0A54A;
+  --color-warning-100: rgba(224, 165, 74, .14);
+  --color-warning-800: #F2D29E;
+  --color-warning-text: var(--color-warning);
+  --color-danger: #E06B6B;
+  --color-danger-100: rgba(224, 107, 107, .14);
+  --color-danger-800: #F3B3B3;
+
+  --color-accent-tint: rgba(188, 195, 228, .12);
+  --color-accent-tint-text: #DCE0F2;
+  --color-neutral-tag: rgba(241, 242, 248, .08);
+  --color-neutral-tag-text: #C9CCE0;
+  --color-kpi: #FFFFFF;
+  --color-avatar: #2E3A80;
+  --color-avatar-text: #FFFFFF;
+
+  --color-accent-rgb: 188, 195, 228;
+  --color-success-rgb: 95, 185, 142;
+  --color-warning-rgb: 224, 165, 74;
+  --color-danger-rgb: 224, 107, 107;
+
+  --chart-1: #BCC3E4;
+  --chart-2: #5A66A6;
+  --chart-3: #787C91;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, .4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, .5);
+
+  color-scheme: dark;
+}

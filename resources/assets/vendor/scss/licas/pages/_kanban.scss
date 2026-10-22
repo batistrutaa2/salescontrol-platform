@@ -1,0 +1,489 @@
+// Kanban comercial (comercial/index + comercialkanban.js) no tema Licas, DS 7.10.
+// Coluna sem fundo marcada só pela borda superior de 2px; card de 14px sem trilho
+// colorido; temperatura e dias parado viram tags; o quadro ocupa a tela inteira.
+
+// ---------- Página: sem limite de largura, o quadro usa a tela toda ----------
+html.theme-licas .content-wrapper > .container-fluid:has(.app-kanban) {
+  max-width: none !important;
+}
+
+// ---------- Abas (7.9) ----------
+html.theme-licas .nav-tabs-modern {
+  background: transparent !important;
+  border: 0;
+  border-bottom: 1px solid var(--color-divider);
+  border-radius: 0;
+  box-shadow: none !important;
+  padding: 0;
+  margin-bottom: var(--space-5);
+  gap: var(--space-6);
+
+  &::before,
+  &::after {
+    display: none !important;
+  }
+
+  .nav-item .nav-link {
+    height: 44px;
+    padding: 0 !important;
+    margin-bottom: -1px;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: transparent !important;
+    border: 0 !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 600;
+    text-transform: none !important;
+    color: var(--color-text-muted) !important;
+
+    &::before,
+    &::after {
+      display: none !important;
+    }
+
+    i {
+      font-size: 16px;
+      color: inherit !important;
+    }
+
+    &.active {
+      color: var(--color-text) !important;
+      border-bottom-color: var(--color-accent) !important;
+    }
+
+    .badge {
+      background: var(--color-neutral-tag) !important;
+      color: var(--color-neutral-tag-text) !important;
+      animation: none !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+html.theme-licas .app-kanban {
+  // ---------- Filtros: uma linha, labels overline acima (7.3) ----------
+  .kanban-filters {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+
+    .filter-group {
+      flex: 0 1 240px;
+      min-width: 200px;
+
+      &:first-child {
+        flex: 1 1 320px;
+        max-width: 480px;
+      }
+    }
+
+    .form-floating {
+      display: flex;
+      flex-direction: column-reverse;
+      gap: var(--space-1);
+
+      > .form-control,
+      > .form-select {
+        height: var(--control-h);
+        min-height: var(--control-h);
+        padding: 0 var(--space-3);
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      > .form-select {
+        padding-right: 32px;
+      }
+
+      > label {
+        position: static;
+        transform: none !important;
+        height: auto;
+        padding: 0;
+        margin: 0;
+        border: 0;
+        opacity: 1 !important;
+        background: none !important;
+        font-size: 11px !important;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: .12em; // avoid-ai-design-ignore: SD4 (overline do DS Licas)
+        text-transform: uppercase;
+        color: var(--color-text-muted) !important;
+
+        &::after {
+          display: none;
+        }
+
+        i {
+          display: none;
+        }
+      }
+    }
+
+    #btn-fila-preditiva {
+      height: var(--control-h) !important;
+    }
+  }
+
+  // Barra de rolagem superior que espelha a horizontal do quadro.
+  .kanban-top-scroll {
+    height: 8px;
+    margin-bottom: var(--space-3);
+    background: transparent;
+    border: 0;
+    scrollbar-color: var(--color-neutral-400) transparent;
+
+    &::-webkit-scrollbar { height: 6px; }
+    &::-webkit-scrollbar-thumb { background: var(--color-neutral-400); border-radius: 3px; }
+    &::-webkit-scrollbar-track { background: var(--color-divider-soft); border-radius: 3px; }
+  }
+
+  // ---------- Quadro: altura da janela menos topbar, abas e filtros ----------
+  .kanban-wrapper {
+    height: calc(100vh - 250px);
+    min-height: 480px;
+    padding: 0 0 var(--space-4);
+
+    .kanban-container {
+      gap: var(--space-4);
+      padding: 0;
+    }
+
+    .kanban-board {
+      width: 300px !important;
+      min-width: 300px;
+      max-width: 300px;
+      margin: 0 !important;
+      background: transparent !important;
+      border: 0 !important;
+      border-top: 2px solid var(--color-text) !important;
+      border-radius: 0 !important;
+      backdrop-filter: none;
+      box-shadow: none !important;
+
+      &:hover {
+        box-shadow: none !important;
+      }
+
+      .kanban-board-header {
+        height: 44px;
+        padding: 0 var(--space-1) !important;
+        background: var(--color-bg) !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+
+        .kanban-title-board {
+          font-size: 11px !important;
+          line-height: 14px;
+          font-weight: 600;
+          letter-spacing: .12em; // avoid-ai-design-ignore: SD4 (overline do DS Licas)
+          color: var(--color-text) !important;
+
+          // Contador = tag neutra (7.2)
+          &::after {
+            height: 22px;
+            min-width: 22px;
+            padding: 0 var(--space-2);
+            border-radius: var(--radius-sm);
+            background: var(--color-neutral-tag);
+            color: var(--color-neutral-tag-text);
+            font-family: var(--font-body);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0;
+          }
+        }
+
+        .dropdown .dropdown-toggle {
+          width: 32px;
+          height: 32px;
+          display: grid;
+          place-items: center;
+          padding: 0;
+          border-radius: var(--radius-md);
+          color: var(--color-text-muted);
+          font-size: 16px;
+
+          &:hover {
+            background: var(--color-hover);
+            color: var(--color-text);
+          }
+        }
+      }
+
+      .kanban-drag {
+        padding: var(--space-1) 0 var(--space-4) !important;
+        scrollbar-color: var(--color-neutral-400) transparent;
+
+        &::-webkit-scrollbar-thumb { background: var(--color-neutral-400); }
+      }
+    }
+  }
+}
+
+// ---------- Card (fora do board também, por causa do espelho do drag) ----------
+html.theme-licas .app-kanban .kanban-item {
+  margin-bottom: var(--space-2) !important;
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-card-border) !important;
+  border-left: 1px solid var(--color-card-border) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: none !important;
+  transition: background-color var(--ease), border-color var(--ease);
+
+  &:hover {
+    transform: none !important;
+    background: var(--color-card-hover) !important;
+    border-color: var(--color-accent) !important;
+    box-shadow: none !important;
+  }
+
+  &::before,
+  &::after {
+    display: none !important;
+  }
+
+  .card-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3) !important;
+  }
+
+  .card-header-badges,
+  .badges-left {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    margin: 0;
+  }
+
+  // Tags (7.2): frio = contorno marinho, morno = alerta, quente = perigo.
+  .temp-badge,
+  .stale-badge {
+    height: 22px;
+    padding: 0 var(--space-2);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    border-radius: var(--radius-sm) !important;
+    border: 1px solid transparent;
+    box-shadow: none !important;
+    font-size: 11px !important;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    animation: none !important;
+
+    i {
+      font-size: 12px;
+    }
+  }
+
+  .temp-badge.temp-frio { background: transparent !important; border-color: var(--color-accent) !important; color: var(--color-accent) !important; }
+  .temp-badge.temp-morno { background: var(--color-warning-100) !important; color: var(--color-warning-800) !important; }
+  .temp-badge.temp-quente { background: var(--color-danger-100) !important; color: var(--color-danger-800) !important; }
+
+  // Dias parado: neutra; vira alerta e perigo conforme os limites da empresa.
+  .stale-badge.stale-warning { background: var(--color-neutral-tag) !important; color: var(--color-neutral-tag-text) !important; }
+  .stale-badge.stale-danger { background: var(--color-warning-100) !important; color: var(--color-warning-800) !important; }
+  .stale-badge.stale-critical { background: var(--color-danger-100) !important; color: var(--color-danger-800) !important; }
+
+  .client-name {
+    margin: 0 !important;
+    // É um h6: sem o !important a regra de títulos do _base troca para a Condensed.
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+    line-height: 20px;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    color: var(--color-text) !important;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: 0 !important;
+      background: none !important;
+      border: 0 !important;
+      font-size: 12px !important;
+      line-height: 16px;
+      font-weight: 500;
+      // O espaço da Barlow é estreito; sem isso "(11) 9..." parece colado.
+      word-spacing: .12em;
+      color: var(--color-text-muted) !important;
+
+      i {
+        font-size: 12px;
+        color: inherit !important;
+      }
+    }
+  }
+
+  .card-footer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-height: 32px;
+    margin: 0;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  .broker-info {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
+
+    .broker-avatar {
+      width: 20px !important;
+      height: 20px !important;
+      flex: 0 0 auto;
+      border-radius: 50% !important;
+      background: var(--color-avatar) !important;
+      color: var(--color-avatar-text) !important;
+      font-size: 9px !important;
+      font-weight: 600;
+      box-shadow: none !important;
+    }
+
+    .broker-name {
+      font-size: 12px !important;
+      font-weight: 500;
+      color: var(--color-text-muted) !important;
+      letter-spacing: 0 !important;
+      text-transform: none !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  // Ações (7.1 botão-ícone 32×32): aparecem no hover em telas com mouse.
+  .action-buttons {
+    display: flex;
+    gap: var(--space-1);
+  }
+
+  .action-btn,
+  .kanban-view-btn {
+    width: 32px !important;
+    height: 32px !important;
+    display: inline-grid !important;
+    place-items: center;
+    padding: 0;
+    background: var(--color-card) !important;
+    border: 1px solid var(--color-divider) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: none !important;
+    color: var(--color-text) !important;
+    font-size: 16px;
+    transform: none !important;
+
+    i {
+      color: inherit !important;
+    }
+
+    &:hover {
+      background: var(--color-hover) !important;
+      border-color: var(--color-accent) !important;
+    }
+  }
+
+  .action-btn.btn-discard {
+    color: var(--color-danger) !important;
+
+    &:hover {
+      background: var(--color-danger-100) !important;
+      border-color: var(--color-danger) !important;
+    }
+  }
+
+  .kanban-view-btn {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+  }
+
+  @media (hover: hover) {
+    .action-buttons,
+    .kanban-view-btn {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity var(--ease);
+    }
+
+    &:hover,
+    &:focus-within {
+      .action-buttons,
+      .kanban-view-btn {
+        opacity: 1;
+        visibility: visible;
+      }
+    }
+  }
+}
+
+// Card sendo arrastado (DS 6): sombra média, 1 grau, borda accent.
+html.theme-licas .kanban-item.gu-mirror {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-accent) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-md) !important;
+  transform: rotate(1deg) !important;
+}
+
+html.theme-licas .kanban-item.gu-transit {
+  opacity: .4 !important;
+  border-style: dashed !important;
+}
+
+@media (max-width: 767.98px) {
+  html.theme-licas .app-kanban {
+    .kanban-filters .filter-group,
+    .kanban-filters .filter-group:first-child {
+      flex: 1 1 100%;
+      max-width: none;
+    }
+
+    .kanban-wrapper {
+      height: calc(100vh - 320px);
+
+      .kanban-board {
+        width: 280px !important;
+        min-width: 280px;
+        max-width: 280px;
+      }
+    }
+  }
+}

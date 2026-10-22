@@ -1,0 +1,108 @@
+// Login no tema Licas (DESIGN-LICAS.md, seção 8): papel, monograma M em
+// Cinzel com a linha cruzando a base, wordmark e um formulário de 360px. É a única tela
+// em que a Cinzel aparece em tamanho grande.
+
+html.theme-licas .licas-login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-12) var(--space-4);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+html.theme-licas .licas-login__inner {
+  width: 100%;
+  max-width: 360px;
+}
+
+html.theme-licas .licas-login__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--space-10);
+  color: var(--color-accent);
+}
+
+html.theme-licas .licas-login__mono {
+  position: relative;
+  font-family: var(--font-brand) !important;
+  font-size: 120px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 0 var(--space-6);
+
+  // Linha hairline cruzando a base do M, mais larga que a letra.
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 24px;
+    height: 1.5px;
+    background: currentColor;
+  }
+}
+
+html.theme-licas .licas-login__name {
+  margin-top: var(--space-5);
+  font-family: var(--font-brand) !important;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+  // O tracking deixa um espaço depois da última letra; compensa para centralizar.
+  margin-right: -.32em;
+}
+
+html.theme-licas .licas-login__sub {
+  margin-top: var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .5em;
+  text-transform: uppercase;
+  margin-right: -.5em;
+  color: var(--color-text-muted);
+}
+
+html.theme-licas .licas-login {
+  // .mb-5 fica no markup porque o pages-auth.js usa como rowSelector do FormValidation.
+  .mb-5 {
+    margin-bottom: var(--space-4) !important;
+  }
+
+  .form-control,
+  .input-group-text {
+    min-height: 44px;
+  }
+
+  .input-group-merge .form-control {
+    border-right: 0;
+  }
+
+  .input-group-merge .input-group-text {
+    border-left: 0;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+  }
+
+  .input-group-merge:focus-within :is(.form-control, .input-group-text) {
+    border-color: var(--color-accent);
+  }
+
+  .form-check-label {
+    font-size: 14px;
+    color: var(--color-text);
+  }
+
+  .btn-lg {
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .fv-plugins-message-container,
+  .invalid-feedback {
+    font-size: 12px;
+    color: var(--color-danger);
+  }
+}

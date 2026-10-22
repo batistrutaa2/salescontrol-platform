@@ -9,4 +9,5 @@ Orientação explícita do usuário, reafirmada em 15/09/2026: toda nova feature
 - Bootstrap sozinho não representa o design system deste projeto. Não criar uma identidade visual isolada por rota nem substituir o sistema por preferências da skill.
 - Direções específicas em `DESIGN.md`, como Temporada Comercial, valem apenas para a superfície documentada. Nas demais telas, prevalece o SalesControl UI.
 - Verificar desktop e celular, temas claro e escuro, controles e estados com dados. Manter as regras de negócio durante ajustes visuais.
+- Exceção: empresas com tema Licas (`empresas.tema = 'licas'`, classe `theme-licas`) seguem `DESIGN-LICAS.md` e a seção "Tema Licas" de `CLAUDE.md`, não o SalesControl UI.
 - Usar o wrapper `./dev` ou os containers do projeto para PHP, Composer, Node, npm, Artisan e testes, conforme `CLAUDE.md`.

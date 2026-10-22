@@ -264,6 +264,24 @@
     return String(raw);
   }
 
+  // Tema Licas (DS 7.10): nome do cliente em Title Case, não em CAIXA ALTA.
+  // Partículas ficam minúsculas e siglas societárias continuam em maiúsculas.
+  const TEMA_LICAS = document.documentElement.classList.contains('theme-licas');
+  const PARTICULAS = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+  const SIGLAS = new Set(['LTDA', 'ME', 'EPP', 'SA', 'S/A', 'EIRELI', 'MEI', 'SLU', 'CIA']);
+  function toTitleCaseBr(nome) {
+    return nome
+      .split(/\s+/)
+      .map((parte, i) => {
+        const upper = parte.toUpperCase();
+        if (SIGLAS.has(upper.replace(/\./g, ''))) return upper;
+        const lower = parte.toLocaleLowerCase('pt-BR');
+        if (i > 0 && PARTICULAS.has(lower)) return lower;
+        return lower.charAt(0).toLocaleUpperCase('pt-BR') + lower.slice(1);
+      })
+      .join(' ');
+  }
+
   // Escape mínimo para inserção em HTML — usado no pre-render de cards.
   const HTML_ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   function escapeHtml(s) {
@@ -275,12 +293,13 @@
   // item.title no boards.map(), economizando a passada de re-render no init.
   function buildCardHTMLFromData(d) {
     const idMailing = d.id;
-    const nameOnCard = (d.nome_cliente || d.title || '').trim();
+    const nomeOriginal = (d.nome_cliente || d.title || '').trim();
+    const nameOnCard = TEMA_LICAS ? toTitleCaseBr(nomeOriginal) : nomeOriginal;
     const temperatura = d['badge-text'] || 'FRIO';
     const dataCreate = d.data_create || '';
     const dataUpdate = d.data_update || '';
     const comments = String(d.comments || '0');
-    const userName = d['user-name'] || '';
+    const userName = TEMA_LICAS ? toTitleCaseBr(d['user-name'] || '') : d['user-name'] || '';
     const showNameCard = d['show-name-card'] === true || d['show-name-card'] === 'true';
     const telefone = formatPhoneBr(d.telefone1);
     const tabulacaoCodigo = String(d['tabulacao-codigo'] || '');
@@ -483,7 +502,8 @@
   const kanban = new jKanban({
     element: '.kanban-wrapper',
     gutter: '5px',
-    widthBoard: '250px',
+    // Tema Licas: colunas de 300px (DS 7.10); o CSS do tema também fixa a largura.
+    widthBoard: document.documentElement.classList.contains("theme-licas") ? "300px" : "250px",
     dragItems: true,
     boards: boards,
     // Cards podem mover entre colunas; colunas em si ficam fixas — a ordem dos

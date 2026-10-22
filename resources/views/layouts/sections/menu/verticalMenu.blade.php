@@ -11,13 +11,20 @@
     <!-- ! Hide app brand if navbar-full -->
     @if (!isset($navbarFull))
         <div class="app-brand demo">
-            <a href="{{ url('/') }}" class="app-brand-link">
-                <span class="app-brand-logo demo me-1">
-                    @include('_partials.macros', ['height' => 20])
-                </span>
-                <span
-                    class="app-brand-text demo menu-text fw-semibold ms-2">M &amp; L</span>
-            </a>
+            @if (Helper::temaEmpresa() === 'licas')
+                <a href="{{ url('/') }}" class="app-brand-link licas-wordmark" aria-label="Licas Consultoria, início">
+                    <span class="licas-wordmark__mono" aria-hidden="true">M</span>
+                    <span class="licas-wordmark__name menu-text">Licas</span>
+                </a>
+            @else
+                <a href="{{ url('/') }}" class="app-brand-link">
+                    <span class="app-brand-logo demo me-1">
+                        @include('_partials.macros', ['height' => 20])
+                    </span>
+                    <span
+                        class="app-brand-text demo menu-text fw-semibold ms-2">M &amp; L</span>
+                </a>
+            @endif
 
             <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
                 <i class="menu-toggle-icon d-xl-block align-middle"></i>
@@ -113,5 +120,20 @@
         @endforeach
         @endif
     </ul>
+
+    @if (Helper::temaEmpresa() === 'licas')
+        @php
+            $usuarioMenu = Auth::user();
+            $iniciaisMenu = collect(preg_split('/\s+/', trim($usuarioMenu->name)))
+                ->filter()->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode('');
+        @endphp
+        <div class="licas-menu-user">
+            <span class="licas-avatar" aria-hidden="true">{{ mb_strtoupper($iniciaisMenu) }}</span>
+            <span class="licas-menu-user__text menu-text">
+                <span class="licas-menu-user__name">{{ \Illuminate\Support\Str::title(mb_strtolower($usuarioMenu->name)) }}</span>
+                <span class="licas-menu-user__role">{{ \Illuminate\Support\Str::title(mb_strtolower($rules)) }}</span>
+            </span>
+        </div>
+    @endif
 
 </aside>

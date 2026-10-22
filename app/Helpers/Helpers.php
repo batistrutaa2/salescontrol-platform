@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -204,6 +205,36 @@ class Helpers
     }
 
     return $layoutClasses;
+  }
+
+  /**
+   * Tema visual da empresa ativa (empresas.tema), ou null para o visual padrão.
+   * Segue o tenant resolvido, então o admin da plataforma enxerga o tema da empresa
+   * que está operando.
+   */
+  public static function temaEmpresa(): ?string
+  {
+    $user = Auth::user();
+    if (!$user) {
+      return request()->routeIs('login', 'login.form', 'register', 'password.*')
+        ? (config('custom.tema_login') ?: null)
+        : null;
+    }
+
+    // Cache por requisição: o helper roda no layout, no menu e na navbar.
+    $attrs = request()->attributes;
+    if ($attrs->has('empresa_tema')) {
+      return $attrs->get('empresa_tema');
+    }
+
+    // Empresa ativa só pelo TenantContext (regra do TenantContextTest).
+    $tenant = app(\App\Support\TenantContext::class);
+    $tema = $tenant->isResolved()
+      ? \App\Models\Empresa::query()->whereKey($tenant->id())->value('tema')
+      : null;
+    $attrs->set('empresa_tema', $tema);
+
+    return $tema;
   }
 
   public static function updatePageConfig($pageConfigs)

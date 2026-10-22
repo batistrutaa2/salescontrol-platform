@@ -1,0 +1,13 @@
+// Tema Licas: DESIGN-LICAS.md é a fonte da verdade.
+// Carregado só para empresas com empresas.tema = 'licas' (layouts/sections/styles.blade.php),
+// depois dos estilos de página. Tudo aqui é escopado em html.theme-licas.
+
+@import 'tokens';
+@import 'remap';
+@import 'base';
+@import 'shell';
+@import 'components';
+@import 'pages/dashboard';
+@import 'pages/agendamentos';
+@import 'pages/login';
+@import 'pages/kanban';

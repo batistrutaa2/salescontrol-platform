@@ -559,6 +559,24 @@ Dates from backend come pre-formatted as `'DD/MM/YYYY HH:mm:ss'`. **DO NOT** for
     }
 }
 ```
+## Tema Licas (por empresa)
+
+Empresas com `empresas.tema = 'licas'` recebem a classe `theme-licas` no `<html>` e um visual
+próprio: marinho sobre papel, Barlow / Barlow Condensed / Cinzel, claro e escuro. A fonte da
+verdade é `DESIGN-LICAS.md`; a seção "Design System - SalesControl UI" abaixo
+(roxo, glass, Plus Jakarta Sans, JetBrains Mono) **não** se aplica a essas empresas.
+
+- Tudo do tema fica em `resources/assets/vendor/scss/licas/` e é sempre escopado em
+  `html.theme-licas`; nada ali pode alterar o visual das outras empresas.
+- `_remap.scss` é GERADO por `python3 tools/licas-remap.py`: ele redefine os tokens antigos de
+  cada tela (`--dash-*`, `--pv-*`, `--kb-*`...) para os tokens Licas. Token novo numa tela
+  antiga → rodar o script de novo; não editar o arquivo à mão.
+- Telas redesenhadas ganham um arquivo em `licas/pages/` importado no `licas.scss`.
+- Gráficos ApexCharts passam por `resources/assets/js/licas-charts.js`, que troca as cores
+  sozinho; `data-licas-series="marca"` no elemento força todas as séries para o marinho.
+- Escolha do tema: `Helper::temaEmpresa()` (empresa ativa pelo `TenantContext`). O login usa
+  `config('custom.tema_login')` (`TEMA_LOGIN` no `.env`, padrão `licas`).
+
 ## Design System - SalesControl UI
 
 ### Visão Geral

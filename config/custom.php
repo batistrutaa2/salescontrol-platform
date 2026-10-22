@@ -6,6 +6,10 @@
 //! To clear local storage: (https://www.leadshook.com/help/how-to-clear-local-storage-in-google-chrome-browser/).
 
 return [
+  // Tema das telas de acesso (antes do login não há empresa para escolher o tema).
+  // 'licas' segue a marca que o login já usa; vazio volta ao visual padrão.
+  'tema_login' => env('TEMA_LOGIN', 'licas'),
+
   'custom' => [
     'myLayout' => 'vertical', // Options[String]: vertical(default), horizontal
     'myTheme' => 'theme-default', // Options[String]: theme-default(default), theme-bordered, theme-semi-dark

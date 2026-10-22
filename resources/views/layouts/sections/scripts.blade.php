@@ -12,6 +12,9 @@
 ])
 
 @yield('vendor-script')
+@if (Helper::temaEmpresa() === 'licas')
+@vite(['resources/assets/js/licas-charts.js'])
+@endif
 <!-- END: Page Vendor JS-->
 <!-- BEGIN: Theme JS-->
 @vite(['resources/assets/js/main.js'])
@@ -23,3 +26,20 @@
 <!-- BEGIN: Page JS-->
 @yield('page-script')
 <!-- END: Page JS-->
+
+@if (Helper::temaEmpresa() === 'licas')
+<script>
+  // Tema Licas: alterna claro/escuro pelo mesmo cookie "mode" que o Helper::appClasses lê.
+  document.addEventListener('click', function (e) {
+    const botao = e.target.closest('[data-licas-theme-toggle]');
+    if (!botao) return;
+    const proximo = document.documentElement.classList.contains('dark-style') ? 'light' : 'dark';
+    if (window.templateCustomizer) {
+      window.templateCustomizer.setStyle(proximo);
+    } else {
+      document.cookie = 'mode=' + proximo + ';path=/;max-age=31536000;SameSite=Lax';
+      window.location.reload();
+    }
+  });
+</script>
+@endif

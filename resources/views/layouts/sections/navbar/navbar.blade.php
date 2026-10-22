@@ -40,7 +40,25 @@
 @endif
 
 <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
+    @if (Helper::temaEmpresa() === 'licas')
+        <a href="javascript:void(0)" class="layout-menu-toggle licas-icon-btn d-xl-none me-3" aria-label="Abrir menu">
+            <i class="ri-menu-line"></i>
+        </a>
+        <div class="licas-topbar-title">
+            <span>Licas Consultoria</span>
+            <span aria-hidden="true">/</span>
+            <strong>@yield('title')</strong>
+        </div>
+    @endif
     <ul class="navbar-nav flex-row align-items-center ms-auto">
+        @if (Helper::temaEmpresa() === 'licas')
+            <li class="nav-item me-2">
+                <button type="button" class="licas-icon-btn" data-licas-theme-toggle
+                    aria-label="Alternar tema claro e escuro" title="Alternar tema claro e escuro">
+                    <i class="{{ $configData['style'] === 'dark' ? 'ri-sun-line' : 'ri-moon-line' }}"></i>
+                </button>
+            </li>
+        @endif
 
         @if ($isPlatformAdmin)
             <li class="nav-item me-3 platform-company-switch">

@@ -29,3 +29,9 @@
 
 <!-- Page Styles -->
 @yield('page-style')
+
+@if (Helper::temaEmpresa() === 'licas')
+<!-- Tema Licas: depois dos estilos de página para vencer os tokens de cada tela -->
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&family=Cinzel:wght@500&display=swap" rel="stylesheet">
+@vite(['resources/assets/vendor/scss/licas/licas.scss'])
+@endif
