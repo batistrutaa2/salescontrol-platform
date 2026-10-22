@@ -43,9 +43,13 @@ html.theme-licas {
 
   // Papéis derivados que o DS descreve em prosa; nomeados aqui para o claro e o escuro
   // trocarem num lugar só.
-  --color-card: var(--color-bg);
-  --color-card-hover: var(--color-surface);
-  --color-card-border: var(--color-divider);
+  // Cards brancos sobre o papel (decisão do dono, 22/10/2026): no DS original o card
+  // claro era transparente e sumia no fundo, principalmente no kanban.
+  --color-card: #FFFFFF;
+  --color-card-hover: #FFFFFF;
+  --color-card-border: rgba(14, 18, 48, .12);
+  // Faixa atrás das colunas do kanban, um passo abaixo do papel.
+  --color-lane: #EDEEF2;
   // Sidebar: clara no tema claro (decisão do dono, 22/10/2026, no lugar do marinho
   // 900 do DS 7.7) e quase preta no escuro. Contrastes AA conferidos sobre #FFFFFF.
   --color-sidebar: #FFFFFF;
@@ -125,10 +129,11 @@ html.theme-licas {
 
 html.theme-licas.dark-style {
   --color-bg: #080B22;
-  --color-card: #131A4A;
-  --color-card-hover: #171E52;
-  --color-card-border: rgba(241, 242, 248, .12);
-  --color-surface: #1C2360;
+  --color-card: #1B2461;
+  --color-card-hover: #212B6B;
+  --color-card-border: rgba(241, 242, 248, .14);
+  --color-lane: #0B1030;
+  --color-surface: #252F72;
   --color-sidebar: #04061A;
   --color-sidebar-border: rgba(241, 242, 248, .08);
   --sb-text: var(--color-accent-200);

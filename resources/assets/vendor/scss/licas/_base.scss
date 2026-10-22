@@ -249,9 +249,18 @@ html.theme-licas .btn:is(:disabled, .disabled) {
 }
 
 // ---------- Foco (6) ----------
-html.theme-licas :is(a, button, .btn, input, select, textarea, [tabindex]):focus-visible {
+html.theme-licas :is(a, button, .btn, [tabindex]):not(input, select, textarea):focus-visible,
+html.theme-licas :is(input[type="checkbox"], input[type="radio"]):focus-visible {
   outline: 2px solid var(--color-accent) !important;
   outline-offset: 2px;
+  box-shadow: none !important;
+}
+
+// Campos (7.3): o foco é só a borda marinho. Contorno + borda + o halo que as telas
+// antigas colocam deixavam o select inteiro azul ao clicar.
+html.theme-licas :is(input, select, textarea, .form-control, .form-select):focus,
+html.theme-licas :is(input, select, textarea, .form-control, .form-select):focus-visible {
+  outline: none !important;
   box-shadow: none !important;
 }
 

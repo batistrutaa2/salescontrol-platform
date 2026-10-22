@@ -1,0 +1,243 @@
+// Toasts (toastr) e lista do sino no tema Licas.
+// O toast antigo era vidro com ícone branco num quadrado em gradiente; o DS não tem
+// vidro nem fundo colorido atrás de ícone (10). Aqui vira um cartão sólido de 14px
+// e o ícone aparece só na cor do status (máscara sobre o mesmo SVG do toastr.scss).
+
+html.theme-licas {
+  // Toast flutua sobre o conteúdo: no claro um passo acima do papel (branco), no
+  // escuro a cor de card.
+  --color-float: #FFFFFF;
+}
+
+html.theme-licas.dark-style {
+  --color-float: var(--color-card);
+}
+
+html.theme-licas #toast-container {
+  > div,
+  > .toast.toast-critical {
+    --sc-toast-heading: var(--color-text);
+    --sc-toast-text: var(--color-text);
+    --sc-toast-muted: var(--color-text-muted);
+    --sc-toast-hover: var(--color-hover);
+
+    min-height: 0;
+    padding: var(--space-4) 48px var(--space-4) 48px !important;
+    background-image: none !important;
+    background-color: var(--color-float) !important;
+    border: 1px solid var(--color-card-border) !important;
+    border-radius: var(--radius-xl) !important;
+    box-shadow: var(--shadow-md) !important;
+    backdrop-filter: none !important;
+    font-family: var(--font-body) !important;
+    animation-timing-function: ease-out !important;
+  }
+
+  // Ícone sem quadrado: a cor do status pintada através do desenho do SVG.
+  > div::before {
+    top: var(--space-4);
+    left: var(--space-4);
+    width: 20px;
+    height: 20px;
+    border-radius: 0;
+    transform: none;
+    background-image: none;
+    background-color: var(--sc-toast-accent);
+    -webkit-mask: var(--sc-toast-icon) center / 20px no-repeat;
+    mask: var(--sc-toast-icon) center / 20px no-repeat;
+  }
+
+  > .toast-success { --sc-toast-accent: var(--color-success); }
+  > .toast-info { --sc-toast-accent: var(--color-accent); }
+  > .toast-warning { --sc-toast-accent: var(--color-warning-text); }
+  > .toast-error { --sc-toast-accent: var(--color-danger); }
+
+  // Trilho colorido e brilho que o estilo antigo põe nos toasts críticos.
+  .toast-critical::after {
+    display: none !important;
+  }
+
+  .toast-title {
+    font-family: var(--font-heading) !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: var(--color-text) !important;
+  }
+
+  .toast-message {
+    font-size: 13px !important;
+    line-height: 19px !important;
+    color: var(--color-text) !important;
+  }
+
+  .app-toast-context {
+    margin-bottom: var(--space-1);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em; // avoid-ai-design-ignore: SD4 (overline do DS Licas)
+    color: var(--color-text-muted);
+  }
+
+  .app-toast-heading {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--color-text);
+  }
+
+  .app-toast-copy {
+    color: var(--color-text);
+  }
+
+  .app-toast-meta {
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  .toast-close-button {
+    top: var(--space-2) !important;
+    right: var(--space-2) !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--color-text-muted) !important;
+    font-size: 18px !important;
+  }
+
+  .toast-close-button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 0;
+  }
+
+  .toast-progress {
+    height: 2px !important;
+    background: var(--sc-toast-accent) !important;
+    opacity: .5 !important;
+  }
+}
+
+// ---------- Sino ----------
+html.theme-licas #nav-sino {
+  width: var(--control-h) !important;
+  height: var(--control-h) !important;
+  border: 1px solid var(--color-divider) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-text) !important;
+
+  > i {
+    font-size: 18px !important;
+  }
+
+  .notif-count {
+    top: -7px;
+    right: -7px;
+    border: 2px solid var(--color-bg);
+    background: var(--color-danger);
+    box-sizing: content-box;
+  }
+
+  &.is-ringing {
+    border-color: var(--color-accent) !important;
+  }
+}
+
+// ---------- Lista do sino ----------
+html.theme-licas .dropdown-notifications .dropdown-menu {
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  padding: 0 !important;
+  overflow: hidden;
+  background: var(--color-float);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+
+  .dropdown-menu-header {
+    border-bottom: 1px solid var(--color-divider) !important;
+  }
+
+  .dropdown-header {
+    padding: var(--space-3) var(--space-4) !important;
+
+    h6 {
+      font-family: var(--font-heading);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    a {
+      font-size: 12px !important;
+      font-weight: 500;
+      color: var(--color-accent) !important;
+    }
+  }
+
+  .dropdown-notifications-list {
+    max-height: 420px;
+  }
+
+  .list-group-item {
+    padding: var(--space-3) var(--space-4);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--color-divider-soft);
+    color: var(--color-text);
+    transition: background-color var(--ease);
+
+    &:hover {
+      background: var(--color-row-hover);
+    }
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  // Ícone do tipo: sem círculo colorido, na cor secundária do texto.
+  .dropdown-notifications-item a > span:first-child {
+    width: 20px !important;
+    height: 20px !important;
+    margin-top: 2px;
+    margin-right: var(--space-3) !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    color: var(--color-text-muted) !important;
+
+    i {
+      font-size: 18px !important;
+    }
+  }
+
+  .dropdown-notifications-item h6 {
+    margin-bottom: 2px !important;
+    font-family: var(--font-body);
+    font-size: 13px !important;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .dropdown-notifications-item small {
+    font-size: 12px;
+    line-height: 17px;
+    color: var(--color-text-muted) !important;
+
+    strong {
+      color: var(--color-text);
+      font-weight: 600;
+    }
+  }
+
+  // Ponto de "não lida" à direita do item.
+  .dropdown-notifications-actions .badge-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--color-accent) !important;
+  }
+
+  .list-group-item.text-center {
+    padding: var(--space-6) var(--space-4);
+    font-size: 13px;
+    color: var(--color-text-muted) !important;
+  }
+}

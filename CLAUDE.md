@@ -564,6 +564,11 @@ verdade é `DESIGN-LICAS.md`; a seção "Design System - SalesControl UI" abaixo
 - `_remap.scss` é GERADO por `python3 tools/licas-remap.py`: ele redefine os tokens antigos de
   cada tela (`--dash-*`, `--pv-*`, `--kb-*`...) para os tokens Licas. Token novo numa tela
   antiga → rodar o script de novo; não editar o arquivo à mão.
+- `_hardcoded.scss` é GERADO por `node tools/licas-hardcoded.mjs` (rodar no container do
+  vite: `docker exec salescontrol-platform-dev-vite-1 sh -c 'cd /var/www/html && node tools/licas-hardcoded.mjs'`):
+  compila o SCSS das telas e os `<style>` dos Blades e sobrescreve as cores da identidade
+  antiga escritas direto no CSS (roxo, ciano, gradientes, brilhos). Mexeu em CSS de tela
+  antiga → rodar os dois geradores.
 - Telas redesenhadas ganham um arquivo em `licas/pages/` importado no `licas.scss`.
 - Gráficos ApexCharts passam por `resources/assets/js/licas-charts.js`, que troca as cores
   sozinho; `data-licas-series="marca"` no elemento força todas as séries para o marinho.

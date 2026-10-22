@@ -132,7 +132,7 @@ for passo, neutro in {"50": 100, "100": 100, "200": 200, "300": 300, "400": 400,
                       "600": 600, "700": 700, "800": 800, "900": 900}.items():
     MAPA[f"slate-{passo}"] = f"var(--color-neutral-{neutro})"
 
-DEF = re.compile(r"^\s*--([a-z0-9]+)-([a-z0-9-]+)\s*:")
+DEF = re.compile(r"^\s*--([a-z0-9]+)-([a-z0-9-]+)\s*:\s*([^;]*)")
 ESCURO = re.compile(r"^(html)?\.(dark|light)-style\s*")
 GLOBAIS = {"", ":root", "html", "body"}
 
@@ -171,12 +171,13 @@ def coletar():
                 limpa = linha.split("//")[0] if arq.suffix == ".scss" else linha
                 m = DEF.match(limpa)
                 if m and m.group(1) not in IGNORAR_PREFIXOS:
+                    VALORES.setdefault(m.group(1, 2), []).append(m.group(3).strip())
                     for sel in seletor_atual(pilha) or [""]:
                         sel = normalizar(sel)
                         if sel.startswith("@") or "@" in sel:
                             continue
                         chave = "" if sel in GLOBAIS else sel
-                        por_seletor.setdefault(chave, set()).add(m.groups())
+                        por_seletor.setdefault(chave, set()).add(m.group(1, 2))
                 abre, fecha = limpa.count("{"), limpa.count("}")
                 if abre and "{" in limpa:
                     sel = limpa.split("{")[0].strip()
@@ -189,10 +190,46 @@ def coletar():
     return por_seletor
 
 
+VALORES = {}
+
+# Cor cheia -> tom claro do DS. Usado quando o token antigo era um fundo claro.
+TINTS = {
+    ACCENT: "var(--color-accent-tint)",
+    "var(--color-success)": "var(--color-success-100)",
+    "var(--color-warning)": "var(--color-warning-100)",
+    "var(--color-danger)": "var(--color-danger-100)",
+}
+
+
+def eh_tom_claro(valor):
+    """True para #FEE2E2, rgba(..., .1) e afins: fundo claro, não parada de gradiente."""
+    valor = valor.strip().lower()
+    m = re.fullmatch(r"#([0-9a-f]{3}|[0-9a-f]{6})", valor)
+    if m:
+        h = m.group(1)
+        if len(h) == 3:
+            h = "".join(c * 2 for c in h)
+        r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+        return (max(r, g, b) + min(r, g, b)) / 2 > 0.85
+    m = re.fullmatch(r"rgba\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\)", valor)
+    return bool(m) and float(m.group(1)) <= 0.3
+
+
+def destino(prefixo, sufixo):
+    alvo = MAPA[sufixo]
+    # Só a família *-light é ambígua: em ~330 usos é parada de gradiente (vira a cor
+    # cheia), mas em algumas telas é o fundo claro de um botão; se ficasse cheia, o
+    # ícone da mesma cor desaparecia (ex.: excluir lançamento em recebíveis).
+    if sufixo.endswith("light") and alvo in TINTS:
+        if any(eh_tom_claro(v) for v in VALORES.get((prefixo, sufixo), [])):
+            return TINTS[alvo]
+    return alvo
+
+
 def bloco(seletores, nomes):
     linhas = [",\n".join(seletores) + " {"]
     for prefixo, sufixo in sorted(nomes):
-        linhas.append(f"  --{prefixo}-{sufixo}: {MAPA[sufixo]};")
+        linhas.append(f"  --{prefixo}-{sufixo}: {destino(prefixo, sufixo)};")
     linhas.append("}")
     return linhas
 

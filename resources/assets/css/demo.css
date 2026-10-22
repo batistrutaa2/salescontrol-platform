@@ -169,3 +169,67 @@
   background-color: #fff1c9;
   border-color: #e4ce99;
 }
+
+/*
+ * Scroll horizontal fantasma: várias telas têm enfeites com ::before/::after
+ * posicionados para fora do conteúdo (ex.: .ag-page-header::before com left/right -50%).
+ * Eles alargavam a página e criavam barra de rolagem horizontal sem conteúdo.
+ * `clip` corta só o eixo X e, ao contrário de `hidden`, não vira container de rolagem:
+ * sticky, dropdowns e as rolagens internas (kanban, tabelas) continuam iguais.
+ */
+.layout-page {
+  overflow-x: clip;
+}
+
+/*
+ * Sino da navbar: contador de não lidas e balanço quando chegam mais de 3 notificações
+ * de uma vez (lógica em layouts/sections/scriptsIncludes.blade.php, buscarNotificacoes).
+ */
+#nav-sino {
+  overflow: visible !important;
+}
+
+#nav-sino .notif-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #b23a3a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+#nav-sino .notif-count[hidden] {
+  display: none;
+}
+
+@keyframes sinoBalanca {
+  0%, 100% { transform: rotate(0); }
+  3% { transform: rotate(14deg); }
+  6% { transform: rotate(-12deg); }
+  9% { transform: rotate(9deg); }
+  12% { transform: rotate(-6deg); }
+  15% { transform: rotate(0); }
+}
+
+#nav-sino.is-ringing > i {
+  display: inline-block;
+  transform-origin: 50% 2px;
+  animation: sinoBalanca 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #nav-sino.is-ringing > i {
+    animation: none;
+  }
+}

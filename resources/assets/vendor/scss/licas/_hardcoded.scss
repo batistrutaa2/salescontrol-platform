@@ -1,0 +1,2450 @@
+// GERADO por tools/licas-hardcoded.mjs. Não editar à mão: rode o script de novo.
+
+// Sobrescreve as cores da identidade antiga escritas direto no CSS das telas.
+
+
+
+/* pages/app-calendar.scss */
+html.theme-licas.dark-style :where(.app-calendar-wrapper .event-sidebar .select2-results .select2-results__option.select2-results__option--highlighted) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/app-chat.scss */
+html.theme-licas.light-style :where(.app-chat .app-chat-contacts .chat-actions .chat-search-input),
+html.theme-licas.light-style :where(.app-chat .app-chat-sidebar-left .chat-actions .chat-search-input) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/app-email.scss */
+html.theme-licas :where(.app-email .app-email-sidebar .email-filters .email-filter-folders li.active) {
+  border-color: var(--color-accent) !important;
+}
+
+/* pages/app-email.scss */
+html.theme-licas.dark-style :where(.app-email .app-email-sidebar ul li:not(.active) a) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/app-email.scss */
+html.theme-licas.dark-style :where(.app-email .app-email-compose .modal-dialog .modal-header) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/app-invoice.scss */
+html.theme-licas.dark-style :where(.invoice-preview .invoice-preview-header),
+html.theme-licas.dark-style :where(.invoice-edit .invoice-preview-header),
+html.theme-licas.dark-style :where(.invoice-add .invoice-preview-header) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/app-kanban.scss */
+html.theme-licas :where(.nav-tabs-modern .nav-item .nav-link:hover) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/app-kanban.scss */
+html.theme-licas :where(.nav-tabs-modern .nav-item .nav-link.active) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/app-kanban.scss */
+html.theme-licas.dark-style :where(.nav-tabs-modern .nav-item .nav-link:hover) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/app-kanban.scss */
+html.theme-licas.dark-style :where(.nav-tabs-modern .nav-item .nav-link.active) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/app-logistics-dashboard.scss */
+html.theme-licas.dark-style :where(.vehicles-overview-progress .bg-gray-900) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/app-logistics-fleet.scss */
+html.theme-licas.dark-style :where(.app-logistics-fleet-wrapper .btn-white.btn-white-dark-variant) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/backoffice-contract-pme.scss */
+html.theme-licas :where(.demanda-tipo.tipo-carta_permanencia) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-contract-pme.scss */
+html.theme-licas :where(.demanda-tipo.tipo-portabilidade) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-contract-pme.scss */
+html.theme-licas :where(.demanda-tipo.tipo-troca_email) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-contract.scss */
+html.theme-licas :where(.acessos-empresa-card .card-header .header-icon-info) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-contract.scss */
+html.theme-licas :where(.acessos-toolbar .btn-add-acesso) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/backoffice-contract.scss */
+html.theme-licas :where(.acesso-card .acesso-header .acesso-icon) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/backoffice-contract.scss */
+html.theme-licas :where(.modal-acesso .modal-header .modal-icon) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/backoffice-contract.scss */
+html.theme-licas :where(.modal-acesso .modal-footer .btn-save) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/backoffice-contract.scss */
+html.theme-licas :where(.acesso-empresa-modal-section .acesso-modal-header .acesso-modal-icon) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/backoffice-contract.scss */
+html.theme-licas :where(.demanda-tipo.tipo-carta_permanencia) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-contract.scss */
+html.theme-licas :where(.demanda-tipo.tipo-portabilidade) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-contract.scss */
+html.theme-licas :where(.demanda-tipo.tipo-troca_email) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kanban-column-header .status-value) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kanban-column-header .status-count) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.card-seller-row .seller-avatar) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.card-seller-row .seller-avatar[data-tone="1"]) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.card-seller-row .seller-avatar[data-tone="2"]) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.card-seller-row .seller-avatar[data-tone="5"]) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.card-seller-row .seller-avatar[data-tone="6"]) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kanban-page .card-seller-row .dias-fila-pill) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-modal-header.kb-modal-header-primary) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-modal-header.kb-modal-header-info) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-form-input:focus),
+html.theme-licas :where(.kb-form-select:focus),
+html.theme-licas :where(.kb-form-textarea:focus) {
+  border-color: var(--kb-primary, var(--color-accent)) !important;
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-file-upload:hover) {
+  border-color: var(--kb-primary, var(--color-accent)) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-card-section.kb-card-section-info) {
+  border-color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-card-section.kb-card-section-info .kb-card-section-header) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-card-section.kb-card-section-info .kb-card-section-icon) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-implantado-col-label) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-implantado-col-label svg) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-demandas-selectall) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-demandas-selectall:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-demandas-checklist)::-webkit-scrollbar-thumb {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-demanda-check:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-demanda-check:has(input:checked)) {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-divider) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-demanda-check input) {
+  accent-color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-badge.kb-badge-info) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-btn-primary) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas :where(.kb-btn-primary:hover:not(:disabled)) {
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kb-form-input:focus),
+html.theme-licas.dark-style :where(.kb-form-select:focus),
+html.theme-licas.dark-style :where(.kb-form-textarea:focus) {
+  border-color: var(--kb-primary, var(--color-accent)) !important;
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kb-file-upload:hover) {
+  border-color: var(--kb-primary, var(--color-accent)) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kb-card-section.kb-card-section-info) {
+  border-color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kb-card-section.kb-card-section-info .kb-card-section-header) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kb-demanda-check:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kb-demanda-check:has(input:checked)) {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kb-badge.kb-badge-info) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kb-implantado-col-label),
+html.theme-licas.dark-style :where(.kb-implantado-col-label svg) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kb-demandas-selectall) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/backoffice-kanban.scss */
+html.theme-licas.dark-style :where(.kb-demandas-selectall:hover) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .pipeline-header .header-title i) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .pipeline-header .header-filters .filter-item .form-control:focus),
+html.theme-licas :where(.backoffice-pipeline .pipeline-header .header-filters .filter-item .form-select:focus) {
+  border-color: var(--color-accent) !important;
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .pipeline-kpis .kpi-card .kpi-icon.icon-total) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .pipeline-kpis .kpi-card .kpi-icon.icon-conversao) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .pipeline-legend .legend-item .legend-dot.legend-flow) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .flow-connector .connector-line) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .flow-connector .connector-line)::before {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .flow-connector .connector-arrow) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .pipeline-stage .stage-header.status-venda) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .pipeline-stage .stage-header.status-analise-docs) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .pipeline-stage .stage-header.status-contrato-gerado) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .contract-card .card-footer-info .card-actions .action-btn.btn-view) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .contract-card .card-footer-info .card-actions .action-btn.btn-view:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .contract-card .card-footer-info .card-actions .action-btn.btn-history) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.backoffice-pipeline .contract-card .card-footer-info .card-actions .action-btn.btn-history:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.history-timeline .timeline-item.status-venda)::before {
+  border-color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.history-timeline .timeline-item.status-analise-docs)::before {
+  border-color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas :where(.history-timeline .timeline-item.status-contrato-gerado)::before {
+  border-color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas.light-style :where(.backoffice-pipeline .pipeline-container .contract-card .card-footer-info .broker-info .broker-avatar) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas.dark-style :where(.backoffice-pipeline .pipeline-header .header-title h4) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas.dark-style :where(.backoffice-pipeline .pipeline-kpis .kpi-card .kpi-content .kpi-value) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas.dark-style :where(.backoffice-pipeline .pipeline-container .contract-card .card-header-info .contract-name) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas.dark-style :where(.backoffice-pipeline .pipeline-container .contract-card .card-footer-info .broker-info .broker-avatar) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/backoffice-pipeline.scss */
+html.theme-licas.dark-style :where(.history-timeline .timeline-item .timeline-content .timeline-status) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-switcher) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-switcher-select select:focus) {
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-bv-btn) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-bv-btn:hover) {
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-chip) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-step.current .pv-step-dot) {
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-input:focus) {
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-btn-primary) {
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-btn-primary:hover) {
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-cofre-search-symbol) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-cofre-search-title-row span) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-cofre-search-input:focus) {
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-cofre-result-icon) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-cofre-edit:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-cliente-count) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-cli-card.is-link:hover) {
+  box-shadow: none !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-status.st-andamento) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-mini-btn) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/backoffice-processos.scss */
+html.theme-licas :where(.pv-mini-btn:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/busca-contrato.scss */
+html.theme-licas :where(.bc-search-box:focus-within) {
+  box-shadow: none !important;
+}
+
+/* pages/busca-contrato.scss */
+html.theme-licas :where(.bc-search-tag) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/busca-contrato.scss */
+html.theme-licas :where(.bc-status.andamento) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-badge-origem) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-kanban-column-body.drag-over) {
+  background: var(--color-accent-tint) !important;
+  outline: 2px dashed var(--color-accent) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-timeline-item--atualizacao .spv-timeline-dot) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-timeline-item--atualizacao .spv-timeline-campo) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-prazo--adiado) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-btn-adiar) {
+  color: var(--color-accent) !important;
+  border: 1px solid var(--color-divider) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-btn-adiar:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-retorno-atual) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-retorno-atalhos button) {
+  border: 1px solid var(--color-divider) !important;
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-retorno-atalhos button:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas :where(.spv-retorno-actions #btnSpvRetornarAgora) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas.dark-style :where(#modalNovaSolicitacao .pv-form-input:focus),
+html.theme-licas.dark-style :where(#modalNovaSolicitacao .pv-form-textarea:focus),
+html.theme-licas.dark-style :where(#modalNovaSolicitacao .spv-move-select:focus),
+html.theme-licas.dark-style :where(#modalDetalheSolicitacao .pv-form-input:focus),
+html.theme-licas.dark-style :where(#modalDetalheSolicitacao .pv-form-textarea:focus),
+html.theme-licas.dark-style :where(#modalDetalheSolicitacao .spv-move-select:focus),
+html.theme-licas.dark-style :where(#modalGerenciarEtapas .pv-form-input:focus),
+html.theme-licas.dark-style :where(#modalGerenciarEtapas .pv-form-textarea:focus),
+html.theme-licas.dark-style :where(#modalGerenciarEtapas .spv-move-select:focus),
+html.theme-licas.dark-style :where(#modalProgramarRetorno .pv-form-input:focus),
+html.theme-licas.dark-style :where(#modalProgramarRetorno .pv-form-textarea:focus),
+html.theme-licas.dark-style :where(#modalProgramarRetorno .spv-move-select:focus) {
+  border-color: var(--pv-primary, var(--color-accent)) !important;
+  box-shadow: none !important;
+}
+
+/* pages/central-solicitacoes.scss */
+html.theme-licas.dark-style :where(.spv-retorno-atual) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-page .mdv-list-badge) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-page .mdv-card-tipo) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-page .mdv-status-badge.is-andamento) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-btn:focus-visible) {
+  outline: 3px solid var(--color-accent) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-btn-primary) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-btn-primary:hover) {
+  box-shadow: none !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-btn-ghost) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-btn-ghost:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-modal .mdv-input),
+html.theme-licas :where(.mdv-modal .mdv-textarea) {
+  border: 1px solid var(--color-divider) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-modal .mdv-input:focus),
+html.theme-licas :where(.mdv-modal .mdv-textarea:focus) {
+  border-color: var(--color-accent) !important;
+  box-shadow: none !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-tour .mdv-tour-spot) {
+  box-shadow: none !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas :where(.mdv-tour .mdv-tour-prog) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas.dark-style :where(.mdv-page .mdv-card-tipo) {
+  color: var(--color-accent-tint-text) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas.dark-style :where(.mdv-page .mdv-list-badge) {
+  color: var(--color-accent-tint-text) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/comercial-minhas-demandas.scss */
+html.theme-licas.dark-style :where(.mdv-page .mdv-status-badge.is-andamento) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/comercial-open-client.scss */
+html.theme-licas :where(.sale-modal .section-header .section-icon.icon-info) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/comercial-open-client.scss */
+html.theme-licas :where(.oc-consulta-input:focus) {
+  border-color: var(--km-primary, var(--color-accent)) !important;
+}
+
+/* pages/comercial-open-client.scss */
+html.theme-licas :where(.oc-consulta-btn) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/comercial-open-client.scss */
+html.theme-licas :where(.oc-hist-count) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/comercial-open-client.scss */
+html.theme-licas :where(.oc-search-input:focus) {
+  border-color: var(--km-primary, var(--color-accent)) !important;
+}
+
+/* pages/comercial-open-client.scss */
+html.theme-licas :where(.oc-search-btn) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/comercial-open-client.scss */
+html.theme-licas :where(.oc-hist-item:hover) {
+  border-color: var(--km-primary, var(--color-accent)) !important;
+}
+
+/* pages/comercial-open-client.scss */
+html.theme-licas :where(.oc-hist-item.oc-hist-item-active) {
+  border-color: var(--km-primary, var(--color-accent)) !important;
+}
+
+/* pages/comercial-open-client.scss */
+html.theme-licas :where(.oc-hist-badge.badge-cpf) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/comercial-open-client.scss */
+html.theme-licas :where(.oc-hist-badge.badge-cnpj) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/dashboard-vendedor.scss */
+html.theme-licas :where(.dv-period-filter button.is-active) {
+  box-shadow: none !important;
+}
+
+/* pages/dashboard-vendedor.scss */
+html.theme-licas :where(.dv-score-ranking) {
+  box-shadow: none !important;
+}
+
+/* pages/dashboard-vendedor.scss */
+html.theme-licas :where(.dv-score-ranking .dv-ranking-heading) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/dashboard-vendedor.scss */
+html.theme-licas :where(.dv-score-ranking > p) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/dashboard-vendedor.scss */
+html.theme-licas :where(.dv-ranking-movement span) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/dashboard-vendedor.scss */
+html.theme-licas :where(.dv-season-track),
+html.theme-licas :where(.dv-sales-ledger) {
+  box-shadow: none !important;
+}
+
+/* pages/dashboard-vendedor.scss */
+html.theme-licas :where(.dv-insights > article) {
+  box-shadow: none !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-section-head > div > span) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-live) {
+  box-shadow: none !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-filter),
+html.theme-licas :where(.dl-panel),
+html.theme-licas :where(.dl-position-panel),
+html.theme-licas :where(.dl-sales-panel) {
+  box-shadow: none !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-presets button:hover),
+html.theme-licas :where(.dl-presets button.is-active) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-filter-grid input) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-filter-grid input:focus) {
+  border-color: var(--color-accent) !important;
+  box-shadow: none !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-filter-grid button) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-presets button:focus-visible),
+html.theme-licas :where(.dl-filter-grid button:focus-visible),
+html.theme-licas :where(.dl-filter-grid input:focus-visible) {
+  outline: 3px solid var(--color-divider) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-loading span) {
+  border: 4px solid var(--color-divider) !important;
+  border-top-color: var(--color-accent) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-definition) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-definition i) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-status-row i)::after {
+  background: var(--color-accent) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-table th) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-ranking-row:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-ranking-row:focus-within) {
+  outline: 3px solid var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-row-action button) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-share i)::after {
+  background: var(--color-accent) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-seller-modal .modal-content) {
+  box-shadow: none !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-modal-icon) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-modal-close:focus-visible) {
+  outline: 3px solid var(--color-divider) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-modal-loading span) {
+  border: 3px solid var(--color-divider) !important;
+  border-top-color: var(--color-accent) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-modal-error button) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-modal-error button:focus-visible) {
+  outline: 3px solid var(--color-divider) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-modal-section-head > strong) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas :where(.dl-modal-status > i)::after {
+  background: var(--color-accent) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas.dark-style :where(.dl-definition) {
+  color: var(--color-accent-tint-text) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas.dark-style :where(.dl-presets button.is-active) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas.dark-style :where(.dl-ranking-row:hover),
+html.theme-licas.dark-style :where(.dl-ranking-row:focus-within) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/distribuicao-leads.scss */
+html.theme-licas.dark-style :where(.dl-modal-loading span) {
+  border-top-color: var(--color-accent) !important;
+}
+
+/* pages/envio-cotacao.scss */
+html.theme-licas :where(.ec-preview-frame) {
+  box-shadow: none !important;
+}
+
+/* pages/envio-cotacao.scss */
+html.theme-licas :where(.ec-preview-frame .ec-mail-attach) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/envio-cotacao.scss */
+html.theme-licas :where(.ec-preview-frame .ec-mail-footer) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/front-page-pricing.scss */
+html.theme-licas :where(.pricing-free-trial) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/front-page-pricing.scss */
+html.theme-licas.light-style :where(.bg-alt-pricing) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/front-page.scss */
+html.theme-licas.dark-style :where(.navbar.landing-navbar .navbar-brand .navbar-toggler) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/front-page.scss */
+html.theme-licas.dark-style :where(.navbar.landing-navbar .navbar-nav .nav-link) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/front-page.scss */
+html.theme-licas.dark-style :where(.navbar .menu-text) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/front-page.scss */
+html.theme-licas :where(.landing-footer .form-floating.form-floating-outline .form-control) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/gerenciar-leads.scss */
+html.theme-licas :where(.gl-page-header .gl-page-icon) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/gerenciar-leads.scss */
+html.theme-licas :where(.gl-filter-bar .gl-filter-item select:focus),
+html.theme-licas :where(.gl-filter-bar .gl-filter-item input:focus) {
+  box-shadow: none !important;
+}
+
+/* pages/gerenciar-leads.scss */
+html.theme-licas :where(.gl-bulk-toolbar) {
+  border-bottom: 1px solid var(--color-divider) !important;
+}
+
+/* pages/gerenciar-leads.scss */
+html.theme-licas :where(.gl-bulk-toolbar .gl-selected-count) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/gerenciar-leads.scss */
+html.theme-licas :where(.gl-bulk-toolbar .gl-bulk-btn.gl-btn-reactivate) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/gerenciar-leads.scss */
+html.theme-licas :where(.gl-bulk-toolbar .gl-bulk-btn.gl-btn-reactivate:hover) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/gerenciar-leads.scss */
+html.theme-licas :where(.gl-table-card .dataTables_paginate .paginate_button.current) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/gerenciar-leads.scss */
+html.theme-licas :where(.gl-table-card .dataTables_filter input:focus) {
+  box-shadow: none !important;
+}
+
+/* pages/gerenciar-leads.scss */
+html.theme-licas :where(.gl-table-card .dt-checkboxes-cell .form-check-input:checked),
+html.theme-licas :where(.gl-table-card .form-check-input.gl-row-check:checked) {
+  background-color: var(--color-accent) !important;
+  border-color: var(--dash-primary, var(--color-accent)) !important;
+}
+
+/* pages/gerenciar-leads.scss */
+html.theme-licas :where(#modalTransfer .gl-modal-header),
+html.theme-licas :where(#modalComentarios .gl-modal-header),
+html.theme-licas :where(#modalConfirm .gl-modal-header) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/importar-mailing.scss */
+html.theme-licas :where(.mailing-import)::selection {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/importar-mailing.scss */
+html.theme-licas :where(.mailing-import :focus-visible) {
+  outline: 3px solid var(--color-accent) !important;
+}
+
+/* pages/importar-mailing.scss */
+html.theme-licas :where(.mi-status.is-predictive) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/importar-mailing.scss */
+html.theme-licas.dark-style :where(.mi-status.is-predictive) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/kanban-modal.scss */
+html.theme-licas :where(.kp-hero-strip) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/liminar.scss */
+html.theme-licas :where(#modalNovoProcesso .pv-form-input:focus),
+html.theme-licas :where(#modalNovoProcesso .pv-form-textarea:focus),
+html.theme-licas :where(#modalNovoProcesso .lim-modal-select:focus),
+html.theme-licas :where(#modalDetalhes .pv-form-input:focus),
+html.theme-licas :where(#modalDetalhes .pv-form-textarea:focus),
+html.theme-licas :where(#modalDetalhes .lim-modal-select:focus) {
+  border-color: var(--pv-primary, var(--color-accent)) !important;
+  box-shadow: none !important;
+}
+
+/* pages/liminar.scss */
+html.theme-licas.dark-style :where(#modalNovoProcesso .pv-form-input:focus),
+html.theme-licas.dark-style :where(#modalNovoProcesso .pv-form-textarea:focus),
+html.theme-licas.dark-style :where(#modalNovoProcesso .lim-modal-select:focus),
+html.theme-licas.dark-style :where(#modalDetalhes .pv-form-input:focus),
+html.theme-licas.dark-style :where(#modalDetalhes .pv-form-textarea:focus),
+html.theme-licas.dark-style :where(#modalDetalhes .lim-modal-select:focus) {
+  border-color: var(--pv-primary, var(--color-accent)) !important;
+  box-shadow: none !important;
+}
+
+/* pages/liminar.scss */
+html.theme-licas :where(.lim-kanban-column-body.drag-over) {
+  background: var(--color-accent-tint) !important;
+  outline: 2px dashed var(--color-accent) !important;
+}
+
+/* pages/liminar.scss */
+html.theme-licas :where(.lim-tab.is-active) {
+  color: var(--color-accent) !important;
+  border-bottom-color: var(--dash-primary, var(--color-accent)) !important;
+}
+
+/* pages/liminar.scss */
+html.theme-licas :where(.lim-tab-badge) {
+  background: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/liminar.scss */
+html.theme-licas :where(.lim-group-title) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/liminar.scss */
+html.theme-licas :where(.lim-upload-slot:hover) {
+  border-color: var(--dash-primary-light, var(--color-accent)) !important;
+}
+
+/* pages/liminar.scss */
+html.theme-licas :where(.lim-upload-slot.is-drag) {
+  border-color: var(--dash-primary, var(--color-accent)) !important;
+  background: var(--color-accent) !important;
+}
+
+/* pages/liminar.scss */
+html.theme-licas :where(.lim-slot-hint u) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/mascote-assistente.scss */
+html.theme-licas :where(.mascote-corpo) {
+  filter: none !important;
+}
+
+/* pages/mascote-assistente.scss */
+html.theme-licas :where(.masc-bochecha) {
+  fill: var(--color-accent) !important;
+}
+
+/* pages/mascote-assistente.scss */
+html.theme-licas :where(.mascote-balao-fechar:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/mascote-assistente.scss */
+html.theme-licas :where(.mascote-btn-primario) {
+  box-shadow: none !important;
+}
+
+/* pages/mascote-assistente.scss */
+html.theme-licas :where(.mascote-btn-primario:hover) {
+  box-shadow: none !important;
+}
+
+/* pages/mascote-assistente.scss */
+html.theme-licas :where(.mascote-btn-fantasma:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/mascote-assistente.scss */
+html.theme-licas :where(.mascote-tour-prog i) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/mascote-assistente.scss */
+html.theme-licas :where(.mascote-tour-texto a) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/mascote-assistente.scss */
+html.theme-licas :where(.mascote-tour-prev:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/meus-estornos.scss */
+html.theme-licas :where(.me-page-header .me-title-icon) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/meus-estornos.scss */
+html.theme-licas :where(.me-page-header .me-title-text h1) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/meus-estornos.scss */
+html.theme-licas :where(.me-btn:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/meus-estornos.scss */
+html.theme-licas :where(.me-btn.me-btn-primary) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/meus-estornos.scss */
+html.theme-licas :where(.me-btn.me-btn-primary:hover) {
+  box-shadow: none !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.doc-item-mini .check-icon.purple) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.doc-item-mini .check-icon.pink) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.docs-conditional-mini .cond-badge.cond-purple) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.docs-conditional-mini .cond-badge.cond-pink) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.alert-box.alert-pink) {
+  background: var(--color-accent-tint) !important;
+  border: 1px solid var(--color-divider) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.doc-item .doc-check.doc-check-info) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.docs-conditional .conditional-header .conditional-badge.conditional-badge-info) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.np-wizard-shell .np-action-primary),
+html.theme-licas :where(.np-wizard-shell #np-avancar-etapa) {
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.np-wizard-shell .np-portabilidade-add:hover) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas.dark-style :where(.np-wizard-shell .np-type-choice input:checked + span),
+html.theme-licas.dark-style :where(.np-wizard-shell .np-data-disclaimer),
+html.theme-licas.dark-style :where(.np-wizard-shell .np-group-guide),
+html.theme-licas.dark-style :where(.np-wizard-shell .np-inherit-plan) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.np-sale-card-icon-notes) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas.dark-style :where(.np-sale-card-icon-notes) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.np-lookup-button) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas.dark-style :where(.np-lookup-button) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas :where(.np-wizard-shell .np-step.is-active .np-step-number) {
+  border-color: var(--color-accent) !important;
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas.dark-style :where(.np-wizard-shell .np-step.is-active) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas.dark-style :where(.np-wizard-shell .np-step.is-active .np-step-number) {
+  border-color: var(--color-accent) !important;
+  background: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas.light-style :where(.np-wizard-shell .np-document-state.is-ready) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas.light-style :where(.np-wizard-shell .np-document-state.is-uploading) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas.dark-style :where(.np-wizard-shell .np-document-state.is-ready) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/nova-proposta.scss */
+html.theme-licas.dark-style :where(.np-wizard-shell .np-document-state.is-uploading) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(.btn-ia-flutuante) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(.btn-ia-flutuante .btn-ia-pulse) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(.btn-ia-flutuante:hover) {
+  box-shadow: none !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .modal-ia-header) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .modal-ia-body)::-webkit-scrollbar-thumb {
+  background: var(--color-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .modal-ia-body::-webkit-scrollbar-thumb:hover) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .ia-loading .ia-loading-animation .ia-brain svg) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .ia-loading .ia-loading-dots span) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .ia-result .ia-result-content ul li)::before {
+  background: var(--color-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .ia-result .ia-result-content ol li::marker) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .ia-result .ia-result-content code) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .ia-result .ia-result-footer .ia-actions button.btn-ia-refresh) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .ia-result .ia-result-footer .ia-actions button.btn-ia-refresh:hover) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .ia-error .btn-ia-retry) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/open-client.scss */
+html.theme-licas :where(#modalAnaliseIA .ia-error .btn-ia-retry:hover) {
+  box-shadow: none !important;
+}
+
+/* pages/operadoras-planos.scss */
+html.theme-licas :where(.op-item.is-active) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/operadoras-planos.scss */
+html.theme-licas :where(.op-directory-icon) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/operadoras-planos.scss */
+html.theme-licas :where(.op-directory-input-wrap:focus-within) {
+  box-shadow: none !important;
+}
+
+/* pages/operadoras-planos.scss */
+html.theme-licas :where(.op-input:focus) {
+  box-shadow: none !important;
+}
+
+/* pages/operadoras-planos.scss */
+html.theme-licas :where(.op-btn-primary) {
+  box-shadow: none !important;
+}
+
+/* pages/operadoras-planos.scss */
+html.theme-licas :where(.op-toggle) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/operadoras-planos.scss */
+html.theme-licas :where(.op-toggle:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/page-auth-5anos.scss */
+html.theme-licas :where(.lk5-login-page) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/page-auth-5anos.scss */
+html.theme-licas :where(.lk5-login-page .lk5-form-panel)::before {
+  background-image: var(--color-accent) !important;
+}
+
+/* pages/page-auth-5anos.scss */
+html.theme-licas :where(.lk5-login-page .lk5-card) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/page-auth-5anos.scss */
+html.theme-licas :where(.lk5-login-page .lk5-marca svg) {
+  filter: none !important;
+}
+
+/* pages/page-auth-5anos.scss */
+html.theme-licas :where(.lk5-login-page .form-floating.form-floating-outline .form-control:focus ~ label)::after,
+html.theme-licas :where(.lk5-login-page .form-floating.form-floating-outline .form-control:not(:placeholder-shown) ~ label)::after,
+html.theme-licas :where(.lk5-login-page .form-floating.form-floating-outline .form-control:-webkit-autofill ~ label)::after {
+  background-color: var(--color-accent) !important;
+}
+
+/* pages/page-faq.scss */
+html.theme-licas.dark-style :where(.bg-faq-section) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/page-funnel-manager.scss */
+html.theme-licas :where(.funnel-hero) {
+  box-shadow: none !important;
+}
+
+/* pages/page-funnel-manager.scss */
+html.theme-licas :where(.funnel-hero__guardrail p) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/page-funnel-manager.scss */
+html.theme-licas :where(.funnel-hero__guardrail i) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/page-funnel-manager.scss */
+html.theme-licas :where(.funnel-create) {
+  box-shadow: none !important;
+}
+
+/* pages/page-funnel-manager.scss */
+html.theme-licas :where(.funnel-board) {
+  box-shadow: none !important;
+}
+
+/* pages/page-integrations-manager.scss */
+html.theme-licas :where(.integration-hero) {
+  box-shadow: none !important;
+}
+
+/* pages/page-integrations-manager.scss */
+html.theme-licas :where(.integration-hero__guardrail i) {
+  color: var(--color-accent-tint-text) !important;
+}
+
+/* pages/page-integrations-manager.scss */
+html.theme-licas :where(.integration-ledger) {
+  box-shadow: none !important;
+}
+
+/* pages/performance-vendedor.scss */
+html.theme-licas :where(.pv-table-card .pv-table-icon) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/pos-venda.scss */
+html.theme-licas :where(.bv-canal-option .bv-canal-icon.bv-canal-icon-email) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/pos-venda.scss */
+html.theme-licas :where(.bv-preview-btn-email) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+}
+
+/* pages/pos-venda.scss */
+html.theme-licas :where(.bv-preview-btn-email:hover) {
+  box-shadow: none !important;
+}
+
+/* pages/pos-venda.scss */
+html.theme-licas :where(.mailcli-chrome) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/pos-venda.scss */
+html.theme-licas :where(.mailcli-meta) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/pos-venda.scss */
+html.theme-licas :where(.mailcli-avatar) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/pos-venda.scss */
+html.theme-licas :where(.bv-acessos-count) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/pos-venda.scss */
+html.theme-licas :where(.bv-add-acesso) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/pos-venda.scss */
+html.theme-licas :where(.bv-app-row) {
+  border-left: 3px solid var(--pv-primary, var(--color-accent)) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-page) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-eyebrow),
+html.theme-licas :where(.qv-panel-head span),
+html.theme-licas :where(.qv-period-bar span) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-hero-badge) {
+  box-shadow: none !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-filter-card),
+html.theme-licas :where(.qv-panel) {
+  box-shadow: none !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-presets button:hover),
+html.theme-licas :where(.qv-presets button.is-active) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-filter-grid input),
+html.theme-licas :where(.qv-filter-grid select) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-filter-grid input:focus),
+html.theme-licas :where(.qv-filter-grid select:focus) {
+  border-color: var(--color-accent) !important;
+  box-shadow: none !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-primary-btn) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-loading span) {
+  border: 4px solid var(--color-divider) !important;
+  border-top-color: var(--color-accent) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-period-bar strong) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-kpi) {
+  box-shadow: none !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-kpi:hover) {
+  box-shadow: none !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-tabs button.is-active),
+html.theme-licas :where(.qv-modal-filters button.is-active) {
+  color: var(--color-accent) !important;
+  box-shadow: none !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-podium-card) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-podium-card:first-child) {
+  border-color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-podium-card .qv-place) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-table th) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-table tbody tr:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-table .qv-seller) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-modal-card > header span) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas :where(.qv-modal-card > footer button.is-active) {
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas.dark-style :where(.qv-tabs button.is-active),
+html.theme-licas.dark-style :where(.qv-modal-filters button.is-active) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas.dark-style :where(.qv-podium-card:first-child) {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-accent) !important;
+}
+
+/* pages/qualidade-vendas.scss */
+html.theme-licas.dark-style :where(.qv-modal-card > footer button.is-active) {
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/recebiveis.scss */
+html.theme-licas :where(.kpi-card.kpi-parcela .kpi-icon) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/recebiveis.scss */
+html.theme-licas :where(.kpi-card.kpi-vitalicio .kpi-icon) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/recebiveis.scss */
+html.theme-licas :where(.btn-editar-selecionados:hover) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/recebiveis.scss */
+html.theme-licas :where(.tipo-badge.tipo-parcela) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/recebiveis.scss */
+html.theme-licas :where(.tipo-badge.tipo-vitalicio) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/recebiveis.scss */
+html.theme-licas.dark-style :where(.tipo-badge.tipo-parcela) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/recebiveis.scss */
+html.theme-licas.dark-style :where(.tipo-badge.tipo-vitalicio) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/recebiveis.scss */
+html.theme-licas :where(.swal-recebiveis input[type=text]:focus),
+html.theme-licas :where(.swal-recebiveis input[type=date]:focus) {
+  box-shadow: none !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-title-icon) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-title-icon)::after {
+  border: 1.5px dashed var(--color-accent) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-btn-primary) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-btn-primary:not(:disabled):hover) {
+  box-shadow: none !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-btn-soft) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-btn-soft:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-btn-ghost:hover) {
+  color: var(--color-accent) !important;
+  border-color: var(--dash-primary, var(--color-accent)) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-tabs .nav-link:hover:not(.active)) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-tabs .nav-link.active) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-selected-count) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-card .dataTables_paginate .paginate_button.current) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-card .dataTables_filter input:focus) {
+  box-shadow: none !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(.rl-page .rl-card .form-check-input:checked) {
+  background-color: var(--color-accent) !important;
+  border-color: var(--dash-primary, var(--color-accent)) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(#modalConfigReciclagem .modal-header) {
+  background-color: var(--color-accent-tint) !important;
+}
+
+/* pages/reciclagem-leads.scss */
+html.theme-licas :where(#modalConfigReciclagem .form-switch .form-check-input:checked) {
+  background-color: var(--color-accent) !important;
+  border-color: var(--dash-primary, var(--color-accent)) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.badge-pme) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+  border: 1px solid var(--color-divider) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.regras-recebimentos-page .btn-action),
+html.theme-licas :where(.btn-action) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.regras-recebimentos-page .btn-action.btn-edit),
+html.theme-licas :where(.btn-action.btn-edit) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+  border-color: var(--color-divider) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.regras-recebimentos-page .btn-action.btn-edit:hover),
+html.theme-licas :where(.btn-action.btn-edit:hover) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.regras-recebimentos-page .btn-action.btn-parcelas),
+html.theme-licas :where(.btn-action.btn-parcelas) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+  border-color: var(--color-divider) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.regras-recebimentos-page .btn-action.btn-parcelas:hover),
+html.theme-licas :where(.btn-action.btn-parcelas:hover) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.percentual-value) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.parcela-num) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.pagador-badge) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+  border: 1px solid var(--color-divider) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.parcelas-table .table thead th) {
+  background: var(--color-accent-tint) !important;
+  border-bottom: 2px solid var(--color-divider) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.parcelas-table .table tbody td) {
+  border-bottom: 1px solid var(--color-divider) !important;
+}
+
+/* pages/regras-recebimentos.scss */
+html.theme-licas :where(.parcelas-table .table tbody tr:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/relatorio-aproveitamento.scss */
+html.theme-licas :where(.filters-card .btn-ia-analyze) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/relatorio-aproveitamento.scss */
+html.theme-licas :where(.filters-card .btn-ia-analyze:hover:not(:disabled)) {
+  box-shadow: none !important;
+}
+
+/* pages/relatorio-aproveitamento.scss */
+html.theme-licas :where(.ia-analysis-card .ia-analysis-header) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/relatorio-aproveitamento.scss */
+html.theme-licas :where(.ia-analysis-card .ia-loading .ia-loading-animation .ia-loading-brain svg) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/relatorio-aproveitamento.scss */
+html.theme-licas :where(.ia-analysis-card .ia-loading .ia-loading-animation .ia-loading-dots span) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/relatorio-aproveitamento.scss */
+html.theme-licas :where(.ia-analysis-card .ia-result .ia-result-content ul.ia-list li)::before {
+  background: var(--color-accent) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes__hero) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes__hero-copy h1 span) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes__hero .renovacoes__eyebrow) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes__hero-rule .hero-rule__icon) {
+  background: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes .hero-orb--one) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes .hero-orb--two) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes .metric-card) {
+  box-shadow: none !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes .metric-card--respostas .metric-card__icon) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes__workspace) {
+  box-shadow: none !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes__filters .form-control),
+html.theme-licas :where(.renovacoes__filters .form-select),
+html.theme-licas :where(.renovacoes__filters .input-group-text) {
+  box-shadow: none !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes__filters .form-control:focus),
+html.theme-licas :where(.renovacoes__filters .form-select:focus) {
+  border-color: var(--color-accent) !important;
+  box-shadow: none !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes .renew-row:hover) {
+  border-color: var(--color-accent) !important;
+  box-shadow: none !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes .renew-row__avatar) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes .status-EM_CONVERSA),
+html.theme-licas :where(.renovacoes .status-COTACAO_SOLICITADA) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes__drawer) {
+  box-shadow: none !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes__drawer .tratativa-form) {
+  border: 1px solid var(--color-divider) !important;
+}
+
+/* pages/renovacoes.scss */
+html.theme-licas :where(.renovacoes__drawer .timeline) {
+  border-left: 2px solid var(--color-divider) !important;
+}
+
+/* pages/reservatorio-leads.scss */
+html.theme-licas.dark-style :where(.lead-vault)::selection {
+  background: var(--color-accent) !important;
+}
+
+/* pages/reservatorio-leads.scss */
+html.theme-licas :where(.lv-button-primary:hover:not(:disabled)) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(#toast-container > div.toast-info)::after {
+  background: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(#toast-container > div.toast-info .toast-progress) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(.swal2-popup) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas.dark-style :where(.swal2-popup) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(.modal .modal-content) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas.dark-style :where(.modal .modal-content) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(.wa-ajuda-card-titulo i) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(.wa-diag-item .wa-diag-corpo .wa-diag-detalhe a) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(.wa-passo:not(:last-child))::before {
+  background: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(.wa-passo .wa-passo-numero) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(.wa-passo .wa-passo-corpo p a) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(.wa-passo .wa-passo-corpo p kbd) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(.wa-chip.roxo) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-ajuda.scss */
+html.theme-licas :where(.wa-ajuda .accordion-item .accordion-button:not(.collapsed)) {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(#toast-container > div.toast-info)::after {
+  background: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(#toast-container > div.toast-info .toast-progress) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.swal2-popup) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas.dark-style :where(.swal2-popup) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.modal .modal-content) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas.dark-style :where(.modal .modal-content) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-chat-app) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas.dark-style :where(.wa-chat-app) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-sidebar-header #wa-btn-arquivadas.ativa) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-conversa-item.ativa) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-avatar),
+html.theme-licas :where(.wa-thread-header .wa-thread-avatar) {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-tag-vendedor) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-tag-etapa) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas.dark-style :where(.wa-tag-etapa) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-msg-texto a) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-lead-bar-etapa) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas.dark-style :where(.wa-lead-bar-etapa) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-temp-chip.temp-frio.ativa) {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-vincular-item i) {
+  color: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-chat.scss */
+html.theme-licas :where(.wa-vincular-item:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* pages/whatsapp-kanban.scss */
+html.theme-licas :where(#toast-container > div.toast-info)::after {
+  background: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-kanban.scss */
+html.theme-licas :where(#toast-container > div.toast-info .toast-progress) {
+  background: var(--color-accent) !important;
+}
+
+/* pages/whatsapp-kanban.scss */
+html.theme-licas :where(.swal2-popup) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-kanban.scss */
+html.theme-licas.dark-style :where(.swal2-popup) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-kanban.scss */
+html.theme-licas :where(.modal .modal-content) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-kanban.scss */
+html.theme-licas.dark-style :where(.modal .modal-content) {
+  box-shadow: none !important;
+}
+
+/* pages/whatsapp-kanban.scss */
+html.theme-licas :where(.wa-kb-tab.ativa) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* pages/whatsapp-kanban.scss */
+html.theme-licas :where(.wa-kb-tab:hover:not(.ativa)) {
+  color: var(--color-accent) !important;
+}
+
+/* resources/views/content/pages/comercial/index.blade.php */
+html.theme-licas.light-style :where(.cronograma-empty-state) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* resources/views/content/pages/comercial/index.blade.php */
+html.theme-licas.dark-style :where(.cronograma-empty-state) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* resources/views/content/pages/comercial/remarketing.blade.php */
+html.theme-licas :where(.metric-card.primary)::before {
+  background: var(--color-accent) !important;
+}
+
+/* resources/views/content/pages/comercial/remarketing.blade.php */
+html.theme-licas :where(.metric-card.info)::before {
+  background: var(--color-accent) !important;
+}
+
+/* resources/views/content/pages/comercial/remarketing.blade.php */
+html.theme-licas :where(.metric-card.danger)::before {
+  background: var(--color-accent) !important;
+}
+
+/* resources/views/content/pages/comercial/remarketing.blade.php */
+html.theme-licas :where(.metric-card.primary .metric-icon) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* resources/views/content/pages/comercial/remarketing.blade.php */
+html.theme-licas :where(.metric-card.info .metric-icon) {
+  background: var(--color-accent-tint) !important;
+  color: var(--color-accent) !important;
+}
+
+/* resources/views/content/pages/comercial/remarketing.blade.php */
+html.theme-licas :where(.metric-card.danger .metric-icon) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas :where(.pd-btn-config) {
+  background: var(--color-accent-tint) !important;
+  border: 1px solid var(--color-divider) !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas.dark-style :where(.pd-btn-config) {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-divider) !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas :where(.pd-modal .modal-content) {
+  border: 1px solid var(--color-divider) !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas :where(.pd-modal .form-select:focus),
+html.theme-licas :where(.pd-modal .form-control:focus) {
+  box-shadow: none !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas :where(.pd-form-group .form-control:focus),
+html.theme-licas :where(.pd-form-group .form-select:focus) {
+  box-shadow: none !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas :where(.pd-peso-slider input[type="range"])::-webkit-slider-thumb {
+  box-shadow: none !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas :where(.pd-peso-slider input[type="range"]::-moz-range-thumb) {
+  box-shadow: none !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas :where(.pd-peso-value) {
+  background: var(--color-accent-tint) !important;
+  border: 1px solid var(--color-divider) !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas :where(.pd-modal .pd-btn-primary) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas :where(.pd-modal .pd-btn-primary:hover) {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas :where(.pd-valor-suggestion:hover) {
+  background: var(--color-accent-tint) !important;
+}
+
+/* resources/views/content/pages/mailing/preditiva.blade.php */
+html.theme-licas.dark-style :where(.pd-valor-suggestion:hover) {
+  background: var(--color-accent-tint) !important;
+}

@@ -195,72 +195,6 @@ html.theme-licas.dark-style {
   --dv-surface: var(--color-surface);
   --dv-warning: var(--color-warning);
   --dv-warning-soft: var(--color-warning-100);
-  --ec-border-radius: var(--radius-xl);
-  --ec-border-radius-sm: var(--radius-md);
-  --ec-card-bg: var(--color-card);
-  --ec-card-border: var(--color-divider);
-  --ec-danger: var(--color-danger);
-  --ec-danger-light: var(--color-danger);
-  --ec-danger-rgb: var(--color-danger-rgb);
-  --ec-glass-bg: var(--color-card);
-  --ec-glass-blur: 0px;
-  --ec-info: var(--color-accent);
-  --ec-info-light: var(--color-accent);
-  --ec-info-rgb: var(--color-accent-rgb);
-  --ec-primary: var(--color-accent);
-  --ec-primary-light: var(--color-accent);
-  --ec-primary-rgb: var(--color-accent-rgb);
-  --ec-shadow-glow: none;
-  --ec-shadow-lg: var(--shadow-lg);
-  --ec-shadow-md: var(--shadow-md);
-  --ec-shadow-sm: none;
-  --ec-success: var(--color-success);
-  --ec-success-light: var(--color-success);
-  --ec-success-rgb: var(--color-success-rgb);
-  --ec-table-border: var(--color-divider);
-  --ec-table-hover: var(--color-row-hover);
-  --ec-table-stripe: transparent;
-  --ec-text-muted: var(--color-text-muted);
-  --ec-text-primary: var(--color-text);
-  --ec-text-secondary: var(--color-text-muted);
-  --ec-transition: color var(--ease), background-color var(--ease), border-color var(--ease), opacity var(--ease);
-  --ec-transition-fast: color var(--ease), background-color var(--ease), border-color var(--ease), opacity var(--ease);
-  --ec-warning: var(--color-warning);
-  --ec-warning-light: var(--color-warning);
-  --ec-warning-rgb: var(--color-warning-rgb);
-  --es-border-radius: var(--radius-xl);
-  --es-border-radius-sm: var(--radius-md);
-  --es-card-bg: var(--color-card);
-  --es-card-border: var(--color-divider);
-  --es-danger: var(--color-danger);
-  --es-danger-light: var(--color-danger);
-  --es-danger-rgb: var(--color-danger-rgb);
-  --es-glass-bg: var(--color-card);
-  --es-glass-blur: 0px;
-  --es-info: var(--color-accent);
-  --es-info-light: var(--color-accent);
-  --es-info-rgb: var(--color-accent-rgb);
-  --es-primary: var(--color-accent);
-  --es-primary-light: var(--color-accent);
-  --es-primary-rgb: var(--color-accent-rgb);
-  --es-shadow-glow: none;
-  --es-shadow-lg: var(--shadow-lg);
-  --es-shadow-md: var(--shadow-md);
-  --es-shadow-sm: none;
-  --es-success: var(--color-success);
-  --es-success-light: var(--color-success);
-  --es-success-rgb: var(--color-success-rgb);
-  --es-table-border: var(--color-divider);
-  --es-table-hover: var(--color-row-hover);
-  --es-table-stripe: transparent;
-  --es-text-muted: var(--color-text-muted);
-  --es-text-primary: var(--color-text);
-  --es-text-secondary: var(--color-text-muted);
-  --es-transition: color var(--ease), background-color var(--ease), border-color var(--ease), opacity var(--ease);
-  --es-transition-fast: color var(--ease), background-color var(--ease), border-color var(--ease), opacity var(--ease);
-  --es-warning: var(--color-warning);
-  --es-warning-light: var(--color-warning);
-  --es-warning-rgb: var(--color-warning-rgb);
   --faq-border-radius: var(--radius-xl);
   --faq-border-radius-lg: var(--radius-xl);
   --faq-border-radius-sm: var(--radius-md);
@@ -594,7 +528,7 @@ html.theme-licas.dark-style {
   --rcb-card-bg: var(--color-card);
   --rcb-card-border: var(--color-divider);
   --rcb-danger: var(--color-danger);
-  --rcb-danger-light: var(--color-danger);
+  --rcb-danger-light: var(--color-danger-100);
   --rcb-danger-rgb: var(--color-danger-rgb);
   --rcb-emerald: var(--color-success);
   --rcb-emerald-dark: var(--color-success);
@@ -622,7 +556,7 @@ html.theme-licas.dark-style {
   --rcb-slate-800: var(--color-neutral-800);
   --rcb-slate-900: var(--color-neutral-900);
   --rcb-success: var(--color-success);
-  --rcb-success-light: var(--color-success);
+  --rcb-success-light: var(--color-success-100);
   --rcb-success-rgb: var(--color-success-rgb);
   --rcb-text-muted: var(--color-text-muted);
   --rcb-text-primary: var(--color-text);
@@ -630,7 +564,7 @@ html.theme-licas.dark-style {
   --rcb-transition: color var(--ease), background-color var(--ease), border-color var(--ease), opacity var(--ease);
   --rcb-transition-slow: color var(--ease), background-color var(--ease), border-color var(--ease), opacity var(--ease);
   --rcb-warning: var(--color-warning);
-  --rcb-warning-light: var(--color-warning);
+  --rcb-warning-light: var(--color-warning-100);
   --rcb-warning-rgb: var(--color-warning-rgb);
   --rm-border-radius: var(--radius-xl);
   --rm-border-radius-lg: var(--radius-xl);
@@ -859,46 +793,6 @@ html.theme-licas .ec-page {
   --ec-trans: color var(--ease), background-color var(--ease), border-color var(--ease), opacity var(--ease);
 }
 
-html.theme-licas .esc-page {
-  --esc-border-radius: var(--radius-xl);
-  --esc-border-radius-sm: var(--radius-md);
-  --esc-border-radius-xs: var(--radius-sm);
-  --esc-card-bg: var(--color-card);
-  --esc-card-border: var(--color-divider);
-  --esc-danger: var(--color-danger);
-  --esc-danger-light: var(--color-danger);
-  --esc-danger-rgb: var(--color-danger-rgb);
-  --esc-glass-bg: var(--color-card);
-  --esc-glass-blur: 0px;
-  --esc-info: var(--color-accent);
-  --esc-info-light: var(--color-accent);
-  --esc-info-rgb: var(--color-accent-rgb);
-  --esc-input-bg: var(--color-surface);
-  --esc-primary: var(--color-accent);
-  --esc-primary-light: var(--color-accent);
-  --esc-primary-rgb: var(--color-accent-rgb);
-  --esc-shadow-glow: none;
-  --esc-shadow-lg: var(--shadow-lg);
-  --esc-shadow-md: var(--shadow-md);
-  --esc-shadow-sm: none;
-  --esc-success: var(--color-success);
-  --esc-success-light: var(--color-success);
-  --esc-success-rgb: var(--color-success-rgb);
-  --esc-text-muted: var(--color-text-muted);
-  --esc-text-primary: var(--color-text);
-  --esc-text-secondary: var(--color-text-muted);
-  --esc-transition: color var(--ease), background-color var(--ease), border-color var(--ease), opacity var(--ease);
-  --esc-transition-fast: color var(--ease), background-color var(--ease), border-color var(--ease), opacity var(--ease);
-  --esc-warning: var(--color-warning);
-  --esc-warning-light: var(--color-warning);
-  --esc-warning-rgb: var(--color-warning-rgb);
-}
-
-html.theme-licas .esc-page .esc-player-frame {
-  --plyr-border-radius: var(--radius-xl);
-  --plyr-color-main: var(--color-accent);
-}
-
 html.theme-licas .estorno-mode {
   --estorno-danger: var(--color-danger);
   --estorno-danger-light: var(--color-danger);
@@ -945,27 +839,27 @@ html.theme-licas .gerenciar-leads-wrapper {
 
 html.theme-licas .gl-kpi-card.kpi-descartados {
   --kpi-color: var(--color-accent);
-  --kpi-color-light: var(--color-accent);
+  --kpi-color-light: var(--color-accent-tint);
 }
 
 html.theme-licas .gl-kpi-card.kpi-preditiva {
   --kpi-color: var(--color-accent);
-  --kpi-color-light: var(--color-accent);
+  --kpi-color-light: var(--color-accent-tint);
 }
 
 html.theme-licas .gl-kpi-card.kpi-remarketing {
   --kpi-color: var(--color-accent);
-  --kpi-color-light: var(--color-accent);
+  --kpi-color-light: var(--color-accent-tint);
 }
 
 html.theme-licas .gl-kpi-card.kpi-total {
   --kpi-color: var(--color-accent);
-  --kpi-color-light: var(--color-accent);
+  --kpi-color-light: var(--color-accent-tint);
 }
 
 html.theme-licas .gl-kpi-card.kpi-vendedor {
   --kpi-color: var(--color-accent);
-  --kpi-color-light: var(--color-accent);
+  --kpi-color-light: var(--color-accent-tint);
 }
 
 html.theme-licas .integration-manager {
@@ -1019,13 +913,13 @@ html.theme-licas .kanban-page {
 
 html.theme-licas .kpi-card.kpi-parcela {
   --kpi-color: var(--color-accent);
-  --kpi-color-light: var(--color-accent);
+  --kpi-color-light: var(--color-accent-tint);
   --kpi-color-rgb: var(--color-accent-rgb);
 }
 
 html.theme-licas .kpi-card.kpi-vitalicio {
   --kpi-color: var(--color-accent);
-  --kpi-color-light: var(--color-accent);
+  --kpi-color-light: var(--color-accent-tint);
   --kpi-color-rgb: var(--color-accent-rgb);
 }
 

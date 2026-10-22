@@ -2,6 +2,11 @@
 // As ações da tabela eram quadrados com gradiente e ícone branco; no DS (7.1) são
 // botões-ícone com contorno. Só "descartar" leva cor, porque é ação destrutiva.
 
+// Brilho decorativo atrás do cabeçalho (gradiente de 200% da largura): o DS não usa.
+html.theme-licas .ag-page-header::before {
+  display: none;
+}
+
 html.theme-licas .ag-actions {
   gap: var(--space-2);
 }

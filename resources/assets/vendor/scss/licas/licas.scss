@@ -4,6 +4,7 @@
 
 @import 'tokens';
 @import 'remap';
+@import 'hardcoded';
 @import 'base';
 @import 'shell';
 @import 'components';
@@ -11,3 +12,4 @@
 @import 'pages/agendamentos';
 @import 'pages/login';
 @import 'pages/kanban';
+@import 'notificacoes';

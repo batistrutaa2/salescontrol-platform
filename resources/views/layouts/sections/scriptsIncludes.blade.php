@@ -394,7 +394,53 @@
         toastr[tipo](mensagem, titulo, toastConfig);
     };
 
-    let notificacoesExibidas = [];
+    // Cada notificação vira toast uma única vez por usuário (ids guardados no navegador).
+    // Sem isso, toda troca de tela reexibia todas as não lidas.
+    const CHAVE_EXIBIDAS = 'notificacoes-exibidas:' + (window.userId || 0);
+    // Acima disso, toasts empilhados viram ruído: só o sino balança com o contador.
+    const LIMITE_TOASTS = 3;
+    // Tipos que o mascote assistente já entrega; não viram toast para não duplicar.
+    const TIPOS_DO_MASCOTE = ['status_venda', 'venda_estornada', 'demanda_vendedor_nova', 'demanda_vendedor_concluida'];
+
+    function lerExibidas() {
+        try {
+            const salvo = JSON.parse(localStorage.getItem(CHAVE_EXIBIDAS) || '[]');
+            return Array.isArray(salvo) ? salvo : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function salvarExibidas(ids) {
+        try {
+            localStorage.setItem(CHAVE_EXIBIDAS, JSON.stringify(ids.slice(-300)));
+        } catch (e) {
+            // Navegador sem storage: o pior caso é repetir o toast na próxima tela.
+        }
+    }
+
+    let notificacoesExibidas = lerExibidas();
+
+    function atualizarSino(total) {
+        const contador = document.querySelector('[data-notif-count]');
+        const sino = document.getElementById('nav-sino');
+        if (contador) {
+            contador.textContent = total > 99 ? '99+' : String(total);
+            contador.hidden = total === 0;
+        }
+        if (sino) {
+            sino.setAttribute('aria-label', total ? `Notificações, ${total} não lidas` : 'Notificações');
+            if (!total) sino.classList.remove('is-ringing');
+        }
+    }
+
+    function balancarSino() {
+        const sino = document.getElementById('nav-sino');
+        if (!sino) return;
+        sino.classList.add('is-ringing');
+        // Para de balançar quando a pessoa abre a lista.
+        sino.addEventListener('show.bs.dropdown', () => sino.classList.remove('is-ringing'), { once: true });
+    }
 
     function listaNotificacoes(res) {
         if (Array.isArray(res)) return res;
@@ -523,26 +569,23 @@
         $.get("{{ route('notificacoes.novas') }}")
             .done(function(res) {
                 const lista = listaNotificacoes(res);
-                lista.forEach(n => {
-                    if (!n?.id || notificacoesExibidas.includes(n.id)) return;
+                atualizarSino(lista.length);
 
-                    // Avisos entregues pelo mascote assistente (status de proposta e
-                    // demandas de pós-venda) não viram toast genérico, para não duplicar.
-                    const tipoN = n?.data?.tipo;
-                    if (['status_venda', 'venda_estornada', 'demanda_vendedor_nova', 'demanda_vendedor_concluida'].includes(tipoN)) return;
+                const novas = lista.filter(n => n?.id && !notificacoesExibidas.includes(n.id));
+                if (!novas.length) return;
 
-                    const {
-                        nivel,
-                        tituloToast,
-                        htmlMsg
-                    } = montarToast(n);
-                    (toastr[nivel] || toastr.info)(htmlMsg, tituloToast);
+                const paraToast = novas.filter(n => !TIPOS_DO_MASCOTE.includes(n?.data?.tipo));
+                if (paraToast.length > LIMITE_TOASTS) {
+                    balancarSino();
+                } else {
+                    paraToast.forEach(n => {
+                        const { nivel, tituloToast, htmlMsg } = montarToast(n);
+                        (toastr[nivel] || toastr.info)(htmlMsg, tituloToast);
+                    });
+                }
 
-                    notificacoesExibidas.push(n.id);
-                    if (notificacoesExibidas.length > 200) {
-                        notificacoesExibidas = notificacoesExibidas.slice(-100);
-                    }
-                });
+                notificacoesExibidas = notificacoesExibidas.concat(novas.map(n => n.id));
+                salvarExibidas(notificacoesExibidas);
             })
             .fail(function(err) {
                 console.warn("Erro ao buscar notificações:", err);

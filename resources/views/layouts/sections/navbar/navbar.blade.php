@@ -150,13 +150,13 @@
     </ul>
 
     <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-4 me-xl-1">
-        <a class="nav-link btn btn-text-secondary rounded-pill btn-icon dropdown-toggle hide-arrow" href="#"
-            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-            <i class="ri-notification-2-line ri-22px"></i>
-            @if ($notifications->count() > 0)
-                <span
-                    class="position-absolute top-0 start-50 translate-middle-y badge badge-dot bg-danger mt-2 border"></span>
-            @endif
+        @php $naoLidas = $notifications->count(); @endphp
+        {{-- O contador e o balanço do sino são atualizados pelo buscarNotificacoes() (scriptsIncludes). --}}
+        <a id="nav-sino" class="nav-link btn btn-text-secondary rounded-pill btn-icon dropdown-toggle hide-arrow position-relative" href="#"
+            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+            aria-label="Notificações{{ $naoLidas ? ', '.$naoLidas.' não lidas' : '' }}">
+            <i class="ri-notification-2-line ri-22px" aria-hidden="true"></i>
+            <span class="notif-count" data-notif-count @if (!$naoLidas) hidden @endif>{{ $naoLidas > 99 ? '99+' : $naoLidas }}</span>
         </a>
 
         <ul class="dropdown-menu dropdown-menu-end py-0">
