@@ -179,11 +179,6 @@
               <input class="op-input" type="text" id="op-rules-color" value="${esc(o.cor_marca || '#334155')}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" placeholder="#334155">
             </div>
           </div>
-          <div class="op-rules-field op-rules-logo-field">
-            <label for="op-rules-logo">Logo no estudo comercial</label>
-            <input class="op-input" type="text" id="op-rules-logo" value="${esc(o.logo_path || '')}" maxlength="500" placeholder="assets/img/logos/operadora.png" aria-describedby="op-rules-logo-help">
-            <small id="op-rules-logo-help">Caminho em assets/ ou URL HTTPS. Deixe vazio para exibir apenas o nome.</small>
-          </div>
           <div class="op-rules-field">
             <label for="op-rules-app-ios">Aplicativo para iPhone</label>
             <input class="op-input" type="url" id="op-rules-app-ios" value="${esc(o.app_ios_url || '')}" maxlength="500" placeholder="https://apps.apple.com/..." inputmode="url" aria-describedby="op-rules-app-ios-help">
@@ -298,7 +293,6 @@
       angariacao_padrao: $('op-rules-angariacao').checked,
       iof_percentual: Number.parseFloat($('op-rules-iof').value || '0'),
       cor_marca: $('op-rules-color').value.trim(),
-      logo_path: $('op-rules-logo').value.trim() || null,
       app_ios_url: $('op-rules-app-ios').value.trim() || null,
       app_android_url: $('op-rules-app-android').value.trim() || null,
     });

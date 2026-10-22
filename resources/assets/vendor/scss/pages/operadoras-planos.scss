@@ -83,7 +83,6 @@
 .op-rules-field label { display: block; margin-bottom: 0.3rem; color: var(--op-text); font-size: 0.72rem; font-weight: 700; }
 .op-rules-field small { display: block; margin-top: 0.3rem; color: var(--op-text-muted); font-size: 0.68rem; line-height: 1.4; }
 .op-rules-field .op-input { width: 100%; }
-.op-rules-logo-field { grid-column: 1 / -1; }
 .op-color-field { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0.5rem; }
 .op-color-field input[type='color'] { width: 44px; height: 42px; padding: 3px; border: 1px solid var(--op-border); border-radius: 8px; background: var(--op-card-bg); cursor: pointer; }
 .op-rules-check { min-height: 42px; align-items: center; }
@@ -208,7 +207,6 @@
   .op-rules-heading { flex-direction: column; }
   .op-rules-form { grid-template-columns: 1fr; align-items: stretch; }
   .op-rules-form .op-btn { justify-content: center; min-height: 44px; }
-  .op-rules-logo-field { grid-column: auto; }
   .op-input { font-size: 1rem; }
   .op-directory { grid-template-columns: 1fr; }
   .op-directory-icon { display: none; }

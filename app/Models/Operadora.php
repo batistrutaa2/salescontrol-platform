@@ -26,7 +26,6 @@ class Operadora extends Model
         'angariacao_padrao',
         'iof_percentual',
         'cor_marca',
-        'logo_path',
         'app_ios_url',
         'app_android_url',
         'status',

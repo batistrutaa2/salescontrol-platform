@@ -723,7 +723,7 @@ class Backoffice extends Controller
 
         $operadoras = Operadora::where('empresa_id', $empresaId)
             ->orderBy('nome')
-            ->get(['id', 'nome', 'diretorio_documentos', 'coparticipacao_formato', 'angariacao_padrao', 'iof_percentual', 'cor_marca', 'logo_path', 'app_ios_url', 'app_android_url', 'status'])
+            ->get(['id', 'nome', 'diretorio_documentos', 'coparticipacao_formato', 'angariacao_padrao', 'iof_percentual', 'cor_marca', 'app_ios_url', 'app_android_url', 'status'])
             ->map(fn ($op) => [
                 'id' => $op->id,
                 'nome' => $op->nome,
@@ -732,7 +732,6 @@ class Backoffice extends Controller
                 'angariacao_padrao' => $op->angariacao_padrao,
                 'iof_percentual' => $op->iof_percentual,
                 'cor_marca' => $op->cor_marca,
-                'logo_path' => $op->logo_path,
                 'app_ios_url' => $op->app_ios_url,
                 'app_android_url' => $op->app_android_url,
                 'status' => $op->status,
@@ -770,20 +769,6 @@ class Backoffice extends Controller
             'angariacao_padrao' => ['required', 'boolean'],
             'iof_percentual' => ['sometimes', 'numeric', 'min:0', 'max:100'],
             'cor_marca' => ['sometimes', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'logo_path' => ['sometimes', 'nullable', 'string', 'max:500', function (string $attribute, mixed $value, \Closure $fail) {
-                if ($value === null || $value === '') {
-                    return;
-                }
-
-                $urlValida = str_starts_with($value, 'https://') && filter_var($value, FILTER_VALIDATE_URL);
-                $caminhoLocalSeguro = str_starts_with($value, 'assets/')
-                    && ! str_contains($value, '..')
-                    && preg_match('/^assets\/[A-Za-z0-9_.\/-]+$/', $value);
-
-                if (! $urlValida && ! $caminhoLocalSeguro) {
-                    $fail('Informe uma URL HTTPS ou um caminho local iniciado por assets/.');
-                }
-            }],
             'app_ios_url' => $this->regrasUrlHttpsOpcional(),
             'app_android_url' => $this->regrasUrlHttpsOpcional(),
         ]);

@@ -122,7 +122,6 @@ class OperadorasPlanosTest extends TestCase
                 'angariacao_padrao' => true,
                 'iof_percentual' => 1.75,
                 'cor_marca' => '#123ABC',
-                'logo_path' => 'assets/img/logos/operadora.png',
                 'app_ios_url' => 'https://apps.apple.com/app/id123456',
                 'app_android_url' => 'https://play.google.com/store/apps/details?id=example.app',
             ])
@@ -136,7 +135,6 @@ class OperadorasPlanosTest extends TestCase
             'angariacao_padrao' => 1,
             'iof_percentual' => 1.75,
             'cor_marca' => '#123ABC',
-            'logo_path' => 'assets/img/logos/operadora.png',
             'app_ios_url' => 'https://apps.apple.com/app/id123456',
             'app_android_url' => 'https://play.google.com/store/apps/details?id=example.app',
         ]);
@@ -164,22 +162,6 @@ class OperadorasPlanosTest extends TestCase
             'coparticipacao_formato' => 'SIM_NAO',
             'angariacao_padrao' => 0,
         ]);
-    }
-
-    public function test_rejeita_logo_insegura_na_configuracao_da_operadora(): void
-    {
-        $operadora = $this->criarOperadora($this->empresa->id, 'OPERADORA SEGURA');
-
-        $this->actingAs($this->admin)
-            ->patchJson(route('backoffice.operadoras.updateRegrasComerciais', $operadora), [
-                'coparticipacao_formato' => 'SIM_NAO',
-                'angariacao_padrao' => false,
-                'iof_percentual' => 0,
-                'cor_marca' => '#334155',
-                'logo_path' => 'javascript:alert(1)',
-            ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['logo_path']);
     }
 
     public function test_rejeita_link_de_aplicativo_sem_https(): void
